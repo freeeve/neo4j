@@ -1,0 +1,40 @@
+{
+  "request": {
+    "urlPath": "/openai/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-azure-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "text": {
+            "format": {
+              "type": "json_schema",
+              "strict": true
+            }
+          },
+          "input": [
+            { "role": "user", "content": "Hello!" }
+          ]
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "openai-v1-responses-create-structured-response.json",
+    "transformers": ["response-template"],
+    "transformerParameters": {
+      "answer": "{\\\"answer\\\":\\\"Hi there! How can I help today? I can explain concepts, answer questions, draft or edit emails, brainstorm ideas, translate text, summarize articles, help with coding, plan trips, make checklists, and more.\\\"}"
+    }
+  }
+}

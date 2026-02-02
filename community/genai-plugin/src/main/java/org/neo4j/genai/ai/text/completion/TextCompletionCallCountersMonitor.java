@@ -23,4 +23,8 @@ import org.neo4j.genai.util.GenAIMonitor;
 
 public interface TextCompletionCallCountersMonitor extends GenAIMonitor {
     void textCompletionFunctionCalled(String provider);
+
+    void textStructuredCompletionFunctionCalled(String provider);
+
+    void textChatFunctionCalled(String provider);
 }

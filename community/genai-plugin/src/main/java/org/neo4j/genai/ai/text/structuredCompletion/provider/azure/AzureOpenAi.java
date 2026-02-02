@@ -17,27 +17,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.embed.provider.azure;
+package org.neo4j.genai.ai.text.structuredCompletion.provider.azure;
 
 import static org.neo4j.genai.util.Parameters.parse;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.GenAIConfig;
-import org.neo4j.genai.ai.text.embed.VectorEmbedding;
-import org.neo4j.genai.ai.text.embed.provider.openai.OpenAiBase;
+import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
+import org.neo4j.genai.ai.text.structuredCompletion.provider.openai.OpenAiBase;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.UrlPath;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
-public class AzureOpenAi implements VectorEmbedding.Provider {
+public class AzureOpenAi implements TextStructuredCompletion.Provider {
     private static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s.openai.azure.com";
-    private static final String DEFAULT_API_PATH = "/openai/v1/embeddings";
+    private static final String DEFAULT_API_PATH = "/openai/v1/responses";
     private final Function<Parameters, URI> baseUriResolver;
 
     public AzureOpenAi() {
@@ -54,6 +55,7 @@ public class AzureOpenAi implements VectorEmbedding.Provider {
         public String resource;
         public String model;
         public Map<String, Object> vendorOptions = Map.of();
+        public List<Map<String, Object>> chatHistory = List.of();
     }
 
     @Override
@@ -90,13 +92,18 @@ public class AzureOpenAi implements VectorEmbedding.Provider {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
         }
+
+        @Override
+        public List<Map<String, Object>> chatHistory() {
+            return params.chatHistory;
+        }
     }
 
     private static class DefaultBaseUriResolver implements Function<Parameters, URI> {
         @Override
         public URI apply(Parameters parameters) {
-            final var region = UrlPath.pathSafe(parameters.resource);
-            return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
+            final var resource = UrlPath.pathSafe(parameters.resource);
+            return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(resource));
         }
     }
 }

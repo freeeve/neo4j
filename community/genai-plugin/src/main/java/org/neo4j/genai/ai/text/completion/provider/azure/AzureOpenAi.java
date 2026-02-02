@@ -25,14 +25,13 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.completion.provider.openai.OpenAiBase;
 import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.UrlPath;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 
@@ -40,8 +39,6 @@ import org.neo4j.values.virtual.MapValue;
 public class AzureOpenAi implements TextCompletion.Provider {
     private static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s.openai.azure.com";
     private static final String DEFAULT_API_PATH = "/openai/v1/responses";
-    private static final Predicate<String> URI_SAFE =
-            Pattern.compile("^[a-zA-Z0-9-_.]+$").asMatchPredicate();
     private final Function<Parameters, URI> baseUriResolver;
 
     public AzureOpenAi() {
@@ -104,15 +101,8 @@ public class AzureOpenAi implements TextCompletion.Provider {
     private static class DefaultBaseUriResolver implements Function<Parameters, URI> {
         @Override
         public URI apply(Parameters parameters) {
-            final var region = pathSafe(parameters.resource, "resource");
+            final var region = UrlPath.pathSafe(parameters.resource, "resource");
             return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
         }
-    }
-
-    protected static String pathSafe(String pathPart, String name) {
-        if (URI_SAFE.test(pathPart)) {
-            return pathPart;
-        }
-        throw new IllegalArgumentException("Not a valid '%s': %s".formatted(name, pathPart));
     }
 }

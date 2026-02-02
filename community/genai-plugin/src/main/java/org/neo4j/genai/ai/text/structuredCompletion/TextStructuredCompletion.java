@@ -17,13 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.chat;
+package org.neo4j.genai.ai.text.structuredCompletion;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.genai.GenAIConfig;
@@ -41,10 +38,11 @@ import org.neo4j.procedure.Sensitive;
 import org.neo4j.procedure.UserFunction;
 import org.neo4j.values.virtual.MapValue;
 
-public class TextChat {
+public class TextStructuredCompletion {
     private static final String CONF_DESC =
-            "Provider specific configuration, use `CALL ai.text.chat.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.";
-    private static final String PROVIDER_DESC = "The identifier of the provider: 'Azure-OpenAI', 'OpenAI'.";
+            "Provider specific configuration, use `CALL ai.text.structuredCompletion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.";
+    private static final String PROVIDER_DESC =
+            "The identifier of the provider: 'Azure-OpenAI', 'Bedrock', 'OpenAI', 'VertexAI'.";
 
     @Context
     public Providers providers;
@@ -55,51 +53,42 @@ public class TextChat {
     @Context
     public GenAIConfig genAIConfig;
 
-    @UserFunction(name = "ai.text.chat")
+    @UserFunction(name = "ai.text.structuredCompletion")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    @Description("Chat based on the specified prompt, optionally continuing a previous interaction.")
-    public Map<String, String> chat(
-            @Name(value = "prompt", description = "The user message to send.") String prompt,
-            @Name(
-                            value = "chatId",
-                            description =
-                                    "Previous chat ID to continue the conversation. If this is the first message in the conversation, set it to null.")
-                    String previousResponseId,
+    @Description("Generate structured output as a map based on the specified prompt and JSON schema.")
+    public MapValue complete(
+            @Name(value = "prompt", description = "The prompt to generate output from.") String prompt,
+            @Name(value = "schema", description = "A map describing the JSON schema for the desired output.")
+                    MapValue schema,
             @Name(value = "provider", description = PROVIDER_DESC) String providerName,
             @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
                     MapValue configuration) {
         requireNonNull(providerName, "'provider' must not be null");
         requireNonNull(configuration, "'configuration' must not be null");
+        requireNonNull(schema, "'schema' must not be null");
+        if (schema.isEmpty()) {
+            // A result cannot be contained within the schema, so return an empty map
+            return schema;
+        }
         final var provider = providers.configure(providerName, configuration, genAIConfig);
-        monitors.textCompletion().textChatFunctionCalled(provider.metricsName());
-        if (prompt == null) return null;
-        final var result = provider.chat(prompt, Optional.ofNullable(previousResponseId));
-        return Map.of(
-                "message", result.message,
-                "chatId", result.chatId);
+        monitors.textCompletion().textStructuredCompletionFunctionCalled(provider.metricsName());
+        return prompt == null ? null : provider.complete(prompt, schema);
     }
 
-    @Procedure(name = "ai.text.chat.providers")
+    @Procedure(name = "ai.text.structuredCompletion.providers")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
-    @Description("Lists the available text chat providers.")
+    @Description("Lists the available structured text completion providers.")
     public Stream<ProviderRow> listProviders() {
-        return providers.providers().stream().map(ProviderRow::from).sorted(Comparator.comparing(ProviderRow::name));
+        return providers.providers().stream().map(ProviderRow::from);
     }
 
     public interface Provider extends NamedProvider {
         Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig);
 
         interface Implementation extends NamedProvider.Implementation {
-            ChatResult chat(String prompt, Optional<String> previousResponseId);
+            MapValue complete(String prompt, MapValue schema);
         }
     }
-
-    public record ChatResult(
-            @Description("The returned response from the given provider.")
-            String message,
-
-            @Description("The chat ID that can be used to continue this conversation.")
-            String chatId) {}
 
     public interface Providers extends NamedProvider.Lookup<Provider> {
         Provider.Implementation configure(String name, MapValue configuration, GenAIConfig genAIConfig);

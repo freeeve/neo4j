@@ -19,24 +19,22 @@
  */
 package org.neo4j.genai.ai.text.chat.provider.openai;
 
-import static org.neo4j.genai.util.HttpService.jsonBody;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
+import org.neo4j.genai.ai.provider.openai.OpenAiRequestSupport;
 import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 
-public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation {
+public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation, OpenAiRequestSupport {
     URI endpoint();
 
     HttpService httpService();
@@ -50,18 +48,7 @@ public interface OpenAiChatBase<PARAMS> extends TextChat.Provider.Implementation
     @Override
     default TextChat.ChatResult chat(String prompt, Optional<String> previousResponseId) {
         final var payload = payload(List.of(prompt), previousResponseId);
-        final var response = httpService()
-                .request(
-                        endpoint(),
-                        builder -> builder.headers(
-                                        "Content-Type",
-                                        "application/json; charset=" + StandardCharsets.UTF_8,
-                                        "Accept",
-                                        "application/json")
-                                .headers(authHeader())
-                                .POST(jsonBody(payload))
-                                .build(),
-                        OpenAiChatBase::parseResponse);
+        final var response = postJson(payload, OpenAiChatBase::parseResponse);
         if (response.messages().size() != 1) {
             throw new MalformedGenAIResponseException("Expected exactly one message, but found "
                     + response.messages().size());

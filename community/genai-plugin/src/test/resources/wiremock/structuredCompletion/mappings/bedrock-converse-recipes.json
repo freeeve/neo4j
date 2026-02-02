@@ -1,0 +1,56 @@
+{
+  "request": {
+    "urlPath": "/model/some-model/converse",
+    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [ { "text": "Hello! Can you give me a list of 10 cookie recipes, just their name and description" } ]
+            }
+          ],
+          "toolConfig": {
+            "tools": [
+              {
+                "toolSpec": {
+                  "name": "reply_with_defined_schema",
+                  "description": "Respond to the user's question with the defined input schema",
+                  "inputSchema": {
+                    "json": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "recipes": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "name": { "type": "string" },
+                              "description": { "type": "string" }
+                            },
+                            "required": ["name", "description"]
+                          }
+                        }
+                      },
+                      "required": ["recipes"]
+                    }
+                  }
+                }
+              }
+            ],
+            "toolChoice": { "tool": { "name": "reply_with_defined_schema" } }
+          }
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "bedrock-converse-structured-recipes.json"
+  }
+}

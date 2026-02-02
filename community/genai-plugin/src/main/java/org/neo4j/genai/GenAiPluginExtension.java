@@ -26,6 +26,7 @@ import org.neo4j.function.ThrowingFunction;
 import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
+import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.provider.GlobalProviders;
 import org.neo4j.genai.util.provider.NamedProvider;
@@ -69,6 +70,7 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
                 registerSafe(HttpService.class, httpService);
                 registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
                 registerSafe(TextChat.Providers.class, TxtChatProv.from(httpService, providers));
+                registerSafe(TextStructuredCompletion.Providers.class, TxtCompStructProv.from(httpService, providers));
                 registerSafe(VectorEmbedding.Providers.class, VectorEncodingCompProv.from(httpService, providers));
 
                 // This component is used by metrics, can't use context.
@@ -113,6 +115,17 @@ record TxtCompProv(HttpServiceProvider httpService, ImmutableList<TextCompletion
 
     public static TxtCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
         return new TxtCompProv(httpService, globalProviders.providers(TextCompletion.Provider.class));
+    }
+}
+
+record TxtCompStructProv(HttpServiceProvider httpService, ImmutableList<TextStructuredCompletion.Provider> providers)
+        implements ProcedureProvider<TextStructuredCompletion.Providers> {
+    public TextStructuredCompletion.Providers apply(Context context) throws ProcedureException {
+        return new TextStructuredCompletion.Providers.Impl(providers, httpService.apply(context));
+    }
+
+    public static TxtCompStructProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new TxtCompStructProv(httpService, globalProviders.providers(TextStructuredCompletion.Provider.class));
     }
 }
 

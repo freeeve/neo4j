@@ -1,0 +1,42 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/tasman/publishers/google/models/gemini-3:generateContent",
+    "queryParameters": {
+      "key": { "equalTo": "dummy-api-key" }
+    },
+    "method": "POST",
+    "headers": {
+      "Content-Type": { "equalTo": "application/json; charset=UTF-8" }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [ { "text": "Hello!" } ]
+            }
+          ],
+          "generation_config": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+              "type": "object",
+              "properties": { "answer": { "type": "string" } },
+              "required": ["answer"]
+            }
+          }
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "vertexai-generate-response.json",
+    "transformers": ["response-template"],
+    "transformerParameters": {
+      "answer": "{\\\"answer\\\":\\\"Hi there! How can I help today? I can explain concepts, answer questions, draft or edit emails, brainstorm ideas, translate text, summarize articles, help with coding, plan trips, make checklists, and more.\\\"}"
+    }
+  }
+}

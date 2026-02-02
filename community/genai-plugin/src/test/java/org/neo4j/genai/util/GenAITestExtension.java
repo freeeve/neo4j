@@ -29,6 +29,7 @@ import org.assertj.core.api.MapAssert;
 import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
+import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
 import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding;
 import org.neo4j.graphdb.Result;
@@ -46,6 +47,7 @@ public interface GenAITestExtension {
                 DeprecatedVectorEncoding.class,
                 VectorDatabases.class,
                 TextCompletion.class,
+                TextStructuredCompletion.class,
                 TextChat.class,
                 VectorEmbedding.class);
     }

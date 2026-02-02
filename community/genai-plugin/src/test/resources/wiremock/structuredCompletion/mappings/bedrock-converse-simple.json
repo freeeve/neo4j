@@ -1,0 +1,43 @@
+{
+  "request": {
+    "urlPath": "/model/some-model/converse",
+    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [ { "text": "Hello!" } ]
+            }
+          ],
+          "toolConfig": {
+            "tools": [
+              {
+                "toolSpec": {
+                  "name": "reply_with_defined_schema",
+                  "description": "Respond to the user's question with the defined input schema",
+                  "inputSchema": {
+                    "json": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": { "answer": { "type": "string" } },
+                      "required": ["answer"]
+                    }
+                  }
+                }
+              }
+            ],
+            "toolChoice": { "tool": { "name": "reply_with_defined_schema" } }
+          }
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "bedrock-converse-structured-hello.json"
+  }
+}

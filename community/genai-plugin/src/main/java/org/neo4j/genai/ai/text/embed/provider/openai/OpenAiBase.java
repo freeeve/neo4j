@@ -21,30 +21,30 @@ package org.neo4j.genai.ai.text.embed.provider.openai;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 
-import java.io.IOException;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.net.http.HttpRequest;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
+import org.neo4j.genai.ai.provider.openai.OpenAiRequestSupport;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.util.VisibleForTesting;
+import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 
-public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementation {
+public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementation, OpenAiRequestSupport {
     String ENCODING_FORMAT = "float";
 
     URI endpoint();
-
-    String providerName();
 
     HttpService httpService();
 
@@ -53,15 +53,6 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
     String[] authHeader();
 
     void extendPayload(MutableMap<String, Object> payload);
-
-    /**
-     * Allows customisation of a {@link HttpRequest request} during its built-time.
-     * @param builder the request builder to customise
-     * @return the customised builder
-     */
-    private HttpRequest.Builder customize(HttpRequest.Builder builder) {
-        return builder;
-    }
 
     @Override
     default VectorValue encode(String resource) {
@@ -79,43 +70,42 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
     }
 
     private Stream<VectorEmbedding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
-        return httpService()
-                .request(
-                        endpoint(),
-                        builder -> customize(builder.headers(
-                                                "Content-Type",
-                                                "application/json; charset=" + StandardCharsets.UTF_8,
-                                                "Accept",
-                                                "application/json")
-                                        .headers(authHeader())
-                                        .POST(HttpService.pipe(
-                                                outputStream -> writeRequestPayload(outputStream, resources))))
-                                .build(),
-                        inputStream -> parseResponse(resources, inputStream, nullIndexes));
+        return postJson(buildPayload(resources), inputStream -> parseResponse(resources, inputStream, nullIndexes));
     }
 
-    private Stream<VectorEmbedding.InternalBatchRow> parseResponse(
-            List<String> resources, InputStream inputStream, int[] nullIndexes) {
-        return parseResponse(providerName(), resources, inputStream, nullIndexes);
-    }
-
-    /*
-    relevant part of response:
-        {
-            "data": [
-                (vector:List<Double>),
-                (vector:List<Double>),
-                ...,
-                (vector:List<Double>)
-            ]
-        }
-    */
     @VisibleForTesting
-    public static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
-            String providerName, List<String> resources, InputStream inputStream, int[] nullIndexes)
-            throws MalformedGenAIResponseException {
-        final String[] properties = {"embedding"};
-        return JsonUtils.parseResponse(providerName, "data", properties, resources, inputStream, nullIndexes);
+    static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
+            List<String> resources, InputStream inputStream, int[] nullIndexes) throws MalformedGenAIResponseException {
+        final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
+
+        final var data = response.data();
+        if (data == null) {
+            throw new MalformedGenAIResponseException("Expected response to contain 'data' array");
+        }
+        if (data.size() != resources.size()) {
+            throw new MalformedGenAIResponseException(
+                    ("Expected to receive %d embeddings; however got %d").formatted(resources.size(), data.size()));
+        }
+
+        final var offset = new MutableInt();
+        return IntStream.range(0, resources.size() + nullIndexes.length).mapToObj(index -> {
+            try {
+                if (Arrays.binarySearch(nullIndexes, index) >= 0) {
+                    offset.increment();
+                    return new VectorEmbedding.InternalBatchRow(index, null, null);
+                }
+                final int offsetIndex = index - offset.intValue();
+                final var vector = data.get(offsetIndex).embedding();
+                if (vector == null) {
+                    throw new MalformedGenAIResponseException(
+                            "Expected embedding to be present at index " + offsetIndex);
+                }
+                return new VectorEmbedding.InternalBatchRow(
+                        index, resources.get(offsetIndex), Values.float32Vector(vector));
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        });
     }
 
     /*
@@ -140,11 +130,17 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
         return payload;
     }
 
-    private void writeRequestPayload(OutputStream out, List<String> resources) {
-        try {
-            JsonUtils.getObjectMapper().writeValue(out, buildPayload(resources));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    /*
+     * Expected shape (subset):
+     * {
+     *   "data": [ { "embedding": [float, ...] }, ... ]
+     * }
+     */
+    interface ResponseModel {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Data(@JsonProperty(required = true) float[] embedding) {}
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        record Response(@JsonProperty(required = true) List<Data> data) {}
     }
 }

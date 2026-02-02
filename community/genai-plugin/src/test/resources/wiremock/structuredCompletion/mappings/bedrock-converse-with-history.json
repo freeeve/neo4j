@@ -1,0 +1,43 @@
+{
+  "request": {
+    "urlPath": "/model/some-model/converse",
+    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            { "role": "user", "content": [ { "text": "What is the capital of France?" } ] },
+            { "role": "assistant", "content": [ { "text": "The capital of France is Paris." } ] },
+            { "role": "user", "content": [ { "text": "What country is Paris in?" } ] }
+          ],
+          "toolConfig": {
+            "tools": [
+              {
+                "toolSpec": {
+                  "name": "reply_with_defined_schema",
+                  "description": "Respond to the user's question with the defined input schema",
+                  "inputSchema": {
+                    "json": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": { "answer": { "type": "string" } },
+                      "required": ["answer"]
+                    }
+                  }
+                }
+              }
+            ],
+            "toolChoice": { "tool": { "name": "reply_with_defined_schema" } }
+          }
+        },
+        "ignoreArrayOrder": true,
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "bedrock-converse-structured-paris.json"
+  }
+}

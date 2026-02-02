@@ -1,0 +1,40 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
+    "method": "POST",
+    "headers": {
+      "Content-Type": { "equalTo": "application/json; charset=UTF-8" },
+      "Authorization": { "equalTo": "Bearer dummy-vertex-token" }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            { "role": "user", "parts": [ { "text": "What is the capital of France?" } ] },
+            { "role": "model", "parts": [ { "text": "The capital of France is Paris." } ] },
+            { "role": "user", "parts": [ { "text": "What country is Paris in?" } ] }
+          ],
+          "generation_config": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+              "type": "object",
+              "properties": { "answer": { "type": "string" } },
+              "required": ["answer"]
+            },
+            "maxOutputTokens": 2048
+          }
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "vertexai-generate-response.json",
+    "transformers": ["response-template"],
+    "transformerParameters": {
+      "answer": "{\\\"answer\\\":\\\"Paris is in France.\\\"}"
+    }
+  }
+}

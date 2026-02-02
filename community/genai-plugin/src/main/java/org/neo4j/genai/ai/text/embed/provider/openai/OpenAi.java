@@ -78,11 +78,6 @@ public class OpenAi implements VectorEmbedding.Provider {
             implements OpenAiBase<Parameters> {
 
         @Override
-        public String providerName() {
-            return name;
-        }
-
-        @Override
         public String[] authHeader() {
             return new String[] {"Authorization", "Bearer " + params.token};
         }

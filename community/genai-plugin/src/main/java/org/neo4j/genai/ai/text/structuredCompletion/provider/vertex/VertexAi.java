@@ -17,12 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.completion.provider.vertex;
+package org.neo4j.genai.ai.text.structuredCompletion.provider.vertex;
 
 import static org.neo4j.genai.util.HttpService.jsonBody;
 import static org.neo4j.genai.util.Parameters.parse;
+import static org.neo4j.genai.util.Parameters.toJavaMap;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -33,9 +36,10 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.GenAIConfig;
-import org.neo4j.genai.ai.text.completion.TextCompletion;
+import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
@@ -43,7 +47,7 @@ import org.neo4j.genai.util.UrlPath;
 import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
-public class VertexAi implements TextCompletion.Provider {
+public class VertexAi implements TextStructuredCompletion.Provider {
     protected static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s-aiplatform.googleapis.com";
     private static final String DEFAULT_API_PATH_TEMPLATE =
             "v1/projects/%s/locations/%s/publishers/%s/models/%s:generateContent";
@@ -80,22 +84,22 @@ public class VertexAi implements TextCompletion.Provider {
     }
 
     @Override
-    public Implementation configure(HttpService httpService, MapValue conf, GenAIConfig genAIConfig) {
-        final var params = parse(Parameters.class, conf);
+    public Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig) {
+        final var params = parse(Parameters.class, configuration);
         if (params.token.isEmpty() && params.apiKey.isEmpty()) {
             throw new IllegalArgumentException("'token or apiKey' is expected to have been set");
         } else if (params.token.isPresent() && params.apiKey.isPresent()) {
             throw new IllegalArgumentException("Only one of either 'token' or ' apiKey' is expected to have been set");
         }
-        return new Implementation(name(), endpoint(params), httpService, params);
+        return new Impl(name(), endpoint(params), httpService, params);
     }
 
-    private record Implementation(String name, URI endpoint, HttpService httpService, Parameters params)
-            implements TextCompletion.Provider.Implementation {
+    private record Impl(String name, URI endpoint, HttpService httpService, Parameters params)
+            implements TextStructuredCompletion.Provider.Implementation {
 
         @Override
-        public String complete(String prompt) {
-            final Object payload = buildPayload(prompt);
+        public MapValue complete(String prompt, MapValue schema) {
+            final var payload = buildPayload(prompt, schema);
 
             URI requestEndpoint = endpoint;
             if (params.apiKey.isPresent()) {
@@ -115,36 +119,55 @@ public class VertexAi implements TextCompletion.Provider {
                                 }
                                 return b.POST(jsonBody(payload)).build();
                             },
-                            Implementation::parseResponse);
-            if (response.size() != 1) {
-                throw new MalformedGenAIResponseException("Expected exactly one message, but found " + response.size());
-            }
-            return response.getFirst();
+                            Impl::parseResponse);
+            return org.neo4j.kernel.impl.util.ValueUtils.asMapValue(response);
         }
 
-        private static List<String> parseResponse(InputStream inputStream) {
+        private static Map<String, Object> parseResponse(InputStream inputStream) {
             final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
-            return response.candidates().stream()
-                    .filter(c -> "model".equals(c.content().role()))
-                    .flatMap(c -> c.content().parts().stream())
-                    .map(ResponseModel.Part::text)
-                    .toList();
+            // We expect the model to return JSON string as text in the first candidate's parts
+            for (var c : response.candidates()) {
+                if (c.content() == null || c.content().parts() == null) continue;
+                for (var p : c.content().parts()) {
+                    if (p.text() != null) {
+                        try {
+                            return new ObjectMapper().readValue(p.text(), new TypeReference<>() {});
+                        } catch (Exception e) {
+                            throw new MalformedGenAIResponseException(
+                                    "Failed to parse structured response: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            throw new MalformedGenAIResponseException("No parsed content in response");
         }
 
-        private Map<String, Object> buildPayload(String prompt) {
-            final var payload = Maps.mutable.ofMap(params.vendorOptions);
+        private Map<String, Object> buildPayload(String prompt, MapValue schemaValue) {
+            final MutableMap<String, Object> payload = Maps.mutable.empty();
+
+            // contents
             final var newContent =
                     Map.of("role", "user", "parts", Lists.immutable.of(Maps.immutable.of("text", prompt)));
 
-            List<Map<String, Object>> contents;
+            List<Map<String, Object>> contents = new java.util.ArrayList<>();
             if (params.chatHistory != null && !params.chatHistory.isEmpty()) {
-                contents = params.chatHistory;
-                contents.add(newContent);
-            } else {
-                contents = List.of(newContent);
+                contents.addAll(params.chatHistory);
             }
-
+            contents.add(newContent);
             payload.put("contents", contents);
+
+            // generation_config
+            var schema = toJavaMap(schemaValue);
+            final var generationConfig = Maps.mutable.<String, Object>empty();
+            generationConfig.put("responseMimeType", "application/json");
+            generationConfig.put("responseSchema", schema);
+            // Merge vendorOptions into generation_config, as used for options like maxOutputTokens
+            if (params.vendorOptions != null && !params.vendorOptions.isEmpty()) {
+                generationConfig.putAll(Maps.mutable.ofMap(params.vendorOptions));
+            }
+            payload.put("generation_config", generationConfig);
+
+            // model must be part of the path; nothing to add here beyond vendorOptions
             return payload;
         }
     }
@@ -159,15 +182,13 @@ public class VertexAi implements TextCompletion.Provider {
                         UrlPath.pathSafe(params.model, "model")));
     }
 
-    /*
+    /* Expected Vertex subset response:
      * {
      *   "candidates": [
      *     {
      *       "content": {
-     *         "role": "assistant",
-     *         "parts": [
-     *           "text": "Bla bla..."
-     *         ]
+     *         "role": "model",
+     *         "parts": [ {"text": "{ ...json... }"} ]
      *       }
      *     }
      *   ]

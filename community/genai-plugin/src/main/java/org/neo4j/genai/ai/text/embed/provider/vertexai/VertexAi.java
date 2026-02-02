@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.impl.list.mutable.ListAdapter;
@@ -42,6 +40,7 @@ import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
+import org.neo4j.genai.util.UrlPath;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 
@@ -50,8 +49,6 @@ public class VertexAi implements VectorEmbedding.Provider {
     protected static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s-aiplatform.googleapis.com";
     private static final String DEFAULT_API_PATH_TEMPLATE =
             "v1/projects/%s/locations/%s/publishers/%s/models/%s:predict";
-    private static final Predicate<String> URI_SAFE =
-            Pattern.compile("^[a-zA-Z0-9-_.]+$").asMatchPredicate();
 
     private final Function<Parameters, URI> baseUriResolver;
 
@@ -196,23 +193,16 @@ public class VertexAi implements VectorEmbedding.Provider {
         return baseUriResolver
                 .apply(params)
                 .resolve(DEFAULT_API_PATH_TEMPLATE.formatted(
-                        pathSafe(params.project, "project"),
-                        pathSafe(params.region, "region"),
-                        pathSafe(params.publisher, "publisher"),
-                        pathSafe(params.model, "model")));
-    }
-
-    protected static String pathSafe(String pathPart, String name) {
-        if (URI_SAFE.test(pathPart)) {
-            return pathPart;
-        }
-        throw new IllegalArgumentException("Not a valid '%s': %s".formatted(name, pathPart));
+                        UrlPath.pathSafe(params.project, "project"),
+                        UrlPath.pathSafe(params.region, "region"),
+                        UrlPath.pathSafe(params.publisher, "publisher"),
+                        UrlPath.pathSafe(params.model, "model")));
     }
 
     private static class DefaultBaseUriResolver implements Function<Parameters, URI> {
         @Override
         public URI apply(Parameters parameters) {
-            final var region = pathSafe(parameters.region, "region");
+            final var region = UrlPath.pathSafe(parameters.region, "region");
             return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
         }
     }

@@ -1,0 +1,17 @@
+{
+  "id": "resp_structured_incomplete",
+  "object": "response",
+  "created_at": 1759682218,
+  "status": "incomplete",
+  "background": false,
+  "error": null,
+  "incomplete_details": { "reason": "content_filter" },
+  "model": "gpt-5-2025-08-07",
+  "output": [
+    {
+      "id": "rs_xxx",
+      "type": "reasoning",
+      "summary": []
+    }
+  ]
+}

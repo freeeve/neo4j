@@ -1,0 +1,19 @@
+{
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "answer": "Hi there! How can I help today? I can explain concepts, answer questions, draft or edit emails, brainstorm ideas, translate text, summarize articles, help with coding, plan trips, make checklists, and more."
+            },
+            "name": "tool_name",
+            "type": "string",
+            "toolUseId": 12
+          }
+        }
+      ]
+    },
+    "stopReason": "tool_use"
+  }
+}

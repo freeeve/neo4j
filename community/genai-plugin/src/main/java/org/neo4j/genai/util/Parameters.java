@@ -257,6 +257,10 @@ public final class Parameters {
         }
     }
 
+    public static Object toJavaMap(MapValue mapValue) {
+        return MAPPER.mapMap(mapValue);
+    }
+
     public static class WithDynamic {
         private Map<String, Object> dynamic;
 

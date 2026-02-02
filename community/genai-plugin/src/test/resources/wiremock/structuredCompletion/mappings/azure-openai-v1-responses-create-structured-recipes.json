@@ -1,0 +1,56 @@
+{
+  "request": {
+    "urlPath": "/openai/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": { "equalTo": "application/json; charset=UTF-8" },
+      "Authorization": { "equalTo": "Bearer dummy-azure-token" }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "text": {
+            "format": {
+              "strict": true,
+              "name": "answer_with_structured_ouput",
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "recipes": {
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" }
+                      },
+                      "required": ["name", "description"]
+                    }
+                  }
+                },
+                "required": ["recipes"]
+              },
+              "type": "json_schema"
+            }
+          },
+          "input": [
+            { "role": "user", "content": "Hello! Can you give me a list of 10 cookie recipes, just their name and description" }
+          ]
+        },
+        "ignoreExtraElements": true
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "openai-v1-responses-create-structured-response.json",
+    "transformers": ["response-template"],
+    "transformerParameters": {
+      "answer": "{\\\"recipes\\\":[{\\\"name\\\":\\\"Classic Chocolate Chip Cookies\\\",\\\"description\\\":\\\"Soft-centered, chewy cookies loaded with melted semisweet chocolate chips and vanilla.\\\"},{\\\"name\\\":\\\"Snickerdoodles\\\",\\\"description\\\":\\\"Chewy cookies rolled in cinnamon sugar, with a slight tang from cream of tartar.\\\"},{\\\"name\\\":\\\"Peanut Butter Cookies\\\",\\\"description\\\":\\\"Rich, fudgy peanut butter cookies with crisp fork-pressed ridges.\\\"},{\\\"name\\\":\\\"Oatmeal Raisin Cookies\\\",\\\"description\\\":\\\"Hearty, chewy cookies with oats, cinnamon, and sweet raisins.\\\"},{\\\"name\\\":\\\"White Chocolate Macadamia Nut Cookies\\\",\\\"description\\\":\\\"Crunchy edges and chewy centers studded with white chocolate chunks and macadamias.\\\"},{\\\"name\\\":\\\"Chocolate Thumbprint Cookies\\\",\\\"description\\\":\\\"Buttery cookies with a well of chocolate ganache or jam in the center.\\\"},{\\\"name\\\":\\\"Lemon Sugar Cookies\\\",\\\"description\\\":\\\"Soft, lemony cookies with bright zest and a delicate sugary crust.\\\"},{\\\"name\\\":\\\"Ginger Molasses Cookies\\\",\\\"description\\\":\\\"Thick, chewy cookies loaded with ginger, cinnamon, and rich molasses.\\\"},{\\\"name\\\":\\\"Coconut Macaroons\\\",\\\"description\\\":\\\"Sweet, chewy coconut cookies with toasty edges, often dipped in chocolate.\\\"},{\\\"name\\\":\\\"Almond Biscotti\\\",\\\"description\\\":\\\"Twice-baked, crisp almond cookies perfect for dipping into coffee or tea.\\\"}]}"
+    }
+  }
+}

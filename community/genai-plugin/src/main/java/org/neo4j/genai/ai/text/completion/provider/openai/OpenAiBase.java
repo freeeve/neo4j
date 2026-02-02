@@ -19,24 +19,22 @@
  */
 package org.neo4j.genai.ai.text.completion.provider.openai;
 
-import static org.neo4j.genai.util.HttpService.jsonBody;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.map.MutableMap;
+import org.neo4j.genai.ai.provider.openai.OpenAiRequestSupport;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
 import org.neo4j.genai.util.MalformedGenAIResponseException;
 import org.neo4j.util.VisibleForTesting;
 
-public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementation {
+public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementation, OpenAiRequestSupport {
 
     URI endpoint();
 
@@ -53,18 +51,7 @@ public interface OpenAiBase<PARAMS> extends TextCompletion.Provider.Implementati
     @Override
     default String complete(String prompt) {
         final var payload = payload(prompt);
-        final var response = httpService()
-                .request(
-                        endpoint(),
-                        builder -> builder.headers(
-                                        "Content-Type",
-                                        "application/json; charset=" + StandardCharsets.UTF_8,
-                                        "Accept",
-                                        "application/json")
-                                .headers(authHeader())
-                                .POST(jsonBody(payload))
-                                .build(),
-                        OpenAiBase::parseResponse);
+        final var response = postJson(payload, OpenAiBase::parseResponse);
         if (response.size() != 1) {
             throw new MalformedGenAIResponseException("Expected exactly one message, but found " + response.size());
         }
