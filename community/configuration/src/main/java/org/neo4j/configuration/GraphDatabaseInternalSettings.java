@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.memory.HeapEstimatorCacheConfig;
@@ -1573,6 +1574,39 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             + "ones will upgrade to it on the next kernel version upgrade.")
     public static final Setting<Boolean> allow_new_log_format_on_upgrade_or_create = newBuilder(
                     "internal.dbms.allow_new_log_format_on_upgrade_or_create", BOOL, false)
+            .build();
+
+    @Internal
+    @Description("Whether the transaction log is merged with replication log.")
+    public static final Setting<Boolean> merged_log = newBuilder("internal.dbms.merged_log", BOOL, false)
+            .immutable()
+            .addConstraint(new SettingConstraint<>() {
+                @Override
+                public void validate(Boolean value, Configuration config) {
+                    if (value) {
+                        if (config.get(GraphDatabaseInternalSettings.latest_kernel_version) != (byte) 254) {
+                            throw new IllegalArgumentException("Merged log can only be enabled when '"
+                                    + GraphDatabaseInternalSettings.latest_kernel_version.name()
+                                    + "' is set to GLORIOUS_FUTURE (254)");
+                        }
+                        if (config.get(GraphDatabaseInternalSettings.latest_runtime_version) != Integer.MAX_VALUE) {
+                            throw new IllegalArgumentException("Merged log can only be enabled when '"
+                                    + GraphDatabaseInternalSettings.latest_runtime_version.name()
+                                    + "' is set to GLORIOUS_FUTURE (Integer.MAX_VALUE)");
+                        }
+                        if (!config.get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)) {
+                            throw new IllegalArgumentException("Merged log can only be enabled when '"
+                                    + GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create.name()
+                                    + "' is set to true");
+                        }
+                    }
+                }
+
+                @Override
+                public String getDescription() {
+                    return "merged log is a development feature that requires other future settings to be enabled";
+                }
+            })
             .build();
 
     @Internal
