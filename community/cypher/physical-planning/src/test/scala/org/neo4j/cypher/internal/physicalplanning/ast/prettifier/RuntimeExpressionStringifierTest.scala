@@ -231,7 +231,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (
       NullCheckReferenceProperty(
         0,
-        SlottedCachedPropertyWithPropertyToken.create(
+        SlottedCachedPropertyWithPropertyToken(
           "y",
           propName("prop"),
           0,
@@ -240,7 +240,6 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
           3,
           NODE_TYPE,
           nullable = false,
-          needsValue = true,
           failOnMissingEntity = true
         )
       ),

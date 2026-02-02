@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.physicalplanning.ast
 
-import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.ASTCachedPropertyWithValue
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalProperty
@@ -40,8 +40,8 @@ case class NullCheckVariable(offset: Int, inner: LogicalVariable) extends Runtim
 case class NullCheckProperty(offset: Int, inner: LogicalProperty) extends RuntimeProperty(inner)
 
 // This needs to be used to be able to rewrite an expression declared as a LogicalProperty
-case class NullCheckReferenceProperty(offset: Int, inner: ASTCachedProperty) extends RuntimeProperty(inner)
-    with ASTCachedProperty {
+case class NullCheckReferenceProperty(offset: Int, inner: ASTCachedPropertyWithValue) extends RuntimeProperty(inner)
+    with ASTCachedPropertyWithValue {
   override def entityType: EntityType = inner.entityType
   override def originalEntityName: String = inner.originalEntityName
   override def entityName: String = inner.entityName

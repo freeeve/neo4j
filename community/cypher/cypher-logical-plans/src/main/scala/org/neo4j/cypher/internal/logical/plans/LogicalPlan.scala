@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
-import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.ASTCachedPropertyWithValue
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -4309,7 +4309,7 @@ case class ProcedureCall(override val source: LogicalPlan, call: ResolvedCall)(i
  * For queries like `MATCH (n:L {p:1}) RETURN n` need to know what properties are cached
  * so that we can use them when doing "value-population" of `n`.
  */
-case class Column(variable: LogicalVariable, cachedProperties: Set[ASTCachedProperty])
+case class Column(variable: LogicalVariable, cachedProperties: Set[ASTCachedPropertyWithValue])
 
 /**
  * For every source row, produce a row containing only the variables in 'columns'. The ProduceResult operator is

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.physicalplanning.ast
 
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.ASTCachedPropertyWithValue
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.runtime.ast.RuntimeExpression
@@ -63,7 +64,7 @@ case class SlottedCachedPropertyWithPropertyToken(
   entityType: EntityType,
   nullable: Boolean,
   override val failOnMissingEntity: Boolean
-) extends SlottedCachedProperty
+) extends SlottedCachedProperty with ASTCachedPropertyWithValue
 
 /**
  *
@@ -150,7 +151,7 @@ case class SlottedCachedPropertyWithoutPropertyToken(
   entityType: EntityType,
   nullable: Boolean,
   override val failOnMissingEntity: Boolean
-) extends SlottedCachedProperty
+) extends SlottedCachedProperty with ASTCachedPropertyWithValue
 
 /**
  *

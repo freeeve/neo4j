@@ -3120,6 +3120,27 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     newTable shouldEqual initialTable
   }
 
+  test("should not add CachedHasProperty to PropertiesUsingCachedProperties") {
+    val builder = new LogicalPlanBuilder()
+      .produceResults("props")
+      .projection("properties(n) AS props")
+      .filter("[n.prop, n.prop, n.x IS NOT NULL, n.x IS NOT NULL, n.otherProp] > [1, 2, 3]")
+      .allNodeScan("n")
+
+    val (newPlan, _) = replace(builder.build(), builder.getSemanticTable)
+    newPlan shouldBe new LogicalPlanBuilder()
+      .produceResults("props")
+      .projection(Map("props" -> PropertiesUsingCachedProperties(
+        varFor("n"),
+        Set(cachedNodeProp("n", "prop", "n", knownToAccessStore = true))
+      )))
+      .filter(
+        "[cacheNFromStore[n.prop], cacheNFromStore[n.prop], cacheNHasPropertyFromStore[n.x] IS NOT NULL, cacheNHasPropertyFromStore[n.x] IS NOT NULL, n.otherProp] > [1, 2, 3]"
+      )
+      .allNodeScan("n")
+      .build()
+  }
+
   private def replace(
     plan: LogicalPlan,
     initialTable: SemanticTable,

@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal.runtime.ast
 
-import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.ASTCachedPropertyWithValue
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 
-case class PropertiesUsingCachedProperties(variable: LogicalVariable, cachedProperties: Set[ASTCachedProperty])
+case class PropertiesUsingCachedProperties(variable: LogicalVariable, cachedProperties: Set[ASTCachedPropertyWithValue])
     extends RuntimeExpression {
   override def isConstantForQuery: Boolean = false
 }

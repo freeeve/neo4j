@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.RestrictedCachin
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RestrictedCaching.CachedPropertiesTracker
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RestrictedCaching.ProtectedProperties
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.ASTCachedPropertyWithValue
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.CaseExpression
@@ -373,10 +374,12 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
         aggregating
 
       case properties @ Properties(variable: LogicalVariable) if cachePropertiesForEntities =>
-        cachedPropertiesTracker.get(acc.variableWithOriginalName(asVariable(variable))) match {
-          case Some(cached) => PropertiesUsingCachedProperties(variable, cached)
-          case None         => properties
-        }
+        val maybeCachedProps: Option[Set[ASTCachedPropertyWithValue]] =
+          cachedPropertiesTracker
+            .get(acc.variableWithOriginalName(asVariable(variable)))
+            .map { xs => xs.collect { case x: ASTCachedPropertyWithValue => x } }
+            .filter(_.nonEmpty)
+        maybeCachedProps.fold(properties)(PropertiesUsingCachedProperties(variable, _))
 
       // Rewrite properties to be cached if they are used more than once, or can be fetched from an index
       case prop @ Property(v: Variable, propertyKeyName) =>

@@ -67,6 +67,11 @@ trait ASTCachedProperty extends LogicalProperty {
   def runtimeKey: RuntimeKey = RuntimeKey(originalEntityName, propertyKey, entityType)(entityName)
 }
 
+/**
+ * Marker trait for variations of cached properties containing an actual property value.
+ */
+trait ASTCachedPropertyWithValue extends ASTCachedProperty
+
 object ASTCachedProperty {
 
   /**
@@ -103,7 +108,7 @@ case class CachedProperty(
   override val entityType: EntityType,
   knownToAccessStore: Boolean = false,
   failOnMissingEntity: Boolean = true
-)(val position: InputPosition) extends ASTCachedProperty {
+)(val position: InputPosition) extends ASTCachedPropertyWithValue {
   override val entityName: String = entityVariable.name
   override def originalEntityName: String = originalEntity.name
   override def asCanonicalStringVal: String = s"cache[$propertyAccessString]"
