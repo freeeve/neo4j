@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
@@ -271,7 +272,12 @@ public final class ProcessUtils {
         // Classpath can get very long and that can upset Windows, so write it to a file
         Path p = Files.createTempFile("jvm", ".args");
         p.toFile().deleteOnExit();
-        Files.writeString(p, systemProperties() + "-cp " + wrapSpaces(classpath), StandardCharsets.UTF_8);
+        String argsFileContent = new StringJoiner(System.lineSeparator())
+                .add(systemProperties())
+                .add("-cp")
+                .add(wrapSpaces(classpath))
+                .toString();
+        Files.writeString(p, argsFileContent, StandardCharsets.UTF_8);
 
         args.add("@" + p.normalize());
         args.addAll(Arrays.asList(arguments));
