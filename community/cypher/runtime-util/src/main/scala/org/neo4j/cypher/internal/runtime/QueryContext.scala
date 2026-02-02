@@ -921,6 +921,8 @@ trait QueryTransactionalContext extends CloseableResource {
   def constituentTransactionFactory: ConstituentTransactionFactory
 
   def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): MemoryTracker
+
+  def registerTransactionResource(resource: AutoCloseable): Unit
 }
 
 trait KernelPredicate[T] {

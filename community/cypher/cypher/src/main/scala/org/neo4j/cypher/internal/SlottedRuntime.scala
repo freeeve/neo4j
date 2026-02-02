@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanner
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.runtime.QueryIndexRegistrator
 import org.neo4j.cypher.internal.runtime.SelectivityTrackerRegistrator
+import org.neo4j.cypher.internal.runtime.interpreted.ExecutionResultBuilderFactory
 import org.neo4j.cypher.internal.runtime.interpreted.InterpretedPipeMapper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.CommunityExpressionConverter
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.ExpressionConverter
@@ -177,7 +178,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
 
       val transactionMode = calculateTransactionMode(query)
 
-      val resultBuilderFactory =
+      val resultBuilderFactory = extendResultBuilderFactory(
         new SlottedExecutionResultBuilderFactory(
           pipe,
           queryIndexRegistrator.result(),
@@ -192,6 +193,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
           context.config.warnOnAggregationSkipNull,
           context.indexComparatorFactory
         )
+      )
 
       if (ENABLE_DEBUG_PRINTS) {
         if (!PRINT_PLAN_INFO_EARLY) {
@@ -222,6 +224,9 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         throw e
     }
   }
+
+  protected def extendResultBuilderFactory(factory: ExecutionResultBuilderFactory): ExecutionResultBuilderFactory =
+    factory
 
   // Method to be able to wrap the fallback from enterprise
   protected def getFallbackPipeMapper(initialFallback: PipeMapper, physicalPlan: PhysicalPlan): PipeMapper =

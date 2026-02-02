@@ -215,6 +215,9 @@ class SingleThreadedTransactionalContextWrapper(tc: TransactionalContext)
   }
 
   override def queryExecutingConfiguration: QueryExecutionConfiguration = tc.queryExecutingConfiguration()
+
+  override def registerTransactionResource(resource: AutoCloseable): Unit =
+    tc.transaction().registerCloseableResource(resource)
 }
 
 class CachedSchemaSingleThreadedTransactionalContextWrapper(tc: TransactionalContext)

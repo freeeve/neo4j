@@ -955,4 +955,6 @@ class DelegatingQueryTransactionalContext(val inner: QueryTransactionalContext) 
     inner.createExecutionContextMemoryTracker(heapEstimatorCacheConfig)
 
   override def queryExecutingConfiguration: QueryExecutionConfiguration = inner.queryExecutingConfiguration
+
+  override def registerTransactionResource(resource: AutoCloseable): Unit = inner.registerTransactionResource(resource)
 }

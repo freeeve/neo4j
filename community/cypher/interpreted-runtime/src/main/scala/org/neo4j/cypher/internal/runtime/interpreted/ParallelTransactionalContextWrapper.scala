@@ -193,4 +193,6 @@ class ParallelTransactionalContextWrapper(
 
   override def createExecutionContextMemoryTracker(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): MemoryTracker =
     unsupported()
+
+  override def registerTransactionResource(resource: AutoCloseable): Unit = unsupported()
 }
