@@ -63,9 +63,9 @@ class SegmentBinarySearch implements LogBinarySearch.BinarySearchReader {
                 var entryIndex = envelopedHeader.entryIndex;
 
                 return switch (type) {
-                    case START_OFFSET, ZERO -> 1;
+                    case ZERO -> 1;
                     case BEGIN, FULL -> Long.compare(entryIndex, target);
-                    case END, MIDDLE -> {
+                    case END, MIDDLE, START_OFFSET -> {
                         if (entryIndex >= target) {
                             // If it's the exact match or larger than target,
                             // it means that the actual start of the target

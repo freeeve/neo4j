@@ -59,7 +59,6 @@ import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.HeapScopedBuffer;
-import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -129,26 +128,6 @@ class EnvelopeReadChannelTest {
         final var bytes = new byte[size];
         random.nextBytes(bytes);
         return bytes;
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {256, 512})
-    void shouldValidateFileHeaderIrrespectiveOfBufferSize(int bufferSize) throws Exception {
-        int segmentSize = 256;
-
-        writeSomeData(buffer -> {
-            writeZeroSegment(buffer, segmentSize);
-            // Corrupt the header a bit - changing to an unknown log format version
-            buffer.put(0, new byte[] {1, 1, 0, 0, 0, 0, 0, 0});
-            writeHeaderAndPayload(buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, bytes(random, 64), START_INDEX);
-        });
-
-        assertThatThrownBy(() -> {
-                    try (var buffer = new NativeScopedBuffer(bufferSize, LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
-                            var ignored = new EnvelopeReadChannel(
-                                    logChannel(), segmentSize, NO_MORE_CHANNELS, false, buffer)) {}
-                })
-                .isInstanceOf(IOException.class);
     }
 
     @ParameterizedTest
@@ -853,9 +832,8 @@ class EnvelopeReadChannelTest {
         });
 
         final var logChannel = logChannel();
-        try (var buffer = new NativeScopedBuffer(bufferSize, LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
-                var channel = new EnvelopeReadChannel(
-                        logChannel, segmentSize, new TwoFileLogVersionBridge(path2), false, buffer)) {
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, new TwoFileLogVersionBridge(path2), EmptyMemoryTracker.INSTANCE, false)) {
             // THEN
             byte[] result = new byte[dataLength];
             channel.get(result, dataLength);

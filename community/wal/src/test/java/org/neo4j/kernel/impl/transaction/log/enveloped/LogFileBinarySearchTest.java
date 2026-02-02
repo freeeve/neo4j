@@ -104,8 +104,7 @@ class LogFileBinarySearchTest {
                 writeBufferedBlocks,
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE,
-                (currentEntry, currentOffset, currentLogFile) ->
-                        pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
+                pruneStrategy,
                 new StoreChannelNativeAccessor(
                         fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
                 NullLogProvider.getInstance());

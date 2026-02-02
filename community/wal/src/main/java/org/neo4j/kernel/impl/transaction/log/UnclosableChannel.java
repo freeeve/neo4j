@@ -17,11 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction;
+package org.neo4j.kernel.impl.transaction.log;
 
 import java.io.IOException;
 import org.neo4j.io.fs.DelegatingStoreChannel;
-import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 public class UnclosableChannel extends DelegatingStoreChannel<LogVersionedStoreChannel>

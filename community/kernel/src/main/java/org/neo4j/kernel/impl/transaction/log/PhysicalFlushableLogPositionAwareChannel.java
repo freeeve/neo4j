@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
-import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 
@@ -34,7 +33,6 @@ import org.neo4j.io.fs.PhysicalFlushableLogChannel;
 import org.neo4j.io.fs.PhysicalLogChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
-import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.io.memory.ScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
@@ -324,12 +322,13 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         // Apparently not at the start of the file - must update to the correct checksum
         long position = logChannel.position();
         if (position != logHeader.getStartPosition().getByteOffset()) {
-            // Providing our own buffer since we don't want to close the read channel - which would close the
-            // underlying channel.
-            try (var buffer = new NativeScopedBuffer(
-                    logHeader.getSegmentBlockSize(), LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
-                EnvelopeReadChannel envelopeReadChannel = new EnvelopeReadChannel(
-                        logChannel, logHeader.getSegmentBlockSize(), LogVersionBridge.NO_MORE_CHANNELS, true, buffer);
+            try (var envelopeReadChannel = new EnvelopeReadChannel(
+                    new UnclosableChannel(logChannel),
+                    logHeader.getSegmentBlockSize(),
+                    LogVersionBridge.NO_MORE_CHANNELS,
+                    EmptyMemoryTracker.INSTANCE,
+                    true)) {
+
                 previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
                 previousAppendIndex = envelopeReadChannel.entryIndex();
                 previousTerm = envelopeReadChannel.currentTerm();

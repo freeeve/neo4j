@@ -103,7 +103,6 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     private final int segmentBlockSize;
     private final ByteBuffer checksumView;
     private final int segmentShift;
-    private final int segmentMask;
     private LogVersionedStoreChannel channel;
     // The log file header of the current file.
     private LogHeader logHeader;
@@ -129,31 +128,15 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             MemoryTracker memoryTracker,
             boolean raw)
             throws IOException {
-        this(
-                startingChannel,
-                segmentBlockSize,
-                bridge,
-                raw,
-                new NativeScopedBuffer(segmentBlockSize, LITTLE_ENDIAN, memoryTracker));
-    }
-
-    public EnvelopeReadChannel(
-            LogVersionedStoreChannel startingChannel,
-            int segmentBlockSize,
-            LogVersionBridge bridge,
-            boolean raw,
-            ScopedBuffer scopedBuffer)
-            throws IOException {
         this.channel = requireNonNull(startingChannel);
         requirePowerOfTwo(segmentBlockSize);
         this.segmentBlockSize = segmentBlockSize;
         this.segmentShift = 31 - Integer.numberOfLeadingZeros(segmentBlockSize);
-        this.segmentMask = segmentBlockSize - 1;
         this.bridge = requireNonNull(bridge);
         this.raw = raw;
 
         boolean successfulInitialization = false;
-        this.scopedBuffer = scopedBuffer;
+        this.scopedBuffer = new NativeScopedBuffer(segmentBlockSize, LITTLE_ENDIAN, memoryTracker);
         try {
             this.buffer = scopedBuffer.getBuffer();
             this.checksumView = buffer.duplicate().order(buffer.order());
@@ -170,7 +153,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             successfulInitialization = true;
         } finally {
             if (!successfulInitialization) {
-                scopedBuffer.close();
+                close();
             }
         }
     }
@@ -394,7 +377,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      * @throws ReadPastEndException if the end is reached.
      */
     public long goToEntry(long entryIndex) throws IOException {
-        if (entryIndex < logHeader.getLastAppendIndex()) {
+        if (entryIndex <= logHeader.getLastAppendIndex()) {
             throw new IllegalArgumentException("Invalid entry index: " + entryIndex + " is in a previous log file");
         }
         if (channel.size() <= segmentBlockSize) {
@@ -407,8 +390,15 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         var segmentBinarySearch = new SegmentBinarySearch(this, totalSegments, segmentBlockSize);
         var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, entryIndex);
 
-        if (segmentPosition != -1 && segmentPosition != position()) {
+        if (segmentPosition == -1) {
+            // the header check above guarantees that the entry is in this file (if any). This therefor should only be
+            // possible if the file is empty;
+            throw ReadPastEndException.INSTANCE;
+        }
+
+        if (segmentPosition != position()) {
             position(segmentPosition);
+            readEnvelopeHeader();
         }
 
         while (currentIndex < entryIndex) {
@@ -807,7 +797,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 } else {
                     enforceTerminalZeros();
                 }
-                nextSegment(true);
+                nextSegment();
             }
 
             // Optimistically read the beginning of the header
@@ -951,13 +941,13 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void nextSegment(boolean enforceChannelIntegrityForce) throws IOException {
+    private void nextSegment() throws IOException {
         int read;
         if (channel.size() == channel.position()) {
             // We are at the end, don't try to load in the next segment because that will change the position and
             // it should be correct on calling getPosition if ReadPastEndException is thrown.
             do {
-                goToNextFileOrThrow(enforceChannelIntegrityForce);
+                goToNextFileOrThrow();
             } while (buffer.position() == buffer.limit()
                     && channel.size() == channel.position()); // Handle file with only header
             read = loadSegmentIntoBuffer(1);
@@ -967,7 +957,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 // Correct the file position for getPosition by backing the segment again.
                 // Necessary if the below go-to-next throws a ReadPastEndException.
                 currentSegment--;
-                goToNextFileOrThrow(enforceChannelIntegrityForce);
+                goToNextFileOrThrow();
                 // Read the first data segment
                 read = loadSegmentIntoBuffer(1);
             }
@@ -985,7 +975,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void goToNextFileOrThrow(boolean enforceChannelIntegrityChecks) throws IOException {
+    private void goToNextFileOrThrow() throws IOException {
         final var nextChannel = bridge.next(channel, raw);
         assert nextChannel != null;
         if (nextChannel == channel) {
@@ -997,7 +987,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             }
             throw ReadPastEndException.INSTANCE;
         }
-        setNextChannel(nextChannel, enforceChannelIntegrityChecks);
+        setNextChannel(nextChannel, true);
     }
 
     public void setNextChannel(LogVersionedStoreChannel nextChannel, boolean enforceChannelIntegrityChecks)
@@ -1109,7 +1099,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             payloadType = EnvelopeType.ZERO;
             while (bytesRead < length) {
                 if (buffer.position() == buffer.limit()) {
-                    nextSegment(true);
+                    nextSegment();
                 }
                 final var chunkSize = min(buffer.remaining(), length - bytesRead);
                 dst.put(dst.position(), buffer, buffer.position(), chunkSize);
@@ -1130,20 +1120,16 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         setLogPosition(currentLogPosition);
     }
 
-    public void goToNextSegment() throws IOException {
-        enforceChecksumChain = false;
-        nextSegment(false);
-        var position = goToNextEnvelope();
-        enforceChecksumChain = true;
-        buffer.position(getSegmentOffset(position));
-    }
-
     public ByteBuffer getBuffer() {
         return buffer;
     }
 
     public int getSegmentOffset(long position) {
-        return (int) position & segmentMask;
+        return segmentOffset(segmentBlockSize, position);
+    }
+
+    public static int segmentOffset(int segmentBlockSize, long position) {
+        return (int) (position & segmentBlockSize - 1);
     }
 
     @Override

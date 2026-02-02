@@ -40,6 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.DatabaseVersion;
@@ -1090,6 +1091,158 @@ class EnvelopedLogFilesTest {
     }
 
     @Test
+    void shouldFindRangeForTransferAllEntries() throws IOException {
+        var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeData(writeChannel, smallData); // index 0
+        writeData(writeChannel, largeData); // index 1
+        writeData(writeChannel, largeData); // index 2
+        writeData(writeChannel, smallData); // index 3
+        writeData(writeChannel, largeData); // index 4
+        writeChannel.prepareForFlush().flush();
+
+        var storeChannels = envelopedLogFiles.storeChannels(0, 4);
+        try {
+
+            assertThat(storeChannels.fromIndex()).isEqualTo(0);
+            assertThat(storeChannels.toIndex()).isEqualTo(4);
+            assertThat(storeChannels.toPosition()).isEqualTo(writeChannel.position());
+            assertThat(storeChannels.storeChannels()).hasSize(10);
+            for (var storeChannel : storeChannels.storeChannels()) {
+                assertThat(storeChannel.position()).isEqualTo(segmentBlockSize);
+            }
+        } finally {
+            IOUtils.closeAllSilently(storeChannels.storeChannels());
+        }
+    }
+
+    @Test
+    void shouldFindRangeForTransferTail() throws IOException {
+        var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeData(writeChannel, smallData); // index 0
+        writeData(writeChannel, largeData); // index 1
+        writeData(writeChannel, largeData); // index 2
+        writeData(writeChannel, smallData); // index 3
+        writeData(writeChannel, largeData); // index 4
+        writeChannel.prepareForFlush().flush();
+
+        var storeChannels = envelopedLogFiles.storeChannels(2, 4);
+        try {
+
+            assertThat(storeChannels.fromIndex()).isEqualTo(2);
+            assertThat(storeChannels.toIndex()).isEqualTo(4);
+            assertThat(storeChannels.toPosition()).isEqualTo(writeChannel.position());
+            assertThat(storeChannels.storeChannels()).hasSize(7);
+            assertThat(storeChannels.storeChannels().get(0).position()).isEqualTo(384);
+            for (var i = 1; i < storeChannels.storeChannels().size(); i++) {
+                assertThat(storeChannels.storeChannels().get(i).position()).isEqualTo(segmentBlockSize);
+            }
+        } finally {
+            IOUtils.closeAllSilently(storeChannels.storeChannels());
+        }
+    }
+
+    @Test
+    void shouldFindRangeForTransferHead() throws IOException {
+        var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeData(writeChannel, smallData); // index 0
+        writeData(writeChannel, largeData); // index 1
+        writeData(writeChannel, largeData); // index 2
+        writeData(writeChannel, smallData); // index 3
+        writeData(writeChannel, largeData); // index 4
+        writeChannel.prepareForFlush().flush();
+
+        var storeChannels = envelopedLogFiles.storeChannels(0, 2);
+        try {
+
+            assertThat(storeChannels.fromIndex()).isEqualTo(0);
+            assertThat(storeChannels.toIndex()).isEqualTo(2);
+            assertThat(storeChannels.toPosition()).isEqualTo(473);
+            assertThat(storeChannels.storeChannels()).hasSize(7);
+            for (var storeChannel : storeChannels.storeChannels()) {
+                assertThat(storeChannel.position()).isEqualTo(segmentBlockSize);
+            }
+        } finally {
+            IOUtils.closeAllSilently(storeChannels.storeChannels());
+        }
+    }
+
+    @Test
+    void shouldFindSingleElementRangeForTransfer() throws IOException {
+        var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeData(writeChannel, smallData); // index 0
+        writeData(writeChannel, largeData); // index 1
+        writeData(writeChannel, largeData); // index 2
+        writeData(writeChannel, smallData); // index 3
+        writeData(writeChannel, largeData); // index 4
+        writeChannel.prepareForFlush().flush();
+
+        var storeChannels = envelopedLogFiles.storeChannels(3, 3);
+        try {
+
+            assertThat(storeChannels.fromIndex()).isEqualTo(3);
+            assertThat(storeChannels.toIndex()).isEqualTo(3);
+            assertThat(storeChannels.toPosition()).isEqualTo(512);
+            assertThat(storeChannels.storeChannels()).hasSize(1);
+            assertThat(storeChannels.storeChannels().get(0).position()).isEqualTo(473);
+        } finally {
+            IOUtils.closeAllSilently(storeChannels.storeChannels());
+        }
+    }
+
+    @Test
+    void shouldFailIfFromIsOutsideExistingRange() throws IOException {
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, new byte[] {'a'});
+        writeData(writeChannel, new byte[] {'b'});
+        writeChannel.prepareForFlush().flush();
+
+        assertThatThrownBy(() -> envelopedLogFiles.storeChannels(2, 2)).isInstanceOf(ReadPastEndException.class);
+    }
+
+    @Test
+    void shouldFailIfToIsOutsideExistinRange() throws IOException {
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, new byte[] {'a'});
+        writeData(writeChannel, new byte[] {'b'});
+        writeChannel.prepareForFlush().flush();
+
+        assertThatThrownBy(() -> envelopedLogFiles.storeChannels(0, 3)).isInstanceOf(ReadPastEndException.class);
+    }
+
+    @Test
+    void shouldFailIfToIsBehindFrom() {
+        assertThatThrownBy(() -> envelopedLogFiles.storeChannels(4, 3)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void shouldAbortOnMissingFileInSequence() throws IOException {
         // create three initial files
         envelopedLogFiles.initialise();
@@ -1793,7 +1946,7 @@ class EnvelopedLogFilesTest {
         int readCount = 0;
         for (var pos : positions) {
             var channel = mirroringRepository.openReadChannel(pos.first());
-            try (var reader = envelopedLogFiles.envelopedReadChannel(channel)) {
+            try (var reader = envelopedLogFiles.envelopedReadChannel(channel, false)) {
                 var posMarker = new LogPositionMarker();
                 posMarker.mark(pos.first(), pos.other());
                 reader.setLogPosition(posMarker);

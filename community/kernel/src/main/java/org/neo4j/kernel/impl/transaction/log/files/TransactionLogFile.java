@@ -64,7 +64,6 @@ import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.kernel.impl.transaction.UnclosableChannel;
 import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
@@ -82,6 +81,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
+import org.neo4j.kernel.impl.transaction.log.UnclosableChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
@@ -118,7 +118,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private final MemoryTracker memoryTracker;
     private final TransactionLogChannelAllocator channelAllocator;
     private final DatabaseHealth databaseHealth;
-    private final LogFiles logFiles;
     private volatile LogRotation logRotation;
     private final LogHeaderCache logHeaderCache;
     private final FileSystemAbstraction fileSystem;
@@ -134,7 +133,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private volatile boolean initCalled;
 
     TransactionLogFile(LogFiles logFiles, TransactionLogFilesContext context) {
-        this.logFiles = logFiles;
         this.context = context;
         this.rotateAtSize = context.getRotationThreshold();
         this.fileSystem = context.getFileSystem();

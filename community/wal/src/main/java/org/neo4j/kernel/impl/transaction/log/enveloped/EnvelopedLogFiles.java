@@ -22,6 +22,8 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
@@ -31,6 +33,7 @@ import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.UnclosableChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -100,30 +103,33 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             throw new IllegalStateException("No log files found " + logsRepository);
         }
         var version = logsRepository.logVersions(false)[0];
-        return envelopedReadChannel(logsRepository.openReadChannel(version));
+        return envelopedReadChannel(logsRepository.openReadChannel(version), false);
     }
 
     @Override
     public EnvelopeReadChannel openReadChannel(long entryIndex) throws IOException {
-        var longRange = logsRepository.logVersionsRange();
+        long fileVersion = getFileVersion(entryIndex);
+        if (getFileVersion(entryIndex) != -1) {
+            return envelopedReadChannel(logsRepository.openReadChannel(fileVersion), false);
+        }
+        return null;
+    }
 
+    private long getFileVersion(long entryIndex) throws IOException {
+        var longRange = logsRepository.logVersionsRange();
         if (!longRange.isEmpty()) {
             var logFileBinarySearch = new LogFileBinarySearch(
                     logsRepository, longRange.from(), longRange.to() - longRange.from() + 1, memoryTracker);
-            var fileVersion = LogBinarySearch.binarySearch(logFileBinarySearch, entryIndex);
-
-            if (fileVersion != -1) {
-                return envelopedReadChannel(logsRepository.openReadChannel(fileVersion));
-            }
+            return LogBinarySearch.binarySearch(logFileBinarySearch, entryIndex);
         }
-        return null;
+        return -1;
     }
 
     public long initialise() throws IOException {
         logsRepository.initialise();
         var tailChecker = new EnvelopedLogTailChecker(
                 logsRepository,
-                (long logFileVersion) -> envelopedReadChannel(logsRepository.openReadChannel(logFileVersion)),
+                (long logFileVersion) -> envelopedReadChannel(logsRepository.openReadChannel(logFileVersion), false),
                 memoryTracker,
                 logProvider);
         var tailInfo = tailChecker.checkEnvelopedLogTail();
@@ -406,9 +412,13 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return new HeapScopedBuffer(writerBufferedBlocks * segmentBlockSize, ByteOrder.LITTLE_ENDIAN, memoryTracker);
     }
 
-    public EnvelopeReadChannel envelopedReadChannel(LogChannelContext<StoreChannel> logChannelCtx) throws IOException {
+    public EnvelopeReadChannel envelopedReadChannel(
+            LogChannelContext<StoreChannel> logChannelCtx, boolean keepChannelOpenOnClose) throws IOException {
         LogHeader logHeader = readLogHeader(logChannelCtx);
-        PhysicalLogVersionedStoreChannel logVersionedChannel = logVersionedChannel(logChannelCtx, logHeader);
+        LogVersionedStoreChannel logVersionedChannel = logVersionedChannel(logChannelCtx, logHeader);
+        if (keepChannelOpenOnClose) {
+            logVersionedChannel = new UnclosableChannel(logVersionedChannel);
+        }
         return new EnvelopeReadChannel(
                 logVersionedChannel,
                 logHeader.getSegmentBlockSize(),
@@ -463,6 +473,90 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         logsRepository.deleteLogFilesFrom(0);
     }
 
+    public StoreChannelsForTransfer storeChannels(long fromIndex, long toIndex) throws IOException {
+        if (toIndex < fromIndex) {
+            throw new IllegalArgumentException(
+                    String.format("From index %d is higher than to index %d", fromIndex, toIndex));
+        }
+
+        long toFileVersion = getFileVersion(toIndex + 1);
+        if (toFileVersion == -1) {
+            throw new IllegalArgumentException(
+                    "No log files containing toIndex " + toIndex + " found because they have been pruned.");
+        }
+
+        var storeChannels = new ArrayList<StoreChannel>();
+        try {
+            long toPosition;
+            var toChannelCtx = logsRepository.openReadChannel(toFileVersion);
+            storeChannels.add(toChannelCtx.channel());
+
+            try (var envToChannel = envelopedReadChannel(toChannelCtx, true)) {
+                if (envToChannel.logHeader().getLastAppendIndex() == toIndex) {
+                    toPosition = envToChannel.alignWithStartEntry();
+                } else {
+                    envToChannel.goToEntry(toIndex);
+                    toPosition = envToChannel.goToEndOfEntry().getByteOffset();
+                }
+
+                // If fromIndex is in the same file, we position the channel and we're done with the logic
+                if (envToChannel.logHeader().getLastAppendIndex() < fromIndex) {
+                    var position = envToChannel.goToEntry(fromIndex);
+                    toChannelCtx.channel().position(position);
+                    return new StoreChannelsForTransfer(storeChannels, toPosition, fromIndex, toIndex);
+                }
+                // Otherwise, toChannel starts at its log header's data start
+                toChannelCtx
+                        .channel()
+                        .position(envToChannel.logHeader().getStartPosition().getByteOffset());
+            }
+
+            // Find and position the start channel
+            var fromVersion = getFileVersion(fromIndex);
+            if (fromVersion == -1) {
+                throw new IllegalArgumentException("No log file found for from index " + fromIndex);
+            }
+
+            var fromChannelCtx = logsRepository.openReadChannel(fromVersion);
+            storeChannels.addFirst(fromChannelCtx.channel());
+            try (var envFromChannel = envelopedReadChannel(fromChannelCtx, true)) {
+                fromChannelCtx.channel().position(envFromChannel.goToEntry(fromIndex));
+            }
+
+            // this means the last file is position to the start point and unnecessary to send
+            if (toPosition == toChannelCtx.channel().position()) {
+                toChannelCtx.close();
+                storeChannels.remove(toChannelCtx.channel());
+                toFileVersion--;
+                if (toFileVersion == fromVersion) {
+                    toPosition = fromChannelCtx.channel().size();
+                } else {
+                    toChannelCtx = logsRepository.openReadChannel(toFileVersion);
+                    storeChannels.add(toChannelCtx.channel());
+                    toPosition = toChannelCtx.channel().size();
+                    toChannelCtx.channel().position(segmentBlockSize);
+                }
+            }
+
+            // Fill in the gaps between fromVersion and toVersion
+            for (var v = toFileVersion - 1; v > fromVersion; v--) {
+                var midChannel = logsRepository.openReadChannel(v).channel();
+                if (midChannel.size() <= segmentBlockSize) {
+                    // less than should not be possible. In any case. Files may be empty due to truncation events.
+                    // There is no reason to include these for transfer.
+                    continue;
+                }
+                storeChannels.add(1, midChannel); // Maintain order: [from, ..., to]
+                midChannel.position(segmentBlockSize);
+            }
+
+            return new StoreChannelsForTransfer(storeChannels, toPosition, fromIndex, toIndex);
+        } catch (Exception e) {
+            IOUtils.closeAllSilently(storeChannels);
+            throw e;
+        }
+    }
+
     private static class EnvelopedLogRotation implements LogRotation {
         private final EnvelopedLogFiles envelopedLogFiles;
         private final long maxFileSize;
@@ -499,7 +593,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
 
         @Override
-        public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
+        public void rotateLogFile(LogRotateEvents logRotateEvents) {
             throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
         }
 

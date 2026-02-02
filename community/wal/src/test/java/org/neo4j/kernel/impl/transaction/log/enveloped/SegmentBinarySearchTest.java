@@ -394,6 +394,65 @@ class SegmentBinarySearchTest {
         }
     }
 
+    @Test
+    void shouldFindEntryThatIsBehind() throws IOException {
+        var baseData = "base data".getBytes(StandardCharsets.UTF_8);
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeChannel.insertStartOffset(44);
+
+        for (int i = 0; i < 14; i++) {
+            writeData(writeChannel, baseData, i);
+        }
+        writeChannel.prepareForFlush().flush();
+
+        for (var i = 4; i < 13; i++) {
+
+            try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+                while (envelopeReadChannel.entryIndex() < 13) {
+                    envelopeReadChannel.goToNextEntry();
+                }
+                envelopeReadChannel.goToEntry(i);
+                assertThat(envelopeReadChannel.getAppendIndex()).isEqualTo(i);
+                var readEntry = new byte[baseData.length];
+                var entry = ByteBuffer.wrap(readEntry);
+                envelopeReadChannel.read(entry);
+                assertThat(readEntry).isEqualTo(baseData);
+            }
+        }
+    }
+
+    @Test
+    void shouldThrowIfEntryIsInPreviousFile() throws IOException {
+        var baseData = new byte[segmentBlockSize - HEADER_SIZE];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < 18; i++) {
+            writeData(writeChannel, baseData, i);
+        }
+        writeChannel.prepareForFlush().flush();
+
+        try (var readChannel = envelopedLogFiles.openReadChannel(17)) {
+            assertThat(readChannel.logHeader().getLastAppendIndex()).isEqualTo(12);
+            assertThrows(IllegalArgumentException.class, () -> readChannel.goToEntry(12));
+        }
+    }
+
+    @Test
+    void shouldThrowReadPastEndIfEmpty() throws IOException {
+        envelopedLogFiles.initialise();
+        try (var readChannel = envelopedLogFiles.openReadChannel()) {
+            assertThat(readChannel.logHeader().getLastAppendIndex()).isEqualTo(-1);
+            assertThrows(ReadPastEndException.class, () -> readChannel.goToEntry(0));
+        }
+    }
+
     private void assertCorrectSegmentFound(EnvelopeReadChannel readChannel, Long segmentPosition, int i)
             throws IOException {
         readChannel.position(segmentPosition);
