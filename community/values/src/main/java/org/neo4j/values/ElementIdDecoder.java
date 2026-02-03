@@ -27,15 +27,18 @@ public final class ElementIdDecoder {
     private static final ElementIdDecoderV1 elementIdDecoderV1 = new ElementIdDecoderV1();
 
     public static long nodeId(String elementId) {
-        return getElementIdDecoder(elementId).nodeId(elementId);
+        String trimmed = elementId.trim();
+        return getElementIdDecoder(trimmed).nodeId(trimmed);
     }
 
     public static UUID database(String elementId) {
-        return getElementIdDecoder(elementId).database(elementId);
+        String trimmed = elementId.trim();
+        return getElementIdDecoder(trimmed).database(trimmed);
     }
 
     public static long relationshipId(String elementId) {
-        return getElementIdDecoder(elementId).relationshipId(elementId);
+        String trimmed = elementId.trim();
+        return getElementIdDecoder(trimmed).relationshipId(trimmed);
     }
 
     private static ElementIdDecoderV1 getElementIdDecoder(String elementId) {
@@ -54,8 +57,12 @@ public final class ElementIdDecoder {
             throw new IllegalArgumentException(format("Element ID %s has an unexpected format.", elementId));
         }
 
-        var header = Byte.parseByte(parts[0]);
-        return (byte) (header >>> 2);
+        try {
+            var header = Byte.parseByte(parts[0]);
+            return (byte) (header >>> 2);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(format("Element ID %s has an unexpected format.", elementId), e);
+        }
     }
 
     public interface VersionedElementIdDecoder {

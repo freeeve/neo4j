@@ -69,6 +69,9 @@ public class ElementIdDecoderV1 implements ElementIdDecoder.VersionedElementIdDe
             var entityId = Long.parseLong(parts[2]);
             var entityType = decodeEntityType(id, header);
             return new ElementId(entityId, entityType, database);
+        } catch (NumberFormatException e) {
+            // extends IllegalArgumentException
+            throw new IllegalArgumentException(format("Element ID %s has an unexpected format.", id), e);
         } catch (IllegalArgumentException iae) {
             throw iae;
         } catch (Exception e) {
@@ -83,6 +86,9 @@ public class ElementIdDecoderV1 implements ElementIdDecoder.VersionedElementIdDe
             verifyVersion(id, header);
 
             return UUID.fromString(parts[1]);
+        } catch (NumberFormatException e) {
+            // extends IllegalArgumentException
+            throw new IllegalArgumentException(format("Element ID %s has an unexpected format.", id), e);
         } catch (IllegalArgumentException iae) {
             throw iae;
         } catch (Exception e) {
