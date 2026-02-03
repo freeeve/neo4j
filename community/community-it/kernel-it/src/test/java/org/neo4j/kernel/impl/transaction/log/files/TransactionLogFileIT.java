@@ -27,6 +27,7 @@ import static org.neo4j.monitoring.HealthEventGenerator.NO_OP;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -57,6 +58,7 @@ import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.LifeExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 @ExtendWith(LifeExtension.class)
@@ -81,6 +83,7 @@ class TransactionLogFileIT {
 
     @Test
     @EnabledOnOs(OS.LINUX)
+    @SkipOnSpd(notes = incompatible, reason = "Deleting tx logs manually may cause property shard tx pulling to fail.")
     void doNotScanDirectoryOnRotate() throws IOException {
         LogFiles logFiles = LogFilesBuilder.writeableBuilder(
                         databaseLayout,
