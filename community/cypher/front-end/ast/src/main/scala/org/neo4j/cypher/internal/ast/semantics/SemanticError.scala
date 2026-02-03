@@ -402,6 +402,30 @@ object SemanticError {
     )
   }
 
+  def invalidEntityTypeWithPropertiesHint(
+    invalidInput: String,
+    variable: String,
+    expectedValueList: Seq[String],
+    legacyMessage: String,
+    pos: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql22G03_22N27WithHint(
+      invalidInput,
+      variable,
+      expectedValueList.asJava,
+      " Hint: use properties(...) on the right-hand side.",
+      pos.offset,
+      pos.line,
+      pos.column
+    )
+
+    SemanticError(
+      gql,
+      legacyMessage,
+      pos
+    )
+  }
+
   def typeMismatch(
     expectedValueList: List[String],
     wrongType: String,

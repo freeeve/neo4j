@@ -1257,9 +1257,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N27(
             new GqlStatus("22N27"),
-            "Invalid input { %s } for { %s }. Expected to be { %s }.",
+            "Invalid input { %s } for { %s }. Expected to be { %s }.{ %s }",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.valueTypeList
+                GqlParams.StringParam.input,
+                GqlParams.StringParam.context,
+                GqlParams.ListParam.valueTypeList,
+                GqlParams.StringParam.hint
             },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             Condition.DATA_EXCEPTION,

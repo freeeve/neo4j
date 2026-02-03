@@ -127,6 +127,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           .withParam(GqlParams.StringParam.input, expr)
           .withParam(GqlParams.StringParam.context, context)
           .withParam(GqlParams.ListParam.valueTypeList, expectedTypes.asJava)
+          .withParam(GqlParams.StringParam.hint, "")
           .atPosition(pos.offset, pos.line, pos.column)
           .build()
       ).atPosition(pos.offset, pos.line, pos.column)

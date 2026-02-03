@@ -154,6 +154,7 @@ public class GqlHelper {
                         .withParam(GqlParams.StringParam.input, input)
                         .withParam(GqlParams.StringParam.context, context)
                         .withParam(GqlParams.ListParam.valueTypeList, validTypes)
+                        .withParam(GqlParams.StringParam.hint, "")
                         .build())
                 .build();
     }
@@ -166,6 +167,33 @@ public class GqlHelper {
                         .withParam(GqlParams.StringParam.input, input)
                         .withParam(GqlParams.StringParam.context, context)
                         .withParam(GqlParams.ListParam.valueTypeList, validTypes)
+                        .withParam(GqlParams.StringParam.hint, "")
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22G03_22N27WithHint(
+            String input, String context, List<String> validTypes, String hint) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .withParam(GqlParams.StringParam.context, context)
+                        .withParam(GqlParams.ListParam.valueTypeList, validTypes)
+                        .withParam(GqlParams.StringParam.hint, hint)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql22G03_22N27WithHint(
+            String input, String context, List<String> validTypes, String hint, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .withParam(GqlParams.StringParam.context, context)
+                        .withParam(GqlParams.ListParam.valueTypeList, validTypes)
+                        .withParam(GqlParams.StringParam.hint, hint)
                         .atPosition(offset, line, column)
                         .build())
                 .build();

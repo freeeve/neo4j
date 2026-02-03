@@ -18,8 +18,10 @@ package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
@@ -143,7 +145,24 @@ case class SetExactPropertiesFromMapItem(variable: Variable, expression: Express
       expectType(CTMap.covariant, expression) chain
       // This was deprecated in Cypher 5 and disallowed in Cypher 25
       when(rhsMustBeMap) {
-        expectType(MapExtendedType.getTypeSpec(CTMap), expression)
+        typeSwitch(expression) { rhsTypes =>
+          // Only surface the hint when the inferred type is strictly NODE/RELATIONSHIP.
+          val nonNodeRelTypes = rhsTypes.without(CTNode).without(CTRelationship)
+          if (nonNodeRelTypes.ranges.isEmpty) {
+            SemanticCheck.error(
+              SemanticError.invalidEntityTypeWithPropertiesHint(
+                if (rhsTypes.containsAny(CTNode.covariant)) "NODE" else "RELATIONSHIP",
+                expression.asCanonicalStringVal,
+                Seq("MAP"),
+                "Type mismatch: expected Map but was " +
+                  (if (rhsTypes.containsAny(CTNode.covariant)) "Node" else "Relationship"),
+                expression.position
+              )
+            )
+          } else {
+            expectType(MapExtendedType.getTypeSpec(CTMap), expression)
+          }
+        }
       }
 
   override def mapExpressions(f: Expression => Expression): SetItem = copy(
@@ -163,7 +182,24 @@ case class SetIncludingPropertiesFromMapItem(variable: Variable, expression: Exp
       expectType(CTMap.covariant, expression) chain
       // This was deprecated in Cypher 5 and disallowed in Cypher 25
       when(rhsMustBeMap) {
-        expectType(MapExtendedType.getTypeSpec(CTMap), expression)
+        typeSwitch(expression) { rhsTypes =>
+          // Only surface the hint when the inferred type is strictly NODE/RELATIONSHIP.
+          val nonNodeRelTypes = rhsTypes.without(CTNode).without(CTRelationship)
+          if (nonNodeRelTypes.ranges.isEmpty) {
+            SemanticCheck.error(
+              SemanticError.invalidEntityTypeWithPropertiesHint(
+                if (rhsTypes.containsAny(CTNode.covariant)) "NODE" else "RELATIONSHIP",
+                expression.asCanonicalStringVal,
+                Seq("MAP"),
+                "Type mismatch: expected Map but was " +
+                  (if (rhsTypes.containsAny(CTNode.covariant)) "Node" else "Relationship"),
+                expression.position
+              )
+            )
+          } else {
+            expectType(MapExtendedType.getTypeSpec(CTMap), expression)
+          }
+        }
       }
 
   override def mapExpressions(f: Expression => Expression): SetItem = copy(

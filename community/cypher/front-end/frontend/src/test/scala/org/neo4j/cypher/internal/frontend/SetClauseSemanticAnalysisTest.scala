@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityTypeWithPropertiesHint
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlParams
 
@@ -102,9 +103,9 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->(m) SET n = r") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType(
+        Seq(invalidEntityTypeWithPropertiesHint(
           "RELATIONSHIP",
-          GqlParams.StringParam.ident.process("r"),
+          "r",
           Seq("MAP"),
           "Type mismatch: expected Map but was Relationship",
           p(27, 1, 28)
@@ -117,9 +118,9 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->() SET r = n") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType(
+        Seq(invalidEntityTypeWithPropertiesHint(
           "NODE",
-          GqlParams.StringParam.ident.process("n"),
+          "n",
           Seq("MAP"),
           "Type mismatch: expected Map but was Node",
           p(26, 1, 27)
@@ -132,9 +133,9 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->(m) SET n += r") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType(
+        Seq(invalidEntityTypeWithPropertiesHint(
           "RELATIONSHIP",
-          GqlParams.StringParam.ident.process("r"),
+          "r",
           Seq("MAP"),
           "Type mismatch: expected Map but was Relationship",
           p(28, 1, 29)
@@ -147,9 +148,9 @@ class SetClauseSemanticAnalysisTest
   test("MATCH (n)-[r]->() SET r += n") {
     run().hasSemanticErrorsIn {
       case CypherVersion.Cypher25 =>
-        Seq(invalidEntityType(
+        Seq(invalidEntityTypeWithPropertiesHint(
           "NODE",
-          GqlParams.StringParam.ident.process("n"),
+          "n",
           Seq("MAP"),
           "Type mismatch: expected Map but was Node",
           p(27, 1, 28)

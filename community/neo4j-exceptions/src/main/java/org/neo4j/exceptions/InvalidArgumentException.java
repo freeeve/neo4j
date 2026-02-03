@@ -717,6 +717,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.input, prettyValue)
                         .withParam(GqlParams.StringParam.context, "timezone")
                         .withParam(GqlParams.ListParam.valueTypeList, List.of("STRING"))
+                        .withParam(GqlParams.StringParam.hint, "")
                         .build())
                 .build();
         return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
@@ -738,6 +739,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.input, key)
                         .withParam(GqlParams.StringParam.context, "index setting")
                         .withParam(GqlParams.ListParam.valueTypeList, expected)
+                        .withParam(GqlParams.StringParam.hint, "")
                         .build())
                 .build();
         return new InvalidArgumentException(
@@ -756,6 +758,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.input, analyzerName)
                         .withParam(GqlParams.StringParam.context, "index setting")
                         .withParam(GqlParams.ListParam.valueTypeList, expected)
+                        .withParam(GqlParams.StringParam.hint, "")
                         .build())
                 .build();
         return new InvalidArgumentException(gql, "No such full-text analyzer: '" + analyzerName + "'.");
@@ -768,6 +771,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.input, prettyValue)
                         .withParam(GqlParams.StringParam.context, "coordinate " + field.toLowerCase(Locale.ROOT))
                         .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
+                        .withParam(GqlParams.StringParam.hint, "")
                         .build())
                 .build();
         return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
