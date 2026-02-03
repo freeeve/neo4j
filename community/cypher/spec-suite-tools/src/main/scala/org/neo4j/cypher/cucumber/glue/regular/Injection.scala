@@ -61,14 +61,19 @@ object GuiceObjectFactory {
   }
 }
 
-trait InjectedTestConf {
+trait CustomInjectedTestConf {
   val conf: TestConf
+  protected def createInjector(conf: TestConf): Injector
 
   // This is a workaround of a bug in cucumber: https://github.com/cucumber/cucumber-jvm/issues/2961
   // When running in parallel @Singleton injections do not work as expected in cucumber.
   // Making the injector a singleton forces cucumber to not create multiple injectors.
   // There's a risk with this hack, you can only run one test suite at a time (per injector and JVM).
-  protected lazy val injector: Injector = GuiceObjectFactory.injector(new Module(conf))
+  final protected lazy val injector: Injector = createInjector(conf)
+}
+
+trait InjectedTestConf extends CustomInjectedTestConf {
+  final override protected def createInjector(conf: TestConf): Injector = GuiceObjectFactory.injector(new Module(conf))
 }
 
 class Module(val conf: TestConf) extends AbstractModule {

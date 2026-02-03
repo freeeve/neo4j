@@ -56,7 +56,7 @@ import scala.util.Using
 trait Executors {
 
   /** Acquire a query executor for the specified scenario. The acquired [[DbAccessor]]s must be released. */
-  def acquire(scenario: Scenario): DbAccessor
+  def acquire(scenario: Scenario, dynamicSettings: Settings): DbAccessor
 
   /** Release an acquired [[DbAccessor]]. */
   def release(dbms: DbAccessor): Unit
@@ -78,10 +78,10 @@ trait ExecutorPool extends Executors {
 
   def conf: TestConf
 
-  final override def acquire(scenario: Scenario): DbAccessor = {
+  final override def acquire(scenario: Scenario, dynamicSettings: Settings): DbAccessor = {
     checkState(started, "ExecutorPool is not started")
 
-    val extraSettings = extraSettingsFor(scenario)
+    val extraSettings = extraSettingsFor(scenario) ++ dynamicSettings
     executors.poll(5, TimeUnit.MINUTES) match {
       case Some(executor) =>
         try {

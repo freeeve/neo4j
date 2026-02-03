@@ -47,11 +47,11 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   Given("an empty graph") {}
 
   Given("any graph") {
-    havingExecuted(readNamedGraphCypher("binary-tree-1"))
+    loadNamedGraph("binary-tree-1")
   }
 
   Given("""the {word} graph""") { (graphName: String) =>
-    havingExecuted(readNamedGraphCypher(graphName))
+    loadNamedGraph(graphName)
   }
 
   Given("""parameters are:""") { (params: DataTable) =>
@@ -182,6 +182,7 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   private def readNamedGraphCypher(name: String): String = {
     IOUtils.resourceToString(s"graphs/$name/$name.cypher", StandardCharsets.UTF_8, getClass.getClassLoader)
   }
+  def loadNamedGraph(name: String): Unit = havingExecuted(readNamedGraphCypher(name))
   def parametersAre(params: Map[String, String]): Unit
   def registerProcedure(signature: String, results: DataTable): Unit
   def registerUserFunction(name: String): Unit

@@ -414,7 +414,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingControlQueryInOpenTx(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.openTransaction()",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.havingExecutedInOpenTx(java.lang.String)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingQueryInOpenTx(java.lang.String)"
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingQueryInOpenTx(java.lang.String)",
+      "public default void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.loadNamedGraph(java.lang.String)"
     )
     val methods = classOf[CypherCucumberSteps].getMethods
       .filter(c => c.toString.contains("org.neo4j.cypher.cucumber"))

@@ -29,6 +29,7 @@ import org.neo4j.cypher.cucumber.glue.regular.DbAccessor
 import org.neo4j.cypher.cucumber.glue.regular.Executors
 import org.neo4j.cypher.cucumber.glue.regular.Expectations
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
+import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.steps.RegularCypherSteps.QueryResults
@@ -96,12 +97,13 @@ final class RegularCypherSteps @Inject() (
 
   override def lastExecutionResult: QueryExecution = lastResult
 
-  Before { scenario: Scenario => before(scenario) }
+  Before { scenario: Scenario => initialize(scenario) }
 
-  def before(scenario: Scenario): Unit = {
+  def initialize(scenario: Scenario, dynamicSettings: Settings = Map.empty): Unit = {
     // Note, @fail tags are handled in SkipFailsScenarios (or OnlyFailsScenarios).
     assumeFalse(expectations.ignore(scenario), "Scenario ignored because of @ignore tag")
-    dbmsAccessor = executors.acquire(scenario)
+    require(dbmsAccessor == null)
+    dbmsAccessor = executors.acquire(scenario, dynamicSettings)
     db = dbmsAccessor.dbms
     this.scenario = scenario
   }

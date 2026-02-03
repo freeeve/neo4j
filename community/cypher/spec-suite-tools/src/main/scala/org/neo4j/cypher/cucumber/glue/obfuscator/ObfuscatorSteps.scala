@@ -80,7 +80,7 @@ final class ObfuscatorSteps @Inject() (
     assumeFalse(expectations.fails(scenario), "Ignoring scenario because of @fails tag")
     assumeFalse(expectations.ignore(scenario), "Ignoring scenario because of @ignore tag")
     this.start = Instant.now()
-    inner.before(scenario)
+    inner.initialize(scenario)
     this.scenarioTag = "// obfuscator-test-tag " + scenario.getUri.toString + ":" + scenario.getLine
   }
 
