@@ -98,21 +98,23 @@ trait GraphDatabaseTestSupport
         if (runOnSpd) classOf[Ignore].getName else "SpdNotSupported"
       )
 
+  private val shardCount = java.lang.Integer.valueOf(3)
   var graphOps: GraphDatabaseService = _
   var graph: GraphDatabaseCypherService = _
   var managementService: DatabaseManagementService = _
   var nodes: List[Node] = _
   protected var tx: InternalTransaction = _
   protected val registeredCallables: ArrayBuffer[QualifiedName] = ArrayBuffer.empty
+  protected val createSpdAtStartup = false
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     startGraphDatabase()
   }
 
-  def expectedShardCount: Int = 0
+  def expectedShardCount: Int = if (runOnSpd) shardCount else 0
 
-  def runOnSpd: Boolean = false
+  def runOnSpd: Boolean = "spd".equals(System.getProperty("NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER"))
 
   def databaseConfig(): Map[Setting[_], Object] = Map(
     GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)
@@ -171,15 +173,14 @@ trait GraphDatabaseTestSupport
 
     managementService =
       updatedDatabaseFactory.setConfig(config.asJava).setInternalLogProvider(logProvider).build()
-
-    if (expectedShardCount > 0) {
+    if (createSpdAtStartup) {
       // need to start a db here, but this is community so might need to check if this should be moved to enterprise
       try {
         managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
           // 1 primary, 0 secondaries
           "CYPHER 25 CREATE DATABASE `%s` GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT %s TOPOLOGY 1 REPLICA}".formatted(
             dbName,
-            expectedShardCount
+            shardCount
           )
         )
       } catch {
@@ -314,12 +315,8 @@ trait GraphDatabaseTestSupport
     config: Map[Setting[_], Object] = databaseConfig(),
     maybeExternalPath: Option[Path] = None
   ): Unit = {
-    var _config = config
-    if (expectedShardCount > 0) {
-      _config = _config ++ spdDatabaseConfig()
-    }
     managementService.shutdown()
-    startGraphDatabase(_config, maybeExternalPath = maybeExternalPath)
+    startGraphDatabase(config, maybeExternalPath = maybeExternalPath)
   }
 
   protected def restartWithIndexProvider(
