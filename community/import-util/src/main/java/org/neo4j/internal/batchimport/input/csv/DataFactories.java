@@ -26,6 +26,7 @@ import static org.neo4j.csv.reader.Readables.iterator;
 import static org.neo4j.internal.batchimport.input.csv.CsvInput.idExtractor;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -127,7 +128,7 @@ public class DataFactories {
     /**
      * Header parser that will read header information, using the default node header format,
      * from the top of the data file.
-     *
+     * <br>
      * This header factory can be used even when the header exists in a separate file, if that file
      * is the first in the list of files supplied to {@link #data}.
      * @param defaultTimeZone A supplier of the time zone to be used for temporal values when not specified explicitly
@@ -155,7 +156,7 @@ public class DataFactories {
     /**
      * Header parser that will read header information, using the default relationship header format,
      * from the top of the data file.
-     *
+     * <br>
      * This header factory can be used even when the header exists in a separate file, if that file
      * is the first in the list of files supplied to {@link #data}.
      * @param defaultTimeZone A supplier of the time zone to be used for temporal values when not specified explicitly
@@ -202,7 +203,9 @@ public class DataFactories {
             List<Entry> columns = new ArrayList<>();
             for (int i = 0; !mark.isEndOfLine() && dataSeeker.seek(mark, delimiter); i++) {
                 String rawEntry = dataSeeker.tryExtract(mark, extractors.string());
-                HeaderEntrySpec spec = !extractors.string().isEmpty(rawEntry) ? parseHeaderEntrySpec(rawEntry) : null;
+                HeaderEntrySpec spec = !extractors.string().isEmpty(rawEntry)
+                        ? parseHeaderEntrySpec(dataSeeker.sourceDescription(), rawEntry)
+                        : null;
                 if (spec == null || Type.IGNORE.name().equals(spec.type())) {
                     columns.add(new Entry(rawEntry, null, Type.IGNORE, null, null));
                 } else if (Type.ACTION.name().equals(spec.type())) {
@@ -213,8 +216,8 @@ public class DataFactories {
                 }
             }
             return columns.toArray(new Entry[0]);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Unable to parse header entries: " + dataSeeker.sourceDescription(), ex);
         }
     }
 
@@ -269,13 +272,15 @@ public class DataFactories {
                     extractor = extractors.stringArray();
                 }
             } else if (isRecognizedType(spec.type())) {
-                throw new HeaderException("Unexpected header type '" + spec.type() + "'");
+                throw new HeaderException(
+                        "Unexpected header type '%s' in file '%s'".formatted(spec.type(), sourceDescription));
             } else {
                 type = Type.PROPERTY;
                 try {
                     optionalParameter = parseOptionalParameter(spec.type(), spec.options());
                 } catch (IllegalArgumentException e) {
-                    throw new HeaderException("Unable to parse header. %s".formatted(e.getMessage()), e);
+                    throw new HeaderException(
+                            "Unable to parse header in file '%s'. %s".formatted(sourceDescription, e.getMessage()), e);
                 }
                 extractor = propertyExtractor(
                         sourceDescription, spec.name(), spec.type(), optionalParameter, extractors, monitor);
@@ -341,8 +346,9 @@ public class DataFactories {
 
             for (Type type : mandatoryTypes) {
                 if (!singletonEntries.containsKey(type) && !multiEntries.contains(type)) {
-                    throw new HeaderException(
-                            format("Missing header of type %s, among entries %s", type, Arrays.toString(entries)));
+                    throw new HeaderException(format(
+                            "Missing header of type %s, among entries %s in '%s'",
+                            type, Arrays.toString(entries), dataSeeker.sourceDescription()));
                 }
             }
         }
@@ -368,7 +374,7 @@ public class DataFactories {
                 CSVHeaderInformation optionalParameter,
                 Extractors extractors,
                 Monitor monitor) {
-            Extractor<?> extractor = parsePropertyType(typeSpec, optionalParameter, extractors);
+            Extractor<?> extractor = parsePropertyType(sourceDescription, typeSpec, optionalParameter, extractors);
             if (normalizeTypes) {
                 // This basically mean that e.g. a specified type "float" will actually be "double", "int", "short" and
                 // all that will be "long".
@@ -384,7 +390,7 @@ public class DataFactories {
         }
     }
 
-    private static HeaderEntrySpec parseHeaderEntrySpec(String rawEntry) {
+    private static HeaderEntrySpec parseHeaderEntrySpec(String sourceDescription, String rawEntry) {
         // rawEntry specification: <name><:type>(<group>){<options>}
         // example: id:ID(persons){option1:something,option2:'something else'}
 
@@ -401,8 +407,9 @@ public class DataFactories {
                 int optionsEndIndex = rawHeaderField.lastIndexOf('}');
                 Preconditions.checkState(
                         optionsEndIndex != -1 && optionsEndIndex > optionsStartIndex,
-                        "Expected a closing '}' in header %s",
-                        rawHeaderField);
+                        "Expected a closing '}' in header %s of '%s'",
+                        rawHeaderField,
+                        sourceDescription);
                 String rawOptions =
                         rawHeaderField.substring(optionsStartIndex, optionsEndIndex + 1); // including the curlies
                 options = Value.parseStringMap(rawOptions);
@@ -418,7 +425,9 @@ public class DataFactories {
             if (groupStartIndex != -1 && typeIndex != -1 && groupStartIndex > typeIndex) {
                 int groupEndIndex = rawHeaderField.lastIndexOf(')');
                 Preconditions.checkState(
-                        groupEndIndex != -1 && groupEndIndex > groupStartIndex, "Expected a closing ')'");
+                        groupEndIndex != -1 && groupEndIndex > groupStartIndex,
+                        "Expected a closing ')' in header of '%s'",
+                        sourceDescription);
                 groupName = rawHeaderField.substring(groupStartIndex + 1, groupEndIndex);
                 rawHeaderField = cutOut(rawHeaderField, groupStartIndex, groupEndIndex);
             }
@@ -449,9 +458,10 @@ public class DataFactories {
         return result.toString();
     }
 
-    record HeaderEntrySpec(String rawEntry, String name, String type, String group, Map<String, String> options) {}
+    public record HeaderEntrySpec(
+            String rawEntry, String name, String type, String group, Map<String, String> options) {}
 
-    interface HeaderEntryFactory {
+    public interface HeaderEntryFactory {
         Entry create(
                 String sourceDescription,
                 int entryIndex,
@@ -490,7 +500,7 @@ public class DataFactories {
                         group.specificIdType().toUpperCase(Locale.ROOT))) {
                     throw new HeaderException("vector is not allowed as an id-type");
                 } else {
-                    extractor = parsePropertyType(group.specificIdType(), null, extractors);
+                    extractor = parsePropertyType(sourceDescription, group.specificIdType(), null, extractors);
                 }
             } else if (Type.LABEL.matches(spec.type())) {
                 type = Type.LABEL;
@@ -532,7 +542,7 @@ public class DataFactories {
                 if (group.specificIdType() == null) {
                     extractor = defaultIdExtractor;
                 } else {
-                    extractor = parsePropertyType(group.specificIdType(), null, extractors);
+                    extractor = parsePropertyType(sourceDescription, group.specificIdType(), null, extractors);
                 }
             } else if (Type.TYPE.matches(spec.type())) {
                 type = Type.TYPE;
@@ -559,11 +569,12 @@ public class DataFactories {
     }
 
     private static Extractor<?> parsePropertyType(
-            String typeSpec, CSVHeaderInformation optionalParameter, Extractors extractors) {
+            String sourceDescription, String typeSpec, CSVHeaderInformation optionalParameter, Extractors extractors) {
         try {
             return extractors.valueOf(typeSpec, optionalParameter);
         } catch (IllegalArgumentException e) {
-            throw new HeaderException("Unable to parse header. %s".formatted(e.getMessage()), e);
+            throw new HeaderException(
+                    "Unable to parse header in '%s'. %s".formatted(sourceDescription, e.getMessage()), e);
         }
     }
 

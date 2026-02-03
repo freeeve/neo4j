@@ -187,8 +187,8 @@ public class MultiLineChunker extends NewLineChunker {
 
     private IllegalStateException error(String message, int position) {
         return new IllegalStateException(
-                "Weird input data, %s at position %d of buffer of length %d, not supported a.t.m."
-                        .formatted(message, position, chunkSize));
+                "Weird input data in '%s', %s at position %d of buffer of length %d, not supported a.t.m."
+                        .formatted(reader.sourceDescription(), message, position, chunkSize));
     }
 
     private boolean isDelimiter(char[] buffer, int offset) {

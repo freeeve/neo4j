@@ -37,6 +37,7 @@ public class ClosestNewLineChunker extends NewLineChunker {
         }
         // There was no newline character, isn't that weird?
         throw new IllegalStateException(
-                "Weird input data, no newline character in the whole buffer " + chunkSize + ", not supported a.t.m.");
+                "Weird input data in '%s', no newline character in the whole buffer %d, not supported a.t.m."
+                        .formatted(reader.sourceDescription(), chunkSize));
     }
 }
