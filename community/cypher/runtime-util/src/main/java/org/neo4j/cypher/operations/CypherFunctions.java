@@ -142,6 +142,7 @@ import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
+import org.neo4j.values.virtual.CompositeDatabaseValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -2373,10 +2374,14 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (in instanceof NodeValue node && node.id() < 0) {
             return node.properties();
+        } else if (in instanceof CompositeDatabaseValue.CompositeGraphDirectNodeValue node) {
+            return node.properties();
         } else if (in instanceof VirtualNodeValue node) {
             return access.nodeAsMap(
                     node.id(), nodeCursor, propertyCursor, new MapValueBuilder(), IntSets.immutable.empty());
         } else if (in instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties();
+        } else if (in instanceof CompositeDatabaseValue.CompositeDirectRelationshipValue rel) {
             return rel.properties();
         } else if (in instanceof VirtualRelationshipValue rel) {
             return access.relationshipAsMap(
