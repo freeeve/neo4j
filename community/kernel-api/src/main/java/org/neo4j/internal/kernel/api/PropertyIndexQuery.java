@@ -54,13 +54,23 @@ public abstract class PropertyIndexQuery implements IndexQuery {
     }
 
     /**
-     * Searches the index for all entries that has the given property.
+     * Searches the index for all entries that have the given property.
      *
      * @param propertyKeyId the property ID to match.
      * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
      */
     public static ExistsPredicate exists(int propertyKeyId) {
         return new ExistsPredicate(propertyKeyId);
+    }
+
+    /**
+     * Searches the index for all entries that doesn't have the given property.
+     *
+     * @param propertyKeyId the property ID to match.
+     * @return a {@link PropertyIndexQuery} instance to be used for querying an index.
+     */
+    public static NotExistsPredicate notExists(int propertyKeyId) {
+        return new NotExistsPredicate(propertyKeyId);
     }
 
     /**
@@ -321,6 +331,27 @@ public abstract class PropertyIndexQuery implements IndexQuery {
         @Override
         public boolean acceptsValueAt(PropertyCursor property) {
             return true;
+        }
+
+        @Override
+        public ValueGroup valueGroup() {
+            return ValueGroup.UNKNOWN;
+        }
+    }
+
+    public static final class NotExistsPredicate extends PropertyIndexQuery {
+        private NotExistsPredicate(int propertyKeyId) {
+            super(propertyKeyId);
+        }
+
+        @Override
+        public IndexQueryType type() {
+            return IndexQueryType.NOT_EXISTS;
+        }
+
+        @Override
+        public boolean acceptsValue(Value value) {
+            return value == null || value == NO_VALUE;
         }
 
         @Override

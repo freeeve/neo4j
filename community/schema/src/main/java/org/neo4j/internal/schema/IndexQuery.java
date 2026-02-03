@@ -35,6 +35,7 @@ public interface IndexQuery {
         ALL_ENTRIES,
         ALL,
         EXISTS,
+        NOT_EXISTS,
         EXACT,
         RANGE,
         BOUNDING_BOX,

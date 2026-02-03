@@ -44,6 +44,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExistsPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableRangePredicate;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.NotExistsPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.RangePredicate;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleInstantField;
@@ -79,6 +80,8 @@ final class Lucene10FilterQueryBuilder {
         return switch (predicate) {
             case ExistsPredicate ignored when propertyIndex == 0 -> new MatchAllDocsQuery();
             case ExistsPredicate ignored -> queryForExists(propertyIndex);
+            case NotExistsPredicate ignored when propertyIndex == 0 -> new MatchNoDocsQuery();
+            case NotExistsPredicate ignored -> queryForNotExists(propertyIndex);
             case IncomparableExactPredicate ignored -> new MatchNoDocsQuery();
             case ExactPredicate exactPredicate -> queryForExact(propertyIndex, exactPredicate);
             case IncomparableRangePredicate<?> ignored -> new MatchNoDocsQuery();
@@ -86,6 +89,8 @@ final class Lucene10FilterQueryBuilder {
             case null, default ->
                 throw new IllegalArgumentException("Unexpected filter query predicate. Expected one of ["
                         + IndexQueryType.EXISTS
+                        + ", "
+                        + IndexQueryType.NOT_EXISTS
                         + ", "
                         + IndexQueryType.EXACT
                         + ", "
@@ -97,6 +102,13 @@ final class Lucene10FilterQueryBuilder {
 
     private Query queryForExists(int propertyIndex) {
         return new TermQuery(new Term(EXISTS_KEY, new BytesRef(Lucene10ValueFields.intToBytes(propertyIndex))));
+    }
+
+    private Query queryForNotExists(int propertyIndex) {
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+        queryBuilder.add(new MatchAllDocsQuery(), Occur.FILTER);
+        queryBuilder.add(queryForExists(propertyIndex), Occur.MUST_NOT);
+        return queryBuilder.build();
     }
 
     private Query queryForExact(int propertyIndex, ExactPredicate predicate) {

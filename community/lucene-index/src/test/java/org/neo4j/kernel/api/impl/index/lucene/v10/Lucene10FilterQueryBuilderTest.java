@@ -134,6 +134,27 @@ public class Lucene10FilterQueryBuilderTest {
                 .isEqualTo(0.0f);
     }
 
+    record MyRecord(long l) {}
+
+    @Test
+    void propertyNotExists() {
+        int indexablePropertyIndex = 3;
+        addField(indexablePropertyIndex, Values.utf8Value("indexed"));
+
+        int nonIndexablePropertyIndex = 4;
+        addField(nonIndexablePropertyIndex, Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 0.f, 1.f));
+
+        int noValuePropertyIndex = 5;
+        addField(noValuePropertyIndex, null);
+
+        assertThat(scoreForQuery(indexablePropertyIndex, PropertyIndexQuery.notExists(1)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(nonIndexablePropertyIndex, PropertyIndexQuery.notExists(2)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(noValuePropertyIndex, PropertyIndexQuery.notExists(3)))
+                .isEqualTo(1.0f);
+    }
+
     @Test
     public void testString() {
 

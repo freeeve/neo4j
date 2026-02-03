@@ -157,7 +157,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
 
             IndexQueryType type = predicate.type();
             switch (type) {
-                case ALL, EXISTS, EXACT, RANGE -> {
+                case ALL, EXISTS, NOT_EXISTS, EXACT, RANGE -> {
                     // Each filter predicate is independent of others;
                     // so we can support arbitrary combinations range and exact predicates
                 }

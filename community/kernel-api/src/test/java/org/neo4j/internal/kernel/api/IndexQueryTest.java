@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.BoundingBoxPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExistsPredicate;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.NotExistsPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.RangePredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.StringContainsPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.StringPrefixPredicate;
@@ -90,6 +91,21 @@ class IndexQueryTest {
         assertTrue(test(p, pointValue(CoordinateReferenceSystem.WGS_84, 12.3, 45.6)));
 
         assertFalse(test(p, null));
+    }
+
+    @Test
+    void testNotExists() {
+        NotExistsPredicate p = PropertyIndexQuery.notExists(propId);
+
+        assertFalse(test(p, "string"));
+        assertFalse(test(p, 1));
+        assertFalse(test(p, 1.0));
+        assertFalse(test(p, true));
+        assertFalse(test(p, new long[] {1L}));
+        assertFalse(test(p, pointValue(CoordinateReferenceSystem.WGS_84, 12.3, 45.6)));
+
+        assertTrue(test(p, null));
+        assertTrue(test(p, Values.NO_VALUE));
     }
 
     // EXACT

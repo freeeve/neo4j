@@ -29,6 +29,7 @@ import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exact;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exists;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.fulltextSearch;
+import static org.neo4j.internal.kernel.api.PropertyIndexQuery.notExists;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.range;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.stringContains;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.stringPrefix;
@@ -251,6 +252,29 @@ abstract class TextIndexQueryTestBase extends KernelAPIReadTestBase<ReadTestSupp
     @Test
     void shouldThrowOnExistsQuery() {
         PropertyIndexQuery query = exists(token.propertyKey(SINCE));
+
+        assertThatThrownBy(() -> indexedNodes(query))
+                .isInstanceOf(IndexNotApplicableKernelException.class)
+                .hasMessageContainingAll(
+                        "Index query not supported for",
+                        org.neo4j.graphdb.schema.IndexType.TEXT.name(),
+                        "index",
+                        "Query",
+                        query.toString());
+
+        assertThatThrownBy(() -> indexedRelations(query))
+                .isInstanceOf(IndexNotApplicableKernelException.class)
+                .hasMessageContainingAll(
+                        "Index query not supported for",
+                        org.neo4j.graphdb.schema.IndexType.TEXT.name(),
+                        "index",
+                        "Query",
+                        query.toString());
+    }
+
+    @Test
+    void shouldThrowOnNotExistsQuery() {
+        PropertyIndexQuery query = notExists(token.propertyKey(SINCE));
 
         assertThatThrownBy(() -> indexedNodes(query))
                 .isInstanceOf(IndexNotApplicableKernelException.class)
