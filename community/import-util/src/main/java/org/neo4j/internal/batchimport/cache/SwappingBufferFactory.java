@@ -89,7 +89,7 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
     public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
         try {
             long start = currentEnd.getAndAdd(roundUp(size, Long.BYTES));
-            final MappedByteBuffer mapped = channel.map(FileChannel.MapMode.PRIVATE, start, size);
+            final MappedByteBuffer mapped = channel.map(FileChannel.MapMode.READ_WRITE, start, size);
 
             AutoCloseable closeable = FORCE_UNMAP ? (() -> UnsafeUtil.invokeCleaner(mapped)) : null;
             if (UnsafeUtil.isCheckNativeAccessEnabled()) {
