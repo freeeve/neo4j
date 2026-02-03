@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.D
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.EXPAND_ALL_COST
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.INDEX_SCAN_COST_PER_ROW
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.LABEL_CHECK_DB_HITS
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROBE_BUILD_LHS_LIMIT
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROPERTY_ACCESS_DB_HITS
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.SHORTEST_PRODUCT_GRAPH_COST
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
@@ -47,6 +48,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
@@ -79,9 +82,10 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     providedOrders: ProvidedOrders,
     executionModel: ExecutionModel = ExecutionModel.default,
     statistics: GraphStatistics = HardcodedGraphStatistics,
-    propertyAccess: Set[PropertyAccess] = Set.empty
+    propertyAccess: Set[PropertyAccess] = Set.empty,
+    databaseMode: DatabaseMode = DatabaseMode.SINGLE
   ): Cost = {
-    CardinalityCostModel(executionModel, CancellationChecker.neverCancelled()).costFor(
+    CardinalityCostModel(executionModel, CancellationChecker.neverCancelled(), databaseMode).costFor(
       plan,
       input,
       semanticTable,
@@ -91,6 +95,65 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
       statistics,
       CostModelMonitor.DEFAULT
     )
+  }
+
+  test("Nested Index joins should have additional cost in SHARDED mode") {
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .apply()
+      .|.relationshipIndexOperator("(b)-[r:R(prop = cacheN[b.prop])]->()").withCardinality(10)
+      .argument("b").withCardinality(5)
+      .build()
+
+    val normalCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = org.neo4j.cypher.internal.planner.spi.DatabaseMode.SINGLE
+    )
+
+    val shardedCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
+    )
+
+    shardedCost should be > normalCost
+  }
+
+  test("Applies without nested index joins should have same cost in sharded and other modes") {
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .apply()
+      .|.expandAll("(a)-[r:R]->(b)").withCardinality(10)
+      .|.argument("b").withCardinality(5)
+      .argument("b").withCardinality(5)
+      .build()
+
+    val normalCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = org.neo4j.cypher.internal.planner.spi.DatabaseMode.SINGLE
+    )
+
+    val shardedCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
+    )
+
+    shardedCost shouldEqual normalCost
   }
 
   test("expand should only be counted once") {
@@ -229,6 +292,70 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
       builder.cardinalities,
       builder.providedOrders
     ) should be < costFor(plan, withoutLimit, builder.getSemanticTable, builder.cardinalities, builder.providedOrders)
+  }
+
+  test("hash join should be much costlier after 10 million rows on the LHS if the database mode is SHARDED") {
+    val lhsCardinality = PROBE_BUILD_LHS_LIMIT
+    val rhsCardinality = 100.0
+
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .nodeHashJoin("b").withCardinality(lhsCardinality + rhsCardinality)
+      .|.argument("b").withCardinality(rhsCardinality)
+      .argument("a").withCardinality(lhsCardinality)
+      .build()
+
+    val normalCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = DatabaseMode.SINGLE
+    )
+
+    val shardedCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = DatabaseMode.SHARDED
+    )
+
+    shardedCost should be > normalCost
+  }
+
+  test("hashjoin cost is normal below 10 million rows on the LHS even if the database mode is SHARDED") {
+    val lhsCardinality = PROBE_BUILD_LHS_LIMIT - 1
+    val rhsCardinality = 100.0
+
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .nodeHashJoin("b").withCardinality(lhsCardinality + rhsCardinality)
+      .|.argument("b").withCardinality(rhsCardinality)
+      .argument("a").withCardinality(lhsCardinality)
+      .build()
+
+    val normalCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = DatabaseMode.SINGLE
+    )
+
+    val shardedCost = costFor(
+      plan,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders,
+      databaseMode = DatabaseMode.SHARDED
+    )
+
+    shardedCost shouldEqual normalCost
   }
 
   test("eager plans should cost the same regardless of limit selectivity") {

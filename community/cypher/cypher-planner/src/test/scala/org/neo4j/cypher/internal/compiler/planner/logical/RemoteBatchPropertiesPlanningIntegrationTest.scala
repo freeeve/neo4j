@@ -28,8 +28,11 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
+import org.neo4j.cypher.internal.compiler.planner.AttributeComparisonStrategy.ComparingProvidedAttributesOnly
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.CardinalityIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
@@ -78,7 +81,8 @@ import scala.collection.immutable.ArraySeq
 
 class RemoteBatchPropertiesPlanningIntegrationTest
     extends AbstractRemoteBatchPropertiesPlanningIntegrationTest(ExecutionModel.default)
-    with CypherVersionTestSupport {
+    with CypherVersionTestSupport
+    with LogicalPlanningAttributesTestSupport {
 
   override protected val orderPreserving: Boolean = true
 
@@ -343,6 +347,171 @@ class RemoteBatchPropertiesPlanningIntegrationTest
       .build()
   }
 
+  test("should prefer nested index join over value hash join if the cardinality of LHS is large") {
+    val planner = spdPlanner
+      .setAllNodesCardinality(100_000_000)
+      .setLabelCardinality("A", 50_000_000)
+      .setLabelCardinality("B", 90_000_000)
+      .addNodeIndex("A", Seq("prop"), 1.0, 1.0 / 5000, isUnique = true)
+      .addNodeIndex("B", Seq("prop"), 1.0, 1.0)
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.prop = b.prop
+        |RETURN a, b""".stripMargin
+
+    val plan = planner.planState(query)
+    plan should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.subPlanBuilder()
+        .produceResults("a", "b")
+        .apply()
+        .|.nodeIndexOperator(
+          "b:B(prop = cacheN[a.prop])",
+          indexOrder = IndexOrderNone,
+          getValue = Map("prop" -> DoNotGetValue),
+          argumentIds = Set("a")
+        )
+        .nodeIndexOperator(
+          "a:A(prop)",
+          indexOrder = IndexOrderNone,
+          getValue = Map("prop" -> GetValue)
+        ).withCardinality(50_000_000),
+      ComparingProvidedAttributesOnly
+    )
+  }
+
+  test(
+    "should prefer nested index join over value merge join if the cardinality of RHS is very large and LHS is small"
+  ) {
+    val cardA = 1_000
+    val existsSelectivityA = 0.01
+    val planner = spdPlanner
+      .setAllNodesCardinality(100_000_000)
+      // Fewer A nodes, so this will be the LHS
+      .setLabelCardinality("A", cardA)
+      .setLabelCardinality("B", 1_000_000)
+      .addNodeIndex("A", Seq("prop"), existsSelectivityA, 0.001, isUnique = true)
+      .addNodeIndex("B", Seq("prop"), 1.0, 1.0)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.prop = b.prop
+        |RETURN a, b""".stripMargin
+
+    planner.planState(query) should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        .produceResults("a", "b")
+        .apply()
+        .|.nodeIndexOperator(
+          "b:B(prop = cacheN[a.prop])",
+          indexOrder = IndexOrderAscending,
+          getValue = Map("prop" -> GetValue),
+          argumentIds = Set("a")
+        ).withCardinality(10)
+        .nodeIndexOperator(
+          "a:A(prop)",
+          indexOrder = IndexOrderAscending,
+          getValue = Map("prop" -> GetValue)
+        ).withCardinality(cardA * existsSelectivityA), // = 10
+      ComparingProvidedAttributesOnly
+    )
+  }
+
+  test("should prefer merge join over nested applies for node property equality for very large LHS") {
+    val cardA = 10_000
+    val existsSelectivityA = 1.0
+    val planner = spdPlanner
+      .setAllNodesCardinality(100_000_000)
+      .setLabelCardinality("A", cardA)
+      .setLabelCardinality("B", 100_000)
+      .addNodeIndex("A", Seq("prop"), existsSelectivityA, 1.0 / 5000, isUnique = true)
+      .addNodeIndex("B", Seq("prop"), 1.0, 1.0)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.prop = b.prop
+        |RETURN a, b""".stripMargin
+
+    val plan = planner.planState(query)
+    plan should haveSamePlanAndCardinalitiesAsBuilder(
+      planner.planBuilder()
+        .produceResults("a", "b")
+        .valueMergeJoin("cacheN[a.prop] = cacheN[b.prop]")
+        .|.nodeIndexOperator(
+          "b:B(prop)",
+          indexOrder = IndexOrderAscending,
+          getValue = Map("prop" -> GetValue)
+        )
+        .nodeIndexOperator(
+          "a:A(prop)",
+          indexOrder = IndexOrderAscending,
+          getValue = Map("prop" -> GetValue)
+        ).withCardinality(cardA * existsSelectivityA), // = 10_000
+      ComparingProvidedAttributesOnly
+    )
+  }
+
+  test("should prefer merge join over hash join for node property equality for very large LHS and RHS") {
+    val planner = spdPlanner
+      .setAllNodesCardinality(10_000_000)
+      .setLabelCardinality("A", 1_000_000)
+      .setLabelCardinality("B", 9_000_000)
+      .addNodeIndex("A", Seq("prop"), 1.0, 1.0 / 5000, isUnique = true)
+      .addNodeIndex("B", Seq("prop"), 1.0, 1.0)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.prop = b.prop
+        |RETURN a, b""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .valueMergeJoin("cacheN[a.prop] = cacheN[b.prop]")
+      .|.nodeIndexOperator(
+        "b:B(prop)",
+        indexOrder = IndexOrderAscending,
+        getValue = Map("prop" -> GetValue)
+      )
+      .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = Map("prop" -> GetValue))
+      .build()
+  }
+
+  test("should prefer hash join over merge join if there is no index for the LHS") {
+    val planner = spdPlanner
+      .setAllNodesCardinality(10_000_000)
+      .setLabelCardinality("A", 1_000_000)
+      .setLabelCardinality("B", 9_000_000)
+      .addNodeIndex("B", Seq("prop"), 1.0, 1.0)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.prop = b.prop
+        |RETURN a, b""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .valueHashJoin(
+        "cacheN[a.prop] = cacheN[b.prop]"
+      ) // preferred over merge join where the LHS will need to be sorted in memory since there is no index.
+      .|.nodeIndexOperator(
+        "b:B(prop)",
+        indexOrder = IndexOrderAscending,
+        getValue = Map("prop" -> GetValue)
+      )
+      .remoteBatchProperties("cacheNFromStore[a.prop]")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+  }
+
   test("should use the best plan with extra properties on LHS of value hash join, best sorted plan on RHS") {
     val planner = spdPlanner
       .setAllNodesCardinality(10000)
@@ -389,7 +558,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
-    with LogicalPlanConstructionTestSupport {
+    with LogicalPlanConstructionTestSupport
+    with CardinalityIntegrationTestSupport {
 
   protected val orderPreserving: Boolean
 
@@ -567,7 +737,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   }
 
   test("should batch on variables from an unwind") {
-    val query = """
+    val query =
+      """
       MATCH (n)
       UNWIND [null, n] AS x
       MATCH (x)
@@ -596,11 +767,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .addNodeIndex("L0", List("prop"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 10.0)
       .build()
 
-    val query = """
-                  |OPTIONAL MATCH (n0)-[r1]->(n1) WHERE n0.prop = 42
-                  |MATCH (a:L0 {prop:42})-[r2]->(n1), (n0)
-                  |RETURN a.prop AS expandIntoProp, n0.prop AS standaloneProp
-                  |""".stripMargin
+    val query =
+      """
+        |OPTIONAL MATCH (n0)-[r1]->(n1) WHERE n0.prop = 42
+        |MATCH (a:L0 {prop:42})-[r2]->(n1), (n0)
+        |RETURN a.prop AS expandIntoProp, n0.prop AS standaloneProp
+        |""".stripMargin
 
     val plan = planner.plan(query)
 
@@ -1645,7 +1817,62 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
-  test("should cache index values if they are used in other index seeks: index_backed_order_by-q15") {
+  test("should cache index values if they are used in other index seeks: index_backed_order_by-q15 modified") {
+    val query =
+      """
+        |MATCH (a:PROFILES), (b:PROFILES)
+        |WHERE
+        |    b.children STARTS WITH "x" AND
+        |    a.pets = b.children
+        |RETURN id(a), id(b)
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .setAllNodesCardinality(1632803)
+      .setLabelCardinality("PROFILES", 1632803)
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 253204.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "hair_color", "eye_color", "pets", "children"),
+        existsSelectivity = 337392.0 / 1632803,
+        uniqueSelectivity = 1.0 / 273680.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 247714.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("children"),
+        existsSelectivity = 475697.0 / 1632803,
+        uniqueSelectivity = 1.0 / 176353
+      )
+      .addNodeIndex("PROFILES", Seq("pets"), existsSelectivity = 700681.0 / 1632803, uniqueSelectivity = 1.0 / 268273.0)
+      .build()
+    // Without additional filter, the value hash join would pull in many more nodes than necessary,
+    // which is why the apply is probably more efficient, although there are many more roundtrips to the shard.
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`id(a)`", "`id(b)`")
+      .projection("id(a) AS `id(a)`", "id(b) AS `id(b)`")
+      .apply()
+      .|.nodeIndexOperator(
+        "a:PROFILES(pets = cacheN[b.children])",
+        argumentIds = Set("b"),
+        getValue = Map("pets" -> DoNotGetValue)
+      )
+      .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
+      .build()
+  }
+
+  test("should prefer value hash join over nested index loops when lhs is small enough: index_backed_order_by-q15") {
+    // Fewer roundtrips to the store the better the performance and not too many nodes on the RHS
     val query =
       """
         |MATCH (a:PROFILES), (b:PROFILES)
@@ -1689,11 +1916,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     planner.plan(query) shouldEqual planner.planBuilder()
       .produceResults("`id(a)`", "`id(b)`")
       .projection("id(a) AS `id(a)`", "id(b) AS `id(b)`")
-      .filter("cacheN[a.pets] STARTS WITH 'x'")
-      .apply()
+      .valueHashJoin("cacheN[b.children] = cacheN[a.pets]")
       .|.nodeIndexOperator(
-        "a:PROFILES(pets = cacheN[b.children])",
-        argumentIds = Set("b"),
+        "a:PROFILES(pets STARTS WITH 'x')", // reduces the number of nodes on the RHS
         getValue = Map("pets" -> GetValue)
       )
       .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
@@ -1882,36 +2107,25 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     val query =
       """
         |MATCH (person:Person)
+        |WHERE person.id < 10000 // A filter to reduce the number of nodes on the LHS
         |MATCH (friend:Person { id: person.id })
-        |RETURN person.id, friend.id
+        |RETURN person.id,friend.id
         |""".stripMargin
-
-    planner.plan(query) should (
-      equal(planner
-        .planBuilder()
-        .produceResults("`person.id`", "`friend.id`")
-        .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
-        .apply()
-        .|.nodeIndexOperator(
-          "friend:Person(id = cacheN[person.id])",
-          argumentIds = Set("person"),
-          getValue = Map("id" -> GetValue),
-          unique = true
-        )
-        .nodeIndexOperator("person:Person(id)", getValue = Map("id" -> GetValue))
-        .build()) or
-        equal(planner.planBuilder().produceResults("`person.id`", "`friend.id`")
-          .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
-          .apply()
-          .|.nodeIndexOperator(
-            "person:Person(id = cacheN[friend.id])",
-            argumentIds = Set("friend"),
-            getValue = Map("id" -> GetValue),
-            unique = true
-          )
-          .nodeIndexOperator("friend:Person(id)", getValue = Map("id" -> GetValue))
-          .build())
-    )
+    // The person.id < 1000 filter reduces the number of nodes on the LHS, and since the RHS is a very selective index seek per LHS node,
+    // the nested index join is preferred here over a value hash join.
+    planner.plan(query) shouldEqual planner
+      .planBuilder()
+      .produceResults("`person.id`", "`friend.id`")
+      .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
+      .apply()
+      .|.nodeIndexOperator(
+        "friend:Person(id = cacheN[person.id])",
+        argumentIds = Set("person"),
+        getValue = Map("id" -> GetValue),
+        unique = true
+      )
+      .nodeIndexOperator("person:Person(id < 10000)", getValue = Map("id" -> GetValue), unique = true)
+      .build()
   }
 
   test("should push limit to run before remoteBatchProperties.") {
@@ -2647,11 +2861,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   }
 
   test("need not fetch properties from composite index when the filter is applied on the index itself") {
-    val query = """
-                  |MATCH (p:Person)
-                  |WHERE p.firstName='Spongebob' AND p.lastName='Squarepants'
-                  |RETURN p
-                  |""".stripMargin
+    val query =
+      """
+        |MATCH (p:Person)
+        |WHERE p.firstName='Spongebob' AND p.lastName='Squarepants'
+        |RETURN p
+        |""".stripMargin
     planner.plan(query) shouldEqual planner.planBuilder()
       .produceResults("p")
       .nodeIndexOperator(
@@ -2663,11 +2878,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   }
 
   test("should fetch properties from composite index for filtering on multiple properties") {
-    val query = """
-                  |MATCH (p:Person)
-                  |WHERE p.firstName STARTS WITH "J" AND p.lastName STARTS WITH "Smith"
-                  |RETURN p
-                  |""".stripMargin
+    val query =
+      """
+        |MATCH (p:Person)
+        |WHERE p.firstName STARTS WITH "J" AND p.lastName STARTS WITH "Smith"
+        |RETURN p
+        |""".stripMargin
 
     planner.plan(query) shouldEqual
       planner.planBuilder()
@@ -2683,11 +2899,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   }
 
   test("should fetch property from a single index when filtering using composed queries") {
-    val query = """
-                  |MATCH (p:Person)
-                  |WHERE p.firstName STARTS WITH "Sponge" AND p.firstName ENDS WITH "bob"
-                  |RETURN p
-                  |""".stripMargin
+    val query =
+      """
+        |MATCH (p:Person)
+        |WHERE p.firstName STARTS WITH "Sponge" AND p.firstName ENDS WITH "bob"
+        |RETURN p
+        |""".stripMargin
     planner.plan(query) shouldEqual planner.planBuilder()
       .produceResults("p")
       .filter("cacheN[p.firstName] ENDS WITH 'bob'")
@@ -2706,11 +2923,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .addNodeIndex("Person", List("firstName"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, isUnique = false)
       .build()
 
-    val query = """
-                  |MATCH (p:Person)
-                  |WHERE p.firstName STARTS WITH ''
-                  |RETURN p.firstName
-                  |""".stripMargin
+    val query =
+      """
+        |MATCH (p:Person)
+        |WHERE p.firstName STARTS WITH ''
+        |RETURN p.firstName
+        |""".stripMargin
 
     lowSelectivityPlanner.plan(query) shouldEqual lowSelectivityPlanner.planBuilder()
       .produceResults("`p.firstName`")

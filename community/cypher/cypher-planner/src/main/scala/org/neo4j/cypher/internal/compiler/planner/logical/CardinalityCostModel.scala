@@ -26,10 +26,14 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel.VolcanoBatchSize
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.ALL_SCAN_COST_PER_ROW
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.DEFAULT_COST_PER_ROW
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.EffectiveCardinalities
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.HashJoin
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROBE_BUILD_COST
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROBE_BUILD_LHS_LIMIT
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROBE_BUILD_MEMORY_MULTIPLIER
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.PROBE_SEARCH_COST
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.STORE_LOOKUP_COST_PER_ROW
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.costPerRow
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.effectiveCardinalities
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.getEffectiveBatchSize
@@ -97,6 +101,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexContainsScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
 import org.neo4j.cypher.internal.logical.plans.Optional
@@ -106,6 +111,7 @@ import org.neo4j.cypher.internal.logical.plans.PartialSort
 import org.neo4j.cypher.internal.logical.plans.PartitionedScanPlan
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
+import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
@@ -130,8 +136,11 @@ import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
+import org.neo4j.cypher.internal.logical.plans.ValueMergeJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
@@ -148,8 +157,11 @@ import org.neo4j.cypher.internal.util.WorkReduction
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
-case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChecker: CancellationChecker)
-    extends CostModel {
+case class CardinalityCostModel(
+  executionModel: ExecutionModel,
+  cancellationChecker: CancellationChecker,
+  databaseMode: DatabaseMode = DatabaseMode.SINGLE
+) extends CostModel {
 
   override def costFor(
     plan: LogicalPlan,
@@ -323,12 +335,29 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
       case _: ApplyPlan =>
         val lhsCardinality = effectiveCardinalities.lhs
         // The RHS is executed for each LHS row
-        lhsCost + lhsCardinality * rhsCost
+        if (databaseMode == DatabaseMode.SHARDED) {
+          lhsCost + lhsCardinality * (rhsCost + nestedIndexJoinShardAccessPenalty(plan.rhs))
+        } else {
+          lhsCost + lhsCardinality * rhsCost
+        }
 
       case HashJoin() =>
+        val memoryCostMultiplier =
+          if (databaseMode == DatabaseMode.SHARDED && effectiveCardinalities.lhs >= PROBE_BUILD_LHS_LIMIT)
+            PROBE_BUILD_MEMORY_MULTIPLIER
+          else
+            1.0
+
         lhsCost + rhsCost +
-          effectiveCardinalities.lhs * PROBE_BUILD_COST +
+          effectiveCardinalities.lhs * PROBE_BUILD_COST * memoryCostMultiplier +
           effectiveCardinalities.rhs * PROBE_SEARCH_COST
+
+      case _: ValueMergeJoin =>
+        val bufferingCost = Multiplier.ofDivision(
+          effectiveCardinalities.outputCardinality,
+          effectiveCardinalities.rhs
+        ).getOrElse(Multiplier.ZERO) * effectiveCardinalities.lhs * DEFAULT_COST_PER_ROW
+        lhsCost + rhsCost + bufferingCost
 
       case _: Union | _: OrderedUnion =>
         val inCardinality = effectiveCardinalities.lhs + effectiveCardinalities.rhs
@@ -404,10 +433,28 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
         costForThisPlan + lhsCost + rhsCost
     }
   }
+
+  // In Sharded mode, every index seek on RHS is costly since they are remote and not batched.
+  private def nestedIndexJoinShardAccessPenalty(rhs: Option[LogicalPlan]): Cost = rhs match {
+    case Some(plan) => plan.leftmostLeaf match {
+        case _: NodeIndexLeafPlan         => STORE_LOOKUP_COST_PER_ROW
+        case _: RelationshipIndexLeafPlan => STORE_LOOKUP_COST_PER_ROW
+        case _                            => Cost.ZERO
+      }
+    case None => Cost.ZERO
+  }
 }
 
 object CardinalityCostModel {
   val DEFAULT_COST_PER_ROW: CostPerRow = 0.1
+  val PROBE_BUILD_LHS_LIMIT = 10_000_000 // 10 million rows is a heuristic limit for when to switch join strategies
+
+  val PROBE_BUILD_MEMORY_MULTIPLIER =
+    // A very large multiplier to penalize large hash joins in sharded mode.
+    // This per-row multiplier is large enough that, when multiplied by any row count > PROBE_BUILD_LHS_LIMIT,
+    // the result reaches the scale of the largest exactly representable integer in a double (2^53).
+    // That makes these costs dominate other terms while still allowing values greater than 1.0 to influence totals.
+    1_000_000.0
   val PROBE_BUILD_COST: CostPerRow = 3.1
   val PROBE_SEARCH_COST: CostPerRow = 2.4
   // A property has at least 2 db hits, even though it could even have many more.
@@ -488,8 +535,8 @@ object CardinalityCostModel {
   }
 
   /**
-   * @param plan the plan
-   * @param cardinality the input cardinality of the plan
+   * @param plan          the plan
+   * @param cardinality   the input cardinality of the plan
    * @param semanticTable the semantic table
    * @return the cost of the plan per incoming row, if defined.
    *         For leaf plans, the cost of the plan per outgoing row.
@@ -718,9 +765,9 @@ object CardinalityCostModel {
   /**
    * The limit selectivity of a limiting plan.
    *
-   * @param inputCardinality        the cardinality of the plan's parent
-   * @param outputCardinality       the cardinality of plan
-   * @param parentLimitSelectivity  the limit selectivity of the plan's parent
+   * @param inputCardinality       the cardinality of the plan's parent
+   * @param outputCardinality      the cardinality of plan
+   * @param parentLimitSelectivity the limit selectivity of the plan's parent
    */
   def limitingPlanSelectivity(
     inputCardinality: Cardinality,
@@ -732,9 +779,9 @@ object CardinalityCostModel {
   /**
    * The work reduction of a limiting plan.
    *
-   * @param inputCardinality        the cardinality of the plan's parent
-   * @param outputCardinality       the cardinality of plan
-   * @param parentWorkReduction     the work reduction of the plan's parent
+   * @param inputCardinality    the cardinality of the plan's parent
+   * @param outputCardinality   the cardinality of plan
+   * @param parentWorkReduction the work reduction of the plan's parent
    */
   def limitingPlanWorkReduction(
     inputCardinality: Cardinality,
@@ -856,6 +903,8 @@ object CardinalityCostModel {
     case HashJoin() =>
       (WorkReduction.NoReduction, parentWorkReduction)
 
+    case _: ValueMergeJoin => (parentWorkReduction, parentWorkReduction)
+
     case _: PartialSort =>
       // Let's assume the child has to do "a little more" work.
       // This happens because PartialSort has to process at least a whole bucket of identical values.
@@ -933,12 +982,12 @@ object CardinalityCostModel {
 
   /**
    * Given an parent WorkReduction, calculate how this reduction applies to the LHS and RHS.
-   * 
+   *
    * This is essentially a much simplified version of [[nestedLoopChildrenWorkReduction]] with [[VolcanoBatchSize]].
    * It differs from [[nestedLoopChildrenWorkReduction]] in the fact that here
    * `lhsReduction * rhsReduction = parentReduction` always holds,
    * which is not true in [[nestedLoopChildrenWorkReduction]] if the RHS cardinality is < 1.0.
-   * 
+   *
    * [[nestedLoopChildrenWorkReduction]] also assumes that `lhsCardinality * rhsCardinality = parentCardinality`, 
    * which is not true for Trail.
    */

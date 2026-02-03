@@ -45,6 +45,8 @@ import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
@@ -288,7 +290,11 @@ trait MetricsFactory {
     expressionEvaluator: ExpressionEvaluator
   ): CardinalityModel
 
-  def newCostModel(executionModel: ExecutionModel, cancellationChecker: CancellationChecker): CostModel
+  def newCostModel(
+    executionModel: ExecutionModel,
+    cancellationChecker: CancellationChecker,
+    databaseMode: DatabaseMode = DatabaseMode.SINGLE
+  ): CostModel
 
   def newQueryGraphCardinalityModel(
     planContext: PlanContext,
@@ -310,6 +316,6 @@ trait MetricsFactory {
     val queryGraphCardinalityModel =
       newQueryGraphCardinalityModel(planContext, selectivityCalculator, labelInferenceStrategy)
     val cardinality = newCardinalityEstimator(queryGraphCardinalityModel, selectivityCalculator, expressionEvaluator)
-    Metrics(newCostModel(executionModel, cancellationChecker), cardinality)
+    Metrics(newCostModel(executionModel, cancellationChecker, planContext.databaseMode), cardinality)
   }
 }

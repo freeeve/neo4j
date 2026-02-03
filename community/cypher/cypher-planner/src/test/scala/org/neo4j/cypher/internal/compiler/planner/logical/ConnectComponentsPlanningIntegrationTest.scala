@@ -1783,6 +1783,35 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .build()
   }
 
+  test("should prefer nested apply over a merge join when the RHS is much larger than LHS") {
+    // Instead of loading a lot of nodes on the RHS, we prefer to do a selective index seek for each LHS row.
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(150_000_0000)
+      .setLabelCardinality("A", 80_000_000)
+      .setLabelCardinality("B", 30_000_000) // using a very large number on LHS to contrast behaviour with SPD.
+      .addNodeIndex("A", Seq("id"), 1.0, 1.0 / 80_000_000)
+      .addNodeIndex("B", Seq("id"), 1.0, 1.0 / 30_000_000)
+      .withSetting(GraphDatabaseInternalSettings.planning_merge_join_enabled, Boolean.box(true))
+      .build()
+
+    val query =
+      """MATCH (a:A), (b:B)
+        |WHERE a.id = b.id
+        |RETURN a, b""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .apply()
+      .|.nodeIndexOperator(
+        "a:A(id = cacheN[b.id])",
+        indexOrder = IndexOrderAscending,
+        getValue = Map("id" -> GetValue),
+        argumentIds = Set("b")
+      )
+      .nodeIndexOperator("b:B(id)", indexOrder = IndexOrderAscending, getValue = Map("id" -> GetValue))
+      .build()
+  }
+
   test(
     "should connect components with an Apply instead of a Cartesian Product when a predicate can be pushed down to another component"
   ) {

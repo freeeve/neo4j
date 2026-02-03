@@ -285,7 +285,11 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
 
     def metricsFactory: MetricsFactory = new MetricsFactory {
 
-      override def newCostModel(executionModel: ExecutionModel, cancellationChecker: CancellationChecker): CostModel =
+      override def newCostModel(
+        executionModel: ExecutionModel,
+        cancellationChecker: CancellationChecker,
+        databaseMode: DatabaseMode
+      ): CostModel =
         (
           plan: LogicalPlan,
           input: QueryGraphSolverInput,

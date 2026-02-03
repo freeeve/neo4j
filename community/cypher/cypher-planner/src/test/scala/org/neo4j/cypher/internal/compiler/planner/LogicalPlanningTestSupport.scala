@@ -230,9 +230,10 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
 
     override def newCostModel(
       executionModel: ExecutionModel,
-      cancellationChecker: CancellationChecker
+      cancellationChecker: CancellationChecker,
+      databaseMode: DatabaseMode
     ): Metrics.CostModel =
-      SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker)
+      SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker, databaseMode)
 
     override def newQueryGraphCardinalityModel(
       planContext: PlanContext,

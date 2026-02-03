@@ -1486,7 +1486,64 @@ class PushOperatorsToShardPlanningIntegrationTest
       .build()
   }
 
-  test("should cache index values if they are used in other index seeks: index_backed_order_by-q15") {
+  test("should cache index values if they are used in other index seeks: index_backed_order_by-q15 modified") {
+    val query =
+      """
+        |MATCH (a:PROFILES), (b:PROFILES)
+        |WHERE
+        |    b.children STARTS WITH "x" AND
+        |    a.pets = b.children
+        |RETURN id(a), id(b)
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .setAllNodesCardinality(1632803)
+      .setLabelCardinality("PROFILES", 1632803)
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 253204.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("gender", "hair_color", "eye_color", "pets", "children"),
+        existsSelectivity = 337392.0 / 1632803,
+        uniqueSelectivity = 1.0 / 273680.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("pets", "children"),
+        existsSelectivity = 371135.0 / 1632803,
+        uniqueSelectivity = 1.0 / 247714.0
+      )
+      .addNodeIndex(
+        "PROFILES",
+        Seq("children"),
+        existsSelectivity = 475697.0 / 1632803,
+        uniqueSelectivity = 1.0 / 176353
+      )
+      .addNodeIndex("PROFILES", Seq("pets"), existsSelectivity = 700681.0 / 1632803, uniqueSelectivity = 1.0 / 268273.0)
+      .build()
+
+    // Without additional filter, the value hash join would pull in many more nodes than necessary,
+    // which is why the apply is probably more efficient, although there are many more roundtrips to the shard.
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("`id(a)`", "`id(b)`")
+      .projection("id(a) AS `id(a)`", "id(b) AS `id(b)`")
+      .apply()
+      .|.nodeIndexOperator(
+        "a:PROFILES(pets = cacheN[b.children])",
+        argumentIds = Set("b"),
+        getValue = Map("pets" -> DoNotGetValue)
+      )
+      .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
+      .build()
+  }
+
+  test("should prefer value hash join over nested index loops when lhs is small enough: index_backed_order_by-q15") {
+    // Fewer roundtrips to the store the better the performance and not too many nodes on the RHS
     val query =
       """
         |MATCH (a:PROFILES), (b:PROFILES)
@@ -1530,11 +1587,9 @@ class PushOperatorsToShardPlanningIntegrationTest
     planner.plan(query) shouldEqual planner.planBuilder()
       .produceResults("`id(a)`", "`id(b)`")
       .projection("id(a) AS `id(a)`", "id(b) AS `id(b)`")
-      .filter("cacheN[a.pets] STARTS WITH 'x'")
-      .apply()
+      .valueHashJoin("cacheN[b.children] = cacheN[a.pets]")
       .|.nodeIndexOperator(
-        "a:PROFILES(pets = cacheN[b.children])",
-        argumentIds = Set("b"),
+        "a:PROFILES(pets STARTS WITH 'x')", // reduces the number of nodes on the RHS
         getValue = Map("pets" -> GetValue)
       )
       .nodeIndexOperator("b:PROFILES(children STARTS WITH 'x')", getValue = Map("children" -> GetValue))
@@ -1728,36 +1783,25 @@ class PushOperatorsToShardPlanningIntegrationTest
     val query =
       """
         |MATCH (person:Person)
+        |WHERE person.id < 10000 // A filter to reduce the number of nodes on the LHS
         |MATCH (friend:Person { id: person.id })
         |RETURN person.id, friend.id
         |""".stripMargin
-
-    planner.plan(query) should (
-      equal(planner
-        .planBuilder()
-        .produceResults("`person.id`", "`friend.id`")
-        .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
-        .apply()
-        .|.nodeIndexOperator(
-          "friend:Person(id = cacheN[person.id])",
-          argumentIds = Set("person"),
-          getValue = Map("id" -> GetValue),
-          unique = true
-        )
-        .nodeIndexOperator("person:Person(id)", getValue = Map("id" -> GetValue))
-        .build()) or
-        equal(planner.planBuilder().produceResults("`person.id`", "`friend.id`")
-          .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
-          .apply()
-          .|.nodeIndexOperator(
-            "person:Person(id = cacheN[friend.id])",
-            argumentIds = Set("friend"),
-            getValue = Map("id" -> GetValue),
-            unique = true
-          )
-          .nodeIndexOperator("friend:Person(id)", getValue = Map("id" -> GetValue))
-          .build())
-    )
+    // The person.id < 1000 filter reduces the number of nodes on the LHS, and since the RHS is a very selective index seek per LHS node,
+    // the nested index join is preferred here over a value hash join.
+    planner.plan(query) shouldEqual planner
+      .planBuilder()
+      .produceResults("`person.id`", "`friend.id`")
+      .projection("cacheN[person.id] AS `person.id`", "cacheN[friend.id] AS `friend.id`")
+      .apply()
+      .|.nodeIndexOperator(
+        "friend:Person(id = cacheN[person.id])",
+        argumentIds = Set("person"),
+        getValue = Map("id" -> GetValue),
+        unique = true
+      )
+      .nodeIndexOperator("person:Person(id < 10000)", getValue = Map("id" -> GetValue), unique = true)
+      .build()
   }
 
   test("should push limit to run before remoteBatchProperties.") {

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.SelectivityCal
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
@@ -56,7 +57,11 @@ object CachedSimpleMetricsFactory extends MetricsFactory {
    * the Cardinalities/ProvidedOrders object.
    * The reason for this is that the objects are mutable and during planning we modify them instead of creating new ones.
    */
-  override def newCostModel(executionModel: ExecutionModel, cancellationChecker: CancellationChecker): CostModel = {
+  override def newCostModel(
+    executionModel: ExecutionModel,
+    cancellationChecker: CancellationChecker,
+    databaseMode: DatabaseMode
+  ): CostModel = {
     val cached = CachedFunction(
       (
         plan: LogicalPlan,
@@ -68,7 +73,7 @@ object CachedSimpleMetricsFactory extends MetricsFactory {
         statistics: Ref[GraphStatistics],
         monitor: CostModelMonitor
       ) => {
-        SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker).costFor(
+        SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker, databaseMode).costFor(
           plan,
           input,
           semanticTable,
