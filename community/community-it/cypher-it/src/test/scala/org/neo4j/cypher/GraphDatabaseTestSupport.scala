@@ -71,6 +71,8 @@ import org.neo4j.monitoring.Monitors
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 import org.neo4j.test.assertion.Assert.assertEventually
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Ignore
+import org.scalatest.Tag
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 
@@ -90,6 +92,11 @@ import scala.util.Try
 trait GraphDatabaseTestSupport
     extends GraphIcing with BeforeAndAfterEach {
   self: CypherFunSuite =>
+
+  object IgnoreOnSpd
+      extends Tag(
+        if (runOnSpd) classOf[Ignore].getName else "SpdNotSupported"
+      )
 
   var graphOps: GraphDatabaseService = _
   var graph: GraphDatabaseCypherService = _
