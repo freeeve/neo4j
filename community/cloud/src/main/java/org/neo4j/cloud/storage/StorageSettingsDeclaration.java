@@ -45,6 +45,7 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
     public static final Duration DEFAULT_POLL_TIMEOUT = Duration.ofMinutes(5);
 
     public static final int MINIMUM_INFLIGHT_WRITE_REQUESTS = 3;
+    public static final int MAXIMUM_INFLIGHT_WRITE_REQUESTS = 100;
 
     public static final String READ_IS_FOR_SAMPLING_FLAG = "cloud.storage.read.sampling";
 
@@ -153,9 +154,8 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
         return newBuilder("%s.%s.%s".formatted(INTERNAL_CONFIG_PREFIX, scheme, optionName), parser, defaultValue);
     }
 
-    protected static int maxInflightRequestsBasedOffMaxHeap(int defaultWriteChunkSize) {
-        final var maxMemory = Runtime.getRuntime().maxMemory() * 0.5; // leave some heap available
-        return Math.max(MINIMUM_INFLIGHT_WRITE_REQUESTS, (int) (maxMemory / defaultWriteChunkSize));
+    protected static int maxInflightRequestsBasedOffCores() {
+        return Math.clamp(factorScaledByCores(3), MINIMUM_INFLIGHT_WRITE_REQUESTS, MAXIMUM_INFLIGHT_WRITE_REQUESTS);
     }
 
     private static <S> SettingBuilder<S> queueOption(
@@ -169,7 +169,10 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
 
     private static int defaultPullQueueSize() {
         // when running on 96 core machine, testing found that a good queue size was 32
-        return Math.max(
-                PullQueue.QUEUE_SIZE, Integer.highestOneBit(Runtime.getRuntime().availableProcessors() / 6) << 1);
+        return Math.max(PullQueue.QUEUE_SIZE, factorScaledByCores(1));
+    }
+
+    private static int factorScaledByCores(int shift) {
+        return Integer.highestOneBit(Math.max(Runtime.getRuntime().availableProcessors() / 6, 1)) << shift;
     }
 }
