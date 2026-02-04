@@ -71,7 +71,7 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
                 registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
                 registerSafe(TextChat.Providers.class, TxtChatProv.from(httpService, providers));
                 registerSafe(TextStructuredCompletion.Providers.class, TxtCompStructProv.from(httpService, providers));
-                registerSafe(VectorEmbedding.Providers.class, VectorEncodingCompProv.from(httpService, providers));
+                registerSafe(VectorEmbedding.Providers.class, VectorEmbeddingProv.from(httpService, providers));
 
                 // This component is used by metrics, can't use context.
                 // It is registered without a context, so it can be accessed by the metrics module.
@@ -140,13 +140,13 @@ record TxtChatProv(HttpServiceProvider httpService, ImmutableList<TextChat.Provi
     }
 }
 
-record VectorEncodingCompProv(HttpServiceProvider httpService, ImmutableList<VectorEmbedding.Provider> providers)
+record VectorEmbeddingProv(HttpServiceProvider httpService, ImmutableList<VectorEmbedding.Provider> providers)
         implements ProcedureProvider<VectorEmbedding.Providers> {
     public VectorEmbedding.Providers apply(Context context) throws ProcedureException {
         return new VectorEmbedding.Providers.Impl(providers, httpService.apply(context));
     }
 
-    public static VectorEncodingCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
-        return new VectorEncodingCompProv(httpService, globalProviders.providers(VectorEmbedding.Provider.class));
+    public static VectorEmbeddingProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new VectorEmbeddingProv(httpService, globalProviders.providers(VectorEmbedding.Provider.class));
     }
 }

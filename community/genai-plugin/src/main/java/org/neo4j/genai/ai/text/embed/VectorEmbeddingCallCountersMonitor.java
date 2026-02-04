@@ -23,7 +23,7 @@ import org.neo4j.genai.util.GenAIMonitor;
 
 public interface VectorEmbeddingCallCountersMonitor extends GenAIMonitor {
 
-    void encodeFunctionCalled(String provider);
+    void embedFunctionCalled(String provider);
 
-    void encodeBatchProcedureCalled(String provider);
+    void embedBatchProcedureCalled(String provider);
 }

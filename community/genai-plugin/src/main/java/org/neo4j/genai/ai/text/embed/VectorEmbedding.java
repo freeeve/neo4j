@@ -81,7 +81,7 @@ public class VectorEmbedding {
         requireNonNull(configuration, "'configuration' must not be null");
         final var provider = providers.configure(providerName, configuration, genAIConfig);
 
-        monitors.vectorEnc().encodeFunctionCalled(provider.name());
+        monitors.vectorEnc().embedFunctionCalled(provider.name());
         if (resource == null || resource.isEmpty()) {
             return null;
         } else {
@@ -111,7 +111,7 @@ public class VectorEmbedding {
             return Stream.empty();
         }
         final var provider = providers.configure(providerName, configuration, genAIConfig);
-        monitors.vectorEnc().encodeBatchProcedureCalled(provider.name());
+        monitors.vectorEnc().embedBatchProcedureCalled(provider.name());
         // Remember all the places where we had nulls and remove them from the requested resources
         final var removedIndexes = IntLists.mutable.empty();
         // We need to make a copy as the List interface doesn't guarantee mutability
