@@ -218,8 +218,7 @@ trait VariableCheckerUtil {
 
       object Variable {
 
-        def unapply(scope: WorkingScope)
-          : Option[(LogicalVariable, RegularContext)] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, RegularContext)] =
           scope match {
             case ExpressionScope(v: LogicalVariable, incoming, _, _, _) =>
               Some((v, incoming))
@@ -229,8 +228,7 @@ trait VariableCheckerUtil {
 
       object VariableAggregation {
 
-        def unapply(scope: WorkingScope)
-          : Option[(LogicalVariable, Set[LogicalVariable], Set[Expression])] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Set[Expression])] =
           scope match {
             case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, _, _, keys, _), _, _, _) =>
               Some((v, const, keys))
@@ -241,8 +239,7 @@ trait VariableCheckerUtil {
 
       object PropertyAggregation {
 
-        def unapply(scope: WorkingScope)
-          : Option[(Property, Set[Expression])] =
+        def unapply(scope: WorkingScope): Option[(Property, Set[Expression])] =
           scope match {
             case ExpressionScope(p: Property, AggregatingExpressionContext(_, _, _, keys, _), _, _, Seq()) =>
               Some((p, keys))
@@ -260,8 +257,7 @@ trait VariableCheckerUtil {
 
       object LocalCallable {
 
-        def unapply(scope: WorkingScope)
-          : Option[CallableName] =
+        def unapply(scope: WorkingScope): Option[CallableName] =
           scope match {
             case StatementScope(lcd: LocalCallableDefinition, _, _, _, _, _, _) =>
               Some(lcd.name)
@@ -280,8 +276,7 @@ trait VariableCheckerUtil {
 
       object SubqueryCall {
 
-        def unapply(scope: WorkingScope)
-          : Option[(Seq[LogicalVariable], RegularContext)] =
+        def unapply(scope: WorkingScope): Option[(Seq[LogicalVariable], RegularContext)] =
           scope match {
             case StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _) =>
               Some((imports, incoming))
@@ -292,8 +287,7 @@ trait VariableCheckerUtil {
 
       object ReturnItems {
 
-        def unapply(scope: WorkingScope)
-          : Option[(Seq[ReturnItem], InputPosition)] =
+        def unapply(scope: WorkingScope): Option[(Seq[ReturnItem], InputPosition)] =
           scope match {
             case StatementScope(r @ Return(_, ri, _, _, _, _, _, _), _, _, _, _, _, _) =>
               Some((ri.items, r.position))
@@ -303,8 +297,7 @@ trait VariableCheckerUtil {
 
       object ReturnStar {
 
-        def unapply(scope: WorkingScope)
-          : Option[(RegularContext, InputPosition)] =
+        def unapply(scope: WorkingScope): Option[(RegularContext, InputPosition)] =
           scope match {
             case StatementScope(Return.WithStar(r), in, _, _, _, _, _) =>
               Some((in, r.position))
@@ -314,8 +307,7 @@ trait VariableCheckerUtil {
 
       object Declaring {
 
-        def unapply(scope: WorkingScope)
-          : Option[(ASTNode, RegularContext, Declarations, Seq[WorkingScope])] =
+        def unapply(scope: WorkingScope): Option[(ASTNode, RegularContext, Declarations, Seq[WorkingScope])] =
           scope match {
             case StatementScope(astNode, incoming, _, declarations, _, _, children) =>
               Some((astNode, incoming, declarations, children))
@@ -326,8 +318,7 @@ trait VariableCheckerUtil {
 
       object Command {
 
-        def unapply(scope: WorkingScope)
-          : Option[(RegularContext, Seq[WorkingScope])] =
+        def unapply(scope: WorkingScope): Option[(RegularContext, Seq[WorkingScope])] =
           scope match {
             case StatementScope(_: CommandClause, incoming, _, _, _, _, children) =>
               Some((incoming, children))
@@ -345,8 +336,7 @@ trait VariableCheckerUtil {
 
       object NamedPath {
 
-        def unapply(scope: WorkingScope)
-          : Option[(LogicalVariable, Set[LogicalVariable], Declarations)] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Declarations)] =
           scope match {
             case PatternScope(NamedPatternPart(path, _), PatternScope.Topo(topo), _, declarations, _, _) =>
               Some((path, topo, declarations))
@@ -357,8 +347,7 @@ trait VariableCheckerUtil {
 
       object Quantified {
 
-        def unapply(scope: WorkingScope)
-          : Option[(Set[VariableGrouping], Set[LogicalVariable])] =
+        def unapply(scope: WorkingScope): Option[(Set[VariableGrouping], Set[LogicalVariable])] =
           scope match {
             case PatternScope(QuantifiedPath(_, _, _, groupings), _, referenced, _, _, _) =>
               Some((groupings, referenced))
@@ -369,8 +358,7 @@ trait VariableCheckerUtil {
 
       object Element {
 
-        def unapply(scope: WorkingScope)
-          : Option[(LogicalVariable, Set[LogicalVariable], Set[LogicalVariable])] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Set[LogicalVariable])] =
           scope match {
             case PatternScope(PatternScope.PatternVariable(variable), PatternScope.Group(group), referenced, _, _, _) =>
               Some((variable, group, referenced))
@@ -381,8 +369,7 @@ trait VariableCheckerUtil {
 
       object ShortestPath {
 
-        def unapply(scope: WorkingScope)
-          : Option[(String, PatternElement, Set[LogicalVariable])] =
+        def unapply(scope: WorkingScope): Option[(String, PatternElement, Set[LogicalVariable])] =
           scope match {
             case PatternScope(sppp @ ShortestPathsPatternPart(element, _), incoming, _, _, _, _) =>
               Some((sppp.name, element, incoming.topologicalConstants))
