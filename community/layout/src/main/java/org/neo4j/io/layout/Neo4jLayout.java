@@ -69,6 +69,8 @@ import org.neo4j.io.fs.FileUtils;
  *  | | | | \ particular database script files
  *  | | | \ database script directory (other represented by separate database layout)
  *  | | | | \ particular database script files
+ *  | \ seeds directory
+ *  | | | \ seed artifacts to be used by server seeding
  * </pre>
  * The current implementation does not keep references to all requested and provided files and requested layouts but can be easily enhanced to do so.
  * <br/>
@@ -85,6 +87,7 @@ public final class Neo4jLayout {
     private final Path databasesRootDirectory;
     private final Path txLogsRootDirectory;
     private final Path scriptRootDirectory;
+    private final Path seedsDirectory;
 
     public static Neo4jLayout of(Path homeDirectory) {
         return of(Config.defaults(
@@ -98,8 +101,14 @@ public final class Neo4jLayout {
         var databasesRootDirectory = config.get(GraphDatabaseInternalSettings.databases_root_path);
         var txLogsRootDirectory = config.get(GraphDatabaseSettings.transaction_logs_root_path);
         var scriptRootDirectory = config.get(GraphDatabaseSettings.script_root_path);
+        var seedsDirectory = config.get(GraphDatabaseInternalSettings.seeds_path);
         return new Neo4jLayout(
-                homeDirectory, dataDirectory, databasesRootDirectory, txLogsRootDirectory, scriptRootDirectory);
+                homeDirectory,
+                dataDirectory,
+                databasesRootDirectory,
+                txLogsRootDirectory,
+                scriptRootDirectory,
+                seedsDirectory);
     }
 
     public static Neo4jLayout ofFlat(Path homeDirectory) {
@@ -110,6 +119,7 @@ public final class Neo4jLayout {
                 .set(GraphDatabaseSettings.transaction_logs_root_path, home)
                 .set(GraphDatabaseInternalSettings.databases_root_path, home)
                 .set(GraphDatabaseSettings.script_root_path, home)
+                .set(GraphDatabaseInternalSettings.seeds_path, home)
                 .build();
         return of(config);
     }
@@ -119,12 +129,14 @@ public final class Neo4jLayout {
             Path dataDirectory,
             Path databasesRootDirectory,
             Path txLogsRootDirectory,
-            Path scriptRootDirectory) {
+            Path scriptRootDirectory,
+            Path seedsDirectory) {
         this.homeDirectory = FileUtils.getCanonicalFile(homeDirectory);
         this.dataDirectory = FileUtils.getCanonicalFile(dataDirectory);
         this.databasesRootDirectory = FileUtils.getCanonicalFile(databasesRootDirectory);
         this.txLogsRootDirectory = FileUtils.getCanonicalFile(txLogsRootDirectory);
         this.scriptRootDirectory = FileUtils.getCanonicalFile(scriptRootDirectory);
+        this.seedsDirectory = FileUtils.getCanonicalFile(seedsDirectory);
     }
 
     /**
@@ -163,6 +175,14 @@ public final class Neo4jLayout {
      */
     public Path databasesDirectory() {
         return databasesRootDirectory;
+    }
+
+    /**
+     * Seeds directory where all seeds are located
+     * @return seeds directory
+     */
+    public Path seedsDirectory() {
+        return seedsDirectory;
     }
 
     /**

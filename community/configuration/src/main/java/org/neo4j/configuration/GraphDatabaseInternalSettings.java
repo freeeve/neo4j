@@ -63,6 +63,7 @@ import org.neo4j.memory.HeapEstimatorCacheConfig;
 
 @ServiceProvider
 public class GraphDatabaseInternalSettings implements SettingsDeclaration {
+    public static final String DEFAULT_SEEDS_DIR_NAME = "seeds";
 
     // Has no effect at time of writing, but kept to save some work when the next experimental version is introduced.
     @Internal
@@ -88,6 +89,14 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     PATH,
                     Path.of(GraphDatabaseSettings.DEFAULT_DATABASES_ROOT_DIR_NAME))
             .setDependency(GraphDatabaseSettings.data_directory)
+            .immutable()
+            .build();
+
+    @Internal
+    @Description("Path of the seeds directory")
+    public static final Setting<Path> seeds_path = newBuilder(
+                    "internal.server.directories.seeds", PATH, Path.of(DEFAULT_SEEDS_DIR_NAME))
+            .setDependency(GraphDatabaseSettings.neo4j_home)
             .immutable()
             .build();
 

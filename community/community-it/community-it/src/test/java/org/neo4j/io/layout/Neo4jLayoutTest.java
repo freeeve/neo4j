@@ -114,4 +114,15 @@ class Neo4jLayoutTest {
                 asSet("abc", "bcd"),
                 layouts.stream().map(DatabaseLayout::getDatabaseName).collect(toSet()));
     }
+
+    @Test
+    void seedFileLocation() {
+        // given
+        var layout = Neo4jLayout.of(testDirectory.homePath());
+        var seedsDirectory = layout.seedsDirectory();
+
+        // when/then
+        assertEquals("seeds", seedsDirectory.getFileName().toString());
+        assertEquals(testDirectory.homePath(), seedsDirectory.getParent());
+    }
 }
