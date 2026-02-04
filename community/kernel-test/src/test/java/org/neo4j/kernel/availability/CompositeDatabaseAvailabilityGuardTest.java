@@ -50,8 +50,7 @@ import org.neo4j.test.extension.LifeExtension;
 
 @ExtendWith(LifeExtension.class)
 class CompositeDatabaseAvailabilityGuardTest {
-    private final DescriptiveAvailabilityRequirement requirement =
-            new DescriptiveAvailabilityRequirement("testRequirement");
+    private final AvailabilityRequirement requirement = new AvailabilityRequirement("testRequirement");
     private CompositeDatabaseAvailabilityGuard compositeGuard;
     private DatabaseAvailabilityGuard defaultGuard;
     private DatabaseAvailabilityGuard systemGuard;
@@ -79,7 +78,7 @@ class CompositeDatabaseAvailabilityGuardTest {
         assertTrue(defaultGuard.isAvailable());
         assertTrue(systemGuard.isAvailable());
 
-        compositeGuard.require(new DescriptiveAvailabilityRequirement("testRequirement"));
+        compositeGuard.require(requirement);
 
         assertFalse(defaultGuard.isAvailable());
         assertFalse(systemGuard.isAvailable());

@@ -59,7 +59,7 @@ class DatabaseAvailabilityIT {
 
     @Test
     void anyOfDatabaseUnavailabilityIsGlobalUnavailability() {
-        AvailabilityRequirement outerSpaceRequirement = () -> "outer space";
+        AvailabilityRequirement outerSpaceRequirement = new AvailabilityRequirement("outer space");
         DependencyResolver dependencyResolver = database.getDependencyResolver();
         DatabaseContextProvider<?> databaseContextProvider = getDatabaseManager(dependencyResolver);
         CompositeDatabaseAvailabilityGuard compositeGuard =

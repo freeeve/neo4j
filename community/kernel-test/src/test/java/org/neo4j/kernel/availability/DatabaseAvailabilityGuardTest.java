@@ -49,10 +49,8 @@ import org.neo4j.time.Clocks;
 @Timeout(30)
 @ExtendWith(LifeExtension.class)
 class DatabaseAvailabilityGuardTest {
-    private static final AvailabilityRequirement REQUIREMENT_1 =
-            new DescriptiveAvailabilityRequirement("Requirement 1");
-    private static final AvailabilityRequirement REQUIREMENT_2 =
-            new DescriptiveAvailabilityRequirement("Requirement 2");
+    private static final AvailabilityRequirement REQUIREMENT_1 = new AvailabilityRequirement("Requirement 1");
+    private static final AvailabilityRequirement REQUIREMENT_2 = new AvailabilityRequirement("Requirement 2");
 
     private final Clock clock = Clocks.systemClock();
     private final InternalLog log = mock(InternalLog.class);

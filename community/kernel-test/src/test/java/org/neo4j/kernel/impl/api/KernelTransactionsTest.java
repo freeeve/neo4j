@@ -106,6 +106,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.availability.AvailabilityGuard;
+import org.neo4j.kernel.availability.AvailabilityRequirement;
 import org.neo4j.kernel.availability.CompositeDatabaseAvailabilityGuard;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseMonitors;
@@ -533,7 +534,7 @@ class KernelTransactionsTest {
     @Test
     void exceptionWhenStartingNewTransactionOnUnavailableInstance() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
-        databaseAvailabilityGuard.require(() -> "unavailable instance");
+        databaseAvailabilityGuard.require(new AvailabilityRequirement("unavailable instance"));
         assertThrows(
                 DatabaseShutdownException.class,
                 () -> kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT));

@@ -24,7 +24,4 @@ package org.neo4j.kernel.availability;
  * granting and revoking access should use the same denial reason for both method calls, as it is used to track
  * who is blocking access to the database.
  */
-@FunctionalInterface
-public interface AvailabilityRequirement {
-    String description();
-}
+public record AvailabilityRequirement(String description) {}

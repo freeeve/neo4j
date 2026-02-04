@@ -78,8 +78,8 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.database.transaction.LogChannel;
 import org.neo4j.kernel.api.database.transaction.TransactionLogChannels;
 import org.neo4j.kernel.api.database.transaction.TransactionLogService;
+import org.neo4j.kernel.availability.AvailabilityRequirement;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
-import org.neo4j.kernel.availability.DescriptiveAvailabilityRequirement;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.tracer.DefaultDatabaseTracer;
@@ -275,7 +275,7 @@ class TransactionLogServiceIT {
 
     @Test
     void requireDirectByteBufferForLogFileAppending() {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -303,7 +303,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendToTransactionLogsDoesNotChangeLastCommittedTransactionOffset() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         var metadataBefore = metadataProvider.getLastClosedTransaction();
         var buffer = createBuffer().put(new byte[] {1, 2, 3, 4, 5});
@@ -327,7 +327,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendWithRotationDoesNotChangeLastClosedMetadata() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         var metadataBefore = metadataProvider.getLastClosedTransaction();
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
@@ -358,7 +358,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendWithRotationUpdatesMetadataProviderLogVersion() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
@@ -387,7 +387,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendRotatedLogFilesHaveCorrectSupplierTransactionsFromHeader() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
@@ -421,7 +421,7 @@ class TransactionLogServiceIT {
         // Only interesting for envelopes
         assumeTrue(LATEST_LOG_FORMAT.usesSegments());
         // Currently calls with append index represent first append or new file
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         LogFile logFile = logFiles.getLogFile();
         LogPosition startPosition = logFile.getTransactionLogWriter().getCurrentPosition();
@@ -464,7 +464,7 @@ class TransactionLogServiceIT {
         // Only interesting for envelopes
         assumeTrue(LATEST_LOG_FORMAT.usesSegments());
         // Currently calls with append index represent first append or new file
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         LogFile logFile = logFiles.getLogFile();
         logFile.rotate();
@@ -496,7 +496,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendRotatedLogFilesMonitorEvents() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         BulkAppendLogRotationMonitor monitorListener = new BulkAppendLogRotationMonitor();
         databaseAPI.getDependencyResolver().resolveDependency(Monitors.class).addMonitorListener(monitorListener);
@@ -527,7 +527,7 @@ class TransactionLogServiceIT {
 
     @Test
     void bulkAppendRotatedLogFilesTracingEvents() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         DatabaseTracers databaseTracers = databaseAPI.getDependencyResolver().resolveDependency(DatabaseTracers.class);
         assertEquals(0, databaseTracers.getDatabaseTracer().numberOfLogRotations());
@@ -557,7 +557,7 @@ class TransactionLogServiceIT {
 
     @Test
     void restoreOnCurrentLogVersion() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
         int appendIterations = 100;
@@ -588,7 +588,7 @@ class TransactionLogServiceIT {
 
     @Test
     void restoreInitialLogVersionAndAppend() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
         var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
@@ -926,7 +926,7 @@ class TransactionLogServiceIT {
 
     @Test
     void failToRestoreWithLogPositionInHigherLogFile() {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         assertThatThrownBy(() -> logService.restore(new LogPosition(metadataProvider.getCurrentLogVersion() + 5, 100)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -937,7 +937,7 @@ class TransactionLogServiceIT {
 
     @Test
     void failToRestoreWithLogPositionInCommittedFile() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         LogFile logFile = logFiles.getLogFile();
         logFile.rotate();
@@ -959,7 +959,7 @@ class TransactionLogServiceIT {
 
     @Test
     void checkpointAtEndOfFileWhenAppendingToLastAvailableTransaction() throws IOException {
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         TransactionId lastTransactionId = metadataProvider.getLastCommittedTransaction();
         String testReason = "Should checkpoint at end of file";
@@ -990,7 +990,7 @@ class TransactionLogServiceIT {
 
         createNodeInIsolatedTransaction("foo");
 
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
         String testReason = "My unique last checkpoint2.";
         logService.appendCheckpoint(lastTransactionId, lastTransactionId.appendIndex(), testReason);
 
@@ -1033,7 +1033,7 @@ class TransactionLogServiceIT {
         var eofPosition = new LogPosition(
                 highestVersion,
                 logFile.extractHeader(highestVersion).getStartPosition().getByteOffset());
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         String testReason = "Checkpoint on empty log files should work since its full story copy.";
         logService.appendCheckpoint(lastTransactionId, lastTransactionId.appendIndex(), testReason);
@@ -1074,7 +1074,7 @@ class TransactionLogServiceIT {
                 highestVersion,
                 logFile.extractHeader(highestVersion).getStartPosition().getByteOffset());
 
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         String testReason = "Checkpoint at EOF when tx is rotated out";
         logService.appendCheckpoint(lastTransactionId, lastTransactionId.appendIndex(), testReason);
@@ -1107,7 +1107,7 @@ class TransactionLogServiceIT {
         logFile.rotate();
         var expectedPosition = findEndOfTransaction(lastTransactionId.id());
 
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
         String testReason = "Find position for tx even when it has been rotated";
         logService.appendCheckpoint(lastTransactionId, lastTransactionId.appendIndex(), testReason);
@@ -1129,7 +1129,7 @@ class TransactionLogServiceIT {
         }
         TransactionId lastTransactionId = metadataProvider.getLastCommittedTransaction();
         var eofPosition = findEndOfFile(lastTransactionId.id());
-        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+        availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
         String testReason = "Checkpoint at end of file when tx doesn't exist";
         var transactionId = new TransactionId(789, 798, LATEST_KERNEL_VERSION, 7, 8, 9);
         logService.appendCheckpoint(transactionId, transactionId.appendIndex(), testReason);

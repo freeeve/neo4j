@@ -39,7 +39,7 @@ import org.neo4j.logging.InternalLog;
 public class DatabaseAvailabilityGuard extends LifecycleAdapter implements AvailabilityGuard {
 
     private static final AvailabilityRequirement UNAVAILABILITY_REQUIREMENT =
-            new DescriptiveAvailabilityRequirement("Database unavailable");
+            new AvailabilityRequirement("Database unavailable");
     private static final String DATABASE_AVAILABLE_MSG = "Fulfilling of requirement '%s' makes database %s available.";
     private static final String DATABASE_UNAVAILABLE_MSG = "Requirement `%s` makes database %s unavailable.";
 
