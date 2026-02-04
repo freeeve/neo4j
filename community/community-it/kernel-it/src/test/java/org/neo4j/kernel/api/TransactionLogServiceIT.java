@@ -44,6 +44,7 @@ import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -114,6 +115,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.BinaryLatch;
 
@@ -738,6 +740,7 @@ class TransactionLogServiceIT {
     }
 
     @Test
+    @SkipOnSpd(notes = incompatible, reason = "Incompatible running on a cluster")
     void endOffsetPositionedToLastCommittedTransaction() throws Exception {
         createNodeInIsolatedTransaction("some prop value");
         // This test ensures that we return the use the last committed transaction, not the last closed transaction as

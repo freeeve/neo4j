@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.internal.helpers.collection.Iterables.first;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -38,10 +39,12 @@ import org.neo4j.test.Barrier;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.TestLabels;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
+@SkipOnSpd(notes = incompatible, reason = "Index population vs shutdown is different on a cluster")
 class CancelIndexPopulationIT {
     private static final Label LABEL = TestLabels.LABEL_ONE;
     private static final String KEY = "key";
