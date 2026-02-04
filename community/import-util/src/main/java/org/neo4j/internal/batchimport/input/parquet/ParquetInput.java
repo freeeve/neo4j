@@ -64,6 +64,7 @@ import org.neo4j.csv.reader.Configuration;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.HeaderException;
 import org.neo4j.internal.batchimport.input.InputException;
+import org.neo4j.internal.batchimport.input.csv.DataFactories;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
@@ -85,12 +86,11 @@ public class ParquetInput implements Input {
     private final IdType idType;
     private final Groups groups;
     private final ParquetMonitor monitor;
+    // this is used for header mapping parsing only
+    private final Configuration csvConfig;
     private final Map<Set<String>, List<Path[]>> nodeFiles;
     private final Map<String, List<Path[]>> relationshipFiles;
     private final List<ParquetColumnMetadata> verifiedColumns;
-    private final String arrayDelimiter;
-    private final String vectorDelimiter;
-    private final String csvDelimiter;
     private final boolean containsVectorData;
 
     public ParquetInput(
@@ -104,13 +104,10 @@ public class ParquetInput implements Input {
         this.idType = idType;
         this.groups = groups;
         this.monitor = monitor;
-        this.arrayDelimiter = ((Character) csvConfig.arrayDelimiter()).toString();
-        this.vectorDelimiter = ((Character) csvConfig.vectorDelimiter()).toString();
-        this.csvDelimiter = ((Character) csvConfig.delimiter()).toString();
+        this.csvConfig = csvConfig;
         this.nodeFiles = nodeFiles;
         this.relationshipFiles = relationshipFiles;
         this.schemaCommands = schemaCommands;
-
         this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
         this.containsVectorData = containsVectorData(verifiedColumns);
         this.nodeDatas = nodeData(verifiedColumns, nodeFiles);
@@ -119,12 +116,22 @@ public class ParquetInput implements Input {
 
     @Override
     public InputIterable nodes(Collector badCollector) {
-        return () -> new ParquetGroupInputIterator(nodeDatas, groups, idType, arrayDelimiter, vectorDelimiter);
+        return () -> new ParquetGroupInputIterator(
+                nodeDatas,
+                groups,
+                idType,
+                String.valueOf(csvConfig.arrayDelimiter()),
+                String.valueOf(csvConfig.vectorDelimiter()));
     }
 
     @Override
     public InputIterable relationships(Collector badCollector) {
-        return () -> new ParquetGroupInputIterator(relationshipDatas, groups, idType, arrayDelimiter, vectorDelimiter);
+        return () -> new ParquetGroupInputIterator(
+                relationshipDatas,
+                groups,
+                idType,
+                String.valueOf(csvConfig.arrayDelimiter()),
+                String.valueOf(csvConfig.vectorDelimiter()));
     }
 
     @Override
@@ -541,9 +548,8 @@ public class ParquetInput implements Input {
             return false;
         }
         headerContext.reset();
-        try (var csvInputStream = new BufferedReader(
-                new InputStreamReader(path.getFileSystem().provider().newInputStream(path)))) {
-            var lines = csvInputStream.lines().toList();
+        try (var csvInput = new BufferedReader(new InputStreamReader(Files.newInputStream(path)))) {
+            var lines = csvInput.lines().toList();
             if (lines.isEmpty() || lines.stream().allMatch(String::isBlank)) {
                 throw new IllegalArgumentException("The header definition is empty");
             }
@@ -551,20 +557,26 @@ public class ParquetInput implements Input {
                 throw new IllegalArgumentException("The header is expected to have one or two lines");
             }
             if (lines.size() == 1) { // CSV import style header
-                var targetColumnNames = Arrays.stream(lines.getFirst().split(csvDelimiter))
-                        .map(String::trim)
-                        .toList();
+                var targetColumnNames = DataFactories.parseRawHeaderEntries(
+                        path.toString(),
+                        csvConfig,
+                        defaultTimezoneSupplier,
+                        lines.getFirst().toCharArray());
                 for (int i = 0; i < targetColumnNames.size(); i++) {
                     headerContext.addHeaderDefinition(
                             paths, i, ParquetColumn.HeaderDefinition.from(targetColumnNames.get(i)));
                 }
-            } else { // Parquet import style header
-                var targetColumnNames = Arrays.stream(lines.get(0).split(csvDelimiter))
-                        .map(String::trim)
-                        .toList();
-                var existingParquetColumns = Arrays.stream(lines.get(1).split(csvDelimiter))
-                        .map(String::trim)
-                        .toList();
+            } else { // Parquet import style header;
+                var targetColumnNames = DataFactories.parseRawHeaderEntries(
+                        path.toString(),
+                        csvConfig,
+                        defaultTimezoneSupplier,
+                        lines.get(0).toCharArray());
+                var existingParquetColumns = DataFactories.parseRawHeaderEntries(
+                        path.toString(),
+                        csvConfig,
+                        defaultTimezoneSupplier,
+                        lines.get(1).toCharArray());
                 for (int i = 0; i < targetColumnNames.size(); i++) {
                     if (existingParquetColumns.size() > i) {
                         headerContext.addHeaderDefinition(
@@ -724,7 +736,6 @@ public class ParquetInput implements Input {
 
         @Override
         public SeekableInputStream newStream() throws IOException {
-
             InputStream inputStream = Files.newInputStream(filePath);
             if (inputStream instanceof ReadableChannel cloudFileChannel) {
                 return new DelegatingSeekableInputStream(inputStream) {
@@ -754,6 +765,7 @@ public class ParquetInput implements Input {
 
                     @Override
                     public void seek(long newPos) throws IOException {
+                        //noinspection resource
                         fis.getChannel().position(newPos);
                         position = newPos;
                     }

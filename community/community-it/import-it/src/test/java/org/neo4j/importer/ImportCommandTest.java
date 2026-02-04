@@ -2532,7 +2532,7 @@ class ImportCommandTest {
     }
 
     @Test
-    void autoSkipSubsequentHeadersShouldnotBeTrippedUpByWeirdLine() throws Exception {
+    void autoSkipSubsequentHeadersShouldNotBeTrippedUpByWeirdLine() throws Exception {
         // GIVEN
         final var header = ":LABEL,node_id:ID,counter:int";
         var nodeData1 = createAndWriteFile("part0.csv", Charset.defaultCharset(), writer -> {
@@ -2870,6 +2870,35 @@ class ImportCommandTest {
                 boolean added = namedNodes.add(node.getProperty("name").toString());
                 assertThat(added).isTrue();
             });
+            assertThat(namedNodes).containsExactlyInAnyOrder("Tom", "Jerry");
+        }
+    }
+
+    @Test
+    void shouldHandleParquetInputWithCsvHeaderAndCustomDelimiter() throws Exception {
+        // given;
+        var types = List.<org.apache.parquet.schema.Type>of(
+                Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ix"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("character"));
+        var header = createAndWriteFile("header.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID|name");
+            writer.println("ix|character");
+        });
+
+        var parquet = createParquetFile(
+                "nodes.parquet", types, List.of(new Object[] {1L, "Tom"}, new Object[] {2L, "Jerry"}));
+
+        // when
+        runImport("--delimiter", "|", "--input-type=parquet", "--nodes", header.toString(), parquet.toString());
+
+        // then
+        try (var tx = getDatabaseApi().beginTx()) {
+            var namedNodes = new HashSet<String>();
+            tx.getAllNodes().forEach(node -> assertThat(
+                            namedNodes.add(node.getProperty("name").toString()))
+                    .isTrue());
             assertThat(namedNodes).containsExactlyInAnyOrder("Tom", "Jerry");
         }
     }
