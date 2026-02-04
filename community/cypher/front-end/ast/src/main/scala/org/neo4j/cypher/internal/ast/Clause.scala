@@ -2671,6 +2671,8 @@ sealed trait CommandClauseWithNames extends CommandClause {
   // - a list of strings
   // - a single expression (resolving to a single string or a list of strings)
   def names: Either[List[String], Expression]
+  // To anonymize the name
+  def withNames(names: Either[List[String], Expression]): CommandClauseWithNames
 
   // Semantic check:
   private def expressionCheck: SemanticCheck = names match {
@@ -3112,6 +3114,7 @@ case class ShowTransactionsClause(
 )(val position: InputPosition) extends TransactionsCommandClause {
 
   override def name: String = "SHOW TRANSACTIONS"
+  def withNames(names: Either[List[String], Expression]): ShowTransactionsClause = copy(names = names)(position)
 
   private val useAllColumns = yieldItems.nonEmpty || yieldAll
 
@@ -3247,6 +3250,7 @@ case class TerminateTransactionsClause(
 )(val position: InputPosition) extends TransactionsCommandClause {
 
   override def name: String = "TERMINATE TRANSACTIONS"
+  def withNames(names: Either[List[String], Expression]): TerminateTransactionsClause = copy(names = names)(position)
 
   private val columns = originalColumns.map(c => ShowColumn(c.name, c.cypherType)(position))
 
@@ -3314,6 +3318,7 @@ case class ShowSettingsClause(
 )(val position: InputPosition) extends CommandClauseWithNames with CommandClauseAllowedOnSystem {
 
   override def name: String = "SHOW SETTINGS"
+  def withNames(names: Either[List[String], Expression]): ShowSettingsClause = copy(names = names)(position)
 
   private val useAllColumns = yieldItems.nonEmpty || yieldAll
 

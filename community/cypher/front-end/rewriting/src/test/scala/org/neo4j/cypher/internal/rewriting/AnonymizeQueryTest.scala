@@ -16,10 +16,13 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.rewriting.rewriters.Anonymizer
 import org.neo4j.cypher.internal.rewriting.rewriters.anonymizeQuery
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 
 class AnonymizeQueryTest extends AnonymizerTestBase {
 
@@ -36,6 +39,7 @@ class AnonymizeQueryTest extends AnonymizerTestBase {
     override def literal(value: String): String = s"string[$value]"
     override def indexName(name: String): String = "X" + name
     override def constraintName(name: String): String = "X" + name
+    override def identifierAsString(name: String): String = "X" + name
   }
 
   val rewriterUnderTest: Rewriter = anonymizeQuery(anonymizer)
@@ -179,5 +183,137 @@ class AnonymizeQueryTest extends AnonymizerTestBase {
 
     // drop
     assertRewrite("DROP CONSTRAINT name", "DROP CONSTRAINT Xname")
+  }
+
+  test("graph type commands") {
+    // set
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE SET { CONSTRAINT name FOR (n:Label) REQUIRE (n.prop1, n.prop2) IS KEY }",
+      "ALTER CURRENT GRAPH TYPE SET { CONSTRAINT Xname FOR (Xn:xLabel) REQUIRE (Xn.Xprop1, Xn.Xprop2) IS KEY }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE SET { (n:Label1 => :Label2 {prop :: STRING}) }",
+      "ALTER CURRENT GRAPH TYPE SET { (Xn:xLabel1 => :xLabel2 {Xprop :: STRING}) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE SET { (n:Label1)-[r:TYPE => {prop1 :: INTEGER, prop2 :: ANY NOT NULL}]->(m:Label2 =>) }",
+      "ALTER CURRENT GRAPH TYPE SET { (Xn:xLabel1)-[Xr:xTYPE => {Xprop1 :: INTEGER, Xprop2 :: ANY NOT NULL}]->(Xm:xLabel2 =>) }"
+    )
+
+    // add
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE ADD { CONSTRAINT name FOR ()-[r:TYPE =>]->() REQUIRE (r.prop1, r.prop2) IS UNIQUE }",
+      "ALTER CURRENT GRAPH TYPE ADD { CONSTRAINT Xname FOR ()-[Xr:xTYPE =>]->() REQUIRE (Xr.Xprop1, Xr.Xprop2) IS UNIQUE }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE ADD { (n:Label1 => :Label2&Label3 {prop :: STRING NOT NULL}) }",
+      "ALTER CURRENT GRAPH TYPE ADD { (Xn:xLabel1 => :xLabel2&xLabel3 {Xprop :: STRING NOT NULL}) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE ADD { (n:Label1)-[r:TYPE => {prop1 :: INTEGER, prop2 :: ANY NOT NULL}]->(m:Label2 =>) }",
+      "ALTER CURRENT GRAPH TYPE ADD { (Xn:xLabel1)-[Xr:xTYPE => {Xprop1 :: INTEGER, Xprop2 :: ANY NOT NULL}]->(Xm:xLabel2 =>) }"
+    )
+
+    // alter
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE ALTER { (n:Label1 => :Label2&Label3 {prop :: STRING NOT NULL}) }",
+      "ALTER CURRENT GRAPH TYPE ALTER { (Xn:xLabel1 => :xLabel2&xLabel3 {Xprop :: STRING NOT NULL}) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE ALTER { (n:Label1)-[r:TYPE => {prop1 :: INTEGER, prop2 :: ANY NOT NULL}]->(m:Label2 =>) }",
+      "ALTER CURRENT GRAPH TYPE ALTER { (Xn:xLabel1)-[Xr:xTYPE => {Xprop1 :: INTEGER, Xprop2 :: ANY NOT NULL}]->(Xm:xLabel2 =>) }"
+    )
+
+    // drop
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT name }",
+      "ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT Xname }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE DROP { (n:Label1 => :Label2&Label3 {prop :: STRING NOT NULL}) }",
+      "ALTER CURRENT GRAPH TYPE DROP { (Xn:xLabel1 => :xLabel2&xLabel3 {Xprop :: STRING NOT NULL}) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE DROP { (n:Label1 =>) }",
+      "ALTER CURRENT GRAPH TYPE DROP { (Xn:xLabel1 =>) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE DROP { (n:Label1)-[r:TYPE => {prop1 :: INTEGER, prop2 :: ANY NOT NULL}]->(m:Label2 =>) }",
+      "ALTER CURRENT GRAPH TYPE DROP { (Xn:xLabel1)-[Xr:xTYPE => {Xprop1 :: INTEGER, Xprop2 :: ANY NOT NULL}]->(Xm:xLabel2 =>) }"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "ALTER CURRENT GRAPH TYPE DROP { ()-[r:TYPE =>]->() }",
+      "ALTER CURRENT GRAPH TYPE DROP { ()-[Xr:xTYPE =>]->() }"
+    )
+  }
+
+  test("show and terminate commands") {
+    assertRewrite(
+      "SHOW INDEXES WHERE name = 'my_index'",
+      "SHOW INDEXES WHERE Xname = 'string[my_index]'"
+    )
+    assertRewrite(
+      // Default columns differ between Cypher versions so only run one version
+      CypherVersion.Cypher25,
+      "SHOW CONSTRAINTS YIELD name ORDER BY name WHERE name = $param",
+      "SHOW CONSTRAINTS YIELD name AS Xname ORDER BY Xname WHERE Xname = $Xparam",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          case s: ShowConstraintsClause =>
+            // Update WITH clause to 'keep' correct default order
+            val updatedWithClause = s.yieldWith.map(w => {
+              val updatedReturnItems =
+                w.returnItems.copy(defaultOrderOnColumns = Some(List("name")))(w.returnItems.position)
+              w.copy(returnItems = updatedReturnItems)(w.position)
+            })
+            s.copy(yieldWith = updatedWithClause)(s.position)
+        }))
+      }
+    )
+    assertRewrite(
+      "SHOW PROCEDURES EXECUTABLE BY user",
+      "SHOW PROCEDURES EXECUTABLE BY Xuser"
+    )
+    assertRewrite(
+      "SHOW FUNCTIONS EXECUTABLE BY user WHERE name",
+      "SHOW FUNCTIONS EXECUTABLE BY Xuser WHERE Xname"
+    )
+    assertRewrite(
+      "SHOW SETTINGS 'setting'",
+      "SHOW SETTINGS 'string[setting]'"
+    )
+    assertRewrite(
+      "SHOW SETTINGS 'setting1', 'setting2'",
+      "SHOW SETTINGS 'string[setting1]', 'string[setting2]'"
+    )
+    assertRewrite(
+      "SHOW TRANSACTIONS $param",
+      "SHOW TRANSACTIONS $Xparam"
+    )
+    assertRewrite(
+      "SHOW TRANSACTIONS [$param, 'txId']",
+      "SHOW TRANSACTIONS [$Xparam, 'string[txId]']"
+    )
+    assertRewrite(
+      "TERMINATE TRANSACTIONS ['txId']",
+      "TERMINATE TRANSACTIONS ['string[txId]']"
+    )
+    assertRewrite(
+      "TERMINATE TRANSACTIONS 'txId', 'txId2'",
+      "TERMINATE TRANSACTIONS 'string[txId]', 'string[txId2]'"
+    )
   }
 }

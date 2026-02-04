@@ -93,6 +93,7 @@ class IdAnonymizerState(tokens: TokenRead, prettifier: Prettifier)
   private val variables = mutable.Map[String, String]()
   private val parameters = mutable.Map[String, String]()
   private val schemaNames = mutable.Map[String, String]()
+  private val identifiersAsStrings = mutable.Map[String, String]()
   private val unknownTokens = mutable.Map[String, String]()
 
   override def variable(name: String): String =
@@ -124,6 +125,9 @@ class IdAnonymizerState(tokens: TokenRead, prettifier: Prettifier)
 
   override def constraintName(name: String): String =
     schemaNames.getOrElseUpdate(name, "constraint" + schemaNames.size)
+
+  override def identifierAsString(name: String): String =
+    identifiersAsStrings.getOrElseUpdate(name, "ident" + identifiersAsStrings.size)
 
   private def tokenName(prefix: String, name: String, id: Int): String =
     id match {

@@ -16,11 +16,15 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.ast.CommandClauseWithNames
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateIndex
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
+import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -53,6 +57,7 @@ trait Anonymizer {
   def literal(value: String): String
   def indexName(name: String): String
   def constraintName(name: String): String
+  def identifierAsString(name: String): String
 }
 
 case class anonymizeQuery(anonymizer: Anonymizer) extends Rewriter {
@@ -73,6 +78,14 @@ case class anonymizeQuery(anonymizer: Anonymizer) extends Rewriter {
     case x: DropIndexOnName      => x.copy(name = anonymizeSchemaName(x.name, anonymizer.indexName))(x.position)
     case x: CreateConstraint     => x.withName(x.name.map(n => anonymizeSchemaName(n, anonymizer.constraintName)))
     case x: DropConstraintOnName => x.copy(name = anonymizeSchemaName(x.name, anonymizer.constraintName))(x.position)
+    case x: GraphTypeConstraintName =>
+      x.copy(name = anonymizeSchemaName(Left(x.name), anonymizer.constraintName).swap.getOrElse(x.name))(x.position)
+    case x: GraphTypeConstraintDefinition =>
+      x.copy(name =
+        x.name.map(name => anonymizeSchemaName(Left(name), anonymizer.constraintName).swap.getOrElse(name))
+      )(x.position)
+    case x: CommandClauseWithNames => x.withNames(anonymizeCommandClauseNames(x.names, anonymizer.literal))
+    case x: User                   => x.copy(anonymizer.identifierAsString(x.name))
   })
 
   private def anonymizeSchemaName(
@@ -83,5 +96,15 @@ case class anonymizeQuery(anonymizer: Anonymizer) extends Rewriter {
       case Left(string) => Left(anonymizeStringName(string))
       case Right(param) =>
         Right(ExplicitParameter(anonymizer.parameter(param.name), param.parameterType)(param.position))
+    }
+
+  private def anonymizeCommandClauseNames(
+    names: Either[List[String], Expression],
+    anonymizeStringName: String => String
+  ): Either[List[String], Expression] =
+    names match {
+      case Left(strings) => Left(strings.map(anonymizeStringName))
+      // The expression will be anonymized separately and doesn't need to be handled here
+      case other => other
     }
 }
