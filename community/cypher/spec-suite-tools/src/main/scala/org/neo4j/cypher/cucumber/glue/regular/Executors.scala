@@ -85,7 +85,7 @@ trait ExecutorPool extends Executors {
     executors.poll(5, TimeUnit.MINUTES) match {
       case Some(executor) =>
         try {
-          if (isCompatible(executor, extraSettings)) {
+          if (isCompatible(executor, extraSettings, scenario)) {
             DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings, executor.reUseCount + 1)
           } else {
             shutdownExecutor(executor, deleteFiles = true)
@@ -129,8 +129,9 @@ trait ExecutorPool extends Executors {
     }
   }
 
-  private def isCompatible(accessor: DbAccessor, extraSettings: Settings): Boolean = {
-    accessor.isCompatible(extraSettings) && conf.maxDbmsReuse.forall(_ > accessor.reUseCount)
+  private def isCompatible(accessor: DbAccessor, extraSettings: Settings, scenario: Scenario): Boolean = {
+    val forceRestart = scenario.getSourceTagNames.contains("@force-restart")
+    !forceRestart && accessor.isCompatible(extraSettings) && conf.maxDbmsReuse.forall(_ > accessor.reUseCount)
   }
 
   private def createExecutor(extraSettings: Settings): DbAccessor = {
