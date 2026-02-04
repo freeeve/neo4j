@@ -72,7 +72,7 @@ public class TextStructuredCompletionTest implements GenAITestExtension {
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
-                new OpenAi(baseUrl),
+                new OpenAi(baseUrl + "/v1"),
                 new AzureOpenAi(p -> java.net.URI.create(baseUrl)),
                 new VertexAi(p -> java.net.URI.create(baseUrl)),
                 new BedrockConverse(p -> java.net.URI.create(baseUrl))));

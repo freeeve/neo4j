@@ -33,8 +33,8 @@ import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
 public class OpenAi implements VectorEmbedding.Provider {
-    private static final String DEFAULT_BASE_URL = "https://api.openai.com";
-    private static final String DEFAULT_API_PATH = "/v1/embeddings";
+    private static final String DEFAULT_BASE_URL = "https://api.openai.com/v1";
+    private static final String DEFAULT_API_PATH = "/embeddings";
     private final URI endpoint;
 
     public OpenAi() {

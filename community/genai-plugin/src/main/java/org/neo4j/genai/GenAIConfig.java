@@ -49,7 +49,7 @@ public class GenAIConfig extends LifecycleAdapter {
     public static final String GENAI_OPENAI_BASE_URL = "genai.openai.baseurl";
 
     private static final Map<String, Object> configDefaultValues =
-            Map.of(GENAI_OPENAI_BASE_URL, "https://api.openai.com");
+            Map.of(GENAI_OPENAI_BASE_URL, "https://api.openai.com/v1");
 
     private final Config neo4jConfig;
     private final Log log;

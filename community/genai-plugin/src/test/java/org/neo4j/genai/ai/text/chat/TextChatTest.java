@@ -73,7 +73,8 @@ public class TextChatTest implements GenAITestExtension {
                 .http2PlainDisabled(true));
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
-        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl), new AzureOpenAi(p -> URI.create(baseUrl))));
+        builder.addExtension(
+                new GenAiPluginExtension(new OpenAi(baseUrl + "/v1"), new AzureOpenAi(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
@@ -199,7 +200,7 @@ public class TextChatTest implements GenAITestExtension {
 
     @Test
     void openAIWithConfigSetBaseURL() {
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost/v1");
         final var query1 = """
                 with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
                 return ai.text.chat('Fail OPENAI!', null, 'openai', conf) as result
@@ -208,7 +209,7 @@ public class TextChatTest implements GenAITestExtension {
                         query1, Map.of(), r -> r.stream().toList()))
                 .hasMessageContaining("Failed to invoke function `ai.text.chat`");
 
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl());
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/v1");
         final var query2 = """
                 with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
                 return ai.text.chat('Hello Chat!', null, 'openai', conf) as result

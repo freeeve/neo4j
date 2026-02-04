@@ -80,7 +80,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
                 new AzureOpenAi(p -> URI.create(baseUrl)),
-                new OpenAi(baseUrl),
+                new OpenAi(baseUrl + "/v1"),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
@@ -172,7 +172,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
 
     @Test
     void openAIWithConfigSetBaseURL() {
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost/v1");
         final var query1 = """
                 with { token: 'dummy-openai-token', model: 'text-embedding-3-small' } as conf
                 return ai.text.embed('Hello!', 'openai', conf) as result
@@ -181,7 +181,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                         query1, Map.of(), r -> r.stream().toList()))
                 .hasMessageContaining("Failed to invoke function `ai.text.embed`");
 
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl());
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/v1");
         final var query2 = """
                 with { token: 'dummy-openai-token', model: 'text-embedding-3-small' } as conf
                 return ai.text.embed('Hello!', 'openai', conf) IS :: VECTOR<FLOAT32> as result

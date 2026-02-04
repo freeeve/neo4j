@@ -80,7 +80,7 @@ public class TextCompletionTest implements GenAITestExtension {
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
-                new OpenAi(baseUrl),
+                new OpenAi(baseUrl + "/v1"),
                 new AzureOpenAi(p -> URI.create(baseUrl)),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockConverse(p -> URI.create(baseUrl)),
@@ -307,7 +307,7 @@ public class TextCompletionTest implements GenAITestExtension {
 
     @Test
     void openAIWithConfigSetBaseURL() {
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost");
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, "http://localhost/v1");
         final var query1 = """
                 with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
                 return ai.text.completion('Fail OPENAI!', 'openai', conf) as result
@@ -316,7 +316,7 @@ public class TextCompletionTest implements GenAITestExtension {
                         query1, Map.of(), r -> r.stream().toList()))
                 .hasMessageContaining("Failed to invoke function `ai.text.completion`");
 
-        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl());
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/v1");
         final var query2 = """
                 with { token: 'dummy-openai-token', model: 'gpt-5' } as conf
                 return ai.text.completion('Hello!', 'openai', conf) as result
