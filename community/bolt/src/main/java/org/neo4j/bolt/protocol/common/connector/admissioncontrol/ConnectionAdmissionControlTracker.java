@@ -29,10 +29,12 @@ public interface ConnectionAdmissionControlTracker {
     /**
      * Handles an individual bolt request returning an admission control token if the message requires admission
      * control. If the message does not need to take part in admission control the return value will be null.
-     * @param message bolt request message.
+     *
+     * @param message              bolt request message.
+     * @param defaultDatabase      the default database of the user which will be used if no database given in message
      * @return an admission control token to be awaited before the processing of the given message.
      */
-    AdmissionControlToken onMessage(RequestMessage message);
+    AdmissionControlToken onMessage(RequestMessage message, String defaultDatabase);
 
     /**
      * Notifies the state machine of a reset event.

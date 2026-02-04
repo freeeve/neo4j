@@ -345,7 +345,7 @@ class AtomicSchedulingConnectionTest {
         var message = Mockito.mock(RunMessage.class);
 
         var token = Mockito.mock(AdmissionControlToken.class);
-        Mockito.doReturn(token).when(this.admissionControlTracker).onMessage(message);
+        Mockito.doReturn(token).when(this.admissionControlTracker).onMessage(message, null);
 
         this.selectProtocol();
 
@@ -1163,6 +1163,6 @@ class AtomicSchedulingConnectionTest {
 
         this.connection.submit(message);
 
-        Mockito.verify(this.admissionControlTracker, Mockito.times(1)).onMessage(message);
+        Mockito.verify(this.admissionControlTracker, Mockito.times(1)).onMessage(message, null);
     }
 }

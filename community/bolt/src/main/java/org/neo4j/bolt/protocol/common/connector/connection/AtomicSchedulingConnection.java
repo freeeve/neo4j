@@ -124,7 +124,7 @@ public class AtomicSchedulingConnection extends AbstractConnection {
     @Override
     public void submit(RequestMessage message) {
         this.notifyListeners(listener -> listener.onRequestReceived(message));
-        var token = this.admissionControlTracker.onMessage(message);
+        var token = this.admissionControlTracker.onMessage(message, this.selectedDefaultDatabase());
         this.submit(new ProcessJob(this, this.clock.millis(), message, token));
     }
 

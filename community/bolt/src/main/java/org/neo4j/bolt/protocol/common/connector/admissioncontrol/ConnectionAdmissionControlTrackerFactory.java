@@ -34,7 +34,7 @@ public interface ConnectionAdmissionControlTrackerFactory {
             }
 
             @Override
-            public AdmissionControlToken onMessage(RequestMessage ignored) {
+            public AdmissionControlToken onMessage(RequestMessage ignored, String defaultDatabase) {
                 return null;
             }
         };
