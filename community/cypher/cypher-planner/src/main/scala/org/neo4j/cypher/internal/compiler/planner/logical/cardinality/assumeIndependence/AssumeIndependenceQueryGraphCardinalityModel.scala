@@ -104,7 +104,7 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
         context.graphSchemaOptimizations.addImpliedLabels(
           queryGraph.patternNodeLabels.fuse(impliedEndpointLabelsMap)(_ ++ _)
         ),
-        queryGraph.selections
+        queryGraph.selectionsWithInlinedSearchClausePredicates
       )
 
     val (inferredLabelInfo, newContext) =

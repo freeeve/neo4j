@@ -25,12 +25,16 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
+import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.VectorIndexSearchException
@@ -39,14 +43,17 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport
-    with QueryExpressionConstructionTestSupport {
+    with QueryExpressionConstructionTestSupport
+    with LogicalPlanningAttributesTestSupport {
+
+  private def movieLabelCardinality: Double = 80.0
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()
       .addSemanticFeature(VectorSearch)
       .addSemanticFeature(VectorSingleStageFilteringEnabled)
       .setAllNodesCardinality(120)
-      .setLabelCardinality("Movie", 80)
+      .setLabelCardinality("Movie", movieLabelCardinality)
       .setLabelCardinality("Actor", 40)
       .setLabelCardinality("Person", 10)
       .setRelationshipCardinality("()-[]->()", 100)
@@ -1537,5 +1544,95 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         )
       )
       .build()
+  }
+
+  test("should apply selectivities of inlined SEARCH predicates to vector search cardinality") {
+    val planner = plannerBuilder().build()
+
+    case class TestPredicate(
+      queryText: String,
+      queryTextWithCaching: String,
+      searchQuery: QueryExpression[Expression],
+      selectivity: Selectivity
+    )
+
+    val imdbRatingEquals8 = TestPredicate(
+      "movie.imdbRating = 8",
+      "cacheN[movie.imdbRating] = 8",
+      QueryExpressionConstructionTestSupport.single(literalInt(8)),
+      PlannerDefaults.DEFAULT_EQUALITY_SELECTIVITY * PlannerDefaults.DEFAULT_PROPERTY_SELECTIVITY
+    )
+
+    val releaseYearLessThan2010 = TestPredicate(
+      "movie.releaseYear < 2010",
+      "cacheN[movie.releaseYear] < 2010",
+      rangeExpression(lt(literalInt(2010))),
+      PlannerDefaults.DEFAULT_RANGE_SELECTIVITY
+    )
+
+    for {
+      imdbRatingPred <- Seq(None, Some(imdbRatingEquals8))
+      releaseYearPred <- Seq(None, Some(releaseYearLessThan2010))
+      if imdbRatingPred.isDefined || releaseYearPred.isDefined
+      inlinePredicates <- Seq(true, false)
+    } withClue(
+      s"\nimdbRatingPred: $imdbRatingPred\nreleaseYearPred: $releaseYearPred\ninlinePredicates: $inlinePredicates\n"
+    ) {
+
+      val queryExpression: String = Seq(imdbRatingPred, releaseYearPred).flatten.map(_.queryText).mkString(" AND ")
+      val planExpressions: Seq[String] = Seq(imdbRatingPred, releaseYearPred).flatten.map(_.queryTextWithCaching)
+
+      val whereClause = "WHERE " + queryExpression
+
+      val searchFilter = composite(
+        imdbRatingPred.map(_.searchQuery).getOrElse(all()),
+        releaseYearPred.map(_.searchQuery).getOrElse(all())
+      )
+
+      val query =
+        s"""MATCH (movie:Movie)
+           |${if (inlinePredicates) "" else whereClause}
+           |SEARCH movie IN (
+           |  VECTOR INDEX moviePlots
+           |  FOR $$embedding
+           |  ${if (inlinePredicates) whereClause else ""}
+           |  LIMIT 10
+           |)
+           |RETURN movie.plot AS result""".stripMargin
+
+      val expectedCardinality =
+        movieLabelCardinality *
+          Seq(imdbRatingPred, releaseYearPred)
+            .flatten
+            .map(_.selectivity.factor)
+            .product
+
+      val getValueFromIndex = Map(
+        "plot" -> GetValue,
+        "imdbRating" -> (if (inlinePredicates || imdbRatingPred.isEmpty) DoNotGetValue else GetValue),
+        "releaseYear" -> (if (inlinePredicates || releaseYearPred.isEmpty) DoNotGetValue else GetValue)
+      )
+
+      val expectedPlanBuilder = planner.subPlanBuilder()
+        .produceResults("result").withCardinality(expectedCardinality)
+        .projection("cacheN[movie.plot] AS result").withCardinality(expectedCardinality)
+        .planIf(!inlinePredicates)(_.filter(planExpressions: _*).withCardinality(expectedCardinality))
+        .nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = Seq("plot", "imdbRating", "releaseYear"),
+          indexName = "moviePlots",
+          vector = "$embedding",
+          limit = "10",
+          getValueFromIndex = getValueFromIndex,
+          filter = Option.when(inlinePredicates)(searchFilter)
+        ).withCardinality(if (inlinePredicates) expectedCardinality else movieLabelCardinality)
+
+      val actualPlanState = planner.planState(CypherVersion.Cypher25, query)
+
+      withClue(s"query:\n$query\nexpectedCardinality: $expectedCardinality\n") {
+        actualPlanState should haveSamePlanAndCardinalitiesAsBuilder(expectedPlanBuilder)
+      }
+    }
   }
 }

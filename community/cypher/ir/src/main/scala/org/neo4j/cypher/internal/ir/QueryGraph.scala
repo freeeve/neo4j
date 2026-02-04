@@ -494,7 +494,7 @@ final case class QueryGraph private (
           otherShortestRelationshipPatterns,
           otherMutatingPatterns,
           otherSelectivePathPatterns,
-          otherVectorSearchPredicate
+          otherSearchClause
         ) =>
         QueryGraph(
           selections = selections ++ otherSelections,
@@ -507,13 +507,13 @@ final case class QueryGraph private (
           shortestRelationshipPatterns = shortestRelationshipPatterns ++ otherShortestRelationshipPatterns,
           mutatingPatterns = mutatingPatterns ++ otherMutatingPatterns,
           selectivePathPatterns = selectivePathPatterns ++ otherSelectivePathPatterns,
-          searchClause = appendOtherSearchClause(otherVectorSearchPredicate)
+          searchClause = appendOtherSearchClause(otherSearchClause)
         )
     }
   }
 
-  private def appendOtherSearchClause(otherVectorSearchPredicate: Option[SearchClause]): Option[SearchClause] =
-    (searchClause, otherVectorSearchPredicate) match {
+  private def appendOtherSearchClause(otherSearchClause: Option[SearchClause]): Option[SearchClause] =
+    (searchClause, otherSearchClause) match {
       case (Some(thisSearch), None)                                           => Some(thisSearch)
       case (None, Some(otherSearch))                                          => Some(otherSearch)
       case (None, None)                                                       => None
@@ -729,6 +729,10 @@ final case class QueryGraph private (
       .diff(shortestRelationshipPatterns.flatMap(_.rel.coveredIds))
   }
 
+  def selectionsWithInlinedSearchClausePredicates: Selections = {
+    searchClause.fold(selections)(selections ++ _.inlinedPredicatesSet)
+  }
+
   override def toString: String = {
     var added = false
     val builder = new StringBuilder("QueryGraph {")
@@ -790,7 +794,7 @@ final case class QueryGraph private (
           otherShortestRelationshipPatterns,
           otherMutatingPatterns,
           otherSelectivePathPatterns,
-          otherSearchPredicate
+          otherSearchClause
         ) =>
         if (this eq other) {
           true
@@ -805,7 +809,7 @@ final case class QueryGraph private (
           shortestRelationshipPatterns == otherShortestRelationshipPatterns &&
           mutatingPatterns == otherMutatingPatterns &&
           selectivePathPatterns == otherSelectivePathPatterns &&
-          searchClause == otherSearchPredicate
+          searchClause == otherSearchClause
         }
       case _ =>
         false

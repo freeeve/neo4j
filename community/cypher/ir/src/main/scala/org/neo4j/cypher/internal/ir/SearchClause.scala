@@ -22,12 +22,15 @@ package org.neo4j.cypher.internal.ir
 import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 sealed trait SearchClause {
   def resultVariable: LogicalVariable
   def dependencies: Set[LogicalVariable]
+  def inlinedPredicatesSet: ListSet[Expression]
 }
 
 case class VectorSearchClause(
@@ -40,6 +43,10 @@ case class VectorSearchClause(
 ) extends SearchClause {
 
   override def dependencies: Set[LogicalVariable] = embedding.dependencies ++ limit.dependencies
+
+  override def inlinedPredicatesSet: ListSet[Expression] = {
+    where.fold(ListSet.empty[Expression])(w => Ands.unwrap(w.expression))
+  }
 
   override def toString: String = {
     val embeddingStr = SearchClause.stringifier(embedding)
