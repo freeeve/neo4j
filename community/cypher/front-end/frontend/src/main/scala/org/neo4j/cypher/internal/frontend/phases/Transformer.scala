@@ -274,3 +274,16 @@ case class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](f: (
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = t.invalidatedConditions
 }
+
+case class NoOp[-C <: BaseContext, FROM, STATE <: FROM]() extends Transformer[C, STATE, STATE] {
+
+  override def transform(from: STATE, context: C): STATE = from
+
+  override def name: String = s"NoOp"
+
+  override def toString: String = name
+
+  override def postConditions: Set[StepSequencer.Condition] = Set.empty
+
+  override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
+}

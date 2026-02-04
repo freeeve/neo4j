@@ -16,8 +16,10 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -25,12 +27,14 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     with AstConstructionTestSupport
     with RewritePhaseTest {
+
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ShortestPathVariableDeduplicator
 
-  override def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] =
-    super.preProcessPhase() andThen
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    SemanticAnalysis(Some(false)) andThen
+      AstRewriting() andThen
+      SemanticAnalysis(Some(false)) andThen
       flattenBooleanOperators andThen
-      // flattenBooleanOperators invalidates SemanticInformation
       SemanticAnalysis(Some(false))
 
   test("should rewrite repeated interior nodes and leave exterior nodes") {
@@ -48,39 +52,39 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     )
   }
 
-  testVersionsExcept5("should rewrite repeated interior relationship under REPEATED ELEMENTS MATCH mode") {
-    version =>
-      assertRewritten(
-        version,
-        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[b]->(f)) RETURN b",
-        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[`  b@0`]->(f) WHERE `  b@0` = b) RETURN b"
-      )
-      assertRewritten(
-        version,
-        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[b*0..5]->(f)) RETURN b",
-        // MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[`  b@0`*0..5]->(f) WHERE `  b@0` = b) RETURN b
-        singleQuery(
-          match_shortest(
-            anyShortestPathSelector(1),
-            parenthesizedPath(
-              relationshipChain(
-                nodePat(Some("d")),
-                relPat(Some("b"), None, Some(Some(range(Some(0), Some(5))))),
-                nodePat(Some("e")),
-                relPat(Some("  b@0"), None, Some(Some(range(Some(0), Some(5))))),
-                nodePat(Some("f"))
-              ),
-              Some(ands(
-                equals(v"  b@0", v"b"),
-                varLengthUpperLimitPredicate("b", 5)
-                // varLengthUpperLimitPredicate("  b@0", 5)
-              ))
+  test("should rewrite repeated interior relationship under REPEATED ELEMENTS MATCH mode") {
+    assertRewritten(
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[b]->(f)) RETURN b",
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[`  b@0`]->(f) WHERE `  b@0` = b) RETURN b",
+      excludedVersions = Set(CypherVersion.Cypher5)
+    )
+
+    assertRewrittenToStatement(
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[b*0..5]->(f)) RETURN b",
+      // MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[`  b@0`*0..5]->(f) WHERE `  b@0` = b) RETURN b
+      singleQuery(
+        match_shortest(
+          anyShortestPathSelector(1),
+          parenthesizedPath(
+            relationshipChain(
+              nodePat(Some("d")),
+              relPat(Some("b"), None, Some(Some(range(Some(0), Some(5))))),
+              nodePat(Some("e")),
+              relPat(Some("  b@0"), None, Some(Some(range(Some(0), Some(5))))),
+              nodePat(Some("f"))
             ),
-            repeatableElementsMatchMode()
+            Some(ands(
+              equals(v"  b@0", v"b"),
+              varLengthUpperLimitPredicate("b", 5)
+              // varLengthUpperLimitPredicate("  b@0", 5)
+            ))
           ),
-          returnVariables("b")
-        )
-      )
+          repeatableElementsMatchMode()
+        ),
+        returnVariables("b")
+      ),
+      excludedVersions = Set(CypherVersion.Cypher5)
+    )
   }
 
   test("should integrate rewritten predicates with existing ones") {
@@ -131,7 +135,7 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     // since the preparatory phase generated uniqueness predicates (for both original and expected),
     // but the rewriter does actually not rewrite those.
 
-    assertRewritten(
+    assertRewrittenToStatement(
       "MATCH ()-[r]->() MATCH ANY SHORTEST (()-[r]->()-[*]->()) RETURN r",
       // "MATCH ()-[r]->() MATCH ANY SHORTEST (()-[`  r@0`]->()-[*]->() WHERE `  r@0` = r) RETURN r"
       singleQuery(
@@ -163,7 +167,7 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
         return_(aliasedReturnItem(varFor("r")))
       )
     )
-    assertRewritten(
+    assertRewrittenToStatement(
       "MATCH (a)-[b*]->(c:User) MATCH ANY SHORTEST ((d)-[b*]->(e)-->(f)) RETURN b",
       // MATCH (a)-[b*]->(c:User) MATCH ANY SHORTEST ((d)-[`  b@0`*]->(e)-->(f) WHERE `  b@0` = b) RETURN b
       singleQuery(
@@ -194,7 +198,7 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
         return_(aliasedReturnItem(varFor("b")))
       )
     )
-    assertRewritten(
+    assertRewrittenToStatement(
       "MATCH (a)-[b*1..3]->(c:User) MATCH ANY SHORTEST ((d)-[b*2..4]->(e)-->(f)) RETURN b",
       // MATCH (a)-[b*1..3]->(c:User) MATCH ANY SHORTEST ((d)-[`  b@0`*2..4]->(e)-->(f) WHERE `  b@0` = b) RETURN b
       singleQuery(
@@ -235,7 +239,7 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
         return_(aliasedReturnItem(varFor("b")))
       )
     )
-    assertRewritten(
+    assertRewrittenToStatement(
       "MATCH (a)-[b*1..3]->(c:User) MATCH ANY SHORTEST ((d)-[b*2..4]->(e)-->(f)) WHERE size(b) < 5 RETURN b",
       // MATCH (a)-[b*1..3]->(c:User) MATCH ANY SHORTEST ((d)-[`  b@0`*2..4]->(e)-->(f) WHERE `  b@0` = b) WHERE size(b) < 5  RETURN b
       singleQuery(

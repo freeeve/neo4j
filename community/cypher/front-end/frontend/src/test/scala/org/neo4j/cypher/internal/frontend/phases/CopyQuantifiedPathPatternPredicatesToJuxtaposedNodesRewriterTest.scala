@@ -19,14 +19,20 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
     extends CypherFunSuite with AstConstructionTestSupport with RewritePhaseTest {
 
-  override def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] =
-    super.preProcessPhase() andThen
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
+      SemanticAnalysis(Some(false)) andThen
+      AstRewriting() andThen
+      SemanticAnalysis(Some(false)) andThen
       flattenBooleanOperators andThen
       Namespacer
 
@@ -185,7 +191,7 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
   }
 
   test("Scoped expression predicate with ambiguous name on local variable ") {
-    assertRewritten(
+    assertRewrittenToStatement(
       """MATCH (a) ((n)-[r]->(m) WHERE any(n IN n.list WHERE n > 0))+ (b)
         |RETURN 1 AS s""".stripMargin,
       singleQuery(
@@ -219,7 +225,7 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
   }
 
   test("Scoped expression predicate with ambiguous name on non-local variable") {
-    assertRewritten(
+    assertRewrittenToStatement(
       """MATCH (a) ((n)-[r]->(m) WHERE any(a IN n.list WHERE a > 0))+ (b)
         |RETURN 1 AS s""".stripMargin,
       singleQuery(
@@ -253,7 +259,7 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
   }
 
   test("Scoped expression predicate with ambiguous name that would cause a conflict if not disambiguated") {
-    assertRewritten(
+    assertRewrittenToStatement(
       """MATCH (a) ((n)-[r]->(m) WHERE any(a IN n.list WHERE n > a))+ (b)
         |RETURN 1 AS s""".stripMargin,
       singleQuery(
@@ -294,7 +300,7 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
   }
 
   test("Pattern-comprehension scoped expression") {
-    assertRewritten(
+    assertRewrittenToStatement(
       """MATCH (a) ((n)-[r]->(m) WHERE [(n)-[rr]->(c) | n.a] IS NULL)+ (b)
         |RETURN 1 AS s""".stripMargin,
       singleQuery(
@@ -303,24 +309,24 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
             nodePat(Some("a")),
             quantifiedPath(
               relationshipChain(
-                nodePat(Some("  n@0")),
-                relPat(Some("  r@1")),
-                nodePat(Some("  m@2"))
+                nodePat(Some("  n@1")),
+                relPat(Some("  r@2")),
+                nodePat(Some("  m@3"))
               ),
               PlusQuantifier()(pos),
               Some(isNull(CollectExpression(singleQuery(
-                match_(relationshipChain(nodePat(Some("  n@0")), relPat(Some("rr")), nodePat(Some("c")))),
-                return_(aliasedReturnItem(prop("  n@0", "a"), "  UNNAMED0"))
+                match_(relationshipChain(nodePat(Some("  n@1")), relPat(Some("rr")), nodePat(Some("c")))),
+                return_(aliasedReturnItem(prop("  n@1", "a"), "  UNNAMED0"))
               ))(pos, null, null))),
               Set(
-                variableGrouping("  n@0", "  n@3"),
-                variableGrouping("  r@1", "  r@4"),
-                variableGrouping("  m@2", "  m@5")
+                variableGrouping("  n@1", "  n@4"),
+                variableGrouping("  r@2", "  r@5"),
+                variableGrouping("  m@3", "  m@6")
               )
             ),
             nodePat(Some("b"))
           ),
-          where = Some(where(unique(varFor("  r@4"))))
+          where = Some(where(unique(varFor("  r@5"))))
         ),
         returnLit((1, "s"))
       )

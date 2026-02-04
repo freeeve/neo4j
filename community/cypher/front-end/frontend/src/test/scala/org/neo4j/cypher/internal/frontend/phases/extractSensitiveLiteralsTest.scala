@@ -20,7 +20,9 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.SensitiveLiteral
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -28,6 +30,11 @@ class extractSensitiveLiteralsTest extends CypherFunSuite with AstConstructionTe
     with RewritePhaseTest {
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ExtractSensitiveLiterals
+
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    SemanticAnalysis(Some(false)) andThen
+      AstRewriting() andThen
+      SemanticAnalysis(Some(false))
 
   val queries = Seq(
     "MATCH (n) WHERE n.salary = 10000000.76 RETURN n",

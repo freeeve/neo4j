@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
@@ -33,8 +33,6 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
       SemanticAnalysis(warn = Some(true)) andThen
       SyntaxDeprecationWarningsAndReplacements(SemanticallyDeprecatedFeatures)
 
-  override def astRewriteAndAnalyze: Boolean = false
-
   test("should rewrite legacy relationship type disjunction") {
     assertRewritten(
       "MATCH (a)-[:A|:B|:C]-() RETURN a",
@@ -44,33 +42,33 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
 
   test("should rewrite setting of relationship properties to use properties function in a Set Clause") {
     assertRewritten(
-      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g = r",
-      "MATCH (g)-[r:KNOWS]->(k) SET g = properties(r)"
+      "MATCH (g)-[r:KNOWS]->(k) SET g = properties(r)",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 
   test("should rewrite setting of node properties to use properties function in a Set Clause") {
     assertRewritten(
-      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g = k",
-      "MATCH (g)-[r:KNOWS]->(k) SET g = properties(k)"
+      "MATCH (g)-[r:KNOWS]->(k) SET g = properties(k)",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 
   test("should rewrite setting of relationship properties to use properties function in a Mutate Set Clause") {
     assertRewritten(
-      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g += r",
-      "MATCH (g)-[r:KNOWS]->(k) SET g += properties(r)"
+      "MATCH (g)-[r:KNOWS]->(k) SET g += properties(r)",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 
   test("should rewrite setting of node properties to use properties function in a Mutate Set Clause") {
     assertRewritten(
-      Cypher5,
       "MATCH (g)-[r:KNOWS]->(k) SET g += k",
-      "MATCH (g)-[r:KNOWS]->(k) SET g += properties(k)"
+      "MATCH (g)-[r:KNOWS]->(k) SET g += properties(k)",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 }

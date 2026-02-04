@@ -34,6 +34,8 @@ import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -408,6 +410,11 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
 
   override def rewriterPhaseUnderTest: Phase[BaseContext, BaseState, BaseState] = Namespacer
 
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    SemanticAnalysis(Some(false)) andThen
+      AstRewriting() andThen
+      SemanticAnalysis(Some(false))
+
   sealed trait Test
 
   case class TestCase(query: String, rewrittenQuery: String, semanticTableExpressions: List[Expression]) extends Test
@@ -421,12 +428,12 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
         assertRewritten(
           q.replace("\r\n", "\n"),
           rewritten,
-          semanticTableExpressions
+          semanticTableExpressions = semanticTableExpressions
         )
       }
     case TestCaseWithStatement(q, rewritten, semanticTableExpressions) =>
       test(q) {
-        assertRewritten(
+        assertRewrittenToStatement(
           q.replace("\r\n", "\n"),
           rewritten,
           semanticTableExpressions

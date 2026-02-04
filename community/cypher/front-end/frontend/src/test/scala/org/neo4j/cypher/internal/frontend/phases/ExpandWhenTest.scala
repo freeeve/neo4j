@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.Rewriter
@@ -37,9 +36,10 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     SemanticAnalysis(Some(false)) andThen
       ExpandWhen
 
-  override def semanticFeatures: Seq[SemanticFeature] = Seq(DisableReworkedRewriters)
-
-  override def astRewriteAndAnalyze: Boolean = false
+  override val phaseTestConfig = PhaseTestConfig(
+    excludedVersions = Set(CypherVersion.Cypher5),
+    semanticFeatures = Seq(SemanticFeature.DisableReworkedRewriters)
+  )
 
   private def additionalExpectedUpdates = (expectedStatement: Statement) => {
     expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
@@ -61,7 +61,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when single branch rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN RETURN 1 AS x""",
       """WITH *, CASE WHEN true THEN [true, false] ELSE [false, true] END AS `  UNNAMED0`
         |CALL (*) {
@@ -76,7 +75,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when unit single branch rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN CREATE ()""",
       """WITH *, CASE WHEN true THEN [true, false] ELSE [false, true] END AS `  UNNAMED0`
         |CALL (*) {
@@ -91,7 +89,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when in subquery and return all rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         CALL (*) {
              WHEN true THEN
@@ -124,7 +121,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when single branch with else rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN false THEN RETURN 1 AS x
         |   ELSE RETURN 2 AS x
@@ -150,7 +146,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when with simple subquery expression predicate") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |WHEN false THEN RETURN 1 AS x
         |WHEN EXISTS { RETURN 1 } THEN RETURN 2 AS x
@@ -184,7 +179,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when multiple branches with else rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN false THEN RETURN 1 AS x
         |   WHEN false THEN RETURN 2 AS x
@@ -228,7 +222,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when enclosed in union in subquery") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   MATCH (n)
         |   CALL (*) {
@@ -288,7 +281,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when in subquery rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   LET x = 1
         |   CALL (x) {
@@ -328,7 +320,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when in subquery expression rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   LET x = 1, b = 2
         |   RETURN EXISTS {
@@ -364,7 +355,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("when example with params rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN $param < 1 THEN RETURN 1 AS res
         |   WHEN $param > 1 THEN RETURN 2 AS res
@@ -391,7 +381,6 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("chained subquery when") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL () {
         |  WHEN true THEN MATCH (n) RETURN n
         |}

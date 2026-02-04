@@ -54,26 +54,20 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.kernel.database.NormalizedDatabaseName
 
 class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     ScopeSurveyor andThen ExpandClauses
 
-  override def astRewriteAndAnalyze: Boolean = false
-  val sessionDatabaseName: String = NormalizedDatabaseName.normalize("sessionDb");
-  override def sessionDatabase: String = sessionDatabaseName
-  override def targetsComposite: Boolean = true
-
-  override def semanticFeatures: Seq[SemanticFeature] =
-    Seq(SemanticFeature.UseAsMultipleGraphsSelector)
+  override val phaseTestConfig = PhaseTestConfig(
+    excludedVersions = Set(CypherVersion.Cypher5),
+    semanticFeatures = Seq(SemanticFeature.UseAsMultipleGraphsSelector)
+  )
 
   private def withUpdate() = (expectedStatement: Statement) => {
     expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
       // The original/rewritten statement will have AddedInRewriteGeneral,
-      // the explicit WITH in the expected will have DefaultWith
-      // so let's update that before checking the equality
       case w: With =>
         w.copy(withType = AddedInRewriteGeneral())(w.position)
       case ri: ReturnItems => ri.copy(projectionType = FreeProjection)(ri.position)
@@ -82,7 +76,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 1") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -115,7 +108,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -132,7 +124,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 2b") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -149,7 +140,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query WHEN FINISH") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """FINISH
         |
         |NEXT
@@ -184,7 +174,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -208,7 +197,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 4") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """FINISH
         |
         |NEXT
@@ -232,7 +220,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 5") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |CALL (a) {
         |  RETURN 1 as b
@@ -255,7 +242,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 6") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS a
         |UNION
         |RETURN 2 AS a
@@ -287,7 +273,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 7") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x
         |
@@ -334,7 +319,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 8") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  RETURN 1 AS a
         |
@@ -356,7 +340,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 9") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (n)
         |RETURN n
         |
@@ -409,7 +392,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 10") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |LET x = EXISTS {
         |  RETURN a + 1 AS b
@@ -437,7 +419,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 11") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x, y
         |
@@ -486,7 +467,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 12") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x, y
         |
@@ -540,7 +520,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 13") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -580,7 +559,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 14") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -610,7 +588,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 15") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -645,7 +622,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 16") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -685,7 +661,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 17") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS a
         |
         |NEXT
@@ -708,7 +683,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 18") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS a
         |
         |NEXT
@@ -745,7 +719,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten 19") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS a
         |
         |NEXT
@@ -780,7 +753,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query with aggregation rewritten 1") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS a
       RETURN a
@@ -822,7 +794,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query with aggregation rewritten 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS x
       RETURN x
@@ -874,7 +845,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query with aggregation rewritten 3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS a
       RETURN a
@@ -914,7 +884,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Should not wrap on inner aggregation in subquery expression") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS x
       RETURN x
@@ -939,7 +908,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten with USE in UNION") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE mega
         |MATCH (p0:Person)
         |WITH * ORDER BY p0.name ASC
@@ -986,7 +954,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten with USE in UNION ALL") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE mega
         |MATCH (p0:Person)
         |WITH * ORDER BY p0.name ASC
@@ -1028,7 +995,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query rewritten with UNION ALL") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2, 3] AS x
         |RETURN x
         |
@@ -1056,7 +1022,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Expand all clauses and queries") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -1124,44 +1089,50 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
   test("rewrites * in return") {
     assertRewritten(
       "match (n) return *",
-      "match (n) return n"
+      "match (n) return n",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n),(c) return *",
-      "match (n),(c) return c,n"
+      "match (n),(c) return c,n",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-->(c) return *",
-      "match (n)-->(c) return c,n"
+      "match (n)-->(c) return c,n",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]->(c) return *",
-      "match (n)-[r]->(c) return c,n,r"
+      "match (n)-[r]->(c) return c,n,r",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "create (n) return *",
-      "create (n) return n"
+      "create (n) return n",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match p = shortestPath((a)-[r*]->(x)) return *",
-      "match p = shortestPath((a)-[r*]->(x)) return a,p,r,x"
+      "match p = shortestPath((a)-[r*]->(x)) return a,p,r,x",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match p=(a:Start)-->(b) return *",
-      "match p=(a:Start)-->(b) return a, b, p"
+      "match p=(a:Start)-->(b) return a, b, p",
+      excludedVersions = Set()
     )
 
   }
 
   test("drops empty with * in single query") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "WITH * RETURN 1 AS x",
       "RETURN 1 AS x"
     )
@@ -1169,7 +1140,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("drops empty with * with incoming in single query") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "WITH 1 AS x WITH * RETURN 1 AS x",
       "WITH 1 AS x RETURN 1 AS x"
     )
@@ -1178,90 +1148,90 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
   test("keeps with * with skip with incoming in single query") {
     assertRewritten(
       "WITH 1 AS x WITH * SKIP 0 RETURN 1 AS x",
-      "WITH 1 AS x WITH x SKIP 0 RETURN 1 AS x"
+      "WITH 1 AS x WITH x SKIP 0 RETURN 1 AS x",
+      excludedVersions = Set()
     )
   }
 
   test("keeps with * with limit with incoming in single query") {
     assertRewritten(
       "WITH 1 AS x WITH * LIMIT 0 RETURN 1 AS x",
-      "WITH 1 AS x WITH x LIMIT 0 RETURN 1 AS x"
+      "WITH 1 AS x WITH x LIMIT 0 RETURN 1 AS x",
+      excludedVersions = Set()
     )
   }
 
   test("keeps with * with order by with incoming in single query") {
     assertRewritten(
       "WITH 1 AS x WITH * ORDER BY 0 RETURN 1 AS x",
-      "WITH 1 AS x WITH x ORDER BY 0 RETURN 1 AS x"
+      "WITH 1 AS x WITH x ORDER BY 0 RETURN 1 AS x",
+      excludedVersions = Set()
     )
   }
 
   test("keeps with * with where with incoming in single query") {
     assertRewritten(
       "WITH 1 AS x WITH * WHERE true RETURN 1 AS x",
-      "WITH 1 AS x WITH x WHERE true RETURN 1 AS x"
+      "WITH 1 AS x WITH x WHERE true RETURN 1 AS x",
+      excludedVersions = Set()
     )
   }
 
   test("drops empty with * in subquery call") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "WITH 1 AS a CALL (*) { WITH * RETURN 1 AS x } RETURN *",
       "WITH 1 AS a CALL () { RETURN 1 AS x } RETURN a, x"
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "WITH 1 AS a CALL (*) { WITH 1 AS y WITH * RETURN 1 + y AS x } RETURN *",
       "WITH 1 AS a CALL () { WITH 1 AS y RETURN 1 + y AS x } RETURN a, x"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "WITH 1 AS a CALL (*) { WITH 1 AS y WITH * RETURN 1 + y AS x } RETURN *",
-      "WITH 1 AS a CALL () { WITH 1 AS y WITH y AS y RETURN 1 + y AS x } RETURN a, x"
+      "WITH 1 AS a CALL () { WITH 1 AS y WITH y AS y RETURN 1 + y AS x } RETURN a, x",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
       "WITH 1 AS a CALL { WITH * WITH DISTINCT * RETURN 1 AS x } RETURN *",
-      "WITH 1 AS a CALL { WITH a AS a WITH DISTINCT a AS a RETURN 1 AS x } RETURN a, x"
+      "WITH 1 AS a CALL { WITH a AS a WITH DISTINCT a AS a RETURN 1 AS x } RETURN a, x",
+      excludedVersions = Set()
     )
     assertRewritten(
-      CypherVersion.Cypher25,
       "WITH 1 AS a CALL { WITH * WITH * RETURN 1 AS x } RETURN *",
       "WITH 1 AS a CALL { WITH a AS a RETURN 1 AS x } RETURN a, x"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "WITH 1 AS a CALL { WITH * WITH * RETURN 1 AS x } RETURN *",
-      "WITH 1 AS a CALL { WITH a AS a WITH a AS a RETURN 1 AS x } RETURN a, x"
+      "WITH 1 AS a CALL { WITH a AS a WITH a AS a RETURN 1 AS x } RETURN a, x",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 
   test("drops empty with * in subquery expression") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "RETURN EXISTS { WITH * } AS y",
       "RETURN EXISTS { RETURN 1 AS `  UNNAMED0` } AS y"
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "RETURN EXISTS { WITH * UNION WITH * } AS y",
-      "RETURN EXISTS { RETURN 1 AS `  UNNAMED0` UNION RETURN 1 AS `  UNNAMED1`} AS y"
+      "RETURN EXISTS { RETURN 1 AS `  UNNAMED0` UNION RETURN 1 AS `  UNNAMED1`} AS y",
+      invalidSemantics = true
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "RETURN COUNT { WITH * } AS y",
       "RETURN COUNT { RETURN 1 AS `  UNNAMED0` } AS y"
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "RETURN COUNT { WITH * UNION WITH * } AS y",
-      "RETURN COUNT { RETURN 1 AS `  UNNAMED0` UNION RETURN 1 AS `  UNNAMED1`} AS y"
+      "RETURN COUNT { RETURN 1 AS `  UNNAMED0` UNION RETURN 1 AS `  UNNAMED1`} AS y",
+      invalidSemantics = true
     )
   }
 
@@ -1269,29 +1239,32 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
     assertRewritten(
       "MATCH (a) WHERE EXISTS { MATCH (b) RETURN * } RETURN a",
-      "MATCH (a) WHERE EXISTS { MATCH (b) RETURN b } RETURN a"
+      "MATCH (a) WHERE EXISTS { MATCH (b) RETURN b } RETURN a",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "MATCH (a) WHERE COUNT { MATCH (b) RETURN * } = 3 RETURN a",
-      "MATCH (a) WHERE COUNT { MATCH (b) RETURN b } = 3 RETURN a"
+      "MATCH (a) WHERE COUNT { MATCH (b) RETURN b } = 3 RETURN a",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "MATCH (a)-[r]->(b) WHERE EXISTS { MATCH (c)-[r1]->(d) RETURN * } RETURN a",
-      "MATCH (a)-[r]->(b) WHERE EXISTS { MATCH (c)-[r1]->(d) RETURN c, d, r1 } RETURN a"
+      "MATCH (a)-[r]->(b) WHERE EXISTS { MATCH (c)-[r1]->(d) RETURN c, d, r1 } RETURN a",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "MATCH (a)-[r]->(b) WHERE COUNT { MATCH (c)-[r1]->(d) RETURN * } = 3 RETURN a",
-      "MATCH (a)-[r]->(b) WHERE COUNT { MATCH (c)-[r1]->(d) RETURN c, d, r1 } = 3 RETURN a"
+      "MATCH (a)-[r]->(b) WHERE COUNT { MATCH (c)-[r1]->(d) RETURN c, d, r1 } = 3 RETURN a",
+      excludedVersions = Set()
     )
 
   }
 
   test("rewrites * in importing with") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS x
         |CALL {
         |  WITH *
@@ -1317,13 +1290,13 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |  }
         |  RETURN x AS x, y AS y, z AS z
         |}
-        |RETURN x AS x, y AS y, z AS z""".stripMargin
+        |RETURN x AS x, y AS y, z AS z""".stripMargin,
+      invalidSemantics = true
     )
   }
 
   test("rewrites * in importing with 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2, 3] AS i
         |CALL {
         |  WITH *
@@ -1343,153 +1316,159 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
   test("rewrites * in subquery") {
     assertRewritten(
       "match (n) call (*) { return n as res} return res",
-      "match (n) call (n) { return n as res} return res"
+      "match (n) call (n) { return n as res} return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]-(m) call (*) { return n as res} return res",
-      "match (n)-[r]-(m) call (n) { return n as res} return res"
+      "match (n)-[r]-(m) call (n) { return n as res} return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]-(m) call (n) { match (a) call (*) { return n as res} return res } return res",
-      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res"
+      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]-(m) call (n) { with 1 AS a call (*) { return n as res} return res } return res",
-      "match (n)-[r]-(m) call (n) { with 1 AS a call (n) { return n as res} return res } return res"
+      "match (n)-[r]-(m) call (n) { with 1 AS a call (n) { return n as res} return res } return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]-(m) call (*) { match (a) call (*) { return n as res} return res } return res",
-      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res"
+      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "match (n)-[r]-(m) call (*) { match (a) call (*) { return n as res} return res } return res",
-      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res"
+      "match (n)-[r]-(m) call (n) { match (a) call (n) { return n as res} return res } return res",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(*){return 1 as d} return a, c, d, m",
-      "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(){return 1 as d} return a, c, d, m"
+      "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(){return 1 as d} return a, c, d, m",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(*){with 7 as b call(*){return 'hello' as res} return 1 as d} return a, c, d, m",
-      "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(){with 7 as b call(){return 'hello' as res} return 1 as d} return a, c, d, m"
+      "with 1 as a, 2 as b, 3 as c match(n) with n as m, a, c call(){with 7 as b call(){return 'hello' as res} return 1 as d} return a, c, d, m",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "call (*) { with 1 as x return * } return *",
-      "call () { with 1 as x return x } return x"
+      "call () { with 1 as x return x } return x",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "with 1 as a, 2 as b call (*) { with 1 as x return * } return *",
-      "with 1 as a, 2 as b call () { with 1 as x return x } return a, b, x"
+      "with 1 as a, 2 as b call () { with 1 as x return x } return a, b, x",
+      excludedVersions = Set()
     )
 
     // This query is invalid as it is returning variables already declared in outer scope
     // This is handled elsewhere.
     assertRewritten(
       "with 1 as x call (*) { with 2 as y with x, y return * } return *",
-      "with 1 as x call (x) { with 2 as y with x, y return y } return x, y"
+      "with 1 as x call (x) { with 2 as y with x, y return y } return x, y",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "with 1 as x call (*) { with 2 as y return * } return *",
-      "with 1 as x call () { with 2 as y return y } return x, y"
+      "with 1 as x call () { with 2 as y return y } return x, y",
+      excludedVersions = Set()
     )
 
     assertRewritten(
       "call (*) { call (*) { call (*) { with 1 as x return * } return * } return * } return *",
-      "call () { call () { call () { with 1 as x return x } return x } return x } return x"
+      "call () { call () { call () { with 1 as x return x } return x } return x } return x",
+      excludedVersions = Set()
     )
   }
 
   test("rewrites * in with") {
     assertRewritten(
-      CypherVersion.Cypher5,
       "match (n) with * return n",
-      "match (n) with n return n"
+      "match (n) with n return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match (n) with * return n",
       "match (n) return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "match (n),(c) with * return n",
-      "match (n),(c) with c,n return n"
+      "match (n),(c) with c,n return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match (n),(c) with * return n",
       "match (n),(c) return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "match (n)-->(c) with * return n",
-      "match (n)-->(c) with c,n return n"
+      "match (n)-->(c) with c,n return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match (n)-->(c) with * return n",
       "match (n)-->(c) return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "match (n)-[r]->(c) with * return n",
-      "match (n)-[r]->(c) with c,n,r return n"
+      "match (n)-[r]->(c) with c,n,r return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match (n)-[r]->(c) with * return n",
       "match (n)-[r]->(c) return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "match (n)-[r]->(c) with *, r.pi as x return n",
-      "match (n)-[r]->(c) with c, n, r, r.pi as x return n"
+      "match (n)-[r]->(c) with c, n, r, r.pi as x return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match (n)-[r]->(c) with *, r.pi as x return n",
       "match (n)-[r]->(c) with n, r, r.pi as x return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "create (n) with * return n",
-      "create (n) with n return n"
+      "create (n) with n return n",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "create (n) with * return n",
       "create (n) return n"
     )
 
     assertRewritten(
-      CypherVersion.Cypher5,
       "match p = shortestPath((a)-[r*]->(x)) with * return p",
-      "match p = shortestPath((a)-[r*]->(x)) with a,p,r,x return p"
+      "match p = shortestPath((a)-[r*]->(x)) with a,p,r,x return p",
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       "match p = shortestPath((a)-[r*]->(x)) with * return p",
       "match p = shortestPath((a)-[r*]->(x)) return p"
     )
@@ -1498,32 +1477,33 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
   test("symbol shadowing should be taken into account") {
     assertRewritten(
       "match (a),(x),(y) with a match (b) return *",
-      "match (a),(x),(y) with a match (b) return a, b"
+      "match (a),(x),(y) with a match (b) return a, b",
+      excludedVersions = Set()
     )
   }
 
   test("keeps listed items during expand") {
     assertRewritten(
       "MATCH (n) WITH *, 1 AS b RETURN *",
-      "MATCH (n) WITH n, 1 AS b RETURN b, n"
+      "MATCH (n) WITH n, 1 AS b RETURN b, n",
+      excludedVersions = Set()
     )
   }
 
   test("braces") {
-    assertRewritten(CypherVersion.Cypher25, "{ RETURN 1 AS x }", "RETURN 1 AS x")
+    assertRewritten("{ RETURN 1 AS x }", "RETURN 1 AS x")
   }
 
   test("nested braces") {
-    assertRewritten(CypherVersion.Cypher25, "{ { { RETURN 1 AS x } } }", "RETURN 1 AS x")
+    assertRewritten("{ { { RETURN 1 AS x } } }", "RETURN 1 AS x")
   }
 
   test("braces with use") {
-    assertRewritten(CypherVersion.Cypher25, "USE graph { RETURN 1 AS x }", "USE graph RETURN 1 AS x")
+    assertRewritten("USE graph { RETURN 1 AS x }", "USE graph RETURN 1 AS x")
   }
 
   test("nested braces with use ") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "USE graph { { USE innerGraph { RETURN 1 AS x } } }",
       "USE innerGraph RETURN 1 AS x"
     )
@@ -1531,7 +1511,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested braces with use on all") {
     assertRewritten(
-      CypherVersion.Cypher25,
       "USE graph { USE innerGraph { USE innerInnerGraph { RETURN 1 AS x } } }",
       "USE innerInnerGraph RETURN 1 AS x"
     )
@@ -1539,7 +1518,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in top level braces") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graph { WHEN true THEN RETURN 1 AS x } """.stripMargin,
       """WITH CASE
         |  WHEN true THEN 0
@@ -1561,7 +1539,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in top level braces with inner use") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graph { WHEN true THEN USE otherGraph RETURN 1 AS x } """.stripMargin,
       """WITH CASE
         |  WHEN true THEN 0
@@ -1584,7 +1561,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in top level braces with inner use tlb") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graph { WHEN true THEN USE otherGraph { RETURN 1 AS x } } """.stripMargin,
       """WITH CASE
         |  WHEN true THEN 0
@@ -1607,7 +1583,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in tlb with top level braces as arguments with inner union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |{
         |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
@@ -1665,7 +1640,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in tlb with top level braces as arguments with inner union all") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |{
         |   WHEN false THEN { RETURN 1 AS x UNION ALL RETURN 2 AS x }
@@ -1723,7 +1697,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in tlb with top level braces as arguments with inner union with return all") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |{
         |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
@@ -1782,7 +1755,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when with top level braces as arguments with inner union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
         | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
@@ -1837,7 +1809,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when with top level braces as arguments") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN false THEN { RETURN 1 AS x }
         |WHEN false THEN { RETURN 1 AS x }
         |ELSE { RETURN 3 AS x }""".stripMargin,
@@ -1876,7 +1847,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when with top level braces and graph as arguments") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
         |   WHEN false THEN USE innerGraph { RETURN 2 AS x }
@@ -1918,7 +1888,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in top level braces with top level braces as arguments") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |USE graph {
         |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
@@ -1962,7 +1931,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union with top level braces as arguments") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x }
         |UNION
@@ -1977,7 +1945,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union all and union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       " { { RETURN 1 AS x UNION RETURN 2 AS x } UNION ALL { RETURN 3 AS x UNION RETURN 4 AS x } }",
       " CALL () { RETURN 1 AS x UNION RETURN 2 AS x } RETURN x AS x UNION ALL CALL () { RETURN 3 AS x UNION RETURN 4 AS x } RETURN x AS x"
     )
@@ -1985,7 +1952,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union and union all") {
     assertRewritten(
-      CypherVersion.Cypher25,
       " { { RETURN 1 AS x UNION ALL RETURN 2 AS x } UNION { RETURN 3 AS x UNION ALL RETURN 4 AS x } }",
       " CALL () { RETURN 1 AS x UNION ALL RETURN 2 AS x } RETURN x AS x UNION CALL () { RETURN 3 AS x UNION ALL RETURN 4 AS x } RETURN x AS x"
     )
@@ -1993,7 +1959,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested union all and union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """ {
         |   {
         |      {
@@ -2034,7 +1999,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested union and union all") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ { RETURN 1 AS x UNION ALL RETURN 2 AS x }
         |UNION
         |{
@@ -2056,7 +2020,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union multiple arms") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
@@ -2076,7 +2039,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("wrapped union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ RETURN 1 AS x
         |UNION
         | RETURN 2 AS x }""".stripMargin,
@@ -2088,7 +2050,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("wrapped union with use") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graph { RETURN 1 AS x
         |UNION
         | RETURN 2 AS x }""".stripMargin,
@@ -2102,7 +2063,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("wrapped union multiple arms") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ { RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
@@ -2122,7 +2082,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union no return") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ CREATE (n) }
         |UNION
         |{ CREATE (n) }""".stripMargin,
@@ -2134,7 +2093,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union multiple arms no return") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{ CREATE (n) }
         |UNION
         |{ CREATE (n) }
@@ -2154,7 +2112,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union with use") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graphLeft { RETURN 1 AS x }
         |UNION
         |USE graphRight { RETURN 2 AS x }""".stripMargin,
@@ -2168,7 +2125,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union multiple arms with some use") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE graphLeft { RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
@@ -2189,7 +2145,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("wrapped union multiple arms with outerUse") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE outerGraph {
         |   USE innerGraph { RETURN 1 AS x }
         |   UNION
@@ -2215,7 +2170,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("wrapped union multiple different arms with outerUse") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE outerGraph {
         |   USE innerGraph { RETURN 1 AS x }
         |   UNION
@@ -2241,7 +2195,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union with use and no return") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE leftGraph { CREATE (n) }
         |UNION
         |USE rightGraph { CREATE (n) }""".stripMargin,
@@ -2255,7 +2208,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("union with nested use in single query within union") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE leftGraph {
         |MATCH (n) RETURN n
         |UNION ALL
@@ -2272,7 +2224,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested unions #1") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION RETURN 2 AS x }
         |UNION
@@ -2296,7 +2247,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested unions #2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION RETURN 2 AS x UNION RETURN 3 AS x }
         |UNION
@@ -2322,7 +2272,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested unions #3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION { RETURN 10 AS x UNION ALL RETURN 10 AS x } UNION RETURN 3 AS x }
         |UNION
@@ -2353,7 +2302,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("nested unions #4") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |USE outerGraph {
         | { RETURN 1 AS x UNION USE innerGraph { RETURN 10 AS x UNION ALL RETURN 10 AS x } UNION RETURN 3 AS x }
@@ -2389,7 +2337,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("expand return items") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  WHEN true THEN {
         |    WITH 1 AS x
@@ -2421,7 +2368,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when single branch rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN RETURN 1 AS x""",
       """WITH CASE
         |  WHEN true THEN 0
@@ -2443,7 +2389,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when unit single branch rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN CREATE ()""",
       """WITH CASE
         |  WHEN true THEN 0
@@ -2465,7 +2410,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in subquery and return all rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         CALL (*) {
              WHEN true THEN
@@ -2501,7 +2445,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when single branch with else rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN false THEN RETURN 1 AS x
         |   ELSE RETURN 2 AS x""".stripMargin,
@@ -2532,7 +2475,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when with simple subquery expression predicate") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |WHEN false THEN RETURN 1 AS x
         |WHEN EXISTS { RETURN 1 } THEN RETURN 2 AS x
@@ -2572,7 +2514,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when multiple branches with else rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN false THEN RETURN 1 AS x
         |WHEN false THEN RETURN 2 AS x
         |WHEN false THEN RETURN 3 AS x
@@ -2629,7 +2570,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when enclosed in union in subquery") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (n)
         |CALL (*) {
         |  {
@@ -2695,7 +2635,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in subquery rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1
         |CALL (x) {
         |   WHEN x < 0 THEN RETURN 1 + x AS y
@@ -2742,7 +2681,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when in subquery expression rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, b = 2
         |RETURN EXISTS {
         |   WHEN x < 0 THEN RETURN 1 + x AS y
@@ -2787,7 +2725,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("when example with params rewritten") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
         |   WHEN $param < 1 THEN RETURN 1 AS res
         |   WHEN $param > 1 THEN RETURN 2 AS res
@@ -2827,7 +2764,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("chained subquery when") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL () {
         |  WHEN true THEN MATCH (n) RETURN n
         |}
@@ -2882,7 +2818,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("By-table semantics in NEXT SUBQUERY NEXT UNION") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -2924,7 +2859,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("By-table semantics in NEXT WHEN") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -2962,7 +2896,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("By-table semantics in NEXT TLB NEXT") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2, 3] AS a
         |RETURN a
         |
@@ -3000,7 +2933,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("By-table semantics with flattenable NEXT and TLB") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  UNWIND [1,2,3] AS x
         |  RETURN COUNT(x) AS x
@@ -3032,7 +2964,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Should always end with return") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -3099,7 +3030,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Passing return star in TLB") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -3135,7 +3065,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("No propagation through scope change") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -3173,7 +3102,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Include all explicits") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x AS x
         |
@@ -3219,7 +3147,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Include all explicits 2 ") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x
         |
@@ -3257,7 +3184,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Include all explicits 3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """UNWIND [1, 2] AS x
         |RETURN x AS x
         |
@@ -3303,7 +3229,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("CREATE NEXT MATCH") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """CREATE (:A {x: 1})-[:R]->(:B)
         |
         |NEXT
@@ -3321,7 +3246,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("WHEN FINISH NEXT FINISH") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN FINISH
         |ELSE FINISH
         |
@@ -3357,7 +3281,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("WHEN NEXT FINISH NEXT CALL WHEN EXPAND") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """|WHEN false THEN RETURN 1 AS x
          |WHEN EXISTS { MATCH (:Person)-[:LOVES]->(x) RETURN x AS x } THEN RETURN 2 AS x
          |ELSE RETURN 3 AS x
@@ -3463,7 +3386,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Correct columns") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WHEN true THEN {
         |  {
         |    WHEN true THEN RETURN 9 AS x
@@ -3516,7 +3438,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Return * after procedure call") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL db.labels() YIELD label
         |WITH count(*) AS c
         |CALL db.labels() YIELD label
@@ -3532,7 +3453,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Let expansion should not expand constant") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |CALL (a) {
         |  LET b = 2
@@ -3565,7 +3485,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Let expansion should not expand constant subquery") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN EXISTS {
         |  LET b = 2
@@ -3596,7 +3515,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT non-reference") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3622,7 +3540,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT reference") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3650,7 +3567,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT descoped") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3682,7 +3598,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT with return item") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3709,7 +3624,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT with distinct") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3738,7 +3652,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star in NEXT with aggregation") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS y
         |
         |NEXT
@@ -3767,7 +3680,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("With star pass through") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS x
         |CALL {
         |  WITH x
@@ -3791,7 +3703,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |    WHEN false THEN {
@@ -3834,7 +3745,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |    WHEN a THEN {
@@ -3886,7 +3796,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |        RETURN 5 AS x
@@ -3933,7 +3842,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 4") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  RETURN 0 AS x
         |
@@ -3961,7 +3869,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 5") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  RETURN 0 AS x
         |
@@ -3989,7 +3896,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 6") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 7 AS x
         |
         |NEXT
@@ -4032,7 +3938,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 7") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |    WHEN true THEN {
@@ -4089,7 +3994,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
   // This fails semantic analysis but passes variableChecker and rewrites to valid Cypher
   test("NEXT query nesting 8") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |    CALL (*) {
@@ -4118,7 +4022,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 9") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |
@@ -4169,7 +4072,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 10") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |      RETURN 1 AS b
@@ -4209,7 +4111,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 11") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |      WHEN a THEN {
@@ -4262,7 +4163,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 12") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |CALL (*) {
         |      RETURN 5 AS y
@@ -4315,7 +4215,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 13") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS a
         |CALL (*) {
         |        RETURN 2 AS x
@@ -4372,7 +4271,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 14") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS a
         |CALL (*) {
         |        RETURN 2 AS x
@@ -4413,7 +4311,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 15") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS a
         |CALL (*) {
         |        WHEN true THEN {
@@ -4535,7 +4432,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 16") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS a
         |CALL (*) {
         |        WHEN true THEN {
@@ -4615,7 +4511,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 17") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a, 2 AS b
         |CALL (*) {
         |    RETURN 7 AS y
@@ -4655,7 +4550,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 18") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS y
         |
         |NEXT
@@ -4689,7 +4583,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 19") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 3 AS y
         |
         |NEXT
@@ -4748,7 +4641,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 20") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS x
         |
         |NEXT
@@ -4788,7 +4680,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 21") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH true AS a
         |    CALL (*) {
         |      {
@@ -4951,7 +4842,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT query nesting 22") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 5 AS x1
         |
         |NEXT
@@ -4991,7 +4881,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT push variables correctly RETURN") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 7 AS n
         |
         |NEXT
@@ -5012,7 +4901,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT push variables correctly WITH") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 7 AS n
         |
         |NEXT
@@ -5037,7 +4925,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("NEXT with USE and USE") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE myGraph0
         |MATCH (p0:Person)
         |RETURN DISTINCT p0.name AS name0
@@ -5068,7 +4955,6 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
 
   test("Passing through with star on top level Cypher 5") {
     assertRewritten(
-      CypherVersion.Cypher5,
       """MATCH (n)
         |CREATE (m)
         |WITH *
@@ -5080,13 +4966,13 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |MATCH (o)
         |RETURN m AS m, n AS n, o AS o""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
-      additionalActualAstCleanup = withUpdate()
+      additionalActualAstCleanup = withUpdate(),
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
   }
 
   test("Passing through with star on top level Cypher 25") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (n)
         |CREATE (m)
         |WITH *
@@ -5123,7 +5009,8 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |} IN TRANSACTIONS OF 2 ROWS ON ERROR BREAK
         |RETURN j AS j""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
-      additionalActualAstCleanup = withUpdate()
+      additionalActualAstCleanup = withUpdate(),
+      excludedVersions = Set.empty
     )
 
     assertRewritten(
@@ -5146,7 +5033,8 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |} IN TRANSACTIONS OF 2 ROWS ON ERROR BREAK
         |RETURN j AS j""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
-      additionalActualAstCleanup = withUpdate()
+      additionalActualAstCleanup = withUpdate(),
+      excludedVersions = Set.empty
     )
 
     assertRewritten(
@@ -5169,7 +5057,8 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |} IN TRANSACTIONS OF 2 ROWS ON ERROR BREAK
         |RETURN j AS j""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
-      additionalActualAstCleanup = withUpdate()
+      additionalActualAstCleanup = withUpdate(),
+      excludedVersions = Set.empty
     )
 
     assertRewritten(
@@ -5190,13 +5079,13 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |} IN TRANSACTIONS OF 2 ROWS ON ERROR BREAK
         |RETURN j AS j""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
-      additionalActualAstCleanup = withUpdate()
+      additionalActualAstCleanup = withUpdate(),
+      excludedVersions = Set.empty
     )
   }
 
   test("Skip unused imports") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """WITH 1 AS a
         |CALL (*) {
         |  RETURN 8 AS x

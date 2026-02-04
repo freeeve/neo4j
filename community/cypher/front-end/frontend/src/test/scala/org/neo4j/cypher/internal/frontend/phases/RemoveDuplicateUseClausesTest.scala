@@ -20,18 +20,13 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.RemoveDuplicateUseClauses
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.kernel.database.NormalizedDatabaseName
 
 class RemoveDuplicateUseClausesTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
-
-  val sessionDatabaseName: String = NormalizedDatabaseName.normalize("sessionDb");
-  override def sessionDatabase: String = sessionDatabaseName
-  override def targetsComposite: Boolean = true
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     RemoveDuplicateUseClauses
 
-  override def semanticFeatures: Seq[SemanticFeature] = Seq(SemanticFeature.UseAsMultipleGraphsSelector)
+  override val phaseTestConfig = PhaseTestConfig(semanticFeatures = Seq(SemanticFeature.UseAsMultipleGraphsSelector))
 
   test("remove leading session database use clause (case insensitive)") {
     assertRewritten(
@@ -48,7 +43,8 @@ class RemoveDuplicateUseClausesTest extends CypherFunSuite with RewritePhaseTest
         |   MATCH (n)
         |   RETURN n
         |}
-        |RETURN n""".stripMargin
+        |RETURN n""".stripMargin,
+      invalidSemantics = true
     )
   }
 
@@ -132,7 +128,8 @@ class RemoveDuplicateUseClausesTest extends CypherFunSuite with RewritePhaseTest
         |  RETURN 1 as n
         |}
         |RETURN 1
-        |""".stripMargin
+        |""".stripMargin,
+      invalidSemantics = true
     )
   }
 

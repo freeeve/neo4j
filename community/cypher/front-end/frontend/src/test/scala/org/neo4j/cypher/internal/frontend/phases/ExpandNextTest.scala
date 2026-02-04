@@ -29,7 +29,6 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnal
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.kernel.database.NormalizedDatabaseName
 
 class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
 
@@ -37,13 +36,10 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     SemanticAnalysis(Some(false)) andThen
       ExpandNext
 
-  override def astRewriteAndAnalyze: Boolean = false
-  val sessionDatabaseName: String = NormalizedDatabaseName.normalize("sessionDb");
-  override def sessionDatabase: String = sessionDatabaseName
-  override def targetsComposite: Boolean = true
-
-  override def semanticFeatures: Seq[SemanticFeature] =
-    Seq(SemanticFeature.UseAsMultipleGraphsSelector, DisableReworkedRewriters)
+  override val phaseTestConfig = PhaseTestConfig(
+    excludedVersions = Set(CypherVersion.Cypher5),
+    semanticFeatures = Seq(SemanticFeature.UseAsMultipleGraphsSelector, DisableReworkedRewriters)
+  )
 
   private def withUpdate(exclude: Set[String] = Set.empty) = (expectedStatement: Statement) => {
     val transformed = expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
@@ -66,7 +62,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 1") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -101,7 +96,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -120,7 +114,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 3") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -146,7 +139,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 4") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """FINISH
         |
         |NEXT
@@ -172,7 +164,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 5") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |CALL (a) {
         |  RETURN 1 as b
@@ -197,7 +188,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 6") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """RETURN 1 AS a
         |UNION
         |RETURN 2 AS a
@@ -230,7 +220,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 7") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x
         |
@@ -278,7 +267,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 8") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """{
         |  RETURN 1 AS a
         |
@@ -306,7 +294,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 9") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (n)
         |RETURN n
         |
@@ -339,7 +326,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 10") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |LET x = EXISTS {
         |  RETURN a + 1 AS b
@@ -369,7 +355,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 11") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x, y
         |
@@ -420,7 +405,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 12") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET x = 1, y = 2
         |RETURN x, y
         |
@@ -475,7 +459,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 13") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """LET a = 1
         |RETURN a
         |
@@ -516,7 +499,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 14") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -548,7 +530,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 15") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -584,7 +565,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten 16") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE neo1
         |MATCH (n:L1)
         |RETURN *
@@ -625,7 +605,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query with aggregation rewritten 1") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS a
       RETURN a
@@ -672,7 +651,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query with aggregation rewritten 2") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS x
       RETURN x
@@ -724,7 +702,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("Should not wrap on inner aggregation in subquery expression") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """
       UNWIND [1,2,3] AS x
       RETURN x
@@ -754,7 +731,6 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
 
   test("NEXT query rewritten with USE in UNION") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """USE mega
         |MATCH (p0:Person) ORDER BY p0.name ASC
         |RETURN head(collect(p0.name)) AS name0 ORDER BY name0

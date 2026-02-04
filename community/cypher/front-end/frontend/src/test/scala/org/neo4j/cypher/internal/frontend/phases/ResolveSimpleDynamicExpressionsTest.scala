@@ -43,14 +43,12 @@ class ResolveSimpleDynamicExpressionsTest extends CypherFunSuite with RewritePha
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     ResolveSimpleDynamicExpressions(parameters)
 
-  override def astRewriteAndAnalyze: Boolean = false
-
   test("MERGE (n:$($param)) RETURN n") {
-    assertRewrittenTo("MERGE (n:X) RETURN n")
+    assertRewritten(testName, "MERGE (n:X) RETURN n")
   }
 
   test("MATCH (n:$($param)) RETURN n") {
-    assertRewrittenTo("MATCH (n:X) RETURN n")
+    assertRewritten(testName, "MATCH (n:X) RETURN n")
   }
 
   test("CREATE (n:$($param)) RETURN n") {
@@ -58,23 +56,23 @@ class ResolveSimpleDynamicExpressionsTest extends CypherFunSuite with RewritePha
   }
 
   test("MERGE ()-[r:$($param)]->() RETURN n") {
-    assertRewrittenTo("MERGE ()-[r:X]->() RETURN n")
+    assertRewritten(testName, "MERGE ()-[r:X]->() RETURN n", invalidSemantics = true)
   }
 
   test("MATCH ()-[r:$($param)]->() RETURN n") {
-    assertRewrittenTo("MATCH ()-[r:X]->() RETURN n")
+    assertRewritten(testName, "MATCH ()-[r:X]->() RETURN n", invalidSemantics = true)
   }
 
   test("CREATE ()-[r:$($param)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("MERGE (n:$($listParam)) RETURN n") {
-    assertRewrittenTo("MERGE (n:Y&Z) RETURN n")
+    assertRewritten(testName, "MERGE (n:Y&Z) RETURN n")
   }
 
   test("MATCH (n:$($listParam)) RETURN n") {
-    assertRewrittenTo("MATCH (n:Y&Z) RETURN n")
+    assertRewritten(testName, "MATCH (n:Y&Z) RETURN n")
   }
 
   test("CREATE (n:$($listParam)) RETURN n") {
@@ -82,19 +80,19 @@ class ResolveSimpleDynamicExpressionsTest extends CypherFunSuite with RewritePha
   }
 
   test("MERGE ()-[r:$($listParam)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("MATCH ()-[r:$($listParam)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("CREATE ()-[r:$($listParam)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("MATCH ()-[r:$any($listParam)]->() RETURN n") {
-    assertRewrittenTo("MATCH ()-[r:Y|Z]->() RETURN n")
+    assertRewritten(testName, "MATCH ()-[r:Y|Z]->() RETURN n", invalidSemantics = true)
   }
 
   test("MERGE (n:$($emptyListParam)) RETURN n") {
@@ -110,23 +108,23 @@ class ResolveSimpleDynamicExpressionsTest extends CypherFunSuite with RewritePha
   }
 
   test("MERGE ()-[r:$($emptyListParam)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("MATCH ()-[r:$($emptyListParam)]->() RETURN n") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("""MERGE (n:$("Label")) RETURN n""") {
-    assertRewrittenTo("""MERGE (n:Label) RETURN n""")
+    assertRewritten(testName, """MERGE (n:Label) RETURN n""")
   }
 
   test("""MERGE (n:$(["Label1", "Label2"])) RETURN n""") {
-    assertRewrittenTo("""MERGE (n:Label1&Label2) RETURN n""")
+    assertRewritten(testName, """MERGE (n:Label1&Label2) RETURN n""")
   }
 
   test("""MATCH (n:$(["Label1", "Label2"])) RETURN n""") {
-    assertRewrittenTo("""MATCH (n:Label1&Label2) RETURN n""")
+    assertRewritten(testName, """MATCH (n:Label1&Label2) RETURN n""")
   }
 
   test("""CREATE (n:$(["Label1", "Label2"])) RETURN n""") {
@@ -134,25 +132,22 @@ class ResolveSimpleDynamicExpressionsTest extends CypherFunSuite with RewritePha
   }
 
   test("""MERGE ()-[r:$("Rel")]->() RETURN n""") {
-    assertRewrittenTo("""MERGE ()-[r:Rel]->() RETURN n""")
+    assertRewritten(testName, """MERGE ()-[r:Rel]->() RETURN n""", invalidSemantics = true)
   }
 
   test("""MERGE ()-[r:$any(["Rel1", "Rel2"])]->() RETURN n""") {
-    assertRewrittenTo("""MERGE ()-[r:Rel1|Rel2]->() RETURN n""")
+    assertRewritten(testName, """MERGE ()-[r:Rel1|Rel2]->() RETURN n""", invalidSemantics = true)
   }
 
   test("""MERGE ()-[r:$([])]->() RETURN n""") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("""MATCH ()-[r:$(["Rel1", "Rel2"])]->() RETURN n""") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
 
   test("""CREATE ()-[r:$(["Rel1", "Rel2"])]->() RETURN n""") {
-    assertNotRewritten(testName)
+    assertNotRewritten(testName, invalidSemantics = true)
   }
-
-  final private def assertRewrittenTo(expected: String): Unit =
-    assertRewritten(testName, expected)
 }

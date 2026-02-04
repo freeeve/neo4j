@@ -16,7 +16,10 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
@@ -28,8 +31,9 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = MoveBoundaryNodePredicates
 
-  override def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] =
-    super.preProcessPhase() andThen
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    SemanticAnalysis(Some(false)) andThen
+      AstRewriting() andThen
       flattenBooleanOperators
 
   test("MATCH (start:A) (()-->())+ () RETURN count(*) AS c") {
@@ -81,53 +85,53 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
     )
   }
 
-  testVersionsExcept5(
+  test(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
-  ) { version =>
-    assertRewrittenWithCypherVersion(
-      version,
+  ) {
+    assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c",
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  testVersionsExcept5(
+  test(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) WHERE $param RETURN count(*) AS c"
-  ) { version =>
-    assertRewrittenWithCypherVersion(
-      version,
+  ) {
+    assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE $param AND start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE $param AND start:A AND end:B RETURN count(*) AS c",
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  testVersionsExcept5(
+  test(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) RETURN count(*) AS c"
-  ) { version =>
-    assertRewrittenWithCypherVersion(
-      version,
+  ) {
+    assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE start:A RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE start:A RETURN count(*) AS c",
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  testVersionsExcept5(
+  test(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param RETURN count(*) AS c"
-  ) { version =>
-    assertRewrittenWithCypherVersion(
-      version,
+  ) {
+    assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param AND start:A RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param AND start:A RETURN count(*) AS c",
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  testVersionsExcept5(
+  test(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start:A) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
-  ) { version =>
-    assertRewrittenWithCypherVersion(
-      version,
+  ) {
+    assertRewritten(
       testName,
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
+      "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c",
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 

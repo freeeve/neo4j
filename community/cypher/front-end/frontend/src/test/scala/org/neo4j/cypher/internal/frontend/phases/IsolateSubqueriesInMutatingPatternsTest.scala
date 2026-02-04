@@ -36,12 +36,11 @@ class IsolateSubqueriesInMutatingPatternsNoSemanticAnalysisTest extends CypherFu
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     ScopeSurveyor andThen IsolateSubqueriesInMutatingPatterns
 
-  override def astRewriteAndAnalyze: Boolean = false
-
   test("Does not rewrite subquery expression in MERGE") {
     // Must run without SemanticAnalysis, because it is forbidden
     assertNotRewritten(
-      "MERGE (a {p: COUNT { MATCH (b)  }})"
+      "MERGE (a {p: COUNT { MATCH (b)  }})",
+      invalidSemantics = true
     )
   }
 }
@@ -116,7 +115,6 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
 
   test("Rewrites subquery expression in CREATE that has a dependency on a previous clause") {
     assertRewritten(
-      CypherVersion.Cypher5,
       """MATCH (b)
         |WITH b
         |CREATE (c)
@@ -134,11 +132,11 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
           case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
             w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
-      }
+      },
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (b)
         |WITH b
         |CREATE (c)
@@ -156,13 +154,13 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
           case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
             w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
-      }
+      },
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("Rewrites subquery expression in CREATE that has a dependency on a previous clause with NEXT") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (b)
         |WITH b
         |CREATE (c)
@@ -191,13 +189,13 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
           case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
-      }
+      },
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("Rewrites subquery expr in CREATE that has a dependency on a previous clause with NEXT forwarded variable") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """MATCH (b)
         |WITH b
         |CREATE (c)
@@ -226,13 +224,13 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
           case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
-      }
+      },
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("Rewrites subquery expression in CREATE that has a dependency on a previous clause with NEXT in subquery") {
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL () {
         |MATCH (b)
         |WITH b
@@ -265,14 +263,18 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
           case w: With => w.copy(withType = AddedInRewriteGeneral())(w.position)
         }))
-      }
+      },
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("Does not rewrite CREATE with cross-references") {
     // These are deprecated, but we cannot rewrite these and keep the same semantics.
     // The queries are going to be non-deterministic. The query is invalid in Cypher 25
-    assertNotRewritten(CypherVersion.Cypher5, "CREATE (a), (b {prop: EXISTS { (a)-[r2]->(c) }})")
+    assertNotRewritten(
+      "CREATE (a), (b {prop: EXISTS { (a)-[r2]->(c) }})",
+      excludedVersions = Set(CypherVersion.Cypher25)
+    )
   }
 
   test("Rewrites subquery expression in REMOVE") {
@@ -335,7 +337,6 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
 
   test("Inserts sort-of-empty importing WITH if the rewritten updating clause is the first clause in a subquery") {
     assertRewritten(
-      CypherVersion.Cypher5,
       """CALL {
         |  CREATE (a {p: COUNT { MATCH (b) }})
         |}""".stripMargin,
@@ -350,11 +351,11 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  WITH `  UNNAMED1` AS `  UNNAMED1`, COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
         |}""".stripMargin,
-      additionalExpectedAstUpdates = additionalExpectedAstUpdates
+      additionalExpectedAstUpdates = additionalExpectedAstUpdates,
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL {
         |  CREATE (a {p: COUNT { MATCH (b) }})
         |}""".stripMargin,
@@ -369,13 +370,13 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  WITH COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
         |}""".stripMargin,
-      additionalExpectedAstUpdates = additionalExpectedAstUpdates
+      additionalExpectedAstUpdates = additionalExpectedAstUpdates,
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("Does not insert empty importing WITH if the rewritten updating clause is the second clause in a subquery") {
     assertRewritten(
-      CypherVersion.Cypher5,
       """CALL {
         |  MATCH (foo)
         |  CREATE (a {p: COUNT { MATCH (b) }})
@@ -385,11 +386,11 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  WITH foo, COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
         |}""".stripMargin,
-      additionalExpectedAstUpdates = additionalExpectedAstUpdates
+      additionalExpectedAstUpdates = additionalExpectedAstUpdates,
+      excludedVersions = Set(CypherVersion.Cypher25)
     )
 
     assertRewritten(
-      CypherVersion.Cypher25,
       """CALL {
         |  MATCH (foo)
         |  CREATE (a {p: COUNT { MATCH (b) }})
@@ -399,7 +400,8 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  WITH COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
         |}""".stripMargin,
-      additionalExpectedAstUpdates = additionalExpectedAstUpdates
+      additionalExpectedAstUpdates = additionalExpectedAstUpdates,
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   }
 

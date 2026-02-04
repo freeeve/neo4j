@@ -19,27 +19,22 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
-import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.StatementHelper.RichStatement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
-import org.neo4j.cypher.internal.frontend.helpers.TestContext
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
-import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
+import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
-import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.NamedDatabaseId
@@ -49,25 +44,14 @@ import org.neo4j.kernel.database.NormalizedDatabaseName
 import java.util.Optional
 import java.util.UUID
 
+case class PhaseTestConfig(
+  excludedVersions: Set[CypherVersion] = Set.empty,
+  checkSemantics: Boolean = true,
+  semanticFeatures: Seq[SemanticFeature] = Seq.empty
+)
+
 trait RewritePhaseTest extends CypherVersionTestSupport {
   self: CypherFunSuite with AstConstructionTestSupport =>
-
-  def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState]
-
-  def astRewriteAndAnalyze: Boolean = true
-
-  def semanticFeatures: Seq[SemanticFeature] = Seq.empty
-
-  def preProcessPhase(): Transformer[BaseContext, BaseState, BaseState] = SemanticAnalysis(Some(false))
-
-  def rewriterPhaseForExpected: Transformer[BaseContext, BaseState, BaseState] =
-    new Transformer[BaseContext, BaseState, BaseState] {
-      override def transform(from: BaseState, context: BaseContext): BaseState = from
-
-      override def postConditions: Set[StepSequencer.Condition] = Set.empty
-
-      override def name: String = "do nothing"
-    }
 
   val prettifier: Prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))
 
@@ -77,55 +61,107 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     override def version: String = "fake"
   }
 
-  def assertNotRewritten(from: String): Unit = assertRewritten(from, from)
+  def databaseReference: DatabaseReference = new DatabaseReference {
+    override def alias(): NormalizedDatabaseName = ???
+    override def namespace(): Optional[NormalizedDatabaseName] = ???
+    override def isPrimary: Boolean = ???
+    override def id(): UUID = ???
+    override def namedDatabaseId(): NamedDatabaseId = ???
+    override def toPrettyString: String = ???
+    override def fullName(): NormalizedDatabaseName =
+      new NormalizedDatabaseName(NormalizedDatabaseName.normalize("sessionDb"))
+    override def isComposite: Boolean = true
+    override def compareTo(o: DatabaseReference): Int = ???
+    override def owningDatabaseName: String = ???
+    override def catalogEntry(): NormalizedCatalogEntry = ???
+    override def isShard: Boolean = false
+  }
 
-  def assertNotRewritten(version: CypherVersion, from: String): Unit = assertRewritten(version, from, from)
+  def getExceptionFactory(query: String) = Neo4jCypherExceptionFactory(query, None)
 
-  def assertRewritten(version: CypherVersion, from: String, to: String): Unit = assertRewritten(version, from, to, Nil)
+  /**
+   * To be able to just read Cypher when looking at a failure in a `RewritePhaseTest`,
+   */
+  case class StatementPrettifier(statement: Statement) {
 
-  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+    override def toString: String = {
+      prettifier.asString(statement)
+    }
+  }
+
+  val phaseTestConfig: PhaseTestConfig = PhaseTestConfig()
+
+  def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState]
+
+  // Override this to add additional rewrites needed for phases test.
+  // PreProcessRewriters are applied to both expected and actual.
+  def preProcessRewriters: Seq[PreparatoryRewritingRewriterFactory] = Seq(NormalizeWithAndReturnClauses)
+
+  def preProcessRewriterSequence: Transformer[BaseContext, BaseState, BaseState] =
+    new Transformer[BaseContext, BaseState, BaseState] {
+      override def transform(from: BaseState, context: BaseContext): BaseState = {
+        val rewriters = preProcessRewriters.map { _.getRewriter(context.cypherExceptionFactory) }
+        val rewrittenStatement = from.statement().endoRewrite(inSequence(rewriters: _*))
+        from.withStatement(rewrittenStatement)
+      }
+
+      override def name: String = "PreProcessRewriter"
+      override def postConditions: Set[StepSequencer.Condition] = Set.empty
+    }
+
+  // Override this to add additional transformers needed for phases test.
+  // PreProcessTransformer is applied to both expected and actual.
+  def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] = NoOp()
+
+  private def preparationSteps(skipParse: Boolean): Transformer[BaseContext, BaseState, BaseState] = {
+    if (skipParse)
+      preProcessRewriterSequence andThen preProcessTransformer
+    else
+      Parse andThen preProcessRewriterSequence andThen preProcessTransformer
+  }
+
+  def rewriterPhaseForExpected: Transformer[BaseContext, BaseState, BaseState] = NoOp()
+
+  def assertNotRewritten(
+    from: String,
+    excludedVersions: Set[CypherVersion] = phaseTestConfig.excludedVersions,
+    invalidSemantics: Boolean = false
+  ): Unit =
+    assertRewritten(from, from, excludedVersions = excludedVersions, invalidSemantics = invalidSemantics)
+
+  // additionalExpectedAstUpdates and additionalActualAstCleanup is for updating things that are changed in the rewriter but cannot be expressed in the query,
   // for example the AddedInRewriteGeneral flag on WITH
   def assertRewritten(
-    version: CypherVersion,
     from: String,
     to: String,
-    additionalExpectedAstUpdates: Statement => Statement
-  ): Unit = assertRewritten(version, from, to, Nil, additionalExpectedAstUpdates)
-
-  def assertRewritten(
-    version: CypherVersion,
-    from: String,
-    to: String,
-    additionalExpectedAstUpdates: Statement => Statement,
-    additionalActualAstCleanup: Statement => Statement
-  ): Unit = assertRewrittenImpl(version, from, to, Nil, additionalExpectedAstUpdates, additionalActualAstCleanup)
-
-  def assertRewritten(
-    from: String,
-    to: String,
-    additionalExpectedAstUpdates: Statement => Statement,
-    additionalActualAstCleanup: Statement => Statement
+    additionalExpectedAstUpdates: Statement => Statement = identity,
+    additionalActualAstCleanup: Statement => Statement = identity,
+    semanticTableExpressions: List[Expression] = Nil,
+    excludedVersions: Set[CypherVersion] = phaseTestConfig.excludedVersions,
+    invalidSemantics: Boolean = false
   ): Unit =
-    CypherVersion.values().foreach { version =>
+    CypherVersion.values().filterNot(excludedVersions).foreach { version =>
       withClue(s"CYPHER $version\n")(
-        assertRewrittenImpl(version, from, to, Nil, additionalExpectedAstUpdates, additionalActualAstCleanup)
+        assertRewrittenImpl(
+          version,
+          from,
+          to,
+          semanticTableExpressions,
+          additionalExpectedAstUpdates,
+          additionalActualAstCleanup,
+          invalidSemantics
+        )
       )
     }
 
-  def assertRewritten(from: String, to: String): Unit = CypherVersion.values().foreach { version =>
-    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
+  def assertRewrittenToStatement(
+    from: String,
+    to: Statement,
+    semanticTableExpressions: List[Expression] = Nil,
+    excludedVersions: Set[CypherVersion] = Set.empty
+  ): Unit = CypherVersion.values().filterNot(excludedVersions).foreach { version =>
+    assertRewrittenStmtImpl(version, from, to, semanticTableExpressions)
   }
-
-  def assertRewrittenWithCypherVersion(version: CypherVersion, from: String, to: String): Unit = {
-    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
-  }
-
-  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
-  // for example the AddedInRewriteGeneral flag on WITH
-  def assertRewritten(from: String, to: String, additionalExpectedAstUpdates: Statement => Statement): Unit =
-    CypherVersion.values().foreach { version =>
-      withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty, additionalExpectedAstUpdates))
-    }
 
   def rewriteAndAssert(
     q: String,
@@ -140,43 +176,6 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     }
   }
 
-  def assertRewritten(
-    from: String,
-    to: String,
-    semanticTableExpressions: List[Expression]
-  ): Unit = CypherVersion.values().foreach { version =>
-    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, semanticTableExpressions))
-  }
-
-  def assertRewritten(
-    version: CypherVersion,
-    from: String,
-    to: String,
-    semanticTableExpressions: List[Expression]
-  ): Unit = assertRewritten(
-    version,
-    from,
-    to,
-    semanticTableExpressions,
-    additionalExpectedAstUpdates = statement => statement
-  )
-
-  def assertRewritten(
-    version: CypherVersion,
-    from: String,
-    to: String,
-    semanticTableExpressions: List[Expression],
-    additionalExpectedAstUpdates: Statement => Statement
-  ): Unit =
-    assertRewrittenImpl(
-      version,
-      from,
-      to,
-      semanticTableExpressions,
-      additionalExpectedAstUpdates,
-      identity
-    )
-
   // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
   // for example the AddedInRewriteGeneral flag on WITH
   // additionalActualAstCleanup is used to cleanup AST features that are impossible to
@@ -187,138 +186,73 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     to: String,
     semanticTableExpressions: List[Expression],
     additionalExpectedAstUpdates: Statement => Statement,
-    additionalActualAstCleanup: Statement => Statement
+    additionalActualAstCleanup: Statement => Statement,
+    invalidSemantics: Boolean
   ): Unit = {
 
-    /**
-     * To be able to just read Cypher when looking at a failure in a `RewritePhaseTest`,
-     */
-    case class StatementPrettifier(statement: Statement) {
-      override def toString: String = {
-        prettifier.asString(statement)
-      }
-    }
+    val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, invalidSemantics = invalidSemantics)
+    val toOutState = prepareFrom(version, to, rewriterPhaseForExpected, invalidSemantics = invalidSemantics)
 
-    val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest)
-    val toOutState = prepareFrom(version, to, rewriterPhaseForExpected)
-
-    val expectedStatement = additionalExpectedAstUpdates(toOutState.statement())
     val actualStatement = additionalActualAstCleanup(fromOutState.statement())
-    StatementPrettifier(actualStatement) should equal(StatementPrettifier(expectedStatement))
-    if (astRewriteAndAnalyze) {
-      semanticTableExpressions.foreach { e =>
-        fromOutState.semanticTable().types.keys.map(_.node) should contain(e)
-      }
-    }
+    val expectedStatement = additionalExpectedAstUpdates(toOutState.statement())
+
+    compareStatements(expectedStatement, actualStatement, fromOutState, semanticTableExpressions)
+
   }
 
-  def assertRewritten(from: String, to: Statement): Unit = assertRewritten(from, to, List.empty)
-
-  def assertRewritten(version: CypherVersion, from: String, to: Statement): Unit =
-    assertRewrittenInVersion(version, from, to, List.empty)
-
-  def assertRewrittenInVersion(
+  def assertRewrittenStmtImpl(
     version: CypherVersion,
     from: String,
-    to: Statement,
-    semanticTableExpressions: List[Expression]
-  ): Unit =
-    withClue(s"version=$version") {
-      val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest)
-      fromOutState.statement() should equal(to)
-      if (astRewriteAndAnalyze) {
-        semanticTableExpressions.foreach { e =>
-          fromOutState.semanticTable().types.keys.map(_.node) should contain(e)
-        }
-      }
-    }
+    expectedStatement: Statement,
+    semanticTableExpressions: List[Expression],
+    invalidSemantics: Boolean = false
+  ): Unit = {
+    val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, invalidSemantics = invalidSemantics)
 
-  def assertRewritten(
-    from: String,
-    to: Statement,
-    semanticTableExpressions: List[Expression]
-  ): Unit = CypherVersion.values().foreach { version =>
-    assertRewrittenInVersion(version, from, to, semanticTableExpressions)
+    val actualStatement = fromOutState.statement()
+
+    compareStatements(expectedStatement, actualStatement, fromOutState, semanticTableExpressions)
   }
 
-  private def parseAndRewrite(version: CypherVersion, queryText: String, features: Seq[SemanticFeature]): Statement = {
-    val exceptionFactory = Neo4jCypherExceptionFactory(queryText, None)
-    val nameGenerator = new AnonymousVariableNameGenerator
-    val parsedAst = AstParserFactory(version)(queryText, exceptionFactory, None, Seq()).singleStatement()
-    val cleanedAst = parsedAst.endoRewrite(NormalizeWithAndReturnClauses(exceptionFactory))
-    if (astRewriteAndAnalyze) {
-      val semanticState = cleanedAst.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)
-      val intermediate = ASTRewriter.rewrite(
-        cleanedAst.endoRewrite(
-          computeDependenciesForExpressions(semanticState)
-        ),
-        semanticState,
-        Map.empty,
-        exceptionFactory,
-        nameGenerator,
-        CancellationChecker.NeverCancelled,
-        version
-      ).endoRewrite(ReplacePatternComprehensionWithCollectSubqueryRewriter(nameGenerator).instance)
+  private def compareStatements(
+    expectedStatement: Statement,
+    actualStatement: Statement,
+    state: BaseState,
+    semanticTableExpressions: List[Expression]
+  ): Unit = {
 
-      val intermediateState = intermediate.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)
-      intermediate.endoRewrite(computeDependenciesForExpressions(intermediateState))
+    StatementPrettifier(actualStatement) should equal(StatementPrettifier(expectedStatement))
 
-    } else {
-      cleanedAst
+    semanticTableExpressions.foreach { e =>
+      state.semanticTable().types.keys.map(_.node) should contain(e)
     }
   }
 
-  /**
-   * There are some AST changes done at the parser level for semantic analysis that won't affect the plan.
-   * This rewriter can be expanded to update those parts.
-   */
-  def rewriteOtherASTDifferences(statement: Statement): Statement = {
-    statement.endoRewrite(bottomUp(Rewriter.lift {
-      case u: SetExactPropertiesFromMapItem     => u.copy(rhsMustBeMap = false)(u.position)
-      case u: SetIncludingPropertiesFromMapItem => u.copy(rhsMustBeMap = false)(u.position)
-    }))
-  }
-
-  def sessionDatabase: String = null
-  def targetsComposite: Boolean = false
+  private def checkSemanticsTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    Parse andThen PreparatoryRewriting andThen SemanticAnalysis(Some(false))
 
   def prepareFrom(
     version: CypherVersion,
     from: String,
-    transformer: Transformer[BaseContext, BaseState, BaseState]
+    transformer: Transformer[BaseContext, BaseState, BaseState],
+    statement: Option[Statement] = None,
+    invalidSemantics: Boolean = false
   ): BaseState = {
-    val fromAst = parseAndRewrite(version, from, semanticFeatures)
-    val initialState =
-      InitialState(from, plannerName, new AnonymousVariableNameGenerator, maybeStatement = Some(fromAst))
-    val databaseReference = new DatabaseReference {
-      override def alias(): NormalizedDatabaseName = ???
-      override def namespace(): Optional[NormalizedDatabaseName] = ???
-      override def isPrimary: Boolean = ???
-      override def id(): UUID = ???
-      override def namedDatabaseId(): NamedDatabaseId = ???
-      override def toPrettyString: String = ???
-      override def fullName(): NormalizedDatabaseName = new NormalizedDatabaseName(sessionDatabase)
-      override def isComposite: Boolean = targetsComposite
-      override def compareTo(o: DatabaseReference): Int = ???
-      override def owningDatabaseName: String = ???
-      override def catalogEntry(): NormalizedCatalogEntry = ???
-      override def isShard: Boolean = false
+
+    def initialState = InitialState(from, plannerName, new AnonymousVariableNameGenerator, maybeStatement = statement)
+
+    if (!invalidSemantics && phaseTestConfig.checkSemantics) {
+      val checkContext =
+        ContextHelper.create(version, from, phaseTestConfig.semanticFeatures :+ VariableChecking, databaseReference)
+      checkSemanticsTransformer.transform(initialState, checkContext)
     }
 
-    val fromInState = {
-      if (astRewriteAndAnalyze) {
-        preProcessPhase().transform(
-          initialState,
-          TestContext(
-            cypherVersion = version,
-            sessionDatabase = databaseReference,
-            semanticFeatures = semanticFeatures
-          )
-        )
-      } else {
-        initialState
-      }
-    }
-    transformer.transform(fromInState, ContextHelper.create(version, semanticFeatures, databaseReference))
+    val testContext = ContextHelper.create(version, from, phaseTestConfig.semanticFeatures, databaseReference)
+
+    val preparedState = preparationSteps(statement.isDefined).transform(initialState, testContext)
+
+    preparedState.anonymousVariableNameGenerator.resetCounter()
+
+    transformer.transform(preparedState, testContext)
   }
 }

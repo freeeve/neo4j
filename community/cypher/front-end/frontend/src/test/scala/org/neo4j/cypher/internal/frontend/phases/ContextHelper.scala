@@ -36,6 +36,13 @@ object ContextHelper extends MockitoSugar {
     version: CypherVersion,
     semantics: Seq[SemanticFeature],
     sessionDatabaseReference: DatabaseReference = null
+  ): BaseContext = create(version, null, semantics, sessionDatabaseReference)
+
+  def create(
+    version: CypherVersion,
+    queryText: String,
+    semantics: Seq[SemanticFeature],
+    sessionDatabaseReference: DatabaseReference
   ): BaseContext = {
     new BaseContext {
       override def cypherVersion: CypherVersion = version
@@ -43,7 +50,7 @@ object ContextHelper extends MockitoSugar {
       override def sessionDatabase: DatabaseReference = sessionDatabaseReference
       override def tracer: CompilationPhaseTracer = NO_TRACING
       override def notificationLogger: InternalNotificationLogger = devNullLogger
-      override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(null, None)
+      override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(queryText, None)
       override def monitors: Monitors = mock[Monitors]
       override def errorHandler: Seq[SemanticErrorDef] => Unit =
         (errors: Seq[SemanticErrorDef]) =>

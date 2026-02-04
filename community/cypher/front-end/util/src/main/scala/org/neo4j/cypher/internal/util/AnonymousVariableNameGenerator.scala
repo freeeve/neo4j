@@ -32,6 +32,8 @@ class AnonymousVariableNameGenerator(negativeNumbers: Boolean = false) {
     counter += inc
     result
   }
+
+  def resetCounter(): Unit = counter = if (negativeNumbers) -1 else 0
 }
 
 object AnonymousVariableNameGenerator {
