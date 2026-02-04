@@ -20,11 +20,8 @@
 package org.neo4j.logging.log4j;
 
 import static java.lang.String.format;
-import static java.lang.System.lineSeparator;
 import static java.nio.file.Files.readAllLines;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.neo4j.logging.log4j.LogConfig.STRUCTURED_LOG_JSON_TEMPLATE;
-import static org.neo4j.logging.log4j.LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_CATEGORY;
 import static org.neo4j.logging.log4j.LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE;
 import static org.neo4j.logging.log4j.LogConfig.createLoggerFromXmlConfig;
 import static org.neo4j.logging.log4j.LogUtils.newLoggerBuilder;
@@ -248,53 +245,6 @@ class LogConfigTest {
                         "\\{\"time\":\"" + DATE_PATTERN
                                 + "\",\"level\":\"%s\",\"category\":\"o\\.n\\.classname\",\"message\":\"test\",\"stacktrace\":\"stack\"}%n",
                         Level.WARN));
-    }
-
-    @Test
-    void jsonFormatStructuredMessage() throws IOException {
-        Path targetFile = dir.homePath().resolve("debug.log");
-
-        Path xmlConfig = newTemporaryXmlConfigBuilder(fs)
-                .withLogger(newLoggerBuilder(ROOT_LOGGER, targetFile)
-                        .withLevel(Level.INFO)
-                        .withCategory(true)
-                        .withJsonFormatTemplate(STRUCTURED_LOG_JSON_TEMPLATE)
-                        .build())
-                .create();
-
-        ctx = createLoggerFromXmlConfig(fs, xmlConfig);
-
-        ExtendedLogger logger = ctx.getLogger("org.neo4j.classname");
-        logger.info(new MyStructure());
-
-        assertThat(Files.readString(targetFile))
-                .matches("\\{\"time\":\"" + DATE_PATTERN
-                        + "\",\"level\":\"INFO\",\"long\":7,"
-                        + "\"string1\":\"my string\",\"string2\":\" special\\\\\" string\"}" + lineSeparator());
-    }
-
-    @Test
-    void jsonFormatStructuredMessageWithException() throws IOException {
-        Path targetFile = dir.homePath().resolve("debug.log");
-
-        Path xmlConfig = newTemporaryXmlConfigBuilder(fs)
-                .withLogger(newLoggerBuilder(ROOT_LOGGER, targetFile)
-                        .withLevel(Level.INFO)
-                        .withCategory(true)
-                        .withJsonFormatTemplate(STRUCTURED_LOG_JSON_TEMPLATE_WITH_CATEGORY)
-                        .build())
-                .create();
-
-        ctx = createLoggerFromXmlConfig(fs, xmlConfig);
-
-        ExtendedLogger logger = ctx.getLogger("org.neo4j.classname");
-        logger.info(new MyStructure(), newThrowable("test"));
-
-        assertThat(Files.readString(targetFile))
-                .matches("\\{\"time\":\"" + DATE_PATTERN
-                        + "\",\"level\":\"INFO\",\"category\":\"o\\.n\\.classname\",\"long\":7,"
-                        + "\"string1\":\"my string\",\"string2\":\" special\\\\\" string\",\"stacktrace\":\"test\"}"
-                        + lineSeparator());
     }
 
     @Test

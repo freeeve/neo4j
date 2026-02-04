@@ -175,6 +175,17 @@ class MigrateConfigCommandTest {
                     apoc.export.file.enabled=true
                     """;
 
+    private static final String OLD_CONFIG_JSON_FORMATS = """
+            dbms.logs.debug.format=json
+            dbms.logs.security.format=json
+            """;
+
+    private static final String MIGRATED_CONFIG_JSON_FORMATS = """
+
+            # dbms.logs.debug.format=json REMOVED SETTING
+            # dbms.logs.security.format=json REMOVED SETTING
+            """;
+
     @Inject
     private Neo4jLayout neo4jLayout;
 
@@ -220,7 +231,37 @@ class MigrateConfigCommandTest {
         var result = runConfigMigrationCommand();
         assertEquals(0, result.exitCode);
         assertThat(readFileIgnoreJvmRecommendations(configFile)).isEqualTo(maybeChangeLineSeparators(MIGRATED_CONFIG));
-        assertFalse(Files.exists(configFile.resolve("apoc.conf"))); // No apoc conf since there were no apoc settings.
+        assertFalse(Files.exists(
+                configFile.getParent().resolve("apoc.conf"))); // No apoc conf since there were no apoc settings.
+    }
+
+    @Test
+    void shouldMigrateJsonFormatToNewFormatWithMessage() throws IOException {
+        var configFile = createConfigFileInDefaultLocation(OLD_CONFIG_JSON_FORMATS);
+        var result = runConfigMigrationCommand();
+        assertEquals(0, result.exitCode);
+        assertThat(readFileIgnoreJvmRecommendations(configFile))
+                .isEqualTo(maybeChangeLineSeparators(MIGRATED_CONFIG_JSON_FORMATS));
+        var serverLogsXml = Files.readString(configFile.getParent().resolve("server-logs.xml"));
+
+        // Should log both debug log and security log with StructuredLayoutWithMessage template.
+        assertThat(serverLogsXml.stripIndent()).contains("""
+                        <RollingRandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log"
+                                filePattern="${config:server.directories.logs}/debug.log.%02i">
+                            <Policies>
+                                <SizeBasedTriggeringPolicy size="20 MB"/>
+                            </Policies>
+                            <DefaultRolloverStrategy fileIndex="min" max="7"/>
+                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithMessage.json"/>
+                """).contains("""
+                        <RollingRandomAccessFile name="SecurityLog" fileName="${config:server.directories.logs}/security.log"
+                                filePattern="${config:server.directories.logs}/security.log.%02i">
+                            <Policies>
+                                <SizeBasedTriggeringPolicy size="20 MB"/>
+                            </Policies>
+                            <DefaultRolloverStrategy fileIndex="min" max="7"/>
+                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithMessage.json"/>
+                """);
     }
 
     @Test

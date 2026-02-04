@@ -59,9 +59,6 @@ public final class LogConfig {
     public static final String HTTP_LOG = "http.log";
 
     public static final String QUERY_LOG_JSON_TEMPLATE = "classpath:org/neo4j/logging/QueryLogJsonLayout.json";
-    public static final String STRUCTURED_LOG_JSON_TEMPLATE = "classpath:org/neo4j/logging/StructuredJsonLayout.json";
-    public static final String STRUCTURED_LOG_JSON_TEMPLATE_WITH_CATEGORY =
-            "classpath:org/neo4j/logging/StructuredLayoutWithCategory.json";
     public static final String STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE =
             "classpath:org/neo4j/logging/StructuredLayoutWithMessage.json";
 

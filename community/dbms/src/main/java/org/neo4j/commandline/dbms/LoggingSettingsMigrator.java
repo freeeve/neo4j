@@ -152,7 +152,7 @@ class LoggingSettingsMigrator {
                 getSettingValue(OldSettings.store_internal_log_max_archives),
                 "Neo4jDebugLogLayout",
                 getSettingValue(OldSettings.store_internal_log_format),
-                LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_CATEGORY,
+                LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE,
                 true);
 
         appendAppender(
@@ -185,7 +185,7 @@ class LoggingSettingsMigrator {
                 getSettingValue(OldSettings.store_security_log_max_archives),
                 DEFAULT_PLAIN_LAYOUT,
                 getSettingValue(OldSettings.security_log_format),
-                LogConfig.STRUCTURED_LOG_JSON_TEMPLATE,
+                LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE,
                 false);
 
         sb.append("""

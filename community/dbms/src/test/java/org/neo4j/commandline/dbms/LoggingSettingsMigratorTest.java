@@ -276,7 +276,7 @@ class LoggingSettingsMigratorTest {
                         "<JsonTemplateLayout eventTemplateUri=\"classpath:org/neo4j/logging/StructuredLayoutWithMessage.json\"/>");
         assertThat(migratedServerLogs.stripIndent()).contains("""
                         <RandomAccessFile name="DebugLog" fileName="${config:server.directories.logs}/debug.log">
-                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithCategory.json"/>
+                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithMessage.json"/>
                         </RandomAccessFile>
                         <RandomAccessFile name="HttpLog" fileName="${config:server.directories.logs}/http.log">
                             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} %-5p %m%n"/>
@@ -285,7 +285,7 @@ class LoggingSettingsMigratorTest {
                             <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/QueryLogJsonLayout.json"/>
                         </RandomAccessFile>
                         <RandomAccessFile name="SecurityLog" fileName="${config:server.directories.logs}/security.log">
-                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredJsonLayout.json"/>
+                            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/StructuredLayoutWithMessage.json"/>
                         </RandomAccessFile>
                 """);
     }
