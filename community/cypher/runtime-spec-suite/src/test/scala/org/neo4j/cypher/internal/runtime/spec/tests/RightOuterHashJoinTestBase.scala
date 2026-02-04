@@ -389,10 +389,12 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
 
-    val lhsFilterDbHits = runtimeResult.runtimeResult.queryProfile().operatorProfile(5).dbHits()
-
     // final projection should only need to look up n.leftProp for :Right nodes
-    runtimeResult.runtimeResult.queryProfile().operatorProfile(1).dbHits() shouldBe lhsFilterDbHits / 2
+    val expected = if (isPipelined || isParallel) {
+      // for pipelined/parallel we count the calls to next as a dbHit
+      sizeHint * 2
+    } else sizeHint
+    runtimeResult.runtimeResult.queryProfile().operatorProfile(1).dbHits() shouldBe expected
   }
 
   // Emulates outer join.

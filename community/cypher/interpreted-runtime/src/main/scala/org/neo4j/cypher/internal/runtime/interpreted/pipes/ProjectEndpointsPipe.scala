@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.internal.kernel.api.RelationshipCursor
+import org.neo4j.internal.kernel.api.RelationshipIndexCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.storageengine.api.LongReference.NULL
@@ -229,18 +230,21 @@ case object ProjectEndpoints {
         None
       }
     }
+    scanCursor match {
+      case cursor: RelationshipIndexCursor if !cursor.readFromStore() => None
+      case _ =>
+        if (!typeCheck.test(scanCursor)) {
+          None
+        } else {
+          val source = scanCursor.sourceNodeReference()
+          val target = scanCursor.targetNodeReference()
 
-    if (!typeCheck.test(scanCursor)) {
-      None
-    } else {
-      val source = scanCursor.sourceNodeReference()
-      val target = scanCursor.targetNodeReference()
-
-      direction match {
-        case SemanticDirection.OUTGOING => matchScope(source, target)
-        case SemanticDirection.INCOMING => matchScope(target, source)
-        case SemanticDirection.BOTH     => matchScope(source, target).orElse(matchScope(target, source))
-      }
+          direction match {
+            case SemanticDirection.OUTGOING => matchScope(source, target)
+            case SemanticDirection.INCOMING => matchScope(target, source)
+            case SemanticDirection.BOTH     => matchScope(source, target).orElse(matchScope(target, source))
+          }
+        }
     }
   }
 
@@ -359,7 +363,13 @@ case object ProjectEndpoints {
     typeCheck: RelationshipScanCursorPredicate
   ): Seq[EndNodes] = {
 
-    if (scanCursor.reference() == NULL || !typeCheck.test(scanCursor)) {
+    if (
+      scanCursor.reference() == NULL ||
+      (scanCursor.isInstanceOf[
+        RelationshipIndexCursor
+      ] && !scanCursor.asInstanceOf[RelationshipIndexCursor].readFromStore()) ||
+      !typeCheck.test(scanCursor)
+    ) {
       Seq.empty
     } else {
       val source = scanCursor.sourceNodeReference()

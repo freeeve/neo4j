@@ -88,7 +88,8 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("HasLabel on top of LabelScan") {
-    hasLabelOnTopOfLeaf(_.nodeByLabelScan("n", "Label"), expression = "n:Label", costOfLabelCheck)
+    val cost = if (canReuseAllScanLookup) 0 else costOfLabelCheck
+    hasLabelOnTopOfLeaf(_.nodeByLabelScan("n", "Label"), expression = "n:Label", cost)
   }
 
   test("IS NOT NULL on top of AllNodesScan") {
@@ -97,7 +98,8 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("IS NOT NULL on top of LabelScan") {
-    hasLabelOnTopOfLeaf(_.nodeByLabelScan("n", "Label"), expression = "n.prop IS NOT NULL", costOfPropertyExists)
+    val cost = if (canReuseAllScanLookup) costOfPropertyExists - 1 else costOfPropertyExists
+    hasLabelOnTopOfLeaf(_.nodeByLabelScan("n", "Label"), expression = "n.prop IS NOT NULL", cost)
   }
 
   private def hasLabelOnTopOfLeaf(
@@ -741,7 +743,8 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
     consume(runtimeResult)
 
     // then
-    val expectedOptionalExpandAllDbHits = sizeHint * (costOfExpandGetRelCursor + costOfExpandOneRel) + extraNodes
+    val expectedOptionalExpandAllDbHits = if (canReuseAllScanLookup && canFuseOverPipelines) sizeHint
+    else sizeHint * (costOfExpandGetRelCursor + costOfExpandOneRel) + extraNodes
     val expectedNodeByLabelScanDbHits = sizeHint + extraNodes + 1 + costOfLabelLookup
     val queryProfile = runtimeResult.runtimeResult.queryProfile()
     queryProfile.operatorProfile(1).dbHits() shouldBe expectedOptionalExpandAllDbHits // optional expand all
@@ -812,9 +815,11 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
       1
     ).dbHits() shouldBe ((n + extraNodes) * expandConstantCost + n * costOfExpandOneRel) // optional expand into
     queryProfile.operatorProfile(2).dbHits() shouldBe 0 // apply
+    val costPerPropRead = if (canReuseAllScanLookup) 2 * (costOfGetPropertyChain + costOfProperty) - 1
+    else 2 * (costOfGetPropertyChain + costOfProperty)
     queryProfile.operatorProfile(
       3
-    ).dbHits() shouldBe ((n + extraNodes) * (n + extraNodes) * 2 * (costOfGetPropertyChain + costOfProperty)) // filter (reads 2 properties))
+    ).dbHits() shouldBe ((n + extraNodes) * (n + extraNodes) * costPerPropRead) // filter (reads 2 properties))
     queryProfile.operatorProfile(4).dbHits() should expectedLabelScanRHS // label scan Y
     queryProfile.operatorProfile(5).dbHits() shouldBe expectedLabelScanLHS // // label scan X
   }

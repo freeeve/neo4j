@@ -37,6 +37,7 @@ import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.EntityCursor;
 import org.neo4j.internal.kernel.api.NodeCursor;
+import org.neo4j.internal.kernel.api.NodeIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipCursor;
@@ -90,6 +91,28 @@ public final class CursorUtils {
             throws EntityNotFoundException {
         assert node >= NO_SUCH_NODE;
         return nodeGetProperty(read, nodeCursor, node, propertyCursor, prop, true);
+    }
+
+    /**
+     * Fetches a given property from a node, where the node has already been loaded.
+     *
+     * @param nodeCursor The node cursor which currently points to the node to get the property from.
+     * @param propertyCursor The property cursor to use to read the property.
+     * @param prop The property key id
+     * @return The value of the property, otherwise {@link Values#NO_VALUE} if not found.
+     * @throws EntityNotFoundException If the node was deleted in transaction.
+     */
+    public static Value nodeGetProperty(Read read, NodeIndexCursor nodeCursor, PropertyCursor propertyCursor, int prop)
+            throws EntityNotFoundException {
+        if (!nodeCursor.readFromStore()) {
+            long node = nodeCursor.nodeReference();
+            if (read.nodeDeletedInTransaction(node)) {
+                throw EntityNotFoundException.nodeDeletedInThisTransaction(nodeCursor.nodeReference());
+            } else {
+                return NO_VALUE;
+            }
+        }
+        return nodeGetProperty(nodeCursor, propertyCursor, prop);
     }
 
     /**
@@ -156,6 +179,11 @@ public final class CursorUtils {
         assert entityCursor.reference() != StatementConstants.NO_SUCH_ENTITY;
 
         final Value[] values = emptyPropertyArray(tokens.length);
+        if (entityCursor instanceof NodeIndexCursor nodeIndexCursor && !nodeIndexCursor.readFromStore()
+                || entityCursor instanceof RelationshipIndexCursor relationshipIndexCursor
+                        && !relationshipIndexCursor.readFromStore()) {
+            return values;
+        }
         entityCursor.properties(propertyCursor, PropertySelection.selection(tokens));
         while (propertyCursor.next()) {
             final int index = indexOf(tokens, propertyCursor.propertyKey());
@@ -181,8 +209,7 @@ public final class CursorUtils {
      * @return <code>true</code> if node has property otherwise <code>false</code>
      */
     public static boolean nodeHasProperty(
-            Read read, NodeCursor nodeCursor, long node, PropertyCursor propertyCursor, int prop)
-            throws EntityNotFoundException {
+            Read read, NodeCursor nodeCursor, long node, PropertyCursor propertyCursor, int prop) {
         if (prop == NO_SUCH_PROPERTY_KEY) {
             return false;
         }
@@ -191,6 +218,24 @@ public final class CursorUtils {
             return false;
         }
         return nodeHasProperty(nodeCursor, propertyCursor, prop);
+    }
+
+    /**
+     * Checks if a given node has the given property
+     *
+     * @param nodeCursor The node cursor to use
+     * @param propertyCursor The property cursor to use
+     * @param prop The id of the property to find
+     * @return <code>true</code> if node has property otherwise <code>false</code>
+     */
+    public static boolean nodeHasProperty(NodeIndexCursor nodeCursor, PropertyCursor propertyCursor, int prop) {
+        if (prop == NO_SUCH_PROPERTY_KEY) {
+            return false;
+        }
+        if (!nodeCursor.readFromStore()) {
+            return false;
+        }
+        return nodeHasProperty((NodeCursor) nodeCursor, propertyCursor, prop);
     }
 
     /**
@@ -231,6 +276,24 @@ public final class CursorUtils {
     }
 
     /**
+     * Checks if given node has a given label.
+     *
+     * @param nodeCursor A node cursor positioned on a particular node
+     * @param label The id of the label
+     * @return {@code true} if the node has the label, otherwise {@code false}
+     */
+    public static boolean nodeHasLabel(NodeIndexCursor nodeCursor, int label) {
+        if (label == NO_SUCH_LABEL) {
+            return false;
+        }
+        if (nodeCursor.readFromStore()) {
+            return nodeCursor.hasLabel(label);
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Checks if a given node has all the given labels
      * @param read The current Read instance
      * @param nodeCursor The node cursor to use
@@ -245,6 +308,20 @@ public final class CursorUtils {
         }
 
         return nodeHasLabels(nodeCursor, labels);
+    }
+
+    /**
+     * Checks if a given node has all the given labels
+     * @param nodeCursor A node cursor positioned on a particular node
+     * @param labels The labels to check for
+     * @return {@code true} if the node has all the labels, otherwise {@code false}
+     */
+    public static boolean nodeHasLabels(NodeIndexCursor nodeCursor, int[] labels) {
+        if (!nodeCursor.readFromStore()) {
+            return false;
+        }
+
+        return nodeHasLabels((NodeCursor) nodeCursor, labels);
     }
 
     /**
@@ -286,11 +363,15 @@ public final class CursorUtils {
     /**
      * Checks if given node has any label at all.
      *
-     * @param nodeCursor The node cursor to use
+     * @param nodeCursor The index cursor to use
      * @return {@code true} if the node has the label, otherwise {@code false}
      */
-    public static boolean nodeHasALabel(NodeCursor nodeCursor) {
-        return nodeCursor.hasLabel();
+    public static boolean nodeHasALabel(NodeIndexCursor nodeCursor) {
+        if (!nodeCursor.readFromStore()) {
+            return nodeCursor.hasLabel();
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -303,6 +384,18 @@ public final class CursorUtils {
         }
 
         return nodeHasAnyLabel(nodeCursor, labels);
+    }
+
+    /**
+     * Returns true if any of the specified labels are set on the node that `cursor` is pointing at.
+     */
+    @CalledFromGeneratedCode
+    public static boolean nodeHasAnyLabel(NodeIndexCursor cursor, int[] labels) {
+        if (!cursor.readFromStore()) {
+            return false;
+        }
+
+        return nodeHasAnyLabel((NodeCursor) cursor, labels);
     }
 
     /**
@@ -834,14 +927,6 @@ public final class CursorUtils {
             result[i] = map.get(keys[i]);
         }
         return result;
-    }
-
-    public static void properties(
-            RelationshipCursor cursor, PropertyCursor propertyCursor, PropertySelection selection) {
-        if (cursor instanceof RelationshipIndexCursor indexCursor && !indexCursor.readFromStore()) {
-            throw EntityNotFoundException.relationshipDeletedInThisTransaction(indexCursor.relationshipReference());
-        }
-        cursor.properties(propertyCursor, selection);
     }
 
     public static VirtualRelationshipValue relationshipById(RelationshipCursor cursor) {
