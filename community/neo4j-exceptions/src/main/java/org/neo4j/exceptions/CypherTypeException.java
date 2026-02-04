@@ -273,8 +273,8 @@ public class CypherTypeException extends Neo4jException {
 
         return new CypherTypeException(
                 gql,
-                "Index query vector has a dimensionality of %d, but provided vector has %d."
-                        .formatted(vectorDim, indexDim));
+                "Vector index '%s' has a configured dimensionality of %d, but the provided vector has dimension %d."
+                        .formatted(indexName, indexDim, vectorDim));
     }
 
     public static CypherTypeException howTreatPredicate(String got, String gotPretty, String gotCypherType) {

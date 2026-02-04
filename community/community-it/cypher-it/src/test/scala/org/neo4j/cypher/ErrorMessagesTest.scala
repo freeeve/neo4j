@@ -252,6 +252,33 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
     )
   }
 
+  test("should get sensible legacy message for vector index dimensionality mismatch") {
+    val indexSetup =
+      """CREATE VECTOR INDEX idxName
+        |FOR (n:Label) ON n.prop
+        |OPTIONS {indexConfig : {`vector.dimensions`: 5}}
+        |""".stripMargin
+
+    val searchQuery =
+      """CYPHER 25
+        |MATCH (n)
+        |  SEARCH n IN (
+        |    VECTOR INDEX idxName
+        |    FOR vector([1, 2], 2, INT)
+        |    LIMIT 2
+        |  )
+        |RETURN n
+        """.stripMargin
+
+    executeQuery(indexSetup)
+    executeQuery("CALL db.awaitIndexes()")
+
+    expectError(
+      searchQuery,
+      "Vector index 'idxName' has a configured dimensionality of 5, but the provided vector has dimension 2."
+    )
+  }
+
   private def expectError(query: String, expectedError: String*): Neo4jException = {
     val error = intercept[Neo4jException](executeQuery(query))
     withClue(error)(expectedError.exists(error.getMessage.contains) shouldBe true)
