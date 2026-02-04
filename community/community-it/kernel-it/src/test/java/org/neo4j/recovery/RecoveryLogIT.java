@@ -81,6 +81,8 @@ class RecoveryLogIT {
             managementService.database(DEFAULT_DATABASE_NAME);
 
             assertThat(provider).containsMessages("Recovery completed", "Time spent");
+            managementService.shutdown();
+            managementService = null;
         }
     }
 }
