@@ -25,6 +25,7 @@ import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.DURATION;
+import static org.neo4j.configuration.SettingValueParsers.GLOBBING_PATTERN;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.NORMALIZED_RELATIVE_URI;
 import static org.neo4j.configuration.SettingValueParsers.PATH;
@@ -44,6 +45,7 @@ import org.neo4j.configuration.Internal;
 import org.neo4j.configuration.SettingValueParser;
 import org.neo4j.configuration.SettingValueParsers;
 import org.neo4j.configuration.SettingsDeclaration;
+import org.neo4j.configuration.helpers.GlobbingPattern;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.server.web.JettyThreadCalculator;
 
@@ -279,10 +281,18 @@ public class ServerSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("The location of the browser zip file to be hosted")
-    public static final Setting<Path> browser_zip_path = newBuilder(
-                    "internal.dbms.browser_zip_location", PATH, Path.of("web", "neo4j-browser.zip"))
+    @Description("The location of the browser zip file to be hosted.")
+    public static final Setting<Path> web_dir_path = newBuilder("internal.dbms.web_dir_path", PATH, Path.of("web"))
             .setDependency(neo4j_home)
+            .immutable()
+            .build();
+
+    @Internal
+    @Description("The prefix of the browser zip file.")
+    public static final Setting<List<GlobbingPattern>> browser_matching_pattern = newBuilder(
+                    "internal.dbms.browser_artefact_pattern",
+                    listOf(GLOBBING_PATTERN),
+                    GlobbingPattern.create("neo4j-browser*.zip"))
             .immutable()
             .build();
 }

@@ -21,6 +21,7 @@ package org.neo4j.server.web;
 
 import static java.lang.String.format;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
+import java.util.zip.ZipInputStream;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import org.eclipse.jetty.ee8.servlet.FilterHolder;
@@ -376,13 +378,14 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
             staticContext.setInitParameter("org.eclipse.jetty.servlet.Default.dirAllowed", "false");
             Resource resource = null;
 
+            final Path browserPath = Path.of(staticContent.location());
             switch (staticContent.type()) {
                 case JAR -> {
-                    staticContext.setContextPath("/");
-                    var jarFile = Path.of(staticContent.location()).toAbsolutePath();
-                    if (Files.exists(jarFile)) {
-                        resource = ResourceFactory.root().newResource("jar:" + jarFile.toUri() + "!/");
-                    }
+                    staticContext.setContextPath(mountPoint);
+                    var tempDir = Files.createTempDirectory("decompressed-browser");
+                    tempDir.toFile().deleteOnExit();
+                    var content = extractZip(browserPath, tempDir);
+                    resource = ResourceFactory.root().newResource(content);
                 }
                 case CLASSPATH -> {
                     var resourceLoc = getClass().getClassLoader().getResource(staticContent.location());
@@ -494,5 +497,40 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
         String getPathSpec() {
             return pathSpec;
         }
+    }
+
+    private Path extractZip(Path zippedFile, Path tempDirectory) {
+        try (var inputStream = Files.newInputStream(zippedFile);
+                var zipInputStream = new ZipInputStream(inputStream)) {
+
+            var scratchBuffer = new byte[1024];
+            var zipEntry = zipInputStream.getNextEntry();
+
+            if (zipEntry == null) {
+                throw new IOException("Compressed file was empty");
+            }
+
+            // Get the root directory name so we can ignore it and host from it directly
+            var rootDirName = zipEntry.getName();
+
+            while (zipEntry != null) {
+                if (zipEntry.isDirectory()) {
+                    Files.createDirectory(tempDirectory.resolve(zipEntry.getName()));
+                } else {
+                    var uncompressedFile = Files.createFile(tempDirectory.resolve(zipEntry.getName()));
+                    try (var fileOutputStream = new BufferedOutputStream(Files.newOutputStream(uncompressedFile))) {
+                        int len;
+                        while ((len = zipInputStream.read(scratchBuffer)) > 0) {
+                            fileOutputStream.write(scratchBuffer, 0, len);
+                        }
+                    }
+                }
+                zipEntry = zipInputStream.getNextEntry();
+            }
+            return tempDirectory.resolve(rootDirName);
+        } catch (IOException e) {
+            log.warn("Unable to decompress browser archive.", e);
+        }
+        return null;
     }
 }

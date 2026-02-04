@@ -29,8 +29,6 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
@@ -43,74 +41,107 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class ZippedBrowserIT {
 
-    private static DatabaseManagementService dbms;
-    private static String severEndpoint;
-
-    @BeforeAll
-    static void beforeAll() throws IOException {
-        var builder = new TestDatabaseManagementServiceBuilder();
-        var tempDir = Files.createTempDirectory("tempDir");
-        configureBrowserDir(tempDir);
-
-        dbms = builder.setConfig(HttpConnector.enabled, true)
-                .setConfig(HttpConnector.listen_address, new SocketAddress("localhost", 0))
-                .setConfig(BoltConnector.enabled, true)
-                .setDatabaseRootDirectory(tempDir)
-                .build();
-
-        severEndpoint = "http://"
-                + resolveDependency(dbms, ConnectorPortRegister.class).getLocalAddress(ConnectorType.HTTP) + "/";
-    }
-
-    @AfterAll
-    static void teardown() {
-        dbms.shutdown();
-    }
-
     @Test
     public void testBrowserZip() throws IOException, InterruptedException {
-        var client = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+        try (var dbms = setupDatabase("neo4j-browser.zip");
+                var client = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .build(); ) {
 
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(severEndpoint + "browser/"))
-                .build();
-        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(databaseUrl(dbms) + "browser/"))
+                    .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).isEqualTo("<h1>New Improved Browser</h1>\n" + "<h2>Designed by Oskar</h2>\n");
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body()).isEqualTo("<h1>New Improved Browser</h1>\n" + "<h2>Designed by Oskar</h2>\n");
+        }
+        ;
     }
 
     @Test
     public void testBrowserZipRedirect() throws IOException, InterruptedException {
-        var client = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+        try (var dbms = setupDatabase("neo4j-browser.zip");
+                var client = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .build(); ) {
 
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create(severEndpoint))
-                .header("Accept", "text/html")
-                .build();
-        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(databaseUrl(dbms)))
+                    .header("Accept", "text/html")
+                    .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).isEqualTo("<h1>New Improved Browser</h1>\n" + "<h2>Designed by Oskar</h2>\n");
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body()).isEqualTo("<h1>New Improved Browser</h1>\n" + "<h2>Designed by Oskar</h2>\n");
+        }
     }
 
-    private static void configureBrowserDir(Path homeDirectory) throws IOException {
+    @Test
+    public void testBrowserZipWithDifferentFileName() throws IOException, InterruptedException {
+        try (var dbms = setupDatabase("neo4j-browser-2025.01.24+0.zip");
+                var client = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .build()) {
+
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(databaseUrl(dbms)))
+                    .header("Accept", "text/html")
+                    .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body())
+                    .isEqualTo("<h1>Browser With Different Zip Name</h1>\n" + "<h2>Designed by Oskar</h2>\n");
+        }
+    }
+
+    @Test
+    public void shouldServeLatestWhenMultipleAvailable() throws IOException, InterruptedException {
+        try (var dbms = setupDatabase("neo4j-browser-2026.01.01+0.zip", "neo4j-browser-2027.01.01+0.zip");
+                var client = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.NORMAL)
+                        .build()) {
+
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(databaseUrl(dbms)))
+                    .header("Accept", "text/html")
+                    .build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body()).isEqualTo("<h1>V2 With New Amazing Features</h1>\n");
+        }
+    }
+
+    private String databaseUrl(DatabaseManagementService database) {
+        return "http://"
+                + ((GraphDatabaseAPI) database.database("neo4j"))
+                        .getDependencyResolver()
+                        .resolveDependency(ConnectorPortRegister.class)
+                        .getLocalAddress(ConnectorType.HTTP)
+                + "/";
+    }
+
+    private static void configureBrowserDir(Path homeDirectory, String... zipFiles) throws IOException {
         var webDirectory = homeDirectory.resolve("web");
         Files.createDirectories(webDirectory);
 
-        var zippedDirectory = webDirectory.resolve("neo4j-browser.zip");
-        Files.copy(
-                Objects.requireNonNull(ZippedBrowserIT.class.getResourceAsStream("neo4j-browser.zip")),
-                zippedDirectory);
+        for (String zipFile : zipFiles) {
+            var zippedDirectory = webDirectory.resolve(zipFile);
+            Files.copy(Objects.requireNonNull(ZippedBrowserIT.class.getResourceAsStream(zipFile)), zippedDirectory);
+        }
     }
 
-    private static <T> T resolveDependency(DatabaseManagementService database, Class<T> cls) {
-        return ((GraphDatabaseAPI) database.database("neo4j"))
-                .getDependencyResolver()
-                .resolveDependency(cls);
+    private DatabaseManagementService setupDatabase(String... zipFiles) throws IOException {
+        var builder = new TestDatabaseManagementServiceBuilder();
+        var tempDir = Files.createTempDirectory("tempDir");
+        configureBrowserDir(tempDir, zipFiles);
+
+        return builder.setConfig(HttpConnector.enabled, true)
+                .setConfig(HttpConnector.listen_address, new SocketAddress("localhost", 0))
+                .setConfig(BoltConnector.enabled, true)
+                .setDatabaseRootDirectory(tempDir)
+                .build();
     }
 }
