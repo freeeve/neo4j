@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.AdministrationCommand.checkIsStringLiteralOrParameter
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.semantics.CypherTypeChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
@@ -29,11 +30,11 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.Variable
@@ -80,8 +81,8 @@ sealed trait CreateIndex extends SchemaCommand {
   override lazy val commandDescription: String = "CREATE " + indexType.command
 
   // To anonymize the name
-  val name: Option[Either[String, Parameter]]
-  def withName(name: Option[Either[String, Parameter]]): CreateIndex
+  val name: Option[Expression]
+  def withName(name: Option[Expression]): CreateIndex
 
   def indexType: CreateIndexType
   def variable: Variable
@@ -98,7 +99,8 @@ sealed trait CreateIndex extends SchemaCommand {
       SemanticCheck.error(SemanticError.badCommandWithOrReplace("create index", "CREATE INDEX", position))
     case _ =>
       val ctType = if (isNodeIndex) CTNode else CTRelationship
-      declareVariable(variable, ctType) chain
+      name.map(checkIsStringLiteralOrParameter("index name", _)).getOrElse(SemanticCheck.success) chain
+        declareVariable(variable, ctType) chain
         SemanticExpressionCheck.simple(propertiesForSemanticCheck) chain
         semanticCheckFold(propertiesForSemanticCheck) {
           property =>
@@ -123,7 +125,7 @@ object CreateIndex {
     variable: Variable,
     labels: List[LabelName],
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -142,7 +144,7 @@ object CreateIndex {
     variable: Variable,
     relTypes: List[RelTypeName],
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -161,7 +163,7 @@ object CreateIndex {
     variable: Variable,
     isNodeIndex: Boolean,
     function: FunctionInvocation,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -180,7 +182,7 @@ object CreateIndex {
     variable: Variable,
     label: LabelName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -200,7 +202,7 @@ object CreateIndex {
     variable: Variable,
     relType: RelTypeName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -220,7 +222,7 @@ object CreateIndex {
     variable: Variable,
     label: LabelName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromDefault: Boolean,
@@ -241,7 +243,7 @@ object CreateIndex {
     variable: Variable,
     relType: RelTypeName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromDefault: Boolean,
@@ -262,7 +264,7 @@ object CreateIndex {
     variable: Variable,
     label: LabelName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -282,7 +284,7 @@ object CreateIndex {
     variable: Variable,
     relType: RelTypeName,
     properties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -303,7 +305,7 @@ object CreateIndex {
     labels: List[LabelName],
     properties: List[Property],
     additionalProperties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -324,7 +326,7 @@ object CreateIndex {
     relTypes: List[RelTypeName],
     properties: List[Property],
     additionalProperties: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -372,7 +374,7 @@ object CreateSingleLabelPropertyIndex {
     Variable,
     ElementTypeName,
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     CreateIndexType,
     IfExistsDo,
     Options
@@ -400,7 +402,7 @@ object CreateFulltextIndex {
     Variable,
     Either[List[LabelName], List[RelTypeName]],
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     CreateIndexType,
     IfExistsDo,
     Options
@@ -450,7 +452,7 @@ object CreateVectorIndex {
     Either[List[LabelName], List[RelTypeName]],
     List[Property],
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     CreateIndexType,
     IfExistsDo,
     Options
@@ -495,7 +497,7 @@ object CreateLookupIndex {
     Variable,
     Boolean,
     FunctionInvocation,
-    Option[Either[String, Parameter]],
+    Option[Expression],
     CreateIndexType,
     IfExistsDo,
     Options
@@ -507,7 +509,7 @@ private case class CreateSingleLabelPropertyIndexCommand(
   variable: Variable,
   entityName: ElementTypeName,
   properties: List[Property],
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   indexType: CreateIndexType,
   ifExistsDo: IfExistsDo,
   options: Options,
@@ -515,7 +517,7 @@ private case class CreateSingleLabelPropertyIndexCommand(
 )(val position: InputPosition) extends CreateSingleLabelPropertyIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 
-  override def withName(name: Option[Either[String, Parameter]]): CreateSingleLabelPropertyIndexCommand =
+  override def withName(name: Option[Expression]): CreateSingleLabelPropertyIndexCommand =
     copy(name = name)(position)
 }
 
@@ -523,14 +525,14 @@ private case class CreateFulltextIndexCommand(
   variable: Variable,
   entityNames: Either[List[LabelName], List[RelTypeName]],
   properties: List[Property],
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   ifExistsDo: IfExistsDo,
   options: Options,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateFulltextIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 
-  override def withName(name: Option[Either[String, Parameter]]): CreateFulltextIndexCommand =
+  override def withName(name: Option[Expression]): CreateFulltextIndexCommand =
     copy(name = name)(position)
 }
 
@@ -539,14 +541,14 @@ private case class CreateVectorIndexCommand(
   entityNames: Either[List[LabelName], List[RelTypeName]],
   properties: List[Property],
   additionalProperties: List[Property],
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   ifExistsDo: IfExistsDo,
   options: Options,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateVectorIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 
-  override def withName(name: Option[Either[String, Parameter]]): CreateVectorIndexCommand =
+  override def withName(name: Option[Expression]): CreateVectorIndexCommand =
     copy(name = name)(position)
 }
 
@@ -554,17 +556,17 @@ private case class CreateLookupIndexCommand(
   variable: Variable,
   isNodeIndex: Boolean,
   function: FunctionInvocation,
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   ifExistsDo: IfExistsDo,
   options: Options,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateLookupIndex {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
-  override def withName(name: Option[Either[String, Parameter]]): CreateLookupIndexCommand = copy(name = name)(position)
+  override def withName(name: Option[Expression]): CreateLookupIndexCommand = copy(name = name)(position)
 }
 
 case class DropIndexOnName(
-  name: Either[String, Parameter],
+  name: Expression,
   ifExists: Boolean,
   useGraph: Option[GraphSelection] = None
 )(
@@ -572,7 +574,7 @@ case class DropIndexOnName(
 ) extends SchemaCommand {
   override val commandDescription: String = "DROP INDEX"
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
-  override def semanticCheck: SemanticCheck = Seq()
+  override def semanticCheck: SemanticCheck = checkIsStringLiteralOrParameter("index name", name)
 }
 
 // Constraints
@@ -581,8 +583,8 @@ sealed trait CreateConstraint extends SchemaCommand {
   override lazy val commandDescription: String = "CREATE CONSTRAINT ... " + constraintType.predicate
 
   // To anonymize the name
-  val name: Option[Either[String, Parameter]]
-  def withName(name: Option[Either[String, Parameter]]): CreateConstraint
+  val name: Option[Expression]
+  def withName(name: Option[Expression]): CreateConstraint
 
   def constraintType: CreateConstraintType
   def variable: Variable
@@ -592,8 +594,9 @@ sealed trait CreateConstraint extends SchemaCommand {
   def ifExistsDo: IfExistsDo
   def options: Options
 
-  override def semanticCheck: SemanticCheck =
-    declareVariable(variable, entityType) chain
+  override def semanticCheck: SemanticCheck = {
+    name.map(checkIsStringLiteralOrParameter("constraint name", _)).getOrElse(SemanticCheck.success) chain
+      declareVariable(variable, entityType) chain
       SemanticExpressionCheck.simple(properties) chain
       semanticCheckFold(properties) {
         property =>
@@ -607,6 +610,7 @@ sealed trait CreateConstraint extends SchemaCommand {
             error(gql, "Cannot index nested properties", property.position)
           }
       }
+  }
 
   protected def checkIfExistsDoAndOptions(): SemanticCheck = ifExistsDo match {
     case IfExistsInvalidSyntax | IfExistsReplace =>
@@ -635,7 +639,7 @@ object CreateConstraint {
     Variable,
     ElementTypeName,
     Seq[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     CreateConstraintType,
     IfExistsDo,
     Options
@@ -648,7 +652,7 @@ object CreateConstraint {
     variable: Variable,
     label: LabelName,
     properties: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromCypher5: Boolean,
@@ -669,7 +673,7 @@ object CreateConstraint {
     variable: Variable,
     relType: RelTypeName,
     properties: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromCypher5: Boolean,
@@ -690,7 +694,7 @@ object CreateConstraint {
     variable: Variable,
     label: LabelName,
     properties: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromCypher5: Boolean,
@@ -711,7 +715,7 @@ object CreateConstraint {
     variable: Variable,
     relType: RelTypeName,
     properties: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     fromCypher5: Boolean,
@@ -733,7 +737,7 @@ object CreateConstraint {
     variable: Variable,
     label: LabelName,
     property: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -753,7 +757,7 @@ object CreateConstraint {
     variable: Variable,
     relType: RelTypeName,
     property: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -774,7 +778,7 @@ object CreateConstraint {
     label: LabelName,
     property: Property,
     propertyType: CypherType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -795,7 +799,7 @@ object CreateConstraint {
     relType: RelTypeName,
     property: Property,
     propertyType: CypherType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: IfExistsDo,
     options: Options,
     useGraph: Option[GraphSelection] = None
@@ -816,14 +820,14 @@ private case class CreateConstraintCommand(
   variable: Variable,
   entityName: ElementTypeName,
   properties: Seq[Property],
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   constraintType: CreateConstraintType,
   ifExistsDo: IfExistsDo,
   options: Options,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateConstraint {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
-  override def withName(name: Option[Either[String, Parameter]]): CreateConstraintCommand = copy(name = name)(position)
+  override def withName(name: Option[Expression]): CreateConstraintCommand = copy(name = name)(position)
 
   val entityType: CypherType = entityName match {
     case _: LabelName   => CTNode
@@ -846,14 +850,14 @@ private case class CreatePropertyTypeConstraint(
   entityName: ElementTypeName,
   property: Property,
   private val propertyType: CypherType,
-  override val name: Option[Either[String, Parameter]],
+  override val name: Option[Expression],
   ifExistsDo: IfExistsDo,
   options: Options,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends CreateConstraint {
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 
-  override def withName(name: Option[Either[String, Parameter]]): CreatePropertyTypeConstraint =
+  override def withName(name: Option[Expression]): CreatePropertyTypeConstraint =
     copy(name = name)(position)
 
   val properties: Seq[Property] = Seq(property)
@@ -875,13 +879,13 @@ private case class CreatePropertyTypeConstraint(
 }
 
 case class DropConstraintOnName(
-  name: Either[String, Parameter],
+  name: Expression,
   ifExists: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends SchemaCommand {
   override val commandDescription: String = "DROP CONSTRAINT"
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
-  override def semanticCheck: SemanticCheck = Seq()
+  override def semanticCheck: SemanticCheck = checkIsStringLiteralOrParameter("constraint name", name)
 }
 
 // Graph types

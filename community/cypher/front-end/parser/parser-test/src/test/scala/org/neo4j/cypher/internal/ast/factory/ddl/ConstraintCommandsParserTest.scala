@@ -695,7 +695,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("n"),
         labelName("L"),
         Seq(prop("n", "prop")),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions,
         fromCypher5
@@ -709,7 +709,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("n"),
         labelName("L"),
         Seq(prop("n", "prop")),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions,
         fromCypher5
@@ -1241,7 +1241,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("r"),
         relTypeName("R"),
         Seq(prop("r", "prop")),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions,
         fromCypher5
@@ -1255,7 +1255,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("r"),
         relTypeName("R"),
         Seq(prop("r", "prop")),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions,
         fromCypher5
@@ -1427,7 +1427,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("n"),
         labelName("L"),
         prop("n", "prop"),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions
       )(pos)
@@ -1635,7 +1635,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions
       )(pos)
@@ -2041,7 +2041,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         labelName("L"),
         prop("n", "prop"),
         StringType(isNullable = true)(pos),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions
       )(pos)
@@ -2055,7 +2055,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         relTypeName("R"),
         prop("r", "prop"),
         StringType(isNullable = true)(pos),
-        Some(Right(stringParam("name"))),
+        Some(stringParam("name")),
         ast.IfExistsThrowError,
         ast.NoOptions
       )(pos)
@@ -4812,7 +4812,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   test("DROP CONSTRAINT $my_constraint") {
     assertAst(
-      ast.DropConstraintOnName(Right(stringParam("my_constraint")), ifExists = false)(pos)
+      ast.DropConstraintOnName(stringParam("my_constraint"), ifExists = false)(pos)
     )
   }
 

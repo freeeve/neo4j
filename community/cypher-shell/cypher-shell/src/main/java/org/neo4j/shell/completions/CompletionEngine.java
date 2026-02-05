@@ -683,7 +683,6 @@ public class CompletionEngine {
         if (Set.of(
                         Cypher25Parser.RULE_stringOrParameter,
                         Cypher25Parser.RULE_commandNameExpression,
-                        Cypher25Parser.RULE_symbolicNameOrStringParameter,
                         Cypher25Parser.RULE_symbolicNameOrStringParameterList,
                         Cypher25Parser.RULE_symbolicAliasNameOrParameter,
                         Cypher25Parser.RULE_passwordExpression,

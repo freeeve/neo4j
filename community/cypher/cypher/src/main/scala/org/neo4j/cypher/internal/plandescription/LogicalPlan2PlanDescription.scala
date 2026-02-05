@@ -58,7 +58,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NameToken
 import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
@@ -404,7 +403,7 @@ object LogicalPlan2PlanDescription {
     pretty"$prettyStaticLabels$prettyDynamicLabels"
   }
 
-  def getPrettyStringName(nameOption: Option[Either[String, Parameter]]): PrettyString =
+  def getPrettyStringName(nameOption: Option[Expression]): PrettyString =
     nameOption.map(n => pretty" ${PrettyString(Prettifier.escapeName(n))}").getOrElse(pretty"")
 
   def getPrettyDynamicElement(expr: DynamicElement) = {
@@ -4183,7 +4182,7 @@ case class LogicalPlan2PlanDescription(
 
   private def indexInfo(
     indexType: String,
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     entityName: ElementTypeName,
     properties: Seq[PropertyKeyName],
     options: Options
@@ -4213,7 +4212,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def fulltextIndexInfo(
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     entityNames: Either[List[LabelName], List[RelTypeName]],
     properties: Seq[PropertyKeyName],
     options: Options
@@ -4231,7 +4230,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def vectorIndexInfo(
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     entityNames: Either[List[LabelName], List[RelTypeName]],
     properties: Seq[PropertyKeyName],
     additionalProperties: Seq[PropertyKeyName],
@@ -4253,7 +4252,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def lookupIndexInfo(
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     entityType: EntityType,
     options: Options
   ): PrettyString = {
@@ -4266,7 +4265,7 @@ case class LogicalPlan2PlanDescription(
 
   private def indexInfoString(
     indexType: String,
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     nodeOrRelPattern: PrettyString,
     onDefinition: PrettyString,
     options: Options
@@ -4276,7 +4275,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def constraintInfo(
-    nameOption: Option[Either[String, Parameter]],
+    nameOption: Option[Expression],
     entity: String,
     entityName: ElementTypeName,
     properties: Seq[Property],

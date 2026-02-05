@@ -28,14 +28,17 @@ import org.neo4j.cypher.internal.ast.RelationshipKey
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.constraint.ConstraintCommandPlanner
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.index.IndexCommandPlanner
 import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
@@ -60,10 +63,13 @@ import org.neo4j.cypher.internal.procs.PropertyTypeMapper
 import org.neo4j.cypher.internal.procs.SchemaExecutionPlan
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
@@ -105,12 +111,12 @@ object SchemaCommandRuntime {
 
   // Shared helper methods for the various schema commands
 
-  private[internal] def getName(name: Option[Either[String, Parameter]], params: MapValue): Option[String] =
+  private[internal] def getName(name: Option[Expression], params: MapValue): Option[String] =
     name.map(getName(_, params))
 
-  private[internal] def getName(name: Either[String, Parameter], params: MapValue): String = name match {
-    case Left(stringName) => stringName
-    case Right(paramName) =>
+  private[internal] def getName(name: Expression, params: MapValue): String = name match {
+    case stringName: StringLiteral => stringName.value
+    case paramName: Parameter =>
       params.get(paramName.name) match {
         case s: StringValue => s.stringValue()
         case x =>
@@ -120,6 +126,22 @@ object SchemaCommandRuntime {
             x.prettify()
           )
       }
+    case paramName: ParameterFromSlot =>
+      params.get(paramName.name) match {
+        case s: StringValue => s.stringValue()
+        case x =>
+          throw ParameterWrongTypeException.expectedStringButGotType(
+            paramName.name,
+            x.getTypeName,
+            x.prettify()
+          )
+      }
+    case other =>
+      // Should have thrown in semantic checking already and not get here
+      throw InvalidArgumentException.internalError(
+        this.getClass.getSimpleName,
+        s"Invalid input ${ExpressionStringifier().apply(other)} for name. Expected to be STRING NOT NULL."
+      )
   }
 
   private[internal] def getEntityInfo(entityName: ElementTypeName, ctx: QueryContext): (Int, EntityType) =
@@ -150,7 +172,7 @@ object SchemaCommandRuntime {
     PropertyKeyId(ctx.getOrCreatePropertyKeyId(property.name))
 
   private[internal] def getPrettyName(nameOption: Option[String]): PrettyString =
-    getPrettyStringName(nameOption.map(Left(_)))
+    getPrettyStringName(nameOption.map(StringLiteral(_)(InputPosition.NONE)))
 
   private[internal] def getPrettyEntityPattern(entityName: ElementTypeName): PrettyString = entityName match {
     case label: LabelName     => pretty"(e:${asPrettyString(label)})"

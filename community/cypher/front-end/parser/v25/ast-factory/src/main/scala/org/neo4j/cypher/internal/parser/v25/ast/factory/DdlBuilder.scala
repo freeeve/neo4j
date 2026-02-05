@@ -175,16 +175,16 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.DropConstraintContext
   ): Unit = {
     val p = pos(ctx.getParent)
-    val constraintName = ctx.symbolicNameOrStringParameter()
+    val constraintName = ctx.commandNameExpression()
     ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null)(p)
   }
 
   final override def exitDropIndex(
     ctx: Cypher25Parser.DropIndexContext
   ): Unit = {
-    val indexName = ctx.symbolicNameOrStringParameter()
+    val indexName = ctx.commandNameExpression()
     ctx.ast = DropIndexOnName(
-      indexName.ast[Either[String, Parameter]](),
+      indexName.ast[Expression](),
       ctx.EXISTS() != null
     )(pos(ctx.getParent))
   }
@@ -636,16 +636,6 @@ trait DdlBuilder extends Cypher25ParserListener {
   }
 
   // General symbolic names/string contexts
-
-  final override def exitSymbolicNameOrStringParameter(
-    ctx: Cypher25Parser.SymbolicNameOrStringParameterContext
-  ): Unit = {
-    ctx.ast = if (ctx.symbolicNameString() != null) {
-      Left(ctx.symbolicNameString().ast[String]())
-    } else {
-      Right(ctx.parameter().ast[Parameter]())
-    }
-  }
 
   final override def exitCommandNameExpression(
     ctx: Cypher25Parser.CommandNameExpressionContext

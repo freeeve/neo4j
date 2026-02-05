@@ -98,6 +98,14 @@ class AnonymizeQueryTest extends AnonymizerTestBase {
     assertRewrite("MATCH (n) WHERE p.n > 2 RETURN 1", "MATCH (Xn) WHERE Xp.Xn > 2 RETURN 1")
   }
 
+  test("search clause") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "MATCH (n) SEARCH n IN ( VECTOR INDEX name FOR [1,2,3] LIMIT 1 ) SCORE AS score",
+      "MATCH (Xn) SEARCH Xn IN ( VECTOR INDEX `Xstring[name]` FOR [1,2,3] LIMIT 1 ) SCORE AS Xscore"
+    )
+  }
+
   test("parameter") {
     assertRewrite("RETURN $param1 AS p1, $param2 AS p2", "RETURN $Xparam1 AS Xp1, $Xparam2 AS Xp2")
   }
@@ -111,78 +119,112 @@ class AnonymizeQueryTest extends AnonymizerTestBase {
     // create range
     assertRewrite(
       "CREATE INDEX name FOR (n:Label) ON (n.prop1, n.prop2)",
-      "CREATE INDEX Xname FOR (Xn:xLabel) ON (Xn.Xprop1, Xn.Xprop2)"
+      "CREATE INDEX `Xstring[name]` FOR (Xn:xLabel) ON (Xn.Xprop1, Xn.Xprop2)"
     )
     assertRewrite(
       "CREATE INDEX name FOR ()-[r:TYPE]-() ON (r.prop)",
-      "CREATE INDEX Xname FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
+      "CREATE INDEX `Xstring[name]` FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
+    )
+    assertRewrite(
+      "CREATE INDEX $name FOR (n:Label) ON (n.prop1, n.prop2)",
+      "CREATE INDEX $Xname FOR (Xn:xLabel) ON (Xn.Xprop1, Xn.Xprop2)"
+    )
+    assertRewrite(
+      CypherVersion.Cypher5,
+      "CREATE INDEX name FOR (n:Label) ON n.prop OPTIONS {indexProvider: 'range-1.0'}",
+      "CREATE INDEX `Xstring[name]` FOR (Xn:xLabel) ON Xn.Xprop OPTIONS {indexProvider: 'string[range-1.0]'}"
     )
 
     // create text
     assertRewrite(
       "CREATE TEXT INDEX name FOR (n:Label) ON (n.prop)",
-      "CREATE TEXT INDEX Xname FOR (Xn:xLabel) ON (Xn.Xprop)"
+      "CREATE TEXT INDEX `Xstring[name]` FOR (Xn:xLabel) ON (Xn.Xprop)"
     )
     assertRewrite(
       "CREATE TEXT INDEX name FOR ()-[r:TYPE]-() ON (r.prop)",
-      "CREATE TEXT INDEX Xname FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
+      "CREATE TEXT INDEX `Xstring[name]` FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
     )
 
     // create point
     assertRewrite(
       "CREATE POINT INDEX name FOR (n:Label) ON (n.prop)",
-      "CREATE POINT INDEX Xname FOR (Xn:xLabel) ON (Xn.Xprop)"
+      "CREATE POINT INDEX `Xstring[name]` FOR (Xn:xLabel) ON (Xn.Xprop)"
     )
     assertRewrite(
       "CREATE POINT INDEX name FOR ()-[r:TYPE]-() ON (r.prop)",
-      "CREATE POINT INDEX Xname FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
+      "CREATE POINT INDEX `Xstring[name]` FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop)"
+    )
+    assertRewrite(
+      "CREATE POINT INDEX name FOR ()-[r:TYPE]-() ON (r.prop) OPTIONS {indexConfig: {`spatial.cartesian.min`: [-5.0, 5.0]}}",
+      "CREATE POINT INDEX `Xstring[name]` FOR ()-[Xr:xTYPE]-() ON (Xr.Xprop) OPTIONS {indexConfig: {`Xspatial.cartesian.min`: [-5.0, 5.0]}}"
+    )
+
+    // create vector
+    assertRewrite(
+      "CREATE VECTOR INDEX name FOR (n:Label) ON (n.prop)",
+      "CREATE VECTOR INDEX `Xstring[name]` FOR (Xn:xLabel) ON (Xn.Xprop)"
+    )
+    assertRewrite(
+      CypherVersion.Cypher25,
+      "CREATE VECTOR INDEX name FOR ()-[r:TYPE|TYPE2]-() ON (r.prop) WITH [r.prop2]",
+      "CREATE VECTOR INDEX `Xstring[name]` FOR ()-[Xr:xTYPE|xTYPE2]-() ON (Xr.Xprop) WITH [Xr.Xprop2]"
     )
 
     // create fulltext
     assertRewrite(
       "CREATE FULLTEXT INDEX name FOR (n:Label1|Label2) ON EACH [n.prop]",
-      "CREATE FULLTEXT INDEX Xname FOR (Xn:xLabel1|xLabel2) ON EACH [Xn.Xprop]"
+      "CREATE FULLTEXT INDEX `Xstring[name]` FOR (Xn:xLabel1|xLabel2) ON EACH [Xn.Xprop]"
     )
     assertRewrite(
       "CREATE FULLTEXT INDEX name FOR ()-[r:TYPE]-() ON EACH [r.prop]",
-      "CREATE FULLTEXT INDEX Xname FOR ()-[Xr:xTYPE]-() ON EACH [Xr.Xprop]"
+      "CREATE FULLTEXT INDEX `Xstring[name]` FOR ()-[Xr:xTYPE]-() ON EACH [Xr.Xprop]"
+    )
+    assertRewrite(
+      "CREATE FULLTEXT INDEX name FOR (n:Label1|Label2) ON EACH [n.prop] OPTIONS {indexConfig: {`fulltext.analyzer`: 'english'}}",
+      "CREATE FULLTEXT INDEX `Xstring[name]` FOR (Xn:xLabel1|xLabel2) ON EACH [Xn.Xprop] OPTIONS {indexConfig: {`Xfulltext.analyzer`: 'string[english]'}}"
     )
 
     // create token lookup
     assertRewrite(
       "CREATE LOOKUP INDEX name FOR (n) ON EACH labels(n)",
-      "CREATE LOOKUP INDEX Xname FOR (Xn) ON EACH labels(Xn)"
+      "CREATE LOOKUP INDEX `Xstring[name]` FOR (Xn) ON EACH labels(Xn)"
     )
     assertRewrite(
       "CREATE LOOKUP INDEX name FOR ()-[r]-() ON EACH type(r)",
-      "CREATE LOOKUP INDEX Xname FOR ()-[Xr]-() ON EACH type(Xr)"
+      "CREATE LOOKUP INDEX `Xstring[name]` FOR ()-[Xr]-() ON EACH type(Xr)"
     )
 
     // drop
-    assertRewrite("DROP INDEX name", "DROP INDEX Xname")
+    assertRewrite("DROP INDEX name", "DROP INDEX `Xstring[name]`")
+    assertRewrite("DROP INDEX $name", "DROP INDEX $Xname")
   }
 
   test("constraint commands") {
     // create
     assertRewrite(
       "CREATE CONSTRAINT name FOR (n:Label) REQUIRE (n.prop1, n.prop2) IS NODE KEY",
-      "CREATE CONSTRAINT Xname FOR (Xn:xLabel) REQUIRE (Xn.Xprop1, Xn.Xprop2) IS NODE KEY"
+      "CREATE CONSTRAINT `Xstring[name]` FOR (Xn:xLabel) REQUIRE (Xn.Xprop1, Xn.Xprop2) IS NODE KEY"
     )
     assertRewrite(
       "CREATE CONSTRAINT name FOR (n:Label) REQUIRE (n.prop) IS UNIQUE",
-      "CREATE CONSTRAINT Xname FOR (Xn:xLabel) REQUIRE (Xn.Xprop) IS UNIQUE"
+      "CREATE CONSTRAINT `Xstring[name]` FOR (Xn:xLabel) REQUIRE (Xn.Xprop) IS UNIQUE"
     )
     assertRewrite(
       "CREATE CONSTRAINT name FOR (n:Label) REQUIRE (n.prop) IS NOT NULL",
-      "CREATE CONSTRAINT Xname FOR (Xn:xLabel) REQUIRE (Xn.Xprop) IS NOT NULL"
+      "CREATE CONSTRAINT `Xstring[name]` FOR (Xn:xLabel) REQUIRE (Xn.Xprop) IS NOT NULL"
     )
     assertRewrite(
       "CREATE CONSTRAINT name FOR ()-[r:TYPE]-() REQUIRE (r.prop) IS NOT NULL",
-      "CREATE CONSTRAINT Xname FOR ()-[Xr:xTYPE]-() REQUIRE (Xr.Xprop) IS NOT NULL"
+      "CREATE CONSTRAINT `Xstring[name]` FOR ()-[Xr:xTYPE]-() REQUIRE (Xr.Xprop) IS NOT NULL"
+    )
+    assertRewrite(
+      "CREATE CONSTRAINT $name FOR ()-[r:TYPE]-() REQUIRE (r.prop) IS :: STRING",
+      "CREATE CONSTRAINT $Xname FOR ()-[Xr:xTYPE]-() REQUIRE (Xr.Xprop) IS :: STRING"
     )
 
     // drop
-    assertRewrite("DROP CONSTRAINT name", "DROP CONSTRAINT Xname")
+    assertRewrite("DROP CONSTRAINT name", "DROP CONSTRAINT `Xstring[name]`")
+    assertRewrite("DROP CONSTRAINT $name", "DROP CONSTRAINT $Xname")
   }
 
   test("graph type commands") {

@@ -174,7 +174,7 @@ trait DdlBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.DropConstraintContext
   ): Unit = {
     val p = pos(ctx.getParent)
-    val constraintName = ctx.symbolicNameOrStringParameter()
+    val constraintName = ctx.commandNameExpression()
     if (constraintName != null) {
       ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null)(p)
     } else {
@@ -185,10 +185,10 @@ trait DdlBuilder extends Cypher5ParserListener {
   final override def exitDropIndex(
     ctx: Cypher5Parser.DropIndexContext
   ): Unit = {
-    val indexName = ctx.symbolicNameOrStringParameter()
+    val indexName = ctx.commandNameExpression()
     if (indexName != null)
       ctx.ast = DropIndexOnName(
-        indexName.ast[Either[String, Parameter]](),
+        indexName.ast[Expression](),
         ctx.EXISTS() != null
       )(pos(ctx.getParent))
     else {
@@ -616,16 +616,6 @@ trait DdlBuilder extends Cypher5ParserListener {
   }
 
   // General symbolic names/string contexts
-
-  final override def exitSymbolicNameOrStringParameter(
-    ctx: Cypher5Parser.SymbolicNameOrStringParameterContext
-  ): Unit = {
-    ctx.ast = if (ctx.symbolicNameString() != null) {
-      Left(ctx.symbolicNameString().ast[String]())
-    } else {
-      Right(ctx.parameter().ast[Parameter]())
-    }
-  }
 
   final override def exitCommandNameExpression(
     ctx: Cypher5Parser.CommandNameExpressionContext

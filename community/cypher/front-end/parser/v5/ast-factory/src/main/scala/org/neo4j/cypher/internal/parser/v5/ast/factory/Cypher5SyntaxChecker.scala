@@ -548,7 +548,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       )
     }
 
-    val constraintName = ctx.symbolicNameOrStringParameter()
+    val constraintName = ctx.commandNameExpression()
     if (constraintName == null) {
       // old drop constraint by schema
       def invalidPreviouslyAllowedDropConstraint(constraintType: String) =
@@ -767,7 +767,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
   }
 
   private def checkDropIndex(ctx: Cypher5Parser.DropIndexContext): Unit = {
-    val indexName = ctx.symbolicNameOrStringParameter()
+    val indexName = ctx.commandNameExpression()
     if (indexName == null) {
       // old drop index by schema
       val msg =

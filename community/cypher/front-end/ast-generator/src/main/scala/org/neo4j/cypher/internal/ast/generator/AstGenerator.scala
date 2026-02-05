@@ -1621,7 +1621,7 @@ class AstGenerator(
   def _search: Gen[Search] = for {
     variable <- _variable
     score <- option(_variable)
-    indexName <- _nameAsEither
+    indexName <- _stringLiteralOrParameter
     expr <- _expression
     where <- option(_where)
     limit <- _limit
@@ -2738,7 +2738,7 @@ class AstGenerator(
     types <- _listOfRelTypes
     props <- _listOfProperties
     additionalProps <- if (usesCypher5) const(List.empty) else _maybeEmptyListOfProperties
-    name <- option(_nameAsEither)
+    name <- option(_stringLiteralOrParameter)
     ifExistsDo <- _ifExistsDo
     options <- _optionsMapAsEitherOrNone
     fromDefault <- boolean
@@ -2882,7 +2882,7 @@ class AstGenerator(
   } yield command
 
   def _dropIndex: Gen[DropIndexOnName] = for {
-    name <- _nameAsEither
+    name <- _stringLiteralOrParameter
     ifExists <- boolean
     use <- option(_use)
   } yield DropIndexOnName(name, ifExists, use)(pos)
@@ -2894,7 +2894,7 @@ class AstGenerator(
     props <- _listOfProperties
     prop <- _variableProperty
     propType <- _cypherTypeName
-    name <- option(_nameAsEither)
+    name <- option(_stringLiteralOrParameter)
     ifExistsDo <- _ifExistsDo
     options <- _optionsMapAsEitherOrNone
     use <- option(_use)
@@ -3000,7 +3000,7 @@ class AstGenerator(
   } yield command
 
   def _dropConstraint: Gen[DropConstraintOnName] = for {
-    name <- _nameAsEither
+    name <- _stringLiteralOrParameter
     ifExists <- boolean
     use <- option(_use)
   } yield DropConstraintOnName(name, ifExists, use)(pos)

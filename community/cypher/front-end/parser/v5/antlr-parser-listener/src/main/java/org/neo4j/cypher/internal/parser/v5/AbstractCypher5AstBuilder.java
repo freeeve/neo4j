@@ -483,8 +483,6 @@ public abstract class AbstractCypher5AstBuilder implements Cypher5ParserListener
             case Cypher5Parser.RULE_alterAliasProperties ->
                 exitAlterAliasProperties((Cypher5Parser.AlterAliasPropertiesContext) ctx);
             case Cypher5Parser.RULE_showAliases -> exitShowAliases((Cypher5Parser.ShowAliasesContext) ctx);
-            case Cypher5Parser.RULE_symbolicNameOrStringParameter ->
-                exitSymbolicNameOrStringParameter((Cypher5Parser.SymbolicNameOrStringParameterContext) ctx);
             case Cypher5Parser.RULE_commandNameExpression ->
                 exitCommandNameExpression((Cypher5Parser.CommandNameExpressionContext) ctx);
             case Cypher5Parser.RULE_symbolicNameOrStringParameterList ->

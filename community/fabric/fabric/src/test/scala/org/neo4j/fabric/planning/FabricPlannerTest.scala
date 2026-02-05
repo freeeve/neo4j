@@ -192,7 +192,7 @@ class FabricPlannerTest
             varFor("n"),
             labelName("Label"),
             List(prop("n", "prop")),
-            Some(Left("myIndex")),
+            Some(literalString("myIndex")),
             IfExistsThrowError,
             NoOptions,
             fromDefault = true

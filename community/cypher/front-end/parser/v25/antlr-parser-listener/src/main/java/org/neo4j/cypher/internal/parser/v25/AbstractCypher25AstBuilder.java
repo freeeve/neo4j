@@ -604,8 +604,6 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_alterAliasProperties ->
                 exitAlterAliasProperties((Cypher25Parser.AlterAliasPropertiesContext) ctx);
             case Cypher25Parser.RULE_showAliases -> exitShowAliases((Cypher25Parser.ShowAliasesContext) ctx);
-            case Cypher25Parser.RULE_symbolicNameOrStringParameter ->
-                exitSymbolicNameOrStringParameter((Cypher25Parser.SymbolicNameOrStringParameterContext) ctx);
             case Cypher25Parser.RULE_commandNameExpression ->
                 exitCommandNameExpression((Cypher25Parser.CommandNameExpressionContext) ctx);
             case Cypher25Parser.RULE_symbolicNameOrStringParameterList ->

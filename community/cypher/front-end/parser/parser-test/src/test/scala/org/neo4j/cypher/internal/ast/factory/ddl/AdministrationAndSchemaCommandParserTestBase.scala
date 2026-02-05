@@ -70,8 +70,8 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
       case _                          => _.toAst(expected(false))
     }
 
-  implicit val stringConvertor: String => Either[String, Parameter] = s => Left(s)
-  implicit val rolenameConvertor: String => Expression = s => literalString(s)
+  implicit val stringToLeftConvertor: String => Either[String, Parameter] = s => Left(s)
+  implicit val stringToExpressionConvertor: String => Expression = s => literalString(s)
   implicit val namespacedNameConvertor: String => ast.DatabaseName = s => ast.NamespacedName(s)(pos)
 
   val propSeq: Seq[String] = Seq("prop")

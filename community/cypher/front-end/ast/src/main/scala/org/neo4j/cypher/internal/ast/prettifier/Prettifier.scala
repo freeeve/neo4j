@@ -400,7 +400,7 @@ case class Prettifier(
       s"${expr(property.map)}.${expr(property.propertyKey)}"
 
     def getStartOfCommand(
-      name: Option[Either[String, Parameter]],
+      name: Option[Expression],
       ifExistsDo: IfExistsDo,
       schemaType: String
     ): String = {

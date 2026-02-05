@@ -88,7 +88,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   test("Create relationship range index") {
     // WHEN
     val statistics =
-      execute(s"CREATE INDEX $indexName FOR ()-[r:$relType]-() ON r.$prop").queryStatistics()
+      execute(s"CREATE INDEX $$param FOR ()-[r:$relType]-() ON r.$prop", Map("param" -> indexName)).queryStatistics()
 
     // THEN
     statistics should be(QueryStatistics(indexesAdded = 1))
@@ -337,8 +337,10 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
 
   test("Create relationship uniqueness constraint") {
     // WHEN
-    val statistics =
-      execute(s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS UNIQUE").queryStatistics()
+    val statistics = execute(
+      s"CREATE CONSTRAINT $$param FOR ()-[r:$relType]-() REQUIRE r.$prop IS UNIQUE",
+      Map("param" -> constraintName)
+    ).queryStatistics()
 
     // THEN
     statistics should be(QueryStatistics(relPropUniquenessConstraintsAdded = 1))

@@ -40,8 +40,8 @@ import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -82,7 +82,7 @@ object ConstraintCommandPlanner {
     nodeKey: NodeKey,
     label: LabelName,
     props: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -103,7 +103,7 @@ object ConstraintCommandPlanner {
     relKey: RelationshipKey,
     relType: RelTypeName,
     props: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -124,7 +124,7 @@ object ConstraintCommandPlanner {
     nodePropUnique: NodePropertyUniqueness,
     label: LabelName,
     props: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -145,7 +145,7 @@ object ConstraintCommandPlanner {
     relPropUnique: RelationshipPropertyUniqueness,
     relType: RelTypeName,
     props: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -165,7 +165,7 @@ object ConstraintCommandPlanner {
   def createNodePropertyExistenceConstraint(
     label: LabelName,
     prop: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -182,7 +182,7 @@ object ConstraintCommandPlanner {
   def createRelationshipPropertyExistenceConstraint(
     relType: RelTypeName,
     prop: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -200,7 +200,7 @@ object ConstraintCommandPlanner {
     propertyType: CypherType,
     label: LabelName,
     prop: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -224,7 +224,7 @@ object ConstraintCommandPlanner {
     propertyType: CypherType,
     relType: RelTypeName,
     prop: Seq[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -247,7 +247,7 @@ object ConstraintCommandPlanner {
   // Drop methods
 
   def dropConstraint(
-    name: Either[String, Parameter],
+    name: Expression,
     ifExists: Boolean
   ): (QueryContext, MapValue) => SchemaExecutionResult =
     (ctx, params) => {
@@ -271,7 +271,7 @@ object ConstraintCommandPlanner {
     entityName: ElementTypeName,
     props: Seq[Property],
     assertion: CreateConstraintType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =

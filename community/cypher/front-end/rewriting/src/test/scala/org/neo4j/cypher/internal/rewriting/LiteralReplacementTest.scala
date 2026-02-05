@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.rewriting.rewriters.Forced
@@ -139,6 +140,18 @@ class LiteralReplacementTest extends CypherFunSuite with AstRewritingTestSupport
   test("should not extract boolean literals in match clause") {
     assertDoesNotRewrite(s"MATCH ({a:true})")
     assertDoesNotRewrite(s"MATCH ({a:false})")
+  }
+
+  test("should extract literals except for index name in search clause") {
+    assertRewrite(
+      "MATCH (n) SEARCH n IN ( VECTOR INDEX name FOR [1,2,3] WHERE n.age > 10 LIMIT 1 ) SCORE AS score",
+      "MATCH (n) SEARCH n IN ( VECTOR INDEX name FOR $`  AUTOLIST0` WHERE n.age > $`  AUTOINT1` LIMIT 1 ) SCORE AS score",
+      Map(
+        autoParameter("  AUTOLIST0", CTList(CTAny), Some(3)) -> Seq(1, 2, 3),
+        autoParameter("  AUTOINT1", CTInteger) -> 10
+      ),
+      cypherVersion = Some(CypherVersion.Cypher25)
+    )
   }
 
   test("should not extract literals in limit or skip") {
@@ -289,11 +302,14 @@ class LiteralReplacementTest extends CypherFunSuite with AstRewritingTestSupport
     originalQuery: String,
     expectedQuery: String,
     replacements: Map[AutoExtractedParameter, Any],
-    extractLiterals: LiteralExtractionStrategy = Forced
+    extractLiterals: LiteralExtractionStrategy = Forced,
+    cypherVersion: Option[CypherVersion] = None
   ): Unit = {
     val exceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
-    val original = parse(originalQuery, exceptionFactory)
-    val expected = parse(expectedQuery, exceptionFactory)
+    val original = cypherVersion.map(cv => parse(cv, originalQuery, exceptionFactory))
+      .getOrElse(parse(originalQuery, exceptionFactory))
+    val expected = cypherVersion.map(cv => parse(cv, expectedQuery, exceptionFactory))
+      .getOrElse(parse(expectedQuery, exceptionFactory))
 
     val (rewriter, actuallyReplacedLiterals) = literalReplacement(original, extractLiterals)
     val expectedReplacedLiterals = replacements.map {

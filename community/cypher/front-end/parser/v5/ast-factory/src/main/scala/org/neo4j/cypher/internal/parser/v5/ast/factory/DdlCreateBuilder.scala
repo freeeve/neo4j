@@ -87,7 +87,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     val nodePattern = ctx.commandNodePattern()
     val isNode = nodePattern != null
-    val constraintName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
+    val constraintName = astOpt[Expression](ctx.commandNameExpression())
     val existsDo = ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null)
     val options = astOpt[Options](ctx.commandOptions(), NoOptions)
     val cT = ctx.constraintType()
@@ -227,7 +227,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
     val parent = ctx.getParent.asInstanceOf[CreateIndexContext]
     val existsDo = ifExistsDo(grandparent.REPLACE() != null, ctx.EXISTS() != null)
     val options = astOpt[Options](ctx.commandOptions(), NoOptions)
-    val indexName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
+    val indexName = astOpt[Expression](ctx.commandNameExpression())
 
     val nodePattern = ctx.commandNodePattern()
     val relPattern = ctx.commandRelPattern()
@@ -344,7 +344,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
     val grandparent = ctx.getParent.getParent.asInstanceOf[CreateCommandContext]
     val existsDo = ifExistsDo(grandparent.REPLACE() != null, ctx.EXISTS() != null)
     val options = astOpt[Options](ctx.commandOptions(), NoOptions)
-    val indexName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
+    val indexName = astOpt[Expression](ctx.commandNameExpression())
     val nodePattern = ctx.fulltextNodePattern()
     val isNode = nodePattern != null
     val propertyList = ctx.enclosedPropertyList().ast[Seq[Property]]().toList
@@ -399,7 +399,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
     val grandparent = ctx.getParent.getParent.asInstanceOf[CreateCommandContext]
     val existsDo = ifExistsDo(grandparent.REPLACE() != null, ctx.EXISTS() != null)
     val options = astOpt[Options](ctx.commandOptions(), NoOptions)
-    val indexName = astOpt[Either[String, Parameter]](ctx.symbolicNameOrStringParameter())
+    val indexName = astOpt[Expression](ctx.commandNameExpression())
     val nodePattern = ctx.lookupIndexNodePattern()
     val isNode = nodePattern != null
     val functionName = ctx.symbolicNameString

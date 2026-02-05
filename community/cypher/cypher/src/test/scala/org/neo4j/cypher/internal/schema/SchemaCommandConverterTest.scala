@@ -35,10 +35,10 @@ import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.MapExpression
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
@@ -1363,7 +1363,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       test(s"CREATE LOOKUP INDEX $$boom FOR $pattern ON EACH $suffix") {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createIndex(
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -1468,7 +1468,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -1617,7 +1617,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -1750,7 +1750,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -1883,7 +1883,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -2039,7 +2039,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           converterForDefaultCypherVersion.apply(createIndex(
             List(prop("name")),
             List(entity),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -2357,7 +2357,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         val error = intercept[SchemaCommandReaderException] {
           converterForDefaultCypherVersion.apply(createConstraint(
             prop("name"),
-            Some(Right(parameter)),
+            Some(parameter),
             ast.IfExistsThrowError,
             ast.NoOptions
           ))
@@ -2391,14 +2391,14 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   type CreateConstraintFunction = (
     Property,
-    Option[Either[String, Parameter]],
+    Option[Expression],
     ast.IfExistsDo,
     ast.Options
   ) => ast.CreateConstraint
 
   private def uniquenessNodeConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2414,7 +2414,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def uniquenessRelConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2430,7 +2430,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def existenceNodeConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2445,7 +2445,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def existenceRelConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2460,7 +2460,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def propertyNodeConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2476,7 +2476,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def propertyRelConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2492,7 +2492,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def keyNodeConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2508,7 +2508,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def keyRelConstraint(
     prop: Property,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateConstraint =
@@ -2524,21 +2524,21 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   type CreateBTreeIndexFunction = (
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     ast.IfExistsDo,
     ast.Options
   ) => ast.CreateIndex
 
   type CreateIndexFunction = (
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     ast.IfExistsDo,
     ast.Options
   ) => ast.CreateIndex
 
   private def rangeNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2554,7 +2554,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def rangeRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2569,10 +2569,10 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     )(InputPosition.NONE)
 
   type CreateLookupIndexFunction =
-    (Option[Either[String, Parameter]], ast.IfExistsDo, ast.Options) => ast.CreateIndex
+    (Option[Expression], ast.IfExistsDo, ast.Options) => ast.CreateIndex
 
   private def lookupNodeIndex(
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2586,7 +2586,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     )(InputPosition.NONE)
 
   private def lookupRelIndex(
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2602,7 +2602,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   type CreateFulltextIndexFunction = (
     List[Property],
     List[String],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     ast.IfExistsDo,
     ast.Options
   ) => ast.CreateIndex
@@ -2610,7 +2610,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   private def fulltextNodeIndex(
     props: List[Property],
     labels: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2626,7 +2626,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   private def fulltextRelIndex(
     props: List[Property],
     types: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2641,7 +2641,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def textNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2656,7 +2656,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def textRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2671,7 +2671,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def pointNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2686,7 +2686,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def pointRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2701,7 +2701,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def vectorNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2717,7 +2717,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
 
   private def vectorRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
   ): ast.CreateIndex =
@@ -2731,7 +2731,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
       options
     )(InputPosition.NONE)
 
-  private def indexName(name: String) = if (name.isBlank) None else Some(Left(name))
+  private def indexName(name: String) = if (name.isBlank) None else Some(StringLiteral(name)(InputPosition.NONE))
 
   private def commandName(name: String) = if (name.isBlank) null else name
 

@@ -1021,7 +1021,7 @@ commandRelPattern
    ;
 
 createConstraint
-   : CONSTRAINT symbolicNameOrStringParameter? (IF NOT EXISTS)? (ON | FOR) (commandNodePattern | commandRelPattern) constraintType commandOptions?
+   : CONSTRAINT commandNameExpression? (IF NOT EXISTS)? (ON | FOR) (commandNodePattern | commandRelPattern) constraintType commandOptions?
    ;
 
 constraintType
@@ -1033,7 +1033,7 @@ constraintType
    ;
 
 dropConstraint
-   : CONSTRAINT (ON (commandNodePattern | commandRelPattern) ASSERT (EXISTS propertyList | propertyList IS (UNIQUE | NODE KEY | NOT NULL)) | symbolicNameOrStringParameter (IF EXISTS)?)
+   : CONSTRAINT (ON (commandNodePattern | commandRelPattern) ASSERT (EXISTS propertyList | propertyList IS (UNIQUE | NODE KEY | NOT NULL)) | commandNameExpression (IF EXISTS)?)
    ;
 
 createIndex
@@ -1052,11 +1052,11 @@ oldCreateIndex
    ;
 
 createIndex_
-   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (commandNodePattern | commandRelPattern) ON propertyList commandOptions?
+   : commandNameExpression? (IF NOT EXISTS)? FOR (commandNodePattern | commandRelPattern) ON propertyList commandOptions?
    ;
 
 createFulltextIndex
-   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (fulltextNodePattern | fulltextRelPattern) ON EACH LBRACKET enclosedPropertyList RBRACKET commandOptions?
+   : commandNameExpression? (IF NOT EXISTS)? FOR (fulltextNodePattern | fulltextRelPattern) ON EACH LBRACKET enclosedPropertyList RBRACKET commandOptions?
    ;
 
 fulltextNodePattern
@@ -1068,7 +1068,7 @@ fulltextRelPattern
    ;
 
 createLookupIndex
-   : symbolicNameOrStringParameter? (IF NOT EXISTS)? FOR (lookupIndexNodePattern | lookupIndexRelPattern) symbolicNameString LPAREN variable RPAREN commandOptions?
+   : commandNameExpression? (IF NOT EXISTS)? FOR (lookupIndexNodePattern | lookupIndexRelPattern) symbolicNameString LPAREN variable RPAREN commandOptions?
    ;
 
 lookupIndexNodePattern
@@ -1080,7 +1080,7 @@ lookupIndexRelPattern
    ;
 
 dropIndex
-   : INDEX (ON labelType LPAREN nonEmptyNameList RPAREN | symbolicNameOrStringParameter (IF EXISTS)?)
+   : INDEX (ON labelType LPAREN nonEmptyNameList RPAREN | commandNameExpression (IF EXISTS)?)
    ;
 
 propertyList
@@ -1714,13 +1714,6 @@ showAliases
 
 // Various strings, symbolic names, lists and maps
 
-// Should return an Either[String, Parameter]
-symbolicNameOrStringParameter
-   : symbolicNameString
-   | parameter["STRING"]
-   ;
-
-// Should return an Expression
 commandNameExpression
    : symbolicNameString
    | parameter["STRING"]

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
@@ -67,35 +68,37 @@ case class anonymizeQuery(anonymizer: Anonymizer) extends Rewriter {
   private val instance: Rewriter = bottomUp(Rewriter.lift {
     case x: UnaliasedReturnItem =>
       UnaliasedReturnItem(x.expression, anonymizer.unaliasedReturnItemName(x.expression, x.inputText))(x.position)
-    case v: Variable             => Variable(anonymizer.variable(v.name))(v.position, Variable.isIsolatedDefault)
-    case x: LabelName            => LabelName(anonymizer.label(x.name))(x.position)
-    case x: RelTypeName          => RelTypeName(anonymizer.relationshipType(x.name))(x.position)
-    case x: LabelOrRelTypeName   => LabelOrRelTypeName(anonymizer.labelOrRelationshipType(x.name))(x.position)
-    case x: PropertyKeyName      => PropertyKeyName(anonymizer.propertyKey(x.name))(x.position)
-    case x: Parameter            => ExplicitParameter(anonymizer.parameter(x.name), x.parameterType)(x.position)
-    case x: StringLiteral        => StringLiteral(anonymizer.literal(x.value))(x.position)
-    case x: CreateIndex          => x.withName(x.name.map(n => anonymizeSchemaName(n, anonymizer.indexName)))
-    case x: DropIndexOnName      => x.copy(name = anonymizeSchemaName(x.name, anonymizer.indexName))(x.position)
-    case x: CreateConstraint     => x.withName(x.name.map(n => anonymizeSchemaName(n, anonymizer.constraintName)))
-    case x: DropConstraintOnName => x.copy(name = anonymizeSchemaName(x.name, anonymizer.constraintName))(x.position)
-    case x: GraphTypeConstraintName =>
-      x.copy(name = anonymizeSchemaName(Left(x.name), anonymizer.constraintName).swap.getOrElse(x.name))(x.position)
+    case v: Variable           => Variable(anonymizer.variable(v.name))(v.position, Variable.isIsolatedDefault)
+    case x: LabelName          => LabelName(anonymizer.label(x.name))(x.position)
+    case x: RelTypeName        => RelTypeName(anonymizer.relationshipType(x.name))(x.position)
+    case x: LabelOrRelTypeName => LabelOrRelTypeName(anonymizer.labelOrRelationshipType(x.name))(x.position)
+    case x: PropertyKeyName    => PropertyKeyName(anonymizer.propertyKey(x.name))(x.position)
+    case x: Parameter          => ExplicitParameter(anonymizer.parameter(x.name), x.parameterType)(x.position)
+    case x: StringLiteral      => StringLiteral(anonymizer.literal(x.value))(x.position)
+    case x: CreateIndex        => x.withName(x.name.map(n => anonymizeSchemaName(n, anonymizer.indexName)))
+    case x: DropIndexOnName    => x.copy(name = anonymizeSchemaName(x.name, anonymizer.indexName))(x.position)
+    case x: Search             => x.copy(indexName = anonymizeSchemaName(x.indexName, anonymizer.indexName))(x.position)
+    case x: CreateConstraint   => x.withName(x.name.map(n => anonymizeSchemaName(n, anonymizer.constraintName)))
+    case x: DropConstraintOnName    => x.copy(name = anonymizeSchemaName(x.name, anonymizer.constraintName))(x.position)
+    case x: GraphTypeConstraintName => x.copy(name = anonymizer.constraintName(x.name))(x.position)
     case x: GraphTypeConstraintDefinition =>
-      x.copy(name =
-        x.name.map(name => anonymizeSchemaName(Left(name), anonymizer.constraintName).swap.getOrElse(name))
-      )(x.position)
+      x.copy(name = x.name.map(name => anonymizer.constraintName(name)))(x.position)
     case x: CommandClauseWithNames => x.withNames(anonymizeCommandClauseNames(x.names, anonymizer.literal))
     case x: User                   => x.copy(anonymizer.identifierAsString(x.name))
   })
 
   private def anonymizeSchemaName(
-    name: Either[String, Parameter],
+    name: Expression,
     anonymizeStringName: String => String
-  ): Either[String, ExplicitParameter] =
+  ): Expression =
     name match {
-      case Left(string) => Left(anonymizeStringName(string))
-      case Right(param) =>
-        Right(ExplicitParameter(anonymizer.parameter(param.name), param.parameterType)(param.position))
+      case string: StringLiteral => StringLiteral(anonymizeStringName(string.value))(string.position)
+      case param: Parameter      =>
+        // The parameter will be anonymized separately and doesn't need to be handled here
+        param
+      case other =>
+        // Should have thrown in semantic checking already and not get here
+        other
     }
 
   private def anonymizeCommandClauseNames(

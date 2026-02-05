@@ -25,7 +25,10 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.exceptions.InvalidArgumentException
 
 sealed trait SearchClause {
   def resultVariable: LogicalVariable
@@ -72,19 +75,27 @@ object SearchClause {
 
   def fromAst(search: Option[Search]): Option[SearchClause] = search.map(ast => {
     ast.indexName match {
-      case Right(_) =>
+      case _: Parameter =>
         // We currently only support String, update this when we allow Parameter.
         throw new IllegalArgumentException(
           s"Index name as Parameter is not supported in the expression form of SEARCH at position ${ast.position}"
         )
-      case Left(indexName) =>
+      case indexName: StringLiteral =>
         VectorSearchClause(
           resultVariable = ast.bindingVariable,
-          indexName = indexName,
+          indexName = indexName.value,
           embedding = ast.embedding,
           where = ast.where,
           limit = ast.limit.expression,
           scoreVariable = ast.score
+        )
+      case exp =>
+        // We only parse the index name as an identifier (saved as StringLiteral) or string Parameter
+        // Should have thrown in semantic checking already and not get here
+        // This is the same exception as for create index for this case
+        throw InvalidArgumentException.internalError(
+          this.getClass.getSimpleName,
+          s"Invalid input ${ExpressionStringifier().apply(exp)} for name. Expected to be STRING NOT NULL."
         )
     }
   })

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.Limit
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.Search
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.Skip
 import org.neo4j.cypher.internal.ast.SubqueryCall
@@ -44,6 +45,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.BucketSize
 import org.neo4j.cypher.internal.util.Foldable
+import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.IdentityMap
@@ -82,6 +84,11 @@ object literalReplacement {
       _: Unwind |
       _: CallClause =>
       acc => TraverseChildren(acc)
+    case s: Search =>
+      // TODO: Once Search can handle index name as parameter,
+      //  re-enable the auto-parameterization for all of it by removing this case
+      acc =>
+        SkipChildren(s.treeChildren.filterNot(field => field eq s.indexName).toSeq.folder.treeFold(acc)(literalMatcher))
     case _: Clause |
       _: Limit |
       _: Skip |

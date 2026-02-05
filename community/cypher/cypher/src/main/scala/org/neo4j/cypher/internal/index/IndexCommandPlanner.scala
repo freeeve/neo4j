@@ -31,8 +31,8 @@ import org.neo4j.cypher.internal.SchemaCommandRuntime.propertyToId
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Labels
@@ -85,7 +85,7 @@ object IndexCommandPlanner {
   def createFulltextIndex(
     entityNames: Either[List[LabelName], List[RelTypeName]],
     props: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -108,7 +108,7 @@ object IndexCommandPlanner {
 
   def createLookupIndex(
     entityType: EntityType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -125,7 +125,7 @@ object IndexCommandPlanner {
   def createPointIndex(
     entityName: ElementTypeName,
     props: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -149,7 +149,7 @@ object IndexCommandPlanner {
   def createRangeIndex(
     entityName: ElementTypeName,
     props: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -173,7 +173,7 @@ object IndexCommandPlanner {
   def createTextIndex(
     entityName: ElementTypeName,
     props: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -194,7 +194,7 @@ object IndexCommandPlanner {
     entityNames: Either[List[LabelName], List[RelTypeName]],
     props: List[PropertyKeyName],
     additionalProps: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -228,7 +228,7 @@ object IndexCommandPlanner {
   // Drop methods
 
   def dropIndex(
-    name: Either[String, Parameter],
+    name: Expression,
     ifExists: Boolean
   ): (QueryContext, MapValue) => SchemaExecutionResult =
     (ctx, params) => {
@@ -252,7 +252,7 @@ object IndexCommandPlanner {
     entityName: ElementTypeName,
     propertyKeyNames: List[PropertyKeyName],
     indexType: IndexType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult = {
@@ -317,7 +317,7 @@ object IndexCommandPlanner {
   def doNothingIfExistsForFulltext(
     entityNames: Either[List[LabelName], List[RelTypeName]],
     propertyKeyNames: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -366,7 +366,7 @@ object IndexCommandPlanner {
     entityNames: Either[List[LabelName], List[RelTypeName]],
     propertyKeyNames: List[PropertyKeyName],
     additionalPropertyKeyNames: List[PropertyKeyName],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =
@@ -418,7 +418,7 @@ object IndexCommandPlanner {
 
   def doNothingIfExistsForLookup(
     entityType: EntityType,
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     options: Options,
     cypherVersion: CypherVersion
   ): (QueryContext, MapValue) => SchemaExecutionResult =

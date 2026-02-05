@@ -789,8 +789,6 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitShowAliases(Cypher25Parser.ShowAliasesContext ctx);
 
-    void exitSymbolicNameOrStringParameter(Cypher25Parser.SymbolicNameOrStringParameterContext ctx);
-
     void exitCommandNameExpression(Cypher25Parser.CommandNameExpressionContext ctx);
 
     void exitSymbolicNameOrStringParameterList(Cypher25Parser.SymbolicNameOrStringParameterListContext ctx);

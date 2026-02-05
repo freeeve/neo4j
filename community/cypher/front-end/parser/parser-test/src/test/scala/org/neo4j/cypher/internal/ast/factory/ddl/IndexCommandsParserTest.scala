@@ -18,8 +18,8 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Count
@@ -165,7 +165,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -179,7 +179,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -235,7 +235,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions,
@@ -263,7 +263,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions,
@@ -291,7 +291,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions,
@@ -407,7 +407,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos),
@@ -421,7 +421,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n", "name")),
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -448,7 +448,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -534,7 +534,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -548,7 +548,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -590,7 +590,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions,
@@ -618,7 +618,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions,
@@ -646,7 +646,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions,
@@ -754,7 +754,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos),
@@ -768,7 +768,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -795,7 +795,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             pos,
             ast.IfExistsThrowError,
             ast.NoOptions,
@@ -972,7 +972,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"CREATE LOOKUP INDEX my_index FOR $pattern ON EACH $function") {
         assertAst(
           createIndex(
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -997,7 +997,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
       test(s"CREATE OR REPLACE LOOKUP INDEX my_index FOR $pattern ON EACH $function") {
         assertAst(
-          createIndex(Some(Left("my_index")), posN2(testName), ast.IfExistsReplace, ast.NoOptions)(pos),
+          createIndex(Some("my_index"), posN2(testName), ast.IfExistsReplace, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
@@ -1012,7 +1012,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"CREATE OR REPLACE LOOKUP INDEX my_index IF NOT EXISTS FOR $pattern ON EACH $function") {
         assertAst(
           createIndex(
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
@@ -1031,7 +1031,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"CREATE LOOKUP INDEX my_index IF NOT EXISTS FOR $pattern ON EACH $function") {
         assertAst(
           createIndex(
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
@@ -1055,7 +1055,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"CREATE LOOKUP INDEX my_index FOR $pattern ON EACH $function OPTIONS {}") {
         assertAst(
           createIndex(
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
@@ -1067,7 +1067,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"CREATE LOOKUP INDEX $$my_index FOR $pattern ON EACH $function") {
         assertAst(
           createIndex(
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1145,7 +1145,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1160,7 +1160,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1205,7 +1205,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name"), prop("n3", "age")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
@@ -1235,7 +1235,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
@@ -1265,7 +1265,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
@@ -1370,7 +1370,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
@@ -1385,7 +1385,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsParam(parameter("options", CTMap))(pos)
@@ -1400,7 +1400,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             isNodeIndex,
             List(prop("n2", "name")),
             labelsOrTypes,
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1505,7 +1505,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1518,7 +1518,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1557,7 +1557,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
@@ -1583,7 +1583,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
@@ -1609,7 +1609,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
@@ -1721,7 +1721,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
@@ -1734,7 +1734,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1759,7 +1759,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1846,7 +1846,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1859,7 +1859,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -1898,7 +1898,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name"), prop("n3", "age")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
@@ -1924,7 +1924,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
@@ -1950,7 +1950,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
@@ -2062,7 +2062,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name")),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
@@ -2075,7 +2075,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n", "name")),
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2100,7 +2100,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
-            Some(Left("my_index")),
+            Some("my_index"),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2218,7 +2218,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2235,7 +2235,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name"), prop("n3", "age")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2269,7 +2269,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name")),
             List(prop("n3", "prop1"), prop("n4", "prop2"), prop("n5", "prop3"), prop("n6", "prop1")),
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2303,7 +2303,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name"), prop("n3", "age")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsReplace,
             ast.NoOptions
@@ -2337,7 +2337,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions
@@ -2388,7 +2388,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsDoNothing,
             ast.NoOptions
@@ -2528,7 +2528,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name")),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.OptionsMap(Map.empty)(pos)
@@ -2545,7 +2545,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n", "name")),
             List.empty,
             labelsOrTypes,
-            Some(Right(stringParam("my_index"))),
+            Some(stringParam("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2578,7 +2578,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             List(prop("n2", "name", posN2(testName))),
             List.empty,
             labelsOrTypes,
-            Some(Left("my_index")),
+            Some("my_index"),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -3619,20 +3619,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   }
 
   test("DROP INDEX my_index") {
-    assertAst(ast.DropIndexOnName(Left("my_index"), ifExists = false)(pos))
+    assertAst(ast.DropIndexOnName("my_index", ifExists = false)(pos))
   }
 
   test("DROP INDEX `$my_index`") {
-    assertAst(ast.DropIndexOnName(Left("$my_index"), ifExists = false)(pos))
+    assertAst(ast.DropIndexOnName("$my_index", ifExists = false)(pos))
   }
 
   test("DROP INDEX my_index IF EXISTS") {
-    assertAst(ast.DropIndexOnName(Left("my_index"), ifExists = true)(pos))
+    assertAst(ast.DropIndexOnName("my_index", ifExists = true)(pos))
   }
 
   test("DROP INDEX $my_index") {
     assertAst(
-      ast.DropIndexOnName(Right(stringParam("my_index")), ifExists = false)(pos),
+      ast.DropIndexOnName(stringParam("my_index"), ifExists = false)(pos),
       comparePosition = false
     )
   }
@@ -3766,11 +3766,11 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   }
 
   test("DROP INDEX on IF EXISTS") {
-    assertAst(ast.DropIndexOnName(Left("on"), ifExists = true)(pos))
+    assertAst(ast.DropIndexOnName("on", ifExists = true)(pos))
   }
 
   test("DROP INDEX on") {
-    assertAst(ast.DropIndexOnName(Left("on"), ifExists = false)(pos))
+    assertAst(ast.DropIndexOnName("on", ifExists = false)(pos))
   }
 
   test("DROP INDEX ON :if(exists)") {
@@ -3792,7 +3792,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   type CreateIndexFunction = (
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     InputPosition,
     ast.IfExistsDo,
     ast.Options
@@ -3800,7 +3800,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   type CreateRangeIndexFunction = (
     List[Property],
-    Option[Either[String, Parameter]],
+    Option[Expression],
     InputPosition,
     ast.IfExistsDo,
     ast.Options,
@@ -3809,7 +3809,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def rangeNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options,
@@ -3827,7 +3827,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def rangeRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options,
@@ -3845,14 +3845,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   type CreateLookupIndexFunction =
     (
-      Option[Either[String, Parameter]],
+      Option[Expression],
       InputPosition,
       ast.IfExistsDo,
       ast.Options
     ) => InputPosition => ast.CreateIndex
 
   private def lookupNodeIndex(
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3867,7 +3867,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     )
 
   private def lookupRelIndex(
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3885,7 +3885,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     isNodeIndex: Boolean,
     props: List[Property],
     labelOrTypes: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3899,7 +3899,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   private def fulltextNodeIndex(
     props: List[Property],
     labels: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3916,7 +3916,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   private def fulltextRelIndex(
     props: List[Property],
     types: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3932,7 +3932,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def textNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3948,7 +3948,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def textRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3964,7 +3964,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def pointNodeIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3980,7 +3980,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   private def pointRelIndex(
     props: List[Property],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -3999,7 +3999,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     props: List[Property],
     additionalProps: List[Property],
     labelOrTypes: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -4014,7 +4014,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     props: List[Property],
     additionalProps: List[Property],
     labels: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options
@@ -4033,7 +4033,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     props: List[Property],
     additionalProps: List[Property],
     types: List[String],
-    name: Option[Either[String, Parameter]],
+    name: Option[Expression],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options

@@ -41,10 +41,11 @@ import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
 import org.neo4j.cypher.internal.ast.TextCreateIndex
 import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.optionsmap.CreateFulltextIndexOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.CreateIndexWithFullOptions
 import org.neo4j.cypher.internal.optionsmap.CreateLookupIndexOptionsConverter
@@ -320,12 +321,13 @@ class SchemaCommandConverter(
   }
 
   @throws[SchemaCommandReaderException]
-  private def checkName(name: Either[String, Parameter], message: String): String = name
-    .swap
-    .getOrElse(throw new SchemaCommandReaderException("Parameters are not allowed to be used as a %s%s".formatted(
-      message,
-      ERROR_SUFFIX
-    )))
+  private def checkName(name: Expression, message: String): String = name match {
+    case s: StringLiteral => s.value
+    case _ => throw new SchemaCommandReaderException("Parameters are not allowed to be used as a %s%s".formatted(
+        message,
+        ERROR_SUFFIX
+      ))
+  }
 
   @throws[SchemaCommandReaderException]
   private def tokenName(name: ElementTypeName): String =

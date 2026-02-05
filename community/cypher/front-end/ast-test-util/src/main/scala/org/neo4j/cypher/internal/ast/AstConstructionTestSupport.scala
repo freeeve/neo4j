@@ -1400,7 +1400,7 @@ trait AstConstructionTestSupport {
   def search(
     resultVariable: String,
     score: Option[String],
-    indexName: Either[String, Parameter],
+    indexName: Expression,
     embedding: Expression,
     limitNbr: Long,
     where: Option[Where] = None

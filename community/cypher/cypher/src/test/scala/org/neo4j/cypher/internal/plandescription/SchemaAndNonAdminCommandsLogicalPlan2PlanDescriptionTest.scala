@@ -140,7 +140,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("CreateRangeIndex") {
     assertGood(
       attach(
-        CreateIndex(None, IndexType.RANGE, label("Label"), List(key("prop")), Some(Left("$indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.RANGE,
+          label("Label"),
+          List(key("prop")),
+          Some(literalString("$indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -164,7 +171,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.RANGE,
           label("Label"),
           List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
+          Some(parameter("indexName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -209,7 +216,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(None, IndexType.RANGE, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.RANGE,
+          relType("Label"),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -239,7 +253,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.RANGE,
           relType("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -289,7 +303,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.RANGE,
           label("Label"),
           List(key("prop1"), key("prop2")),
-          Some(Left("$indexName")),
+          Some(literalString("$indexName")),
           OptionsParam(parameter("options", CTMap))(pos)
         ),
         1.0
@@ -306,7 +320,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("CreateLookupIndex") {
     assertGood(
-      attach(CreateLookupIndex(None, EntityType.NODE, Some(Left("indexName")), NoOptions), 1.0),
+      attach(CreateLookupIndex(None, EntityType.NODE, Some(literalString("indexName")), NoOptions), 1.0),
       planDescription(
         id,
         "CreateIndex",
@@ -348,7 +362,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         CreateLookupIndex(
           None,
           EntityType.NODE,
-          Some(Left("$indexName")),
+          Some(literalString("$indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("token-lookup-1.0")))(pos)
         ),
         1.0
@@ -365,7 +379,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     )
 
     assertGood(
-      attach(CreateLookupIndex(None, EntityType.RELATIONSHIP, Some(Left("indexName")), NoOptions), 1.0),
+      attach(CreateLookupIndex(None, EntityType.RELATIONSHIP, Some(literalString("indexName")), NoOptions), 1.0),
       planDescription(
         id,
         "CreateIndex",
@@ -380,11 +394,11 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         CreateLookupIndex(
           Some(DoNothingIfExistsForLookupIndex(
             EntityType.RELATIONSHIP,
-            Some(Right(parameter("indexName", CTString))),
+            Some(parameter("indexName", CTString)),
             NoOptions
           )),
           EntityType.RELATIONSHIP,
-          Some(Right(parameter("indexName", CTString))),
+          Some(parameter("indexName", CTString)),
           NoOptions
         ),
         1.0
@@ -411,7 +425,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         CreateLookupIndex(
           None,
           EntityType.RELATIONSHIP,
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexConfig" -> MapExpression(Seq.empty)(pos)))(pos)
         ),
         1.0
@@ -429,7 +443,13 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("CreateFulltextIndex") {
     assertGood(
       attach(
-        CreateFulltextIndex(None, Left(List(label("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateFulltextIndex(
+          None,
+          Left(List(label("Label"))),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -461,7 +481,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           None,
           Left(List(label("Label1"), label("Label2"))),
           List(key("prop")),
-          Some(Right(parameter("$indexName", CTString))),
+          Some(parameter("$indexName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
         ),
         1.0
@@ -507,7 +527,13 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateFulltextIndex(None, Right(List(relType("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateFulltextIndex(
+          None,
+          Right(List(relType("Label"))),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -545,7 +571,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           None,
           Right(List(relType("Label"))),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
         ),
         1.0
@@ -595,7 +621,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           None,
           Left(List(label("Label"))),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsParam(parameter("ops", CTMap))(pos)
         ),
         1.0
@@ -613,7 +639,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("CreateTextIndex") {
     assertGood(
       attach(
-        CreateIndex(None, IndexType.TEXT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.TEXT,
+          label("Label"),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -637,7 +670,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.TEXT,
           label("Label"),
           List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
+          Some(parameter("indexName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
         ),
         1.0
@@ -682,7 +715,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(None, IndexType.TEXT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.TEXT,
+          relType("Label"),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -712,7 +752,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.TEXT,
           relType("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
         ),
         1.0
@@ -762,7 +802,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.TEXT,
           label("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsParam(parameter("options", CTMap))(pos)
         ),
         1.0
@@ -780,7 +820,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
   test("CreatPointIndex") {
     assertGood(
       attach(
-        CreateIndex(None, IndexType.POINT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.POINT,
+          label("Label"),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -804,7 +851,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.POINT,
           label("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
         ),
         1.0
@@ -825,13 +872,13 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
             label("Label"),
             List(key("prop")),
             IndexType.POINT,
-            Some(Right(parameter("indexName", CTString))),
+            Some(parameter("indexName", CTString)),
             NoOptions
           )),
           IndexType.POINT,
           label("Label"),
           List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
+          Some(parameter("indexName", CTString)),
           NoOptions
         ),
         1.0
@@ -855,7 +902,14 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
     assertGood(
       attach(
-        CreateIndex(None, IndexType.POINT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        CreateIndex(
+          None,
+          IndexType.POINT,
+          relType("Label"),
+          List(key("prop")),
+          Some(literalString("indexName")),
+          NoOptions
+        ),
         1.0
       ),
       planDescription(
@@ -885,7 +939,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.POINT,
           relType("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
         ),
         1.0
@@ -935,7 +989,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           IndexType.POINT,
           label("Label"),
           List(key("prop")),
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsParam(parameter("options", CTMap))(pos)
         ),
         1.0
@@ -958,7 +1012,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           Left(List(label("Label"))),
           List(key("prop")),
           List.empty,
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           NoOptions
         ),
         1.0
@@ -984,7 +1038,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           Left(List(label("Label1"), label("Label2"))),
           List(key("prop")),
           List.empty,
-          Some(Right(parameter("indexName", CTString))),
+          Some(parameter("indexName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
         1.0
@@ -1077,7 +1131,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           Right(List(relType("Label"))),
           List(key("prop")),
           List.empty,
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           NoOptions
         ),
         1.0
@@ -1119,7 +1173,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           Right(List(relType("Label"))),
           List(key("prop")),
           List.empty,
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
         1.0
@@ -1212,7 +1266,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           Left(List(label("Label"))),
           List(key("prop")),
           List.empty,
-          Some(Left("indexName")),
+          Some(literalString("indexName")),
           OptionsParam(parameter("options", CTMap))(pos)
         ),
         1.0
@@ -1229,17 +1283,17 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("DropIndexOnName") {
     assertGood(
-      attach(DropIndexOnName(Left("indexName"), ifExists = false), 1.0),
+      attach(DropIndexOnName(literalString("indexName"), ifExists = false), 1.0),
       planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName")), Set.empty)
     )
 
     assertGood(
-      attach(DropIndexOnName(Left("indexName"), ifExists = true), 1.0),
+      attach(DropIndexOnName(literalString("indexName"), ifExists = true), 1.0),
       planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName IF EXISTS")), Set.empty)
     )
 
     assertGood(
-      attach(DropIndexOnName(Right(parameter("indexName", CTString)), ifExists = false), 1.0),
+      attach(DropIndexOnName(parameter("indexName", CTString), ifExists = false), 1.0),
       planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX $indexName")), Set.empty)
     )
   }
@@ -1332,7 +1386,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodePropertyUniqueness.cypher25,
           label("Label"),
           Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1353,7 +1407,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodePropertyUniqueness.cypher5,
           label("Label"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1374,7 +1428,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodePropertyUniqueness.cypher25,
           label("Label"),
           List(prop("x", "prop")),
-          Some(Left("$constraintName")),
+          Some(literalString("$constraintName")),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -1476,7 +1530,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipPropertyUniqueness.cypher5,
           relType("REL_TYPE"),
           Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1497,7 +1551,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipPropertyUniqueness.cypher25,
           relType("REL_TYPE"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1518,7 +1572,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipPropertyUniqueness.cypher5,
           relType("REL-TYPE"),
           List(prop("x", "prop-prop")),
-          Some(Right(parameter("constraintName", CTString))),
+          Some(parameter("constraintName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -1610,7 +1664,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodeKey.cypher5,
           label("Label"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1631,7 +1685,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodeKey.cypher5,
           label("Label"),
           List(prop("x", "prop")),
-          Some(Right(parameter("constraintName", CTString))),
+          Some(parameter("constraintName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -1654,13 +1708,13 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
             label("Label"),
             Seq(prop(" x", "prop")),
             NodeKey.cypher5,
-            Some(Left("constraintName")),
+            Some(literalString("constraintName")),
             NoOptions
           )),
           NodeKey.cypher5,
           label("Label"),
           Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1710,7 +1764,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodeKey.cypher25,
           label("Label"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1748,7 +1802,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipKey.cypher5,
           relType("REL_TYPE"),
           Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1769,7 +1823,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipKey.cypher5,
           relType("REL_TYPE"),
           List(prop("x", "prop")),
-          Some(Right(parameter("constraintName", CTString))),
+          Some(parameter("constraintName", CTString)),
           OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         1.0
@@ -1792,13 +1846,13 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
             relType("REL_TYPE"),
             Seq(prop(" x", "prop")),
             RelationshipKey.cypher5,
-            Some(Left("constraintName")),
+            Some(literalString("constraintName")),
             NoOptions
           )),
           RelationshipKey.cypher5,
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1879,7 +1933,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           NodePropertyExistence,
           label("Label"),
           Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -1951,7 +2005,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipPropertyExistence,
           relType("R"),
           Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -2035,7 +2089,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           ),
           label("Label"),
           Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -2135,7 +2189,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           RelationshipPropertyType(LocalTimeType(isNullable = true)(pos)),
           relType("R"),
           Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
+          Some(literalString("constraintName")),
           NoOptions
         ),
         1.0
@@ -2225,17 +2279,17 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
 
   test("DropConstraintOnName") {
     assertGood(
-      attach(DropConstraintOnName(Left("name"), ifExists = false), 1.0),
+      attach(DropConstraintOnName(literalString("name"), ifExists = false), 1.0),
       planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name")), Set.empty)
     )
 
     assertGood(
-      attach(DropConstraintOnName(Left("name"), ifExists = true), 1.0),
+      attach(DropConstraintOnName(literalString("name"), ifExists = true), 1.0),
       planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name IF EXISTS")), Set.empty)
     )
 
     assertGood(
-      attach(DropConstraintOnName(Right(parameter("name", CTString)), ifExists = false), 1.0),
+      attach(DropConstraintOnName(parameter("name", CTString), ifExists = false), 1.0),
       planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT $name")), Set.empty)
     )
   }

@@ -116,7 +116,6 @@ import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
@@ -378,7 +377,7 @@ trait StatementBuilder extends Cypher25ParserListener {
 
   final override def exitSearchClause(ctx: Cypher25Parser.SearchClauseContext): Unit = {
 
-    val indexName = ctx.indexSpecificationClause().ast[Either[String, Parameter]]
+    val indexName = ctx.indexSpecificationClause().ast[Expression]
     val maybeScoreClause = ctx.scoreClause()
     val maybeScore = if (maybeScoreClause == null) None else Some(maybeScoreClause.variable().ast())
 
@@ -396,7 +395,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitIndexSpecificationClause(ctx: Cypher25Parser.IndexSpecificationClauseContext): Unit = {
-    ctx.ast = ctx.symbolicNameOrStringParameter().ast()
+    ctx.ast = ctx.commandNameExpression().ast()
   }
 
   final override def exitForClause(ctx: Cypher25Parser.ForClauseContext): Unit = {

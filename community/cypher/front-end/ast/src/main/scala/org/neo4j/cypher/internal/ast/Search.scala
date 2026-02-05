@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -36,6 +37,7 @@ import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.VectorFilterExpression
 import org.neo4j.cypher.internal.expressions.VectorFilterExpression.VectorFilterExpressionRange
 import org.neo4j.cypher.internal.notification.IdentifierShadowsVariableNotification
@@ -60,7 +62,7 @@ import org.neo4j.cypher.internal.util.symbols.CTVector
 case class Search(
   bindingVariable: LogicalVariable,
   score: Option[LogicalVariable],
-  indexName: Either[String, Parameter],
+  indexName: Expression,
   embedding: Expression,
   where: Option[Where],
   limit: Limit
@@ -93,11 +95,22 @@ case class Search(
 
   private def checkIndexName(): SemanticCheck = {
     indexName match {
-      case Left(name) =>
-        notifyIfIndexNameShadowsVariable(name)
-      case Right(parameter) =>
+      case name: StringLiteral =>
+        notifyIfIndexNameShadowsVariable(name.value)
+      case parameter: Parameter if parameter.parameterType == CTString =>
         // This is a restriction for the MVP which we intend to lift later
+        // TODO: Once SEARCH can handle parameters, re-enable the auto-parametrization of the Search clause
         SemanticError.invalidIndexParameter(parameter.position)
+      case exp =>
+        // We only parse the index name as an identifier (saved as StringLiteral) or string Parameter
+        // This is the same exception as for create index for this case
+        SemanticCheck.error(SemanticError.invalidEntityType(
+          ExpressionStringifier().apply(exp),
+          "index name",
+          Seq("STRING NOT NULL"),
+          "index name must be a String, or a String parameter.",
+          exp.position
+        ))
     }
   }
 
