@@ -19,7 +19,16 @@
  */
 package org.neo4j.cypher.cucumber.value
 
+import org.neo4j.cypherdsl.core.Cypher
+import org.neo4j.cypherdsl.core.renderer.Configuration
+import org.neo4j.cypherdsl.core.renderer.GeneralizedRenderer
+
 import java.util
+import java.util.Objects
+
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.Try
 
 /**
  * We represent values as close to embedded API as possible.
@@ -50,5 +59,36 @@ object ValueRepresentation {
 
   case class NoIdPath(start: NoIdNode, connections: Seq[Connection]) {
     override def toString: String = "<" + start + connections.mkString("") + ">"
+  }
+
+  final class Renderer {
+
+    private val renderer = org.neo4j.cypherdsl.core.renderer.Renderer.getRenderer(
+      Configuration.defaultConfig(),
+      classOf[GeneralizedRenderer]
+    )
+
+    def render(value: AnyRef): String = value match {
+      case e: NoIdEntity => e match {
+          case NoIdNode(labels, props) =>
+            val labelsString = if (labels.isEmpty) "" else ":" + String.join(":", labels)
+            s"($labelsString ${render(props)})"
+          case NoIdRel(relType, props) => s"[:$relType ${render(props)}]"
+        }
+      case NoIdPath(start, conns) => "<" + render(start) + conns.map(render).mkString("") + ">"
+      case Connection(rel, node, outgoing) =>
+        if (outgoing) s"-${render(rel)}->${render(node)}"
+        else s"<-${render(rel)}-${render(node)}"
+      case list: java.util.List[_] =>
+        list.asScala.view.map(i => render(i.asInstanceOf[AnyRef])).mkString("[", ", ", "]")
+      case map: java.util.Map[_, _] =>
+        map.asScala.toSeq
+          .sortBy { case (key, _) => Objects.toString(key) }
+          .view
+          .map { case (key, value) => s"$key: ${render(value.asInstanceOf[AnyRef])}" }
+          .mkString("{", ", ", "}")
+      case _ =>
+        Try(renderer.render(Cypher.literalOf(value))).getOrElse(value.toString)
+    }
   }
 }

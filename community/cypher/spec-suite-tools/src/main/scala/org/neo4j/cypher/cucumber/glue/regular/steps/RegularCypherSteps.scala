@@ -53,6 +53,7 @@ import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser.parse
 import org.neo4j.cypher.cucumber.value.ResultValueMapper
 import org.neo4j.cypher.cucumber.value.ResultValueMapper.CloseEnoughNumbersList.rowsWithCloseEnoughNumbers
 import org.neo4j.cypher.cucumber.value.ResultValueMapper.UnorderedList.rowsWithUnorderedLists
+import org.neo4j.cypher.cucumber.value.ValueRepresentation
 import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.api.CypherExecutorTransaction
@@ -66,7 +67,6 @@ import org.neo4j.values.AnyValue
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util
-import java.util.Objects
 import java.util.function.Supplier
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -425,7 +425,10 @@ object RegularCypherSteps {
   def renderAsTable(results: ConsumedResult): String = {
     val table = new util.ArrayList[util.List[String]](results.rows.size() + 1)
     table.add(results.headers)
-    results.rows.forEach(row => table.add(row.stream().map[String](v => Objects.toString(v)).toList))
+    val renderer = new ValueRepresentation.Renderer()
+    results.rows.forEach { row =>
+      table.add(row.stream().map[String](renderer.render).toList)
+    }
     DataTable.create(table).toString
   }
 

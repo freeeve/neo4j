@@ -105,6 +105,17 @@
       <version>3.1.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-cypher-dsl</artifactId>
+      <version>${cypherdsl.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apiguardian</groupId>
+          <artifactId>apiguardian-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
     <!-- scala -->
 
