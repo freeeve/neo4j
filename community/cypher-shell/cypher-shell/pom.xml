@@ -39,6 +39,13 @@
 
   <dependencies>
 
+    <!-- Java 8 base classes for MRJAR - scope=provided ensures build order but excludes from runtime -->
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>cypher-shell-base</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Neo4j dependencies -->
     <dependency>
@@ -228,22 +235,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <executions>
-          <!-- The purpose of this execution is to provide a user-friendly error message when started with an unsupported jvm -->
+          <!-- Additional execution to output classes to META-INF/versions/{version}/ for MRJAR -->
           <execution>
-            <id>compile-java8</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <release>8</release>
-              <compileSourceRoots>
-                <compileSourceRoot>${project.basedir}/src/main/java8</compileSourceRoot>
-              </compileSourceRoots>
-            </configuration>
-          </execution>
-          <!-- This is the normal execution -->
-          <execution>
-            <id>compile</id>
+            <id>compile-java${maven.compiler.release}-versioned</id>
             <phase>compile</phase>
             <goals>
               <goal>compile</goal>
@@ -316,6 +310,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-java8-base-classes</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/../cypher-shell-base/target/classes</directory>
+                  <excludes>
+                    <exclude>META-INF/**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
@@ -334,6 +353,7 @@
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-codegen</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.jline:jline-terminal-jansi</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.hamcrest:hamcrest</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:cypher-shell-base</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

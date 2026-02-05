@@ -24,6 +24,7 @@
     </scm>
 
     <modules>
+        <module>cypher-shell-base</module>
         <module>cypher-shell</module>
         <module>integration-test</module>
         <module>integration-test-expect</module>

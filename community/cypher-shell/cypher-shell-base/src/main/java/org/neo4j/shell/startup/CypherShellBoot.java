@@ -38,7 +38,7 @@ public class CypherShellBoot {
 
     static void printJavaVersionErrorMessage() {
         String version = System.getProperty("java.version");
-        System.out.println(
-                "Unsupported Java " + version + " detected. Please use Java(TM) 21 or Java(TM) 25 to run Cypher Shell.");
+        System.out.println("Unsupported Java " + version
+                + " detected. Please use Java(TM) 21 or Java(TM) 25 to run Cypher Shell.");
     }
 }
