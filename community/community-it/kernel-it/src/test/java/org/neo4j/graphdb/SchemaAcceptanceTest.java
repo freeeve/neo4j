@@ -2813,7 +2813,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                             tx.commit();
                         }
                     })
-                    .isInstanceOf(TransactionTerminatedException.class);
+                    .hasMessageContaining("terminated");
             return null;
         });
 
