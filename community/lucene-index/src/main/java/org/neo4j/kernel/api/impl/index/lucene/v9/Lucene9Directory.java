@@ -28,8 +28,8 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
-import org.neo4j.kernel.api.impl.index.lucene.v9.codec.VectorCodecV1;
-import org.neo4j.kernel.api.impl.index.lucene.v9.codec.VectorCodecV2;
+import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodec;
+import org.neo4j.kernel.api.impl.index.lucene.v9.codec.Lucene9Codec;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.shaded.lucene9.codecs.Codec;
@@ -47,6 +47,8 @@ import org.neo4j.shaded.lucene9.index.MergeScheduler;
 import org.neo4j.shaded.lucene9.index.MergeScheduler.MergeSource;
 import org.neo4j.shaded.lucene9.index.MergeTrigger;
 import org.neo4j.shaded.lucene9.index.SegmentInfos;
+import org.neo4j.shaded.lucene9.index.SegmentInfos.FindSegmentsFile;
+import org.neo4j.shaded.lucene9.index.SerialMergeScheduler;
 import org.neo4j.shaded.lucene9.index.SnapshotDeletionPolicy;
 import org.neo4j.shaded.lucene9.store.Directory;
 import org.neo4j.shaded.lucene9.store.IOContext;
@@ -128,7 +130,7 @@ public class Lucene9Directory implements LuceneDirectory {
         }
     }
 
-    private final class CreatedMajorVersion extends SegmentInfos.FindSegmentsFile<Integer> {
+    private final class CreatedMajorVersion extends FindSegmentsFile<Integer> {
         private CreatedMajorVersion() {
             super(directory);
         }
@@ -164,7 +166,7 @@ public class Lucene9Directory implements LuceneDirectory {
         indexWriterConfig.setIndexDeletionPolicy(new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
 
         if (config.codec != null) {
-            indexWriterConfig.setCodec(loadCodec(config));
+            indexWriterConfig.setCodec(toInternalCodec(config.codec));
         }
 
         MergeScheduler mergeScheduler;
@@ -187,25 +189,16 @@ public class Lucene9Directory implements LuceneDirectory {
         return indexWriterConfig;
     }
 
-    private static Codec loadCodec(LuceneIndexWriterConfig config) {
-        org.apache.lucene.codecs.Codec oldCodec = config.codec;
-        String codecClassName = oldCodec.getClass().getName();
-        return switch (codecClassName) {
-            case "org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV1" ->
-                new VectorCodecV1(oldCodec.knnVectorsFormat().getMaxDimensions(""));
-            case "org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2" ->
-                new VectorCodecV2(
-                        ((org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2) oldCodec).getConfig());
-            default -> Codec.forName(config.codec.getName());
-        };
+    private static Codec toInternalCodec(LuceneCodec codec) {
+        return ((Lucene9Codec) codec).codec();
     }
 
     /**
-     * This is a {@link MergeScheduler} which is a version of {@link org.apache.lucene.index.SerialMergeScheduler},
+     * This is a {@link MergeScheduler} which is a version of {@link SerialMergeScheduler},
      * but with the important difference that multiple threads can run merge of difference sources in parallel.
      * I.e. in the scenario of index population where the population threads that adds documents go and do merge
      * on their individual threads, in parallel with the other population threads. This effectively comes close
-     * to the {@link org.apache.lucene.index.ConcurrentMergeScheduler} parallel-wise w/o spawning additional
+     * to the {@link ConcurrentMergeScheduler} parallel-wise w/o spawning additional
      * background threads.
      */
     static class OnThreadConcurrentMergeScheduler extends MergeScheduler {

@@ -20,8 +20,8 @@
 package org.neo4j.kernel.api.impl.index.lucene;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodec;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 
@@ -35,7 +35,7 @@ public class LuceneIndexWriterConfig {
     public Integer maxBufferedDocs;
     public Double RAMBufferSizeMB;
     public boolean commitOnClose = true;
-    public Codec codec;
+    public LuceneCodec codec;
     public double noCFSRatio;
     public double minMergeMB;
     public double maxMergeMB;
@@ -82,7 +82,7 @@ public class LuceneIndexWriterConfig {
         return this;
     }
 
-    public LuceneIndexWriterConfig setCodec(Codec codec) {
+    public LuceneIndexWriterConfig setCodec(LuceneCodec codec) {
         this.codec = codec;
         return this;
     }

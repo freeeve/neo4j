@@ -940,6 +940,8 @@
                 <ignoredUnusedDeclaredDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
+                <!-- lucene-backward-codecs are used for shading, not currently for code paths dependency plugin recognises -->
+                <ignoredUnusedDeclaredDependency>org.apache.lucene:lucene-backward-codecs</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
               <ignoredUsedUndeclaredDependencies>
                 <ignoredUsedUndeclaredDependency>org.apiguardian:apiguardian-api</ignoredUsedUndeclaredDependency>
@@ -1330,6 +1332,11 @@
         <groupId>org.apache.lucene</groupId>
         <artifactId>lucene-backward-codecs</artifactId>
         <version>${lucene.version}</version>
+        <!--
+          although dependency believes this is not needed, it is for shading
+          usually a scope of provided would be idiomatic; however, doing so will remove licenses and notices
+          remove this note, and the exclusion when we require the use of backward-codecs with Lucene 10
+         -->
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>

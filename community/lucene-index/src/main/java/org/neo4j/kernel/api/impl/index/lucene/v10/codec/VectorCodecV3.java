@@ -19,16 +19,18 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
 
+import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.FilterCodec;
 import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.lucene103.Lucene103Codec;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
 
-public class VectorCodecV3 extends FilterCodec {
+public class VectorCodecV3 extends FilterCodec implements Lucene10Codec {
     private static final String CODEC_NAME = "VectorCodecV3";
     private final KnnVectorsFormat vectorFormat;
     private final VectorIndexConfig config;
 
+    // This constructor is only needed for Lucene Service Loader
     public VectorCodecV3() {
         this(VectorIndexConfig.EMPTY);
     }
@@ -36,7 +38,7 @@ public class VectorCodecV3 extends FilterCodec {
     public VectorCodecV3(VectorIndexConfig config) {
         super(CODEC_NAME, new Lucene103Codec());
         this.config = config;
-        final var dimensions =
+        final int dimensions =
                 config.dimensions().orElseGet(() -> config.version().maxDimensions());
         if (config.quantizationEnabled()) {
             this.vectorFormat = new LuceneKnnScalarQuantizedVectorFormatV2(dimensions, config.hnsw());
@@ -52,5 +54,10 @@ public class VectorCodecV3 extends FilterCodec {
     @Override
     public KnnVectorsFormat knnVectorsFormat() {
         return vectorFormat;
+    }
+
+    @Override
+    public Codec codec() {
+        return this;
     }
 }

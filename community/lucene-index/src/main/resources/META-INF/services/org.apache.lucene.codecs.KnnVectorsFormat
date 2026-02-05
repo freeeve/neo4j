@@ -1,3 +1,2 @@
-org.neo4j.kernel.api.impl.index.lucene.v10.codec.LuceneKnnVectorFormatV1
 org.neo4j.kernel.api.impl.index.lucene.v10.codec.LuceneKnnVectorFormatV2
 org.neo4j.kernel.api.impl.index.lucene.v10.codec.LuceneKnnScalarQuantizedVectorFormatV2

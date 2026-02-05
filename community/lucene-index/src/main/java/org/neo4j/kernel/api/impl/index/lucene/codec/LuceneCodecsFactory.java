@@ -17,21 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.lucene.v9.codec;
+package org.neo4j.kernel.api.impl.index.lucene.codec;
 
-import org.neo4j.shaded.lucene9.backward_codecs.lucene95.Lucene95Codec;
-import org.neo4j.shaded.lucene9.codecs.KnnVectorsFormat;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
 
-public class VectorCodecV1 extends Lucene95Codec {
-    private final LuceneKnnVectorFormatV1 vectorFormat;
-
-    public VectorCodecV1(int maxDimensions) {
-        super();
-        this.vectorFormat = new LuceneKnnVectorFormatV1(maxDimensions);
-    }
-
-    @Override
-    public KnnVectorsFormat getKnnVectorsFormatForField(String field) {
-        return vectorFormat;
-    }
+public interface LuceneCodecsFactory {
+    LuceneCodec codecFor(VectorIndexConfig config);
 }

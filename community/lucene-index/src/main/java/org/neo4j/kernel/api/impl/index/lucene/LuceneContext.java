@@ -20,14 +20,17 @@
 package org.neo4j.kernel.api.impl.index.lucene;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodecsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v10.codec.Lucene10CodecsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v9.codec.Lucene9CodecsFactory;
 
 public enum LuceneContext {
-    LUCENE_10(Lucene10DirectoryFactory.INSTANCE, Lucene10DocumentsFactory.INSTANCE),
-    LUCENE_9(Lucene9DirectoryFactory.INSTANCE, Lucene9DocumentsFactory.INSTANCE);
+    LUCENE_10(Lucene10DirectoryFactory.INSTANCE, Lucene10DocumentsFactory.INSTANCE, Lucene10CodecsFactory.INSTANCE),
+    LUCENE_9(Lucene9DirectoryFactory.INSTANCE, Lucene9DocumentsFactory.INSTANCE, Lucene9CodecsFactory.INSTANCE);
 
     public static LuceneContext getDefault() {
         return LUCENE_10;
@@ -42,10 +45,15 @@ public enum LuceneContext {
 
     private final LuceneDirectoryFactory directoryFactory;
     private final LuceneDocumentsFactory documentsFactory;
+    private final LuceneCodecsFactory codecsFactory;
 
-    LuceneContext(LuceneDirectoryFactory directoryFactory, LuceneDocumentsFactory documentsFactory) {
+    LuceneContext(
+            LuceneDirectoryFactory directoryFactory,
+            LuceneDocumentsFactory documentsFactory,
+            LuceneCodecsFactory codecsFactory) {
         this.directoryFactory = directoryFactory;
         this.documentsFactory = documentsFactory;
+        this.codecsFactory = codecsFactory;
     }
 
     public LuceneDirectoryFactory directoryFactory() {
@@ -54,5 +62,9 @@ public enum LuceneContext {
 
     public LuceneDocumentsFactory documentsFactory() {
         return documentsFactory;
+    }
+
+    public LuceneCodecsFactory codecsFactory() {
+        return codecsFactory;
     }
 }

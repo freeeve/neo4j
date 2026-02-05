@@ -28,8 +28,8 @@ import org.neo4j.shaded.lucene9.index.SegmentReadState;
 import org.neo4j.shaded.lucene9.index.SegmentWriteState;
 
 public class LuceneKnnVectorFormatV1 extends KnnVectorsFormat {
-    private static final String LUCENE_VECTOR_FORMAT_V1_NAME = "LuceneKnnVectorFormatV1";
-    private final Lucene95HnswVectorsFormat vectorsFormat;
+    private static final String FORMAT_NAME = "LuceneKnnVectorFormatV1";
+    private final KnnVectorsFormat vectorsFormat;
     private final int maxDimensions;
 
     // This constructor is only needed for Lucene Service Loader
@@ -38,7 +38,7 @@ public class LuceneKnnVectorFormatV1 extends KnnVectorsFormat {
     }
 
     public LuceneKnnVectorFormatV1(int maxDimensions) {
-        super(LUCENE_VECTOR_FORMAT_V1_NAME);
+        super(FORMAT_NAME);
         this.maxDimensions = maxDimensions;
         this.vectorsFormat = new Lucene95HnswVectorsFormat();
     }

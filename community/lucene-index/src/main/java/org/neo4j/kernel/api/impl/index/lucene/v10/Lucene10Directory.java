@@ -23,6 +23,7 @@ import static java.lang.Math.toIntExact;
 
 import java.io.IOException;
 import java.util.Collection;
+import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.ConcurrentMergeScheduler;
@@ -37,6 +38,8 @@ import org.apache.lucene.index.MergeScheduler;
 import org.apache.lucene.index.MergeScheduler.MergeSource;
 import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.SegmentInfos.FindSegmentsFile;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -47,6 +50,8 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodec;
+import org.neo4j.kernel.api.impl.index.lucene.v10.codec.Lucene10Codec;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
@@ -125,7 +130,7 @@ public class Lucene10Directory implements LuceneDirectory {
         }
     }
 
-    private final class CreatedMajorVersion extends SegmentInfos.FindSegmentsFile<Integer> {
+    private final class CreatedMajorVersion extends FindSegmentsFile<Integer> {
         private CreatedMajorVersion() {
             super(directory);
         }
@@ -161,7 +166,7 @@ public class Lucene10Directory implements LuceneDirectory {
         indexWriterConfig.setIndexDeletionPolicy(new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
 
         if (config.codec != null) {
-            indexWriterConfig.setCodec(config.codec);
+            indexWriterConfig.setCodec(toInternalCodec(config.codec));
         }
         MergeScheduler mergeScheduler;
         if (config.useOnThreadConcurrentMergeScheduler) {
@@ -183,12 +188,16 @@ public class Lucene10Directory implements LuceneDirectory {
         return indexWriterConfig;
     }
 
+    private static Codec toInternalCodec(LuceneCodec codec) {
+        return ((Lucene10Codec) codec).codec();
+    }
+
     /**
-     * This is a {@link MergeScheduler} which is a version of {@link org.apache.lucene.index.SerialMergeScheduler},
+     * This is a {@link MergeScheduler} which is a version of {@link SerialMergeScheduler},
      * but with the important difference that multiple threads can run merge of difference sources in parallel.
      * I.e. in the scenario of index population where the population threads that adds documents go and do merge
      * on their individual threads, in parallel with the other population threads. This effectively comes close
-     * to the {@link org.apache.lucene.index.ConcurrentMergeScheduler} parallel-wise w/o spawning additional
+     * to the {@link ConcurrentMergeScheduler} parallel-wise w/o spawning additional
      * background threads.
      */
     static class OnThreadConcurrentMergeScheduler extends MergeScheduler {

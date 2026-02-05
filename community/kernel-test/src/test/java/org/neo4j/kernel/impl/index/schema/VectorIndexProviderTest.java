@@ -286,6 +286,7 @@ class VectorIndexProviderTest {
                     contextFactory,
                     pageCacheTracer) -> new VectorIndexProvider(
                     version,
+                    luceneContext,
                     fs,
                     directoryFactory(luceneContext, fs),
                     dir,

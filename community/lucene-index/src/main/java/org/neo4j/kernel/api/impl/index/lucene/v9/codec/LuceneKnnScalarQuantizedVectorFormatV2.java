@@ -29,8 +29,7 @@ import org.neo4j.shaded.lucene9.index.SegmentReadState;
 import org.neo4j.shaded.lucene9.index.SegmentWriteState;
 
 public class LuceneKnnScalarQuantizedVectorFormatV2 extends KnnVectorsFormat {
-    private static final String LUCENE_SCALAR_QUANTIZED_VECTOR_FORMAT_V2_NAME =
-            "LuceneKnnScalarQuantizedVectorFormatV2";
+    private static final String FORMAT_NAME = "LuceneKnnScalarQuantizedVectorFormatV2";
     private final KnnVectorsFormat vectorsFormat;
     private final int maxDimensions;
 
@@ -40,7 +39,7 @@ public class LuceneKnnScalarQuantizedVectorFormatV2 extends KnnVectorsFormat {
     }
 
     public LuceneKnnScalarQuantizedVectorFormatV2(int maxDimensions, HnswConfig hnswConfig) {
-        super(LUCENE_SCALAR_QUANTIZED_VECTOR_FORMAT_V2_NAME);
+        super(FORMAT_NAME);
         this.maxDimensions = maxDimensions;
         this.vectorsFormat = new Lucene99HnswScalarQuantizedVectorsFormat(hnswConfig.M(), hnswConfig.efConstruction());
     }
