@@ -32,28 +32,32 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <multiReleaseOutput>true</multiReleaseOutput>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>compile-java8</id>
+                        <id>unpack-java8-base</id>
+                        <phase>process-classes</phase>
                         <goals>
-                            <goal>compile</goal>
+                            <goal>unpack</goal>
                         </goals>
                         <configuration>
-                            <release>8</release>
-                            <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java8</compileSourceRoot>
-                            </compileSourceRoots>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <release>${maven.compiler.release}</release>
-                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.neo4j</groupId>
+                                    <artifactId>neo4j-bootcheck-base</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <excludes>META-INF/MANIFEST.MF,META-INF/maven/**</excludes>
                         </configuration>
                     </execution>
                 </executions>
@@ -78,6 +82,13 @@
             <artifactId>neo4j</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-bootcheck-base</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

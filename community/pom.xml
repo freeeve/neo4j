@@ -80,6 +80,7 @@
     <module>fabric</module>
     <module>capabilities</module>
     <module>storage-engine-util</module>
+    <module>bootcheck-base</module>
     <module>bootcheck</module>
     <module>neo4j-notifications</module>
     <module>cloud</module>
