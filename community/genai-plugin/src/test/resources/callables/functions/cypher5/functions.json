@@ -1,0 +1,34 @@
+[
+  {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "genai.vector.encode(resource :: STRING, provider :: STRING, configuration = {} :: ANY) :: ANY",
+    "name": "genai.vector.encode",
+    "description": "Encode a given resource as a vector using the named provider.",
+    "returnDescription": "ANY",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "resource",
+        "description": "The object to transform into an embedding.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: (\"VertexAI\", \"OpenAI\", \"AzureOpenAI\", \"Bedrock\").",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }\n\nOpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}\n\nAzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}\n\nAmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=ANY}",
+        "type": "ANY"
+      }
+    ]
+  }
+]

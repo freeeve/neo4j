@@ -1,0 +1,174 @@
+[
+  {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "ai.text.chat(prompt :: STRING, chatId :: STRING, provider :: STRING, configuration = {} :: MAP) :: MAP",
+    "name": "ai.text.chat",
+    "description": "Chat based on the specified prompt, optionally continuing a previous interaction.",
+    "returnDescription": "MAP",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "prompt",
+        "description": "The user message to send.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "chatId",
+        "description": "Previous chat ID to continue the conversation. If this is the first message in the conversation, set it to null.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'OpenAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.chat.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "ai.text.completion(prompt :: STRING, provider :: STRING, configuration = {} :: MAP) :: STRING",
+    "name": "ai.text.completion",
+    "description": "Generate text based on the specified prompt.",
+    "returnDescription": "STRING",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "prompt",
+        "description": "The prompt to generate text from.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock', 'Bedrock-Nova', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "ai.text.embed(resource :: STRING, provider :: STRING, configuration = {} :: MAP) :: VECTOR",
+    "name": "ai.text.embed",
+    "description": "Encode a given resource as a vector using the named provider.",
+    "returnDescription": "VECTOR",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "resource",
+        "description": "The object to transform into an embedding.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.embed.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "ai.text.structuredCompletion(prompt :: STRING, schema :: MAP, provider :: STRING, configuration = {} :: MAP) :: MAP",
+    "name": "ai.text.structuredCompletion",
+    "description": "Generate structured output as a map based on the specified prompt and JSON schema.",
+    "returnDescription": "MAP",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "prompt",
+        "description": "The prompt to generate output from.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "schema",
+        "description": "A map describing the JSON schema for the desired output.",
+        "isDeprecated": false,
+        "type": "MAP"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.structuredCompletion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": true,
+    "aggregating": false,
+    "signature": "genai.vector.encode(resource :: STRING, provider :: STRING, configuration = {} :: ANY) :: ANY",
+    "name": "genai.vector.encode",
+    "description": "Encode a given resource as a vector using the named provider.",
+    "returnDescription": "ANY",
+    "deprecatedBy": "ai.text.embed",
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "resource",
+        "description": "The object to transform into an embedding.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: (\"VertexAI\", \"OpenAI\", \"AzureOpenAI\", \"Bedrock\").",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "VertexAI: {token :: STRING, projectId :: STRING, model :: STRING, region :: STRING, taskType :: STRING, title :: STRING }\n\nOpenAI: {token :: STRING, model :: STRING, dimensions :: INTEGER}\n\nAzureOpenAI: {token :: STRING, resource :: STRING, deployment :: STRING, dimensions :: INTEGER}\n\nAmazonBedrock: {accessKeyId :: STRING, secretAccessKey :: STRING, model :: STRING, region :: STRING}",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=ANY}",
+        "type": "ANY"
+      }
+    ]
+  }
+]
