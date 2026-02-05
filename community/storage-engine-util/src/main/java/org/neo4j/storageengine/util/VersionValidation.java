@@ -51,10 +51,7 @@ public class VersionValidation {
             TransactionMonitor transactionMonitor,
             LockTracer lockTracer)
             throws IOException {
-        assert pageId <= MAX_PAGE_ID;
-        assert storeId <= MAX_STORE_ID;
-
-        long id = pageId | (storeId << PAGE_ID_BITS);
+        long id = lockPageId(pageId, storeId);
         if (failFast) {
             if (!validationLockClient.tryExclusiveLock(PAGE, id)) {
                 throw TransactionConflictException.transactionConflict(databaseFile, pageId);
@@ -69,5 +66,12 @@ public class VersionValidation {
                 throw TransactionConflictException.transactionConflict(databaseFile, versionContext, pageId);
             }
         }
+    }
+
+    public static long lockPageId(long pageId, long storeId) {
+        assert pageId <= MAX_PAGE_ID;
+        assert storeId <= MAX_STORE_ID;
+
+        return pageId | (storeId << PAGE_ID_BITS);
     }
 }
