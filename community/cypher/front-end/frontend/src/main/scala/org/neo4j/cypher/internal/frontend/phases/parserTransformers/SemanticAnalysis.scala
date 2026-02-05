@@ -74,7 +74,7 @@ case class SemanticAnalysis(warn: Option[Boolean])
       state.notifications.foreach(context.notificationLogger.log)
 
     // feature flag here
-    if (context.semanticFeatures.contains(VariableChecking)) {
+    val allErrors = if (context.semanticFeatures.contains(VariableChecking)) {
       val saErrors = errors.filter(VariableChecker.isNotImplementedCode)
       val vcErrors = if (from.maybeSemantics.isEmpty) {
         val upToDateScopes = ScopeSurveyor.process(from, context)
@@ -82,11 +82,10 @@ case class SemanticAnalysis(warn: Option[Boolean])
         //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
         VariableChecker.gatherAllErrors(upToDateScopes, context)
       } else Seq.empty
-      val allErrors = (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
-      context.errorHandler(allErrors)
-    } else {
-      context.errorHandler(errors)
-    }
+      (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
+    } else errors
+
+    context.errorHandler(allErrors)
 
     val cleanedTypeTable =
       state.typeTable

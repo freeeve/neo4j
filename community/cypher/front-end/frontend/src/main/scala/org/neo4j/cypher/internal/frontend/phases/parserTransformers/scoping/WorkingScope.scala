@@ -42,6 +42,7 @@ sealed trait WorkingScope extends Product with Foldable {
   def outgoing: RegularContext
   def result: Result
   def children: Seq[WorkingScope]
+  def inImportingWith: Boolean = false
 
   def withChildren(children: Seq[WorkingScope]): WorkingScope
   def withReferenced(referenced: Set[LogicalVariable]): WorkingScope
@@ -98,11 +99,13 @@ case class StatementScope(
   declared: Declarations,
   outgoing: RegularContext,
   result: Result = NoResult,
-  children: Seq[WorkingScope] = WorkingScope.noChildren
+  children: Seq[WorkingScope] = WorkingScope.noChildren,
+  override val inImportingWith: Boolean = false
 ) extends WorkingScope {
   override def withChildren(children: Seq[WorkingScope]): StatementScope = copy(children = children)
   override def withReferenced(referenced: Set[LogicalVariable]): StatementScope = copy(referenced = referenced)
   override def withDeclared(declared: Declarations): StatementScope = copy(declared = declared)
+  def isInImportingWith(inImportingWith: Boolean): StatementScope = copy(inImportingWith = inImportingWith)
 }
 
 case class ExpressionScope(

@@ -114,18 +114,18 @@ case class VariableChecker(
   }
 
   private val multipleReturnColumns: VariableCheck = {
-    case (acc, StatementScope(w: With, _, _, Declarations(_, variables, _), _, _, _)) =>
+    case (acc, StatementScope(w: With, _, _, Declarations(_, variables, _), _, _, _, _)) =>
       acc(findMultipleDeclarationsIn(variables, w))
-    case (acc, StatementScope(y: Yield, _, _, _, _, TableResult(columns), _)) =>
+    case (acc, StatementScope(y: Yield, _, _, _, _, TableResult(columns), _, _)) =>
       acc(findMultipleDeclarationsIn(columns, y))
-    case (acc, StatementScope(r: Return, _, _, _, _, TableResult(columns), _)) =>
+    case (acc, StatementScope(r: Return, _, _, _, _, TableResult(columns), _, _)) =>
       acc(findMultipleDeclarationsIn(columns, r))
   }
 
   private val incompatibleReturnColumns: VariableCheck = {
-    case (acc, StatementScope(u: Union, _, _, _, _, result, children)) =>
+    case (acc, StatementScope(u: Union, _, _, _, _, result, children, _)) =>
       acc(getIncompatibleReturnColumnsForUnion(u.position, result, children))
-    case (acc, StatementScope(_: ConditionalQueryWhen, _, _, _, _, result, children)) =>
+    case (acc, StatementScope(_: ConditionalQueryWhen, _, _, _, _, result, children, _)) =>
       acc(getIncompatibleReturnColumnsForConditionalQuery(result, children))
   }
 
@@ -147,7 +147,7 @@ case class VariableChecker(
   private val invalidEntityReferenceInUpdatingClause: VariableCheck = {
     case ( // ≥ Cypher 25
         Acc.CreatePattern(acc, topo, _, create, true),
-        StatementScope(_: Match, _, _, declared, _, _, _)
+        StatementScope(_: Match, _, _, declared, _, _, _, _)
       )
       if version != CypherVersion.Cypher5 && (declared.withoutAnonymousDeclaration.allSymbols intersect topo).nonEmpty =>
       acc(declared.withoutAnonymousDeclaration.allSymbols.filter(topo).map(v =>
@@ -155,7 +155,7 @@ case class VariableChecker(
       ).toSeq)
     case ( // Cypher 5
         Acc.CreatePattern(acc, topo, patternVars, create, true),
-        StatementScope(_: Match, _, _, declared, _, _, _)
+        StatementScope(_: Match, _, _, declared, _, _, _, _)
       )
       if version == CypherVersion.Cypher5 && (declared.withoutAnonymousDeclaration.allSymbols intersect topo).nonEmpty =>
       acc(declared.withoutAnonymousDeclaration.allSymbols.flatMap(v =>
@@ -359,7 +359,7 @@ case class VariableChecker(
             acc => acc.inReturnContext(_acc.scopeContext)
           )
         )
-    case s @ StatementScope(_: NextStatement, in, _, _, _, _, children) => acc =>
+    case s @ StatementScope(_: NextStatement, in, _, _, _, _, children, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc => {
           val trunkAcc = folderWorkingScopes(_acc.inReturnContext(NextStatement(in.constants)), children.dropRight(1))
           val tailAcc =
@@ -373,7 +373,7 @@ case class VariableChecker(
             trunkAcc.errors ++ tailAcc.errors
           ))
         })
-    case s @ StatementScope(_: LocalCallableDefinition, _, _, _, _, _, _) => acc =>
+    case s @ StatementScope(_: LocalCallableDefinition, _, _, _, _, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc => {
           TraverseChildrenNewAccForSiblings(
             _acc.inReturnContext(Unopinionated),
@@ -381,35 +381,35 @@ case class VariableChecker(
           )
         })
 
-    case s @ StatementScope(c: CreateOrInsert, _, _, declared, _, _, _) => acc =>
+    case s @ StatementScope(c: CreateOrInsert, _, _, declared, _, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, c)),
             acc => acc.inVariableContext(_acc.variableContext)
           )
         )
-    case s @ StatementScope(m: Merge, _, _, declared, _, _, _) => acc =>
+    case s @ StatementScope(m: Merge, _, _, declared, _, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.inVariableContext(UpdatingPattern(declared.variables.toSet, Set.empty, m)),
             acc => acc.inVariableContext(_acc.variableContext)
           )
         )
-    case s @ StatementScope(_: Match, _, _, _, _, _, _) => acc =>
+    case s @ StatementScope(_: Match, _, _, _, _, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.inMatchingPattern,
             acc => acc.inVariableContext(_acc.variableContext)
           )
         )
-    case s @ StatementScope(f: Foreach, incoming, _, _, _, _, _) => acc =>
+    case s @ StatementScope(f: Foreach, incoming, _, _, _, _, _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           TraverseChildrenNewAccForSiblings(
             _acc.withForeachClause(incoming.allSymbols filterNot (_.name == f.variable.name)),
             acc => acc.inForeachClause(_acc.foreachContext)
           )
         )
-    case s @ StatementScope(p: ProjectionClause, incoming, _, _, _, _, children) => acc =>
+    case s @ StatementScope(p: ProjectionClause, incoming, _, _, _, _, children, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>
           if (p.isAggregating) {
             val context = Aggregating(p.name, incoming.variables)

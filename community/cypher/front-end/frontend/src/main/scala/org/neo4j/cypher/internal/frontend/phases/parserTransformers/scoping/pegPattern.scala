@@ -42,7 +42,7 @@ import scala.annotation.tailrec
 object pegPattern {
 
   def apply(pattern: Pattern, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[Pattern](pattern, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[Pattern](pattern, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(pattern: Pattern, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
@@ -81,7 +81,7 @@ object pegPattern {
   }
 
   def apply(patternPart: PatternPart, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[PatternPart](patternPart, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[PatternPart](patternPart, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(patternPart: PatternPart, incoming: RegularContext)(implicit
@@ -97,7 +97,7 @@ object pegPattern {
   }
 
   def apply(patternElement: PatternElement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[PatternElement](patternElement, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[PatternElement](patternElement, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(patternElement: PatternElement, incoming: RegularContext)(implicit

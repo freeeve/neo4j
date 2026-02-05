@@ -46,7 +46,7 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 object pegExpression {
 
   def apply(labelExpression: LabelExpression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[LabelExpression](labelExpression, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[LabelExpression](labelExpression, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(labelExpression: LabelExpression, incoming: RegularContext)(implicit
@@ -65,7 +65,7 @@ object pegExpression {
   }
 
   def apply(expression: Expression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[Expression](expression, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[Expression](expression, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(expression: Expression, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {

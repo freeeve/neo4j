@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.ProjectionClause.Elements
 import org.neo4j.cypher.internal.ast.ProjectionClause.Subclauses
 import org.neo4j.cypher.internal.ast.ProjectionType
-import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveLabelItem
@@ -78,7 +77,7 @@ import org.neo4j.cypher.internal.util.ASTNode
 object pegClause {
 
   def apply(clause: Clause, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[Clause](clause, incoming, applyUncached(_, _))
+    c.getRecordScopeOrElse[Clause](clause, incoming, inImportingWith = false, applyUncached(_, _))
   }
 
   private def applyUncached(clause: Clause, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
@@ -98,19 +97,17 @@ object pegClause {
         )
         val innerQueryIncoming =
           RegularContext(constants = unitVariables, variables = importedVariableSet, incoming.localCallables)
-        val innerQuery = query.withoutImportingWithAndGraphSelection
-        val scope = if (innerQuery.isDefined) scopeInlineSubquery(
+        val scope = scopeInlineSubquery(
           call,
           incoming,
           explicitImportedVariables,
           innerQueryIncoming,
-          innerQuery.get,
           inTransactionsParameters
         )
-        else StatementScope(call, incoming, Set.empty, Declarations.noDeclarations, RegularContext.unit)
+
         scope.withChildren(scope.children ++ graphSelectionScopes)
 
-      case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
+      case call @ ScopeClauseSubqueryCall(_, isImportingAll, importedVariables, inTransactionsParameters, _) =>
         val innerQueryIncoming =
           if (isImportingAll) incoming.constantChildContext()
           else RegularContext(
@@ -124,7 +121,6 @@ object pegClause {
           incoming,
           importedVariables.toSet,
           innerQueryIncoming,
-          innerQuery,
           inTransactionsParameters
         )
 
@@ -325,7 +321,8 @@ object pegClause {
       case SetClause(items) =>
         val expressionIncoming = incoming.constantChildContext()
         val children = items.flatMap {
-          case SetLabelItem(variable, _, _, _) => Seq(pegExpression(variable, expressionIncoming))
+          case SetLabelItem(variable, _, dynamicLabels, _) => Seq(pegExpression(variable, expressionIncoming)) ++
+              dynamicLabels.map(dl => pegExpression(dl, expressionIncoming))
           case SetPropertyItem(property, expression) =>
             Seq(
               pegExpression(property, expressionIncoming),
@@ -356,8 +353,9 @@ object pegClause {
       case Remove(items) =>
         val expressionIncoming = incoming.constantChildContext()
         val children = items.flatMap {
-          case RemoveLabelItem(variable, _, _, _) =>
-            Seq(pegExpression(variable, expressionIncoming))
+          case RemoveLabelItem(variable, _, dynamicLabels, _) =>
+            Seq(pegExpression(variable, expressionIncoming)) ++
+              dynamicLabels.map(dl => pegExpression(dl, expressionIncoming))
           case RemovePropertyItem(property) => Seq(pegExpression(property, expressionIncoming))
           case RemoveDynamicPropertyItem(dynamicPropertyLookup) =>
             Seq(pegExpression(dynamicPropertyLookup, expressionIncoming))
@@ -612,12 +610,12 @@ object pegClause {
     incoming: RegularContext,
     explicitlyImportedVariables: Set[LogicalVariable],
     innerQueryIncoming: RegularContext,
-    innerQuery: Query,
     inTransactionsParameters: Option[InTransactionsParameters]
   )(implicit c: PegContext) = {
     implicit val astNode: ASTNode = callClause
 
-    val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming)
+    val innerQueryScope =
+      pegStatement(callClause.innerQuery, innerQueryIncoming, callClause.isInstanceOf[ImportingWithSubqueryCall])
     val (inTransactionsChildren, declaredInTransactionsVariables) =
       scopeInTransactionParameters(inTransactionsParameters, incoming.constantChildContext())
     val (outgoing, declaredVariables) = innerQueryScope.result match {

@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CreateOrInsert
+import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.LocalCallableDefinition
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -259,7 +260,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[CallableName] =
           scope match {
-            case StatementScope(lcd: LocalCallableDefinition, _, _, _, _, _, _) =>
+            case StatementScope(lcd: LocalCallableDefinition, _, _, _, _, _, _, _) =>
               Some(lcd.name)
             case _ => None
           }
@@ -278,8 +279,10 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(Seq[LogicalVariable], RegularContext)] =
           scope match {
-            case StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _) =>
+            case StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _, _) =>
               Some((imports, incoming))
+            case StatementScope(ImportingWithSubqueryCall(innerQuery, _, _), incoming, _, _, _, _, _, _) =>
+              Some((innerQuery.importColumns, incoming))
             case _ => None
           }
 
@@ -289,7 +292,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(Seq[ReturnItem], InputPosition)] =
           scope match {
-            case StatementScope(r @ Return(_, ri, _, _, _, _, _, _), _, _, _, _, _, _) =>
+            case StatementScope(r @ Return(_, ri, _, _, _, _, _, _), _, _, _, _, _, _, _) =>
               Some((ri.items, r.position))
             case _ => None
           }
@@ -299,7 +302,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(RegularContext, InputPosition)] =
           scope match {
-            case StatementScope(Return.WithStar(r), in, _, _, _, _, _) =>
+            case StatementScope(Return.WithStar(r), in, _, _, _, _, _, _) =>
               Some((in, r.position))
             case _ => None
           }
@@ -309,7 +312,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(ASTNode, RegularContext, Declarations, Seq[WorkingScope])] =
           scope match {
-            case StatementScope(astNode, incoming, _, declarations, _, _, children) =>
+            case StatementScope(astNode, incoming, _, declarations, _, _, children, _) =>
               Some((astNode, incoming, declarations, children))
             case _ => None
           }
@@ -320,7 +323,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(RegularContext, Seq[WorkingScope])] =
           scope match {
-            case StatementScope(_: CommandClause, incoming, _, _, _, _, children) =>
+            case StatementScope(_: CommandClause, incoming, _, _, _, _, children, _) =>
               Some((incoming, children))
             case _ => None
           }

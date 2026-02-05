@@ -218,6 +218,31 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
     )
   }
 
+  test("NEXT query rewritten 4b") {
+    assertRewritten(
+      """FINISH
+        |
+        |NEXT
+        |
+        |LET a = 1
+        |WITH *, 2 AS a
+        |RETURN a
+        |
+        |NEXT
+        |
+        |LET b = a + 1
+        |RETURN a, b""".stripMargin,
+      """WITH count(NULL) AS `  UNNAMED0`
+        |WITH 1 AS a
+        |WITH 2 AS a
+        |WITH a AS a
+        |WITH a AS a, a + 1 AS b
+        |RETURN a AS a, b AS b""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
   test("NEXT query rewritten 5") {
     assertRewritten(
       """LET a = 1
@@ -5049,8 +5074,8 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |RETURN j AS j""".stripMargin,
       """UNWIND [3, 2, 1, 0, 4, 5] AS i
         |CALL {
-        |  USE `composite.remoteGraph1`
         |  WITH i AS i
+        |  USE `composite.remoteGraph1`
         |  WITH i AS i, i / i AS a
         |  CREATE (n:Number {value: i})
         |  RETURN n.value * 10 AS j
@@ -5081,6 +5106,41 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
       additionalExpectedAstUpdates = withUpdate(),
       additionalActualAstCleanup = withUpdate(),
       excludedVersions = Set.empty
+    )
+  }
+
+  test("Handle uneven union importing with") {
+    assertRewritten(
+      """WITH
+        |  [] AS oneWayDemandList,
+        |  [] AS updatedOnewayEquipments,
+        |  [e IN [] | e['equipmentTrimId']] AS updatedTrims
+        |CALL {
+        |  WITH oneWayDemandList, updatedOnewayEquipments
+        |  WITH * WHERE true = true
+        |  RETURN 1 AS y
+        |    UNION
+        |  WITH updatedOnewayEquipments
+        |  WITH * WHERE true = true
+        |  RETURN 1 AS y
+        |}
+        |RETURN
+        |  COLLECT {
+        |    RETURN 1 AS e
+        |  } AS res""".stripMargin,
+      """WITH [] AS oneWayDemandList, [] AS updatedOnewayEquipments, [e IN [] | e["equipmentTrimId"]] AS updatedTrims
+        |CALL {
+        |  WITH oneWayDemandList AS oneWayDemandList, updatedOnewayEquipments AS updatedOnewayEquipments
+        |  WITH oneWayDemandList AS oneWayDemandList, updatedOnewayEquipments AS updatedOnewayEquipments
+        |    WHERE true = true
+        |  RETURN 1 AS y
+        |  UNION
+        |  WITH updatedOnewayEquipments AS updatedOnewayEquipments
+        |  WITH updatedOnewayEquipments AS updatedOnewayEquipments
+        |    WHERE true = true
+        |  RETURN 1 AS y
+        |}
+        |RETURN COLLECT { RETURN 1 AS e } AS res""".stripMargin
     )
   }
 

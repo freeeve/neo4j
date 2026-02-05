@@ -53,7 +53,7 @@ object WorkingScopeStringRenderer {
   def apply(workingScope: WorkingScope): String = render(workingScope).render()
 
   private def render(workingScope: WorkingScope): Text = workingScope match {
-    case StatementScope(astNode, incoming, referenced, declared, outgoing, result, children) =>
+    case StatementScope(astNode, incoming, referenced, declared, outgoing, result, children, _) =>
       Block(
         renderIncoming(incoming),
         renderAst(astNode),

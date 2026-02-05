@@ -2321,12 +2321,22 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Declared(variables = Seq("x")),
           Outgoing(variables = Set("a", "b", "x")),
           ExpectedWorkingScope(
-            Ast("""UNWIND [1, 2, 3] AS x
+            Ast("""WITH a
+                  |UNWIND [1, 2, 3] AS x
                   |RETURN a * x AS x""".stripMargin),
             Incoming(variables = Set("a")),
             Referenced(Set("a")),
             Outgoing(variables = Set("x")),
             ExpectedResult.TableResult("x"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
             ExpectedWorkingScope(
               Ast("UNWIND [1, 2, 3] AS x"),
               Incoming(variables = Set("a")),
@@ -2489,13 +2499,23 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Declared(variables = Seq("x")),
           Outgoing(variables = Set("a", "x")),
           ExpectedWorkingScope(
-            Ast("""LET b = a
+            Ast("""WITH a
+                  |LET b = a
                   |WITH b, a
                   |RETURN a * b AS x""".stripMargin),
             Incoming(variables = Set("a")),
             Referenced(Set("a")),
             Outgoing(variables = Set("x")),
             ExpectedResult.TableResult("x"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
             ExpectedWorkingScope(
               Ast("LET b = a"),
               Incoming(variables = Set("a")),
@@ -2671,12 +2691,22 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Declared(variables = Seq("x")),
           Outgoing(variables = Set("a", "b", "x")),
           ExpectedWorkingScope(
-            Ast("""UNWIND [1, 2, 3] AS x
+            Ast("""WITH a
+                  |UNWIND [1, 2, 3] AS x
                   |RETURN a * x AS x""".stripMargin),
             Incoming(variables = Set("a")),
             Referenced(Set("a")),
             Outgoing(variables = Set("x")),
             ExpectedResult.TableResult("x"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
             ExpectedWorkingScope(
               Ast("UNWIND [1, 2, 3] AS x"),
               Incoming(variables = Set("a")),
@@ -2848,12 +2878,22 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Declared(variables = Seq("x", "r")),
           Outgoing(variables = Set("a", "b", "x", "r")),
           ExpectedWorkingScope(
-            Ast("""UNWIND [1, 2, 3] AS x
+            Ast("""WITH a
+                  |UNWIND [1, 2, 3] AS x
                   |RETURN a * x AS x""".stripMargin),
             Incoming(variables = Set("a")),
             Referenced(Set("a")),
             Outgoing(variables = Set("x")),
             ExpectedResult.TableResult("x"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
             ExpectedWorkingScope(
               Ast("UNWIND [1, 2, 3] AS x"),
               Incoming(variables = Set("a")),
@@ -3060,13 +3100,23 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Declared(variables = Seq("x")),
           Outgoing(variables = Set("a", "x")),
           ExpectedWorkingScope(
-            Ast("""LET b = a
+            Ast("""WITH a
+                  |LET b = a
                   |WITH b
                   |RETURN b AS x""".stripMargin),
             Incoming(variables = Set("a")),
             Referenced(Set("a")),
             Outgoing(variables = Set("x")),
             ExpectedResult.TableResult("x"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("a")),
+              Outgoing(variables = Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
             ExpectedWorkingScope(
               Ast("LET b = a"),
               Incoming(variables = Set("a")),
@@ -4405,6 +4455,274 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
               ExpectedWorkingScope.varExp("n", Set("n"))
             )
           )
+        )
+      )
+    )
+  }
+
+  test("""WITH 1 AS x
+         |CALL {
+         |  WITH x
+         |  WITH x, 2 AS y
+         |  CALL {
+         |    WITH x, y
+         |    WITH x, y, 4 AS z
+         |    RETURN z
+         |  }
+         |  RETURN y, z
+         |}
+         |RETURN x, y, z""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH 1 AS x
+              |CALL {
+              |  WITH x
+              |  WITH x, 2 AS y
+              |  CALL {
+              |    WITH x, y
+              |    WITH x, y, 4 AS z
+              |    RETURN z
+              |  }
+              |  RETURN y, z
+              |}
+              |RETURN x, y, z""".stripMargin),
+        Outgoing(variables = Set("x", "y", "z")),
+        ExpectedResult.TableResult("x", "y", "z"),
+        ExpectedWorkingScope(
+          Ast("WITH 1 AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("1")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH x
+                |  WITH x, 2 AS y
+                |  CALL {
+                |    WITH x, y
+                |    WITH x, y, 4 AS z
+                |    RETURN z
+                |  }
+                |  RETURN y, z
+                |}""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("y", "z")),
+          Outgoing(variables = Set("x", "y", "z")),
+          ExpectedWorkingScope(
+            Ast("""WITH x
+                  |WITH x, 2 AS y
+                  |CALL {
+                  |  WITH x, y
+                  |  WITH x, y, 4 AS z
+                  |  RETURN z
+                  |}
+                  |RETURN y, z""".stripMargin),
+            Incoming(variables = Set("x")),
+            Referenced(Set("x")),
+            Outgoing(variables = Set("y", "z")),
+            ExpectedResult.TableResult("y", "z"),
+            InImportingWith(),
+            ExpectedWorkingScope(
+              Ast("WITH x"),
+              Incoming(variables = Set("x")),
+              Referenced(Set("x")),
+              Declared(variables = Seq("x")),
+              Outgoing(variables = Set("x")),
+              ExpectedWorkingScope.varExp("x", Set("x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("WITH x, 2 AS y"),
+              Incoming(variables = Set("x")),
+              Referenced(Set("x")),
+              Declared(variables = Seq("x", "y")),
+              Outgoing(variables = Set("x", "y")),
+              ExpectedWorkingScope.varExp("x", Set("x")),
+              ExpectedWorkingScope.constExp("2", Set("x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("""CALL {
+                    |  WITH x, y
+                    |  WITH x, y, 4 AS z
+                    |  RETURN z
+                    |}""".stripMargin),
+              Incoming(variables = Set("x", "y")),
+              Referenced(Set("x", "y")),
+              Declared(variables = Seq("z")),
+              Outgoing(variables = Set("x", "y", "z")),
+              ExpectedWorkingScope(
+                Ast("""WITH x, y
+                      |WITH x, y, 4 AS z
+                      |RETURN z""".stripMargin),
+                Incoming(variables = Set("x", "y")),
+                Referenced(Set("x", "y")),
+                Outgoing(variables = Set("z")),
+                ExpectedResult.TableResult("z"),
+                InImportingWith(),
+                ExpectedWorkingScope(
+                  Ast("WITH x, y"),
+                  Incoming(variables = Set("x", "y")),
+                  Referenced(Set("x", "y")),
+                  Declared(variables = Seq("x", "y")),
+                  Outgoing(variables = Set("x", "y")),
+                  ExpectedWorkingScope.varExp("x", Set("x", "y")),
+                  ExpectedWorkingScope.varExp("y", Set("x", "y"))
+                ),
+                ExpectedWorkingScope(
+                  Ast("WITH x, y, 4 AS z"),
+                  Incoming(variables = Set("x", "y")),
+                  Referenced(Set("x", "y")),
+                  Declared(variables = Seq("x", "y", "z")),
+                  Outgoing(variables = Set("x", "y", "z")),
+                  ExpectedWorkingScope.varExp("x", Set("x", "y")),
+                  ExpectedWorkingScope.varExp("y", Set("x", "y")),
+                  ExpectedWorkingScope.constExp("4", Set("x", "y"))
+                ),
+                ExpectedWorkingScope(
+                  Ast("RETURN z"),
+                  Incoming(variables = Set("x", "y", "z")),
+                  Referenced(Set("z")),
+                  Outgoing(variables = Set("z")),
+                  ExpectedResult.TableResult("z"),
+                  ExpectedWorkingScope.varExp("z", Set("x", "y", "z"))
+                )
+              )
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN y, z"),
+              Incoming(variables = Set("x", "y", "z")),
+              Referenced(Set("y", "z")),
+              Outgoing(variables = Set("y", "z")),
+              ExpectedResult.TableResult("y", "z"),
+              ExpectedWorkingScope.varExp("y", Set("x", "y", "z")),
+              ExpectedWorkingScope.varExp("z", Set("x", "y", "z"))
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x, y, z"),
+          Incoming(variables = Set("x", "y", "z")),
+          Referenced(Set("x", "y", "z")),
+          Outgoing(variables = Set("x", "y", "z")),
+          ExpectedResult.TableResult("x", "y", "z"),
+          ExpectedWorkingScope.varExp("x", Set("x", "y", "z")),
+          ExpectedWorkingScope.varExp("y", Set("x", "y", "z")),
+          ExpectedWorkingScope.varExp("z", Set("x", "y", "z"))
+        )
+      )
+    )
+  }
+
+  test("""WITH 1 AS x
+         |CALL {
+         |  WITH x
+         |  RETURN x AS y
+         |  UNION
+         |  WITH x
+         |  RETURN x AS y
+         |}
+         |RETURN x, y""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH 1 AS x
+              |CALL {
+              |  WITH x
+              |  RETURN x AS y
+              |  UNION
+              |  WITH x
+              |  RETURN x AS y
+              |}
+              |RETURN x, y""".stripMargin),
+        Outgoing(variables = Set("x", "y")),
+        ExpectedResult.TableResult("x", "y"),
+        ExpectedWorkingScope(
+          Ast("WITH 1 AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("1")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH x
+                |  RETURN x AS y
+                |  UNION
+                |  WITH x
+                |  RETURN x AS y
+                |}""".stripMargin),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedWorkingScope(
+            Ast("""WITH x
+                  |RETURN x AS y
+                  |UNION
+                  |WITH x
+                  |RETURN x AS y""".stripMargin),
+            Incoming(variables = Set("x")),
+            Referenced(Set("x")),
+            Outgoing(variables = Set("y")),
+            ExpectedResult.TableResult("y"),
+            ExpectedWorkingScope(
+              Ast("""WITH x
+                    |RETURN x AS y""".stripMargin),
+              Incoming(variables = Set("x")),
+              Referenced(Set("x")),
+              Outgoing(variables = Set("y")),
+              ExpectedResult.TableResult("y"),
+              InImportingWith(),
+              ExpectedWorkingScope(
+                Ast("WITH x"),
+                Incoming(variables = Set("x")),
+                Referenced(Set("x")),
+                Declared(variables = Seq("x")),
+                Outgoing(variables = Set("x")),
+                ExpectedWorkingScope.varExp("x", Set("x"))
+              ),
+              ExpectedWorkingScope(
+                Ast("RETURN x AS y"),
+                Incoming(variables = Set("x")),
+                Referenced(Set("x")),
+                Outgoing(variables = Set("y")),
+                ExpectedResult.TableResult("y"),
+                ExpectedWorkingScope.varExp("x", Set("x"))
+              )
+            ),
+            ExpectedWorkingScope(
+              Ast("""WITH x
+                    |RETURN x AS y""".stripMargin),
+              Incoming(variables = Set("x")),
+              Referenced(Set("x")),
+              Outgoing(variables = Set("y")),
+              ExpectedResult.TableResult("y"),
+              InImportingWith(),
+              ExpectedWorkingScope(
+                Ast("WITH x"),
+                Incoming(variables = Set("x")),
+                Referenced(Set("x")),
+                Declared(variables = Seq("x")),
+                Outgoing(variables = Set("x")),
+                ExpectedWorkingScope.varExp("x", Set("x"))
+              ),
+              ExpectedWorkingScope(
+                Ast("RETURN x AS y"),
+                Incoming(variables = Set("x")),
+                Referenced(Set("x")),
+                Outgoing(variables = Set("y")),
+                ExpectedResult.TableResult("y"),
+                ExpectedWorkingScope.varExp("x", Set("x"))
+              )
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x, y"),
+          Incoming(variables = Set("x", "y")),
+          Referenced(Set("x", "y")),
+          Outgoing(variables = Set("x", "y")),
+          ExpectedResult.TableResult("x", "y"),
+          ExpectedWorkingScope.varExp("x", Set("x", "y")),
+          ExpectedWorkingScope.varExp("y", Set("x", "y"))
         )
       )
     )

@@ -152,6 +152,8 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     case object ExpressionResult extends ExpectedCallableResult
   }
 
+  case class InImportingWith(value: Boolean = true) extends ExpectedCharacteristic
+
   case class ExpectedWorkingScope(expectedCharacteristics: ExpectedCharacteristic*) extends ExpectedCharacteristic
 
   object ExpectedWorkingScope {
@@ -875,6 +877,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     val children = expected.expectedCharacteristics.collect {
       case c: ExpectedWorkingScope => c
     }
+    val inImportingWith = expected.expectedCharacteristics.collectFirst {
+      case i: InImportingWith => i
+    }.getOrElse(InImportingWith(false))
 
     def assertResult(actualResult: Result, expectedResult: ExpectedResult): Assertion = {
       (actualResult, result) match {
@@ -922,7 +927,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         whitespaceNormalization(prettify(ws.astNode)) shouldBe whitespaceNormalization(astNodeString)
       }
       ws match {
-        case StatementScope(_, CommonContext(constants, variables, localCallables), _, _, _, _, _) =>
+        case StatementScope(_, CommonContext(constants, variables, localCallables), _, _, _, _, _, isInImportingWith) =>
           withClue("[statement incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs incoming.constants
@@ -937,6 +942,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               assertLocalCallableSet(localCallables, incoming.localCallables)
             }
           }
+          withClue("[statement inImportingWith") {
+            isInImportingWith shouldEqual inImportingWith.value
+          }
         case StatementScope(
             _,
             AggregatingExpressionContext(constants, variables, localCallables, keys, _),
@@ -944,7 +952,8 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             _,
             _,
             _,
-            _
+            _,
+            isInImportingWith
           ) =>
           withClue("[statement aggregation incoming]") {
             withClue("[constants]") {
@@ -963,6 +972,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             withClue("[invariance]") {
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
+          }
+          withClue("[statement inImportingWith") {
+            isInImportingWith shouldEqual inImportingWith.value
           }
         case PatternScope(_, PatternIncomingContext(topology, predicate, path, _, localCallables), _, _, _, _) =>
           withClue("[pattern incoming]") {

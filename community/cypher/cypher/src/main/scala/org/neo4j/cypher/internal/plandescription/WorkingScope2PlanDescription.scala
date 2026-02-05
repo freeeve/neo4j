@@ -86,7 +86,7 @@ object WorkingScope2PlanDescription {
     }
 
     workingScope match {
-      case StatementScope(astNode, incoming, referenced, declared, outgoing, result, _) =>
+      case StatementScope(astNode, incoming, referenced, declared, outgoing, result, _, _) =>
         WorkingScopePlanDescription(
           id = Id(inNum),
           name = renderAstString(astNode),

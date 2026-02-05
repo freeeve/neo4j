@@ -41,11 +41,13 @@ import org.neo4j.cypher.internal.util.ASTNode
 
 object pegStatement {
 
-  def apply(statement: Statement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
-    c.getRecordScopeOrElse[Statement](statement, incoming, applyUncached(_, _))
+  def apply(statement: Statement, incoming: RegularContext, inImportingWith: Boolean = false)(implicit
+    c: PegContext): WorkingScope = {
+    c.getRecordScopeOrElse[Statement](statement, incoming, inImportingWith, applyUncached(_, _, inImportingWith))
   }
 
-  private def applyUncached(statement: Statement, incoming: RegularContext)(implicit c: PegContext): WorkingScope = {
+  private def applyUncached(statement: Statement, incoming: RegularContext, inImportingWith: Boolean)(implicit
+    c: PegContext): WorkingScope = {
     implicit val astNode: ASTNode = statement
     statement match {
 
@@ -123,8 +125,22 @@ object pegStatement {
           Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
         incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
       case u: Union =>
-        val children = Seq(u.lhs, u.rhs).map(q => apply(q, incoming))
-        incoming.resultScope(children.head.outgoing, children.head.result, children)
+        if (inImportingWith) {
+          val children = Seq(u.lhs, u.rhs).map {
+            case q: SingleQuery =>
+              q.withoutImportingWithAndGraphSelection.map(sq => {
+                val isImportingAll = q.isCorrelated && q.importColumns.isEmpty
+                val filteredIncoming = if (isImportingAll) incoming
+                else incoming.replaceWith(incoming.variables.filter(q.importColumns.toSet))
+                apply(q, filteredIncoming, inImportingWith)
+              }).getOrElse(StatementScope(q, incoming, Set.empty, Declarations.noDeclarations, RegularContext.unit))
+            case q => apply(q, incoming, inImportingWith)
+          }
+          incoming.resultScope(children.head.outgoing, children.head.result, children)
+        } else {
+          val children = Seq(u.lhs, u.rhs).map(q => apply(q, incoming))
+          incoming.resultScope(children.head.outgoing, children.head.result, children)
+        }
       case ConditionalQueryWhen(branches, defaultOpt) =>
         val allBranched = branches.appendedAll(defaultOpt)
         val branchIncoming = incoming.constantChildContext()
@@ -140,7 +156,7 @@ object pegStatement {
             branchIncoming.resultScope(queryScope.outgoing, queryScope.result, branchChildren, referenced)
         }
         incoming.resultScope(children.head.outgoing, children.head.result, children)
-      case SingleQuery(clauses) =>
+      case sq @ SingleQuery(clauses) =>
         if (clauses.size == 1 && clauses.head.isInstanceOf[UnresolvedCall]) {
           val child = pegClause(clauses.head, incoming)
           val referenced =
@@ -150,7 +166,7 @@ object pegStatement {
           val children = clauses.scanLeft(WorkingScope.apriori(incoming)) {
             case (previous, clause) => pegClause(clause, previous.outgoing) match {
                 // adjusting for in-query calls to have no result
-                case ws @ StatementScope(_: UnresolvedCall, _, _, _, _, TableResult(_), _) =>
+                case ws @ StatementScope(_: UnresolvedCall, _, _, _, _, TableResult(_), _, _) =>
                   ws.copy(result = NoResult)
                 case ws => ws
               }
@@ -160,7 +176,9 @@ object pegStatement {
             Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
           // The following also wraps a single child in a parent scope.
           // Alternatively, we could simply forward a single child.
-          incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
+          incoming
+            .resultScope(children.last.outgoing, children.last.result, children, referenced)(sq)
+            .isInImportingWith(inImportingWith)
         }
       case TopLevelBraces(query, _) =>
         val inner = apply(query, incoming)

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
@@ -26,7 +27,6 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
-import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ParsedAsYield
 import org.neo4j.cypher.internal.ast.PartQuery
@@ -77,6 +77,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqu
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Result
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.StatementScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.TableResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
@@ -193,7 +194,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
     case class LastInNext(override val mappedReturns: Map[LogicalVariable, LogicalVariable]) extends InNext
 
     case object Layout {
-      def empty: Layout = Layout(None, Seq.empty, Map.empty, None, InSingleQuery(), Set.empty)
+      def empty: Layout = Layout(None, Seq.empty, Map.empty, None, InSingleQuery(), Set.empty, None)
     }
 
     /**
@@ -216,7 +217,8 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
       incomingMapping: Map[LogicalVariable, AnonymizedVariable],
       utilityVariable: Option[LogicalVariable],
       semanticContext: SemanticContext,
-      referencedByQuery: Set[LogicalVariable]
+      referencedByQuery: Set[LogicalVariable],
+      importingWith: Option[PositionedNode[With]]
     ) {
       def ensureUniqueIds: Rewriter = bottomUp(Rewriter.lift { case v: LogicalVariable => v.copyId })
 
@@ -272,33 +274,26 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           )
         )
 
-      def refBySingleQuery(sq: SingleQuery): Layout =
-        copy(referencedByQuery =
-          scopeState.recordedScopes.get(sq) match {
-            case Some(scope) =>
-              scope.referenced ++ scope.children.flatMap(_.referenced)
-            case None =>
-              if (sq.partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection.nonEmpty) {
-                scopeState.recordedScopes.get(
-                  SingleQuery(sq.partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection)(sq.position)
-                ) match {
-                  case Some(scope) =>
-                    scope.referenced ++ scope.children.flatMap(_.referenced)
-                  case None =>
-                    if (sq.partitionedClauses.clausesExceptImportingWith.nonEmpty)
-                      scopeState.recordedScopes.get(
-                        SingleQuery(sq.partitionedClauses.clausesExceptImportingWith)(sq.position)
-                      ) match {
-                        case Some(scope) =>
-                          scope.referenced ++ scope.children.flatMap(_.referenced)
-                        case None =>
-                          referencedByQuery
-                      }
-                    else referencedByQuery
-                }
-              } else referencedByQuery
-          }
+      def refBySingleQuery(sq: SingleQuery): Layout = {
+        copy(
+          referencedByQuery =
+            scopeState.recordedScopes.get(sq) match {
+              case Some(scope) =>
+                scope.referenced ++ scope.children.flatMap(_.referenced)
+              case None =>
+                sq.clauses.flatMap(c => scopeState.recordedScopes.get(c)).flatMap(_.referenced).toSet
+            },
+          importingWith =
+            if (
+              scopeState.recordedScopes.get(sq).exists {
+                case StatementScope(_, _, _, _, _, _, _, true) => true
+                case _                                         => false
+              }
+            )
+              sq.partitionedClauses.importingWith.map(PositionedNode(_))
+            else None
         )
+      }
 
       private def drivingTableReset(pos: InputPosition): Clause =
         With(
@@ -830,15 +825,18 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
 
       clause match {
         case w @ With(false, ReturnItems(_, Seq(), _), None, None, None, None, withType)
-          if version != CypherVersion.Cypher5 && withType != ParsedAsYield =>
+          if version != CypherVersion.Cypher5 &&
+            withType != ParsedAsYield &&
+            !layout.importingWith.contains(PositionedNode(w)) =>
           w.copyProjection(returnItems = ReturnItems(FreeProjection, Seq.empty, None)(returnItems.position))
             .withRewrittenType
-
         case _ =>
           val expandedItems = if (returnItems.includeExisting) {
             clause match {
               case w: With
-                if version != CypherVersion.Cypher5 && !clause.isAggregating && w.withType != ParsedAsYield =>
+                if version != CypherVersion.Cypher5 &&
+                  !clause.isAggregating && w.withType != ParsedAsYield &&
+                  !layout.importingWith.contains(PositionedNode(w)) =>
                 scopeState.getOutgoingVariableReturnItemSeq(clause)
                   .filterNot(i =>
                     returnItems.items.exists(_.name == i.name) || !layout.referencedByQuery.exists(_.name == i.name)
@@ -873,25 +871,6 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
 
     }
 
-    def expandImportingWith(call: ImportingWithSubqueryCall): ImportingWithSubqueryCall =
-      if (scopeState.recordedScopes.contains(call)) {
-        val rewrittenInner = call.innerQuery.mapEachSingleQuery(sq => {
-          sq.copy(clauses =
-            sq.partitionedClauses.leadingGraphSelection.toSeq ++
-              sq.partitionedClauses.importingWith.map {
-                case w: With if w.returnItems.includeExisting =>
-                  val expandedItems = scopeState.getIncomingReturnItemSeq(call).sortBy(_.name)
-                  val returnItems =
-                    expandedItems.filterNot(i => w.returnItems.items.exists(_.name == i.name)) ++ w.returnItems.items
-                  w.copy(returnItems = ReturnItems(FreeProjection, returnItems)(w.returnItems.position))(w.position)
-                case w => w
-              } ++
-              sq.partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection
-          )(sq.position)
-        })
-        call.copy(innerQuery = rewrittenInner)(call.position)
-      } else call
-
     def getScopeImports(call: ScopeClauseSubqueryCall): Seq[LogicalVariable] =
       scopeState.getReferenced(call).map(_.copyId).toSeq
 
@@ -918,8 +897,6 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         expandReturnItems(clause, returnItems, layout)
       case clause: ScopeClauseSubqueryCall if clause.isImportingAll =>
         clause.copy(isImportingAll = false, importedVariables = getScopeImports(clause))(clause.position)
-      case clause: ImportingWithSubqueryCall if clause.isCorrelated =>
-        expandImportingWith(clause)
       case u @ UnionDistinct(lhs, rhs) =>
         val updatedLayout = layout.inUnionDistinct.refByQuery(u)
         u.copy(

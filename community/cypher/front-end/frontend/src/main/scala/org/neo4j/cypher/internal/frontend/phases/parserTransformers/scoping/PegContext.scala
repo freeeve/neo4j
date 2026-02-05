@@ -49,11 +49,12 @@ case class PegContext(
   def getRecordScopeOrElse[T <: ASTNode](
     astNode: T,
     incoming: RegularContext,
+    inImportingWith: Boolean,
     peg: (T, RegularContext) => WorkingScope
   ): WorkingScope = {
     recordedScopes.get(astNode).flatMap {
-      case ws: WorkingScope if ws.incoming == incoming => Some(ws)
-      case _                                           => None
+      case ws: WorkingScope if ws.incoming == incoming && ws.inImportingWith == inImportingWith => Some(ws)
+      case _                                                                                    => None
     }.getOrElse(peg(astNode, incoming))
   }
 }
