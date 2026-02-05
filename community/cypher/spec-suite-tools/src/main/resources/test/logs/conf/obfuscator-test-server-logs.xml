@@ -25,9 +25,9 @@
         <RollingRandomAccessFile name="QueryLog" fileName="${config:server.directories.logs}/query.log"
                                  filePattern="${config:server.directories.logs}/query.log.%02i"
                                  immediateFlush="true">
-            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/QueryLogJsonLayout.json"/>
+            <JsonTemplateLayout eventTemplateUri="classpath:org/neo4j/logging/QueryLogJsonLayout.json" maxStringLength="65536"/>
             <Policies>
-                <SizeBasedTriggeringPolicy size="256 kB"/>
+                <SizeBasedTriggeringPolicy size="1 MB"/>
             </Policies>
             <DefaultRolloverStrategy fileIndex="min" max="2"/>
         </RollingRandomAccessFile>

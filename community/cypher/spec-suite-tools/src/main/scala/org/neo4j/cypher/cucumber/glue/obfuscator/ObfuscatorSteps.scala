@@ -93,7 +93,10 @@ final class ObfuscatorSteps @Inject() (
       val actualLog = logItemsByTag.getOrElse(tag, Seq.empty)
       if (actualLog.size < 2) {
         // TODO Query log sometimes contains three entries, feels like a bug?
-        fail(describe(s"Unexpected log line size, found ${actualLog.size}", query, actualLog))
+        val message =
+          s"""Unexpected log line size, found ${actualLog.size}
+             |Hint: You might need to change obfuscator-test-server-logs.xml, have a look at the JsonTemplateLayout maxStringLength and SizeBasedTriggeringPolicy size""".stripMargin
+        fail(describe(message, query, actualLog))
       }
       if (!query.contains("*")) {
         actualLog.foreach { logItem =>
@@ -250,7 +253,8 @@ object ObfuscatorSteps {
       ),
       useBolt = true,
       serverLogsConfResource = Some("/test/logs/conf/obfuscator-test-server-logs.xml"),
-      additionalTagContext = Set("obfuscation")
+      additionalTagContext = Set("obfuscation"),
+      maxDbmsReuse = Some(256) // Tests seems to get slower with dbms re-use for unknown reason, so let's force restarts
     ))
     final class ObjectFactory extends SingletonInjector(injector)
   }
