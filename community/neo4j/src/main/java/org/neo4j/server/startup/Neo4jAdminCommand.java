@@ -183,10 +183,10 @@ public class Neo4jAdminCommand implements Callable<Integer>, VerboseCommand {
         System.exit(exitCode);
     }
 
-    private static class ExceptionHandler implements CommandLine.IExecutionExceptionHandler {
+    public static class ExceptionHandler implements CommandLine.IExecutionExceptionHandler {
         private final Environment environment;
 
-        ExceptionHandler(Environment environment) {
+        public ExceptionHandler(Environment environment) {
             this.environment = environment;
         }
 

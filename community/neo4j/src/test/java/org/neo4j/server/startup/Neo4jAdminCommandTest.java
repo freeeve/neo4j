@@ -71,7 +71,7 @@ class Neo4jAdminCommandTest {
 
         @Override
         @BeforeEach
-        void setUp() throws Exception {
+        protected void setUp() throws Exception {
             super.setUp();
             fork = new TestInFork(out, err);
             addConf(
