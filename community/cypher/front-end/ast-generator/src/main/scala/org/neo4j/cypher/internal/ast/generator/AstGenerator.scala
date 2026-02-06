@@ -451,7 +451,6 @@ import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
@@ -497,7 +496,6 @@ import org.neo4j.cypher.internal.expressions.NFKDNormalForm
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NaN
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
@@ -529,8 +527,6 @@ import org.neo4j.cypher.internal.expressions.PatternPart.ShortestGroups
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.ProcedureName
-import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertySelector
@@ -576,7 +572,11 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTFloat32

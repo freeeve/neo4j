@@ -85,7 +85,6 @@ import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
@@ -118,6 +117,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -501,7 +501,7 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         false
       }
 
-      override def procedureSignature(name: QualifiedName): ProcedureSignature = {
+      override def procedureSignature(name: ProcedureName): ProcedureSignature = {
         config.procedureSignatures.find(_.name == name).get
       }
 

@@ -53,7 +53,6 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.plans.AbstractVarExpand
@@ -115,6 +114,7 @@ import org.neo4j.cypher.internal.runtime.ast.RuntimeVariable
 import org.neo4j.cypher.internal.runtime.ast.VariableRef
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.RewriterStopper
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.bottomUp

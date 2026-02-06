@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.In
@@ -42,7 +41,6 @@ import org.neo4j.cypher.internal.expressions.LessThanOrEqual
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PartialPredicate
@@ -71,7 +69,9 @@ import org.neo4j.cypher.internal.logical.plans.SeekableArgs
 import org.neo4j.cypher.internal.logical.plans.SingleSeekableArg
 import org.neo4j.cypher.internal.util.BucketSize
 import org.neo4j.cypher.internal.util.ExactSize
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Last
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.NonEmptyList.IterableConverter
 import org.neo4j.cypher.internal.util.symbols.CTAny

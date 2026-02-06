@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.functions.Timestamp
@@ -25,6 +24,7 @@ import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolve
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition

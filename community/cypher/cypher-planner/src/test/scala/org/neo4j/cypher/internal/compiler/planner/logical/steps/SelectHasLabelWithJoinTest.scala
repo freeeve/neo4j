@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
@@ -77,7 +76,7 @@ class SelectHasLabelWithJoinTest extends CypherFunSuite with LogicalPlanningTest
 
   test("should not solve has-labels check on procedure result with joins") {
     val signature = ProcedureSignature(
-      QualifiedName(Seq.empty, "getNode"),
+      procedureName("getNode"),
       IndexedSeq.empty,
       Some(IndexedSeq(FieldSignature("node", CTNode))),
       None,

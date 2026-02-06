@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -50,6 +49,7 @@ import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.ast.ForAllRepetitions
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 

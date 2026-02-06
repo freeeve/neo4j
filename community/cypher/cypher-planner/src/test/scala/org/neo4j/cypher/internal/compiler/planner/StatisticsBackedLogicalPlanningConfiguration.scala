@@ -68,7 +68,6 @@ import org.neo4j.cypher.internal.frontend.notification.NotificationWrapping
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -98,8 +97,12 @@ import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
@@ -761,6 +764,12 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
    * Register all temporal functions. Assign consecutive IDs starting with the given initialId.
    */
   def registerTemporalFunctions(initialId: Int = 2): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+
+    def functionName(namePart: String, nameParts: String*): FunctionName = {
+      val parts = namePart +: nameParts
+      FunctionName(Namespace(parts.dropRight(1).toList)(InputPosition.NONE), parts.last)(InputPosition.NONE)
+    }
+
     var id = initialId - 1
     def nextId(): Int = {
       id += 1
@@ -769,7 +778,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
     this
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "datetime"),
+        functionName("datetime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDateTime,
         None,
@@ -779,7 +788,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("datetime"), "transaction"),
+        functionName("datetime", "transaction"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDateTime,
         None,
@@ -789,7 +798,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("datetime"), "statement"),
+        functionName("datetime", "statement"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDateTime,
         None,
@@ -799,7 +808,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("datetime"), "realtime"),
+        functionName("datetime", "realtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDateTime,
         None,
@@ -809,7 +818,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("datetime"), "truncate"),
+        functionName("datetime", "truncate"),
         IndexedSeq(
           FieldSignature("unit", CTString),
           FieldSignature("temporalInstantValue", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT"))),
@@ -823,7 +832,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "date"),
+        functionName("date"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDate,
         None,
@@ -833,7 +842,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("date"), "transaction"),
+        functionName("date", "transaction"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDate,
         None,
@@ -843,7 +852,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("date"), "statement"),
+        functionName("date", "statement"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDate,
         None,
@@ -853,7 +862,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("date"), "realtime"),
+        functionName("date", "realtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTDate,
         None,
@@ -863,7 +872,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("date"), "truncate"),
+        functionName("date", "truncate"),
         IndexedSeq(
           FieldSignature("unit", CTString),
           FieldSignature("temporalInstantValue", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT"))),
@@ -877,7 +886,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "time"),
+        functionName("time"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTTime,
         None,
@@ -887,7 +896,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("time"), "transaction"),
+        functionName("time", "transaction"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTTime,
         None,
@@ -897,7 +906,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("time"), "statement"),
+        functionName("time", "statement"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTTime,
         None,
@@ -907,7 +916,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("time"), "realtime"),
+        functionName("time", "realtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTTime,
         None,
@@ -917,7 +926,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("time"), "truncate"),
+        functionName("time", "truncate"),
         IndexedSeq(
           FieldSignature("unit", CTString),
           FieldSignature("temporalInstantValue", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT"))),
@@ -931,7 +940,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "localdatetime"),
+        functionName("localdatetime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalDateTime,
         None,
@@ -941,7 +950,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localdatetime"), "transaction"),
+        functionName("localdatetime", "transaction"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalDateTime,
         None,
@@ -951,7 +960,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localdatetime"), "statement"),
+        functionName("localdatetime", "statement"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalDateTime,
         None,
@@ -961,7 +970,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localdatetime"), "realtime"),
+        functionName("localdatetime", "realtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalDateTime,
         None,
@@ -971,7 +980,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localdatetime"), "truncate"),
+        functionName("localdatetime", "truncate"),
         IndexedSeq(
           FieldSignature("unit", CTString),
           FieldSignature("temporalInstantValue", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT"))),
@@ -985,7 +994,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "localtime"),
+        functionName("localtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalTime,
         None,
@@ -995,7 +1004,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localtime"), "transaction"),
+        functionName("localtime", "transaction"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalTime,
         None,
@@ -1005,7 +1014,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localtime"), "statement"),
+        functionName("localtime", "statement"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalTime,
         None,
@@ -1015,7 +1024,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localtime"), "realtime"),
+        functionName("localtime", "realtime"),
         IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
         CTLocalTime,
         None,
@@ -1025,7 +1034,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("localtime"), "truncate"),
+        functionName("localtime", "truncate"),
         IndexedSeq(
           FieldSignature("unit", CTString),
           FieldSignature("temporalInstantValue", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT"))),
@@ -1039,7 +1048,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq.empty, "duration"),
+        functionName("duration"),
         IndexedSeq(FieldSignature("Input", CTAny)),
         CTDuration,
         None,
@@ -1049,7 +1058,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("duration"), "between"),
+        functionName("duration", "between"),
         IndexedSeq(FieldSignature("from", CTAny), FieldSignature("to", CTAny)),
         CTDuration,
         None,
@@ -1059,7 +1068,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("duration"), "inMonths"),
+        functionName("duration", "inMonths"),
         IndexedSeq(FieldSignature("from", CTAny), FieldSignature("to", CTAny)),
         CTDuration,
         None,
@@ -1069,7 +1078,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("duration"), "inDays"),
+        functionName("duration", "inDays"),
         IndexedSeq(FieldSignature("from", CTAny), FieldSignature("to", CTAny)),
         CTDuration,
         None,
@@ -1079,7 +1088,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         builtIn = true
       ))
       .addFunction(UserFunctionSignature(
-        QualifiedName(Seq("duration"), "inSeconds"),
+        functionName("duration", "inSeconds"),
         IndexedSeq(FieldSignature("from", CTAny), FieldSignature("to", CTAny)),
         CTDuration,
         None,
@@ -1606,11 +1615,11 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
         nodeLabelConstraints.getOrElse(constrainedLabel, Set.empty)
 
-      override def procedureSignature(name: QualifiedName): ProcedureSignature = {
+      override def procedureSignature(name: ProcedureName): ProcedureSignature = {
         procedures.find(_.name == name).getOrElse(fail(s"No procedure signature for $name"))
       }
 
-      override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = {
+      override def functionSignature(name: FunctionName): Option[UserFunctionSignature] = {
         functions.find(_.name == name)
       }
 

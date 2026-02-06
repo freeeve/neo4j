@@ -19,12 +19,12 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolved
 import org.neo4j.cypher.internal.rewriting.conditions.GQLAliasFunctionNameRewritten
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Condition

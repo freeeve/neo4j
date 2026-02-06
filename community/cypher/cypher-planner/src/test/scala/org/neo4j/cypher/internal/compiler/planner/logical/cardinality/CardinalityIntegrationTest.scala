@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
@@ -39,6 +38,9 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.SubtractionNodeByLabelsScan
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -296,7 +298,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
   }
 
   private val signature = ProcedureSignature(
-    QualifiedName(Seq("my", "proc"), "foo"),
+    ProcedureName(Namespace(List("my", "proc"))(InputPosition.NONE), "foo")(InputPosition.NONE),
     IndexedSeq(FieldSignature("int", CTInteger)),
     Some(IndexedSeq(FieldSignature("x", CTNode))),
     None,

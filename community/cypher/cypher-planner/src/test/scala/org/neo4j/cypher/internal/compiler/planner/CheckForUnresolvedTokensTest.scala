@@ -33,7 +33,6 @@ import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -45,6 +44,7 @@ import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory

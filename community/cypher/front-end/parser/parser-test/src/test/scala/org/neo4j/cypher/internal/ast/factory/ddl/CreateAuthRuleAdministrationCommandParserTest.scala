@@ -31,13 +31,13 @@ import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.MapExpression
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.symbols.AnyType
 
 class CreateAuthRuleAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {

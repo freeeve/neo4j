@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.In
@@ -72,7 +71,6 @@ import org.neo4j.cypher.internal.expressions.NFCNormalForm
 import org.neo4j.cypher.internal.expressions.NFDNormalForm
 import org.neo4j.cypher.internal.expressions.NFKCNormalForm
 import org.neo4j.cypher.internal.expressions.NFKDNormalForm
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
@@ -141,7 +139,9 @@ import org.neo4j.cypher.internal.parser.common.deprecation.DeprecatedChars
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserListener
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny

@@ -46,7 +46,6 @@ import org.neo4j.cypher.internal.ast.UserOptions
 import org.neo4j.cypher.internal.ast.WaitUntilComplete
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
@@ -71,6 +70,7 @@ import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ConstraintTypedContex
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.CreateCommandContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.CreateIndexContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 

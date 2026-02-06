@@ -46,7 +46,6 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
 import org.neo4j.cypher.internal.ir.CreateNode
@@ -1538,7 +1537,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
 
   test("CALL foo() YIELD all RETURN all") {
     val signature = ProcedureSignature(
-      QualifiedName(Seq.empty, "foo"),
+      procedureName("foo"),
       inputSignature = IndexedSeq.empty,
       deprecationInfo = None,
       outputSignature = Some(IndexedSeq(FieldSignature("all", CTInteger))),

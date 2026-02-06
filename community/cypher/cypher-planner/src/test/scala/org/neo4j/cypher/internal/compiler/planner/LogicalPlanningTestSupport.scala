@@ -81,7 +81,6 @@ import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.ProjectNamedPathsRewriter
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
@@ -126,8 +125,10 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Rewriter
@@ -532,16 +533,16 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def buildSinglePlannerQueryWithVersion(
     version: CypherVersion,
     query: String,
-    procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
-    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    procedureLookup: Option[ProcedureName => ProcedureSignature] = None,
+    functionLookup: Option[FunctionName => Option[UserFunctionSignature]] = None,
     additionalSettings: Map[Setting[_], AnyRef] = Map.empty
   ): SinglePlannerQuery =
     buildSinglePlannerQuery(version, query, procedureLookup, functionLookup, additionalSettings)
 
   def buildSinglePlannerQuery(
     query: String,
-    procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
-    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    procedureLookup: Option[ProcedureName => ProcedureSignature] = None,
+    functionLookup: Option[FunctionName => Option[UserFunctionSignature]] = None,
     additionalSettings: Map[Setting[_], AnyRef] = Map.empty
   ): SinglePlannerQuery =
     buildSinglePlannerQuery(randomVersion(), query, procedureLookup, functionLookup, additionalSettings)
@@ -549,8 +550,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def buildSinglePlannerQuery(
     version: CypherVersion,
     query: String,
-    procedureLookup: Option[QualifiedName => ProcedureSignature],
-    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]],
+    procedureLookup: Option[ProcedureName => ProcedureSignature],
+    functionLookup: Option[FunctionName => Option[UserFunctionSignature]],
     additionalSettings: Map[Setting[_], AnyRef]
   ): SinglePlannerQuery = {
     buildPlannerQuery(version, query, procedureLookup, functionLookup, true, additionalSettings) match {
@@ -586,21 +587,21 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   // Hack to guarantee coverage in all versions :/
   def buildPlannerQuery(
     query: String,
-    procLookup: Option[QualifiedName => ProcedureSignature] = None,
-    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None,
+    procedureLookup: Option[ProcedureName => ProcedureSignature] = None,
+    functionLookup: Option[FunctionName => Option[UserFunctionSignature]] = None,
     additionalSettings: Map[Setting[_], AnyRef] = Map.empty
-  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procLookup, fcnLookup, true, additionalSettings)
+  ): PlannerQuery = buildPlannerQuery(randomVersion(), query, procedureLookup, functionLookup, true, additionalSettings)
 
   def buildPlannerQuery(
     version: CypherVersion,
     query: String,
-    procLookup: Option[QualifiedName => ProcedureSignature],
-    fcnLookup: Option[QualifiedName => Option[UserFunctionSignature]],
+    procedureLookup: Option[ProcedureName => ProcedureSignature],
+    functionLookup: Option[FunctionName => Option[UserFunctionSignature]],
     compareVersions: Boolean,
     additionalSettings: Map[Setting[_], AnyRef]
   ): PlannerQuery = {
     val signature = ProcedureSignature(
-      QualifiedName(Seq.empty, "foo"),
+      procedureName("foo"),
       inputSignature = IndexedSeq.empty,
       deprecationInfo = None,
       outputSignature = Some(IndexedSeq(FieldSignature("all", CTInteger))),
@@ -613,8 +614,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     } else {
       parse(version, query, exceptionFactory)
     }
-    val procs: QualifiedName => ProcedureSignature = procLookup.getOrElse(_ => signature)
-    val funcs: QualifiedName => Option[UserFunctionSignature] = fcnLookup.getOrElse(_ => None)
+    val procs: ProcedureName => ProcedureSignature = procedureLookup.getOrElse(_ => signature)
+    val funcs: FunctionName => Option[UserFunctionSignature] = functionLookup.getOrElse(_ => None)
     val planContext = new TestSignatureResolvingPlanContext(procs, funcs)
     val state = LogicalPlanState(
       query,

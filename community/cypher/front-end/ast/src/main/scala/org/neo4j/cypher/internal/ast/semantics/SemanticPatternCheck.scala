@@ -68,7 +68,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipsPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.StringLiteral
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionDynamicLeafExpression
@@ -82,6 +81,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode

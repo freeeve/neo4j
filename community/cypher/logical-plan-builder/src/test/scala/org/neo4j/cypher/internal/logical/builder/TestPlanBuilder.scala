@@ -22,7 +22,9 @@ package org.neo4j.cypher.internal.logical.builder
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 
 class TestPlanBuilder extends SimpleLogicalPlanBuilder(TestResolver)
@@ -30,7 +32,7 @@ class TestPlanBuilder extends SimpleLogicalPlanBuilder(TestResolver)
 object TestResolver extends SimpleResolver(procedures =
       Set(
         ProcedureSignature(
-          QualifiedName(Seq("test"), "proc1"),
+          ProcedureName(Namespace(List("test"))(InputPosition.NONE), "proc1")(InputPosition.NONE),
           IndexedSeq(),
           None,
           None,
@@ -38,7 +40,7 @@ object TestResolver extends SimpleResolver(procedures =
           id = 0
         ),
         ProcedureSignature(
-          QualifiedName(Seq("test"), "proc2"),
+          ProcedureName(Namespace(List("test"))(InputPosition.NONE), "proc2")(InputPosition.NONE),
           IndexedSeq(FieldSignature("in1", CTInteger)),
           Some(IndexedSeq(FieldSignature("foo", CTInteger))),
           None,

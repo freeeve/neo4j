@@ -31,13 +31,10 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -92,13 +89,11 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
   test("should plan procedure calls") {
     // Given
     new givenConfig().withLogicalPlanningContextWithFakeAttributes { (_, context) =>
-      val ns = Namespace(List("my", "proc"))(pos)
-      val name = ProcedureName(ns, "foo")(pos)
-      val qualifiedName = QualifiedName(ns.parts, name.name)
+      val name = procedureName("my", "proc", "foo")
       val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
       val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
       val signature =
-        ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+        ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
       val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
 
       val call = ResolvedCall(signature, Seq.empty, callResults)(pos)

@@ -24,13 +24,13 @@ import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.Divide
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LessThan
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.runtime.spec.rewriters.PlanRewriterContext.pos
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.IdGen
 

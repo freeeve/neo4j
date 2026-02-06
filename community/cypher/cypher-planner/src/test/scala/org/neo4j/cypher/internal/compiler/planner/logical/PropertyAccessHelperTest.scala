@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -160,7 +159,7 @@ class PropertyAccessHelperTest extends CypherFunSuite with LogicalPlanningTestSu
   }
 
   test("should return updated context for procedure call before aggregation") {
-    val qualifiedName = QualifiedName(Seq("db"), "labels")
+    val qualifiedName = procedureName("db", "labels")
     val lookup = Some(Map(qualifiedName -> ProcedureSignature(
       name = qualifiedName,
       inputSignature = Array.empty[FieldSignature],

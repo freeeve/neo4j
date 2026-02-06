@@ -24,13 +24,13 @@ import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.rewriting.StatementValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.SymbolicName
 
 import scala.collection.mutable.ListBuffer
 

@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
@@ -465,7 +464,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
   test("should plan projection and index seek with GetValue when the property is used in a procedure call") {
     val signature = ProcedureSignature(
-      QualifiedName(Seq.empty, "fooProcedure"),
+      procedureName("fooProcedure"),
       IndexedSeq(FieldSignature("input", CTString)),
       Some(IndexedSeq(FieldSignature("value", CTString))),
       None,

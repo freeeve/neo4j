@@ -28,11 +28,9 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.Infinity
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.NaN
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -40,7 +38,9 @@ import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.neo4j.gqlstatus.GqlStatusInfoCodes

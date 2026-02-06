@@ -93,7 +93,7 @@ object UseEvaluation {
         val resolved = ResolvedFunctionInvocation(signatureResolver.functionSignature)(f).coerceArguments
 
         if (resolved.fcnSignature.isEmpty) {
-          Errors.unknownFunction(resolved.qualifiedName.toString, resolved.position)
+          Errors.unknownFunction(resolved.functionName.fullName, resolved.position)
         }
 
         return resolved

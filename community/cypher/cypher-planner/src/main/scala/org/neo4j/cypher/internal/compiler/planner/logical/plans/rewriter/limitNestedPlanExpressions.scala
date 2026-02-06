@@ -23,9 +23,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit.pla
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.ListSlice
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.functions.Head
 import org.neo4j.cypher.internal.expressions.functions.IsEmpty
@@ -37,6 +35,8 @@ import org.neo4j.cypher.internal.logical.plans.PartialTop
 import org.neo4j.cypher.internal.logical.plans.Top
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.BottomUpMergeableRewriter
 import org.neo4j.cypher.internal.util.attribution.Attributes

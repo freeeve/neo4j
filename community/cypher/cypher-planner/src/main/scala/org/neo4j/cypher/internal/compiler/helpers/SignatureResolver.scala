@@ -29,11 +29,15 @@ import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSchemaWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
+import org.neo4j.cypher.internal.util.CallableName
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
@@ -80,12 +84,12 @@ trait ProcedureLookup {
 
 final class SignatureResolver(lookup: ProcedureLookup) extends ProcedureSignatureResolver {
 
-  override def functionSignature(name: QualifiedName, scope: QueryLanguage): Option[UserFunctionSignature] =
+  override def functionSignature(name: FunctionName, scope: QueryLanguage): Option[UserFunctionSignature] =
     Option(lookup.function(SignatureResolver.asKernelQualifiedName(name), toKernelScope(scope)))
       .map(fcn => SignatureResolver.toCypherFunction(fcn))
 
-  override def procedureSignature(name: QualifiedName, scope: QueryLanguage): ProcedureSignature = {
-    val kn = new procs.QualifiedName(name.namespace.toArray, name.name)
+  override def procedureSignature(name: ProcedureName, scope: QueryLanguage): ProcedureSignature = {
+    val kn = new procs.QualifiedName(name.namespace.parts.toArray, name.name)
     SignatureResolver.toCypherProcedure(lookup.procedure(kn, toKernelScope(scope)))
   }
 
@@ -113,7 +117,7 @@ object SignatureResolver {
     val signature = handle.signature()
     val deprecatedBy: Option[String] = signature.deprecated().asScala
     ProcedureSignature(
-      name = asCypherQualifiedName(signature.name()),
+      name = asCypherProcedureName(signature.name()),
       inputSignature = signature.inputSignature().asScala.toIndexedSeq.map(s =>
         FieldSignature(
           name = s.name(),
@@ -154,7 +158,7 @@ object SignatureResolver {
     val signature = fcn.signature()
     val deprecatedBy: Option[String] = signature.deprecated().asScala
     UserFunctionSignature(
-      name = asCypherQualifiedName(signature.name()),
+      name = asCypherFunctionName(signature.name()),
       inputSignature = signature.inputSignature().asScala.toIndexedSeq.map(s =>
         FieldSignature(
           name = s.name(),
@@ -175,11 +179,14 @@ object SignatureResolver {
     )
   }
 
-  private def asKernelQualifiedName(name: QualifiedName): procs.QualifiedName =
-    new procs.QualifiedName(name.namespace.toArray, name.name)
+  private def asKernelQualifiedName(name: CallableName): procs.QualifiedName =
+    new procs.QualifiedName(name.namespace.parts.toArray, name.name)
 
-  private def asCypherQualifiedName(name: procs.QualifiedName): QualifiedName =
-    QualifiedName(name.namespace().toSeq, name.name())
+  private def asCypherProcedureName(name: procs.QualifiedName): ProcedureName =
+    ProcedureName(Namespace(name.namespace().toList)(InputPosition.NONE), name.name())(InputPosition.NONE)
+
+  private def asCypherFunctionName(name: procs.QualifiedName): FunctionName =
+    FunctionName(Namespace(name.namespace().toList)(InputPosition.NONE), name.name())(InputPosition.NONE)
 
   private def asCypherValue(neo4jValue: DefaultParameterValue) = ValueUtils.of(neo4jValue.value())
 

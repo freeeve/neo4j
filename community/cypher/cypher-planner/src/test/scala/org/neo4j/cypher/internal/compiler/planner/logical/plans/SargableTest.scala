@@ -28,14 +28,14 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
 import org.neo4j.cypher.internal.logical.plans.PointDistanceRange
 import org.neo4j.cypher.internal.logical.plans.PrefixRange
 import org.neo4j.cypher.internal.logical.plans.SingleSeekableArg
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTFloat

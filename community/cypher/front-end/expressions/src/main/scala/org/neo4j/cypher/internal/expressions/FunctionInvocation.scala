@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentOrder
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
 import org.neo4j.cypher.internal.expressions.functions.DeterministicFunction
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 
 import java.util.Locale
@@ -75,7 +76,7 @@ case class FunctionInvocation(
   calledFromUseClause: Boolean = false,
   isShadowed: Boolean = false
 )(val position: InputPosition) extends Expression {
-  val name: String = (functionName.namespace.parts :+ functionName.name).mkString(".")
+  val name: String = functionName.fullName
 
   def function: functions.Function =
     if (isShadowed) UnresolvedFunction

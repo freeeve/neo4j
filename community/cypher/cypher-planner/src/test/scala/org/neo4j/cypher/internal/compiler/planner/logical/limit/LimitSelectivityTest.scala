@@ -24,13 +24,10 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
 import org.neo4j.cypher.internal.compiler.test_helpers.TestGraphStatistics
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -363,10 +360,8 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val limit = 10
     val nodes = 100
 
-    val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
-    val signature = ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadWriteAccess, id = 42)
+    val name = procedureName("my", "proc", "foo")
+    val signature = ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadWriteAccess, id = 42)
 
     val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 
@@ -400,11 +395,9 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val limit = 10
     val nodes = 100
 
-    val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
+    val name = procedureName("my", "proc", "foo")
     val signature =
-      ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42, eager = true)
+      ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42, eager = true)
 
     val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 
@@ -438,10 +431,8 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val limit = 10
     val nodes = 100
 
-    val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
-    val signature = ProcedureSignature(qualifiedName, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42)
+    val name = procedureName("my", "proc", "foo")
+    val signature = ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42)
 
     val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 

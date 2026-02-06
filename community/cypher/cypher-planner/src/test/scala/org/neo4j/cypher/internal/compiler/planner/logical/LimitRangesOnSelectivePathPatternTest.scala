@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.LessThanOrEqual
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -43,6 +42,7 @@ import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound

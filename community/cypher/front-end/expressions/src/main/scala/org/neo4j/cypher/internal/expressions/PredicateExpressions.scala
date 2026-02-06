@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.expressions.CanonicalStringHelper.nodeRelationCanonicalString
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny

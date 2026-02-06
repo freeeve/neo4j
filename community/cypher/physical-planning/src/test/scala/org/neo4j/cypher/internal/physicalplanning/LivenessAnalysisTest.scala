@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.pos
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setNodeProperty
@@ -39,6 +38,8 @@ import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.Liv
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -253,7 +254,7 @@ class LivenessAnalysisTest extends CypherFunSuite {
   test("procedure call") {
     val resolver = new LogicalPlanResolver(procedures =
       Set(ProcedureSignature(
-        QualifiedName(Seq("test"), "proc"),
+        ProcedureName(Namespace(List("test"))(InputPosition.NONE), "proc")(InputPosition.NONE),
         IndexedSeq(FieldSignature("input", AnyType(isNullable = true)(InputPosition.NONE))),
         Some(IndexedSeq(FieldSignature("output", AnyType(isNullable = true)(InputPosition.NONE)))),
         None,

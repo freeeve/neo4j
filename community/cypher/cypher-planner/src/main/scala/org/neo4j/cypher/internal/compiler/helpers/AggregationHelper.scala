@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.helpers
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -31,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.functions.Max
 import org.neo4j.cypher.internal.expressions.functions.Min
 import org.neo4j.cypher.internal.expressions.functions.PercentileCont
 import org.neo4j.cypher.internal.expressions.functions.PercentileDisc
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.IterableHelper.RichIterableOnce
 
 import java.util.Locale

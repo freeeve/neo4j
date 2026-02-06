@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.logical.plans.AbstractLetSelectOrSemiApply
@@ -74,6 +73,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Ref
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 
 object ReadsAndWritesFinder {

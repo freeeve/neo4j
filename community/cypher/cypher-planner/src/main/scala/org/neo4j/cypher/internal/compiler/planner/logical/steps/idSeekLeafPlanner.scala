@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeaf
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.idSeekLeafPlanner.IdType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -39,6 +38,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SeekableArgs
+import org.neo4j.cypher.internal.util.FunctionName
 
 case class idSeekLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
 

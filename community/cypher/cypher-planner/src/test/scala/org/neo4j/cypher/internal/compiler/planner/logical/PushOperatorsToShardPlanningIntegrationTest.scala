@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.frontend.phases.DeprecationInfo
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
@@ -2594,13 +2593,13 @@ class PushOperatorsToShardPlanningIntegrationTest
       .build()
   }
 
-  def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
+  def temporalRuntimeConstant(_functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),
       ResolvedFunctionInvocation(
-        QualifiedName(Seq.empty, functionName),
+        functionName(_functionName),
         Some(UserFunctionSignature(
-          QualifiedName(Seq.empty, functionName),
+          functionName(_functionName),
           ArraySeq(FieldSignature("value", StringType(true)(InputPosition.NONE))),
           temporalType,
           Some(DeprecationInfo(false, None)),
@@ -2641,11 +2640,11 @@ class PushOperatorsToShardPlanningIntegrationTest
     temporalRuntimeConstant("duration", DurationType(true)(InputPosition.NONE), duration)
   }
 
-  def temporalFunction(functionName: String, temporalType: CypherType): ResolvedFunctionInvocation = {
+  def temporalFunction(_functionName: String, temporalType: CypherType): ResolvedFunctionInvocation = {
     ResolvedFunctionInvocation(
-      QualifiedName(Seq.empty, functionName),
+      functionName(_functionName),
       Some(UserFunctionSignature(
-        QualifiedName(Seq.empty, functionName),
+        functionName(_functionName),
         ArraySeq(),
         temporalType,
         Some(DeprecationInfo(false, None)),

@@ -21,7 +21,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasMappableExpressions
 import org.neo4j.cypher.internal.expressions.Part2OperatorExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
@@ -33,6 +32,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.DeprecatedFeature
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.bottomUp
 
 import scala.annotation.tailrec

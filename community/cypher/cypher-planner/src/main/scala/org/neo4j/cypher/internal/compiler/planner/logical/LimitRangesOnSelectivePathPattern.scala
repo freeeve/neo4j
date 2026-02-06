@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.LessThanOrEqual
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -32,6 +31,7 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.UpperBound
 

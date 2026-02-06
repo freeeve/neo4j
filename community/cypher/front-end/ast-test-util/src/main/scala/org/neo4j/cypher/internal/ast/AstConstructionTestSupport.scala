@@ -56,7 +56,6 @@ import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentOrder
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GetDegree
 import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
 import org.neo4j.cypher.internal.expressions.GreaterThan
@@ -99,7 +98,6 @@ import org.neo4j.cypher.internal.expressions.Multiply
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.NaN
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NilPathStep
 import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -132,7 +130,6 @@ import org.neo4j.cypher.internal.expressions.PatternPart.Selector
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
@@ -188,8 +185,11 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.SizeBucket
 import org.neo4j.cypher.internal.util.UnknownSize
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -212,6 +212,19 @@ trait AstConstructionTestSupport {
 
   implicit protected def statementToStatements(statement: Statement): Statements =
     Statements(Seq(statement))
+
+  def procedureName(namePart: String, nameParts: String*): ProcedureName = {
+    val parts = namePart +: nameParts
+    ProcedureName(Namespace(parts.dropRight(1).toList)(pos), parts.last)(pos)
+  }
+
+  def functionName(namePart: String, nameParts: String*): FunctionName = {
+    val parts = namePart +: nameParts
+    FunctionName(Namespace(parts.dropRight(1).toList)(pos), parts.last)(pos)
+  }
+
+  def functionName(nsPart: List[String], name: String): FunctionName =
+    FunctionName(Namespace(nsPart)(pos), name)(pos)
 
   def p(offset: Int, line: Int, column: Int): InputPosition = InputPosition(offset, line, column)
   def p(offset: Int): InputPosition = InputPosition(offset, 1, offset + 1)

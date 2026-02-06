@@ -35,14 +35,11 @@ import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.frontend.phases.ASTRewriter
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
@@ -52,8 +49,11 @@ import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -93,14 +93,13 @@ trait QueryGraphProducer {
 
     val ns = Namespace(List("my", "proc"))(pos)
     val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
     val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
     val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
 
     val signature =
-      ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
-    val procLookup: QualifiedName => ProcedureSignature = _ => signature
-    val fcnLookup: QualifiedName => Option[UserFunctionSignature] = _ => None
+      ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+    val procLookup: ProcedureName => ProcedureSignature = _ => signature
+    val fcnLookup: FunctionName => Option[UserFunctionSignature] = _ => None
     val resolver = new TestSignatureResolvingPlanContext(procLookup, fcnLookup)
 
     val anonymousVariableNameGenerator = new AnonymousVariableNameGenerator()

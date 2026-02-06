@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.expressions.OperatorExpression
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
@@ -41,6 +40,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.RewriterStopperWithParent
@@ -183,7 +183,8 @@ trait FunctionMatcher extends Product {
 
   def unapply(arg: Expression): Option[IndexedSeq[Expression]] = {
     arg match {
-      case ResolvedFunctionInvocation(QualifiedName(ns, n), _, args) if n.equalsIgnoreCase(name) && ns == namespace =>
+      case ResolvedFunctionInvocation(FunctionName(ns, n), _, args)
+        if n.equalsIgnoreCase(name) && ns.parts.toSeq == namespace =>
         Some(args)
       case _ => None
     }

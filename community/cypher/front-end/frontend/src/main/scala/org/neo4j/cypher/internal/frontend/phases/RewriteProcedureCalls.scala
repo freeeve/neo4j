@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
@@ -150,12 +152,12 @@ class InstrumentedProcedureSignatureResolver(resolver: ScopedProcedureSignatureR
     extends ScopedProcedureSignatureResolver {
   private var hasAttemptedToResolve = false
 
-  def procedureSignature(name: QualifiedName): ProcedureSignature = {
+  def procedureSignature(name: ProcedureName): ProcedureSignature = {
     hasAttemptedToResolve = true
     resolver.procedureSignature(name)
   }
 
-  def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = {
+  def functionSignature(name: FunctionName): Option[UserFunctionSignature] = {
     hasAttemptedToResolve = true
     resolver.functionSignature(name)
   }

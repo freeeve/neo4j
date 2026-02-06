@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
-import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class FunctionNameTest extends CypherFunSuite {

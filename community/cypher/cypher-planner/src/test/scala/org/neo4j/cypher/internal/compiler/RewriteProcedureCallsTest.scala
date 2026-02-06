@@ -30,18 +30,17 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.InstrumentedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.TryRewriteProcedureCalls
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -53,14 +52,12 @@ import scala.util.Try
 
 class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestSupport with Inside {
 
-  private val ns = Namespace(List("my", "proc"))(pos)
-  private val name = ProcedureName(ns, "foo")(pos)
-  private val qualifiedName = QualifiedName(ns.parts, name.name)
+  private val name = procedureName("my", "proc", "foo")
   private val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
   private val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
 
   private val signature =
-    ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+    ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
 
   test("should resolve standalone procedure calls") {
     val unresolved = UnresolvedCall(name, None, None, isStandalone = true)(pos)
@@ -135,7 +132,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
     val unresolved = UnresolvedCall(name, None, None, isStandalone = true)(pos)
     val original = SingleQuery(Seq(unresolved))(pos)
 
-    val procLookupNoOutput: QualifiedName => ProcedureSignature = _ => signature.copy(outputSignature = None)
+    val procLookupNoOutput: ProcedureName => ProcedureSignature = _ => signature.copy(outputSignature = None)
 
     val resolver = makeResolver(procSignatureLookup = procLookupNoOutput)
     val rewritten = rewriteProcedureCalls(resolver, original)
@@ -182,8 +179,8 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
   }
 
   def makeResolver(
-    procSignatureLookup: QualifiedName => ProcedureSignature = _ => signature,
-    funcSignatureLookup: QualifiedName => Option[UserFunctionSignature] = _ => None
+    procSignatureLookup: ProcedureName => ProcedureSignature = _ => signature,
+    funcSignatureLookup: FunctionName => Option[UserFunctionSignature] = _ => None
   ): InstrumentedProcedureSignatureResolver =
     new InstrumentedProcedureSignatureResolver(new TestSignatureResolvingPlanContext(
       procSignatureLookup,
@@ -210,12 +207,12 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
 }
 
 class TestSignatureResolvingPlanContext(
-  procSignatureLookup: QualifiedName => ProcedureSignature,
-  funcSignatureLookup: QualifiedName => Option[UserFunctionSignature]
+  procSignatureLookup: ProcedureName => ProcedureSignature,
+  funcSignatureLookup: FunctionName => Option[UserFunctionSignature]
 ) extends NotImplementedPlanContext {
-  override def procedureSignature(name: QualifiedName): ProcedureSignature = procSignatureLookup(name)
+  override def procedureSignature(name: ProcedureName): ProcedureSignature = procSignatureLookup(name)
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = funcSignatureLookup(name)
+  override def functionSignature(name: FunctionName): Option[UserFunctionSignature] = funcSignatureLookup(name)
 
   override def procedureSignatureVersion: Long = -1
 

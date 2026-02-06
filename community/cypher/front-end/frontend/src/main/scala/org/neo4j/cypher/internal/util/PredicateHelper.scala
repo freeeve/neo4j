@@ -21,7 +21,6 @@ import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.BooleanLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.OperatorExpression

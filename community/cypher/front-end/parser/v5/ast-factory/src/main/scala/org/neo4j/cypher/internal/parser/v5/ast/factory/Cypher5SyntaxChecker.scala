@@ -22,7 +22,6 @@ import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.ast.SyntaxChecker
 import org.neo4j.cypher.internal.parser.ast.util.Util.astSeq
@@ -45,6 +44,7 @@ import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.SymbolicAliasNameOrPara
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5SyntaxChecker.MAX_ALIAS_NAME_COMPONENTS
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5SyntaxChecker.MAX_DATABASE_NAME_COMPONENTS
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.gqlstatus.GqlHelper

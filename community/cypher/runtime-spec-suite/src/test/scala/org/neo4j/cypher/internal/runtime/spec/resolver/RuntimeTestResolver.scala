@@ -22,11 +22,12 @@ package org.neo4j.cypher.internal.runtime.spec.resolver
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.logical.builder.Resolver
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport
 import org.neo4j.cypher.internal.spi.TransactionBoundPlanContext
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 
 trait RuntimeTestResolver[CONTEXT <: RuntimeContext] extends Resolver {
 
@@ -46,12 +47,12 @@ trait RuntimeTestResolver[CONTEXT <: RuntimeContext] extends Resolver {
     tx.kernelTransaction().tokenRead().propertyKey(prop)
   }
 
-  override def procedureSignature(name: QualifiedName): ProcedureSignature = {
+  override def procedureSignature(name: ProcedureName): ProcedureSignature = {
     val ktx = tx.kernelTransaction()
     TransactionBoundPlanContext.procedureSignature(ktx, name, CypherVersion.Legacy.legacyVersion())
   }
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = {
+  override def functionSignature(name: FunctionName): Option[UserFunctionSignature] = {
     val ktx = tx.kernelTransaction()
     TransactionBoundPlanContext.functionSignature(ktx, name, CypherVersion.Legacy.legacyVersion())
   }

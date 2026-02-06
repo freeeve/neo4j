@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSchemaWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
@@ -103,7 +103,7 @@ object procsHelpers {
   }
 
   def asCypherProcedureSignature(
-    name: QualifiedName,
+    name: ProcedureName,
     id: Int,
     signature: org.neo4j.internal.kernel.api.procs.ProcedureSignature
   ): ProcedureSignature = {

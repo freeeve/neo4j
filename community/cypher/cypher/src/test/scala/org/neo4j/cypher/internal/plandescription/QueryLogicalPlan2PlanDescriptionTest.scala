@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.LabelToken
@@ -47,11 +46,9 @@ import org.neo4j.cypher.internal.expressions.LessThan
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NilPathStep
 import org.neo4j.cypher.internal.expressions.NodePathStep
 import org.neo4j.cypher.internal.expressions.PathExpression
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
@@ -69,7 +66,6 @@ import org.neo4j.cypher.internal.expressions.functions.Point
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
@@ -1433,7 +1429,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
                 (key("y"), number("2")),
                 (key("crs"), stringLiteral("cartesian"))
               ))(pos),
-              FunctionName(Point.name)(pos)
+              functionName(Point.name)
             ),
             number("10"),
             inclusive = true
@@ -1467,7 +1463,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
                 (key("y"), number("0")),
                 (key("crs"), stringLiteral("cartesian"))
               ))(pos),
-              FunctionName(Point.name)(pos)
+              functionName(Point.name)
             ),
             FunctionInvocation(
               MapExpression(Seq(
@@ -1475,7 +1471,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
                 (key("y"), number("10")),
                 (key("crs"), stringLiteral("cartesian"))
               ))(pos),
-              FunctionName(Point.name)(pos)
+              functionName(Point.name)
             )
           ))(pos)),
           Set.empty,
@@ -2825,13 +2821,11 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
   }
 
   test("ProcedureCall") {
-    val ns = Namespace(List("my", "proc"))(pos)
-    val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
+    val name = procedureName("my", "proc", "foo")
     val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
     val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
     val signature =
-      ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+      ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
     val callResults = IndexedSeq(ProcedureResultItem(varFor("x"))(pos), ProcedureResultItem(varFor("y"))(pos))
     val call = ResolvedCall(signature, Seq(varFor("a1")), callResults)(pos)
 
@@ -2951,11 +2945,11 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
 
     val countFunction =
-      FunctionInvocation(FunctionName(Count.name)(pos), distinct = false, IndexedSeq(varFor("c")))(pos)
+      FunctionInvocation(functionName(Count.name), distinct = false, IndexedSeq(varFor("c")))(pos)
     val collectDistinctFunction =
-      FunctionInvocation(FunctionName(Collect.name)(pos), distinct = true, IndexedSeq(varFor("c")))(pos)
+      FunctionInvocation(functionName(Collect.name), distinct = true, IndexedSeq(varFor("c")))(pos)
     val orderedCollectDistinctFunction =
-      FunctionInvocation(FunctionName(Collect.name)(pos), distinct = true, IndexedSeq(varFor("c")), ArgumentAsc)(pos)
+      FunctionInvocation(functionName(Collect.name), distinct = true, IndexedSeq(varFor("c")), ArgumentAsc)(pos)
 
     // Aggregation 1 grouping, 1 aggregating
     assertGood(
@@ -3142,7 +3136,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     val name = "datetime"
     val args = IndexedSeq(number("23391882379"))
     val functionSignature = UserFunctionSignature(
-      QualifiedName(Seq.empty, "datetime"),
+      functionName("datetime"),
       IndexedSeq(FieldSignature("Input", CTAny, Some(stringValue("DEFAULT_TEMPORAL_ARGUMENT")))),
       BooleanType(isNullable = true)(pos),
       None,
@@ -3153,7 +3147,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
 
     val functionInvocation = FunctionInvocation(
-      functionName = FunctionName(Namespace(namespace)(pos), name)(pos),
+      functionName = functionName(namespace, name),
       distinct = false,
       args = args
     )(pos)
@@ -3169,7 +3163,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
 
     val resolvedFunctionInvocation = ResolvedFunctionInvocation(
-      qualifiedName = QualifiedName(namespace, name),
+      functionName = functionName(namespace, name),
       fcnSignature = Some(functionSignature),
       callArguments = args
     )(pos)
@@ -5563,7 +5557,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         "b IN $param",
       ("c", ListLiteral(Seq.empty)(pos)) ->
         "c IN []",
-      ("d", FunctionInvocation(number("1"), FunctionName("range")(pos), number("100"))) ->
+      ("d", FunctionInvocation(number("1"), functionName("range"), number("100"))) ->
         "d IN range(1, 100)"
     )
 
@@ -6323,7 +6317,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     val args = IndexedSeq(number("23391882379"))
 
     val functionInvocation = FunctionInvocation(
-      functionName = FunctionName(Namespace(namespace)(pos), name)(pos),
+      functionName = functionName(namespace, name),
       distinct = false,
       args = args
     )(pos)

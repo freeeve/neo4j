@@ -22,8 +22,6 @@ package org.neo4j.cypher.internal.plandescription
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.AtMostOneRow
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
@@ -31,6 +29,8 @@ import org.neo4j.cypher.internal.logical.plans.NotDistinct
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.plandescription.Arguments.Distinctness
 import org.neo4j.cypher.internal.plandescription.Arguments.Order
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.helpers.LineBreakRemover.removeLineBreaks
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParams
 import org.neo4j.util.Stringifier.backtick

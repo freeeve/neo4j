@@ -28,17 +28,17 @@ import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NotEquals
-import org.neo4j.cypher.internal.expressions.ProcedureName
-import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 

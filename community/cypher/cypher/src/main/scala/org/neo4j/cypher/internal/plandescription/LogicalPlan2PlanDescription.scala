@@ -50,14 +50,12 @@ import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NameToken
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
@@ -343,7 +341,9 @@ import org.neo4j.cypher.internal.plandescription.asPrettyString.raw
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.UpperBound.Limited
@@ -3963,7 +3963,7 @@ case class LogicalPlan2PlanDescription(
         pretty"${asPrettyString(name)} :: ${asPrettyString.raw(typ.normalizedCypherTypeString())}"
       }
       .mkPrettyString(SEPARATOR)
-    pretty"${asPrettyString.raw(call.qualifiedName.toString)}($argString) :: ($resultString)"
+    pretty"${asPrettyString.raw(call.procedureName.fullName)}($argString) :: ($resultString)"
   }
 
   private def orderInfo(orderBy: Seq[ColumnOrder]): PrettyString = {

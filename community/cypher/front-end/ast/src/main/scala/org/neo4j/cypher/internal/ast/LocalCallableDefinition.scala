@@ -25,13 +25,13 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
-import org.neo4j.cypher.internal.expressions.CallableName
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FunctionName
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.CallableName
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 

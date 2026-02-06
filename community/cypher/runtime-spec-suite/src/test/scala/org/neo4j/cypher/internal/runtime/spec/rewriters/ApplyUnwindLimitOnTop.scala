@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.runtime.spec.rewriters
 
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.UnsignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.functions.Range
@@ -34,6 +33,7 @@ import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewri
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanRewriterTemplates.isLeftmostLeafOkToMove
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanRewriterTemplates.onlyRewriteLogicalPlansStopper
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanRewriterTemplates.randomShouldApply
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.topDown

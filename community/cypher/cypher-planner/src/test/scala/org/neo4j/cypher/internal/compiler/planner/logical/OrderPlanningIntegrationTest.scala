@@ -41,7 +41,6 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.PercentileDisc
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadCreateConflict
 import org.neo4j.cypher.internal.ir.NoHeaders
@@ -149,7 +148,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
   private val wideningExpandConfig = {
     val proc = ProcedureSignature(
-      QualifiedName(Seq("my"), "proc"),
+      procedureName("my", "proc"),
       IndexedSeq(),
       None,
       None,

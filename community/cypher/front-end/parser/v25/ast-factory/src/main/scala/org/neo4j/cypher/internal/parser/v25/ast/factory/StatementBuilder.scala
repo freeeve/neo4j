@@ -108,12 +108,10 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.expressions.AnonymousPatternPart
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.PathMode
@@ -122,8 +120,6 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.ProcedureName
-import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -144,8 +140,12 @@ import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
 import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstUtil.nonEmptyPropertyKeyName
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
+import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.GqlHelper
 

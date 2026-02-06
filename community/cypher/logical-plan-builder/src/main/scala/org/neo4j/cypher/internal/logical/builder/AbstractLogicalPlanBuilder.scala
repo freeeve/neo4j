@@ -40,7 +40,6 @@ import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -74,7 +73,6 @@ import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
@@ -299,9 +297,11 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProj
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.HasLabelsAndHasTypeNormalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.combineHasLabels
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Repetition
@@ -342,9 +342,9 @@ trait Resolver {
 
   def getPropertyKeyId(prop: String): Int
 
-  def procedureSignature(name: QualifiedName): ProcedureSignature
+  def procedureSignature(name: ProcedureName): ProcedureSignature
 
-  def functionSignature(name: QualifiedName): Option[UserFunctionSignature]
+  def functionSignature(name: FunctionName): Option[UserFunctionSignature]
 }
 
 /**

@@ -39,8 +39,8 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
     buildPlannerQuery(
       version = version,
       query = query,
-      procLookup = None,
-      fcnLookup = None,
+      procedureLookup = None,
+      functionLookup = None,
       compareVersions = false,
       additionalSettings = Map.empty
     ).asSinglePlannerQuery

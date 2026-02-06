@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
@@ -41,7 +40,6 @@ import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CreateNode
@@ -730,7 +728,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
 
   test("ProcedureCall RW should eliminate provided order") {
     val writer = ProcedureSignature(
-      QualifiedName(Seq(), "writer"),
+      procedureName("writer"),
       IndexedSeq(),
       None,
       None,
@@ -744,7 +742,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
 
   test("ProcedureCall RO should retain provided order") {
     val reader = ProcedureSignature(
-      QualifiedName(Seq(), "reader"),
+      procedureName("reader"),
       IndexedSeq(),
       None,
       None,
@@ -1520,7 +1518,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val x_vx = Map[LogicalVariable, Expression](v"x" -> vx)
       val foo_vx = Map[LogicalVariable, Expression](v"foo" -> vx)
       val foo_collect =
-        Map[LogicalVariable, Expression](v"foo" -> FunctionInvocation(vx, FunctionName(Collect.name)(pos)))
+        Map[LogicalVariable, Expression](v"foo" -> FunctionInvocation(vx, functionName(Collect.name)))
       val interesting_vx = InterestingOrder.required(RequiredOrderCandidate.asc(vx))
       val one = literalInt(1)
       val unionMappings =
@@ -2453,7 +2451,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ctx.lhs,
         ResolvedCall(
           signature = ProcedureSignature(
-            name = QualifiedName(namespace = Seq.empty, name = "foo"),
+            name = procedureName("foo"),
             inputSignature = IndexedSeq.empty,
             outputSignature = Option.empty,
             deprecationInfo = Option.empty,
@@ -2474,7 +2472,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ctx.lhs,
         ResolvedCall(
           signature = ProcedureSignature(
-            name = QualifiedName(namespace = Seq.empty, name = "foo"),
+            name = procedureName("foo"),
             inputSignature = IndexedSeq.empty,
             outputSignature = Option.empty,
             deprecationInfo = Option.empty,

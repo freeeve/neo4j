@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.ProcedureTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -476,34 +475,34 @@ class extractRuntimeConstantsTest extends CypherFunSuite with LogicalPlanningTes
     e.endoRewrite(extractRuntimeConstants(new AnonymousVariableNameGenerator))
 
   private def datetime(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "datetime"), None, expressions.toIndexedSeq)(InputPosition.NONE)
+    ResolvedFunctionInvocation(functionName("datetime"), None, expressions.toIndexedSeq)(InputPosition.NONE)
   }
 
   private def localdatetime(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "localdatetime"), None, expressions.toIndexedSeq)(
+    ResolvedFunctionInvocation(functionName("localdatetime"), None, expressions.toIndexedSeq)(
       InputPosition.NONE
     )
   }
 
   private def time(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "time"), None, expressions.toIndexedSeq)(InputPosition.NONE)
+    ResolvedFunctionInvocation(functionName("time"), None, expressions.toIndexedSeq)(InputPosition.NONE)
   }
 
   private def localtime(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "localtime"), None, expressions.toIndexedSeq)(
+    ResolvedFunctionInvocation(functionName("localtime"), None, expressions.toIndexedSeq)(
       InputPosition.NONE
     )
   }
 
   private def date(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "date"), None, expressions.toIndexedSeq)(InputPosition.NONE)
+    ResolvedFunctionInvocation(functionName("date"), None, expressions.toIndexedSeq)(InputPosition.NONE)
   }
 
   private def duration(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "duration"), None, expressions.toIndexedSeq)(InputPosition.NONE)
+    ResolvedFunctionInvocation(functionName("duration"), None, expressions.toIndexedSeq)(InputPosition.NONE)
   }
 
   private def randomUDF(expressions: Expression*): ResolvedFunctionInvocation = {
-    ResolvedFunctionInvocation(QualifiedName(Seq.empty, "myRandom"), None, expressions.toIndexedSeq)(InputPosition.NONE)
+    ResolvedFunctionInvocation(functionName("myRandom"), None, expressions.toIndexedSeq)(InputPosition.NONE)
   }
 }

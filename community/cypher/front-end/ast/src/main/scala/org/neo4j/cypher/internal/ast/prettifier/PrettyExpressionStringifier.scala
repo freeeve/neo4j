@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.prettifier
 
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
@@ -29,10 +28,11 @@ import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter.lift
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.helpers.LineBreakRemover.removeLineBreaks
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.eraseGeneratedNamesOnTree
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParams

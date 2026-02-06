@@ -33,9 +33,9 @@ import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 
 import scala.reflect.ClassTag
 import scala.util.Random

@@ -27,19 +27,18 @@ import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.functions.UserDefinedFunctionInvocation
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.ZippableUtil.Zippable
 import org.neo4j.cypher.internal.util.symbols
 
 object ResolvedFunctionInvocation {
 
-  def apply(signatureLookup: QualifiedName => Option[UserFunctionSignature])(unresolved: FunctionInvocation)
+  def apply(signatureLookup: FunctionName => Option[UserFunctionSignature])(unresolved: FunctionInvocation)
     : ResolvedFunctionInvocation = {
     val position = unresolved.position
-    val name = QualifiedName(unresolved)
+    val name = unresolved.functionName
     val signature = signatureLookup(name)
     val args = signature.map(obfuscateArgs(_, unresolved.args)).getOrElse(unresolved.args)
 
@@ -59,14 +58,14 @@ object ResolvedFunctionInvocation {
  * A ResolvedFunctionInvocation is a user-defined function where the signature
  * has been resolved, i.e. verified that it exists in the database
  *
- * @param qualifiedName The qualified name of the function.
+ * @param functionName The qualified name of the function.
  * @param fcnSignature Either `Some(signature)` if the signature was resolved, or
  *                     `None` if the function didn't exist
  * @param callArguments The argument list to the function
  * @param position The position in the original query string.
  */
 case class ResolvedFunctionInvocation(
-  qualifiedName: QualifiedName,
+  functionName: FunctionName,
   fcnSignature: Option[UserFunctionSignature],
   callArguments: IndexedSeq[Expression]
 )(val position: InputPosition)
@@ -89,10 +88,10 @@ case class ResolvedFunctionInvocation(
 
   override def semanticCheck(ctx: SemanticContext): SemanticCheck = fcnSignature match {
     case None =>
-      qualifiedName match {
-        case QualifiedName(Seq(), qn) if qn.equalsIgnoreCase("not") =>
+      functionName match {
+        case FunctionName(_, qn) if qn.equalsIgnoreCase("not") =>
           SemanticError.unknownFunctionNamedNot(position)
-        case _ => SemanticError.unknownFunction(qualifiedName.toString, position)
+        case _ => SemanticError.unknownFunction(functionName.fullName, position)
       }
     case Some(signature) =>
       val expectedNumArgs = signature.inputSignature.length
@@ -121,7 +120,7 @@ case class ResolvedFunctionInvocation(
           SemanticError.functionCallWrongNumberOfArguments(
             expectedNumArgs,
             actualNumArgs,
-            String.valueOf(signature.name),
+            signature.name.fullName,
             String.valueOf(signature),
             msg,
             position
@@ -133,7 +132,7 @@ case class ResolvedFunctionInvocation(
   override def isAggregate: Boolean = fcnSignature.exists(_.isAggregate)
 
   override def asUnresolvedFunction: FunctionInvocation = FunctionInvocation(
-    functionName = FunctionName(Namespace(qualifiedName.namespace.toList)(position), qualifiedName.name)(position),
+    functionName = functionName,
     distinct = false,
     args = arguments.toIndexedSeq
   )(position)

@@ -95,15 +95,12 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.ProcedureName
-import org.neo4j.cypher.internal.expressions.ProcedureOutput
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
@@ -128,7 +125,10 @@ import org.neo4j.cypher.internal.parser.v5.Cypher5ParserListener
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstUtil.nonEmptyPropertyKeyName
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
+import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.stream.Collectors

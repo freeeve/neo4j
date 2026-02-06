@@ -17,14 +17,14 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.UnresolvedCall
-import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
 
 case class ProcedureSignature(
-  name: QualifiedName,
+  name: ProcedureName,
   inputSignature: IndexedSeq[FieldSignature],
   outputSignature: Option[IndexedSeq[FieldSignature]],
   deprecationInfo: Option[DeprecationInfo],
@@ -44,12 +44,12 @@ case class ProcedureSignature(
 
   override def toString: String = {
     val sig = inputSignature.mkString(", ")
-    outputSignature.map(out => s"$name($sig) :: ${out.mkString(", ")}").getOrElse(s"$name($sig)")
+    outputSignature.map(out => s"${name.fullName}($sig) :: ${out.mkString(", ")}").getOrElse(s"${name.fullName}($sig)")
   }
 }
 
 case class UserFunctionSignature(
-  name: QualifiedName,
+  name: FunctionName,
   inputSignature: IndexedSeq[FieldSignature],
   outputType: CypherType,
   deprecationInfo: Option[DeprecationInfo],
@@ -61,20 +61,7 @@ case class UserFunctionSignature(
 ) {
 
   override def toString =
-    s"$name(${inputSignature.mkString(", ")}) :: ${outputType.normalizedCypherTypeString()}"
-}
-
-object QualifiedName {
-
-  def apply(unresolved: UnresolvedCall): QualifiedName =
-    QualifiedName(unresolved.procedureName.namespace.parts, unresolved.procedureName.name)
-
-  def apply(unresolved: FunctionInvocation): QualifiedName =
-    QualifiedName(unresolved.functionName.namespace.parts, unresolved.functionName.name)
-}
-
-case class QualifiedName(namespace: Seq[String], name: String) {
-  override def toString: String = (namespace :+ name).mkString(".")
+    s"${name.fullName}(${inputSignature.mkString(", ")}) :: ${outputType.normalizedCypherTypeString()}"
 }
 
 // Should have one to one mapping with org.neo4j.kernel.api.QueryLanguage

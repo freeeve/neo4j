@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.ListLiteral
@@ -52,7 +51,6 @@ import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.CreateCommand
 import org.neo4j.cypher.internal.ir.CreateNode
@@ -103,6 +101,7 @@ import org.neo4j.cypher.internal.logical.plans.NFA.RelationshipExpansionTransiti
 import org.neo4j.cypher.internal.logical.plans.NFA.State
 import org.neo4j.cypher.internal.logical.plans.NFA.Transition
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -738,7 +737,7 @@ object LogicalPlanToPlanBuilderString {
       case ProcedureCall(
           _,
           ResolvedCall(
-            ProcedureSignature(QualifiedName(namespace, name), _, _, _, _, _, _, _, _, _, _, _),
+            ProcedureSignature(procedureName, _, _, _, _, _, _, _, _, _, _, _),
             callArguments,
             callResults,
             _,
@@ -756,8 +755,7 @@ object LogicalPlanToPlanBuilderString {
             callResults.map(i => expressionStringifier(i.variable)).mkString(" YIELD ", ",", "")
           }
 
-        val func = namespace.mkString(".") + "." + name
-        val invocation = call(func, spread(callArguments))
+        val invocation = call(procedureName.fullName, spread(callArguments))
         s"$invocation$yielding".quoted
 
       case ProduceResult(_, columns) if columns.exists(_.cachedProperties.nonEmpty) =>

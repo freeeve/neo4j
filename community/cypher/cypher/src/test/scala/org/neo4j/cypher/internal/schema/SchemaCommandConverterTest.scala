@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentOrder
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.MapExpression
@@ -42,6 +41,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString

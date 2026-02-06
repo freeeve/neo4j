@@ -16,15 +16,18 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
+
 trait ProcedureSignatureResolver {
-  def procedureSignature(name: QualifiedName, scope: QueryLanguage): ProcedureSignature
-  def functionSignature(name: QualifiedName, scope: QueryLanguage): Option[UserFunctionSignature]
+  def procedureSignature(name: ProcedureName, scope: QueryLanguage): ProcedureSignature
+  def functionSignature(name: FunctionName, scope: QueryLanguage): Option[UserFunctionSignature]
   def procedureSignatureVersion: Long
 }
 
 trait ScopedProcedureSignatureResolver {
-  def procedureSignature(name: QualifiedName): ProcedureSignature
-  def functionSignature(name: QualifiedName): Option[UserFunctionSignature]
+  def procedureSignature(name: ProcedureName): ProcedureSignature
+  def functionSignature(name: FunctionName): Option[UserFunctionSignature]
   def procedureSignatureVersion: Long
   def queryLanguage: QueryLanguage
 }
@@ -33,8 +36,8 @@ object ScopedProcedureSignatureResolver {
 
   def from(r: ProcedureSignatureResolver, scope: QueryLanguage): ScopedProcedureSignatureResolver = {
     new ScopedProcedureSignatureResolver {
-      override def procedureSignature(n: QualifiedName): ProcedureSignature = r.procedureSignature(n, scope)
-      override def functionSignature(n: QualifiedName): Option[UserFunctionSignature] = r.functionSignature(n, scope)
+      override def procedureSignature(n: ProcedureName): ProcedureSignature = r.procedureSignature(n, scope)
+      override def functionSignature(n: FunctionName): Option[UserFunctionSignature] = r.functionSignature(n, scope)
       override def procedureSignatureVersion: Long = r.procedureSignatureVersion
       override def queryLanguage: QueryLanguage = scope
     }

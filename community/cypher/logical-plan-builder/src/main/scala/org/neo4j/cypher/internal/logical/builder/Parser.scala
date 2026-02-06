@@ -32,9 +32,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentDesc
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
@@ -54,6 +52,8 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressio
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence

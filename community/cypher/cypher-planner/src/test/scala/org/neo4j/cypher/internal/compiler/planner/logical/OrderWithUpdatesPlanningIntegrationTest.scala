@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Create
 import org.neo4j.cypher.internal.logical.plans.DeleteExpression
@@ -49,6 +48,9 @@ import org.neo4j.cypher.internal.logical.plans.SetProperty
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.Sort
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class OrderWithUpdatesIDPPlanningIntegrationTest extends OrderWithUpdatesPlanningIntegrationTestBase(true)
@@ -275,7 +277,7 @@ class OrderWithUpdatesPlanningIntegrationTestBase(useIDPConnectComponents: Boole
     sortCheck: LogicalPlan => Unit
   ): Unit = {
     val writer = ProcedureSignature(
-      QualifiedName(Seq(), "writer"),
+      ProcedureName(Namespace()(InputPosition.NONE), "writer")(InputPosition.NONE),
       IndexedSeq(),
       None,
       None,
@@ -284,7 +286,7 @@ class OrderWithUpdatesPlanningIntegrationTestBase(useIDPConnectComponents: Boole
     )
 
     val reader = ProcedureSignature(
-      QualifiedName(Seq(), "reader"),
+      ProcedureName(Namespace()(InputPosition.NONE), "reader")(InputPosition.NONE),
       IndexedSeq(),
       None,
       None,

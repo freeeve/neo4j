@@ -23,7 +23,6 @@ import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.ast.SyntaxChecker
 import org.neo4j.cypher.internal.parser.ast.util.Util.astSeq
@@ -41,6 +40,7 @@ import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.DropConstraintContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.GlobContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.GlobRecursiveContext
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.gqlstatus.GqlHelper

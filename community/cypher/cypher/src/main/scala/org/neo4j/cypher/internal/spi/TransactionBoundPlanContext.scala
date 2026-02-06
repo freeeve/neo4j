@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.frontend.phases.DeprecationInfo
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
@@ -50,7 +49,9 @@ import org.neo4j.cypher.internal.spi.procsHelpers.asCypherProcedureSignature
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherType
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherValue
 import org.neo4j.cypher.internal.spi.procsHelpers.asOption
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.exceptions.KernelException
@@ -92,8 +93,8 @@ object TransactionBoundPlanContext {
     )
   }
 
-  def procedureSignature(tx: KernelTransaction, name: QualifiedName, version: CypherVersion): ProcedureSignature = {
-    val kn = new procs.QualifiedName(name.namespace.toArray, name.name)
+  def procedureSignature(tx: KernelTransaction, name: ProcedureName, version: CypherVersion): ProcedureSignature = {
+    val kn = new procs.QualifiedName(name.namespace.parts.toArray, name.name)
     val procedures = tx.procedures()
     val handle = procedures.procedureGet(kn, toKernelScope(version))
 
@@ -102,10 +103,10 @@ object TransactionBoundPlanContext {
 
   def functionSignature(
     tx: KernelTransaction,
-    name: QualifiedName,
+    name: FunctionName,
     version: CypherVersion
   ): Option[UserFunctionSignature] = {
-    val kn = new procs.QualifiedName(name.namespace.toArray, name.name)
+    val kn = new procs.QualifiedName(name.namespace.parts.toArray, name.name)
     val procedures = tx.procedures()
     val func = procedures.functionGet(kn, toKernelScope(version))
 
@@ -650,10 +651,10 @@ class TransactionBoundPlanContext(
 
   override val lastCommittedTxIdProvider: LastCommittedTxIdProvider = LastCommittedTxIdProvider(tc.graph)
 
-  override def procedureSignature(name: QualifiedName): ProcedureSignature =
+  override def procedureSignature(name: ProcedureName): ProcedureSignature =
     TransactionBoundPlanContext.procedureSignature(tc.kernelTransaction, name, cypherVersion)
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] =
+  override def functionSignature(name: FunctionName): Option[UserFunctionSignature] =
     TransactionBoundPlanContext.functionSignature(tc.kernelTransaction, name, cypherVersion)
 
   override def notificationLogger(): InternalNotificationLogger = logger

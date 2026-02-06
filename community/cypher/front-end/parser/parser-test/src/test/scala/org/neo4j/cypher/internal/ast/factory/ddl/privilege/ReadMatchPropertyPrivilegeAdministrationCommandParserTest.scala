@@ -45,10 +45,8 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.MatchMode
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern.ForMatch
@@ -57,6 +55,8 @@ import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.neo4j.exceptions.SyntaxException
 import org.scalacheck.Arbitrary

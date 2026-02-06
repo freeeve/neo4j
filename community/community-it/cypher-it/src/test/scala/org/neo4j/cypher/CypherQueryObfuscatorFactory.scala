@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
@@ -46,7 +45,9 @@ import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.spi.procsHelpers.asCypherProcedureSignature
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.kernel.api.query.QueryObfuscator
@@ -128,8 +129,8 @@ class CypherQueryObfuscatorFactory {
 
   private object PlanContextWithProceduresRegistry extends PlanContext {
 
-    override def procedureSignature(name: QualifiedName): ProcedureSignature = {
-      val neo4jName = new org.neo4j.internal.kernel.api.procs.QualifiedName(name.namespace.toArray, name.name)
+    override def procedureSignature(name: ProcedureName): ProcedureSignature = {
+      val neo4jName = new org.neo4j.internal.kernel.api.procs.QualifiedName(name.namespace.parts.toArray, name.name)
       val handle = procedures.getCurrentView().procedure(neo4jName, org.neo4j.kernel.api.QueryLanguage.CYPHER_5)
       asCypherProcedureSignature(name, handle.id(), handle.signature())
     }
@@ -171,7 +172,7 @@ class CypherQueryObfuscatorFactory {
     override def lastCommittedTxIdProvider: Nothing = fail()
     override def statistics: Nothing = fail()
     override def notificationLogger(): Nothing = fail()
-    override def functionSignature(name: QualifiedName): Nothing = fail()
+    override def functionSignature(name: FunctionName): Nothing = fail()
     override def getLabelName(id: Int): Nothing = fail()
     override def getOptLabelId(labelName: String): Nothing = fail()
     override def getLabelId(labelName: String): Nothing = fail()

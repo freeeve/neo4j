@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.expressions.CallableName
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
@@ -42,6 +41,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.CallableName
 import org.neo4j.cypher.internal.util.InputPosition
 
 trait VariableCheckerUtil {

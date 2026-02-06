@@ -94,7 +94,6 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasMappableExpressions
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -109,7 +108,6 @@ import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Not
@@ -124,7 +122,6 @@ import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.Selector
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
@@ -154,7 +151,10 @@ import org.neo4j.cypher.internal.util.DeprecatedFeature
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.helpers.StringHelper.RichString
 import org.neo4j.cypher.internal.util.symbols.CTAny

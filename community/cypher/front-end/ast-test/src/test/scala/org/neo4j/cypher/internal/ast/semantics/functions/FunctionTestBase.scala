@@ -26,8 +26,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFunSuite
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.util.DummyPosition
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 

@@ -23,7 +23,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.CountStar
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
@@ -528,7 +527,7 @@ class InterestingOrderStatementConvertersTest extends CypherFunSuite with Logica
   }
 
   test("Extracts property lookups even for dates") {
-    val dateName = QualifiedName(Seq.empty, "date")
+    val dateName = functionName("date")
     val dateSignature = Some(UserFunctionSignature(
       name = dateName,
       inputSignature = IndexedSeq.empty,
@@ -545,7 +544,7 @@ class InterestingOrderStatementConvertersTest extends CypherFunSuite with Logica
     )
 
     val expectedHorizon = RegularQueryProjection(Map(v"d" -> ResolvedFunctionInvocation(
-      QualifiedName(Seq.empty, "date"),
+      functionName("date"),
       dateSignature,
       IndexedSeq.empty
     )(pos)))

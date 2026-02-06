@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.BinaryPredicateExpression
-import org.neo4j.cypher.internal.expressions.CallableName
 import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.ChainableBinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.CoerceTo
@@ -62,7 +61,6 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentDesc
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
 import org.neo4j.cypher.internal.expressions.HasALabel
@@ -96,7 +94,6 @@ import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.Modulo
 import org.neo4j.cypher.internal.expressions.Multiply
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
@@ -125,7 +122,6 @@ import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
 import org.neo4j.cypher.internal.expressions.StartsWith
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Subtract
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
 import org.neo4j.cypher.internal.expressions.Unique
@@ -149,7 +145,11 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionDynamicLeafExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
+import org.neo4j.cypher.internal.util.CallableName
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.util.Stringifier
 
 trait ExpressionStringifier {

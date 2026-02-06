@@ -26,8 +26,11 @@ import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureAccessMode
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 
@@ -59,7 +62,7 @@ object ProcedureTestSupport {
       val splitName = qualifiedName.split("\\.")
 
       ProcedureSignature(
-        name = QualifiedName(splitName.init.toSeq, splitName.last),
+        name = ProcedureName(Namespace(splitName.init.toList)(InputPosition.NONE), splitName.last)(InputPosition.NONE),
         inputSignature = inputSignature,
         outputSignature = outputSignature,
         deprecationInfo = Some(DeprecationInfo(deprecationInfo.isDefined, deprecationInfo)),
@@ -87,7 +90,7 @@ object ProcedureTestSupport {
       val splitName = qualifiedName.split("\\.")
 
       UserFunctionSignature(
-        name = QualifiedName(splitName.init.toSeq, splitName.last),
+        name = FunctionName(Namespace(splitName.init.toList)(InputPosition.NONE), splitName.last)(InputPosition.NONE),
         inputSignature = inputSignature,
         outputType = outputType,
         deprecationInfo = Some(DeprecationInfo(deprecationInfo.isDefined, deprecationInfo)),

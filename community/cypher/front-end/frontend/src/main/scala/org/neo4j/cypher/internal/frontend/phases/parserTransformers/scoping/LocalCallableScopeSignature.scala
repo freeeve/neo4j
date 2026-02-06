@@ -16,6 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
-import org.neo4j.cypher.internal.expressions.CallableName
+import org.neo4j.cypher.internal.util.CallableName
 
 case class LocalCallableScopeSignature(name: CallableName, result: Result)

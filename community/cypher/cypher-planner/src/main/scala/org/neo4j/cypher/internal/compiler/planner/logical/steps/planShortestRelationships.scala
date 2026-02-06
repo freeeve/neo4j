@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractShortestPat
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.PathStep
 import org.neo4j.cypher.internal.expressions.PatternElement
@@ -45,6 +44,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.notification.ExhaustiveShortestPathForbiddenNotification
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.topDown

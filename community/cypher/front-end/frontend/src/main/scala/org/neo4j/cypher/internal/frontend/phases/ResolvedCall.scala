@@ -32,12 +32,11 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.expressions.ImplicitProcedureArgument
 import org.neo4j.cypher.internal.expressions.Literal
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.expressions.SensitiveAutoParameter
 import org.neo4j.cypher.internal.expressions.SensitiveParameter
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.ZippableUtil.Zippable
 import org.neo4j.cypher.internal.util.bottomUp
@@ -47,10 +46,10 @@ import org.neo4j.exceptions.SyntaxException
 
 object ResolvedCall {
 
-  def apply(signatureLookup: QualifiedName => ProcedureSignature)(unresolved: UnresolvedCall): ResolvedCall = {
+  def apply(signatureLookup: ProcedureName => ProcedureSignature)(unresolved: UnresolvedCall): ResolvedCall = {
     val UnresolvedCall(_, declaredArguments, declaredResult, _, yieldAll, optional) = unresolved
     val position = unresolved.position
-    val signature = signatureLookup(QualifiedName(unresolved))
+    val signature = signatureLookup(unresolved.procedureName)
     def implicitArguments = signature.inputSignature.map(s =>
       s.default.map(d => ImplicitProcedureArgument(s.name, s.typ, d)).getOrElse(
         ExplicitParameter(s.name, s.typ)(position)
@@ -117,7 +116,7 @@ case class ResolvedCall(
 )(val position: InputPosition)
     extends CallClause {
 
-  def qualifiedName: QualifiedName = signature.name
+  def procedureName: ProcedureName = signature.name
 
   def fullyDeclared: Boolean = declaredArguments && declaredResults
 
@@ -190,7 +189,7 @@ case class ResolvedCall(
             s"at least $minNumArgs arguments of types ${signature.inputSignature.take(minNumArgs).map(_.typ.normalizedCypherTypeString()).mkString(", ")}"
         }
         val sigDesc =
-          s"""Procedure ${signature.name} has signature: $signature
+          s"""Procedure ${signature.name.fullName} has signature: $signature
              |meaning that it expects $argTypes""".stripMargin
         val description = signature.description.fold("")(d => s"Description: $d")
 
@@ -200,7 +199,7 @@ case class ResolvedCall(
             minNumArgs,
             totalNumArgs,
             numArgsWithDefaults,
-            String.valueOf(signature.name),
+            String.valueOf(signature.name.fullName),
             String.valueOf(signature),
             sigDesc,
             description,
@@ -214,7 +213,7 @@ case class ResolvedCall(
           error(SemanticError.procedureCallTooManyArguments(
             totalNumArgs,
             givenNumArgs,
-            String.valueOf(signature.name),
+            String.valueOf(signature.name.fullName),
             String.valueOf(signature),
             maxExpectedMsg,
             sigDesc,
@@ -225,9 +224,9 @@ case class ResolvedCall(
       }
     } else {
       if (totalNumArgs == 0) {
-        error(SemanticError.procedureCallWithoutParentheses(signature.name.toString, position))
+        error(SemanticError.procedureCallWithoutParentheses(signature.name.fullName, position))
       } else
-        error(SemanticError.procedureCallWithParenthesesWithArgs(signature.name.toString, position))
+        error(SemanticError.procedureCallWithParenthesesWithArgs(signature.name.fullName, position))
     }
   }
 
@@ -258,7 +257,7 @@ case class ResolvedCall(
   }
 
   def asUnresolvedCall: UnresolvedCall = UnresolvedCall(
-    procedureName = ProcedureName(Namespace(signature.name.namespace.toList)(position), signature.name.name)(position),
+    procedureName = signature.name,
     declaredArguments = if (declaredArguments) Some(callArguments) else None,
     declaredResult = if (declaredResults) Some(ProcedureResult(callResults)(position)) else None,
     yieldAll,

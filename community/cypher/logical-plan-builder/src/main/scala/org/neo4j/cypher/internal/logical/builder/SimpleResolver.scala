@@ -20,8 +20,9 @@
 package org.neo4j.cypher.internal.logical.builder
 
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -54,9 +55,9 @@ case class SimpleResolver(
     }
   }
 
-  override def procedureSignature(name: QualifiedName): ProcedureSignature =
+  override def procedureSignature(name: ProcedureName): ProcedureSignature =
     procedures.find(_.name == name).getOrElse(throw new IllegalStateException(s"No procedure signature for $name"))
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] =
+  override def functionSignature(name: FunctionName): Option[UserFunctionSignature] =
     throw new UnsupportedOperationException(s"Unable to resolve function signature for `$name(...)`")
 }

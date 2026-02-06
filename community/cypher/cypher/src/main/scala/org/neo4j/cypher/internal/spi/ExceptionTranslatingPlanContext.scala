@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.spi
 
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.macros.TranslateExceptionMacros.translateException
@@ -34,6 +33,8 @@ import org.neo4j.cypher.internal.planner.spi.RelationshipVectorIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.VectorIndexError
 import org.neo4j.cypher.internal.planning.ExceptionTranslationSupport
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
@@ -122,10 +123,10 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
     () => translateException(tokenNameLookup, innerTxProvider())
   }
 
-  override def procedureSignature(name: QualifiedName): ProcedureSignature =
+  override def procedureSignature(name: ProcedureName): ProcedureSignature =
     translateException(tokenNameLookup, inner.procedureSignature(name))
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] =
+  override def functionSignature(name: FunctionName): Option[UserFunctionSignature] =
     translateException(tokenNameLookup, inner.functionSignature(name))
 
   override def indexExistsForLabel(labelId: Int): Boolean =

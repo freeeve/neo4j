@@ -57,19 +57,19 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
           TraverseChildren(
             seq // Deprecated input fields
               ++ inputFields.filter(_.deprecated).map(inputField =>
-                DeprecatedProcedureFieldNotification(f.position, name.toString, inputField.name)
+                DeprecatedProcedureFieldNotification(f.position, name.fullName, inputField.name)
               ).toSet
               // Deprecated Procedure
               ++ (maybeDeprecatedInfo match {
                 case _ @Some(DeprecationInfo(true, deprecatedBy)) =>
-                  Set(DeprecatedProcedureNotification(f.position, name.toString, deprecatedBy))
+                  Set(DeprecatedProcedureNotification(f.position, name.fullName, deprecatedBy))
                 case _ => Set.empty
               })
               // Deprecated output fields
               ++ (maybeOutput match {
                 case _ @Some(output) if output.exists(_.deprecated) =>
                   results.filter(r => output.exists(o => o.name == r.outputName && o.deprecated)).map(r =>
-                    DeprecatedProcedureReturnFieldNotification(r.position, name.toString, r.outputName)
+                    DeprecatedProcedureReturnFieldNotification(r.position, name.fullName, r.outputName)
                   )
                 case _ => Set.empty
               })
@@ -83,12 +83,12 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
           TraverseChildren(seq
           // Deprecated input fields
             ++ inputFields.filter(_.deprecated).map(inputField =>
-              DeprecatedFunctionFieldNotification(f.position, name.toString, inputField.name)
+              DeprecatedFunctionFieldNotification(f.position, name.fullName, inputField.name)
             ).toSet
             // Deprecated Function
             ++ (maybeDeprecatedInfo match {
               case _ @Some(DeprecationInfo(true, deprecatedBy)) =>
-                Set(DeprecatedFunctionNotification(f.position, name.toString, deprecatedBy))
+                Set(DeprecatedFunctionNotification(f.position, name.fullName, deprecatedBy))
               case _ => Set.empty
             }))
       case f: FunctionInvocation =>
@@ -142,11 +142,11 @@ case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
           TraverseChildren(
             seq // A warning message the procedure wants us to generate
               ++ (maybeWarning match {
-                case _ @Some(warning) => Set(ProcedureWarningNotification(f.position, name.toString, warning))
+                case _ @Some(warning) => Set(ProcedureWarningNotification(f.position, name.fullName, warning))
                 case _                => Set.empty
               }) // Redundant usage of optional (on void proc)
               ++ (if (optional && result.isEmpty) {
-                    Set(RedundantOptionalProcedure(f.position, name.toString))
+                    Set(RedundantOptionalProcedure(f.position, name.fullName))
                   } else {
                     Set.empty
                   })

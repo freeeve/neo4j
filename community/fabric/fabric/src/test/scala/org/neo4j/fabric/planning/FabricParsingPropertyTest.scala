@@ -30,8 +30,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
-import org.neo4j.cypher.internal.expressions.Namespace
-import org.neo4j.cypher.internal.expressions.ProcedureName
 import org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
@@ -42,7 +40,6 @@ import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
@@ -54,7 +51,10 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.UNNAMED_PATTERN
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -83,15 +83,14 @@ class FabricParsingPropertyTest extends CypherFunSuite
   private val resolver = {
     val ns = Namespace(List("my", "proc"))(pos)
     val name = ProcedureName(ns, "foo")(pos)
-    val qualifiedName = QualifiedName(ns.parts, name.name)
     val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
     val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
     val signature =
-      ProcedureSignature(qualifiedName, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+      ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
 
     new ScopedProcedureSignatureResolver {
-      override def procedureSignature(name: QualifiedName): ProcedureSignature = signature
-      override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = None
+      override def procedureSignature(name: ProcedureName): ProcedureSignature = signature
+      override def functionSignature(name: FunctionName): Option[UserFunctionSignature] = None
       override def procedureSignatureVersion: Long = -1
 
       override def queryLanguage: QueryLanguage = QueryLanguage.from(astGenerator.whenAstDifferUseCypherVersion)

@@ -54,7 +54,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ScopeExpression
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
-import org.neo4j.cypher.internal.expressions.SymbolicName
 import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -78,6 +77,7 @@ import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
+import org.neo4j.cypher.internal.util.SymbolicName
 import org.neo4j.cypher.internal.util.bottomUp
 
 import scala.annotation.tailrec

@@ -34,11 +34,9 @@ import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOpti
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Namespace
 import org.neo4j.cypher.internal.ir.AbstractProcedureCallProjection
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -58,7 +56,9 @@ import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.UnwindProjection
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Multiplier
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 
 class StatisticsBackedCardinalityModel(

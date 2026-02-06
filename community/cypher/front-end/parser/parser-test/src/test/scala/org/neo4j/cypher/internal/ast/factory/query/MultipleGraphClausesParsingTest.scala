@@ -24,6 +24,8 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.symbols
 
 class MultipleGraphClausesParsingTest extends AstParsingTestBase {
@@ -173,7 +175,7 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase {
     nameParts: String*
   )(args: expressions.Expression*): FunctionInvocation =
     expressions.FunctionInvocation(
-      expressions.FunctionName(expressions.Namespace(nameParts.init.toList)(pos), nameParts.last)(pos),
+      FunctionName(Namespace(nameParts.init.toList)(pos), nameParts.last)(pos),
       distinct = false,
       args.toIndexedSeq,
       calledFromUseClause = calledFromUseClause
