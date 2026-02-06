@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
@@ -139,6 +140,7 @@ object relationshipSingleUniqueIndexSeekPlanProvider extends RelationshipIndexPl
         case RangeQueryExpression(_)         => false
         case CompositeQueryExpression(inner) => allSingleQueryExpressions(inner ++ queryExpressions.tail)
         case ExistenceQueryExpression()      => false
+        case NonExistenceQueryExpression()   => false
         case AllQueryExpression()            => false
       })
 

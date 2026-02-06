@@ -1356,7 +1356,10 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       (s"> $cypher", rangeExpression(gt(expression))),
       (s">= $cypher", rangeExpression(gte(expression)))
     )
-  }
+  } ++ Seq(
+    ("IS NOT NULL", existsExpression),
+    ("IS NULL", notExistsExpression)
+  )
 
   test("plan node vector search with inlined predicate") {
     val planner =

@@ -208,6 +208,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.NullifyMetadata
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
@@ -3821,6 +3822,9 @@ case class LogicalPlan2PlanDescription(
 
     case _: ExistenceQueryExpression[expressions.Expression] =>
       pretty"${asPrettyString(propertyKeys.head.name)} IS NOT NULL"
+
+    case _: NonExistenceQueryExpression[expressions.Expression] =>
+      pretty"${asPrettyString(propertyKeys.head.name)} IS NULL"
 
     case e: RangeQueryExpression[expressions.Expression] =>
       checkOnlyWhenAssertionsAreEnabled(propertyKeys.size == 1)

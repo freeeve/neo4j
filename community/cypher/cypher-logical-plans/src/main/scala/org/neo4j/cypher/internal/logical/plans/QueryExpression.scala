@@ -60,6 +60,12 @@ case class ExistenceQueryExpression[T]() extends QueryExpression[T] {
   def expressions: Seq[T] = Seq.empty
 }
 
+case class NonExistenceQueryExpression[T]() extends QueryExpression[T] {
+  def map[R](f: T => R) = NonExistenceQueryExpression()
+
+  def expressions: Seq[T] = Seq.empty
+}
+
 case class AllQueryExpression[T]() extends QueryExpression[T] {
   def map[R](f: T => R) = AllQueryExpression()
 

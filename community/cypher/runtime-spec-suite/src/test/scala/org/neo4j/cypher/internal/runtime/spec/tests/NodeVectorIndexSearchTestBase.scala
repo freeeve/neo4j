@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.runtime.spec.Edition
@@ -2230,6 +2231,96 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         vector = "$vector",
         limit = s"10000000",
         filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("n").withRows(singleColumn(nodes))
+  }
+
+  test("should support non-existence query") {
+
+    // given
+    val nodes = ArrayBuffer.empty[Node]
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.nodeSetProperty(n.getId, idToken, longValue(i))
+          } else {
+            nodes.append(n)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(NonExistenceQueryExpression())
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("n").withRows(singleColumn(nodes))
+  }
+
+  test("should support composite non-existence query") {
+
+    // given
+    val nodes = ArrayBuffer.empty[Node]
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      nodeGraph(1000, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.nodeSetProperty(n.getId, id1Token, longValue(i))
+            write.nodeSetProperty(n.getId, id2Token, longValue(i))
+          } else if (random.nextBoolean()) {
+            write.nodeSetProperty(n.getId, id1Token, longValue(i))
+          } else {
+            nodes.append(n)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
       )
       .build()
 

@@ -131,6 +131,7 @@ import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -171,6 +172,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekSingleLabelLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.NonFuseable
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
@@ -1012,6 +1014,46 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Set("n", "sc")
       )
     )
+
+    assertGood(
+      attach(
+        NodeVectorIndexSearch(
+          varFor("n"),
+          Seq(
+            LabelToken("Label1", LabelId(0)),
+            LabelToken("Label2", LabelId(1))
+          ),
+          properties = Seq(
+            // the vector property
+            IndexedProperty(PropertyKeyToken("prop0", PropertyKeyId(0)), DoNotGetValue, NODE_TYPE),
+            // additional properties
+            IndexedProperty(PropertyKeyToken("prop1", PropertyKeyId(1)), DoNotGetValue, NODE_TYPE),
+            IndexedProperty(PropertyKeyToken("prop2", PropertyKeyId(2)), DoNotGetValue, NODE_TYPE)
+          ),
+          score = Some(v"sc"),
+          indexName = "vectorIndex",
+          vector = listOf(literalInt(1), literalInt(2)),
+          limit = literalInt(5),
+          maybeFilter = Some(CompositeQueryExpression(
+            Seq(
+              ExistenceQueryExpression(),
+              NonExistenceQueryExpression()
+            )
+          )),
+          argumentIds = Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "NodeVectorIndexSearch",
+        Seq.empty,
+        Seq(details(
+          "SEARCH n IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE prop1 IS NOT NULL AND prop2 IS NULL LIMIT 5) SCORE AS sc"
+        )),
+        Set("n", "sc")
+      )
+    )
   }
 
   test("DirectedRelationshipVectorIndexSearch") {
@@ -1084,6 +1126,45 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Set("r", "a", "b", "sc")
       )
     )
+
+    assertGood(
+      attach(
+        DirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p0", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(1)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(2)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          Some(v"sc"),
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          Some(CompositeQueryExpression(
+            Seq(
+              NonExistenceQueryExpression(),
+              ExistenceQueryExpression()
+            )
+          )),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(
+          details(
+            "SEARCH (a)-[r:R1|R2]->(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 IS NULL AND p2 IS NOT NULL LIMIT 5) SCORE AS sc"
+          )
+        ),
+        Set("r", "a", "b", "sc")
+      )
+    )
   }
 
   test("UndirectedRelationshipVectorIndexSearch") {
@@ -1151,6 +1232,44 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(
           details(
             "SEARCH (a)-[r:R1|R2]-(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 = 42 AND p2 > 42 LIMIT 5) SCORE AS sc"
+          )
+        ),
+        Set("r", "a", "b", "sc")
+      )
+    )
+    assertGood(
+      attach(
+        UndirectedRelationshipVectorIndexSearch(
+          Some(varFor("r")),
+          Some(varFor("a")),
+          Some(varFor("b")),
+          Seq(RelationshipTypeToken("R1", RelTypeId(0)), RelationshipTypeToken("R2", RelTypeId(1))),
+          Seq(
+            IndexedProperty(PropertyKeyToken("p0", PropertyKeyId(0)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p1", PropertyKeyId(1)), DoNotGetValue, RELATIONSHIP_TYPE),
+            IndexedProperty(PropertyKeyToken("p2", PropertyKeyId(2)), DoNotGetValue, RELATIONSHIP_TYPE)
+          ),
+          Some(v"sc"),
+          "vectorIndex",
+          listOf(literalInt(1), literalInt(2)),
+          literalInt(5),
+          Some(CompositeQueryExpression(
+            Seq(
+              ExistenceQueryExpression(),
+              NonExistenceQueryExpression()
+            )
+          )),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipVectorIndexSearch",
+        Seq.empty,
+        Seq(
+          details(
+            "SEARCH (a)-[r:R1|R2]-(b) IN (VECTOR INDEX vectorIndex FOR [1, 2] WHERE p1 IS NOT NULL AND p2 IS NULL LIMIT 5) SCORE AS sc"
           )
         ),
         Set("r", "a", "b", "sc")

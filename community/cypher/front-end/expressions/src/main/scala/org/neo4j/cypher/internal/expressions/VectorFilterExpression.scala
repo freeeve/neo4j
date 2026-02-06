@@ -56,6 +56,10 @@ object VectorFilterExpression {
     propertyName: String
   ) extends VectorFilterExpression
 
+  case class NotExists(
+    propertyName: String
+  ) extends VectorFilterExpression
+
   def unapply(expression: Expression): Option[(LogicalVariable, Expression, VectorFilterExpression)] =
     expression match {
       case GreaterThan(Property(variable: LogicalVariable, PropertyKeyName(propName)), rhs) =>
@@ -72,6 +76,8 @@ object VectorFilterExpression {
         Some((variable, rhs, Equality(propName, rhs)))
       case IsNotNull(Property(variable: LogicalVariable, PropertyKeyName(propName))) =>
         Some((variable, Null()(InputPosition.NONE), Exists(propName)))
+      case IsNull(Property(variable: LogicalVariable, PropertyKeyName(propName))) =>
+        Some((variable, Null()(InputPosition.NONE), NotExists(propName)))
       case _ =>
         None
     }

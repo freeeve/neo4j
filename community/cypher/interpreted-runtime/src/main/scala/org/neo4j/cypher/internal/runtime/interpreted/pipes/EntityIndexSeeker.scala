@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.MinMaxOrdering
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
@@ -208,6 +209,12 @@ trait EntityIndexSeeker {
           "An ExistenceQueryExpression shouldn't be found outside of a CompositeQueryExpression"
         )
 
+      case NonExistenceQueryExpression() =>
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "A NonExistenceQueryExpression shouldn't be found outside of a Search Predicate"
+        )
+
       case _ =>
         computeExactQueries(state, row)
     }
@@ -375,6 +382,9 @@ trait EntityIndexSeeker {
 
       case ExistenceQueryExpression() =>
         Seq(PropertyIndexQuery.exists(propertyId))
+
+      case NonExistenceQueryExpression() =>
+        Seq(PropertyIndexQuery.notExists(propertyId))
 
       case AllQueryExpression() =>
         Seq(PropertyIndexQuery.all(propertyId))

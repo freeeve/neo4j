@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
@@ -3870,6 +3871,184 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         vector = "$vector",
         limit = s"10000000",
         filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
+  }
+
+  test("should support directed non-existence query") {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, idToken, longValue(i))
+          } else {
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(NonExistenceQueryExpression())
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships))
+  }
+
+  test("should support undirected non-existence query") {
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val idToken = tx.kernelTransaction().tokenRead().propertyKey("id")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, idToken, longValue(i))
+          } else {
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]-()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(NonExistenceQueryExpression())
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships.flatMap(r => Seq(r, r))))
+  }
+
+  test("should support composite directed non-existence query") {
+
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+          } else if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+          } else {
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]->()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
+      )
+      .build()
+
+    execute(
+      logicalQuery,
+      runtime,
+      parameters =
+        Map(
+          "vector" -> randomVector
+        )
+    ) should beColumns("r").withRows(singleColumn(relationships))
+  }
+
+  test("should support composite undirected non-existence query") {
+
+    // given
+    val relationships = ArrayBuffer.empty[Relationship]
+    givenGraph {
+      relationshipIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id1", "id2")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().tokenRead().propertyKey("v")
+      val id1Token = tx.kernelTransaction().tokenRead().propertyKey("id1")
+      val id2Token = tx.kernelTransaction().tokenRead().propertyKey("id2")
+      relationshipGraph(1000, "Foo").zipWithIndex.foreach({
+        case (r, i) =>
+          write.relationshipSetProperty(r.getId, vectorToken, randomVector)
+          if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+            write.relationshipSetProperty(r.getId, id2Token, longValue(i))
+          } else if (random.nextBoolean()) {
+            write.relationshipSetProperty(r.getId, id1Token, longValue(i))
+          } else {
+            relationships.append(r)
+          }
+      })
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .relationshipVectorIndexSearch(
+        "()-[r]-()",
+        typeNames = Seq("Foo"),
+        properties = Seq("v", "id1", "id2"),
+        indexName = "VectorIndex",
+        vector = "$vector",
+        limit = s"10000000",
+        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
       )
       .build()
 

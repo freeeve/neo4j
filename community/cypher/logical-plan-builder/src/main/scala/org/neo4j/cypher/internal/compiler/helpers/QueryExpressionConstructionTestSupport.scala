@@ -24,9 +24,11 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ToEx
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
@@ -66,6 +68,9 @@ trait QueryExpressionConstructionTestSupport {
     RangeGreaterThan(NonEmptyList(InclusiveBound(toExpression(e))))
   def lt(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(ExclusiveBound(toExpression(e))))
   def lte(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(InclusiveBound(toExpression(e))))
+
+  def existsExpression: ExistenceQueryExpression[Expression] = ExistenceQueryExpression()
+  def notExistsExpression: NonExistenceQueryExpression[Expression] = NonExistenceQueryExpression()
 
   private def toExpression(expr: ToExpression): Expression =
     expr match {

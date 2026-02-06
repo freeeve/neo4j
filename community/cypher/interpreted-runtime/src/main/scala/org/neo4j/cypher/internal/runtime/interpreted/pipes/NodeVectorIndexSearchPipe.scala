@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
@@ -239,6 +240,10 @@ object NodeVectorIndexSearchPipe {
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         Array(nearestPredicate, PropertyIndexQuery.exists(properties(1)))
 
+      case Some(NonExistenceQueryExpression()) =>
+        checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
+        Array(nearestPredicate, PropertyIndexQuery.notExists(properties(1)))
+
       case Some(CompositeQueryExpression(inner)) =>
         require(inner.length == properties.length - 1)
         compositePredicate(nearestPredicate, inner, properties, row, state)
@@ -304,6 +309,9 @@ object NodeVectorIndexSearchPipe {
 
         case ExistenceQueryExpression() =>
           predicates(i) = PropertyIndexQuery.exists(properties(i))
+
+        case NonExistenceQueryExpression() =>
+          predicates(i) = PropertyIndexQuery.notExists(properties(i))
 
         case notSupported =>
           throw InternalException.internalError(
