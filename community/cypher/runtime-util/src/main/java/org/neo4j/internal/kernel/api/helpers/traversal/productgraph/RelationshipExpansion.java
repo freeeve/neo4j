@@ -20,6 +20,7 @@
 package org.neo4j.internal.kernel.api.helpers.traversal.productgraph;
 
 import java.util.function.Predicate;
+import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities;
 import org.neo4j.internal.kernel.api.helpers.traversal.ReversedRelTraversalEntities;
@@ -36,6 +37,7 @@ public record RelationshipExpansion(
         implements Transition {
 
     public boolean testRelationship(RelationshipTraversalEntities rel, TraversalDirection direction) {
-        return relPredicate.test(direction.isForward() ? rel : new ReversedRelTraversalEntities(rel));
+        return (types == null || ArrayUtils.contains(types, rel.type()))
+                && relPredicate.test(direction.isForward() ? rel : new ReversedRelTraversalEntities(rel));
     }
 }

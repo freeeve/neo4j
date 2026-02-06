@@ -31,6 +31,11 @@ case class TracedPath(entities: List[PathEntity]) {
   def ids: Seq[Long] = entities.map(_.id)
 
   override def toString: String = {
+    // flip this if you want to print the output variable name - sometimes useful in debugging
+    toString(includeSlots = false)
+  }
+
+  def toString(includeSlots: Boolean): String = {
     val sb = new StringBuilder("(")
     var last: TracedPath.PathEntity = null
     for (e <- entities) {
@@ -38,10 +43,10 @@ case class TracedPath(entities: List[PathEntity]) {
         case EntityType.NODE =>
           if (last == null || (last.entityType eq EntityType.RELATIONSHIP)) {
             sb.append(e.id)
-            if (e.slotOrName ne SlotOrName.none) {
+            if (includeSlots && (e.slotOrName ne SlotOrName.none)) {
               sb.append("@").append(e.slotOrName)
             }
-          } else if (last.slotOrName ne e.slotOrName) {
+          } else if (includeSlots && (last.slotOrName ne e.slotOrName)) {
             sb.append(",").append(e.slotOrName)
           }
 

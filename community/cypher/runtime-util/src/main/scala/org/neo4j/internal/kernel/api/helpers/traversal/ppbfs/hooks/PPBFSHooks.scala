@@ -61,10 +61,12 @@ abstract class PPBFSHooks {
 
   // PathTracer
   def returnPath(signposts: SignpostStack): Unit = {}
+  def foundPath(signposts: SignpostStack): Unit = {}
   def invalidTrail(signposts: SignpostStack): Unit = {}
   def skippingDuplicateRelationship(signposts: SignpostStack): Unit = {}
-  def activateSignpost(currentLength: Int, child: TwoWaySignpost): Unit = {}
-  def deactivateSignpost(currentLength: Int, last: TwoWaySignpost): Unit = {}
+  def pushSignpost(signposts: SignpostStack): Unit = {}
+  def popSignpost(signposts: SignpostStack, popped: TwoWaySignpost): Unit = {}
+  def initializeTarget(nodeState: NodeState): Unit = {}
 
   // PGPathPropagatingBFS
   def nextLevel(currentDepth: Int): Unit = {}

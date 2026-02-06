@@ -162,7 +162,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     def logged(level: LoggingPPBFSHooks = LoggingPPBFSHooks.debug): FixtureBuilder[A] = copy(hooks = level)
 
     /** Render graphviz to stdout */
-    def viz(): FixtureBuilder[A] = copy(hooks = new VisualizingPPBSHooks)
+    def viz(compress: Boolean): FixtureBuilder[A] = copy(hooks = new VisualizingPPBSHooks(compress))
 
     /** Run the iterator with event hooks attached */
     def events(): Seq[EventRecorder.Event] = {
@@ -384,8 +384,8 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     def apply(v1: PGStateBuilder): Unit = construct(v1)
   }
 
-  private def nfa(name: String)(construct: PGStateBuilder => Unit): Nfa = new Nfa(name, construct)
-  private def nfa(defn: DslPart): Nfa = nfa(defn.toString())(defn.build)
+  protected def nfa(name: String)(construct: PGStateBuilder => Unit): Nfa = new Nfa(name, construct)
+  protected def nfa(defn: DslPart): Nfa = nfa(defn.toString())(defn.build)
 
   import NfaDsl.Implicits._
   protected val `(s) ((a)-->(b))* (t)`: Nfa = nfa("s" |> ("a" --> "b" *) |> "t")

@@ -70,7 +70,7 @@ object NfaDsl {
               assert(!isFirst, "Repeated transition with min-length 0 must have a state preceding it")
               assert(!isLast, "Repeated transition with min-length 0 must have a state succeeding it")
 
-              val anonEndState = sb.newState()
+              val anonEndState = sb.newState("anon")
               s2.addNodeJuxtaposition(anonEndState)
               prevState.addNodeJuxtaposition(anonEndState)
               (s1, anonEndState)
@@ -353,7 +353,7 @@ class NfaDslTests extends CypherFunSuite {
     val s = sb.newState("s", isStartState = true)
     val a = sb.newState("a")
     val b = sb.newState("b")
-    val anon = sb.newState()
+    val anon = sb.newState("anon")
     val t = sb.newState("t", isFinalState = true)
 
     s.addNodeJuxtaposition(a)

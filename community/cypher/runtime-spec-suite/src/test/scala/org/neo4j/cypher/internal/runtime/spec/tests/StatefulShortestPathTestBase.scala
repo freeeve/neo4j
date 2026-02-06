@@ -7246,19 +7246,17 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
       fromTemplate(
         """
-          |         .--->( )--->( )--->( )
-          |         |                   |
-          |         |                  [:R]
-          |         |    .---[:R]--.    |
-          |         |    |         v    v
-          |       (:S)->( )->( )->( )->( )->(:T)
-          |         |    ^
-          |         |    |
-          |         |   [:R]
-          |         |    |
-          |         '-->(:T)
-          |
-          |""".stripMargin,
+         .--->( )--->( )--->( )
+         |                   |
+         |                  [:R]
+         |    .---[:R]--.    |
+         |    |         v    v
+       (:S)->( )->( )->( )->( )->(:T)
+         |    ^
+         |    |
+         |   [:R]
+         |    |
+         '-->(:T) """,
         defaultRelType = "NOT_R"
       )
     }

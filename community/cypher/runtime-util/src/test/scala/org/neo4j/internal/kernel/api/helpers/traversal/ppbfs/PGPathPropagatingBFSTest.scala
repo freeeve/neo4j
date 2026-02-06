@@ -46,8 +46,11 @@ import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.virtual.VirtualRelationshipValue
 import org.scalatest.Inspectors
 
+import java.util.function.LongPredicate
+
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.language.postfixOps
 
 class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFSTestBase {
 
@@ -555,6 +558,139 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     )
   }
 
+  // a test configuration that was found in the generated StatefulShortest tests
+  // replicated here because these tests are faster and better encapsulated.
+  test("cobweb of doom") {
+    val OUT = 1
+    val SIDEWAYS = 2
+    val RANDOM = 3
+
+    val (graph, n0, n4, n7) = {
+      val g = TestGraph.builder
+
+      val n0 = g.node()
+      val n1 = g.node()
+      val n2 = g.node()
+      val n3 = g.node()
+      val n4 = g.node()
+      val n5 = g.node()
+      val n6 = g.node()
+      val n7 = g.node()
+      val n8 = g.node()
+
+      g.rel(n0, n1, OUT)
+      g.rel(n1, n2, OUT)
+      g.rel(n2, n3, OUT)
+      g.rel(n3, n4, OUT)
+
+      g.rel(n0, n5, OUT)
+      g.rel(n5, n6, OUT)
+      g.rel(n6, n7, OUT)
+
+      g.rel(n0, n8, OUT)
+
+      g.rel(n8, n1, SIDEWAYS)
+      g.rel(n1, n5, SIDEWAYS)
+      g.rel(n5, n8, SIDEWAYS)
+
+      g.rel(n2, n6, SIDEWAYS)
+
+      g.rel(n3, n7, SIDEWAYS)
+
+      g.rel(n4, n5, RANDOM)
+
+      (g.build(), n0, n4, n7)
+    }
+
+    val n: Nfa = nfa("(s: S) ((a)-[:OUT]->(b)-[:SIDEWAYS|RANDOM]-(c)-[:OUT|RANDOM]-(d))+ (t: T)") { sb =>
+      val s = sb.newState("s", isStartState = true, predicate = n => n == n0)
+      val a = sb.newState("a")
+      val b = sb.newState("b")
+      val c = sb.newState("c")
+      val d = sb.newState("d")
+      val t = sb.newState("t", isFinalState = true, predicate = n => n == n4 || n == n7)
+
+      s.addNodeJuxtaposition(a)
+      a.addRelationshipExpansion(b, types = Array(OUT), direction = Direction.OUTGOING)
+      b.addRelationshipExpansion(c, types = Array(SIDEWAYS, RANDOM), direction = Direction.BOTH)
+      c.addRelationshipExpansion(d, types = Array(OUT, RANDOM), direction = Direction.BOTH)
+      d.addNodeJuxtaposition(a)
+      d.addNodeJuxtaposition(t)
+    }
+
+    fixture()
+      .withGraph(graph)
+      .withNfa(n)
+      .withK(2)
+      .grouped
+      .from(n0)
+      .assertExpected()
+  }
+
+  // a test that failed when trying to fix the above broken test
+  test("ruthless cobweb") {
+    val graph = TestGraph.fromTemplate("""
+         .--->(0)--->(1)--->(2)
+         |                   |
+         |                  [:R]
+         |    .---[:R]--.    |
+         |    |         v    v
+        (3)->(4)------>(5)->(6)->(7)
+         |    ^
+         |    |
+         |   [:R]
+         |    |
+         '-->(8)
+      """)
+    val NOT_R = TestGraph.DEFAULT_REL
+    val R = graph relTypes "R"
+    val s = graph node "3"
+
+    val isTarget: LongPredicate = {
+      val t1 = graph node "7"
+      val t2 = graph node "8"
+      n => n == t1 || n == t2
+    }
+
+    import NfaDsl.Implicits._
+    val n: Nfa = nfa("s" |>
+      ("a" - NOT_R - "b" +) |>
+      ("c" - R - "d") |>
+      ("e" - NOT_R - "f" +) |>
+      ("t" where isTarget))
+
+    fixture()
+      .withGraph(graph.graph)
+      .from(s)
+      .withNfa(n)
+      .withK(3)
+      .grouped
+      .assertExpected()
+  }
+
+  // a test that is simplified from the above, but still showed the same error, thus easier to debug
+  test("ruthless cobweb mostly simplified") {
+    val graph = TestGraph.fromTemplate("""
+
+      (0:T)-->(1)-->(2)-->(3:T)
+       ^       ^
+       '--(4)--'
+      """)
+
+    val s = graph node "1"
+
+    import NfaDsl.Implicits._
+    val n: Nfa = nfa("s" |> ("a" -- "b" +) |> ("t" where graph.hasLabel("T")))
+
+    fixture()
+      .withGraph(graph.graph)
+      .from(s)
+      .withNfa(n)
+      .withK(4)
+      .grouped
+      .assertExpected()
+  }
+
   /**************************************************************
    * grouping, K limit, into (early exit), filtering, max depth *
    **************************************************************/
@@ -1060,21 +1196,21 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   ) {
     // the double outgoing rel at node 2 makes the algorithm prefer the backwards expansion of node 4
     val graph = TestGraph.fromTemplate("""
-     (1)-->(2)-->(3)-->(4)
+     (0)-->(1)-->(2)-->(3)
             |
             v
            ( )
       """)
 
     // in the predicate we rely on the fact that the test graph nodes are generated with ascending ID from left to right
-    (1 to 4).foreach { id =>
+    (0 to 3).foreach { id =>
       graph node id.toString shouldBe id
     }
 
     val paths = fixture()
       .withGraph(graph.graph)
-      .from(graph node "2")
-      .into(graph node "4")
+      .from(graph node "1")
+      .into(graph node "3")
       .withNfa { sb =>
         val s = sb.newState("s", isStartState = true)
         val a = sb.newState("a")
@@ -1223,6 +1359,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
 
     val nfa = {
       import NfaDsl.Implicits._
+
       import scala.language.postfixOps
       // format: off
       "s"

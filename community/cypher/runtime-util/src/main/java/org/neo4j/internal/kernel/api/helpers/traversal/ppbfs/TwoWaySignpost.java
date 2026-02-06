@@ -233,22 +233,24 @@ public abstract sealed class TwoWaySignpost implements Measurable {
 
         @Override
         public String toString() {
-            var sb = new StringBuilder("RE ").append(prevNode).append("-[");
+            var sb = new StringBuilder().append(prevNode).append("-[");
 
             if (relationshipExpansion.slotOrName() != SlotOrName.none()) {
                 sb.append(relationshipExpansion.slotOrName()).append("@");
             }
 
-            sb.append(relId).append("]->").append(forwardNode);
-
-            if (minTargetDistance != NO_TARGET_DISTANCE) {
-                sb.append(", minTargetDistance: ").append(minTargetDistance);
-            }
+            sb.append(relId).append("]-").append(forwardNode).append(" <");
 
             var sourceLengths = lengths.renderSourceLengths();
-            if (!sourceLengths.isEmpty()) {
-                sb.append(", sourceLengths: ").append(sourceLengths);
+            sb.append(sourceLengths);
+            sb.append(" | ");
+
+            if (minTargetDistance != NO_TARGET_DISTANCE) {
+                sb.append(minTargetDistance);
+            } else {
+                sb.append("–");
             }
+            sb.append(">");
 
             return sb.toString();
         }
@@ -304,16 +306,22 @@ public abstract sealed class TwoWaySignpost implements Measurable {
 
         @Override
         public String toString() {
-            var sb = new StringBuilder("NJ ").append(prevNode).append(" ").append(forwardNode);
-
-            if (minTargetDistance != NO_TARGET_DISTANCE) {
-                sb.append(", minTargetDistance: ").append(minTargetDistance);
-            }
+            var sb = new StringBuilder()
+                    .append(prevNode)
+                    .append(" ")
+                    .append(forwardNode)
+                    .append(" <");
 
             var sourceLengths = lengths.renderSourceLengths();
-            if (!sourceLengths.isEmpty()) {
-                sb.append(", sourceLengths: ").append(sourceLengths);
+            sb.append(sourceLengths);
+            sb.append(" | ");
+
+            if (minTargetDistance != NO_TARGET_DISTANCE) {
+                sb.append(minTargetDistance);
+            } else {
+                sb.append("–");
             }
+            sb.append(">");
 
             return sb.toString();
         }

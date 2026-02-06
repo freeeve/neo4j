@@ -162,7 +162,7 @@ public class SignpostStack {
      *
      * @return true if signpost found, false otherwise
      */
-    public boolean pushNext() {
+    public boolean pushSignpost() {
         var current = headNode();
         int currentIndex = this.nodeSourceSignpostIndices.last();
         int nextIndex = current.nextSignpostIndexForLength(currentIndex, lengthFromSource());
@@ -176,7 +176,7 @@ public class SignpostStack {
         nodeSourceSignpostIndices.set(nodeSourceSignpostIndices.size() - 1, nextIndex);
         nodeSourceSignpostIndices.add(-1);
         signpostTracking.onPushed(signpost, this);
-        hooks.activateSignpost(lengthFromSource(), signpost);
+        hooks.pushSignpost(this);
 
         return true;
     }
@@ -189,7 +189,7 @@ public class SignpostStack {
      * Pop and deactivate the top signpost of the stack, and return it.
      * If the stack is empty, returns null
      */
-    public TwoWaySignpost pop() {
+    public TwoWaySignpost popSignpost() {
         this.nodeSourceSignpostIndices.removeLast();
         if (activeSignposts.isEmpty()) {
             return null;
@@ -199,7 +199,7 @@ public class SignpostStack {
         signpostTracking.onPopped(signpost, this);
         dgLengthToTarget -= signpost.dataGraphLength();
 
-        hooks.deactivateSignpost(lengthFromSource(), signpost);
+        hooks.popSignpost(this, signpost);
         return signpost;
     }
 

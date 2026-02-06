@@ -78,7 +78,7 @@ object DebugSupport {
   final val BrightBlue = "\u001b[34;1m"
   final val Magenta = "\u001b[35m"
   final val Cyan = "\u001b[36m"
-  final val White = "\u001b[37m"
+  final val White = "\u001b[37m" // grey, really
 
   final val Bold = "\u001b[1m"
   final val Underline = "\u001b[4m"

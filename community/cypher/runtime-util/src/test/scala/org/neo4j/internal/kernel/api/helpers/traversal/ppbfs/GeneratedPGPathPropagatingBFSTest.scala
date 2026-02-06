@@ -26,23 +26,23 @@ import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathProp
 
 class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFSTestBase {
 
-  for {
-    nfa <- Seq(
-      `(s) ((a)-->(b))* (t)`,
-      `(s) ((a)-->(b))+ (t)`,
-      `(s) ((a)--(b))+ (t)`,
-      `(s) ((a)--(b)--(c))* (t)`,
-      `(s) ((a)--(b)--(c))* (t) [single transition]`
-    )
-    graph <- testGraphs
-    into <- Seq(true, false)
-    grouped <- Seq(true, false)
-    pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Walk)
-    k <- if (pathMode == Trail) Seq(Int.MaxValue, 1, 2) else Seq(1, 2, 5)
-  } {
-    test(
-      s"running the algorithm gives the same results as naive search. into=$into pathMode=$pathMode grouped=$grouped k=$k nfa=$nfa graph=${graph.render}"
-    ) {
+  test(
+    s"running the algorithm gives the same results as naive search"
+  ) {
+    for {
+      nfa <- Seq(
+        `(s) ((a)-->(b))* (t)`,
+        `(s) ((a)-->(b))+ (t)`,
+        `(s) ((a)--(b))+ (t)`,
+        `(s) ((a)--(b)--(c))* (t)`,
+        `(s) ((a)--(b)--(c))* (t) [single transition]`
+      )
+      graph <- testGraphs
+      into <- Seq(true, false)
+      grouped <- Seq(true, false)
+      pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Walk)
+      k <- if (pathMode == Trail) Seq(Int.MaxValue, 1, 2) else Seq(1, 2, 5)
+    } {
       var f = fixture()
         .withGraph(graph.graph)
         .from(graph.source)
@@ -65,10 +65,11 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
         f = f.withK(k)
       }
 
-      f.assertExpected()
+      withClue(s"into=$into pathMode=$pathMode grouped=$grouped k=$k nfa=$nfa graph=${graph.render}") {
+        f.assertExpected()
+      }
     }
   }
-
 }
 
 object GeneratedPGPathPropagatingBFSTest {

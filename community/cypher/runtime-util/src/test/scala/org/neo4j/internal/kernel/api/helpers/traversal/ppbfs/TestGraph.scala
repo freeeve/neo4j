@@ -36,7 +36,7 @@ import java.util.function.LongPredicate
 import scala.collection.mutable
 
 case class TestGraph(nodes: Set[Long], rels: Map[Long, TestGraph.Rel]) {
-  def lastId: Long = nodes.size + rels.size
+  def lastId: Long = nodes.size + rels.size - 1
   def nextId: Long = lastId + 1
 
   def withNode(): TestGraph = copy(nodes = nodes + nextId)
@@ -95,6 +95,7 @@ object TestGraph {
   }
 
   val empty: TestGraph = TestGraph(Set.empty, Map.empty)
+  val DEFAULT_REL = 1
   def builder = empty.builder
 
   class Builder(private var graph: TestGraph) {
@@ -105,7 +106,7 @@ object TestGraph {
       nextId
     }
 
-    def rel(source: Long, target: Long): Long = rel(source, target, 1)
+    def rel(source: Long, target: Long): Long = rel(source, target, DEFAULT_REL)
 
     def rel(source: Long, target: Long, relType: Int): Long = {
       val nextId = graph.nextId
@@ -148,7 +149,7 @@ object TestGraph {
 
         def createRel(from: Long, to: Long, relType: Option[String]): Long = {
           // the default relType is 1, custom relTypes begin at 2
-          val relTypeId = relType.map(name => relTypes.getOrElseUpdate(name, relTypes.size + 2)).getOrElse(1)
+          val relTypeId = relType.map(name => relTypes.getOrElseUpdate(name, relTypes.size + 2)).getOrElse(DEFAULT_REL)
           graph.rel(from, to, relTypeId)
         }
       })

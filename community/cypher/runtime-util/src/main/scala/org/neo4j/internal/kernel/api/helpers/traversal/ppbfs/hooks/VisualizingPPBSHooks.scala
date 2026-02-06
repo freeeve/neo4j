@@ -23,6 +23,7 @@ import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.NodeState
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TraversalDirection
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TwoWaySignpost
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TwoWaySignpost.NodeSignpost
 
 import scala.collection.mutable
 
@@ -31,7 +32,7 @@ import scala.collection.mutable
  *
  * Useful for debugging *small* graph+nfa combinations!
  */
-class VisualizingPPBSHooks extends PPBFSHooks {
+class VisualizingPPBSHooks(compress: Boolean) extends PPBFSHooks {
   val nodes = mutable.HashSet.empty[NodeState]
   val rels = mutable.HashSet.empty[TwoWaySignpost]
 
@@ -48,18 +49,116 @@ class VisualizingPPBSHooks extends PPBFSHooks {
   }
 
   override def finished(): Unit = {
-    def nodeName(n: NodeState) = {
-      val state = n.state().slotOrName() match {
-        case SlotOrName.VarName(name, _) => name
-        case _                           => n.state().id.toString
-      }
-      s""""(${n.id},$state)""""
+    if (compress) {
+      println(graphCompressed())
+    } else {
+      println(graphUncompressed())
     }
+  }
+
+  private def stateName(n: NodeState) =
+    n.state().slotOrName() match {
+      case SlotOrName.VarName(name, _) => name
+      case _                           => n.state().id.toString
+    }
+
+  private def nodeName(n: NodeState) = {
+    val state = stateName(n)
+    s""""(${n.id},$state)""""
+  }
+
+  private def portName(n: NodeState) = {
+    val state = stateName(n)
+    s"${n.id}:$state"
+  }
+
+  private val sourceEdgeColor = "#1b8b1baa"
+  private val sourceColor = "green"
+  private val targetColor = "purple"
+  private val targetEdgeColor = "#380d85aa"
+
+  // compress nodes into a table
+  private def graphCompressed() = {
 
     val vertices = nodes
       .toSeq
+      .groupBy(_.id)
+      .map { case (id, nodes) =>
+        val nodeCells = nodes.map(state => s"<TD PORT=\"${stateName(state)}\">${stateName(state)}</TD>").mkString("")
+
+        s"""$id [label=<
+           |<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+           |  <TR><TD>$id</TD>$nodeCells</TR>
+           |</TABLE>>];""".stripMargin
+      }
+      .mkString("\n")
+
+    val edges = rels
+      .filter(sp => sp.prevNode.id != sp.forwardNode.id)
+      .map { rel =>
+        val sb = new StringBuilder()
+          .append(portName(rel.prevNode))
+          .append(" -> ")
+          .append(portName(rel.forwardNode))
+          .append(s"[color=\"$targetEdgeColor;0.5:$sourceEdgeColor\" ")
+
+        rel match {
+          case _: NodeSignpost =>
+            sb.append("style=dotted penwidth=1 ")
+          case signpost: TwoWaySignpost.RelSignpost =>
+            sb.append("label=\"[").append(signpost.relId).append("]\" ")
+          case _ => ()
+        }
+
+        if (!rel.lengths.isEmpty) {
+          sb
+            .append(
+              s"headlabel=<<font color='$sourceColor' point-size='4'>"
+            )
+            .append(rel.lengths.renderSourceLengths())
+            .append("</font>> ")
+        }
+
+        if (rel.minTargetDistance != -1) {
+          sb
+            .append(
+              s"taillabel=<<font color='$targetColor' point-size='4'>"
+            )
+            .append(rel.minTargetDistance)
+            .append("</font>> ")
+        }
+
+        sb
+          .append("]")
+          .append(";")
+          .toString()
+      }.mkString("\n")
+
+    s"""
+       |digraph {
+       |// styling
+       |edge[labelfontsize=7 arrowsize=0.3 penwidth=0.5 labelfontname=courier]
+       |node[fontsize=8 fontname=courier shape=plaintext]
+       |
+       |// node states
+       |$vertices
+       |
+       |// signposts
+       |$edges
+       |}""".stripMargin
+
+  }
+
+  private def graphUncompressed() = {
+    val vertices = nodes
+      .toSeq
       .sortBy(_.id())
-      .map(nodeName)
+      .map { node =>
+        val name = nodeName(node)
+        if (node.isTarget) name + " [peripheries=2]"
+        else if (node.state().isStartState) name + " [style=\"filled\" fillcolor=\"#f2eeca\"]"
+        else name
+      }
       .mkString("\n")
 
     val edges = rels.map { rel =>
@@ -67,20 +166,32 @@ class VisualizingPPBSHooks extends PPBFSHooks {
         .append(nodeName(rel.prevNode))
         .append(" -> ")
         .append(nodeName(rel.forwardNode))
-        .append("[")
+        .append(s"[color=\"$targetEdgeColor;0.5:$sourceEdgeColor\" ")
+
+      rel match {
+        case _: NodeSignpost =>
+          sb.append("style=dotted penwidth=1 ")
+        case signpost: TwoWaySignpost.RelSignpost =>
+          sb.append("label=\"[").append(signpost.relId).append("]\" ")
+        case _ => ()
+      }
 
       if (!rel.lengths.isEmpty) {
         sb
-          .append("headlabel=<<font color=\"darkgreen\">")
+          .append(
+            s"headlabel=<<font color='$sourceColor' point-size='6'>"
+          )
           .append(rel.lengths.renderSourceLengths())
-          .append("</font>>")
+          .append("</font>> ")
       }
 
       if (rel.minTargetDistance != -1) {
         sb
-          .append(" taillabel=<<font color=\"purple\">")
+          .append(
+            s"taillabel=<<font color='$targetColor' point-size='6'>"
+          )
           .append(rel.minTargetDistance)
-          .append("</font>>")
+          .append("</font>> ")
       }
 
       sb
@@ -89,43 +200,17 @@ class VisualizingPPBSHooks extends PPBFSHooks {
         .toString()
     }.mkString("\n")
 
-    val columns = {
-      val sb = new StringBuilder()
-      sb.append("edge[weight=1000 style=invis]\n")
-      nodes.groupBy(_.state.id)
-        .foreach { case (_, ns) =>
-          sb.append(ns.toSeq.sortBy(_.id).map(nodeName).mkString(" -> ")).append("\n")
-        }
-      sb.toString()
-    }
-
-    val ranks = nodes.groupBy(_.id())
-      .map { case (_, ns) =>
-        val sb = new StringBuilder()
-        sb.append("rank=same { edge[weight=1000 style=invis] ")
-        sb.append(ns.toSeq.sortBy(_.state.id).map(nodeName).mkString(" -> "))
-        sb.append("}")
-        sb.toString()
-      }.mkString("\n")
-
-    val graph = s"""
-                   |digraph {
-                   |// styling
-                   |edge[labelfontsize=7 arrowsize=0.3 penwidth=0.5 labelfontname=courier]
-                   |node[fontsize=8 fontname=courier]
-                   |
-                   |// node states
-                   |$vertices
-                   |
-                   |// signposts
-                   |$edges
-                   |
-                   |// these invisible heavily-weighted edges force the layout engine to form a grid:
-                   |
-                   |$columns
-                   |$ranks
-                   |}""".stripMargin
-
-    println(graph)
+    s"""
+       |digraph {
+       |// styling
+       |edge[labelfontsize=7 arrowsize=0.3 penwidth=0.5 labelfontname=courier fontname=courier fontsize=7]
+       |node[fontsize=8 fontname=courier]
+       |
+       |// node states
+       |$vertices
+       |
+       |// signposts
+       |$edges
+       |}""".stripMargin
   }
 }

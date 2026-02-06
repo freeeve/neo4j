@@ -37,7 +37,6 @@ import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.LoggingPPBFSH
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.State
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.language.implicitConversions
 
 /**
  * A debugging tool for following the weaving path of the PPBFS algorithm - not for production use!
@@ -45,11 +44,12 @@ import scala.language.implicitConversions
 class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
   private val PADDING = 34
 
+  private var currentDepth = -1
+
   override def addSourceSignpost(signpost: TwoWaySignpost, sourceLength: Int): Unit = {
     log(
       Debug,
-      "signpost" -> signpost,
-      "sourceLength" -> sourceLength
+      "signpost" -> signpost
     )
   }
 
@@ -81,7 +81,7 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
   override def validateSourceLength(nodeState: NodeState, sourceLength: Int, tracedTargetLength: Int): Unit = {
     log(
       Debug,
-      "nodeState" -> nodeState,
+      "nodeState" -> nodeState.toStringWithLengths,
       "sourceLength" -> sourceLength,
       "tracedTargetLength" -> tracedTargetLength
     )
@@ -91,7 +91,7 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
     log(
       Debug,
       "nodeState" -> nodeState,
-      "prior remainingTargetCount" -> remainingTargetCount
+      "count" -> s"$remainingTargetCount->${remainingTargetCount - 1}"
     )
   }
 
@@ -127,6 +127,10 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
     log(Info, "tracedPath" -> renderPath(signposts))
   }
 
+  override def foundPath(signposts: SignpostStack): Unit = {
+    log(Info, "tracedPath" -> renderPath(signposts))
+  }
+
   override def invalidTrail(signposts: SignpostStack): Unit = {
     log(Info, "invalidTrail" -> renderPath(signposts))
   }
@@ -155,10 +159,11 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
     if (!nodesToPropagate.isEmpty) {
       val str = new StringBuilder
 
-      nodesToPropagate.iterator().asScala.foreach { qp =>
+      nodesToPropagate.iterator().asScala.zipWithIndex.foreach { case (qp, i) =>
         str.append("\n")
-          .append(" ".repeat(PADDING))
-          .append("- ")
+          .append(" ".repeat(PADDING + 3))
+          .append(i + 1)
+          .append(". ")
           .append(qp)
       }
 
@@ -177,6 +182,7 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
   }
 
   override def nextLevel(currentDepth: Int): Unit = {
+    this.currentDepth = currentDepth
     color = DebugSupport.White
     System.out.println()
     log(Info, "level" -> currentDepth)
@@ -184,22 +190,30 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
   }
 
   override def newRow(nodeId: Long): Unit = {
+    this.currentDepth = -1
     System.out.println("\n*** New row from node " + nodeId + " ***")
   }
 
-  override def activateSignpost(currentLength: Int, signpost: TwoWaySignpost): Unit = {
+  override def pushSignpost(signposts: SignpostStack): Unit = {
     log(
       Debug,
-      "currentLength" -> currentLength,
-      "signpost" -> signpost
+      "stack" -> signposts,
+      "pushed" -> signposts.headSignpost()
     )
   }
 
-  override def deactivateSignpost(currentLength: Int, signpost: TwoWaySignpost): Unit = {
+  override def popSignpost(signposts: SignpostStack, signpost: TwoWaySignpost): Unit = {
     log(
       Debug,
-      "currentLength" -> currentLength,
-      "signpost" -> signpost
+      "stack" -> signposts,
+      "popped" -> signpost
+    )
+  }
+
+  override def initializeTarget(nodeState: NodeState): Unit = {
+    log(
+      Debug,
+      "target" -> nodeState
     )
   }
 
@@ -248,13 +262,25 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
     )
   }
 
-  implicit private def pairToString(pair: (String, Any)): String = pair._1 + ": " + pair._2
-
-  private def log(level: Level, items: String*) = logMsg(level, items.mkString(", ") + "\n", 4)
+  private def log(level: Level, items: (String, Any)*) = {
+    val kvps = items.map { case (k, v) => s"${DebugSupport.White}$k:${DebugSupport.Reset} $v" }.mkString(
+      s"${DebugSupport.White}, ${DebugSupport.Reset}"
+    )
+    logMsg(level, kvps + "\n", 4)
+  }
 
   private def logMsg(level: Level, message: String, offset: Int): Unit =
     if (level.value >= minLevel.value) {
-      val builder = new StringBuilder().append(color).append(DebugSupport.Bold)
+      val builder = new StringBuilder()
+
+      if (currentDepth >= 0) {
+        builder.append(DebugSupport.Blue)
+        // append current depth integer, left-padded to 2 places:
+        builder.append("% 2d ".format(currentDepth))
+      }
+
+      builder
+        .append(color).append(DebugSupport.Bold)
 
       val stack = Thread.currentThread.getStackTrace()
       val outerFrame = stack(offset)

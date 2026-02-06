@@ -20,7 +20,6 @@
 package org.neo4j.internal.kernel.api.helpers.traversal.productgraph;
 
 import java.util.List;
-import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
@@ -113,7 +112,6 @@ public class ProductGraphTraversalCursor implements AutoCloseable {
                     case BACKWARD -> expansion.direction().reverse();
                 };
         return graphCursor.direction().matches(expansionDir)
-                && (expansion.types() == null || ArrayUtils.contains(expansion.types(), graphCursor.type()))
                 && expansion.testRelationship(graphCursor, direction)
                 && expansion.endState(direction).test(graphCursor.otherNodeReference());
     }

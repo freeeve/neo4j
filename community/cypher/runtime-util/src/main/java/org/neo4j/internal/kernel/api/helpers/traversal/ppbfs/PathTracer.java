@@ -98,7 +98,7 @@ public final class PathTracer<Row> extends PrefetchingIterator<Row> {
     }
 
     private void popAndPrune() {
-        var popped = stack.pop();
+        var popped = stack.popSignpost();
         if (popped == null) {
             return;
         }
@@ -123,7 +123,7 @@ public final class PathTracer<Row> extends PrefetchingIterator<Row> {
         }
 
         while (stack.hasNext()) {
-            if (!stack.pushNext()) {
+            if (!stack.pushSignpost()) {
                 popAndPrune();
             } else {
                 var sourceSignpost = stack.headSignpost();
@@ -133,7 +133,7 @@ public final class PathTracer<Row> extends PrefetchingIterator<Row> {
 
                 if (stack.canAbandonTraceBranch()) {
                     hooks.skippingDuplicateRelationship(stack);
-                    stack.pop();
+                    stack.popSignpost();
                     // the order of these predicates is important since validate has side effects:
                 } else if (sourceSignpost.prevNode == sourceNode && stack.validate() && !isSaturated()) {
                     Preconditions.checkState(
