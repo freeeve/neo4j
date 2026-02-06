@@ -186,7 +186,7 @@ trait FragmentTestUtils {
   val monitors: Monitors = new Monitors
 
   val cacheFactory = new ExecutorBasedCaffeineCacheFactory(Executors.newWorkStealingPool)
-  val frontend: FabricFrontEnd = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
+  val frontend: FabricFrontEnd = FabricFrontEnd(cypherConfig, () => false, monitors, cacheFactory)
   val cacheStrategy: CacheStrategy = CacheStrategy.default.withConfig(cypherConfig)
 
   def pipeline(query: String, defaultLanguage: CypherVersion): frontend.Pipeline =

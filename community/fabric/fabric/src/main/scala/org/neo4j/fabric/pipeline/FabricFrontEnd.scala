@@ -62,6 +62,7 @@ import org.neo4j.values.virtual.MapValue
 
 case class FabricFrontEnd(
   cypherConfig: CypherConfiguration,
+  compositeProfilingEnabled: () => Boolean,
   kernelMonitors: monitoring.Monitors,
   cacheFactory: CaffeineCacheFactory
 ) {
@@ -85,7 +86,7 @@ case class FabricFrontEnd(
       options.queryOptions.executionMode match {
         case CypherExecutionMode.default => FabricPlan.Execute
         case CypherExecutionMode.explain => FabricPlan.Explain
-        case CypherExecutionMode.profile if inCompositeContext =>
+        case CypherExecutionMode.profile if inCompositeContext && !compositeProfilingEnabled.apply() =>
           throw InvalidSemanticsException.profileNotSupportedOnComposite()
         case CypherExecutionMode.profile => FabricPlan.PROFILE
       }

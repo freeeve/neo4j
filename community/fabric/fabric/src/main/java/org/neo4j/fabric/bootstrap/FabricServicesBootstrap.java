@@ -171,7 +171,8 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
                 executor,
                 monitors,
                 internalSyntaxUsageStats,
-                defaultQueryLanguageLookup);
+                defaultQueryLanguageLookup,
+                systemNanoClock);
         register(fabricExecutor, FabricExecutor.class);
         return createBoltDatabaseManagementServiceProvider();
     }

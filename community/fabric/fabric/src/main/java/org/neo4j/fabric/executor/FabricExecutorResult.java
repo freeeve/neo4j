@@ -40,17 +40,20 @@ class FabricExecutorResult implements StatementResult {
     private final List<NotificationImplementation> planNotifications;
     private final boolean produceResults;
     private final QueryStatementLifecycles.StatementLifecycle lifecycle;
+    private final ProfilingContext profilingContext;
     private StandardGqlStatusObject standardGqlStatusObject;
 
     FabricExecutorResult(
             FragmentResult fragmentResult,
             List<NotificationImplementation> planNotifications,
             boolean produceResults,
-            QueryStatementLifecycles.StatementLifecycle lifecycle) {
+            QueryStatementLifecycles.StatementLifecycle lifecycle,
+            ProfilingContext profilingContext) {
         this.fragmentResult = fragmentResult;
         this.planNotifications = planNotifications;
         this.produceResults = produceResults;
         this.lifecycle = lifecycle;
+        this.profilingContext = profilingContext;
         if (produceResults) {
             standardGqlStatusObject = StandardGqlStatusObject.NO_DATA;
         } else {
@@ -94,6 +97,7 @@ class FabricExecutorResult implements StatementResult {
     @Override
     public Summary consume() {
         var executionSummary = fragmentResult.consume();
+        profilingContext.close();
         var mergedNotifications = new HashSet<Notification>();
         mergedNotifications.addAll(planNotifications);
         mergedNotifications.addAll(executionSummary.getNotifications());
@@ -110,6 +114,15 @@ class FabricExecutorResult implements StatementResult {
 
     @Override
     public QueryExecutionType executionType() {
+        var executionType = fragmentResult.executionType();
+        // Query profiling works differently for composite queries.
+        // It does not return a profiled plan, but writes the profiling information
+        // into a file. However, Bolt Server does not like if a profiled query
+        // does not return a plan.
+        if (executionType.isProfiled()) {
+            return QueryExecutionType.query(executionType.queryType());
+        }
+
         return fragmentResult.executionType();
     }
 }

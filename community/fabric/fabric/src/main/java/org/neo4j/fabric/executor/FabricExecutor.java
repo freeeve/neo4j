@@ -22,11 +22,13 @@ package org.neo4j.fabric.executor;
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 import static scala.jdk.javaapi.CollectionConverters.asScala;
 
+import java.time.Clock;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -73,6 +75,7 @@ import org.neo4j.values.virtual.MapValue;
 public class FabricExecutor {
     public static final String WRITING_IN_READ_NOT_ALLOWED_MSG = "Writing in read access mode not allowed";
     private final FabricConfig.DataStream dataStreamConfig;
+    private final Supplier<FabricConfig.Profiling> profilingConfig;
     private final FabricPlanner planner;
     private final UseEvaluation useEvaluation;
     private final InternalLog log;
@@ -81,6 +84,7 @@ public class FabricExecutor {
     private final QueryRoutingMonitor queryRoutingMonitor;
     private final InternalUsageStats internalUsageStats;
     private final DefaultQueryLanguageLookup defaultQueryLanguageLookup;
+    private final Clock clock;
 
     public FabricExecutor(
             FabricConfig config,
@@ -91,8 +95,10 @@ public class FabricExecutor {
             CallableExecutor fabricWorkerExecutor,
             Monitors monitors,
             InternalUsageStats internalUsageStats,
-            DefaultQueryLanguageLookup defaultQueryLanguageLookup) {
+            DefaultQueryLanguageLookup defaultQueryLanguageLookup,
+            Clock clock) {
         this.dataStreamConfig = config.getDataStream();
+        this.profilingConfig = config::getProfiling;
         this.planner = planner;
         this.useEvaluation = useEvaluation;
         this.log = internalLog.getLog(getClass());
@@ -101,6 +107,7 @@ public class FabricExecutor {
         this.queryRoutingMonitor = monitors.newMonitor(QueryRoutingMonitor.class);
         this.internalUsageStats = internalUsageStats;
         this.defaultQueryLanguageLookup = defaultQueryLanguageLookup;
+        this.clock = clock;
     }
 
     public StatementResult run(FabricTransaction fabricTransaction, String statement, MapValue parameters) {
@@ -210,6 +217,7 @@ public class FabricExecutor {
         private final List<NotificationImplementation> planNotifications;
         private final StatementLifecycle lifecycle;
         private final AccessMode accessMode;
+        private final ProfilingContext profilingContext;
 
         FabricStatementExecution(
                 FabricPlan plan,
@@ -232,6 +240,13 @@ public class FabricExecutor {
                     .filter(notificationConfiguration::includes)
                     .toList();
             planNotifications = asJava(filteredNotifications);
+
+            if (plan.executionType() == FabricPlan.PROFILE()) {
+                profilingContext = new ProfilingContextImpl(
+                        lifecycle.getMonitoredQuery(), profilingConfig.get().outputDir(), clock);
+            } else {
+                profilingContext = ProfilingContext.NO_OP;
+            }
         }
 
         StatementResult run() {
@@ -256,7 +271,8 @@ public class FabricExecutor {
                         EffectiveQueryType.queryExecutionType(plan, accessMode));
             } else {
                 FragmentResult fragmentResult = run(query, null);
-                return new FabricExecutorResult(fragmentResult, planNotifications, query.producesResults(), lifecycle);
+                return new FabricExecutorResult(
+                        fragmentResult, planNotifications, query.producesResults(), lifecycle, profilingContext);
             }
         }
 
@@ -342,6 +358,7 @@ public class FabricExecutor {
                             lifecycle,
                             queryRoutingMonitor,
                             tracer(),
+                            profilingContext,
                             FabricStatementExecution.this::run)
                     .run(argument);
         }
@@ -359,6 +376,7 @@ public class FabricExecutor {
                             queryRoutingMonitor,
                             tracer(),
                             EffectiveQueryType.queryExecutionType(plan, accessMode),
+                            profilingContext,
                             FabricStatementExecution.this::run)
                     .run(argument);
         }

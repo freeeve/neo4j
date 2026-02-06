@@ -50,6 +50,7 @@ import org.neo4j.values.virtual.VirtualValues;
 class StandardQueryExecutor extends SingleQueryFragmentExecutor {
 
     private final Fragment.Exec fragment;
+    private final ProfilingContext profilingContext;
 
     StandardQueryExecutor(
             Fragment.Exec fragment,
@@ -62,6 +63,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             QueryStatementLifecycles.StatementLifecycle lifecycle,
             QueryRoutingMonitor queryRoutingMonitor,
             Tracer tracer,
+            ProfilingContext profilingContext,
             FragmentExecutor fragmentExecutor) {
         super(
                 plannerInstance,
@@ -75,6 +77,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
                 tracer,
                 fragmentExecutor);
         this.fragment = fragment;
+        this.profilingContext = profilingContext;
     }
 
     FragmentResult run(Record argument) {
@@ -105,8 +108,9 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             String query,
             TransactionMode transactionMode,
             MapValue params) {
+        var profilingFragment = profilingContext.fragmentStart(location, query);
         var result = ctx().getRemote().run(location, options, query, transactionMode, params);
-        return StatementResults.toFragmentResult(result);
+        return StatementResults.toFragmentResult(result, profilingFragment);
     }
 
     @Override
@@ -132,6 +136,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
             }
         };
 
+        var profilingFragment = profilingContext.fragmentStart(location, query.description());
         StatementResult result = ctx().getLocal()
                 .run(
                         location,
@@ -142,7 +147,7 @@ class StandardQueryExecutor extends SingleQueryFragmentExecutor {
                         queryInput,
                         executionOptions,
                         targetsComposite);
-        return StatementResults.toFragmentResult(result);
+        return StatementResults.toFragmentResult(result, profilingFragment);
     }
 
     private MapValue addParamsFromRecord(

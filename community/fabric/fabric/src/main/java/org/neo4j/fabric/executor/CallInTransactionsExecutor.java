@@ -67,6 +67,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
     private final QueryExecutionType resultExecutionType;
     private final int batchSize;
     private final List<BufferedInputRow> inputRowsBuffer;
+    private final ProfilingContext profilingContext;
     private Catalog.Graph batchGraph;
     private TransactionMode batchTransactionMode;
     private OnErrorBreakContext onErrorBreakContext;
@@ -83,6 +84,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             QueryRoutingMonitor queryRoutingMonitor,
             Tracer tracer,
             QueryExecutionType resultExecutionType,
+            ProfilingContext profilingContext,
             FragmentExecutor fragmentExecutor) {
         super(
                 plannerInstance,
@@ -99,6 +101,7 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
         this.innerFragment = (Fragment.Exec) callInTransactions.inner();
         this.batchSize = batchSize();
         this.resultExecutionType = resultExecutionType;
+        this.profilingContext = profilingContext;
         inputRowsBuffer = new ArrayList<>(batchSize);
         this.onErrorBreakContext = onErrorBreakContext();
     }
@@ -351,8 +354,9 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             String query,
             TransactionMode transactionMode,
             MapValue params) {
+        var profilingFragment = profilingContext.fragmentStart(location, query);
         var result = ctx().getRemote().runInAutocommitTransaction(location, options, query, transactionMode, params);
-        return StatementResults.toFragmentResult(result);
+        return StatementResults.toFragmentResult(result, profilingFragment);
     }
 
     @Override
@@ -378,9 +382,10 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
             }
         };
 
+        var profilingFragment = profilingContext.fragmentStart(location, query.description());
         var result = ctx().getLocal()
                 .runInAutocommitTransaction(location, parentLifecycle, query, params, queryInput, executionOptions);
-        return StatementResults.toFragmentResult(result);
+        return StatementResults.toFragmentResult(result, profilingFragment);
     }
 
     private class CallInTxFragmentResult implements FragmentResult {

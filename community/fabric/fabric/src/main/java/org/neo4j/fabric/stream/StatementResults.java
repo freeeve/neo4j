@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.neo4j.fabric.executor.ProfilingContext;
 import org.neo4j.fabric.executor.QueryTypes;
 import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.stream.summary.Summary;
@@ -56,7 +57,8 @@ public final class StatementResults {
         };
     }
 
-    public static FragmentResult toFragmentResult(StatementResult statementResult) {
+    public static FragmentResult toFragmentResult(
+            StatementResult statementResult, ProfilingContext.QueryFragment profilingFragment) {
         return new FragmentResult() {
 
             @Override
@@ -72,6 +74,9 @@ public final class StatementResults {
             @Override
             public PlanlessSummary consume() {
                 var summary = statementResult.consume();
+                if (summary.executionPlanDescription() != null) {
+                    profilingFragment.finish(summary.executionPlanDescription());
+                }
                 return new PlanlessSummary(
                         summary.getNotifications(), summary.getGqlStatusObjects(), summary.getQueryStatistics());
             }

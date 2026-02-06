@@ -60,7 +60,7 @@ case class FabricPlanner(
 ) {
   private[planning] val queryCache = new FabricQueryCache(cacheFactory, CacheSize.Dynamic(cypherConfig.queryCacheSize))
 
-  private val frontend = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
+  private val frontend = FabricFrontEnd(cypherConfig, () => config.getProfiling.enabled, monitors, cacheFactory)
   private val initialCacheStrategy = CacheStrategy.default.withConfig(cypherConfig)
 
   /**
@@ -237,7 +237,8 @@ case class FabricPlanner(
           queryOptions = defaultOptions.queryOptions.copy(
             runtime = CypherRuntimeOption.slotted,
             expressionEngine = CypherExpressionEngineOption.interpreted,
-            cypherVersion = languageOption
+            cypherVersion = languageOption,
+            executionMode = query.options.queryOptions.executionMode
           ),
           materializedEntitiesMode = true,
           defaultLanguage = query.resolvedLanguage
