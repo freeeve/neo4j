@@ -63,6 +63,7 @@ import org.eclipse.collections.api.list.MutableList;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.cloud.storage.StorageUtils;
@@ -133,8 +134,8 @@ public class FileImporter {
     private final boolean normalizeTypes;
     private final boolean verbose;
     private final boolean autoSkipHeaders;
-    private final Map<Set<String>, List<Path[]>> nodeFiles;
-    private final Map<String, List<Path[]>> relationshipFiles;
+    private final Map<Set<String>, List<FileGroup>> nodeFiles;
+    private final Map<String, List<FileGroup>> relationshipFiles;
     private final FileSystemAbstraction fileSystem;
     private final PrintStream stdOut;
     private final PrintStream stdErr;
@@ -433,20 +434,21 @@ public class FileImporter {
         stdOut.println();
     }
 
-    private static void printInputFiles(String name, Map<?, List<Path[]>> inputFiles, PrintStream out) {
-        if (inputFiles.isEmpty()) {
+    private static void printInputFiles(
+            String name, Map<?, List<FileGroup>> inputFileGroupsByAdditionalLabels, PrintStream out) {
+        if (inputFileGroupsByAdditionalLabels.isEmpty()) {
             return;
         }
 
         out.println(name + ":");
 
-        inputFiles.forEach((k, files) -> {
-            if (!isEmptyKey(k)) {
-                printIndented(k + ":", out);
+        inputFileGroupsByAdditionalLabels.forEach((additionalLabels, fileGroups) -> {
+            if (!isEmptyKey(additionalLabels)) {
+                printIndented(additionalLabels + ":", out);
             }
 
-            for (Path[] arr : files) {
-                for (final Path file : arr) {
+            for (FileGroup fileGroup : fileGroups) {
+                for (final Path file : fileGroup.files()) {
                     printIndented(StorageUtils.toString(file), out);
                 }
             }
@@ -469,10 +471,10 @@ public class FileImporter {
 
     private Iterable<DataFactory> relationshipData() {
         final var result = new ArrayList<DataFactory>();
-        relationshipFiles.forEach((defaultTypeName, fileSets) -> {
+        relationshipFiles.forEach((defaultTypeName, fileGroups) -> {
             final var decorator = defaultRelationshipType(defaultTypeName);
-            for (Path[] files : fileSets) {
-                final var data = data(decorator, inputEncoding, files);
+            for (FileGroup fileGroup : fileGroups) {
+                final var data = data(decorator, inputEncoding, fileGroup.files());
                 result.add(data);
             }
         });
@@ -481,10 +483,10 @@ public class FileImporter {
 
     private Iterable<DataFactory> nodeData() {
         final var result = new ArrayList<DataFactory>();
-        nodeFiles.forEach((labels, fileSets) -> {
+        nodeFiles.forEach((labels, fileGroups) -> {
             final var decorator = labels.isEmpty() ? NO_DECORATOR : additiveLabels(labels.toArray(new String[0]));
-            for (Path[] files : fileSets) {
-                final var data = data(decorator, inputEncoding, files);
+            for (FileGroup fileGroup : fileGroups) {
+                final var data = data(decorator, inputEncoding, fileGroup.files());
                 result.add(data);
             }
         });
@@ -536,8 +538,8 @@ public class FileImporter {
         private boolean normalizeTypes;
         private boolean verbose;
         private boolean autoSkipHeaders;
-        private final Map<Set<String>, List<Path[]>> nodeFiles = new HashMap<>();
-        private final Map<String, List<Path[]>> relationshipFiles = new HashMap<>();
+        private final Map<Set<String>, List<FileGroup>> nodeFiles = new HashMap<>();
+        private final Map<String, List<FileGroup>> relationshipFiles = new HashMap<>();
         private FileSystemAbstraction fileSystem = new DefaultFileSystemAbstraction();
         private PageCacheTracer pageCacheTracer = PageCacheTracer.NULL;
         private CursorContextFactory contextFactory =
@@ -639,15 +641,15 @@ public class FileImporter {
             return this;
         }
 
-        public Builder addNodeFiles(Set<String> labels, Path[] files) {
+        public Builder addNodeFiles(Set<String> labels, FileGroup fileGroup) {
             final var list = nodeFiles.computeIfAbsent(labels, unused -> new ArrayList<>());
-            list.add(files);
+            list.add(fileGroup);
             return this;
         }
 
-        public Builder addRelationshipFiles(String defaultRelType, Path[] files) {
+        public Builder addRelationshipFiles(String defaultRelType, FileGroup fileGroup) {
             final var list = relationshipFiles.computeIfAbsent(defaultRelType, unused -> new ArrayList<>());
-            list.add(files);
+            list.add(fileGroup);
             return this;
         }
 

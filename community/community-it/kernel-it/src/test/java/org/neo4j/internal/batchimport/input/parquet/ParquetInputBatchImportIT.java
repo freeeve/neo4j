@@ -87,6 +87,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
@@ -250,10 +251,10 @@ class ParquetInputBatchImportIT {
         return new ParquetInput(
                 Map.of(
                         Set.of("STARTTHING"),
-                        List.<Path[]>of(new Path[] {nodeGroup1}),
+                        List.of(new FileGroup(nodeGroup1)),
                         Set.of("ENDTHING"),
-                        List.<Path[]>of(new Path[] {nodeGroup2})),
-                Map.of("", List.<Path[]>of(new Path[] {relationships})),
+                        List.of(new FileGroup(nodeGroup2))),
+                Map.of("", List.of(new FileGroup(relationships))),
                 List.of(),
                 INTEGER,
                 Configuration.newBuilder().build(),
@@ -262,20 +263,16 @@ class ParquetInputBatchImportIT {
     }
 
     static Input parquet(Path nodes, Path relationships, IdType idType, Groups groups) {
-        Path[] nodeArray = List.of(nodes).toArray(new Path[] {});
-        Path[] relationshipArray = List.of(relationships).toArray(new Path[] {});
+        FileGroup nodeFileGroup = new FileGroup(nodes);
+        FileGroup relationshipFileGroup = new FileGroup(relationships);
         return new ParquetInput(
-                Map.of(Set.of(""), Collections.singletonList(nodeArray)),
-                Map.of("", Collections.singletonList(relationshipArray)),
+                Map.of(Set.of(""), Collections.singletonList(nodeFileGroup)),
+                Map.of("", Collections.singletonList(relationshipFileGroup)),
                 List.of(),
                 idType,
                 Configuration.newBuilder().build(),
                 groups,
                 new ParquetMonitor(System.out));
-    }
-
-    private static Configuration lowBufferSize(Configuration actual) {
-        return actual.toBuilder().withBufferSize(10_000).build();
     }
 
     // ======================================================

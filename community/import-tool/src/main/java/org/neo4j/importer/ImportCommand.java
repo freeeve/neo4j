@@ -61,6 +61,7 @@ import org.neo4j.batchimport.api.IndexConfig;
 import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.cli.AbstractAdminCommand;
@@ -757,15 +758,15 @@ public class ImportCommand {
         private FileImporter.Builder addInputData(FileSystemAbstraction fs, FileImporter.Builder importerBuilder) {
             var actualInputType = this.fileInputType;
             for (var n : nodes) {
-                Path[] paths = n.toPaths(fs, patternStyle);
-                importerBuilder.addNodeFiles(n.key, paths);
+                FileGroup fileGroup = n.toFileGroup(fs, patternStyle);
+                importerBuilder.addNodeFiles(n.key, fileGroup);
                 if (fileInputType == null) {
                     // If undecided, then try to auto-detect the file type.
-                    actualInputType = resolveFileInputType(paths);
+                    actualInputType = resolveFileInputType(fileGroup.files());
                 }
             }
             for (var r : relationships) {
-                importerBuilder.addRelationshipFiles(r.key, r.toPaths(fs, patternStyle));
+                importerBuilder.addRelationshipFiles(r.key, r.toFileGroup(fs, patternStyle));
             }
 
             return importerBuilder.withFileInputType(actualInputType);
@@ -1202,8 +1203,8 @@ public class ImportCommand {
             this.files = files;
         }
 
-        Path[] toPaths(FileSystemAbstraction fs, PatternStyle patternStyle) {
-            return parseFilesList(fs, files, patternStyle);
+        FileGroup toFileGroup(FileSystemAbstraction fs, PatternStyle patternStyle) {
+            return new FileGroup(parseFilesList(fs, files, patternStyle));
         }
     }
 

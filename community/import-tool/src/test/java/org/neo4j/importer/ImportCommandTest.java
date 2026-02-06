@@ -241,7 +241,7 @@ class ImportCommandTest {
         @Test
         void validateFileExistence() {
             assertThatThrownBy(() -> ImportCommand.parseNodeFilesGroup("nonexisting.file")
-                            .toPaths(testDir.getFileSystem(), REGEX))
+                            .toFileGroup(testDir.getFileSystem(), REGEX))
                     .isInstanceOf(UncheckedIOException.class)
                     .hasCauseInstanceOf(NoSuchFileException.class);
         }
@@ -307,7 +307,7 @@ class ImportCommandTest {
         @Test
         void validateFileExistence() {
             assertThatThrownBy(() -> ImportCommand.parseRelationshipFilesGroup("nonexisting.file")
-                            .toPaths(testDir.getFileSystem(), REGEX))
+                            .toFileGroup(testDir.getFileSystem(), REGEX))
                     .isInstanceOf(UncheckedIOException.class)
                     .hasCauseInstanceOf(NoSuchFileException.class);
         }
@@ -352,7 +352,7 @@ class ImportCommandTest {
     private static void assertPathsFound(TestDirectory dir, InputFilesGroup<?> group, Path... expectedPaths) {
         // the groups will have either local paths or file URIs so will be handled by the simple scheme system below
         try (var fs = new SchemeFileSystemAbstraction(dir.getFileSystem())) {
-            assertThat(group.toPaths(fs, REGEX)).containsOnly(expectedPaths);
+            assertThat(group.toFileGroup(fs, REGEX).files()).containsOnly(expectedPaths);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }

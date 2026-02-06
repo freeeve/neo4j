@@ -72,6 +72,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.InputIterator;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
@@ -146,8 +147,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":LABEL")),
                 List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
-        Input input = createParquetInput(
-                Map.of(group, List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        Input input =
+                createParquetInput(Map.of(group, List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -173,7 +174,7 @@ class ParquetInputTest {
                 List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile, nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -216,7 +217,7 @@ class ParquetInputTest {
                 List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile1, nodeFile1, headerFile2, nodeFile2})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile1, nodeFile1, headerFile2, nodeFile2))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -257,7 +258,7 @@ class ParquetInputTest {
                 List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile1, nodeFile2})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile, nodeFile1, nodeFile2))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -298,7 +299,7 @@ class ParquetInputTest {
                 List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile1, nodeFile2})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile, nodeFile1, nodeFile2))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -328,7 +329,7 @@ class ParquetInputTest {
                 createHeaderFile(List.of(":ID", ":Label"), List.of("ignored-column-id", "ignored-column-label"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile, nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -370,9 +371,9 @@ class ParquetInputTest {
         Input input = createParquetInput(
                 Map.of(
                         Set.of(),
-                        List.<Path[]>of(new Path[] {nodeFile1}),
+                        List.of(new FileGroup(nodeFile1)),
                         Set.of("somethingElse"),
-                        List.<Path[]>of(new Path[] {headerFile, nodeFile2})),
+                        List.of(new FileGroup(headerFile, nodeFile2))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -419,7 +420,7 @@ class ParquetInputTest {
         Path headerFile = createHeaderFile(List.of(":ID", "name"), List.of(":ID", "ignored-column-name"));
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {nodeFile1, headerFile, nodeFile2})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(nodeFile1, headerFile, nodeFile2))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -456,7 +457,7 @@ class ParquetInputTest {
         }
 
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(Set.of(), List.of(new FileGroup(headerFile, nodeFile))),
                         Map.of(),
                         INTEGER,
                         groups,
@@ -484,7 +485,7 @@ class ParquetInputTest {
         }
 
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(Set.of(), List.of(new FileGroup(headerFile, nodeFile))),
                         Map.of(),
                         INTEGER,
                         groups,
@@ -510,7 +511,7 @@ class ParquetInputTest {
                 createHeaderFile(List.of(":ID", "name", "lol", ":Label"), List.of(":ID", "name", "lol", ":Label"));
 
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(Set.of(), List.of(new FileGroup(headerFile, nodeFile))),
                         Map.of(),
                         INTEGER,
                         groups,
@@ -535,7 +536,7 @@ class ParquetInputTest {
         Path headerFile = createHeaderFile(List.of(":ID", "name", ":Label"), List.of());
 
         Input input = createParquetInput(
-                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(Set.of("HACKER"), List.of(new FileGroup(headerFile, nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -558,7 +559,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {123, "val"}));
         Path headerFile = createHeaderFile(List.of("id:ID(new-group){id-type:int}", "prop"), List.of());
         try (var input = createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(headerFile, nodeFile))),
                         Map.of(),
                         STRING,
                         groups,
@@ -577,7 +578,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/" + fileName);
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -592,7 +593,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/list_single.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of("a"), "name", "Mattias Persson"), labels("HACKER"));
@@ -606,7 +607,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/list_empty.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -621,7 +622,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/list_null.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -636,7 +637,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -655,7 +656,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_numeric.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -671,7 +672,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_multiple.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -702,7 +703,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_empty.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -717,7 +718,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_null.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -732,7 +733,7 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_single.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -749,7 +750,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try {
             Input input = createParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
             fail("Should have failed");
         } catch (DuplicatedColumnException e) {
             // THEN
@@ -764,7 +765,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -784,7 +785,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -828,7 +829,7 @@ class ParquetInputTest {
                         new Object[] {"node2", "node10", "HACKS", 987654L}));
         Input input = createParquetInput(
                 Map.of(),
-                Maps.mutable.of(groupName, List.<Path[]>of(new Path[] {relationshipFile})),
+                Maps.mutable.of(groupName, List.of(new FileGroup(relationshipFile))),
                 STRING,
                 groups,
                 MONITOR);
@@ -863,11 +864,7 @@ class ParquetInputTest {
                 List.of(":START_ID", ":END_ID", ":Type", "since"),
                 List.of("notstartid", "notendid", "nottype", "notsince"));
         Input input = createParquetInput(
-                Map.of(),
-                Map.of("", List.<Path[]>of(new Path[] {headerFile, relationshipFile})),
-                STRING,
-                groups,
-                MONITOR);
+                Map.of(), Map.of("", List.of(new FileGroup(headerFile, relationshipFile))), STRING, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
@@ -898,11 +895,7 @@ class ParquetInputTest {
         Path headerFile = createHeaderFile(
                 List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
         Input input = createParquetInput(
-                Map.of(),
-                Map.of("", List.<Path[]>of(new Path[] {headerFile, relationshipFile})),
-                STRING,
-                groups,
-                MONITOR);
+                Map.of(), Map.of("", List.of(new FileGroup(headerFile, relationshipFile))), STRING, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties());
@@ -950,9 +943,11 @@ class ParquetInputTest {
                 List.of("notstartid", "notendid", "nottype", "notsince"));
         Input input = createParquetInput(
                 Map.of(),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile1}), "ignore_me", List.<Path[]>of(new Path[] {
-                    headerFile, relationshipFile2
-                })),
+                Map.of(
+                        "",
+                        List.of(new FileGroup(relationshipFile1)),
+                        "ignore_me",
+                        List.of(new FileGroup(headerFile, relationshipFile2))),
                 STRING,
                 groups,
                 MONITOR);
@@ -1041,7 +1036,7 @@ class ParquetInputTest {
                 List.of(":START_ID", ":END_ID", ":TYPE", "notsince"));
         Input input = createParquetInput(
                 Map.of(),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile1, headerFile, relationshipFile2})),
+                Map.of("", List.of(new FileGroup(relationshipFile1, headerFile, relationshipFile2))),
                 STRING,
                 groups,
                 MONITOR);
@@ -1079,11 +1074,7 @@ class ParquetInputTest {
                                 .named("type")),
                 List.of(new Object[] {"3", "zergling"}, new Object[] {"4", "csv"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                Map.of(),
-                STRING,
-                groups,
-                MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))), Map.of(), STRING, groups, MONITOR);
         // WHEN iterating over them, THEN the expected data should come out
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, "1", properties("name", "Jim", "kills", 10, "health", 100), labels());
@@ -1111,11 +1102,7 @@ class ParquetInputTest {
                     2, "Third", "One;Two"
                 }));
         Input input = createParquetInput(
-                Map.of(Set.of(addedLabels), List.<Path[]>of(new Path[] {nodeFile})),
-                Map.of(),
-                INTEGER,
-                groups,
-                MONITOR);
+                Map.of(Set.of(addedLabels), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 0L, properties("name", "First"), labels(addedLabels));
@@ -1139,11 +1126,7 @@ class ParquetInputTest {
                                 .named(":TYPE")),
                 List.of(new Object[] {0, 1, ""}, new Object[] {1, 2, customType}, new Object[] {2, 1, defaultType}));
         Input input = createParquetInput(
-                Map.of(),
-                Map.of(defaultType, List.<Path[]>of(new Path[] {relationshipFile})),
-                INTEGER,
-                groups,
-                MONITOR);
+                Map.of(), Map.of(defaultType, List.of(new FileGroup(relationshipFile))), INTEGER, groups, MONITOR);
 
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
@@ -1165,7 +1148,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"Mattias", 1}, new Object[] {"Johan", 2}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1189,7 +1172,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"abc", "Mattias", 1}, new Object[] {null, "Johan", 2}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1213,7 +1196,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"abc", "Mattias", 1}, new Object[] {null, "Johan", 2}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR);
 
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1236,7 +1219,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {0, "Mattias", 1}, new Object[] {1, "Johan", 2}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), ACTUAL, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), ACTUAL, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1260,7 +1243,7 @@ class ParquetInputTest {
                                 .named("extra")),
                 List.of(new Object[] {0, "Mattias", null}, new Object[] {1, "Johan", "Additional"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1284,7 +1267,7 @@ class ParquetInputTest {
                                 .named("extra")),
                 List.of(new Object[] {0, "Mattias", ""}, new Object[] {1, "Johan", "Additional"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1310,7 +1293,7 @@ class ParquetInputTest {
                         new Object[] {0, "Mattias", "{x: 2.7, y:3.2 }"},
                         new Object[] {1, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1352,7 +1335,7 @@ class ParquetInputTest {
                 List.<Object[]>of(
                         new Object[] {0, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2, latitude : 4.2 } "}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
 
         InputIterator nodes = input.nodes(EMPTY).iterator();
         try {
@@ -1380,7 +1363,7 @@ class ParquetInputTest {
                                 .named("point:Point{crs:WGS-84-3D}")),
                 List.<Object[]>of(new Object[] {0, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1411,7 +1394,7 @@ class ParquetInputTest {
                                 .named("point:Point{crs:WGS-84}")),
                 List.<Object[]>of(new Object[] {0, "Johan", " { x :1 ,y:2 } "}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1435,7 +1418,7 @@ class ParquetInputTest {
                         Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named("someDouble")),
                 List.of(new Object[] {0, "Mattias", 1.1d}, new Object[] {1, "Johan", 2.2d}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1457,7 +1440,7 @@ class ParquetInputTest {
                         Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named("someDouble")),
                 List.of(new Object[] {0, "Mattias", 1.1f}, new Object[] {1, "Johan", 2.2f}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1482,7 +1465,7 @@ class ParquetInputTest {
                                 .named("date:Date")),
                 List.of(new Object[] {0, "Mattias", "2018-02-27"}, new Object[] {1, "Johan", "2018-03-01"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1506,7 +1489,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1531,7 +1514,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1556,7 +1539,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1579,7 +1562,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 1116975273000000L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1608,7 +1591,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961528000L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1642,7 +1625,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961528L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1675,7 +1658,7 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1709,7 +1692,7 @@ class ParquetInputTest {
                     2, "Bob", "07:30-05:00"
                 }));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1735,7 +1718,7 @@ class ParquetInputTest {
                         Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1764,7 +1747,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1793,7 +1776,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144}, new Object[] {1, "Johan", 52397000}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1822,7 +1805,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144072L}, new Object[] {1, "Johan", 52397000000L}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1851,7 +1834,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1880,7 +1863,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144}, new Object[] {1, "Johan", 52397000}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1909,7 +1892,7 @@ class ParquetInputTest {
                                 .named("time:Time")),
                 List.of(new Object[] {0, "Mattias", 52397144072L}, new Object[] {1, "Johan", 52397000000L}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1935,7 +1918,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, 52397144072L}, new Object[] {1, 52397000000L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1958,7 +1941,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(getClass().getResource("/parquet/uuid.parquet").toURI());
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1978,7 +1961,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, 52397144L}, new Object[] {1, 52397000L}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2004,11 +1987,7 @@ class ParquetInputTest {
         var nodePath =
                 Path.of(getClass().getResource("/parquet/datetime_data.parquet").toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerPath, nodePath})),
-                Map.of(),
-                INTEGER,
-                groups,
-                MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(headerPath, nodePath))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNodeWithoutGroupAndIdCheck(
@@ -2069,7 +2048,7 @@ class ParquetInputTest {
         var nodePath = Path.of(
                 getClass().getResource("/parquet/temporal_types.parquet").toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodePath})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodePath))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNodeWithoutGroupAndIdCheck(
@@ -2115,7 +2094,7 @@ class ParquetInputTest {
         var nodePath =
                 Path.of(getClass().getResource("/parquet/numeric_types.parquet").toURI());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodePath})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodePath))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNodeWithoutGroupAndIdCheck(
@@ -2174,7 +2153,7 @@ class ParquetInputTest {
                     2, "Bob", "07:30-05:00"
                 }));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2205,7 +2184,7 @@ class ParquetInputTest {
                         new Object[] {1, "Johan", "2018-03-01T16:20:01"},
                         new Object[] {2, "Bob", "1981-05-11T07:30-05:00"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2245,7 +2224,7 @@ class ParquetInputTest {
                         new Object[] {1, "Johan", "2018-03-01T16:20:01"},
                         new Object[] {2, "Bob", "1981-05-11T07:30-05:00"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2290,7 +2269,7 @@ class ParquetInputTest {
                                 .named("time:LocalTime")),
                 List.of(new Object[] {0, "Mattias", "13:37"}, new Object[] {1, "Johan", "16:20:01"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2317,7 +2296,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "2018-02-27T13:37"}, new Object[] {1, "Johan", "2018-03-01T16:20:01"
                 }));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2349,7 +2328,7 @@ class ParquetInputTest {
                                 .named("duration:Duration")),
                 List.of(new Object[] {0, "Mattias", "P3MT13H37M"}, new Object[] {1, "Johan", "P-1YT4H20M"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2381,7 +2360,7 @@ class ParquetInputTest {
                                 .named("name")),
                 List.of(new Object[] {123, "one"}, new Object[] {456, "two"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
@@ -2398,7 +2377,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2:ID")),
                 List.of(new Object[] {123, 456}, new Object[] {3, 6}));
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR))
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
     }
@@ -2413,7 +2392,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2%s".formatted(idHeader))),
                 List.of(new Object[] {123, 456}, new Object[] {3, 6}));
         var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR);
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes,
@@ -2439,7 +2418,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2:ID")),
                 List.of(new Object[] {123, 456}, new Object[] {1234, 56}));
         var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR);
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes,
@@ -2467,7 +2446,7 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2%s".formatted(idHeader2))),
                 List.of(new Object[] {123, 456}, new Object[] {3, 6}));
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR))
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), STRING, groups, MONITOR))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("There are multiple :ID columns, but they are referring to different groups");
     }
@@ -2494,8 +2473,8 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(%s)".formatted(endGroupName))),
                 List.of());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                Map.of("", List.of(new FileGroup(relationshipFile))),
                 INTEGER,
                 groups,
                 MONITOR);
@@ -2530,10 +2509,10 @@ class ParquetInputTest {
         Input input = createParquetInput(
                 Map.of(
                         Set.of("STARTTHING"),
-                        List.<Path[]>of(new Path[] {nodeFile1}),
+                        List.of(new FileGroup(nodeFile1)),
                         Set.of("ENDTHING"),
-                        List.<Path[]>of(new Path[] {nodeFile2})),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                        List.of(new FileGroup(nodeFile2))),
+                Map.of("", List.of(new FileGroup(relationshipFile))),
                 INTEGER,
                 groups,
                 MONITOR);
@@ -2588,8 +2567,8 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id4:ID(%s)".formatted(groupName))),
                 List.of(new Object[] {234, 444}, new Object[] {456, 666}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                Map.of("", List.of(new FileGroup(relationshipFile))),
                 STRING,
                 groups,
                 MONITOR);
@@ -2629,8 +2608,8 @@ class ParquetInputTest {
         Path nodeFile = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID")), List.of());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
-                Map.of(defaultType, List.<Path[]>of(new Path[] {relationshipFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
+                Map.of(defaultType, List.of(new FileGroup(relationshipFile))),
                 INTEGER,
                 groups,
                 MONITOR);
@@ -2663,7 +2642,7 @@ class ParquetInputTest {
                         new Object[] {2, "Johan", "111", "Person"},
                         new Object[] {3, "Emil", "12", "Person"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2697,8 +2676,8 @@ class ParquetInputTest {
         Path nodeFile = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID")), List.of());
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
+                Map.of("", List.of(new FileGroup(relationshipFile))),
                 INTEGER,
                 new Groups(),
                 MONITOR);
@@ -2723,7 +2702,7 @@ class ParquetInputTest {
                                 .named("prop:int[]")),
                 Collections.singletonList(new Object[] {1, "1?23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -2748,7 +2727,7 @@ class ParquetInputTest {
                                 .named(":LABEL")),
                 Collections.singletonList(new Object[] {1, "Foo?Bar"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -2776,7 +2755,7 @@ class ParquetInputTest {
                                 .named("lprop:long[]")),
                 List.of(new Object[] {1, "", ""}, new Object[] {2, "a;b", "10;20"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2807,9 +2786,9 @@ class ParquetInputTest {
                 .toURI());
         Input input = createParquetInput(
                 Map.of(
-                        Set.of("Comment"), List.<Path[]>of(new Path[] {commentHeader, commentFile}),
-                        Set.of("Person"), List.<Path[]>of(new Path[] {personHeader, personFile})),
-                Map.of("HAS_CREATOR", List.<Path[]>of(new Path[] {relationshipHeader, relationshipFile})),
+                        Set.of("Comment"), List.of(new FileGroup(commentHeader, commentFile)),
+                        Set.of("Person"), List.of(new FileGroup(personHeader, personFile))),
+                Map.of("HAS_CREATOR", List.of(new FileGroup(relationshipHeader, relationshipFile))),
                 INTEGER,
                 groups,
                 MONITOR);
@@ -2855,7 +2834,7 @@ class ParquetInputTest {
                                 .named("vprop:%s".formatted(header))),
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2877,7 +2856,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Path headerFile = createHeaderFile(List.of(":ID", "vprop:" + header), List.of(":ID", "vprop"), ";");
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(headerFile, nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -2901,7 +2880,7 @@ class ParquetInputTest {
                                 .named("vprop:vector{coordinateType:int,dimensions:2}")),
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -2925,7 +2904,7 @@ class ParquetInputTest {
                                 .named("vprop:vector{coordinateType:int,dimensions:2}")),
                 Collections.singletonList(new Object[] {1, "1§23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 INTEGER,
                 groups,
@@ -2960,7 +2939,7 @@ class ParquetInputTest {
                                 .named("vprop:%s".formatted(header))),
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2981,7 +2960,7 @@ class ParquetInputTest {
                                 .named("vprop:vector{coordinateType:int}")),
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3002,7 +2981,7 @@ class ParquetInputTest {
                                 .named("vprop:vector{dimensions:2}")),
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3023,7 +3002,7 @@ class ParquetInputTest {
                                 .named("vprop:vector")),
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3044,7 +3023,7 @@ class ParquetInputTest {
                                 .named("vprop:vector{coordinateType:byte, coordinateType:int}")),
                 Collections.singletonList(new Object[] {1, "1;23"}));
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR))
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR))
                 .hasMessageContaining("Duplicate field 'coordinateType'");
     }
 
@@ -3059,7 +3038,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3090,7 +3069,7 @@ class ParquetInputTest {
                                 .named("vprop:%s".formatted(header))),
                 Collections.singletonList(new Object[] {1, ""}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         // WHEN/THEN
@@ -3111,7 +3090,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;;23"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3133,7 +3112,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23;"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3155,7 +3134,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;abc;23"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3188,7 +3167,7 @@ class ParquetInputTest {
                                 .named("vprop:%s".formatted(header))),
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3208,7 +3187,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;2;23"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3230,7 +3209,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;2;23"}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3253,7 +3232,7 @@ class ParquetInputTest {
                         new Object[] {1, Stream.generate(() -> "1").limit(5000).collect(Collectors.joining(";"))}));
 
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3278,7 +3257,7 @@ class ParquetInputTest {
                                 .named("lprop:long[]")),
                 List.of(new Object[] {1, null, null}, new Object[] {2, "a;b", "10;20"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -3306,7 +3285,7 @@ class ParquetInputTest {
         try {
             // when
             createParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
             fail("Should not parse");
         } catch (InputException e) {
             // then
@@ -3333,7 +3312,7 @@ class ParquetInputTest {
             // when
             createParquetInput(
                     Map.of(Set.of(""), List.of()),
-                    Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                    Map.of("", List.of(new FileGroup(relationshipFile))),
                     INTEGER,
                     groups,
                     MONITOR);
@@ -3362,8 +3341,8 @@ class ParquetInputTest {
         try {
             // when
             createParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                    Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                    Map.of("", List.of(new FileGroup(relationshipFile))),
                     INTEGER,
                     groups,
                     MONITOR);
@@ -3392,8 +3371,8 @@ class ParquetInputTest {
         try {
             // when
             createParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                    Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                    Map.of("", List.of(new FileGroup(relationshipFile))),
                     INTEGER,
                     new Groups(),
                     MONITOR); // new Groups() instead of field groups important here to not have the global id space
@@ -3430,8 +3409,8 @@ class ParquetInputTest {
 
         // when
         createParquetInput(
-                Map.of(Set.of("someLabel"), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
-                Map.of("someType", List.<Path[]>of(new Path[] {relationshipFile})),
+                Map.of(Set.of("someLabel"), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                Map.of("someType", List.of(new FileGroup(relationshipFile))),
                 INTEGER,
                 groups,
                 monitor);
@@ -3453,8 +3432,7 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, monitor);
+        createParquetInput(Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, monitor);
         // then
         verify(monitor).noNodeLabelsSpecified("test0.parquet");
     }
@@ -3469,7 +3447,7 @@ class ParquetInputTest {
 
         // when
         createParquetInput(
-                Map.of(Set.of("test"), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, monitor);
+                Map.of(Set.of("test"), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, monitor);
 
         // then
         verify(monitor, never()).noNodeLabelsSpecified("test0.parquet");
@@ -3486,8 +3464,7 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        createParquetInput(
-                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), INTEGER, groups, monitor);
+        createParquetInput(Map.of(), Map.of("", List.of(new FileGroup(relationshipFile))), INTEGER, groups, monitor);
 
         // then
         verify(monitor).noRelationshipTypeSpecified("test0.parquet");
@@ -3505,7 +3482,7 @@ class ParquetInputTest {
 
         // when
         createParquetInput(
-                Map.of(), Map.of("someType", List.<Path[]>of(new Path[] {relationshipFile})), INTEGER, groups, monitor);
+                Map.of(), Map.of("someType", List.of(new FileGroup(relationshipFile))), INTEGER, groups, monitor);
         // then
         verify(monitor, never()).noRelationshipTypeSpecified("test0.parquet");
     }
@@ -3526,7 +3503,7 @@ class ParquetInputTest {
         try {
             // when
             createParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                     Map.of(),
                     INTEGER,
                     groups,
@@ -3559,7 +3536,7 @@ class ParquetInputTest {
             // when
             createParquetInput(
                     Map.of(),
-                    Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                    Map.of("", List.of(new FileGroup(relationshipFile))),
                     INTEGER,
                     groups,
                     new ParquetMonitor(System.out));
@@ -3584,7 +3561,7 @@ class ParquetInputTest {
                                 .named(":LABEL")),
                 List.of());
         try (var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 STRING,
                 groups,
@@ -3609,7 +3586,7 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("myId:ID(MyGroup){label:Person}")),
                 List.of());
         try (var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
                 Map.of(),
                 STRING,
                 groups,
@@ -3639,7 +3616,7 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("myId:ID(MyGroup){label:Company}")),
                 List.of());
         try (var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
                 Map.of(),
                 STRING,
                 groups,
@@ -3670,7 +3647,7 @@ class ParquetInputTest {
                                 .named(":LABEL")),
                 List.of());
         try (var input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                 Map.of(),
                 STRING,
                 groups,
@@ -3697,7 +3674,7 @@ class ParquetInputTest {
                                 .named("prop")),
                 List.<Object[]>of(new Object[] {123, "val"}));
         try (var input = createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                         Map.of(),
                         STRING,
                         groups,
@@ -3729,7 +3706,7 @@ class ParquetInputTest {
                 List.of(new Object[] {"ABC", "123", "First", "Person"}, new Object[] {"ABC", "456", "Second", "Person"
                 }));
         try (var input = createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                         Map.of(),
                         STRING,
                         groups,
@@ -3770,7 +3747,7 @@ class ParquetInputTest {
                 }));
         // when/then
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                         Map.of(),
                         STRING,
                         groups,
@@ -3800,7 +3777,7 @@ class ParquetInputTest {
                 }));
         // when/then
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                         Map.of(),
                         INTEGER,
                         groups,
@@ -3813,7 +3790,7 @@ class ParquetInputTest {
     void shouldFailOnNonParquetFile() throws Exception {
         Path nodeFile = createNonParquetFile();
         assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
                         Map.of(),
                         INTEGER,
                         groups,
@@ -3849,9 +3826,9 @@ class ParquetInputTest {
 
         try (ParquetInput input = createParquetInput(
                         Map.of(
-                                Set.of("Person"), List.<Path[]>of(new Path[] {nodeHeaderFile1, commonFile}),
-                                Set.of("Band"), List.<Path[]>of(new Path[] {nodeHeaderFile2, nodeFile2})),
-                        Map.of("MEMBER_OF", List.<Path[]>of(new Path[] {relHeaderFile1, commonFile})),
+                                Set.of("Person"), List.of(new FileGroup(nodeHeaderFile1, commonFile)),
+                                Set.of("Band"), List.of(new FileGroup(nodeHeaderFile2, nodeFile2))),
+                        Map.of("MEMBER_OF", List.of(new FileGroup(relHeaderFile1, commonFile))),
                         STRING,
                         groups,
                         new ParquetMonitor(System.out));
@@ -3902,12 +3879,12 @@ class ParquetInputTest {
 
         try (ParquetInput input = createParquetInput(
                         Map.of(
-                                Set.of("Person"), List.<Path[]>of(new Path[] {nodeHeaderFile1, commonFile}),
-                                Set.of("Band"), List.<Path[]>of(new Path[] {nodeHeaderFile2, nodeFile2}),
-                                Set.of("Group"), List.<Path[]>of(new Path[] {nodeHeaderFile3, commonFile})),
+                                Set.of("Person"), List.of(new FileGroup(nodeHeaderFile1, commonFile)),
+                                Set.of("Band"), List.of(new FileGroup(nodeHeaderFile2, nodeFile2)),
+                                Set.of("Group"), List.of(new FileGroup(nodeHeaderFile3, commonFile))),
                         Map.of(
                                 "MEMBER_OF",
-                                List.<Path[]>of(new Path[] {relHeaderFile1, commonFile, relHeaderFile2, commonFile})),
+                                List.of(new FileGroup(relHeaderFile1, commonFile, relHeaderFile2, commonFile))),
                         STRING,
                         groups,
                         new ParquetMonitor(System.out));
@@ -3934,8 +3911,8 @@ class ParquetInputTest {
     }
 
     private static ParquetInput createParquetInput(
-            Map<Set<String>, List<Path[]>> nodeFiles,
-            Map<String, List<Path[]>> relationshipFiles,
+            Map<Set<String>, List<FileGroup>> nodeFiles,
+            Map<String, List<FileGroup>> relationshipFiles,
             IdType idType,
             Groups idGroups,
             ParquetMonitor parquetMonitor) {
@@ -3949,8 +3926,8 @@ class ParquetInputTest {
     }
 
     private static ParquetInput createParquetInput(
-            Map<Set<String>, List<Path[]>> nodeFiles,
-            Map<String, List<Path[]>> relationshipFiles,
+            Map<Set<String>, List<FileGroup>> nodeFiles,
+            Map<String, List<FileGroup>> relationshipFiles,
             IdType idType,
             Groups idGroups,
             ParquetMonitor parquetMonitor,

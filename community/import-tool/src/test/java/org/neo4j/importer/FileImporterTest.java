@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -92,7 +93,7 @@ class FileImporterTest {
                     .withStdOut(NullPrintStream.INSTANCE)
                     .withStdErr(NullPrintStream.INSTANCE)
                     .withLogProvider(logProvider)
-                    .addNodeFiles(emptySet(), new Path[] {inputFile.toAbsolutePath()})
+                    .addNodeFiles(emptySet(), new FileGroup(inputFile.toAbsolutePath()))
                     .build();
 
             csvImporter.doImport(fullImport());
@@ -143,7 +144,7 @@ class FileImporterTest {
                 .withPageCacheTracer(cacheTracer)
                 .withCursorContextFactory(
                         new CursorContextFactory(cacheTracer, new FixedVersionContextSupplier(BASE_TX_ID)))
-                .addNodeFiles(emptySet(), new Path[] {inputFile.toAbsolutePath()})
+                .addNodeFiles(emptySet(), new FileGroup(inputFile.toAbsolutePath()))
                 .build();
 
         fileImporter.doImport(fullImport());
@@ -164,7 +165,7 @@ class FileImporterTest {
                 .withStdOut(NullPrintStream.INSTANCE)
                 .withStdErr(NullPrintStream.INSTANCE)
                 .withReportFile(testDir.file("report.txt"))
-                .addNodeFiles(emptySet(), new Path[] {nodes.toAbsolutePath()})
+                .addNodeFiles(emptySet(), new FileGroup(nodes.toAbsolutePath()))
                 .withBadTolerance(4)
                 .withSkipDuplicateNodes(true)
                 .build();
@@ -186,7 +187,7 @@ class FileImporterTest {
                 .withStdOut(NullPrintStream.INSTANCE)
                 .withStdErr(NullPrintStream.INSTANCE)
                 .withReportFile(testDir.file("report.txt"))
-                .addNodeFiles(emptySet(), new Path[] {nodeFile.toAbsolutePath()})
+                .addNodeFiles(emptySet(), new FileGroup(nodeFile.toAbsolutePath()))
                 .withBadTolerance(4)
                 .withSkipDuplicateNodes(true);
         context.configure(importerBuilder);
