@@ -30,6 +30,7 @@ import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.TokenSet;
+import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.storageengine.api.Degrees;
@@ -80,6 +81,10 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
 
     @Override
     protected final boolean canAccessEntityAndProperties(long reference) {
+        return canAccessEntityAndProperties(reference, accessMode, true);
+    }
+
+    final boolean canAccessEntityAndProperties(long reference, AccessMode accessMode, boolean assertAccessMode) {
         ensureNodeCursor();
         read.singleNode(reference, internalNodeCursor);
         if (!internalNodeCursor.next()) {
@@ -87,7 +92,8 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
             return false;
         }
 
-        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
+        assert !assertAccessMode || accessMode == accessModeProvider.getAccessMode()
+                : "access mode changed while cursor is in use";
         return accessMode.allowsReadNodeProperties(
                 () -> AccessControlDataProvider.nodeLabels(internalNodeCursor, applyAccessModeToTxState),
                 propertyIds,

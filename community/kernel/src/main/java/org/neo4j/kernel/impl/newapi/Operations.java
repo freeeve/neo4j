@@ -79,6 +79,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingLongConsumer;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Vector;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityCursor;
@@ -111,6 +112,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.kernel.api.helpers.RelationshipSelections;
+import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.ConstraintDescriptor;
@@ -187,7 +189,7 @@ import org.neo4j.values.storable.Value;
 
 /**
  * Collects all Kernel API operations and guards them from being used outside of transaction.
- *
+ * <p>
  * Many methods assume cursors to be initialized before use in private methods, even if they're not passed in explicitly.
  * Keep that in mind: e.g. nodeCursor, propertyCursor and relationshipCursor
  */
@@ -355,6 +357,37 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return internalNodeCreateWithLabels(commandCreationContext, labels, null);
     }
 
+    private long lockingNodeUniqueIndexSeek(
+            IndexReadSession index, NodeValueIndexCursor cursor, PropertyIndexQuery.ExactPredicate[] predicates)
+            throws IndexNotApplicableKernelException, IndexBrokenKernelException, IndexNotFoundKernelException,
+                    UniquePropertyValueValidationException {
+        AccessMode accessMode = ktx.securityContext().mode();
+        SchemaDescriptor schema = index.reference().schema();
+        // if we are allowed to see everything, just do a normal lockingNodeUniqueIndexSeek
+        if (accessMode.allowsTraverseAndReadAllMatchingNodeProperties(
+                schema.getEntityTokenIds(), schema.getPropertyIds())) {
+            return kernelRead.lockingNodeUniqueIndexSeek(index, cursor, predicates);
+        } else {
+            // There are nodes we cannot see due to RBAC, we must figure out if the node is really missing or
+            // just hidden. We do that by giving us full privileges and checking access after the fact.
+            long node;
+            var internalCursor = (DefaultNodeValueIndexCursor) cursor;
+            try (var ignore = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL))) {
+                node = kernelRead.lockingNodeUniqueIndexSeek(index, internalCursor, predicates);
+            }
+            if (node != NO_SUCH_NODE) {
+                if (internalCursor.canAccessEntityAndProperties(node, accessMode, false)) {
+                    return node;
+                } else {
+                    // the node is hidden from us, creating it will inflict a constraint violation
+                    throw nodeUniquePropertyViolation(index, predicates);
+                }
+            } else {
+                return NO_SUCH_NODE;
+            }
+        }
+    }
+
     @Override
     public long uniqueNodeMerge(
             IndexReadSession index,
@@ -366,52 +399,45 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws KernelException {
         ktx.assertOpen();
         ensureCursors();
-        int[] labels = index.reference().schema().getEntityTokenIds();
-        Labels labelSet = Labels.from(labels);
 
-        long node = kernelRead.lockingNodeUniqueIndexSeek(index, cursor, predicates);
-        boolean wasFiltered = ((DefaultNodeValueIndexCursor) cursor).wasFiltered();
-        if (node != NO_SUCH_NODE) {
+        long node = lockingNodeUniqueIndexSeek(index, cursor, predicates);
+        if (node == NO_SUCH_NODE) { // the node is not there, let's create one
+            int[] labels = index.reference().schema().getEntityTokenIds();
+            node = internalNodeCreateWithLabels(commandCreationContext, labels, null);
+            int[] allPropertyKeys = new int[predicates.length];
+            for (int i = 0; i < predicates.length; i++) {
+                PropertyIndexQuery.ExactPredicate predicate = predicates[i];
+                int propertyKey = predicate.propertyKeyId();
+                allPropertyKeys[i] = propertyKey;
+                Value value = predicate.value();
+                // adding of new property
+                ktx.securityAuthorizationHandler()
+                        .assertAllowsSetProperty(
+                                ktx.securityContext(), this::resolvePropertyKey, Labels.from(labels), propertyKey);
+                boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
+                if (hasRelatedSchema) {
+                    // We are holding an exclusive index lock, we just checked that there wasn't any matching node
+                    // and have just created the node, so we can't violate any uniqueness constraints at this point.
+                    int[] existingProperties = i == 0 ? EMPTY_INT_ARRAY : Arrays.copyOfRange(allPropertyKeys, 0, i);
+                    updater.onPropertyAdd(
+                            localNodeCursor, localPropertyCursor, labels, propertyKey, existingProperties, value);
+                }
+                ktx.txState().nodeDoAddProperty(node, propertyKey, value);
+            }
+            if (!onCreateProperties.isEmpty()) {
+                // we could probably do a bit better here since we know the node was just created,
+                // for example this will do singleNode again etc
+                nodeApplyChanges(node, IntSets.immutable.empty(), IntSets.immutable.empty(), onCreateProperties);
+            }
+            onMutation.onMutation(1, 0, labels.length, predicates.length + onCreateProperties.size());
+            return node;
+        } else { // the node was there, let's return it
             if (!onMatchProperties.isEmpty()) {
                 nodeApplyChanges(node, IntSets.immutable.empty(), IntSets.immutable.empty(), onMatchProperties);
             }
             onMutation.onMutation(0, 0, 0, onMatchProperties.size());
             return node;
         }
-
-        node = internalNodeCreateWithLabels(commandCreationContext, labels, null);
-        int[] allPropertyKeys = new int[predicates.length];
-        for (int i = 0; i < predicates.length; i++) {
-            PropertyIndexQuery.ExactPredicate predicate = predicates[i];
-            int propertyKey = predicate.propertyKeyId();
-            allPropertyKeys[i] = propertyKey;
-            Value value = predicate.value();
-            // adding of new property
-            ktx.securityAuthorizationHandler()
-                    .assertAllowsSetProperty(ktx.securityContext(), this::resolvePropertyKey, labelSet, propertyKey);
-            boolean hasRelatedSchema = storageReader.hasRelatedSchema(labels, propertyKey, NODE);
-            if (hasRelatedSchema) {
-                // We are holding an exclusive index lock, we just checked that there wasn't any matching node and have
-                // just created the node, so we can't violate any uniqueness constraints at this point. Except for the
-                // case if the node was filtered out, probably due to RBAC, in that case the node might actually exist
-                // so we must check so we don't invalidate uniqueness constraints.
-                int[] existingProperties = i == 0 ? EMPTY_INT_ARRAY : Arrays.copyOfRange(allPropertyKeys, 0, i);
-                if (wasFiltered) {
-                    checkUniquenessConstraints(node, propertyKey, value, labels, existingProperties);
-                }
-                updater.onPropertyAdd(
-                        localNodeCursor, localPropertyCursor, labels, propertyKey, existingProperties, value);
-            }
-            ktx.txState().nodeDoAddProperty(node, propertyKey, value);
-        }
-        if (!onCreateProperties.isEmpty()) {
-            // we could probably do a bit better here since we know the node was just created,
-            // for example this will do singleNode again etc
-            nodeApplyChanges(node, IntSets.immutable.empty(), IntSets.immutable.empty(), onCreateProperties);
-        }
-        onMutation.onMutation(1, 0, labels.length, predicates.length + onCreateProperties.size());
-
-        return node;
     }
 
     private long[] acquireSharedLabelLocks(int[] labels) {
@@ -1085,7 +1111,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // all
         // existing data even from non visible transactions
         var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
-        try (var r = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL));
+        try (var ignore = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL));
                 var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
@@ -1742,6 +1768,27 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             propKeyName = "<unknown>";
         }
         return propKeyName;
+    }
+
+    private UniquePropertyValueValidationException nodeUniquePropertyViolation(
+            IndexReadSession index, PropertyIndexQuery.ExactPredicate[] predicates) {
+        int[] labels = index.reference().schema().getEntityTokenIds();
+        int[] properties = new int[predicates.length];
+        for (int i = 0; i < predicates.length; i++) {
+            properties[i] = predicates[i].propertyKeyId();
+        }
+        IndexBackedConstraintDescriptor constraint =
+                Iterables.single(storageReader.uniquenessConstraintsGetRelated(labels, properties, NODE));
+        return UniquePropertyValueValidationException.propertyUniquenessViolation(
+                constraint,
+                VALIDATION,
+                IndexEntryConflictException.indexEntryConflict(
+                        storageReader.indexGetForName(constraint.getName()).schema(),
+                        NO_SUCH_NODE,
+                        NO_SUCH_NODE,
+                        token,
+                        PropertyIndexQuery.asValueTuple(predicates)),
+                token);
     }
 
     private void checkUniquenessConstraints(

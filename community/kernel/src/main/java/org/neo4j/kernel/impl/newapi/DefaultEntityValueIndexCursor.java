@@ -65,7 +65,6 @@ import org.neo4j.values.storable.ValueTuple;
 
 public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexProgressor, CURSOR>
         implements ValueIndexCursor, EntityIndexSeekClient, SortedMergeJoin.Sink, EntityIndexCursor {
-    private static final long WAS_FILTERED = Long.MIN_VALUE;
     protected Read read;
     protected TxStateHolder txStateHolder;
     protected AccessModeProvider accessModeProvider;
@@ -210,7 +209,6 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
     @Override
     public final boolean acceptEntity(long reference, float score, Value... values) {
         if (isRemoved(reference) || !allowed(reference) || !storeValuePassesQueryFilter(reference)) {
-            this.entity = WAS_FILTERED;
             return false;
         } else {
             this.entity = reference;
@@ -218,10 +216,6 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
             this.values = values;
             return true;
         }
-    }
-
-    public boolean wasFiltered() {
-        return entity == WAS_FILTERED;
     }
 
     private boolean storeValuePassesQueryFilter(long reference) {
