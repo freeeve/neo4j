@@ -375,15 +375,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             try (var ignore = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL))) {
                 node = kernelRead.lockingNodeUniqueIndexSeek(index, internalCursor, predicates);
             }
-            if (node != NO_SUCH_NODE) {
-                if (internalCursor.canAccessEntityAndProperties(node, accessMode, false)) {
-                    return node;
-                } else {
-                    // the node is hidden from us, creating it will inflict a constraint violation
-                    throw nodeUniquePropertyViolation(index, predicates);
-                }
+            if (node != NO_SUCH_NODE && !internalCursor.canAccessEntityAndProperties(node, accessMode, false)) {
+                throw nodeUniquePropertyViolation(index, predicates);
             } else {
-                return NO_SUCH_NODE;
+                return node;
             }
         }
     }
