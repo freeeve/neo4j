@@ -401,6 +401,7 @@ public class ConfigFileMigrator {
                 new JvmArg("--add-opens=java.base/sun.nio.ch=ALL-UNNAMED", true),
                 new JvmArg("--add-opens=java.base/java.util.concurrent=ALL-UNNAMED", true),
                 new JvmArg("--enable-native-access=ALL-UNNAMED", true),
+                new JvmArg("-Dorg.neo4j.shaded.lucene9.vectorization.upperJavaFeatureVersion=25", true),
                 new JvmArg("-Dlog4j2.disable.jmx=true", false));
     }
 
