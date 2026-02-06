@@ -20,6 +20,7 @@
 package org.neo4j.community.edition;
 
 import static java.lang.String.valueOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -115,6 +116,14 @@ class CommunitySystemDatabaseIT {
         }
     }
 
+    @SkipOnSpd(
+            reason =
+                    "For cluster/SPD there are topology maintenance jobs that runs in the background "
+                            + "and potentially creates transactions in the system db. Specifically for this test there's a race where "
+                            + "TopologyGraphInstanceVersionUpdater can be run after getting the systemTxCountBefore and therefor "
+                            + "show up in the systemTxCountAfter, causing an unexpected tx count. We basically don't need to run "
+                            + "this test for SPD specifically to show that the dbms distinguishes between system db and other db tx logs",
+            notes = SkipOnSpd.Note.irrelevant)
     @Test
     void separateTransactionLogsForSystemDatabase() throws IOException {
         int systemDatabaseTransactions = 100;
@@ -142,8 +151,8 @@ class CommunitySystemDatabaseIT {
         var systemTxCountAfter = countTransactionInLogicalStore(systemDb);
         var defaultTxCountAfter = countTransactionInLogicalStore(defaultDb);
 
-        assertEquals(systemTxCountAfter - systemTxCountBefore, systemDatabaseTransactions * 2);
-        assertEquals(defaultTxCountAfter - defaultTxCountBefore, defaultDatabaseTransactions * 2);
+        assertThat(systemTxCountAfter - systemTxCountBefore).isEqualTo(systemDatabaseTransactions * 2);
+        assertThat(defaultTxCountAfter - defaultTxCountBefore).isEqualTo(defaultDatabaseTransactions * 2);
     }
 
     @Test
