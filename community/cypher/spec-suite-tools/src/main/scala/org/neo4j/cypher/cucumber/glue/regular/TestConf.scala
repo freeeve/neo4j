@@ -20,6 +20,7 @@
 package org.neo4j.cypher.cucumber.glue.regular
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.cucumber.CypherCucumber.Tag
 import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
@@ -91,6 +92,7 @@ object TestConf {
     val cypherVersionTag = configWithOverrides.get(GraphDatabaseSettings.default_language).name()
       .toLowerCase(Locale.ROOT)
       .replace("_", "-")
+    val useGraphEngine = configWithOverrides.get(GraphDatabaseInternalSettings.graph_engine_enabled)
     val tagContext = additionalTagContext +
       (if (useEnterprise) "enterprise" else "community") +
       cypherVersionTag ++
@@ -98,7 +100,8 @@ object TestConf {
       Option.when(useBolt)("bolt") ++
       preparserOptions.get("runtime").map(runtime => s"$runtime-runtime") ++
       preparserOptions.get("operatorEngine").map(operatorEngine => s"$operatorEngine-operatorEngine") +
-      s"db-format-${configWithOverrides.get(GraphDatabaseSettings.db_format)}"
+      s"db-format-${configWithOverrides.get(GraphDatabaseSettings.db_format)}" +
+      (if (useGraphEngine) "graph-engine" else "graph-engine-disabled")
 
     new TestConf(
       fullNeo4jConf,
