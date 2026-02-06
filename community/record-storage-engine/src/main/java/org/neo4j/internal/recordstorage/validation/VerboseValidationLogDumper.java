@@ -54,7 +54,9 @@ public class VerboseValidationLogDumper implements ValidationLockDumper {
                     .append(")");
             var locks = lockClient.activeLocks(scopedTracker);
             if (locks.isEmpty()) {
-                locksDumpBuilder.append(" does not have any validation page locks.");
+                locksDumpBuilder
+                        .append(" does not have any validation page locks.")
+                        .append(lineSeparator());
             } else {
                 locksDumpBuilder.append(" locked page(s):").append(lineSeparator());
 
@@ -93,6 +95,9 @@ public class VerboseValidationLogDumper implements ValidationLockDumper {
     public void add(long pageId, int unitsPerPage, String storeName, long chainHead) {
         pageTraces.put(pageId, new TraceEntry(storeName, unitsPerPage, chainHead));
     }
+
+    @Override
+    public void denseNodeValidation(long nodeId) {}
 
     private record TraceEntry(String storeName, long recordsPerPage, long headVersion) {
         private static final long UNKNOWN = -1;

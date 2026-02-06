@@ -24,6 +24,7 @@ import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.INTERNAL;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.util.List;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -178,6 +179,8 @@ public final class ChunkCommitter implements TransactionCommitter {
                     transactionWriteEvent.chunkAppended(
                             chunkNumber, ktx.getTransactionSequenceNumber(), transactionPayload.transactionId());
                 } catch (TransactionConflictException tce) {
+                    long txId = transactionPayload != null ? transactionPayload.transactionId() : UNKNOWN_TX_ID;
+                    validationLockDumper.dumpLocks(lockClient, chunkNumber, txId, memoryTracker);
                     throw tce;
                 } catch (Exception e) {
                     log.debug("Transaction chunk commit failure.", e);

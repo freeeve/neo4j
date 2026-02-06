@@ -30,9 +30,14 @@ public interface ValidationLockDumper {
 
         @Override
         public void add(long pageId, int unitsPerPage, String storeName, long chainHead) {}
+
+        @Override
+        public void denseNodeValidation(long nodeId) {}
     };
 
     void dumpLocks(LockManager.Client lockClient, int chunkNumber, long txId, MemoryTracker memoryTracker);
 
     void add(long pageId, int unitsPerPage, String storeName, long chainHead);
+
+    void denseNodeValidation(long nodeId);
 }
