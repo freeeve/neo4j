@@ -157,7 +157,8 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
           context.isCommunity,
           physicalPlan.parameterMapping
         )(query.semanticTable),
-        physicalPlan
+        physicalPlan,
+        converters
       )
       val pipeBuilder = new SlottedPipeMapper(
         fallback,
@@ -229,7 +230,11 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
     factory
 
   // Method to be able to wrap the fallback from enterprise
-  protected def getFallbackPipeMapper(initialFallback: PipeMapper, physicalPlan: PhysicalPlan): PipeMapper =
+  protected def getFallbackPipeMapper(
+    initialFallback: PipeMapper,
+    physicalPlan: PhysicalPlan,
+    expressionConverters: ExpressionConverters
+  ): PipeMapper =
     initialFallback
 }
 
