@@ -1089,7 +1089,7 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |      WITH `  UNNAMED6` AS `  UNNAMED6`
         |        WHERE `  UNNAMED6` = 0
         |      CALL (x) {
-        |        WITH 3 AS c
+        |        WITH x AS x, 3 AS c
         |        RETURN x + c AS z
         |      }
         |      RETURN z AS z
@@ -3031,7 +3031,7 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |      WITH `  UNNAMED6` AS `  UNNAMED6`
         |        WHERE `  UNNAMED6` = 0
         |      CALL (x) {
-        |        WITH 3 AS c
+        |        WITH x AS x, 3 AS c
         |        RETURN x + c AS z
         |      }
         |      RETURN z AS z
@@ -4899,6 +4899,143 @@ class ExpandClausesTest extends CypherFunSuite with RewritePhaseTest with AstCon
         |WITH x1 AS x1, count(*) AS x2
         |WITH 4 AS x
         |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
+  test("NEXT query nesting 23") {
+    assertRewritten(
+      """RETURN 2 AS u1
+        |
+        |NEXT
+        |
+        |RETURN 6 AS u1
+        |UNION
+        |RETURN 9 AS u1
+        |
+        |NEXT
+        |
+        |{
+        |  WHEN true THEN WITH *
+        |    WHERE true = true
+        |  RETURN 1 AS u2
+        |}
+        |UNION
+        |WITH * WHERE true = true
+        |RETURN 2 AS u2
+        |
+        |NEXT
+        |
+        |RETURN 9 AS x""".stripMargin,
+      """WITH 2 AS u1
+        |WITH count(*) AS `  UNNAMED0`
+        |CALL (`  UNNAMED0`) {
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 6 AS `  UNNAMED2`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 9 AS `  UNNAMED2`
+        |}
+        |WITH count(*) AS `  UNNAMED4`, collect([`  UNNAMED2`]) AS `  UNNAMED3`
+        |CALL (`  UNNAMED3`,`  UNNAMED4`) {
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED3`[`  UNNAMED5`])[0] AS u1
+        |  WITH u1 AS u1, CASE
+        |  WHEN true THEN 0
+        |  ELSE 1
+        |END AS `  UNNAMED6`
+        |  CALL (u1,`  UNNAMED6`) {
+        |    WITH `  UNNAMED6` AS `  UNNAMED6`
+        |      WHERE `  UNNAMED6` = 0
+        |    CALL (u1) {
+        |      WITH u1
+        |        WHERE true = true
+        |      RETURN 1 AS u2
+        |    }
+        |    RETURN u2 AS u2
+        |  }
+        |  RETURN u2 AS u2
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED3`[`  UNNAMED5`])[0] AS u1
+        |  WITH u1 AS u1
+        |    WHERE true = true
+        |  RETURN 2 AS u2
+        |}
+        |RETURN 9 AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      additionalActualAstCleanup = withUpdate()
+    )
+  }
+
+  test("NEXT query nesting 24") {
+    assertRewritten(
+      """RETURN 8 AS u1
+        |
+        |NEXT
+        |
+        |RETURN 5 AS u1
+        |UNION
+        |RETURN 3 AS u1
+        |
+        |NEXT
+        |
+        |RETURN 2 AS x, u1
+        |UNION
+        |{
+        |    {
+        |      WHEN true THEN
+        |        WITH *
+        |          WHERE true = true
+        |        RETURN 0 AS x, u1
+        |    }
+        |    UNION
+        |    WITH *
+        |      WHERE true = true
+        |    RETURN 3 AS x, u1
+        |}""".stripMargin,
+      """WITH 8 AS u1
+        |WITH count(*) AS `  UNNAMED0`
+        |CALL (`  UNNAMED0`) {
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 5 AS `  UNNAMED2`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED0` - 1) AS `  UNNAMED1`
+        |  RETURN 3 AS `  UNNAMED2`
+        |}
+        |WITH count(*) AS `  UNNAMED4`, collect([`  UNNAMED2`]) AS `  UNNAMED3`
+        |CALL (`  UNNAMED3`,`  UNNAMED4`) {
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED3`[`  UNNAMED5`])[0] AS u1
+        |  RETURN 2 AS `  UNNAMED6`, u1 AS `  UNNAMED7`
+        |  UNION
+        |  UNWIND range(0, `  UNNAMED4` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED3`[`  UNNAMED5`])[0] AS u1
+        |  CALL (u1) {
+        |    WITH u1 AS u1, CASE
+        |  WHEN true THEN 0
+        |  ELSE 1
+        |END AS `  UNNAMED8`
+        |    CALL (u1,`  UNNAMED8`) {
+        |      WITH `  UNNAMED8` AS `  UNNAMED8`
+        |        WHERE `  UNNAMED8` = 0
+        |      CALL (u1) {
+        |        WITH u1 AS u1
+        |          WHERE true = true
+        |        RETURN 0 AS `  UNNAMED6`, u1 AS `  UNNAMED7`
+        |      }
+        |      RETURN `  UNNAMED6` AS `  UNNAMED6`, `  UNNAMED7` AS `  UNNAMED7`
+        |    }
+        |    RETURN `  UNNAMED6` AS `  UNNAMED6`, `  UNNAMED7` AS `  UNNAMED7`
+        |    UNION
+        |    WITH u1 AS u1
+        |      WHERE true = true
+        |    RETURN 3 AS `  UNNAMED6`, u1 AS `  UNNAMED7`
+        |  }
+        |  RETURN `  UNNAMED6` AS `  UNNAMED6`, `  UNNAMED7` AS `  UNNAMED7`
+        |}
+        |RETURN `  UNNAMED6` AS x, `  UNNAMED7` AS u1""".stripMargin,
       additionalExpectedAstUpdates = withUpdate(),
       additionalActualAstCleanup = withUpdate()
     )

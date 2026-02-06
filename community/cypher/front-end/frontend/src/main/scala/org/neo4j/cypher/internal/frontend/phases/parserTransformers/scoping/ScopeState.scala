@@ -33,6 +33,9 @@ case class ScopeState(
 
   def getOutgoing(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).outgoing.variables.map(_.copyId).toSeq
 
+  def getOutgoingConstantsAndVariables(ast: ASTNode): Seq[LogicalVariable] =
+    recordedScopes(ast).outgoing.allSymbols.map(_.copyId).toSeq
+
   def getReferenced(ast: ASTNode): Set[LogicalVariable] = recordedScopes(ast).referenced.map(_.copyId)
 
   def getResultCols(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).result match {
@@ -61,6 +64,11 @@ case class ScopeState(
 
   def getOutgoingVariableReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
     getOutgoing(ast).map(v =>
+      AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
+    )
+
+  def getOutgoingVariablesAndConstantsReturnItemSeq(ast: ASTNode): Seq[ReturnItem] =
+    getOutgoingConstantsAndVariables(ast).map(v =>
       AliasedReturnItem(v.withPosition(ast.position), v.withPosition(ast.position))(ast.position)
     )
 

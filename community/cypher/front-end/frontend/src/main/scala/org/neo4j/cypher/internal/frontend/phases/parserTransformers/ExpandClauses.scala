@@ -689,9 +689,15 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         val unionOfBranches =
           branchQueries.tail.foldLeft[Query](branchQueries.head) { case (acc, query) => UnionAll(acc, query)(pos) }
 
-        val incomingItems = referenced.toSeq.map(lv =>
-          AliasedReturnItem(incomingLayout.incomingMapping.get(lv).fold(lv)(_.incoming).copyId, lv.copyId)(lv.position)
-        )
+        val incomingItems =
+          if (incomingLayout.ingress.nonEmpty) referenced.toSeq.map(lv => AliasedReturnItem(lv))
+          else
+            referenced.toSeq.map(lv =>
+              AliasedReturnItem(
+                incomingLayout.incomingMapping.get(lv).fold(lv)(_.incoming).copyId,
+                lv.copyId
+              )(lv.position)
+            )
 
         /**
          *  WITH ..., CASE
@@ -755,7 +761,9 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         def wrap(inner: Union, rewritten: Boolean): SingleQuery = {
           val innerRewritten =
             if (rewritten) inner
-            else inner.endoRewrite(rewriter(layoutWithUse.withIngress(Seq.empty).withUtilityVariable(None)))
+            else inner.endoRewrite(
+              rewriter(layoutWithUse.withIngress(Seq.empty).withUtilityVariable(None).withIncomingMapping(Map.empty))
+            )
 
           val postface: Clause =
             if (innerRewritten.isReturning) {
@@ -837,7 +845,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
                 if version != CypherVersion.Cypher5 &&
                   !clause.isAggregating && w.withType != ParsedAsYield &&
                   !layout.importingWith.contains(PositionedNode(w)) =>
-                scopeState.getOutgoingVariableReturnItemSeq(clause)
+                scopeState.getOutgoingVariablesAndConstantsReturnItemSeq(clause)
                   .filterNot(i =>
                     returnItems.items.exists(_.name == i.name) || !layout.referencedByQuery.exists(_.name == i.name)
                   )
