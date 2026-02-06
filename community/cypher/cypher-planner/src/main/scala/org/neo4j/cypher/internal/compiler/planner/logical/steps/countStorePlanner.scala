@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.QuerySolvableByGetDegree.SetExtractor
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -58,7 +59,7 @@ case object countStorePlanner {
         val (column, exp) = aggregatingExpressions.head
         val countStorePlan = checkForValidQueryGraph(query, column, exp, context)
         countStorePlan.map { plan =>
-          val projectionPlan = projection(plan, groupingKeys, Some(groupingKeys), context)
+          val projectionPlan = projection(plan, groupingKeys, MaybeReportedProjections(Some(groupingKeys)), context)
           context.staticComponents.logicalPlanProducer.planHorizonSelection(
             projectionPlan,
             withNoRewrittenExprs(selections.flatPredicates),

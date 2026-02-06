@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.SubqueryExpressi
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.aggregation
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.distinct
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -367,7 +368,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           projection(
             p,
             subqueryExpressionProjections,
-            Some(subqueryExpressionProjections),
+            MaybeReportedProjections(Some(subqueryExpressionProjections)),
             context
           )
         })
@@ -390,7 +391,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             projection(
               p,
               regularProjection.projections,
-              Some(regularProjection.projections),
+              MaybeReportedProjections(Some(regularProjection.projections)),
               context
             )
           }

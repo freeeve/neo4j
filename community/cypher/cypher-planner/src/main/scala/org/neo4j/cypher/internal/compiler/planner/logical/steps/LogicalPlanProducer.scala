@@ -60,7 +60,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProdu
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.ContainsSearchMode
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EndsWithSearchMode
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.StringSearchMode
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit.planLimitOnTopOf
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
@@ -443,6 +443,15 @@ case class LogicalPlanProducer(
     val solvedPlannerQuery =
       solveds.get(plan.id).asSinglePlannerQuery.amendQueryGraph(_.addPredicates(solvedExpressions))
     solveds.set(newPlan.id, solvedPlannerQuery)
+    newPlan
+  }
+
+  def markAsSolved(plan: LogicalPlan, solved: SinglePlannerQuery): LogicalPlan = {
+    // Keep other attributes but change solved
+    val keptAttributes =
+      Attributes(idGen, cardinalities, providedOrders, leveragedOrders, labelAndRelTypeInfos, cachedPropertiesPerPlan)
+    val newPlan = plan.copyPlanWithIdGen(keptAttributes.copy(plan.id))
+    solveds.set(newPlan.id, solved)
     newPlan
   }
 
@@ -2765,21 +2774,14 @@ case class LogicalPlanProducer(
 
   def planStarProjection(
     inner: LogicalPlan,
-    reported: UpdateSolveds
+    reported: MaybeReportedProjections
   ): LogicalPlan = {
-    reported.fold(inner) { (reported, doMarkSolved) =>
-      val newSolved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
-        if (doMarkSolved)
-          _.updateQueryProjection(_.withAddedProjections(reported))
-        else
-          _.tryUpdateQueryProjection(_.withAddedProjections(reported))
+    reported.maybeProjections.fold(inner) { reported =>
+      val newSolved: SinglePlannerQuery = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+        _.updateQueryProjection(_.withAddedProjections(reported))
       )
-      // Keep some attributes, but change solved
-      val keptAttributes =
-        Attributes(idGen, cardinalities, providedOrders, leveragedOrders, labelAndRelTypeInfos, cachedPropertiesPerPlan)
-      val newPlan = inner.copyPlanWithIdGen(keptAttributes.copy(inner.id))
-      solveds.set(newPlan.id, newSolved)
-      newPlan
+
+      markAsSolved(inner, newSolved)
     }
   }
 
@@ -2790,20 +2792,21 @@ case class LogicalPlanProducer(
   def planRegularProjection(
     inner: LogicalPlan,
     expressions: Map[LogicalVariable, Expression],
-    reported: UpdateSolveds,
+    reported: MaybeReportedProjections,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val innerSolved = solveds.get(inner.id).asSinglePlannerQuery
-    val solved = reported.fold(innerSolved) { (reported, doMarkSolved) =>
-      innerSolved.updateTailOrSelf(
-        if (doMarkSolved)
-          _.updateQueryProjection(_.withAddedProjections(reported))
-        else
-          _.tryUpdateQueryProjection(_.withAddedProjections(reported))
-      )
+    val innerSolved: SinglePlannerQuery = solveds.get(inner.id).asSinglePlannerQuery
+    val solved = reported.maybeProjections.fold(innerSolved) { reportedProjections =>
+      innerSolved.updateTailOrSelf(_.updateQueryProjection(_.withAddedProjections(reportedProjections)))
     }
 
-    planRegularProjectionHelper(inner, expressions, context, solved, cachedPropertiesPerPlan.get(inner.id))
+    val newProjections = expressions.view.filterKeys(projectedVar =>
+      !inner.availableSymbols.contains(projectedVar)
+    ).toMap
+    if (newProjections.isEmpty) {
+      markAsSolved(inner, solved)
+    } else
+      planRegularProjectionHelper(inner, newProjections, context, solved, cachedPropertiesPerPlan.get(inner.id))
   }
 
   /**

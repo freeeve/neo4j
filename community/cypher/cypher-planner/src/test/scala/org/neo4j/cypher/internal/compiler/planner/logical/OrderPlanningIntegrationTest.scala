@@ -3294,4 +3294,46 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .nodeByLabelScan("b", "B", IndexOrderAscending)
       .build()
   }
+
+  test("Should push down sort and projections within CallSubqueries in slotted runtime") {
+    val query =
+      """WITH 1 as a
+        |CALL (a) {
+        |  WITH 1 AS y1
+        |  CALL () {
+        |    RETURN 8 AS x1
+        |    UNION
+        |    RETURN 5 AS x1
+        |  }
+        |  RETURN a AS z1 ORDER BY z1 ASCENDING
+        |}
+        |RETURN z1""".stripMargin
+
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("A", 100)
+      .setExecutionModel(ExecutionModel.Volcano)
+      .build()
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.planBuilder()
+      .produceResults("z1")
+      .apply()
+      .|.cartesianProduct()
+      .|.|.distinct("x1 AS x1")
+      .|.|.union()
+      .|.|.|.projection("x1 AS x1")
+      .|.|.|.projection("5 AS x1")
+      .|.|.|.argument()
+      .|.|.projection("x1 AS x1")
+      .|.|.projection("8 AS x1")
+      .|.|.argument()
+      .|.projection("1 AS y1")
+      .|.sort("z1 ASC")
+      .|.projection("a AS z1")
+      .|.argument("a")
+      .projection("1 AS a")
+      .argument()
+      .build()
+  }
 }

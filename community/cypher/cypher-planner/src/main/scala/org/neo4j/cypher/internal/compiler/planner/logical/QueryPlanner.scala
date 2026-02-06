@@ -35,7 +35,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOpti
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.VerifyBestPlan
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DontUpdateSolveds
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes
@@ -265,7 +265,7 @@ case object plannerQueryPlanner {
           context.staticComponents.logicalPlanProducer.planRegularProjection(
             rhsPlan,
             projectionsForRhs,
-            DontUpdateSolveds,
+            MaybeReportedProjections.empty,
             context
           )
 

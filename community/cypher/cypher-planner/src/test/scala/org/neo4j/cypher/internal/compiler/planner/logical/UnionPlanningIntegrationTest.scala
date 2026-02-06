@@ -159,7 +159,6 @@ class UnionPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
     cfg.plan(query) shouldEqual cfg.planBuilder()
       .produceResults()
       .union()
-      .|.projection()
       .|.emptyResult()
       .|.create(createNode("b"))
       .|.argument()

@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractShortestPathPredicates
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.PathExpression
@@ -259,7 +259,7 @@ case object planShortestRelationships {
         rhsVarExpand.plan.id
       ).asSinglePlannerQuery.lastQueryGraph.selections.predicates
 
-    val rhsProjection = lpp.planRegularProjection(rhsVarExpand.plan, map, DoUpdateSolveds(map), context)
+    val rhsProjection = lpp.planRegularProjection(rhsVarExpand.plan, map, MaybeReportedProjections(Some(map)), context)
 
     // Filter out predicates solved in var expand
     val filteredPredicates =
@@ -275,7 +275,8 @@ case object planShortestRelationships {
     val column = varFor(context.staticComponents.anonymousVariableNameGenerator.nextName)
 
     val rhsProjMap = Map(column -> lengthOfPath)
-    val rhsProjected = lpp.planRegularProjection(rhsFiltered, rhsProjMap, DoUpdateSolveds(rhsProjMap), context)
+    val rhsProjected =
+      lpp.planRegularProjection(rhsFiltered, rhsProjMap, MaybeReportedProjections(Some(rhsProjMap)), context)
     val sortDescription = Seq(Ascending(column))
     val plan =
       if (shortestRelationship.single) {

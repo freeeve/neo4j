@@ -1665,7 +1665,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     planner.plan(query) should equal(planner
       .planBuilder()
       .produceResults("`a.lastName`", "`b.name`")
-      .projection("cacheN[a.lastName] AS `a.lastName`", "cacheN[b.name] AS `b.name`")
+      .projection("cacheN[a.lastName] AS `a.lastName`")
       .top(100, "`b.name` ASC")
       .projection("cacheN[b.name] AS `b.name`")
       .apply()

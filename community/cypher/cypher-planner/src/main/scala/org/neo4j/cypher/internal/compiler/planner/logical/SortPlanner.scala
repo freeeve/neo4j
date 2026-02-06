@@ -22,9 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DoUpdateSolveds
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.DontUpdateSolveds
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.UpdateSolveds.TryUpdateSolveds
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsAggregate
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -189,17 +187,10 @@ object SortPlanner {
         )
     }
 
-    sealed trait UpdateSolveds
-    object UpdateSolveds {
-      case object DoUpdateSolveds extends UpdateSolveds
-      case object TryUpdateSolveds extends UpdateSolveds
-      case object DontUpdateSolveds extends UpdateSolveds
-    }
-
     def projected(
       plan: LogicalPlan,
       projections: Map[LogicalVariable, Expression],
-      updateSolved: UpdateSolveds
+      updateSolved: Boolean
     ): LogicalPlan = {
       val projectionDeps = projections.flatMap(e => e._2.dependencies)
       val projectionsToPlan = projections.filter(_._2 match {
@@ -207,11 +198,8 @@ object SortPlanner {
         case _              => true
       })
       if (projectionsToPlan.nonEmpty && projectionDeps.forall(e => plan.availableSymbols.contains(e))) {
-        val projectionsToMarkSolved = updateSolved match {
-          case UpdateSolveds.DoUpdateSolveds   => DoUpdateSolveds(projectionsToPlan)
-          case UpdateSolveds.TryUpdateSolveds  => TryUpdateSolveds(projectionsToPlan)
-          case UpdateSolveds.DontUpdateSolveds => DontUpdateSolveds
-        }
+        val projectionsToMarkSolved =
+          if (updateSolved) MaybeReportedProjections(Some(projectionsToPlan)) else MaybeReportedProjections.empty
         projection(plan, projectionsToPlan, projectionsToMarkSolved, context)
       } else
         plan
@@ -244,12 +232,11 @@ object SortPlanner {
     // First the ones that are part of projection list and may introduce variables that are needed for the second projection
     val projections =
       sortItems.foldLeft(Map.empty[LogicalVariable, Expression])((acc, i) => acc ++ i.providedOrderColumn.projections)
-    val updatedSolvedValue = if (updateSolved) UpdateSolveds.DoUpdateSolveds else UpdateSolveds.TryUpdateSolveds
-    val projected1 = projected(plan, projections, updateSolved = updatedSolvedValue)
+    val projected1 = projected(plan, projections, updateSolved)
     // And then all the ones from unaliased sort items that may refer to newly introduced variables
     val unaliasedProjections =
       sortItems.foldLeft(Map.empty[LogicalVariable, Expression])((acc, i) => acc ++ i.unaliasedProjections)
-    val projected2 = projected(projected1, unaliasedProjections, updateSolved = UpdateSolveds.DontUpdateSolveds)
+    val projected2 = projected(projected1, unaliasedProjections, false)
 
     val sortColumns: Seq[ColumnOrder] = sortItems.map(_.columnOrder)
     val providedOrderColumns = sortItems.map(_.providedOrderColumn)

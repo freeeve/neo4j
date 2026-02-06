@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.projection.MaybeReportedProjections
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -43,7 +44,7 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val (context, startPlan) = queryGraphWith(projectionsMap = projections)
 
     // when
-    val result = projection(startPlan, projections, Some(projections), context)
+    val result = projection(startPlan, projections, MaybeReportedProjections(Some(projections)), context)
 
     // then
     result should equal(Projection(startPlan, projections))
@@ -60,7 +61,7 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val (context, startPlan) = queryGraphWith(projectionsMap = projections)
 
     // when
-    val result = projection(startPlan, projections, Some(projectionsToMarkSolved), context)
+    val result = projection(startPlan, projections, MaybeReportedProjections(Some(projectionsToMarkSolved)), context)
 
     // then
     result should equal(Projection(startPlan, projections))
@@ -75,7 +76,7 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val (context, startPlan) = queryGraphWith(projectionsMap = projections)
 
     // when
-    val result = projection(startPlan, projections, Some(projections), context)
+    val result = projection(startPlan, projections, MaybeReportedProjections(Some(projections)), context)
 
     // then
     result should equal(startPlan)
@@ -90,7 +91,7 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val (context, startPlan) = queryGraphWith(projectionsMap = projections)
 
     // when
-    val result = projection(startPlan, projections, Some(projections), context)
+    val result = projection(startPlan, projections, MaybeReportedProjections(Some(projections)), context)
 
     result should equal(Projection(
       startPlan,
@@ -107,7 +108,7 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val (context, startPlan) = queryGraphWith(projectionsMap = projections)
 
     // when
-    val result = projection(startPlan, projections, Some(projections), context)
+    val result = projection(startPlan, projections, MaybeReportedProjections(Some(projections)), context)
 
     // then
     result should equal(Projection(startPlan, projections))
@@ -123,7 +124,11 @@ class ProjectionTest extends CypherFunSuite with LogicalPlanningTestSupport {
       semanticTable = new SemanticTable(types = mock[ASTAnnotationMap[Expression, ExpressionTypeInfo]])
     )
 
-    val ids = projectionsMap.keySet.map(_.name)
+    val ids =
+      projectionsMap.values
+        .flatMap(_.dependencies)
+        .map(_.name)
+        .toSet
 
     val plan =
       newMockedLogicalPlanWithSolved(
