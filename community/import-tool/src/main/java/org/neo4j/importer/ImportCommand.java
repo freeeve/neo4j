@@ -547,6 +547,8 @@ public class ImportCommand {
         @Option(
                 names = "--profile",
                 arity = "0..1",
+                showDefaultValue = ALWAYS,
+                paramLabel = "true|false",
                 fallbackValue = "true",
                 defaultValue = "false",
                 description = "Capture a java flight recording for the entire duration of the import.")
