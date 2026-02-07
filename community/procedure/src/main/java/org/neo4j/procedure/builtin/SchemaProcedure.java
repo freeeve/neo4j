@@ -206,6 +206,14 @@ public class SchemaProcedure {
         return graphResult;
     }
 
+    public static Relationship virtualRelationshipOf(String type, Node from, Node to) {
+        return new VirtualRelationshipHack(from, to, type);
+    }
+
+    public static Node virtualNodeOf(String label, Map<String, Object> properties) {
+        return new VirtualNodeHack(label, properties);
+    }
+
     private static class VirtualRelationshipHack implements Relationship {
 
         private static final AtomicLong MIN_ID = new AtomicLong(-100);
@@ -214,9 +222,9 @@ public class SchemaProcedure {
         private final Node startNode;
         private final Node endNode;
         private final RelationshipType relationshipType;
-        private final Map<String, Object> propertyMap = new HashMap<>();
+        private final Map<String, Object> propertyMap = HashMap.newHashMap(1);
 
-        VirtualRelationshipHack(final VirtualNodeHack startNode, final VirtualNodeHack endNode, final String type) {
+        private VirtualRelationshipHack(final Node startNode, final Node endNode, final String type) {
             this.id = MIN_ID.getAndDecrement();
             this.startNode = startNode;
             this.endNode = endNode;
@@ -319,7 +327,7 @@ public class SchemaProcedure {
         private final long id;
         private final Label label;
 
-        VirtualNodeHack(final String label, Map<String, Object> properties) {
+        private VirtualNodeHack(final String label, Map<String, Object> properties) {
             this.id = MIN_ID.getAndDecrement();
             this.label = Label.label(label);
             propertyMap.putAll(properties);
