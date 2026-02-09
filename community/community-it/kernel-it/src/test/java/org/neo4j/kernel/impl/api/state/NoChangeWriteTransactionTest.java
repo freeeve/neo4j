@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -44,9 +43,9 @@ class NoChangeWriteTransactionTest {
         // GIVEN a transaction that has seen some changes, where all those changes result in a net 0 change set
         // a good way of producing such state is to add a label to an existing node, and then remove it.
         long startTxId = transactionIdStore.getLastCommittedTransactionId();
-        Node node = createEmptyNode(db);
+        String nodeId = createEmptyNode(db);
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            var node = tx.getNodeByElementId(nodeId);
             node.addLabel(TestLabels.LABEL_ONE);
             node.removeLabel(TestLabels.LABEL_ONE);
             tx.commit();
@@ -59,11 +58,11 @@ class NoChangeWriteTransactionTest {
                 "Expected last txId to be what it started at + 2 (1 for the empty node, and one for the label)");
     }
 
-    private static Node createEmptyNode(GraphDatabaseService db) {
+    private static String createEmptyNode(GraphDatabaseService db) {
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.createNode();
+            String nodeId = tx.createNode().getElementId();
             tx.commit();
-            return node;
+            return nodeId;
         }
     }
 }

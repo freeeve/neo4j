@@ -25,7 +25,6 @@ import java.util.Map;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.security.AnonymousContext;
@@ -38,32 +37,35 @@ public class GraphDbHelper {
         this.databaseService = (GraphDatabaseAPI) databaseService;
     }
 
-    public long createNode(Label... labels) {
+    public String createNode(Label... labels) {
         try (Transaction tx = databaseService.beginTransaction(IMPLICIT, AnonymousContext.writeToken())) {
-            Node node = tx.createNode(labels);
+            String nodeId = tx.createNode(labels).getElementId();
             tx.commit();
-            return node.getId();
+            return nodeId;
         }
     }
 
-    public long createNode(Map<String, Object> properties, Label... labels) {
+    public String createNode(Map<String, Object> properties, Label... labels) {
         try (Transaction tx = databaseService.beginTransaction(IMPLICIT, AnonymousContext.writeToken())) {
             Node node = tx.createNode(labels);
+            String nodeId = node.getElementId();
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
                 node.setProperty(entry.getKey(), entry.getValue());
             }
             tx.commit();
-            return node.getId();
+            return nodeId;
         }
     }
 
-    public long createRelationship(String type, long startNodeId, long endNodeId) {
+    public String createRelationship(String type, String startNodeId, String endNodeId) {
         try (Transaction tx = databaseService.beginTransaction(IMPLICIT, AnonymousContext.writeToken())) {
-            Node startNode = tx.getNodeById(startNodeId);
-            Node endNode = tx.getNodeById(endNodeId);
-            Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName(type));
+            Node startNode = tx.getNodeByElementId(startNodeId);
+            Node endNode = tx.getNodeByElementId(endNodeId);
+            String relId = startNode
+                    .createRelationshipTo(endNode, RelationshipType.withName(type))
+                    .getElementId();
             tx.commit();
-            return relationship.getId();
+            return relId;
         }
     }
 }

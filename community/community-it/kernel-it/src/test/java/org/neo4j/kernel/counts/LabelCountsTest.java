@@ -24,7 +24,6 @@ import static org.neo4j.graphdb.Label.label;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -62,15 +61,15 @@ class LabelCountsTest {
     @Test
     void shouldAccountForDeletedNodes() {
         // given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode(label("Foo"));
+            nodeId = tx.createNode(label("Foo")).getElementId();
             tx.createNode(label("Foo"));
 
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(nodeId).delete();
 
             tx.commit();
         }
@@ -85,16 +84,16 @@ class LabelCountsTest {
     @Test
     void shouldAccountForDeletedNodesWithMultipleLabels() {
         // given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode(label("Foo"), label("Bar"));
+            nodeId = tx.createNode(label("Foo"), label("Bar")).getElementId();
             tx.createNode(label("Foo"));
             tx.createNode(label("Bar"));
 
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(nodeId).delete();
 
             tx.commit();
         }
@@ -111,20 +110,20 @@ class LabelCountsTest {
     @Test
     void shouldAccountForAddedLabels() {
         // given
-        Node n1;
-        Node n2;
-        Node n3;
+        String n1Id;
+        String n2Id;
+        String n3Id;
         try (Transaction tx = db.beginTx()) {
-            n1 = tx.createNode(label("Foo"));
-            n2 = tx.createNode();
-            n3 = tx.createNode();
+            n1Id = tx.createNode(label("Foo")).getElementId();
+            n2Id = tx.createNode().getElementId();
+            n3Id = tx.createNode().getElementId();
 
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(n1.getId()).addLabel(label("Bar"));
-            tx.getNodeById(n2.getId()).addLabel(label("Bar"));
-            tx.getNodeById(n3.getId()).addLabel(label("Foo"));
+            tx.getNodeByElementId(n1Id).addLabel(label("Bar"));
+            tx.getNodeByElementId(n2Id).addLabel(label("Bar"));
+            tx.getNodeByElementId(n3Id).addLabel(label("Foo"));
 
             tx.commit();
         }
@@ -141,20 +140,20 @@ class LabelCountsTest {
     @Test
     void shouldAccountForRemovedLabels() {
         // given
-        Node n1;
-        Node n2;
-        Node n3;
+        String n1Id;
+        String n2Id;
+        String n3Id;
         try (Transaction tx = db.beginTx()) {
-            n1 = tx.createNode(label("Foo"), label("Bar"));
-            n2 = tx.createNode(label("Bar"));
-            n3 = tx.createNode(label("Foo"));
+            n1Id = tx.createNode(label("Foo"), label("Bar")).getElementId();
+            n2Id = tx.createNode(label("Bar")).getElementId();
+            n3Id = tx.createNode(label("Foo")).getElementId();
 
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(n1.getId()).removeLabel(label("Bar"));
-            tx.getNodeById(n2.getId()).removeLabel(label("Bar"));
-            tx.getNodeById(n3.getId()).removeLabel(label("Foo"));
+            tx.getNodeByElementId(n1Id).removeLabel(label("Bar"));
+            tx.getNodeByElementId(n2Id).removeLabel(label("Bar"));
+            tx.getNodeByElementId(n3Id).removeLabel(label("Foo"));
 
             tx.commit();
         }

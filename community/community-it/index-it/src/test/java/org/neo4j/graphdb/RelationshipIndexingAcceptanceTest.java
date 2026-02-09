@@ -41,15 +41,15 @@ public class RelationshipIndexingAcceptanceTest {
         }
 
         @Override
-        protected Relationship createEntity(
-                GraphDatabaseService db, Map<String, Object> properties, RelationshipType type) {
+        protected String createEntity(GraphDatabaseService db, Map<String, Object> properties, RelationshipType type) {
             try (Transaction tx = db.beginTx()) {
                 Node from = tx.createNode(Label.label("test"));
                 Node to = tx.createNode(Label.label("test"));
                 Relationship rel = from.createRelationshipTo(to, type);
+                String relId = rel.getElementId();
                 properties.forEach(rel::setProperty);
                 tx.commit();
-                return rel;
+                return relId;
             }
         }
 
@@ -61,13 +61,13 @@ public class RelationshipIndexingAcceptanceTest {
         }
 
         @Override
-        protected void deleteEntity(Transaction tx, long id) {
-            tx.getRelationshipById(id).delete();
+        protected void deleteEntity(Transaction tx, String id) {
+            tx.getRelationshipByElementId(id).delete();
         }
 
         @Override
-        protected Relationship getEntity(Transaction tx, long id) {
-            return tx.getRelationshipById(id);
+        protected Relationship getEntity(Transaction tx, String id) {
+            return tx.getRelationshipByElementId(id);
         }
 
         @Override

@@ -85,22 +85,22 @@ class PartialTransactionFailureIT {
                 .setConfig(params)
                 .build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        Node a;
-        Node b;
-        Node c;
-        Node d;
+        String aId;
+        String bId;
+        String cId;
+        String dId;
         try (Transaction tx = db.beginTx()) {
-            a = tx.createNode();
-            b = tx.createNode();
-            c = tx.createNode();
-            d = tx.createNode();
+            aId = tx.createNode().getElementId();
+            bId = tx.createNode().getElementId();
+            cId = tx.createNode().getElementId();
+            dId = tx.createNode().getElementId();
             tx.commit();
         }
 
         adversary.enable();
         CountDownLatch latch = new CountDownLatch(1);
-        Thread t1 = new Thread(createRelationship(db, a, b, latch), "T1");
-        Thread t2 = new Thread(createRelationship(db, c, d, latch), "T2");
+        Thread t1 = new Thread(createRelationship(db, aId, bId, latch), "T1");
+        Thread t2 = new Thread(createRelationship(db, cId, dId, latch), "T2");
         t1.start();
         t2.start();
         // Wait for both threads to get going
@@ -119,10 +119,10 @@ class PartialTransactionFailureIT {
                 .build();
         GraphDatabaseService database = managementService.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = database.beginTx()) {
-            Node x = tx.getNodeById(a.getId());
-            Node y = tx.getNodeById(b.getId());
-            Node z = tx.getNodeById(c.getId());
-            Node w = tx.getNodeById(d.getId());
+            Node x = tx.getNodeByElementId(aId);
+            Node y = tx.getNodeByElementId(bId);
+            Node z = tx.getNodeByElementId(cId);
+            Node w = tx.getNodeByElementId(dId);
 
             try (ResourceIterable<Relationship> relsW = w.getRelationships();
                     ResourceIterator<Relationship> itrRelW = relsW.iterator();
@@ -154,9 +154,11 @@ class PartialTransactionFailureIT {
     }
 
     private static Runnable createRelationship(
-            GraphDatabaseAPI db, final Node x, final Node y, final CountDownLatch latch) {
+            GraphDatabaseAPI db, final String xId, final String yId, final CountDownLatch latch) {
         return () -> {
             try (Transaction tx = db.beginTx()) {
+                Node x = tx.getNodeByElementId(xId);
+                Node y = tx.getNodeByElementId(yId);
                 x.createRelationshipTo(y, RelationshipType.withName("r"));
                 tx.commit();
                 latch.await();

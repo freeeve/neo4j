@@ -44,15 +44,16 @@ class TestTransactionEventDeadlocks {
 
     @Test
     void canAvoidDeadlockThatWouldHappenIfTheRelationshipTypeCreationTransactionModifiedData() {
-        Node node;
+        String nodeId;
         try (Transaction tx = graphdb.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
+            nodeId = node.getElementId();
             node.setProperty("counter", 0L);
             tx.commit();
         }
 
         try (Transaction tx = graphdb.beginTx()) {
-            var txNode = tx.getNodeById(node.getId());
+            var txNode = tx.getNodeByElementId(nodeId);
             managementService.registerTransactionEventListener(
                     DEFAULT_DATABASE_NAME, new RelationshipCounterTransactionEventListener(txNode));
             txNode.setProperty("state", "not broken yet");
@@ -62,7 +63,7 @@ class TestTransactionEventDeadlocks {
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals(1L, n.getProperty("counter"));
         }
     }

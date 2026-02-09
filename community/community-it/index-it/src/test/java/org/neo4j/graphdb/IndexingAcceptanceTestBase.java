@@ -81,9 +81,10 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
         // GIVEN
         long smallValue = 10L;
         long bigValue = 1L << 62;
-        ENTITY entity;
+        String entityId;
         try (Transaction tx = db.beginTx()) {
-            entity = createEntity(tx, TOKEN1);
+            ENTITY entity = createEntity(tx, TOKEN1);
+            entityId = entity.getElementId();
             entity.setProperty("pad0", true);
             entity.setProperty("pad1", true);
             entity.setProperty("pad2", true);
@@ -99,14 +100,14 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
         try (Transaction tx = db.beginTx()) {
             // A big long value which will occupy two property blocks
 
-            getEntity(tx, entity.getId()).setProperty("key", bigValue);
+            getEntity(tx, entityId).setProperty("key", bigValue);
             tx.commit();
         }
 
         try (Transaction transaction = db.beginTx()) {
             // THEN
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "key", bigValue))
-                    .containsOnly(entity);
+                    .containsOnly(getEntity(transaction, entityId));
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "key", smallValue))
                     .isEmpty();
         }
@@ -115,25 +116,25 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
     @Test
     void searchingForEntityByPropertyShouldWorkWithoutIndex() {
         // Given
-        var entity = createEntity(db, map("name", "Hawking"), TOKEN1);
+        var entityId = createEntity(db, map("name", "Hawking"), TOKEN1);
 
         // When
         try (Transaction transaction = db.beginTx()) {
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "name", "Hawking"))
-                    .containsOnly(entity);
+                    .containsOnly(getEntity(transaction, entityId));
         }
     }
 
     @Test
     void searchingUsesIndexWhenItExists() {
         // Given
-        var entity = createEntity(db, map("name", "Hawking"), TOKEN1);
+        var entityId = createEntity(db, map("name", "Hawking"), TOKEN1);
         createIndex(db, indexType(), TOKEN1, "name");
 
         // When
         try (Transaction transaction = db.beginTx()) {
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "name", "Hawking"))
-                    .containsOnly(entity);
+                    .containsOnly(getEntity(transaction, entityId));
         }
     }
 
@@ -150,17 +151,17 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
     void shouldSeeIndexUpdatesWhenQueryingOutsideTransaction() {
         // GIVEN
         createIndex(db, indexType(), TOKEN1, "name");
-        var firstEntity = createEntity(db, map("name", "Mattias"), TOKEN1);
+        var firstEntityId = createEntity(db, map("name", "Mattias"), TOKEN1);
 
         // WHEN THEN
         try (Transaction transaction = db.beginTx()) {
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "name", "Mattias"))
-                    .containsOnly(firstEntity);
+                    .containsOnly(getEntity(transaction, firstEntityId));
         }
-        var secondEntity = createEntity(db, map("name", "Taylor"), TOKEN1);
+        var secondEntityId = createEntity(db, map("name", "Taylor"), TOKEN1);
         try (Transaction transaction = db.beginTx()) {
             assertThat(findEntitiesByTokenAndProperty(transaction, TOKEN1, "name", "Taylor"))
-                    .containsOnly(secondEntity);
+                    .containsOnly(getEntity(transaction, secondEntityId));
         }
     }
 
@@ -173,9 +174,9 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
         long sizeBeforeDelete;
         long sizeAfterDelete;
         try (Transaction tx = db.beginTx()) {
-            var entity = createEntity(db, map("name", "Mattias"), TOKEN1);
+            var entityId = createEntity(db, map("name", "Mattias"), TOKEN1);
             sizeBeforeDelete = count(findEntities(tx, TOKEN1, "name", "Mattias"));
-            deleteEntity(tx, entity.getId());
+            deleteEntity(tx, entityId);
             sizeAfterDelete = count(findEntities(tx, TOKEN1, "name", "Mattias"));
             tx.commit();
         }
@@ -189,14 +190,14 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
     void deletedEntityShouldShowUpWithinTransaction() {
         // GIVEN
         createIndex(db, indexType(), TOKEN1, "name");
-        var entity = createEntity(db, map("name", "Mattias"), TOKEN1);
+        var entityId = createEntity(db, map("name", "Mattias"), TOKEN1);
 
         // WHEN
         long sizeBeforeDelete;
         long sizeAfterDelete;
         try (Transaction tx = db.beginTx()) {
             sizeBeforeDelete = count(findEntities(tx, TOKEN1, "name", "Mattias"));
-            deleteEntity(tx, entity.getId());
+            deleteEntity(tx, entityId);
             sizeAfterDelete = count(findEntities(tx, TOKEN1, "name", "Mattias"));
             tx.commit();
         }
@@ -342,12 +343,12 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
     }
 
     protected void assertCanCreateAndFind(GraphDatabaseService db, TOKEN label, String propertyKey, Object value) {
-        var created = createEntity(db, map(propertyKey, value), label);
+        var createdId = createEntity(db, map(propertyKey, value), label);
 
         try (Transaction tx = db.beginTx()) {
             var found = findEntity(tx, label, propertyKey, value);
-            assertThat(found).isEqualTo(created);
-            deleteEntity(tx, found.getId());
+            assertThat(found).isEqualTo(getEntity(tx, createdId));
+            deleteEntity(tx, createdId);
             tx.commit();
         }
     }
@@ -357,13 +358,13 @@ abstract class IndexingAcceptanceTestBase<TOKEN, ENTITY extends Entity> {
     protected abstract List<ENTITY> findEntitiesByTokenAndProperty(
             Transaction tx, TOKEN label, String propertyName, Object value);
 
-    protected abstract ENTITY createEntity(GraphDatabaseService db, Map<String, Object> properties, TOKEN label);
+    protected abstract String createEntity(GraphDatabaseService db, Map<String, Object> properties, TOKEN label);
 
     protected abstract ENTITY createEntity(Transaction tx, TOKEN token);
 
-    protected abstract void deleteEntity(Transaction tx, long id);
+    protected abstract void deleteEntity(Transaction tx, String id);
 
-    protected abstract ENTITY getEntity(Transaction tx, long id);
+    protected abstract ENTITY getEntity(Transaction tx, String id);
 
     protected abstract IndexDefinition createIndex(
             GraphDatabaseService db, IndexType indexType, TOKEN token, String... properties);

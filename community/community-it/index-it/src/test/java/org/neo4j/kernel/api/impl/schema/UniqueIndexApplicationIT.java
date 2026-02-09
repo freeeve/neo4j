@@ -104,14 +104,15 @@ public class UniqueIndexApplicationIT {
     void tx_createNode_addLabel_tx_setProperty(Function<Transaction, Void> createIndexFunc) {
         createIndex(createIndexFunc);
 
-        Node node;
+        String nodeId;
         try (var transaction = db.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.addLabel(label("Label1"));
             transaction.commit();
         }
         try (var transaction = db.beginTx()) {
-            transaction.getNodeById(node.getId()).setProperty("key1", "value1");
+            transaction.getNodeByElementId(nodeId).setProperty("key1", "value1");
             transaction.commit();
         }
     }
@@ -121,15 +122,16 @@ public class UniqueIndexApplicationIT {
     void tx_createNode_setProperty_tx_addLabel(Function<Transaction, Void> createIndexFunc) {
         createIndex(createIndexFunc);
 
-        Node node;
+        String nodeId;
         try (var transaction = db.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.addLabel(label("Label1"));
             node.setProperty("key1", "value1");
             transaction.commit();
         }
         try (var transaction = db.beginTx()) {
-            transaction.getNodeById(node.getId()).addLabel(label("Label1"));
+            transaction.getNodeByElementId(nodeId).addLabel(label("Label1"));
             transaction.commit();
         }
     }
@@ -139,17 +141,17 @@ public class UniqueIndexApplicationIT {
     void tx_createNode_tx_addLabel_tx_setProperty(Function<Transaction, Void> createIndexFunc) {
         createIndex(createIndexFunc);
 
-        Node node;
+        String nodeId;
         try (var transaction = db.beginTx()) {
-            node = transaction.createNode();
+            nodeId = transaction.createNode().getElementId();
             transaction.commit();
         }
         try (var transaction = db.beginTx()) {
-            transaction.getNodeById(node.getId()).addLabel(label("Label1"));
+            transaction.getNodeByElementId(nodeId).addLabel(label("Label1"));
             transaction.commit();
         }
         try (var transaction = db.beginTx()) {
-            transaction.getNodeById(node.getId()).setProperty("key1", "value1");
+            transaction.getNodeByElementId(nodeId).setProperty("key1", "value1");
             transaction.commit();
         }
     }

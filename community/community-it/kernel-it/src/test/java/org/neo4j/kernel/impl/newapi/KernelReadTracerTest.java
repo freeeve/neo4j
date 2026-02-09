@@ -87,13 +87,13 @@ public class KernelReadTracerTest extends KernelAPIReadTestBase<ReadTestSupport>
 
     @Override
     public void createTestGraph(GraphDatabaseService graphDb) {
-        Node deleted;
+        String deleted;
         try (Transaction tx = graphDb.beginTx()) {
             Node foo = tx.createNode(label("Foo"));
             Node bar = tx.createNode(label("Bar"));
             tx.createNode(label("Baz"));
             tx.createNode(label("Bar"), label("Baz"));
-            deleted = tx.createNode();
+            deleted = tx.createNode().getElementId();
             Node bare = tx.createNode();
 
             Relationship has = foo.createRelationshipTo(bar, RelationshipType.withName("HAS"));
@@ -140,7 +140,7 @@ public class KernelReadTracerTest extends KernelAPIReadTestBase<ReadTestSupport>
         }
 
         try (Transaction tx = graphDb.beginTx()) {
-            tx.getNodeById(deleted.getId()).delete();
+            tx.getNodeByElementId(deleted).delete();
             tx.commit();
         }
     }
