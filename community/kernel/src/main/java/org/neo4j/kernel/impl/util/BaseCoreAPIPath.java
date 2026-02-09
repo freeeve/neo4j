@@ -60,7 +60,7 @@ public abstract class BaseCoreAPIPath implements Path {
         if (obj instanceof BaseCoreAPIPath) {
             return value.equals(((BaseCoreAPIPath) obj).value);
         } else if (obj instanceof Path other) {
-            if (value.nodeIds()[0] != other.startNode().getId()) {
+            if (value.startNodeId() != other.startNode().getId()) {
                 return false;
             }
             return iteratorsEqual(
@@ -72,13 +72,12 @@ public abstract class BaseCoreAPIPath implements Path {
 
     @Override
     public Node startNode() {
-        return mapNode(value.nodeIds()[0]);
+        return mapNode(value.startNodeId());
     }
 
     @Override
     public Node endNode() {
-        long[] nodeIds = value.nodeIds();
-        return mapNode(nodeIds[nodeIds.length - 1]);
+        return mapNode(value.endNodeId());
     }
 
     @Override
@@ -86,8 +85,7 @@ public abstract class BaseCoreAPIPath implements Path {
         if (value.size() == 0) {
             return null;
         } else {
-            long[] relationshipIds = value.relationshipIds();
-            return mapRelationship(relationshipIds[relationshipIds.length - 1]);
+            return mapRelationship(value.relationshipId(value.size() - 1));
         }
     }
 
