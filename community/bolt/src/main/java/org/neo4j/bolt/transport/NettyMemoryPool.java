@@ -47,4 +47,8 @@ public abstract class NettyMemoryPool extends GlobalMemoryGroupTracker {
     public long totalUsed() {
         return usedHeap() + usedNative();
     }
+
+    public ByteBufAllocatorMetric allocatorMetric() {
+        return allocatorMetric;
+    }
 }
