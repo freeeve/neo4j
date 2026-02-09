@@ -43,10 +43,10 @@ public class FixedVersionContext implements VersionContext {
     }
 
     @Override
-    public void initAppendIndex(long committingAppendIndex) {}
+    public void initChunkId(long committingChunkId) {}
 
     @Override
-    public long committingAppendIndex() {
+    public long committingChunkId() {
         return committingTransactionId;
     }
 

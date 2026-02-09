@@ -28,12 +28,11 @@ public class UnboundedReadVersionContext implements VersionContext {
     private static final long INVALID_TRANSACTION_ID = 0;
     private final long oldestTransactionId;
     private long committingTransactionId;
-    private long committingAppendIndex;
+    private long committingChunkId;
 
-    public UnboundedReadVersionContext(
-            long committingTransactionId, long committingAppendIndex, long oldestTransactionId) {
+    public UnboundedReadVersionContext(long committingTransactionId, long committingChunkId, long oldestTransactionId) {
         this.committingTransactionId = committingTransactionId;
-        this.committingAppendIndex = committingAppendIndex;
+        this.committingChunkId = committingChunkId;
         this.oldestTransactionId = oldestTransactionId;
     }
 
@@ -51,13 +50,13 @@ public class UnboundedReadVersionContext implements VersionContext {
     }
 
     @Override
-    public void initAppendIndex(long committingAppendIndex) {
-        this.committingAppendIndex = committingAppendIndex;
+    public void initChunkId(long committingChunkId) {
+        this.committingChunkId = committingChunkId;
     }
 
     @Override
-    public long committingAppendIndex() {
-        return committingAppendIndex;
+    public long committingChunkId() {
+        return committingChunkId;
     }
 
     @Override
@@ -130,6 +129,6 @@ public class UnboundedReadVersionContext implements VersionContext {
         return "UnboundedReadVersionContext{" + "oldestTransactionId="
                 + oldestTransactionId + ", committingTransactionId="
                 + committingTransactionId + ", committingAppendIndex="
-                + committingAppendIndex + '}';
+                + committingChunkId + '}';
     }
 }

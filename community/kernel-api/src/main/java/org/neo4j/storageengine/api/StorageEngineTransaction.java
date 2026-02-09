@@ -101,8 +101,9 @@ public interface StorageEngineTransaction extends AutoCloseable {
      * Method to update back transaction with data from clustering replication process
      * @param transactionId - transaction id that was generated for this transaction
      * @param appendIndex - append index generated for the latest chunk of this transaction
+     * @param chunkId - chunk id generated for the latest chunk of this transaction
      */
-    void updateClusteredInfo(long transactionId, long appendIndex);
+    void updateClusteredInfo(long transactionId, long appendIndex, long chunkId);
 
     @Override
     void close();

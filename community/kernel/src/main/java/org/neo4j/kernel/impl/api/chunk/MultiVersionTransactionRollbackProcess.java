@@ -73,7 +73,7 @@ public final class MultiVersionTransactionRollbackProcess implements Transaction
                     rollbackChunkedTransaction
                             .cursorContext()
                             .getVersionContext()
-                            .initAppendIndex(commandBatch.appendIndex());
+                            .initChunkId(commandBatch.commandBatch().chunkId());
                     storageEngine.apply(rollbackChunkedTransaction, TransactionApplicationMode.MVCC_ROLLBACK);
                     rolledbackBatches++;
                     nextBatchToRollbackIndex = commandBatch.previousBatchAppendIndex();

@@ -248,7 +248,6 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
                 LogCheckPointEvent checkPointEvent = databaseTracer.beginCheckPoint()) {
             long highestEverClosedTransactionId = transactionId.id();
             cursorContext.getVersionContext().initWrite(highestEverClosedTransactionId);
-            cursorContext.getVersionContext().initAppendIndex(transactionId.appendIndex());
             KernelVersion kernelVersion = metadataProvider.kernelVersion();
             // info about last checkpoint is used only be store copy and so far we do not want to update protocol
             // to contain all the fields and state to make checkpoint identical after store copy.

@@ -27,7 +27,7 @@ import org.neo4j.io.pagecache.context.VersionContextSupplier;
 
 public class MultiVersionTreeTestContext implements VersionContext {
     private long committingTxId;
-    private long appendIndex;
+    private long chunkId;
 
     private final long lastClosedTxId;
     private final long highestClosed;
@@ -55,13 +55,13 @@ public class MultiVersionTreeTestContext implements VersionContext {
     }
 
     @Override
-    public void initAppendIndex(long committingAppendIndex) {
-        this.appendIndex = committingAppendIndex;
+    public void initChunkId(long committingChunkId) {
+        this.chunkId = committingChunkId;
     }
 
     @Override
-    public long committingAppendIndex() {
-        return appendIndex;
+    public long committingChunkId() {
+        return chunkId;
     }
 
     @Override

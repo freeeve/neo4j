@@ -19,8 +19,8 @@
  */
 package org.neo4j.kernel.impl.context;
 
-import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
@@ -38,7 +38,7 @@ public class TransactionVersionContext implements VersionContext {
     private final TransactionIdSnapshotFactory transactionIdSnapshotFactory;
     private final OldestTransactionIdFactory oldestTransactionIdFactory;
     private long transactionId = UNKNOWN_TX_ID;
-    private long appendIndex = UNKNOWN_APPEND_INDEX;
+    private long chunkId = UNKNOWN_CHUNK_ID;
     private TransactionIdSnapshot transactionIds;
     private long oldestTransactionId = UNKNOWN_TX_ID;
     private long headChain;
@@ -56,7 +56,7 @@ public class TransactionVersionContext implements VersionContext {
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
             OldestTransactionIdFactory oldestTransactionIdFactory,
             long transactionId,
-            long appendIndex,
+            long chunkId,
             TransactionIdSnapshot transactionIds,
             long oldestTransactionId,
             long headChain,
@@ -65,7 +65,7 @@ public class TransactionVersionContext implements VersionContext {
             int currentStamp) {
         this(transactionIdSnapshotFactory, oldestTransactionIdFactory);
         this.transactionId = transactionId;
-        this.appendIndex = appendIndex;
+        this.chunkId = chunkId;
         this.transactionIds = transactionIds;
         this.oldestTransactionId = oldestTransactionId;
         this.headChain = headChain;
@@ -93,13 +93,13 @@ public class TransactionVersionContext implements VersionContext {
     }
 
     @Override
-    public void initAppendIndex(long committingAppendIndex) {
-        appendIndex = committingAppendIndex;
+    public void initChunkId(long committingChunkId) {
+        chunkId = committingChunkId;
     }
 
     @Override
-    public long committingAppendIndex() {
-        return appendIndex;
+    public long committingChunkId() {
+        return chunkId;
     }
 
     @Override
@@ -186,7 +186,7 @@ public class TransactionVersionContext implements VersionContext {
                 transactionIdSnapshotFactory,
                 oldestTransactionIdFactory,
                 transactionId,
-                appendIndex,
+                chunkId,
                 transactionIds,
                 oldestTransactionId,
                 headChain,
@@ -198,12 +198,12 @@ public class TransactionVersionContext implements VersionContext {
     @Override
     public VersionContext createUnboundedReadRelatedContext() {
         return new UnboundedReadVersionContext(
-                transactionId, appendIndex, oldestTransactionIdFactory.oldestTransactionId());
+                transactionId, chunkId, oldestTransactionIdFactory.oldestTransactionId());
     }
 
     @Override
     public String toString() {
-        return "TransactionVersionContext{" + "transactionId=" + transactionId + ", appendIndex=" + appendIndex + ", "
+        return "TransactionVersionContext{" + "transactionId=" + transactionId + ", appendIndex=" + chunkId + ", "
                 + "transactionIds=" + transactionIds
                 + ", oldestTransactionId=" + oldestTransactionId + ", headChain=" + headChain + ", dirty=" + dirty
                 + ", nonVisibleHead=" + nonVisibleHead + '}';

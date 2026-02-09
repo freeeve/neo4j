@@ -123,6 +123,11 @@ public record ChunkedCommandBatch(List<StorageCommand> commands, ChunkMetadata c
     }
 
     @Override
+    public long chunkId() {
+        return chunkMetadata.chunkId();
+    }
+
+    @Override
     public void setAppendIndex(long appendIndex) {
         chunkMetadata.appendIndex().setValue(appendIndex);
     }

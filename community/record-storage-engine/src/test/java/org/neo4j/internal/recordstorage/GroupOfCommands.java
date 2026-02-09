@@ -115,7 +115,7 @@ public class GroupOfCommands implements StorageEngineTransaction {
     public void batchAppended(long appendIndex, LogPosition beforeCommit, LogPosition positionAfter, int checksum) {}
 
     @Override
-    public void updateClusteredInfo(long transactionId, long appendIndex) {}
+    public void updateClusteredInfo(long transactionId, long appendIndex, long chunkId) {}
 
     @Override
     public void close() {}

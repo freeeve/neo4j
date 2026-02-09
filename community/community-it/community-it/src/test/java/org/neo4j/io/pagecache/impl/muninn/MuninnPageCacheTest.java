@@ -2634,10 +2634,10 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         }
 
         @Override
-        public void initAppendIndex(long committingAppendIndex) {}
+        public void initChunkId(long committingChunkId) {}
 
         @Override
-        public long committingAppendIndex() {
+        public long committingChunkId() {
             return 0;
         }
 

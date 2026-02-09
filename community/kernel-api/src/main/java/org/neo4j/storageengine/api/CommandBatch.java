@@ -100,6 +100,11 @@ public interface CommandBatch extends CommandStream, KernelVersionProvider {
     long appendIndex();
 
     /**
+     * Get command batch chunk id
+     */
+    long chunkId();
+
+    /**
      * Set command batch append index. Append index of command batch becomes available only after appending it into the log files.
      * @param appendIndex provided batch append index
      */

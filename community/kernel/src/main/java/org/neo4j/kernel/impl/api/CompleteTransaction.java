@@ -159,12 +159,12 @@ public class CompleteTransaction implements StorageEngineTransaction {
                 commandBatch.consensusIndex());
         var versionContext = this.cursorContext.getVersionContext();
         versionContext.initWrite(transactionId);
-        versionContext.initAppendIndex(appendIndex);
+        versionContext.initChunkId(commandBatch.chunkId());
         commandBatch.setAppendIndex(appendIndex);
     }
 
     @Override
-    public void updateClusteredInfo(long transactionId, long appendIndex) {
+    public void updateClusteredInfo(long transactionId, long appendIndex, long chunkId) {
         // no op, there is nothing we are doing with this information for default complete transaction
     }
 

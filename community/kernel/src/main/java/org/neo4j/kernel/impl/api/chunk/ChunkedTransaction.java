@@ -186,7 +186,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
                 positionAfter,
                 checksum,
                 chunk.chunkMetadata().consensusIndex().longValue());
-        versionContext.initAppendIndex(appendIndex);
+        versionContext.initChunkId(chunkId());
         chunk.setAppendIndex(appendIndex);
         lastBatchAppendIndex = appendIndex;
     }
@@ -214,14 +214,14 @@ public class ChunkedTransaction implements StorageEngineTransaction {
      * otherwise tx id sequences will go completely out of sync
      */
     @Override
-    public void updateClusteredInfo(long transactionId, long appendIndex) {
+    public void updateClusteredInfo(long transactionId, long appendIndex, long chunkId) {
         if (!idGenerated) {
             this.transactionId = transactionId;
             this.firstAppendIndex = appendIndex;
             cursorContext.getVersionContext().initWrite(transactionId);
             idGenerated = true;
         }
-        cursorContext.getVersionContext().initAppendIndex(appendIndex);
+        cursorContext.getVersionContext().initChunkId(chunkId);
         lastBatchAppendIndex = appendIndex;
     }
 }

@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log;
 
 import static java.lang.String.format;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -211,6 +212,11 @@ public class CompleteCommandBatch implements CommandBatch {
             throw new IllegalStateException("Append index was not generated for the batch yet.");
         }
         return appendIndex;
+    }
+
+    @Override
+    public long chunkId() {
+        return UNKNOWN_CHUNK_ID;
     }
 
     @Override

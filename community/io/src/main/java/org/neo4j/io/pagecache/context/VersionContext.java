@@ -64,14 +64,14 @@ public interface VersionContext {
     long committingTransactionId();
 
     /**
-     * Initialise write context with committingAppendIndex
+     * Initialise write context with committingChunkId
      */
-    void initAppendIndex(long committingAppendIndex);
+    void initChunkId(long committingChunkId);
 
     /**
      * @return id of currently committing chunk
      */
-    long committingAppendIndex();
+    long committingChunkId();
 
     /**
      * Last closed transaction id that read context was initialised with.
@@ -168,6 +168,6 @@ public interface VersionContext {
 
     default VersionContext createUnboundedReadRelatedContext() {
         return new UnboundedReadVersionContext(
-                committingTransactionId(), committingAppendIndex(), oldestVisibleTransactionNumber());
+                committingTransactionId(), committingChunkId(), oldestVisibleTransactionNumber());
     }
 }
