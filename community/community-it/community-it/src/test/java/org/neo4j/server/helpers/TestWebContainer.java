@@ -86,6 +86,10 @@ public class TestWebContainer {
         return neoWebServer.getTransactionRegistry();
     }
 
+    public String getState() {
+        return neoWebServer.getWebServer().getState();
+    }
+
     private static AbstractNeoWebServer getNeoWebServer(DatabaseManagementService managementService) {
         return getDependencyResolver(managementService).resolveDependency(AbstractNeoWebServer.class);
     }

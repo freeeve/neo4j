@@ -88,6 +88,8 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
                 .withProperty(sslPolicy.base_directory.name(), "certificates")
                 .build();
 
+        waitBeStartedForSeconds(20);
+
         var trustAllSslContext = SSLContext.getInstance("TLS");
         trustAllSslContext.init(null, new TrustManager[] {new InsecureTrustManager()}, null);
 
@@ -105,6 +107,8 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         X509Certificate originalCert = retry(testClientInvocation, retries, delayBeforeRetryMs);
 
         testWebContainer.replaceHTTPSCertificate();
+
+        waitBeStartedForSeconds(10);
 
         assertEventually(
                 () -> retry(testClientInvocation, retries, delayBeforeRetryMs),
@@ -188,6 +192,14 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         } finally {
             group.shutdownGracefully();
         }
+    }
+
+    private void waitBeStartedForSeconds(long timeout) {
+        if (testWebContainer == null) {
+            throw new IllegalStateException("testWebContainer should not be null");
+        }
+        assertEventually(
+                () -> testWebContainer.getState(), state -> state.equals("STARTED"), timeout, TimeUnit.SECONDS);
     }
 
     @FunctionalInterface

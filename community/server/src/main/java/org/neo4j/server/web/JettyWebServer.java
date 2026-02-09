@@ -477,6 +477,15 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
         return -1;
     }
 
+    @Override
+    public String getState() {
+        if (getJetty() != null) {
+            return getJetty().getState();
+        }
+
+        return "";
+    }
+
     private static class FilterDefinition {
         private final Filter filter;
         private final String pathSpec;

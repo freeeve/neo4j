@@ -27,6 +27,7 @@ import org.eclipse.jetty.server.RequestLog;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.server.bind.ComponentsBinder;
 import org.neo4j.ssl.SslPolicy;
+import org.neo4j.util.VisibleForTesting;
 
 public interface WebServer {
     void setHttpAddress(SocketAddress address);
@@ -62,6 +63,9 @@ public interface WebServer {
     void setWadlEnabled(boolean wadlEnabled);
 
     void setComponentsBinder(ComponentsBinder binder);
+
+    @VisibleForTesting
+    String getState();
 
     /**
      * @return local http connector bind port
