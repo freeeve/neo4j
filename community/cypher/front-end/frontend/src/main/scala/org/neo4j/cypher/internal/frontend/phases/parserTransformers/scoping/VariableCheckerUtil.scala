@@ -30,6 +30,15 @@ import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.Result
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart

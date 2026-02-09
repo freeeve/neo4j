@@ -51,6 +51,10 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.scoping.Result
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
 import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.CountStar
@@ -73,11 +77,7 @@ import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns.SubqueriesInMutatingPatternsIsolated
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.Result
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.StatementScope
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.TableResult
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo

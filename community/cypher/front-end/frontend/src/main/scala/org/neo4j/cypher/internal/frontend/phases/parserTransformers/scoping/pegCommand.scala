@@ -33,6 +33,12 @@ import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode

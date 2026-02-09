@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.CypherCurrentCompiler.CypherExecutableQuery
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CachedExecutionPlan
@@ -30,7 +31,6 @@ import org.neo4j.cypher.internal.frontend.notification.NotificationWrapping.asKe
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.ProcedureDbmsAccess
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall

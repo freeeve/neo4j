@@ -22,9 +22,9 @@ package org.neo4j.cypher.internal.preparser
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.notification.DeprecatedRuntimeNotification
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherDerivedQueryOptions

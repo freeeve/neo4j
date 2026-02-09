@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
+package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.noLocalCallables
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternAtom
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.InputPosition
@@ -56,6 +58,8 @@ sealed trait WorkingScope extends Product with Foldable {
 
 object WorkingScope {
   val noChildren = Seq.empty[WorkingScope]
+  val unitVariables = Set.empty[LogicalVariable]
+  val noLocalCallables: Set[LocalCallableScopeSignature] = Set.empty[LocalCallableScopeSignature]
 
   @inline def apriori(outgoing: RegularContext): WorkingScope =
     AprioriScope(RegularContext.unit, outgoing)
@@ -67,7 +71,7 @@ object WorkingScope {
     PatternScope(
       astNode = DummyASTNode,
       patternIncoming = incoming,
-      referenced = ScopeSurveyor.unitVariables,
+      referenced = unitVariables,
       declared = Declarations.noDeclarations,
       // outgoing = outgoing,
       result = TableResult(Seq.empty),
@@ -82,7 +86,7 @@ object WorkingScope {
 
 case class AprioriScope(incoming: RegularContext, outgoing: RegularContext) extends WorkingScope {
   override def astNode: ASTNode = DummyASTNode
-  override def referenced: Set[LogicalVariable] = ScopeSurveyor.unitVariables
+  override def referenced: Set[LogicalVariable] = unitVariables
   override def declared: Declarations = Declarations.noDeclarations
   override def result: Result = NoResult
   override def children: Seq[WorkingScope] = WorkingScope.noChildren
@@ -134,7 +138,7 @@ case class PatternScope(
   override def incoming: RegularContext = patternIncoming.toRegularContext
 
   override def outgoing: RegularContext =
-    RegularContext(ScopeSurveyor.unitVariables, result.columns.toSet, ScopeSurveyor.noLocalCallables)
+    RegularContext(unitVariables, result.columns.toSet, noLocalCallables)
   def withAstNode(astNode: ASTNode): PatternScope = copy(astNode = astNode)
   override def withChildren(children: Seq[WorkingScope]): PatternScope = copy(children = children)
   override def withReferenced(referenced: Set[LogicalVariable]): PatternScope = copy(referenced = referenced)

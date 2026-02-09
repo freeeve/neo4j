@@ -21,8 +21,12 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
+import org.neo4j.cypher.internal.ast.semantics.scoping.SurveyorNameGenerator
+import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
@@ -32,37 +36,11 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.SurveyorNameGenerator.prefix
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
-
-case class SurveyorNameGenerator() extends AnonymousVariableNameGenerator {
-  private var counter = 0
-  private val inc = 1
-
-  def anonymousVarName(counter: Int) =
-    s"$prefix$counter"
-
-  override def nextName: String = {
-    val result = anonymousVarName(counter)
-    counter += inc
-    result
-  }
-}
-
-object SurveyorNameGenerator {
-  val generatorName = "SURVEYOR"
-  private val prefix = s"  $generatorName"
-
-  def anonymousVarName(counter: Int) =
-    s"$prefix$counter"
-
-  def named(x: String): Boolean = !s""" {2}($generatorName)(-?\\d+)""".r.matches(x)
-}
 
 case object UpToDateScopes extends StepSequencer.Condition
 
@@ -72,9 +50,6 @@ case object UpToDateScopes extends StepSequencer.Condition
 case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState]
     with StepSequencer.Step
     with ParsePipelineTransformerFactory {
-
-  val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
-  val noLocalCallables: Set[LocalCallableScopeSignature] = Set.empty[LocalCallableScopeSignature]
 
   override def process(from: BaseState, context: BaseContext): BaseState =
     if (from.maybeScopeState.isEmpty || from.statement != from.scopeState().workingScope.astNode)

@@ -25,10 +25,10 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingContext
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.PatternIncomingContext
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.RegularContext
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingContext
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 

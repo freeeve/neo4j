@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
+package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.util.CallableName
 

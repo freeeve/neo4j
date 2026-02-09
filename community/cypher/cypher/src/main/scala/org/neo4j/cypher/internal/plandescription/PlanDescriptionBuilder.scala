@@ -22,8 +22,8 @@ package org.neo4j.cypher.internal.plandescription
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.frontend.PlannerName
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.plandescription.Arguments.BatchSize
 import org.neo4j.cypher.internal.plandescription.Arguments.Runtime

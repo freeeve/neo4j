@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheStrategy
 import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
@@ -41,7 +42,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator

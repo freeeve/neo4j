@@ -67,11 +67,23 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.WithType
 import org.neo4j.cypher.internal.ast.YieldType
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
+import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.Result
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResultWithNotYetKnownColumns
+import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegClause {

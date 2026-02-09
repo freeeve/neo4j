@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UpdateClause
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
 import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
@@ -43,7 +44,6 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable

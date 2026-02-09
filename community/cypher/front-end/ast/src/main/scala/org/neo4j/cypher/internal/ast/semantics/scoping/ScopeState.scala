@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
+package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItem
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
 import org.neo4j.cypher.internal.util.ASTNode
 
 case class ScopeState(

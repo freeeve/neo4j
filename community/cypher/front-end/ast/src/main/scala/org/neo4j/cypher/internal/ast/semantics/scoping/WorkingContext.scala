@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
+package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.noLocalCallables
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.noLocalCallables
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 

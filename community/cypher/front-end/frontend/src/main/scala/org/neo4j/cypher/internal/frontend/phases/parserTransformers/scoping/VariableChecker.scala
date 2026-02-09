@@ -39,6 +39,14 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
+import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IterableExpression
 import org.neo4j.cypher.internal.expressions.NodePattern

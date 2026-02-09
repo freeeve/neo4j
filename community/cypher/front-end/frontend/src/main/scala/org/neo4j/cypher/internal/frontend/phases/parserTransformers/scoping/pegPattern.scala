@@ -16,6 +16,13 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -293,7 +300,7 @@ object pegPattern {
       astNode,
       RegularContext(
         constants = incoming.predicateConstants union incoming.pathConstants,
-        variables = ScopeSurveyor.unitVariables,
+        variables = unitVariables,
         localCallables = incoming.localCallables
       ),
       c

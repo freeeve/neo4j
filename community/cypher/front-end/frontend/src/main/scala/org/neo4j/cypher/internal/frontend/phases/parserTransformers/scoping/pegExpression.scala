@@ -18,6 +18,11 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepVariableScope

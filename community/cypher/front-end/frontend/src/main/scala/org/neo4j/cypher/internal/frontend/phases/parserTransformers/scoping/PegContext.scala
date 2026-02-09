@@ -18,7 +18,9 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState.RecordedScopes
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 

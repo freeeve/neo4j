@@ -35,6 +35,16 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Yield
+import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
+import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
+import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
@@ -100,7 +110,7 @@ object pegStatement {
               if (nextQuery.result.isTableResult)
                 incoming.replaceWith(nextQuery.result.getColumns.toSet)
               else
-                incoming.replaceWith(ScopeSurveyor.unitVariables)
+                incoming.replaceWith(unitVariables)
 
             val connectingQuery =
               StatementScope(

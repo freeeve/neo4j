@@ -24,12 +24,12 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
+import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeState
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttribute
