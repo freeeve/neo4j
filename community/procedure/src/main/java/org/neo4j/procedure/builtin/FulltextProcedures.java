@@ -59,7 +59,6 @@ import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
-import org.neo4j.procedure.UnsupportedDatabaseTypes;
 import org.neo4j.util.FeatureToggles;
 
 /**
@@ -103,12 +102,14 @@ public class FulltextProcedures {
     @Description(
             "Wait for the updates from recently committed transactions to be applied to any eventually-consistent full-text indexes.")
     @Procedure(name = "db.index.fulltext.awaitEventuallyConsistentIndexRefresh", mode = READ)
-    @UnsupportedDatabaseTypes(UnsupportedDatabaseTypes.DatabaseType.SPD)
     public void awaitRefresh() {
         if (callContext.isSystemDatabase()) {
             return;
         }
 
+        if (spdBuiltInProcedures.isGraphShard()) {
+            spdBuiltInProcedures.awaitFulltextIndexRefresh();
+        }
         resolver.resolveDependency(IndexingService.class).awaitFulltextIndexRefresh();
     }
 

@@ -72,6 +72,11 @@ public interface SpdBuiltInProcedures {
             throw unsupported();
         }
 
+        @Override
+        public void awaitFulltextIndexRefresh() {
+            throw unsupported();
+        }
+
         private static UnsupportedOperationException unsupported() {
             return new UnsupportedOperationException("Trying to use SPD procedure outside of SPD context");
         }
@@ -92,4 +97,6 @@ public interface SpdBuiltInProcedures {
     void resampleOutdatedIndexes();
 
     void resampleIndex(String indexName);
+
+    void awaitFulltextIndexRefresh();
 }
