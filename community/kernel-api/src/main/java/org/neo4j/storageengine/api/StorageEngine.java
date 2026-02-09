@@ -235,4 +235,10 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
     default long estimateAvailableReservedSpace() {
         return 0L;
     }
+
+    /**
+     * @return potentially a more specific {@link CommandReaderFactory} than that of
+     * {@link StorageEngineFactory#commandReaderFactory()}.
+     */
+    CommandReaderFactory commandReaderFactory();
 }

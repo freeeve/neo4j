@@ -117,6 +117,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.LogMetadataProvider;
@@ -859,6 +860,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public CommandReaderFactory commandReaderFactory() {
+        return RecordStorageCommandReaderFactory.INSTANCE;
     }
 
     private class RecordCountsBuilder implements CountsBuilder {

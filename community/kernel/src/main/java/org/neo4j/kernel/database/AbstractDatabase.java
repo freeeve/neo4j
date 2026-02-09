@@ -54,6 +54,7 @@ import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.time.SystemNanoClock;
@@ -303,6 +304,8 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
     public abstract MemoryTracker getOtherDatabaseMemoryTracker();
 
     public abstract StorageEngineFactory getStorageEngineFactory();
+
+    public abstract StorageEngine getStorageEngine();
 
     public abstract IOController getIoController();
 

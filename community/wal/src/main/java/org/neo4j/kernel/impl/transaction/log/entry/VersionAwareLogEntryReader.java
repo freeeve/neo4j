@@ -58,21 +58,27 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     @Override
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
         try {
-            byte versionCode = channel.markAndGetVersion(positionMarker);
-            if (versionCode == 0) {
-                // we reached the end of available records but still have space available in pre-allocated file
-                // we reset channel position to restore last read byte in case someone would like to re-read or check it
-                // again if possible
-                // and we report that we reach end of record stream from our point of view.
-                // Let's double-check that it isn't a corrupt byte by checking part of the tail first
-                checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
-                channel.position(positionMarker.getByteOffset());
-                return null;
-            }
-            updateParserSet(channel, versionCode);
+            while (true) {
+                byte versionCode = channel.markAndGetVersion(positionMarker);
+                if (versionCode == 0) {
+                    // we reached the end of available records but still have space available in pre-allocated file
+                    // we reset channel position to restore last read byte in case someone would like to re-read or
+                    // check it again if possible,
+                    // and we report that we reach end of record stream from our point of view.
+                    // Let's double-check that it isn't a corrupt byte by checking part of the tail first
+                    checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
+                    channel.position(positionMarker.getByteOffset());
+                    return null;
+                }
+                updateParserSet(channel, versionCode);
 
-            byte typeCode = channel.get();
-            return readEntry(channel, versionCode, typeCode, memoryTracker);
+                byte typeCode = channel.get();
+                LogEntry logEntry = readEntry(channel, versionCode, typeCode, memoryTracker);
+                if (logEntry != LogEntry.SKIP) {
+                    return logEntry;
+                }
+            }
+
         } catch (ReadPastEndException e) {
             return null;
         } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {

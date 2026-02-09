@@ -1304,6 +1304,11 @@ public class Database extends AbstractDatabase {
     }
 
     @Override
+    public StorageEngine getStorageEngine() {
+        return storageEngine;
+    }
+
+    @Override
     public IOController getIoController() {
         return ioController;
     }

@@ -22,6 +22,7 @@ package org.neo4j.storageengine.api;
 import java.io.IOException;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.memory.MemoryTracker;
@@ -38,6 +39,18 @@ import org.neo4j.string.Mask;
  * changes represented by the command are actually applied onto storage.
  */
 public interface StorageCommand extends KernelVersionProvider, Mask.Maskable {
+    StorageCommand SKIP = new StorageCommand() {
+        @Override
+        public void serialize(WritableChannel channel) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public KernelVersion kernelVersion() {
+            throw new UnsupportedOperationException();
+        }
+    };
+
     /**
      * Serializes change this command represents into a {@link WritableChannel} for later reading back.
      * First byte of command must be type of command.

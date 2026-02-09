@@ -58,6 +58,9 @@ public abstract class LogEntrySerializer<T extends LogEntry> {
      * for reading commands from, for log entry types that need that.
      * @param memoryTracker to track allocated memory.
      * @return the next {@link LogEntry} read and parsed from the {@code channel}.
+     * If the read happens to be made such that it goes beyond an envelope boundary then {@code null} is returned.
+     * If the entry isn't relevant then {@link LogEntry#SKIP} is returned, at which point the outer reader
+     * should continue reading the next entry, if possible.
      * @throws IOException I/O error from channel or if data was read past the end of the channel.
      */
     public abstract T parse(

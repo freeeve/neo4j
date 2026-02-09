@@ -24,6 +24,7 @@ import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
@@ -31,13 +32,13 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StorageCommand;
 
-public class CommandLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryCommand> {
+public class CommandLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntry> {
     public CommandLogEntrySerializerV4_2() {
         super(LogEntryTypeCodes.COMMAND);
     }
 
     @Override
-    public LogEntryCommand parse(
+    public LogEntry parse(
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
@@ -45,11 +46,14 @@ public class CommandLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryCo
             MemoryTracker memoryTracker)
             throws IOException {
         StorageCommand command = commandReaderFactory.get(version).read(channel, memoryTracker);
+        if (command == StorageCommand.SKIP) {
+            return LogEntry.SKIP;
+        }
         return command == null ? null : new LogEntryCommand(command);
     }
 
     @Override
-    public int write(WritableChannel channel, LogEntryCommand logEntry) throws IOException {
+    public int write(WritableChannel channel, LogEntry logEntry) throws IOException {
         throw new UnsupportedOperationException("Use specialized writer for storage commands.");
     }
 }

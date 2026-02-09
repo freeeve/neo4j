@@ -38,7 +38,8 @@ public interface CommandReader extends KernelVersionProvider {
      *
      * @param channel {@link ReadableChannel} to read from.
      * @param memoryTracker the {@link MemoryTracker} to use
-     * @return {@link StorageCommand} or {@code null} if end reached.
+     * @return {@link StorageCommand} if the next command was read successfully and the command is relevant,
+     * otherwise {@link StorageCommand#SKIP}. If the channel end was reached then {@code null} is returned.
      * @throws IOException if channel throws exception.
      */
     StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException;

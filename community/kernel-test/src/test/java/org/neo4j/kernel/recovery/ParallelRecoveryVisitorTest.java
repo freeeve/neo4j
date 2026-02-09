@@ -65,6 +65,7 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
@@ -515,6 +516,11 @@ class ParallelRecoveryVisitorTest {
         @Override
         public StorageEngineCostCharacteristics costCharacteristics() {
             return costCharacteristics;
+        }
+
+        @Override
+        public CommandReaderFactory commandReaderFactory() {
+            throw new UnsupportedOperationException();
         }
     }
 }

@@ -22,6 +22,23 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import org.neo4j.string.Mask;
 
 public interface LogEntry extends Mask.Maskable {
+    LogEntry SKIP = new LogEntry() {
+        @Override
+        public byte getType() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String timestamp(long timeWritten) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String toString(Mask mask) {
+            return "SKIP";
+        }
+    };
+
     byte getType();
 
     String timestamp(long timeWritten);

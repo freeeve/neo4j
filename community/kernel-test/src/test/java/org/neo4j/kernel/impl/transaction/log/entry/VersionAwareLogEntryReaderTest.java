@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
@@ -28,23 +29,39 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newSta
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializationSets.serializationSet;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
+import org.neo4j.storageengine.api.CommandReaderFactory;
+import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.test.LatestVersions;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.arguments.KernelVersionSource;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
 
+@ExtendWith(RandomExtension.class)
 class VersionAwareLogEntryReaderTest {
-    private final LogEntryReader logEntryReader = new VersionAwareLogEntryReader(
-            TestCommandReaderFactory.INSTANCE, LatestVersions.BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
+    @Inject
+    private RandomSupport random;
+
+    private final LogEntryReader logEntryReader = logEntryReader(TestCommandReaderFactory.INSTANCE);
 
     @ParameterizedTest
     @KernelVersionSource(atLeast = "5.0")
@@ -110,6 +127,7 @@ recreatedStart = %s,
         checksums.put(KernelVersion.V2025_10, -675363614);
         checksums.put(KernelVersion.V2025_11, -656947511);
         checksums.put(KernelVersion.V2026_01, -188168168);
+        checksums.put(KernelVersion.V2026_02, -73283021);
 
         final LogEntryCommit commit = newCommitEntry(kernelVersion, 42, 21, checksums.get(kernelVersion));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
@@ -131,9 +149,7 @@ recreatedStart = %s,
         final LogEntryCommand command = new LogEntryCommand(testCommand);
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
 
-        channel.putVersion(kernelVersion.version());
-        channel.put(LogEntryTypeCodes.COMMAND);
-        testCommand.serialize(channel);
+        writeCommand(kernelVersion, channel, testCommand);
 
         // when
         final LogEntry logEntry = logEntryReader.readLogEntry(channel);
@@ -171,9 +187,78 @@ recreatedStart = %s,
         assertNull(logEntry);
     }
 
+    @Test
+    void shouldContinueReadingThroughSkippedCommands() throws IOException {
+        // given
+        var channel = new InMemoryClosableChannel(true);
+        int numCommands = random.nextInt(5, 10);
+        int[] commandsToSkip = random.selection(IntStream.range(0, numCommands).toArray(), 1, numCommands - 1, false);
+        List<LogEntry> expectedEntries = new ArrayList<>(numCommands);
+        for (int i = 0; i < numCommands; i++) {
+            var command = new TestCommand(random.nextBytes(random.nextInt(1, 10)));
+            var entry = new LogEntryCommand(command);
+            writeCommand(LATEST_KERNEL_VERSION, channel, command);
+            if (!ArrayUtils.contains(commandsToSkip, i)) {
+                expectedEntries.add(entry);
+            }
+        }
+
+        // when
+        var logEntryReader = logEntryReader(new SkippingCommandReaderFactory(commandsToSkip));
+        List<LogEntry> readCommands = new ArrayList<>();
+        LogEntry lastRead;
+        while ((lastRead = logEntryReader.readLogEntry(channel)) != null) {
+            readCommands.add(lastRead);
+        }
+
+        // then
+        assertThat(readCommands).isEqualTo(expectedEntries);
+    }
+
     private static void writeEntry(
-            InMemoryClosableChannel channel, LogEntry start1, LogEntrySerializationSet serializationSet)
+            InMemoryClosableChannel channel, LogEntry entry, LogEntrySerializationSet serializationSet)
             throws IOException {
-        serializationSet.select(start1.getType()).write(channel, start1);
+        serializationSet.select(entry.getType()).write(channel, entry);
+    }
+
+    private static VersionAwareLogEntryReader logEntryReader(CommandReaderFactory commandReaderFactory) {
+        return new VersionAwareLogEntryReader(
+                commandReaderFactory, LatestVersions.BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
+    }
+
+    private static void writeCommand(
+            KernelVersion kernelVersion, InMemoryClosableChannel channel, TestCommand testCommand) throws IOException {
+        channel.putVersion(kernelVersion.version());
+        channel.put(LogEntryTypeCodes.COMMAND);
+        testCommand.serialize(channel);
+    }
+
+    private static class SkippingCommandReaderFactory implements CommandReaderFactory {
+        private final int[] commandsToSkip;
+        private int index;
+
+        SkippingCommandReaderFactory(int[] commandsToSkip) {
+            this.commandsToSkip = commandsToSkip;
+        }
+
+        @Override
+        public CommandReader get(KernelVersion version) {
+            var actual = TestCommandReaderFactory.INSTANCE.get(version);
+            return new CommandReader() {
+                @Override
+                public KernelVersion kernelVersion() {
+                    return actual.kernelVersion();
+                }
+
+                @Override
+                public StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException {
+                    var command = actual.read(channel, memoryTracker);
+                    if (ArrayUtils.contains(commandsToSkip, index++)) {
+                        return StorageCommand.SKIP;
+                    }
+                    return command;
+                }
+            };
+        }
     }
 }
