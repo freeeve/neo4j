@@ -373,8 +373,16 @@ public class BuiltInProcedures {
         @Description("A label within the database.")
         public final String label;
 
+        private LabelResult(String label) {
+            this.label = label;
+        }
+
         private LabelResult(Label label) {
-            this.label = label.name();
+            this(label.name());
+        }
+
+        public static LabelResult from(String label) {
+            return new LabelResult(label);
         }
     }
 
@@ -392,8 +400,16 @@ public class BuiltInProcedures {
         @Description("A relationship type in the database.")
         public final String relationshipType;
 
+        private RelationshipTypeResult(String relationshipType) {
+            this.relationshipType = relationshipType;
+        }
+
         private RelationshipTypeResult(RelationshipType relationshipType) {
-            this.relationshipType = relationshipType.name();
+            this(relationshipType.name());
+        }
+
+        public static RelationshipTypeResult from(String relationshipType) {
+            return new RelationshipTypeResult(relationshipType);
         }
     }
 
