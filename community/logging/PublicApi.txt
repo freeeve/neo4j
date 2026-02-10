@@ -17,6 +17,9 @@ org.neo4j.logging.Log::info(java.lang.String) void public abstract
 org.neo4j.logging.Log::info(java.lang.String, java.lang.Object...) void public abstract
 org.neo4j.logging.Log::info(java.lang.String, java.lang.Throwable) void public abstract
 org.neo4j.logging.Log::isDebugEnabled() boolean public abstract
+org.neo4j.logging.Log::isErrorEnabled() boolean public default
+org.neo4j.logging.Log::isInfoEnabled() boolean public default
+org.neo4j.logging.Log::isWarnEnabled() boolean public default
 org.neo4j.logging.Log::warn(java.lang.String) void public abstract
 org.neo4j.logging.Log::warn(java.lang.String, java.lang.Object...) void public abstract
 org.neo4j.logging.Log::warn(java.lang.String, java.lang.Throwable) void public abstract

@@ -124,6 +124,21 @@ public class DatabaseLog implements InternalLog {
         return delegate.isDebugEnabled();
     }
 
+    @Override
+    public boolean isWarnEnabled() {
+        return delegate.isWarnEnabled();
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return delegate.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return delegate.isErrorEnabled();
+    }
+
     private DatabaseTagLogMessage taggedMessage(String message) {
         return new DatabaseTagLogMessage(databaseLogIdentifier, message, null);
     }

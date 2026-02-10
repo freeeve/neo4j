@@ -56,6 +56,21 @@ public class BufferingLog implements InternalLog {
     }
 
     @Override
+    public boolean isWarnEnabled() {
+        return true;
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return true;
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return true;
+    }
+
+    @Override
     public synchronized void debug(String message) {
         buffer.add(other -> other.debug(message));
     }

@@ -51,6 +51,21 @@ public class DelegatingLog implements InternalLog {
     }
 
     @Override
+    public boolean isWarnEnabled() {
+        return delegate.isWarnEnabled();
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return delegate.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return delegate.isErrorEnabled();
+    }
+
+    @Override
     public void debug(String message) {
         delegate.debug(message);
     }

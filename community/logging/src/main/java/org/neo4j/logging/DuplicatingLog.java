@@ -37,6 +37,21 @@ public class DuplicatingLog implements InternalLog {
     }
 
     @Override
+    public boolean isWarnEnabled() {
+        return log1.isWarnEnabled() || log2.isWarnEnabled();
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return log1.isInfoEnabled() || log2.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return log1.isErrorEnabled() || log2.isErrorEnabled();
+    }
+
+    @Override
     public void debug(String message) {
         log1.debug(message);
         log2.debug(message);

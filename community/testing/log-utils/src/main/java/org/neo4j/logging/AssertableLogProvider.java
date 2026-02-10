@@ -32,14 +32,32 @@ import java.util.function.Function;
 
 public class AssertableLogProvider extends AbstractLogProvider<InternalLog> {
     private final boolean debugEnabled;
+    private final boolean warnEnabled;
+    private final boolean infoEnabled;
+    private final boolean errorEnabled;
+
     private final Queue<LogCall> logCalls = new LinkedBlockingQueue<>();
 
     public AssertableLogProvider() {
-        this(false);
+        this(false, false, false, false);
     }
 
     public AssertableLogProvider(boolean debugEnabled) {
+        this(debugEnabled, false, false, false);
+    }
+
+    public AssertableLogProvider(boolean debugEnabled, boolean warnEnabled, boolean infoEnabled, boolean errorEnabled) {
         this.debugEnabled = debugEnabled;
+
+        if (debugEnabled) {
+            this.warnEnabled = true;
+            this.infoEnabled = true;
+            this.errorEnabled = true;
+        } else {
+            this.warnEnabled = warnEnabled;
+            this.infoEnabled = infoEnabled;
+            this.errorEnabled = errorEnabled;
+        }
     }
 
     public void print(PrintStream out) {
@@ -162,6 +180,21 @@ public class AssertableLogProvider extends AbstractLogProvider<InternalLog> {
         @Override
         public boolean isDebugEnabled() {
             return debugEnabled;
+        }
+
+        @Override
+        public boolean isWarnEnabled() {
+            return warnEnabled;
+        }
+
+        @Override
+        public boolean isInfoEnabled() {
+            return infoEnabled;
+        }
+
+        @Override
+        public boolean isErrorEnabled() {
+            return errorEnabled;
         }
 
         @Override

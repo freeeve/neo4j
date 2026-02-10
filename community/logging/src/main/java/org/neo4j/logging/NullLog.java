@@ -40,6 +40,21 @@ public final class NullLog implements InternalLog {
     }
 
     @Override
+    public boolean isWarnEnabled() {
+        return false;
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return false;
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return false;
+    }
+
+    @Override
     public void debug(String message) {}
 
     @Override

@@ -32,6 +32,27 @@ public interface Log {
     boolean isDebugEnabled();
 
     /**
+     * @return true if the current log level enables warn logging
+     */
+    default boolean isWarnEnabled() {
+        return false;
+    }
+
+    /**
+     * @return true if the current log level enables info logging
+     */
+    default boolean isInfoEnabled() {
+        return false;
+    }
+
+    /**
+     * @return true if the current log level enables error logging
+     */
+    default boolean isErrorEnabled() {
+        return false;
+    }
+
+    /**
      * @param message The message to be written
      */
     void debug(String message);

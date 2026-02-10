@@ -50,6 +50,21 @@ public class Log4jLog extends ExtendedLoggerWrapper implements InternalLog {
     }
 
     @Override
+    public boolean isWarnEnabled() {
+        return logger.isWarnEnabled();
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return logger.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return logger.isErrorEnabled();
+    }
+
+    @Override
     public void debug(Neo4jLogMessage message) {
         if (internalErrorMarkersEnabled) {
             Neo4jLogMarker marker = message.getMarker();

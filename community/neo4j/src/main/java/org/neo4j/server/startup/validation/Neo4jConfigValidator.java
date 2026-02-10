@@ -120,6 +120,21 @@ public class Neo4jConfigValidator implements ConfigValidator {
         }
 
         @Override
+        public boolean isWarnEnabled() {
+            return true;
+        }
+
+        @Override
+        public boolean isInfoEnabled() {
+            return true;
+        }
+
+        @Override
+        public boolean isErrorEnabled() {
+            return true;
+        }
+
+        @Override
         public void debug(String message) {}
 
         @Override
