@@ -241,7 +241,7 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.NEXT_STATEMENT) should be(1)
   }
 
-  testVersionsExcept5("should find SEARCH clause") { version =>
+  testVersionsExcept5("should find SEARCH clause without filters") { version =>
     val stats = runPipeline(
       version,
       """
@@ -255,7 +255,27 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
         |RETURN movie.title AS title
         |""".stripMargin
     )
-    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH_WITHOUT_FILTERS) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS) should be(0)
+  }
+
+  testVersionsExcept5("should find SEARCH clause with filters") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |MATCH (movie)
+        |  WHERE movie.rating > 7
+        |  SEARCH movie IN (
+        |    VECTOR INDEX idx
+        |    FOR $embedding
+        |    WHERE movie.rating > 8
+        |    LIMIT 5
+        |  )
+        |RETURN movie.title AS title
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH_WITHOUT_FILTERS) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS) should be(1)
   }
 
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {

@@ -93,8 +93,10 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.CONDITIONAL_QUERY)
       case _: NextStatement =>
         increaseMetric(SyntaxUsageMetricKey.NEXT_STATEMENT)
-      case _: Search =>
-        increaseMetric(SyntaxUsageMetricKey.SEARCH)
+      case Search(_, _, _, _, None, _) =>
+        increaseMetric(SyntaxUsageMetricKey.SEARCH_WITHOUT_FILTERS)
+      case Search(_, _, _, _, Some(_), _) =>
+        increaseMetric(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS)
     }
   }
 
