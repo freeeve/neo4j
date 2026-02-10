@@ -35,6 +35,14 @@ import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.expressions.functions.Coalesce
+import org.neo4j.cypher.internal.expressions.functions.CollDistinct
+import org.neo4j.cypher.internal.expressions.functions.CollFlatten
+import org.neo4j.cypher.internal.expressions.functions.CollIndexOf
+import org.neo4j.cypher.internal.expressions.functions.CollInsert
+import org.neo4j.cypher.internal.expressions.functions.CollMax
+import org.neo4j.cypher.internal.expressions.functions.CollMin
+import org.neo4j.cypher.internal.expressions.functions.CollRemove
+import org.neo4j.cypher.internal.expressions.functions.CollSort
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.Distance
 import org.neo4j.cypher.internal.expressions.functions.Exists
@@ -151,6 +159,52 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         case Collect =>
           checkFunctionTypeSignatures(semanticCheckContext, Collect, invocation) ifOkChain {
             specifyType(types(invocation.arguments(0))(_).wrapInList, invocation)
+          }
+
+        case CollDistinct =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollDistinct, invocation) ifOkChain {
+            specifyType(types(invocation.arguments.head), invocation)
+          }
+
+        case CollFlatten =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollFlatten, invocation) ifOkChain {
+            specifyType(types(invocation.arguments.head), invocation)
+          }
+
+        case CollIndexOf =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollIndexOf, invocation) ifOkChain {
+            specifyType(CTInteger, invocation)
+          }
+
+        case CollInsert =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollInsert, invocation) ifOkChain {
+            specifyType(
+              (s: SemanticState) => // Original list + new item
+                possibleTypes(invocation.arguments.head)(s) coerceOrLeastUpperBound types(
+                  invocation.arguments(2)
+                )(s).wrapInList,
+              invocation
+            )
+          }
+
+        case CollMax =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollMax, invocation) ifOkChain {
+            specifyType(possibleTypes(invocation.arguments.head), invocation)
+          }
+
+        case CollMin =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollMin, invocation) ifOkChain {
+            specifyType(possibleTypes(invocation.arguments.head), invocation)
+          }
+
+        case CollRemove =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollRemove, invocation) ifOkChain {
+            specifyType(types(invocation.arguments.head), invocation)
+          }
+
+        case CollSort =>
+          checkFunctionTypeSignatures(semanticCheckContext, CollSort, invocation) ifOkChain {
+            specifyType(types(invocation.arguments.head), invocation)
           }
 
         case Exists =>
