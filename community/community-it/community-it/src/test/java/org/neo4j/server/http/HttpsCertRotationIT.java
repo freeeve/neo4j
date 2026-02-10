@@ -61,6 +61,7 @@ import org.neo4j.configuration.ssl.SslPolicyConfig;
 import org.neo4j.server.configuration.ServerSettings;
 import org.neo4j.server.helpers.TestWebContainer;
 import org.neo4j.ssl.SslResourceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 import org.neo4j.test.server.InsecureTrustManager;
 
@@ -68,6 +69,7 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
     private TestWebContainer testWebContainer;
 
     @Test
+    @SkipOnSpd
     void shouldReplaceCertificate() throws Exception {
 
         // setup cert
