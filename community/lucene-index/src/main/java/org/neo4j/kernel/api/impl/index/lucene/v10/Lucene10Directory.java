@@ -233,7 +233,7 @@ public class Lucene10Directory implements LuceneDirectory {
         }
 
         @Override
-        public synchronized void merge(MergeSource mergeSource, MergeTrigger trigger) throws IOException {
+        public void merge(MergeSource mergeSource, MergeTrigger trigger) throws IOException {
             LogMergeListener mergeListener = new LogMergeListener(log, trigger.name());
             try (mergeListener) {
                 mergeSource = new LoggedMergeSource(mergeSource, mergeListener);
