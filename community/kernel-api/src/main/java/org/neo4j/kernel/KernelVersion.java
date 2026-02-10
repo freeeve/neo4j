@@ -86,7 +86,7 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_IN_WHICH_TOKEN_INDEXES_ARE_INTRODUCED = V4_3_D4;
     public static final KernelVersion VERSION_RANGE_POINT_TEXT_INDEXES_ARE_INTRODUCED = V4_4;
     public static final KernelVersion VERSION_LITTLE_ENDIAN_TX_LOG_INTRODUCED = V5_0;
-    public static final KernelVersion VERSION_TRIGRAM_INDEX_INTRODUCED = V5_0;
+    public static final KernelVersion VERSION_TRIGRAM_INDEX_INTRODUCED = V5_0; // technically 5.1, but no kernel version
     public static final KernelVersion VERSION_REL_UNIQUE_CONSTRAINTS_INTRODUCED = V5_7;
     public static final KernelVersion VERSION_INDEX_USAGE_STATISTICS_INTRODUCED = V5_8;
     public static final KernelVersion VERSION_CDC_INTRODUCED = V5_8;
