@@ -105,11 +105,11 @@ class InternalTransactionCommitProcessIT {
 
         long lastRotationTx = checkPointer.forceCheckPoint(new SimpleTriggerInfo("test"));
         assertEquals(
-                transactionIdStore.getLastClosedTransactionId(),
+                transactionIdStore.getHighestGapFreeClosedTransactionId(),
                 lastRotationTx,
                 "NeoStore last closed transaction id should be equal last count store rotation transaction id.");
         assertEquals(
-                transactionIdStore.getLastClosedTransactionId(),
+                transactionIdStore.getHighestGapFreeClosedTransactionId(),
                 countsStore.txId(),
                 "Last closed transaction should be last rotated tx in count store");
     }

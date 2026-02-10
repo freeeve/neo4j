@@ -68,17 +68,17 @@ public class ReadOnlyTransactionIdStore implements TransactionIdStore {
     }
 
     @Override
-    public long getLastClosedTransactionId() {
+    public long getHighestGapFreeClosedTransactionId() {
         return lastCommittedTransaction.id();
     }
 
     @Override
     public TransactionIdSnapshot getClosedTransactionSnapshot() {
-        return new TransactionIdSnapshot(getLastClosedTransactionId());
+        return new TransactionIdSnapshot(getHighestGapFreeClosedTransactionId());
     }
 
     @Override
-    public ClosedTransactionMetadata getLastClosedTransaction() {
+    public ClosedTransactionMetadata getHighestGapFreeClosedTransaction() {
         return new ClosedTransactionMetadata(lastCommittedTransaction, logPosition);
     }
 

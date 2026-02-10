@@ -58,13 +58,13 @@ class LogMetadataProviderImplTest {
         long consensusIndex = 12345;
         long transactionId;
         LogMetadataProviderImpl metadataProvider = newMetadataProvider(LogTailLogVersionsMetadata.EMPTY_LOG_TAIL);
-        transactionId = metadataProvider.getLastClosedTransactionId() + 1;
+        transactionId = metadataProvider.getHighestGapFreeClosedTransactionId() + 1;
 
         // WHEN
         metadataProvider.transactionClosed(
                 transactionId, 9, DEFAULT_BOOTSTRAP_VERSION, version, byteOffset, checksum, timestamp, consensusIndex);
         // long[] with the highest offered gap-free number and its meta data.
-        var closedTransaction = metadataProvider.getLastClosedTransaction();
+        var closedTransaction = metadataProvider.getHighestGapFreeClosedTransaction();
 
         // EXPECT
         LogPosition logPosition = closedTransaction.logPosition();
@@ -90,7 +90,7 @@ class LogMetadataProviderImplTest {
         };
 
         metadataProvider = newMetadataProvider(tail);
-        var lastClosedTransaction = metadataProvider.getLastClosedTransaction();
+        var lastClosedTransaction = metadataProvider.getHighestGapFreeClosedTransaction();
         logPosition = lastClosedTransaction.logPosition();
         assertEquals(version, logPosition.getLogVersion());
         assertEquals(byteOffset, logPosition.getByteOffset());
@@ -187,7 +187,7 @@ class LogMetadataProviderImplTest {
         });
 
         race.addContestants(3, throwing(() -> {
-            LogPosition logPosition = store.getLastClosedTransaction().logPosition();
+            LogPosition logPosition = store.getHighestGapFreeClosedTransaction().logPosition();
             long logVersion = logPosition.getLogVersion();
             long byteOffset = logPosition.getByteOffset();
             assertLogVersionEqualsByteOffset(logVersion, byteOffset, "file");
@@ -195,7 +195,7 @@ class LogMetadataProviderImplTest {
         }));
 
         race.addContestants(3, () -> {
-            var transaction = store.getLastClosedTransaction();
+            var transaction = store.getHighestGapFreeClosedTransaction();
             assertLogVersionEqualsByteOffset(
                     transaction.transactionId().id(), transaction.logPosition().getLogVersion(), "API");
             apiReadCount.incrementAndGet();
@@ -240,11 +240,11 @@ class LogMetadataProviderImplTest {
         LogMetadataProviderImpl metadataProvider = newMetadataProvider();
         metadataProvider.resetLastClosedTransaction(3, 9, DEFAULT_BOOTSTRAP_VERSION, 4, 5, 6, 7, 8);
 
-        assertEquals(3L, metadataProvider.getLastClosedTransactionId());
+        assertEquals(3L, metadataProvider.getHighestGapFreeClosedTransactionId());
         assertEquals(
                 new ClosedTransactionMetadata(
                         new TransactionId(3, 9, DEFAULT_BOOTSTRAP_VERSION, 6, 7, 8), new LogPosition(4, 5)),
-                metadataProvider.getLastClosedTransaction());
+                metadataProvider.getHighestGapFreeClosedTransaction());
     }
 
     @Test
@@ -274,7 +274,7 @@ class LogMetadataProviderImplTest {
                 new ClosedTransactionMetadata(
                         new TransactionId(40, 41, DEFAULT_BOOTSTRAP_VERSION, 4444, BASE_TX_COMMIT_TIMESTAMP, 7),
                         new LogPosition(0, LogFormat.V9.getHeaderSize())),
-                metadataProvider.getLastClosedTransaction());
+                metadataProvider.getHighestGapFreeClosedTransaction());
     }
 
     @Test
@@ -303,7 +303,7 @@ class LogMetadataProviderImplTest {
                 new ClosedTransactionMetadata(
                         new TransactionId(40, 41, DEFAULT_BOOTSTRAP_VERSION, 4444, BASE_TX_COMMIT_TIMESTAMP, 8),
                         new LogPosition(0, LogFormat.V9.getHeaderSize())),
-                metadataProvider.getLastClosedTransaction());
+                metadataProvider.getHighestGapFreeClosedTransaction());
     }
 
     @Test

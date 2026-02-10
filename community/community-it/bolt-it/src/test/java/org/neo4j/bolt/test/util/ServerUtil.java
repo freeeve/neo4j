@@ -69,7 +69,7 @@ public final class ServerUtil {
     public static long getLastClosedTransactionId(Neo4jWithSocket server) {
         var resolver = ((GraphDatabaseAPI) server.graphDatabaseService()).getDependencyResolver();
         var txIdStore = resolver.resolveDependency(TransactionIdStore.class);
-        return txIdStore.getLastClosedTransactionId();
+        return txIdStore.getHighestGapFreeClosedTransactionId();
     }
 
     public static <T> T resolveDependency(Neo4jWithSocket server, Class<T> type) {

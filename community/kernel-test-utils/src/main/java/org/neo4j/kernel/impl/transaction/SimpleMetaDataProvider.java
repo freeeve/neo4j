@@ -129,8 +129,8 @@ public class SimpleMetaDataProvider implements MetadataProvider, LogMetadataProv
     }
 
     @Override
-    public long getLastClosedTransactionId() {
-        return transactionIdStore.getLastClosedTransactionId();
+    public long getHighestGapFreeClosedTransactionId() {
+        return transactionIdStore.getHighestGapFreeClosedTransactionId();
     }
 
     @Override
@@ -139,8 +139,8 @@ public class SimpleMetaDataProvider implements MetadataProvider, LogMetadataProv
     }
 
     @Override
-    public ClosedTransactionMetadata getLastClosedTransaction() {
-        return transactionIdStore.getLastClosedTransaction();
+    public ClosedTransactionMetadata getHighestGapFreeClosedTransaction() {
+        return transactionIdStore.getHighestGapFreeClosedTransaction();
     }
 
     @Override

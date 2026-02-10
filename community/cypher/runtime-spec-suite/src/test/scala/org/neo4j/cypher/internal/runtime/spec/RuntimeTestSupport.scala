@@ -304,7 +304,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
   }
 
   def getLastClosedTransactionId: Long = {
-    txIdStore.getLastClosedTransactionId
+    txIdStore.getHighestGapFreeClosedTransactionId
   }
 
   def tx: InternalTransaction = _tx

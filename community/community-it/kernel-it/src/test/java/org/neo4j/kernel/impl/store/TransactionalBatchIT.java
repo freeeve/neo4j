@@ -89,7 +89,7 @@ public class TransactionalBatchIT {
     @Test
     void initialClosedBatchAndClosedTransactionsAreAligned() {
         var lastClosedBatch = metadataProvider.getLastClosedBatch();
-        var lastClosedTransaction = metadataProvider.getLastClosedTransaction();
+        var lastClosedTransaction = metadataProvider.getHighestGapFreeClosedTransaction();
 
         assertEquals(
                 lastClosedBatch.appendIndex(),

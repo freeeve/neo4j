@@ -29,11 +29,11 @@ public interface VersionContextSupplier {
      * Initialise current supplier with provider of transaction id snapshots
      * for future version context to be able to get snapshot of closed and visible transaction ids
      * @param transactionIdSnapshotFactory closed transaction id supplier.
-     * @param oldestTransactionIdFactory
+     * @param oldestVisibilityHorizonFactory
      */
     void init(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-            OldestTransactionIdFactory oldestTransactionIdFactory);
+            OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory);
 
     /**
      * Provide version context

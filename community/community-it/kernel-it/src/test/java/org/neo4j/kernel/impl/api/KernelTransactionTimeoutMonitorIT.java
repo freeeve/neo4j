@@ -253,7 +253,7 @@ public class KernelTransactionTimeoutMonitorIT {
                 Set<KernelTransactionHandle> activeTransactions = transactions.activeTransactions();
                 for (KernelTransactionHandle activeTransaction : activeTransactions) {
                     assertThat(activeTransaction.getTransactionHorizon()).isGreaterThan(1);
-                    assertThat(activeTransaction.getLastClosedTxId()).isGreaterThan(1);
+                    assertThat(activeTransaction.getHighestGapFreeTxId()).isGreaterThan(1);
                 }
             }
         }

@@ -151,7 +151,7 @@ class QueueTransactionAppenderTestIT {
         life.add(transactionAppender);
 
         long initialLastCommittedTxId = logMetadataProvider.getLastCommittedTransactionId();
-        long initialLastClosedTxId = logMetadataProvider.getLastClosedTransactionId();
+        long initialLastClosedTxId = logMetadataProvider.getHighestGapFreeClosedTransactionId();
         int numberOfTransactions = 10;
         for (int i = 0; i < numberOfTransactions; i++) {
             CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
@@ -160,7 +160,7 @@ class QueueTransactionAppenderTestIT {
 
         assertEquals(
                 initialLastCommittedTxId + numberOfTransactions, logMetadataProvider.getLastCommittedTransactionId());
-        assertEquals(initialLastClosedTxId, logMetadataProvider.getLastClosedTransactionId());
+        assertEquals(initialLastClosedTxId, logMetadataProvider.getHighestGapFreeClosedTransactionId());
     }
 
     @Test

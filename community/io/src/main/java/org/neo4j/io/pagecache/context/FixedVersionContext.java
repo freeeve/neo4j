@@ -51,7 +51,7 @@ public class FixedVersionContext implements VersionContext {
     }
 
     @Override
-    public long lastClosedTransactionId() {
+    public long highestGapFree() {
         return Long.MAX_VALUE;
     }
 
@@ -74,7 +74,7 @@ public class FixedVersionContext implements VersionContext {
     }
 
     @Override
-    public long oldestVisibleTransactionNumber() {
+    public long oldestVisibilityHorizon() {
         return INVALID_TRANSACTION_ID;
     }
 

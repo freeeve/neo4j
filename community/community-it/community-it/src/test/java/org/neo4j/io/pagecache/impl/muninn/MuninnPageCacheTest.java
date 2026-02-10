@@ -101,7 +101,7 @@ import org.neo4j.io.pagecache.PageEvictionCallback;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.io.pagecache.context.VersionContextSupplier;
@@ -2642,7 +2642,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         }
 
         @Override
-        public long lastClosedTransactionId() {
+        public long highestGapFree() {
             return lastClosedTxId;
         }
 
@@ -2667,7 +2667,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         }
 
         @Override
-        public long oldestVisibleTransactionNumber() {
+        public long oldestVisibilityHorizon() {
             return 0;
         }
 
@@ -3045,7 +3045,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         @Override
         public void init(
                 TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-                OldestTransactionIdFactory oldestTransactionIdFactory) {}
+                OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {}
 
         @Override
         public VersionContext createVersionContext() {

@@ -20,9 +20,9 @@
 package org.neo4j.io.pagecache.context;
 
 @FunctionalInterface
-public interface OldestTransactionIdFactory {
+public interface OldestVisibilityHorizonFactory {
 
-    OldestTransactionIdFactory EMPTY_OLDEST_ID_FACTORY = () -> 0;
+    OldestVisibilityHorizonFactory EMPTY_OLDEST_HORIZON_FACTORY = () -> 0;
 
-    long oldestTransactionId();
+    long oldestVisibilityHorizon();
 }

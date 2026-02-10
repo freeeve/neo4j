@@ -50,7 +50,7 @@ class KernelTransactionMonitorTest {
     void shouldNotTimeoutSchemaTransactions() {
         // given
         TransactionIdStore transactionIdStore = mock(TransactionIdStore.class);
-        when(transactionIdStore.getLastClosedTransactionId()).thenReturn(10L);
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(10L);
         when(transactionIdStore.getHighestEverClosedTransaction())
                 .thenReturn(new TransactionId(10, 10, LatestVersions.LATEST_KERNEL_VERSION, 10, 10, 10));
 
@@ -83,7 +83,7 @@ class KernelTransactionMonitorTest {
     @Test
     void readOldestVisibilityBoundaries() {
         TransactionIdStore transactionIdStore = mock(TransactionIdStore.class);
-        when(transactionIdStore.getLastClosedTransactionId()).thenReturn(1L);
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(1L);
         when(transactionIdStore.getHighestEverClosedTransaction())
                 .thenReturn(new TransactionId(1, 1, LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1));
 
@@ -96,35 +96,35 @@ class KernelTransactionMonitorTest {
                 NullLogService.getInstance(),
                 mock(IndexingService.class));
 
-        assertEquals(1, transactionMonitor.oldestVisibleClosedTransactionId());
-        assertEquals(1, transactionMonitor.oldestObservableHorizon());
+        assertEquals(1, transactionMonitor.oldestVisibilityHorizon());
+        assertEquals(1, transactionMonitor.oldestCleanupHorizon());
 
         // no transactions - default boundaries
         transactionMonitor.run();
-        assertEquals(1, transactionMonitor.oldestVisibleClosedTransactionId());
-        assertEquals(1, transactionMonitor.oldestObservableHorizon());
+        assertEquals(1, transactionMonitor.oldestVisibilityHorizon());
+        assertEquals(1, transactionMonitor.oldestCleanupHorizon());
 
         KernelTransactionHandle txHandle = mock(KernelTransactionHandle.class);
         when(txHandle.isSchemaTransaction()).thenReturn(true);
         when(txHandle.startTime()).thenReturn(17L);
         when(txHandle.timeout()).thenReturn(new TransactionTimeout(Duration.ofMinutes(1), TransactionTimedOut));
         when(txHandle.getTransactionHorizon()).thenReturn(5L);
-        when(txHandle.getLastClosedTxId()).thenReturn(15L);
+        when(txHandle.getHighestGapFreeTxId()).thenReturn(15L);
         when(kernelTransactions.executingTransactions()).thenReturn(Iterators.asSet(txHandle));
 
         // one active transaction - new boundaries
-        when(transactionIdStore.getLastClosedTransactionId()).thenReturn(20L);
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(20L);
 
         transactionMonitor.run();
-        assertEquals(15, transactionMonitor.oldestVisibleClosedTransactionId());
-        assertEquals(5, transactionMonitor.oldestObservableHorizon());
+        assertEquals(15, transactionMonitor.oldestVisibilityHorizon());
+        assertEquals(5, transactionMonitor.oldestCleanupHorizon());
 
         when(kernelTransactions.executingTransactions()).thenReturn(emptySet());
 
         // no active transaction again - new boundary based on last closed tx
         transactionMonitor.run();
-        assertEquals(20, transactionMonitor.oldestVisibleClosedTransactionId());
-        assertEquals(20, transactionMonitor.oldestObservableHorizon());
+        assertEquals(20, transactionMonitor.oldestVisibilityHorizon());
+        assertEquals(20, transactionMonitor.oldestCleanupHorizon());
     }
 
     @Test
@@ -142,7 +142,7 @@ class KernelTransactionMonitorTest {
                 NullLogService.getInstance(),
                 mock(IndexingService.class));
 
-        assertEquals(42, transactionMonitor.oldestVisibleClosedTransactionId());
-        assertEquals(42, transactionMonitor.oldestObservableHorizon());
+        assertEquals(42, transactionMonitor.oldestVisibilityHorizon());
+        assertEquals(42, transactionMonitor.oldestCleanupHorizon());
     }
 }

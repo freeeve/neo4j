@@ -96,7 +96,7 @@ public class HighestEverClosedTransactionIT {
 
     @Test
     void initialClosedAndHighestClosedTransactionAreAligned() {
-        var lastClosedTransaction = metadataProvider.getLastClosedTransaction();
+        var lastClosedTransaction = metadataProvider.getHighestGapFreeClosedTransaction();
         var highestClosedTransaction = metadataProvider.getHighestEverClosedTransaction();
 
         assertEquals(lastClosedTransaction.transactionId(), highestClosedTransaction);

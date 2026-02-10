@@ -28,7 +28,7 @@ import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 
 /**
@@ -115,7 +115,8 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     }
 
     @Override
-    public void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory) {
+    public void maintenance(
+            CursorContext cursorContext, OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {
         throw new UnsupportedOperationException("Should not be required");
     }
 

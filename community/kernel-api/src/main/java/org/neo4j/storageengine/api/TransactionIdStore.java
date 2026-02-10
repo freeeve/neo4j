@@ -148,7 +148,7 @@ public interface TransactionIdStore {
     /**
      * @return highest seen gap-free {@link #transactionClosed(long, long, KernelVersion, long, long, int, long, long)}  closed transaction id}.
      */
-    long getLastClosedTransactionId();
+    long getHighestGapFreeClosedTransactionId();
 
     /**
      * @return current snapshot of closed and visible transaction ids
@@ -161,7 +161,7 @@ public interface TransactionIdStore {
      *
      * @return transaction information about the last closed (highest gap-free) transaction.
      */
-    ClosedTransactionMetadata getLastClosedTransaction();
+    ClosedTransactionMetadata getHighestGapFreeClosedTransaction();
 
     /**
      * Returns information about the last closed transactional batch, i.e.

@@ -298,12 +298,12 @@ class MultiVersionIndexDropControllerIT {
         }
 
         @Override
-        public long oldestVisibleClosedTransactionId() {
+        public long oldestVisibilityHorizon() {
             return 0;
         }
 
         @Override
-        public long oldestObservableHorizon() {
+        public long oldestCleanupHorizon() {
             return oldestBoundarySupplier == null ? oldestBoundary : oldestBoundarySupplier.getAsLong();
         }
 

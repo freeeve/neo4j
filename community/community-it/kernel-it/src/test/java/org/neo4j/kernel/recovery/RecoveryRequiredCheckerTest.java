@@ -332,8 +332,9 @@ class RecoveryRequiredCheckerTest {
                 tx.commit();
             }
 
-            logPositionAfterCheckpoint =
-                    logFiles.logMetadataProvider().getLastClosedTransaction().logPosition();
+            logPositionAfterCheckpoint = logFiles.logMetadataProvider()
+                    .getHighestGapFreeClosedTransaction()
+                    .logPosition();
         } finally {
             managementService.shutdown();
         }

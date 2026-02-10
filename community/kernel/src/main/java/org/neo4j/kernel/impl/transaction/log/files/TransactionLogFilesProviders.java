@@ -101,9 +101,11 @@ public class TransactionLogFilesProviders {
 
     private LastClosedPositionProvider closePositionProvider() {
         if (overrides.transactionIdStore() != null) {
-            return () ->
-                    overrides.transactionIdStore().getLastClosedTransaction().logPosition();
+            return () -> overrides
+                    .transactionIdStore()
+                    .getHighestGapFreeClosedTransaction()
+                    .logPosition();
         }
-        return () -> logMetadataProvider.getLastClosedTransaction().logPosition();
+        return () -> logMetadataProvider.getHighestGapFreeClosedTransaction().logPosition();
     }
 }

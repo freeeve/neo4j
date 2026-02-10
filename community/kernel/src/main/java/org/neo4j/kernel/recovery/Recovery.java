@@ -25,7 +25,7 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterables.stream;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
-import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
+import static org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory.EMPTY_OLDEST_HORIZON_FACTORY;
 import static org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.constraints.ConstraintSemantics.getConstraintSemantics;
@@ -576,7 +576,7 @@ public final class Recovery {
         var versionContextSupplier = recoveryBehavior.useTransactionVersionContext()
                 ? new TransactionVersionContextSupplier()
                 : EMPTY_CONTEXT_SUPPLIER;
-        versionContextSupplier.init(EMPTY_SNAPSHOT_FACTORY, EMPTY_OLDEST_ID_FACTORY);
+        versionContextSupplier.init(EMPTY_SNAPSHOT_FACTORY, EMPTY_OLDEST_HORIZON_FACTORY);
         CursorContextFactory cursorContextFactory =
                 new CursorContextFactory(tracers.getPageCacheTracer(), versionContextSupplier);
         DatabaseHealth databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, recoveryLog);

@@ -180,7 +180,7 @@ public class LogMetadataProviderImpl implements LogMetadataProvider {
     }
 
     @Override
-    public long getLastClosedTransactionId() {
+    public long getHighestGapFreeClosedTransactionId() {
         return lastClosedTx.getHighestGapFreeNumber();
     }
 
@@ -190,7 +190,7 @@ public class LogMetadataProviderImpl implements LogMetadataProvider {
     }
 
     @Override
-    public ClosedTransactionMetadata getLastClosedTransaction() {
+    public ClosedTransactionMetadata getHighestGapFreeClosedTransaction() {
         return new ClosedTransactionMetadata(lastClosedTx.get());
     }
 

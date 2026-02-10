@@ -143,7 +143,7 @@ public final class MultiVersionIndexDropController extends LifecycleAdapter impl
 
     @Override
     public synchronized void maintenance() {
-        long oldestBoundary = transactionVisibilityProvider.oldestObservableHorizon();
+        long oldestBoundary = transactionVisibilityProvider.oldestCleanupHorizon();
 
         var request = asyncDeleteQueue.peek();
         while (request != null) {

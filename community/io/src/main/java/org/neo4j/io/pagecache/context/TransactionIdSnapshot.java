@@ -24,7 +24,7 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import java.util.Arrays;
 import org.neo4j.util.concurrent.OutOfOrderSequence;
 
-public record TransactionIdSnapshot(long lastClosedTxId, long highestEverSeen, long[] notVisibleTransactions) {
+public record TransactionIdSnapshot(long highestGapFree, long highestEverSeen, long[] notVisibleTransactions) {
     public static final TransactionIdSnapshot EMPTY_ID_SNAPSHOT = new TransactionIdSnapshot(1);
 
     public static boolean isNotVisible(long[] notVisibleVersions, long version) {
@@ -34,8 +34,8 @@ public record TransactionIdSnapshot(long lastClosedTxId, long highestEverSeen, l
         return Arrays.binarySearch(notVisibleVersions, version) >= 0;
     }
 
-    public TransactionIdSnapshot(long lastClosedTxId) {
-        this(lastClosedTxId, lastClosedTxId, EMPTY_LONG_ARRAY);
+    public TransactionIdSnapshot(long highestGapFreeTxId) {
+        this(highestGapFreeTxId, highestGapFreeTxId, EMPTY_LONG_ARRAY);
     }
 
     public TransactionIdSnapshot(OutOfOrderSequence.ReverseSnapshot reverseSnapshot) {
@@ -44,8 +44,8 @@ public record TransactionIdSnapshot(long lastClosedTxId, long highestEverSeen, l
 
     @Override
     public String toString() {
-        return "TransactionIdSnapshot{" + "lastClosedTxId="
-                + lastClosedTxId + ", highestEverSeen="
+        return "TransactionIdSnapshot{" + "highestGapFree="
+                + highestGapFree + ", highestEverSeen="
                 + highestEverSeen + ", notVisibleTransactions="
                 + Arrays.toString(notVisibleTransactions) + '}';
     }

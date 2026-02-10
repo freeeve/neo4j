@@ -88,14 +88,14 @@ class BufferedIdControllerTest {
                 testDirectory.file("buffer"),
                 globalConfig,
                 () -> new IdController.TransactionSnapshot(10, 0, 0),
-                new IdController.TransactionIdVisibilityBoundary() {
+                new IdController.VisibilityHorizonVisibilityBoundary() {
                     @Override
-                    public long oldestObservableHorizon() {
+                    public long oldestCleanupHorizon() {
                         return 9;
                     }
 
                     @Override
-                    public long oldestTransactionId() {
+                    public long oldestVisibilityHorizon() {
                         return 9;
                     }
                 },

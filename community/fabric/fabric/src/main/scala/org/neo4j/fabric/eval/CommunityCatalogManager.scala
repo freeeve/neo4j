@@ -46,7 +46,7 @@ class CommunityCatalogManager(
   @volatile private var systemDbTransactionIdStore: TransactionIdStore = _
 
   final override def currentCatalog(): Catalog = {
-    val lastTxId = systemDbTransactionIdStore.getLastClosedTransactionId
+    val lastTxId = systemDbTransactionIdStore.getHighestGapFreeClosedTransactionId
     if (cachedCatalogTxId < lastTxId) {
       val newCatalog = createCatalog()
       cachedCatalogLock.synchronized {

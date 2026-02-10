@@ -23,7 +23,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.context.UnboundedReadVersionContext;
@@ -36,38 +36,38 @@ import org.neo4j.io.pagecache.context.VersionContext;
 public class TransactionVersionContext implements VersionContext {
     private static final long UNKNOWN_OBSOLETE_HEAD_VERSION = -1;
     private final TransactionIdSnapshotFactory transactionIdSnapshotFactory;
-    private final OldestTransactionIdFactory oldestTransactionIdFactory;
+    private final OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory;
     private long transactionId = UNKNOWN_TX_ID;
     private long chunkId = UNKNOWN_CHUNK_ID;
     private TransactionIdSnapshot transactionIds;
-    private long oldestTransactionId = UNKNOWN_TX_ID;
+    private long oldestVisibilityHorizon = UNKNOWN_TX_ID;
     private long headChain;
     private boolean dirty;
     private boolean nonVisibleHead;
     private int currentStamp = 0;
 
     public TransactionVersionContext(
-            TransactionIdSnapshotFactory transactionIdSnapshotFactory, OldestTransactionIdFactory oldestIdFactory) {
+            TransactionIdSnapshotFactory transactionIdSnapshotFactory, OldestVisibilityHorizonFactory oldestIdFactory) {
         this.transactionIdSnapshotFactory = transactionIdSnapshotFactory;
-        this.oldestTransactionIdFactory = oldestIdFactory;
+        this.oldestVisibilityHorizonFactory = oldestIdFactory;
     }
 
     private TransactionVersionContext(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-            OldestTransactionIdFactory oldestTransactionIdFactory,
+            OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory,
             long transactionId,
             long chunkId,
             TransactionIdSnapshot transactionIds,
-            long oldestTransactionId,
+            long oldestVisibilityHorizon,
             long headChain,
             boolean dirty,
             boolean nonVisibleHead,
             int currentStamp) {
-        this(transactionIdSnapshotFactory, oldestTransactionIdFactory);
+        this(transactionIdSnapshotFactory, oldestVisibilityHorizonFactory);
         this.transactionId = transactionId;
         this.chunkId = chunkId;
         this.transactionIds = transactionIds;
-        this.oldestTransactionId = oldestTransactionId;
+        this.oldestVisibilityHorizon = oldestVisibilityHorizon;
         this.headChain = headChain;
         this.dirty = dirty;
         this.nonVisibleHead = nonVisibleHead;
@@ -84,7 +84,7 @@ public class TransactionVersionContext implements VersionContext {
     public void initWrite(long committingTxId) {
         assert committingTxId >= BASE_TX_ID;
         transactionId = committingTxId;
-        oldestTransactionId = oldestTransactionIdFactory.oldestTransactionId();
+        oldestVisibilityHorizon = oldestVisibilityHorizonFactory.oldestVisibilityHorizon();
     }
 
     @Override
@@ -103,8 +103,8 @@ public class TransactionVersionContext implements VersionContext {
     }
 
     @Override
-    public long lastClosedTransactionId() {
-        return transactionIds.lastClosedTxId();
+    public long highestGapFree() {
+        return transactionIds.highestGapFree();
     }
 
     @Override
@@ -118,9 +118,9 @@ public class TransactionVersionContext implements VersionContext {
     }
 
     @Override
-    public long oldestVisibleTransactionNumber() {
+    public long oldestVisibilityHorizon() {
         assert initializedForWrite();
-        return oldestTransactionId;
+        return oldestVisibilityHorizon;
     }
 
     @Override
@@ -184,11 +184,11 @@ public class TransactionVersionContext implements VersionContext {
     public VersionContext createRelatedContext() {
         return new TransactionVersionContext(
                 transactionIdSnapshotFactory,
-                oldestTransactionIdFactory,
+                oldestVisibilityHorizonFactory,
                 transactionId,
                 chunkId,
                 transactionIds,
-                oldestTransactionId,
+                oldestVisibilityHorizon,
                 headChain,
                 dirty,
                 nonVisibleHead,
@@ -198,14 +198,14 @@ public class TransactionVersionContext implements VersionContext {
     @Override
     public VersionContext createUnboundedReadRelatedContext() {
         return new UnboundedReadVersionContext(
-                transactionId, chunkId, oldestTransactionIdFactory.oldestTransactionId());
+                transactionId, chunkId, oldestVisibilityHorizonFactory.oldestVisibilityHorizon());
     }
 
     @Override
     public String toString() {
         return "TransactionVersionContext{" + "transactionId=" + transactionId + ", appendIndex=" + chunkId + ", "
                 + "transactionIds=" + transactionIds
-                + ", oldestTransactionId=" + oldestTransactionId + ", headChain=" + headChain + ", dirty=" + dirty
+                + ", oldestTransactionId=" + oldestVisibilityHorizon + ", headChain=" + headChain + ", dirty=" + dirty
                 + ", nonVisibleHead=" + nonVisibleHead + '}';
     }
 }

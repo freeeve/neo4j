@@ -28,7 +28,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
-import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
+import static org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory.EMPTY_OLDEST_HORIZON_FACTORY;
 import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.defaultFormat;
 import static org.neo4j.kernel.impl.store.record.RecordLoad.FORCE;
 import static org.neo4j.kernel.impl.store.record.RecordLoad.NORMAL;
@@ -104,7 +104,7 @@ class AbstractDynamicStoreTest {
             assertZeroCursor(cursorContext);
             prepareDirtyGenerator(store);
 
-            store.getIdGenerator().maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY);
+            store.getIdGenerator().maintenance(cursorContext, EMPTY_OLDEST_HORIZON_FACTORY);
             store.allocateRecordsFromBytes(
                     new ArrayList<>(),
                     new byte[] {0, 1, 2, 3, 4},

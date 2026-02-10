@@ -219,13 +219,13 @@ class RecoveryCorruptedTransactionLogIT {
 
             TransactionIdStore transactionIdStore = getTransactionIdStore(database);
             LogPosition logOffsetBeforeTestTransactions =
-                    transactionIdStore.getLastClosedTransaction().logPosition();
-            long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                    transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+            long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
             for (int i = 0; i < 10; i++) {
                 generateTransaction(database);
             }
-            long numberOfClosedTransactions =
-                    getTransactionIdStore(database).getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+            long numberOfClosedTransactions = getTransactionIdStore(database).getHighestGapFreeClosedTransactionId()
+                    - lastClosedTransactionBeforeStart;
 
             DependencyResolver dependencyResolver = database.getDependencyResolver();
             var databaseCheckpointer = dependencyResolver
@@ -270,13 +270,13 @@ class RecoveryCorruptedTransactionLogIT {
 
             TransactionIdStore transactionIdStore = getTransactionIdStore(database);
             LogPosition logOffsetBeforeTestTransactions =
-                    transactionIdStore.getLastClosedTransaction().logPosition();
-            long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                    transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+            long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
             for (int i = 0; i < 10; i++) {
                 generateTransaction(database);
             }
             long numberOfClosedTransactions =
-                    transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+                    transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
 
             DependencyResolver dependencyResolver = database.getDependencyResolver();
             var databaseCheckpointer = dependencyResolver
@@ -316,13 +316,13 @@ class RecoveryCorruptedTransactionLogIT {
 
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
         LogPosition logOffsetBeforeTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         for (int i = 0; i < 10; i++) {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
 
         DependencyResolver dependencyResolver = database.getDependencyResolver();
         var databaseCheckpointer =
@@ -362,7 +362,7 @@ class RecoveryCorruptedTransactionLogIT {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
         managementService.shutdown();
 
         replacePartOfFirstCheckpointAndRestOfFileWithZeroes();
@@ -388,7 +388,7 @@ class RecoveryCorruptedTransactionLogIT {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
         managementService.shutdown();
 
         fileSystem.deleteFile(logFiles.getCheckpointFile().getCurrentFile());
@@ -415,7 +415,7 @@ class RecoveryCorruptedTransactionLogIT {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
         managementService.shutdown();
 
         Path currentCheckpointFile = logFiles.getCheckpointFile().getLogFileForVersion(0);
@@ -440,13 +440,13 @@ class RecoveryCorruptedTransactionLogIT {
 
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
         LogPosition logOffsetBeforeTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         for (int i = 0; i < 10; i++) {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
 
         DependencyResolver dependencyResolver = database.getDependencyResolver();
         var databaseCheckpointer =
@@ -479,12 +479,12 @@ class RecoveryCorruptedTransactionLogIT {
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         logFiles = buildDefaultLogFiles(getStoreId(database));
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         for (int i = 0; i < 10; i++) {
             generateTransaction(database);
         }
-        long numberOfClosedTransactions =
-                getTransactionIdStore(database).getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+        long numberOfClosedTransactions = getTransactionIdStore(database).getHighestGapFreeClosedTransactionId()
+                - lastClosedTransactionBeforeStart;
         managementService.shutdown();
         removeLastCheckpointRecordFromLastLogFile();
         addRandomBytesToLastLogFile(this::randomNonZeroByte);
@@ -526,7 +526,7 @@ class RecoveryCorruptedTransactionLogIT {
         DatabaseManagementService managementService = databaseFactory.build();
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        long numberOfClosedTransactionsAfterStartup = transactionIdStore.getLastClosedTransactionId();
+        long numberOfClosedTransactionsAfterStartup = transactionIdStore.getHighestGapFreeClosedTransactionId();
         logFiles = buildDefaultLogFiles(getStoreId(database));
         long lastTxSize = 0;
         long totalTxSize = 0;
@@ -536,7 +536,7 @@ class RecoveryCorruptedTransactionLogIT {
             totalTxSize += size;
         }
         long numberOfTransactionsToRecover =
-                transactionIdStore.getLastClosedTransactionId() - numberOfClosedTransactionsAfterStartup;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - numberOfClosedTransactionsAfterStartup;
         managementService.shutdown();
 
         removeLastCheckpointRecordFromLastLogFile();
@@ -900,12 +900,13 @@ class RecoveryCorruptedTransactionLogIT {
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         logFiles = buildDefaultLogFiles(getStoreId(database));
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         long txSizes = 0;
         for (int i = 0; i < 10; i++) {
             txSizes += generateTransaction(database);
         }
-        long numberOfTransactions = transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+        long numberOfTransactions =
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
@@ -947,13 +948,14 @@ class RecoveryCorruptedTransactionLogIT {
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         logFiles = buildDefaultLogFiles(getStoreId(database));
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         long txSize = generateTransactionsAndRotate(database, 3);
         long additionalTxSizes = 0;
         for (int i = 0; i < 7; i++) {
             additionalTxSizes += generateTransaction(database);
         }
-        long numberOfTransactions = transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+        long numberOfTransactions =
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
         managementService.shutdown();
 
         Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
@@ -1117,7 +1119,7 @@ class RecoveryCorruptedTransactionLogIT {
             generateTransaction(database);
         }
         LogPosition logOffsetAfterTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
         for (int i = 0; i < 2; i++) {
             generateTransaction(database);
         }
@@ -1169,15 +1171,15 @@ class RecoveryCorruptedTransactionLogIT {
 
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
         LogPosition logOffsetBeforeTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         for (int i = 0; i < 10; i++) {
             generateTransaction(database);
         }
         long numberOfClosedTransactions =
-                transactionIdStore.getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
         LogPosition logOffsetAfterTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
         for (int i = 0; i < 2; i++) {
             generateTransaction(database);
         }
@@ -1566,7 +1568,7 @@ class RecoveryCorruptedTransactionLogIT {
     private static LogPosition getLastClosedTransaction(GraphDatabaseAPI database) {
         LogMetadataProvider logMetadataProvider =
                 database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
-        return logMetadataProvider.getLastClosedTransaction().logPosition();
+        return logMetadataProvider.getHighestGapFreeClosedTransaction().logPosition();
     }
 
     LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {

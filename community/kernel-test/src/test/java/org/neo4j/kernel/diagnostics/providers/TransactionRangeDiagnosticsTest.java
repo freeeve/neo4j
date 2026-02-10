@@ -220,7 +220,7 @@ class TransactionRangeDiagnosticsTest {
         dependencies.satisfyDependency(DeviceMapper.UNKNOWN_MAPPER);
         LogTailMetadata logTailMetadata = dependencies.satisfyDependency(files.getTailMetadata());
         TransactionIdStore txIdStore = dependencies.satisfyDependency(mock(TransactionIdStore.class));
-        when(txIdStore.getLastClosedTransactionId())
+        when(txIdStore.getHighestGapFreeClosedTransactionId())
                 .thenReturn(logTailMetadata.getLastCommittedTransaction().id());
         dependencies.satisfyDependency(files);
         dependencies.satisfyDependency(fs);

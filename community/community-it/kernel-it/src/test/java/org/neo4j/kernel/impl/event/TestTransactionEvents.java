@@ -1067,7 +1067,7 @@ class TestTransactionEvents {
     private static long lastClosedTxId(String databaseName, DatabaseManagementService managementService) {
         var db = (GraphDatabaseAPI) managementService.database(databaseName);
         var txIdStore = db.getDependencyResolver().resolveDependency(TransactionIdStore.class);
-        return txIdStore.getLastClosedTransactionId();
+        return txIdStore.getHighestGapFreeClosedTransactionId();
     }
 
     private static void registerTransactionEventListenerForSystemDb(

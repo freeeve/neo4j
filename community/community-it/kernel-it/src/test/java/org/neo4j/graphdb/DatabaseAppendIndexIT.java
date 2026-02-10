@@ -50,25 +50,25 @@ public class DatabaseAppendIndexIT {
 
     @Test
     void appendIndexAndTransactionIdsAreMatching() {
-        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getLastClosedTransactionId());
+        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getHighestGapFreeClosedTransactionId());
 
         try (Transaction transaction = databaseAPI.beginTx()) {
             transaction.createNode();
             transaction.commit();
         }
-        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getLastClosedTransactionId());
+        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getHighestGapFreeClosedTransactionId());
     }
 
     @Test
     void appendIndexMatchingTransactionIdWhenInternalTransactionsExecuted() {
-        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getLastClosedTransactionId());
+        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getHighestGapFreeClosedTransactionId());
 
         try (Transaction transaction = databaseAPI.beginTx()) {
             var node = transaction.createNode(Label.label("marker"));
             node.setProperty("foo", "bar");
             transaction.commit();
         }
-        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getLastClosedTransactionId());
+        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getHighestGapFreeClosedTransactionId());
     }
 
     @Test
@@ -79,14 +79,14 @@ public class DatabaseAppendIndexIT {
             transaction.commit();
         }
 
-        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getLastClosedTransactionId());
+        assertEquals(metadataProvider.getLastAppendIndex(), metadataProvider.getHighestGapFreeClosedTransactionId());
 
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("test trigger"));
 
         var checkpointInfo = logFiles.getCheckpointFile().findLatestCheckpoint().orElseThrow();
         assertEquals(metadataProvider.getLastAppendIndex(), checkpointInfo.appendIndex());
         assertEquals(
-                metadataProvider.getLastClosedTransactionId(),
+                metadataProvider.getHighestGapFreeClosedTransactionId(),
                 checkpointInfo.transactionId().id());
     }
 

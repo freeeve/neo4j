@@ -78,7 +78,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.util.Preconditions;
@@ -819,12 +819,13 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     @Override
-    public void maintenance(CursorContext cursorContext, OldestTransactionIdFactory oldestTransactionIdFactory) {
+    public void maintenance(
+            CursorContext cursorContext, OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {
         if (started && !cache.isFull() && !readOnly) {
             // We're just helping other allocation requests and avoiding unwanted sliding of highId here
             scanner.tryLoadFreeIdsIntoCache(true, true, 0, cursorContext);
         }
-        lockedPageRanges.maintenance(oldestTransactionIdFactory);
+        lockedPageRanges.maintenance(oldestVisibilityHorizonFactory);
 
         // For ID-generators that supports multi-ID slots and allows fragmentation in favor of 100% colocation
         // This will figure out the reasonable amount of fragmentation to accept, and eventually pass on to

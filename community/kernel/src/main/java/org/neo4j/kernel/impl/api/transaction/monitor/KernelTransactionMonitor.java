@@ -43,8 +43,8 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
     private final KernelTransactions kernelTransactions;
     private final TransactionIdStore transactionIdStore;
     private final IndexingService indexingService;
-    private final AtomicLong oldestVisibilityBoundary = new AtomicLong(BASE_TX_ID);
-    private final AtomicLong oldestVisibleClosedTransactionId = new AtomicLong(BASE_TX_ID);
+    private final AtomicLong oldestCleanupHorizon = new AtomicLong(BASE_TX_ID);
+    private final AtomicLong oldestVisibilityHorizon = new AtomicLong(BASE_TX_ID);
 
     public KernelTransactionMonitor(
             KernelTransactions kernelTransactions,
@@ -57,9 +57,9 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         this.kernelTransactions = kernelTransactions;
         this.transactionIdStore = transactionIdStore;
         this.indexingService = indexingService;
-        oldestVisibleClosedTransactionId.setRelease(
+        oldestVisibilityHorizon.setRelease(
                 transactionIdStore.getHighestEverClosedTransaction().id());
-        oldestVisibilityBoundary.setRelease(
+        oldestCleanupHorizon.setRelease(
                 transactionIdStore.getHighestEverClosedTransaction().id());
     }
 
@@ -68,15 +68,15 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         // we return gap free transaction that is already closed, and if we do not have any readers it should be safe to
         // assume that no one will need
         // data before that point of history
-        var oldestOpenTransactionId = transactionIdStore.getLastClosedTransactionId();
+        var oldestGapFreeClosedTransactionId = transactionIdStore.getHighestGapFreeClosedTransactionId();
         var executingTransactions = kernelTransactions.executingTransactions();
-        long oldestTxId = oldestOpenTransactionId;
-        long oldestHorizon = oldestOpenTransactionId;
+        long minHighestGapFree = oldestGapFreeClosedTransactionId;
+        long minCleanupHorizon = oldestGapFreeClosedTransactionId;
 
         for (var txHandle : executingTransactions) {
             if (txHandle.terminationMark().isEmpty()) {
-                oldestTxId = Math.min(oldestTxId, txHandle.getLastClosedTxId());
-                oldestHorizon = Math.min(oldestHorizon, txHandle.getTransactionHorizon());
+                minHighestGapFree = Math.min(minHighestGapFree, txHandle.getHighestGapFreeTxId());
+                minCleanupHorizon = Math.min(minCleanupHorizon, txHandle.getTransactionHorizon());
             }
         }
         var populationJobs = indexingService.getPopulationJobs();
@@ -84,11 +84,11 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
             // for this purpose population job is read only transaction
             // so it's horizon is last closed transaction
             long populationHorizon = job.populationHorizon();
-            oldestTxId = Math.min(oldestTxId, populationHorizon);
-            oldestHorizon = Math.min(oldestHorizon, populationHorizon);
+            minHighestGapFree = Math.min(minHighestGapFree, populationHorizon);
+            minCleanupHorizon = Math.min(minCleanupHorizon, populationHorizon);
         }
-        oldestVisibleClosedTransactionId.setRelease(oldestTxId);
-        oldestVisibilityBoundary.setRelease(oldestHorizon);
+        oldestVisibilityHorizon.setRelease(minHighestGapFree);
+        oldestCleanupHorizon.setRelease(minCleanupHorizon);
     }
 
     @Override
@@ -99,13 +99,13 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
     }
 
     @Override
-    public long oldestVisibleClosedTransactionId() {
-        return oldestVisibleClosedTransactionId.getAcquire();
+    public long oldestVisibilityHorizon() {
+        return oldestVisibilityHorizon.getAcquire();
     }
 
     @Override
-    public long oldestObservableHorizon() {
-        return oldestVisibilityBoundary.getAcquire();
+    public long oldestCleanupHorizon() {
+        return oldestCleanupHorizon.getAcquire();
     }
 
     @Override

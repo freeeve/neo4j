@@ -81,7 +81,7 @@ import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
@@ -520,7 +520,7 @@ public class Database extends AbstractDatabase {
 
         initialiseContextFactory(
                 getTransactionIdSnapshotFactory(storageEngineFactory, logMetadataProvider, getNamedDatabaseId()),
-                getOldestTransactionIdFactory(storageEngineFactory, () -> kernelModule, getNamedDatabaseId()));
+                getOldestVisibilityHorizonFactory(storageEngineFactory, () -> kernelModule, getNamedDatabaseId()));
         elementIdMapper = new DefaultElementIdMapperV1(namedDatabaseId);
 
         life.add(storageEngine);
@@ -666,8 +666,8 @@ public class Database extends AbstractDatabase {
 
     private void initialiseContextFactory(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-            OldestTransactionIdFactory oldestTransactionIdFactory) {
-        cursorContextFactory.init(transactionIdSnapshotFactory, oldestTransactionIdFactory);
+            OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {
+        cursorContextFactory.init(transactionIdSnapshotFactory, oldestVisibilityHorizonFactory);
     }
 
     @Override
@@ -1372,16 +1372,16 @@ public class Database extends AbstractDatabase {
             NamedDatabaseId namedDatabaseId) {
         return isMultiVersioned(storageEngineFactory, namedDatabaseId)
                 ? metadataProvider::getClosedTransactionSnapshot
-                : (() -> new TransactionIdSnapshot(metadataProvider.getLastClosedTransactionId()));
+                : (() -> new TransactionIdSnapshot(metadataProvider.getHighestGapFreeClosedTransactionId()));
     }
 
-    private static OldestTransactionIdFactory getOldestTransactionIdFactory(
+    private static OldestVisibilityHorizonFactory getOldestVisibilityHorizonFactory(
             StorageEngineFactory storageEngineFactory,
             Supplier<DatabaseKernelModule> kernelModule,
             NamedDatabaseId namedDatabaseId) {
         return isMultiVersioned(storageEngineFactory, namedDatabaseId)
-                ? (() -> kernelModule.get().transactionMonitor().oldestVisibleClosedTransactionId())
-                : OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
+                ? (() -> kernelModule.get().transactionMonitor().oldestVisibilityHorizon())
+                : OldestVisibilityHorizonFactory.EMPTY_OLDEST_HORIZON_FACTORY;
     }
 
     private static boolean isMultiVersioned(
@@ -1391,13 +1391,13 @@ public class Database extends AbstractDatabase {
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {
         @Override
-        public long oldestVisibleClosedTransactionId() {
-            return kernelModule.transactionMonitor().oldestVisibleClosedTransactionId();
+        public long oldestVisibilityHorizon() {
+            return kernelModule.transactionMonitor().oldestVisibilityHorizon();
         }
 
         @Override
-        public long oldestObservableHorizon() {
-            return kernelModule.transactionMonitor().oldestObservableHorizon();
+        public long oldestCleanupHorizon() {
+            return kernelModule.transactionMonitor().oldestCleanupHorizon();
         }
 
         @Override
@@ -1406,15 +1406,15 @@ public class Database extends AbstractDatabase {
         }
     }
 
-    private class IdControllerVisibilityBoundary implements IdController.TransactionIdVisibilityBoundary {
+    private class IdControllerVisibilityBoundary implements IdController.VisibilityHorizonVisibilityBoundary {
         @Override
-        public long oldestObservableHorizon() {
-            return kernelModule.transactionMonitor().oldestObservableHorizon();
+        public long oldestCleanupHorizon() {
+            return kernelModule.transactionMonitor().oldestCleanupHorizon();
         }
 
         @Override
-        public long oldestTransactionId() {
-            return kernelModule.transactionMonitor().oldestVisibleClosedTransactionId();
+        public long oldestVisibilityHorizon() {
+            return kernelModule.transactionMonitor().oldestVisibilityHorizon();
         }
     }
 }

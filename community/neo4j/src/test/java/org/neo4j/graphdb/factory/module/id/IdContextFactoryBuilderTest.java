@@ -116,7 +116,7 @@ class IdContextFactoryBuilderTest {
                         testDirectory.file("buffer"),
                         config,
                         () -> new IdController.TransactionSnapshot(10, 0, 0),
-                        new TestTransactionIdVisibilityBoundary(),
+                        new TestVisibilityHorizonVisibilityBoundary(),
                         s -> true,
                         EmptyMemoryTracker.INSTANCE);
         life.add(idContext.getIdController());
@@ -190,7 +190,7 @@ class IdContextFactoryBuilderTest {
                 testDirectory.file("buffer"),
                 config,
                 () -> new IdController.TransactionSnapshot(10, 0, 0),
-                new TestTransactionIdVisibilityBoundary(),
+                new TestVisibilityHorizonVisibilityBoundary(),
                 s -> true,
                 EmptyMemoryTracker.INSTANCE,
                 writable());
@@ -219,14 +219,15 @@ class IdContextFactoryBuilderTest {
         }
     }
 
-    private static class TestTransactionIdVisibilityBoundary implements IdController.TransactionIdVisibilityBoundary {
+    private static class TestVisibilityHorizonVisibilityBoundary
+            implements IdController.VisibilityHorizonVisibilityBoundary {
         @Override
-        public long oldestObservableHorizon() {
+        public long oldestCleanupHorizon() {
             return 9;
         }
 
         @Override
-        public long oldestTransactionId() {
+        public long oldestVisibilityHorizon() {
             return 9;
         }
     }

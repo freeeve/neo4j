@@ -538,7 +538,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
     public void refreshVisibility(CursorContext cursorContext) {
         cursorContext.getVersionContext().refreshVisibilityBoundaries();
-        populationHorizon = cursorContext.getVersionContext().lastClosedTransactionId();
+        populationHorizon = cursorContext.getVersionContext().highestGapFree();
         forEachPopulation(population -> population.resetVisibility(cursorContext), cursorContext);
     }
 
@@ -765,7 +765,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             return;
         }
         while (!populationJobStopped.getAcquire()
-                && transactionVisibilityProvider.oldestObservableHorizon() < targetTransaction) {
+                && transactionVisibilityProvider.oldestCleanupHorizon() < targetTransaction) {
             LockSupport.parkNanos(horizonPollIntervalNanos);
             if (needToApplyExternalUpdates()) {
                 applyExternalUpdates(Long.MAX_VALUE);

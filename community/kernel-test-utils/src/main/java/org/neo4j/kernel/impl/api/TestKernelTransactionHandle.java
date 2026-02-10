@@ -161,13 +161,13 @@ public class TestKernelTransactionHandle implements KernelTransactionHandle {
     }
 
     @Override
-    public long getLastClosedTxId() {
-        return tx.cursorContext().getVersionContext().lastClosedTransactionId();
+    public long getHighestGapFreeTxId() {
+        return tx.cursorContext().getVersionContext().highestGapFree();
     }
 
     @Override
     public long getTransactionHorizon() {
-        return tx.cursorContext().getVersionContext().oldestVisibleTransactionNumber();
+        return tx.cursorContext().getVersionContext().oldestVisibilityHorizon();
     }
 
     @Override

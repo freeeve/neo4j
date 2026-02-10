@@ -20,7 +20,7 @@
 package org.neo4j.mvcc.index;
 
 import java.util.Arrays;
-import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
+import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.io.pagecache.context.VersionContextSupplier;
@@ -65,7 +65,7 @@ public class MultiVersionTreeTestContext implements VersionContext {
     }
 
     @Override
-    public long lastClosedTransactionId() {
+    public long highestGapFree() {
         return lastClosedTxId;
     }
 
@@ -88,7 +88,7 @@ public class MultiVersionTreeTestContext implements VersionContext {
     }
 
     @Override
-    public long oldestVisibleTransactionNumber() {
+    public long oldestVisibilityHorizon() {
         return oldestTransactionId;
     }
 
@@ -132,7 +132,7 @@ public class MultiVersionTreeTestContext implements VersionContext {
     @Override
     public String toString() {
         return "MultiversionTreeTestContext{" + "committingTxId="
-                + committingTxId + ", lastClosedTxId="
+                + committingTxId + ", highestGapFree="
                 + lastClosedTxId + ", highestClosed="
                 + highestClosed + ", notVisible="
                 + Arrays.toString(notVisible) + ", oldestTransactionId="
@@ -141,23 +141,24 @@ public class MultiVersionTreeTestContext implements VersionContext {
 
     public static class MultiVersionTreeTestContextSupplier implements VersionContextSupplier {
         private TransactionIdSnapshotFactory snapshotFactory;
-        private OldestTransactionIdFactory oldestTransactionIdFactory;
+        private OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory;
 
         @Override
         public void init(
-                TransactionIdSnapshotFactory snapshotFactory, OldestTransactionIdFactory oldestTransactionIdFactory) {
+                TransactionIdSnapshotFactory snapshotFactory,
+                OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {
             this.snapshotFactory = snapshotFactory;
-            this.oldestTransactionIdFactory = oldestTransactionIdFactory;
+            this.oldestVisibilityHorizonFactory = oldestVisibilityHorizonFactory;
         }
 
         @Override
         public VersionContext createVersionContext() {
             var snapshot = snapshotFactory.createSnapshot();
             return new MultiVersionTreeTestContext(
-                    snapshot.lastClosedTxId(),
+                    snapshot.highestGapFree(),
                     snapshot.highestEverSeen(),
                     snapshot.notVisibleTransactions(),
-                    oldestTransactionIdFactory.oldestTransactionId());
+                    oldestVisibilityHorizonFactory.oldestVisibilityHorizon());
         }
     }
 }

@@ -93,7 +93,7 @@ class TransactionLogsUpgradeFromNonEnvelopesIT extends TransactionLogsUpgradeIT 
         long nodeCountBeforeTxTriggeringUpgrade = getNodeCount(testDb);
         long lastClosedTransactionIdBeforeUpgrade = testDb.getDependencyResolver()
                 .resolveDependency(TransactionIdStore.class)
-                .getLastClosedTransactionId();
+                .getHighestGapFreeClosedTransactionId();
 
         shutdownDbms();
         // Set rotation so that the first transaction (upgrade) should trigger rotation.

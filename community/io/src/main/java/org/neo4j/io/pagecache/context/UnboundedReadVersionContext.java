@@ -60,7 +60,7 @@ public class UnboundedReadVersionContext implements VersionContext {
     }
 
     @Override
-    public long lastClosedTransactionId() {
+    public long highestGapFree() {
         return Long.MAX_VALUE;
     }
 
@@ -83,7 +83,7 @@ public class UnboundedReadVersionContext implements VersionContext {
     }
 
     @Override
-    public long oldestVisibleTransactionNumber() {
+    public long oldestVisibilityHorizon() {
         return oldestTransactionId;
     }
 

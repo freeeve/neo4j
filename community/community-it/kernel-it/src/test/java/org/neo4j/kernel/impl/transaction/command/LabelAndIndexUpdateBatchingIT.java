@@ -98,7 +98,7 @@ class LabelAndIndexUpdateBatchingIT {
             }
             txIdCutOffPoint = db.getDependencyResolver()
                     .resolveDependency(TransactionIdStore.class)
-                    .getLastClosedTransactionId();
+                    .getHighestGapFreeClosedTransactionId();
             // uniqueness constraint affecting N
             try (Transaction tx = db.beginTx()) {
                 tx.schema()
@@ -187,6 +187,9 @@ class LabelAndIndexUpdateBatchingIT {
     private static long getLastClosedTransactionId(GraphDatabaseAPI database) {
         LogMetadataProvider logMetadataProvider =
                 database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
-        return logMetadataProvider.getLastClosedTransaction().transactionId().id();
+        return logMetadataProvider
+                .getHighestGapFreeClosedTransaction()
+                .transactionId()
+                .id();
     }
 }

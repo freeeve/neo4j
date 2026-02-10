@@ -220,7 +220,7 @@ public abstract class MuninnPageCursor extends PageCursor {
         if (multiVersioned || !contextVersionUpdates) {
             return;
         }
-        long lastClosedTransactionId = versionContext.lastClosedTransactionId();
+        long lastClosedTransactionId = versionContext.highestGapFree();
         if (lastClosedTransactionId == Long.MAX_VALUE) {
             return;
         }

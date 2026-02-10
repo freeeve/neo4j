@@ -610,7 +610,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
             int times = 0;
             do {
                 nodesInDatabaseBeforeTransaction = countNodes();
-                txIdBefore = resolveDependency(TransactionIdStore.class).getLastClosedTransactionId();
+                txIdBefore = resolveDependency(TransactionIdStore.class).getHighestGapFreeClosedTransactionId();
 
                 // begin and execute and commit
                 // language=json
@@ -629,7 +629,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
             } while (response.get("errors").iterator().hasNext() && (times < 5));
 
-            long txIdAfter = resolveDependency(TransactionIdStore.class).getLastClosedTransactionId();
+            long txIdAfter = resolveDependency(TransactionIdStore.class).getHighestGapFreeClosedTransactionId();
 
             assertThat(response).as("Last response is: " + response).satisfies(containsNoErrors());
             assertThat(response.status()).isEqualTo(200);
@@ -660,11 +660,11 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
         withCSVFile(nodes, url -> {
             long nodesInDatabaseBeforeTransaction = countNodes();
-            long txIdBefore = resolveDependency(TransactionIdStore.class).getLastClosedTransactionId();
+            long txIdBefore = resolveDependency(TransactionIdStore.class).getHighestGapFreeClosedTransactionId();
 
             // begin and execute and commit
             Response response = POST(transactionCommitUri(), quotedJson(String.format(query, url, batchSize)));
-            long txIdAfter = resolveDependency(TransactionIdStore.class).getLastClosedTransactionId();
+            long txIdAfter = resolveDependency(TransactionIdStore.class).getHighestGapFreeClosedTransactionId();
 
             assertThat(response.status()).isEqualTo(200);
 
@@ -1360,6 +1360,6 @@ public class TransactionIT extends AbstractRestFunctionalTestBase {
 
     public long getLastClosedTransactionId() {
         var txIdStore = resolveDependency(TransactionIdStore.class);
-        return txIdStore.getLastClosedTransactionId();
+        return txIdStore.getHighestGapFreeClosedTransactionId();
     }
 }

@@ -770,7 +770,7 @@ class TransactionLogsRecoveryTest {
 
         // THEN
         assertTrue(recoveryRequired);
-        var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
+        var lastClosedTransaction = transactionIdStore.getHighestGapFreeClosedTransaction();
         LogPosition logPosition = lastClosedTransaction.logPosition();
         assertEquals(transactionId, lastClosedTransaction.transactionId().id());
         assertEquals(

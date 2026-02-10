@@ -98,7 +98,7 @@ class TransactionIdTrackerTest {
         transactionIdTracker.awaitUpToDate(namedDatabaseId, BASE_TX_ID, ofSeconds(5));
 
         // then
-        verify(transactionIdStore, never()).getLastClosedTransactionId();
+        verify(transactionIdStore, never()).getHighestGapFreeClosedTransactionId();
     }
 
     @Test
@@ -155,7 +155,7 @@ class TransactionIdTrackerTest {
         // given
         var version = 5L;
 
-        when(transactionIdStore.getLastClosedTransactionId())
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId())
                 .thenReturn(1L)
                 .thenReturn(2L)
                 .thenReturn(6L);
@@ -164,7 +164,7 @@ class TransactionIdTrackerTest {
         transactionIdTracker.awaitUpToDate(namedDatabaseId, version, DEFAULT_DURATION);
 
         // then
-        verify(transactionIdStore, times(3)).getLastClosedTransactionId();
+        verify(transactionIdStore, times(3)).getHighestGapFreeClosedTransactionId();
     }
 
     @Test
@@ -172,13 +172,13 @@ class TransactionIdTrackerTest {
         // given
         when(db.isSystem()).thenReturn(true);
         var version = 42L;
-        when(transactionIdStore.getLastClosedTransactionId()).thenReturn(version);
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(version);
 
         // when
         transactionIdTracker.awaitUpToDate(namedDatabaseId, version, DEFAULT_DURATION);
 
         // then
-        verify(transactionIdStore, times(1)).getLastClosedTransactionId();
+        verify(transactionIdStore, times(1)).getHighestGapFreeClosedTransactionId();
     }
 
     @Test
@@ -186,7 +186,7 @@ class TransactionIdTrackerTest {
         // given
         var version = 5L;
         var checkException = new RuntimeException();
-        doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
+        doThrow(checkException).when(transactionIdStore).getHighestGapFreeClosedTransactionId();
 
         // then
         verifyBookmarkError(
@@ -200,7 +200,7 @@ class TransactionIdTrackerTest {
         when(db.isSystem()).thenReturn(true);
         var version = 3L;
         var checkException = new RuntimeException();
-        doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
+        doThrow(checkException).when(transactionIdStore).getHighestGapFreeClosedTransactionId();
 
         // then
         verifyBookmarkError(
@@ -213,7 +213,7 @@ class TransactionIdTrackerTest {
         // given
         var version = 5L;
         var checkException = new RuntimeException();
-        doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
+        doThrow(checkException).when(transactionIdStore).getHighestGapFreeClosedTransactionId();
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(true, true, false);
 
         // then
@@ -229,7 +229,7 @@ class TransactionIdTrackerTest {
         when(db.isSystem()).thenReturn(true);
         var version = 42L;
         var checkException = new RuntimeException();
-        doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
+        doThrow(checkException).when(transactionIdStore).getHighestGapFreeClosedTransactionId();
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(true, true, false);
 
         // then
@@ -249,7 +249,7 @@ class TransactionIdTrackerTest {
                 () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, 1000, ofMillis(60_000)),
                 namedDatabaseId.name(),
                 false);
-        verify(transactionIdStore, never()).getLastClosedTransactionId();
+        verify(transactionIdStore, never()).getHighestGapFreeClosedTransactionId();
     }
 
     @Test
@@ -269,7 +269,7 @@ class TransactionIdTrackerTest {
     @Test
     void shouldReturnNewestTransactionId() {
         // given
-        when(transactionIdStore.getLastClosedTransactionId()).thenReturn(42L);
+        when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(42L);
         when(transactionIdStore.getLastCommittedTransactionId()).thenReturn(4242L);
 
         // then

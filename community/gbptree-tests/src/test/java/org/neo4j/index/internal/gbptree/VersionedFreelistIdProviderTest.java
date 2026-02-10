@@ -518,7 +518,7 @@ class VersionedFreelistIdProviderTest {
         CursorContext cursorContext = mock(CursorContext.class);
         VersionContext versionContext = mock(VersionContext.class);
         when(cursorContext.getVersionContext()).thenReturn(versionContext);
-        when(versionContext.oldestVisibleTransactionNumber()).thenReturn(oldestVisibleVersion);
+        when(versionContext.oldestVisibilityHorizon()).thenReturn(oldestVisibleVersion);
         when(versionContext.committingTransactionId()).thenReturn(releaseId);
         return cursorContext;
     }

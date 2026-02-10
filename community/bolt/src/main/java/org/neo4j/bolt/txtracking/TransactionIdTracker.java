@@ -158,7 +158,7 @@ public class TransactionIdTracker {
         // await for the last closed transaction id to to have at least the expected value
         // it has to be "last closed" and not "last committed" because all transactions before the expected one should
         // also be committed
-        return transactionIdStore(db).getLastClosedTransactionId();
+        return transactionIdStore(db).getHighestGapFreeClosedTransactionId();
     }
 
     private static TransactionIdStore transactionIdStore(AbstractDatabase db) {

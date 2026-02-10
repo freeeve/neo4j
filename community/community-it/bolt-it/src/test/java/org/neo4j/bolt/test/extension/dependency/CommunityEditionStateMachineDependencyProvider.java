@@ -98,7 +98,7 @@ public class CommunityEditionStateMachineDependencyProvider implements StateMach
 
         return Optional.of(gdb.getDependencyResolver()
                 .resolveDependency(TransactionIdStore.class)
-                .getLastClosedTransactionId());
+                .getHighestGapFreeClosedTransactionId());
     }
 
     @Override

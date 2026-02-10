@@ -23,7 +23,7 @@ import static org.neo4j.internal.id.DiskBufferedIds.DEFAULT_SEGMENT_SIZE;
 import static org.neo4j.internal.id.IdGenerator.NOOP_MARKER;
 import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
-import static org.neo4j.io.pagecache.context.OldestTransactionIdFactory.EMPTY_OLDEST_ID_FACTORY;
+import static org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory.EMPTY_OLDEST_HORIZON_FACTORY;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -85,7 +85,7 @@ public class BufferingIdGeneratorFactory extends AbstractBufferingIdGeneratorFac
             Path bufferBasePath,
             Config config,
             Supplier<IdController.TransactionSnapshot> snapshotSupplier,
-            IdController.TransactionIdVisibilityBoundary visibilityBoundary,
+            IdController.VisibilityHorizonVisibilityBoundary visibilityBoundary,
             IdController.IdFreeCondition condition,
             MemoryTracker memoryTracker)
             throws IOException {
@@ -147,7 +147,7 @@ public class BufferingIdGeneratorFactory extends AbstractBufferingIdGeneratorFac
         }
         overriddenIdGenerators
                 .values()
-                .forEach(generator -> generator.maintenance(cursorContext, EMPTY_OLDEST_ID_FACTORY));
+                .forEach(generator -> generator.maintenance(cursorContext, EMPTY_OLDEST_HORIZON_FACTORY));
     }
 
     private void collectAndOffloadBufferedIds(boolean blocking) {

@@ -118,7 +118,7 @@ public class SimpleTransactionIdStore implements TransactionIdStore {
     }
 
     @Override
-    public long getLastClosedTransactionId() {
+    public long getHighestGapFreeClosedTransactionId() {
         return closedTransactionId.getHighestGapFreeNumber();
     }
 
@@ -128,7 +128,7 @@ public class SimpleTransactionIdStore implements TransactionIdStore {
     }
 
     @Override
-    public ClosedTransactionMetadata getLastClosedTransaction() {
+    public ClosedTransactionMetadata getHighestGapFreeClosedTransaction() {
         return new ClosedTransactionMetadata(closedTransactionId.get());
     }
 

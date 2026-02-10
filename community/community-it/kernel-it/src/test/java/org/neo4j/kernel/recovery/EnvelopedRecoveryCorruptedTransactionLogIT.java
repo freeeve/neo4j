@@ -83,13 +83,13 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
 
         TransactionIdStore transactionIdStore = getTransactionIdStore(database);
         LogPosition logOffsetBeforeTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
-        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
         generateTransaction(database);
-        long numberOfClosedTransactions =
-                getTransactionIdStore(database).getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+        long numberOfClosedTransactions = getTransactionIdStore(database).getHighestGapFreeClosedTransactionId()
+                - lastClosedTransactionBeforeStart;
         LogPosition logOffsetAfterTestTransactions =
-                transactionIdStore.getLastClosedTransaction().logPosition();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
         generateTransaction(database);
 
         // Zero out everything after first part of header of the second transaction.

@@ -74,11 +74,11 @@ public interface VersionContext {
     long committingChunkId();
 
     /**
-     * Last closed transaction id that read context was initialised with.
-     * Used in snapshot execution engine as visibility guard.
-     * @return last closed transaction id
+     * The highest gap-free closed transaction id that read context was initialized with.
+     * Used in the snapshot execution engine as the visibility guard.
+     * @return highest gap-free closed transaction id
      */
-    long lastClosedTransactionId();
+    long highestGapFree();
 
     /**
      * The highest closed tx id for this context. Together with array of not visible transactions ids
@@ -108,7 +108,7 @@ public interface VersionContext {
      * Global oldest visible transaction number at the time this context is initialized for write.
      * Any version lower than this one isn't visible by any active or future transaction and can be removed.
      */
-    long oldestVisibleTransactionNumber();
+    long oldestVisibilityHorizon();
 
     /**
      * Refresh cursor context visibility boundaries
@@ -168,6 +168,6 @@ public interface VersionContext {
 
     default VersionContext createUnboundedReadRelatedContext() {
         return new UnboundedReadVersionContext(
-                committingTransactionId(), committingChunkId(), oldestVisibleTransactionNumber());
+                committingTransactionId(), committingChunkId(), oldestVisibilityHorizon());
     }
 }

@@ -106,7 +106,7 @@ public final class QueryApiTestUtil {
 
     public static long getLastClosedTransactionId(DatabaseManagementService database) {
         var txIdStore = resolveDependency(database, TransactionIdStore.class);
-        return txIdStore.getLastClosedTransactionId();
+        return txIdStore.getHighestGapFreeClosedTransactionId();
     }
 
     public static String encodedCredentials(String username, String password) {

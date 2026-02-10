@@ -237,7 +237,7 @@ class BufferingIdGeneratorFactoryTest {
     private static class ControllableSnapshotSupplier
             implements Supplier<IdController.TransactionSnapshot>,
                     IdController.IdFreeCondition,
-                    IdController.TransactionIdVisibilityBoundary {
+                    IdController.VisibilityHorizonVisibilityBoundary {
         boolean automaticallyEnableConditions;
         volatile IdController.TransactionSnapshot mostRecentlyReturned;
         private final Set<IdController.TransactionSnapshot> enabledSnapshots = new HashSet<>();
@@ -265,12 +265,12 @@ class BufferingIdGeneratorFactoryTest {
         }
 
         @Override
-        public long oldestObservableHorizon() {
+        public long oldestCleanupHorizon() {
             return 9;
         }
 
         @Override
-        public long oldestTransactionId() {
+        public long oldestVisibilityHorizon() {
             return 9;
         }
     }

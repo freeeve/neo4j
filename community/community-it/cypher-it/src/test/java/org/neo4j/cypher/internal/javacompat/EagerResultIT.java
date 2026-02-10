@@ -51,7 +51,6 @@ import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.snapshot.TestTransactionVersionContextSupplier;
-import org.neo4j.snapshot.TestVersionContext;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -79,7 +78,8 @@ class EagerResultIT {
             TestVersionContext context;
             if (databaseName.equals(database.databaseName())) {
                 context = new TestVersionContext(
-                        () -> new TransactionIdSnapshot(transactionIdStore.getLastClosedTransactionId()), databaseName);
+                        () -> new TransactionIdSnapshot(transactionIdStore.getHighestGapFreeClosedTransactionId()),
+                        databaseName);
 
             } else {
                 context = new TestVersionContext(TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY, databaseName);
@@ -269,8 +269,8 @@ class EagerResultIT {
         }
 
         @Override
-        public long lastClosedTransactionId() {
-            return useCorrectLastCommittedTxId ? TransactionIdStore.BASE_TX_ID : super.lastClosedTransactionId();
+        public long highestGapFree() {
+            return useCorrectLastCommittedTxId ? TransactionIdStore.BASE_TX_ID : super.highestGapFree();
         }
 
         @Override

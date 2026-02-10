@@ -305,7 +305,7 @@ class TransactionLogServiceIT {
     void bulkAppendToTransactionLogsDoesNotChangeLastCommittedTransactionOffset() throws IOException {
         availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
-        var metadataBefore = metadataProvider.getLastClosedTransaction();
+        var metadataBefore = metadataProvider.getHighestGapFreeClosedTransaction();
         var buffer = createBuffer().put(new byte[] {1, 2, 3, 4, 5});
         try {
             for (int i = 0; i < 100; i++) {
@@ -322,14 +322,14 @@ class TransactionLogServiceIT {
             ByteBuffers.releaseBuffer(buffer, INSTANCE);
         }
 
-        assertEquals(metadataBefore, metadataProvider.getLastClosedTransaction());
+        assertEquals(metadataBefore, metadataProvider.getHighestGapFreeClosedTransaction());
     }
 
     @Test
     void bulkAppendWithRotationDoesNotChangeLastClosedMetadata() throws IOException {
         availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
 
-        var metadataBefore = metadataProvider.getLastClosedTransaction();
+        var metadataBefore = metadataProvider.getHighestGapFreeClosedTransaction();
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
         int appendIterations = 100;
@@ -349,7 +349,7 @@ class TransactionLogServiceIT {
             ByteBuffers.releaseBuffer(appendData, INSTANCE);
         }
 
-        assertEquals(metadataBefore, metadataProvider.getLastClosedTransaction());
+        assertEquals(metadataBefore, metadataProvider.getHighestGapFreeClosedTransaction());
 
         // pruning is also not here since metadata store is not upgraded
         Path[] matchedFiles = logFiles.getLogFile().getMatchedFiles();
@@ -758,7 +758,7 @@ class TransactionLogServiceIT {
             });
 
             var initialLastCommittedTx = metadataProvider.getLastCommittedTransactionId();
-            var initialLastClosedTx = metadataProvider.getLastClosedTransactionId();
+            var initialLastClosedTx = metadataProvider.getHighestGapFreeClosedTransactionId();
 
             var hasAppliedTx = e1.executeDontWait(() -> {
                 try (var tx = databaseAPI.beginTx()) {
@@ -777,7 +777,7 @@ class TransactionLogServiceIT {
                 // then we should have the last committed after the last closed:
                 var lastCommittedTransaction = metadataProvider.getLastCommittedTransactionId();
                 var lastAppendIndex = metadataProvider.getLastAppendIndex();
-                var lastClosedTx = metadataProvider.getLastClosedTransactionId();
+                var lastClosedTx = metadataProvider.getHighestGapFreeClosedTransactionId();
                 assertThat(lastClosedTx).isEqualTo(initialLastClosedTx);
                 assertThat(lastAppendIndex).isEqualTo(initialLastCommittedTx + 2);
 

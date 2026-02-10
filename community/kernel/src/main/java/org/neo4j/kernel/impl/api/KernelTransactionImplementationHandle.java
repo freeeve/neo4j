@@ -65,7 +65,7 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     private final TransactionInitializationTrace initializationTrace;
     private final KernelTransactionStamp transactionStamp;
     private final String databaseName;
-    private final long lastClosedTxId;
+    private final long highestGapFreeTxId;
     private final long transactionHorizon;
 
     KernelTransactionImplementationHandle(
@@ -83,7 +83,7 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
         this.clientInfo = tx.clientInfo();
         this.databaseName = tx.getDatabaseName();
         var versionContext = cursorContext.getVersionContext();
-        this.lastClosedTxId = versionContext.lastClosedTransactionId();
+        this.highestGapFreeTxId = versionContext.highestGapFree();
         this.transactionHorizon = transactionHorizon(versionContext);
         this.tx = tx;
         this.clock = clock;
@@ -206,8 +206,8 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     }
 
     @Override
-    public long getLastClosedTxId() {
-        return lastClosedTxId;
+    public long getHighestGapFreeTxId() {
+        return highestGapFreeTxId;
     }
 
     @Override
@@ -242,9 +242,9 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
         // if transaction has already started committing its horizon is oldestVisibleTransactionNumber which was
         // recorded at the time commit started
         if (versionContext.initializedForWrite()) {
-            return versionContext.oldestVisibleTransactionNumber();
+            return versionContext.oldestVisibilityHorizon();
         }
         // otherwise, its horizon is the latest gap free closed transaction at the time it started
-        return versionContext.lastClosedTransactionId();
+        return versionContext.highestGapFree();
     }
 }

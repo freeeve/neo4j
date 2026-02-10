@@ -50,7 +50,7 @@ public class CursorContextFactory {
 
     public void init(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-            OldestTransactionIdFactory oldestTransactionIdFactory) {
-        versionContextSupplier.init(transactionIdSnapshotFactory, oldestTransactionIdFactory);
+            OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {
+        versionContextSupplier.init(transactionIdSnapshotFactory, oldestVisibilityHorizonFactory);
     }
 }

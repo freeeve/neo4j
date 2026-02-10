@@ -444,7 +444,7 @@ class CheckPointerImplTest {
         var otherCommitted = new TransactionId(
                 transactionId, TRANSACTION_APPEND_INDEX, LATEST_KERNEL_VERSION, 6, 7, UNKNOWN_CONSENSUS_INDEX);
         when(logMetadataProvider.getLastCommittedTransaction()).thenReturn(otherCommitted);
-        when(logMetadataProvider.getLastClosedTransactionId())
+        when(logMetadataProvider.getHighestGapFreeClosedTransactionId())
                 .thenReturn(initialAppendIndex, transactionId, transactionId);
         when(logMetadataProvider.getLastCommittedBatch())
                 .thenReturn(new AppendBatchInfo(TRANSACTION_APPEND_INDEX, logPosition));

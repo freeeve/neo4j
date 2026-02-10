@@ -129,7 +129,7 @@ public class DefaultRecoveryService implements RecoveryService {
         // it will still reference old offset from logs that are gone and as result log position in checkpoint
         // record will be incorrect
         // and that can cause partial next recovery.
-        var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
+        var lastClosedTransaction = transactionIdStore.getHighestGapFreeClosedTransaction();
         var lastClosedTransactionId = lastClosedTransaction.transactionId();
         long logVersion = lastClosedTransaction.logPosition().getLogVersion();
         var startOffset = logFormatVersionProvider.getCurrentLogFormat().getDefaultDataStartByteOffset();
@@ -182,7 +182,7 @@ public class DefaultRecoveryService implements RecoveryService {
             // this happens when we read past end of the log file or can't read it at all but recovery was enforced
             // which means that log files after last recovered position can't be trusted, and we need to reset last
             // closed tx log info
-            var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
+            var lastClosedTransaction = transactionIdStore.getHighestGapFreeClosedTransaction();
             log.warn("Recovery detected that transaction logs tail can't be trusted. "
                     + "Resetting offset of last closed transaction to point to the last recoverable log position: "
                     + positionAfterLastRecoveredTransaction);

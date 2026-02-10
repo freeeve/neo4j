@@ -306,7 +306,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             if (multiversion) {
                 cursorContext
                         .getVersionContext()
-                        .initWrite(cursorContext.getVersionContext().lastClosedTransactionId());
+                        .initWrite(cursorContext.getVersionContext().highestGapFree());
             }
             // Recovery will not do refresh (update read views) while applying recovered transactions and instead
             // do it at one point after recovery... i.e. here

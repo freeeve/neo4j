@@ -182,7 +182,7 @@ public interface KernelTransactionHandle {
      */
     String getStatusDetails();
 
-    long getLastClosedTxId();
+    long getHighestGapFreeTxId();
 
     long getTransactionHorizon();
 }

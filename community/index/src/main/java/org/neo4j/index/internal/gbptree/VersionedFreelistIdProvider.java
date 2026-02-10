@@ -70,7 +70,7 @@ class VersionedFreelistIdProvider implements FreeListIdProvider {
     @Override
     public long acquireNewId(long stableGeneration, CursorCreator cursorCreator, CursorContext cursorContext)
             throws IOException {
-        long oldestVisibleVersion = cursorContext.getVersionContext().oldestVisibleTransactionNumber();
+        long oldestVisibleVersion = cursorContext.getVersionContext().oldestVisibilityHorizon();
         try (var cursor = cursorCreator.create()) {
             long acquiredId = acquireNewIdFromFreelistsOrEnd(stableGeneration, oldestVisibleVersion, cursor);
             zapPage(acquiredId, cursor);

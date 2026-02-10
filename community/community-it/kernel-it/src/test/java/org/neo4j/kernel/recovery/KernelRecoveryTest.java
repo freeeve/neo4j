@@ -137,7 +137,10 @@ class KernelRecoveryTest {
     private static long getLastClosedTransactionId(GraphDatabaseAPI database) {
         LogMetadataProvider logMetadataProvider =
                 database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
-        return logMetadataProvider.getLastClosedTransaction().transactionId().id();
+        return logMetadataProvider
+                .getHighestGapFreeClosedTransaction()
+                .transactionId()
+                .id();
     }
 
     private GraphDatabaseService newDB(FileSystemAbstraction fs, String name) {

@@ -138,7 +138,7 @@ class TransactionLogsUpgradeIT {
 
         long firstNewTransaction = testDb.getDependencyResolver()
                 .resolveDependency(TransactionIdStore.class)
-                .getLastClosedTransactionId();
+                .getHighestGapFreeClosedTransactionId();
         LogFiles logFiles = testDb.getDependencyResolver().resolveDependency(LogFiles.class);
         assertLogHeaderExpectedVersion(
                 fileSystem,
@@ -180,7 +180,7 @@ class TransactionLogsUpgradeIT {
 
         TransactionIdStore transactionIdStore =
                 testDb.getDependencyResolver().resolveDependency(TransactionIdStore.class);
-        long lastClosedTransactionIdBeforeUpgrade = transactionIdStore.getLastClosedTransactionId();
+        long lastClosedTransactionIdBeforeUpgrade = transactionIdStore.getHighestGapFreeClosedTransactionId();
 
         long numNodesBefore = getNodeCount(testDb);
 
@@ -219,7 +219,7 @@ class TransactionLogsUpgradeIT {
                 .isEqualTo(numNodesBefore);
         assertKernelVersion(testDb, GLORIOUS_FUTURE);
         LogPosition positionAfterUpgrade =
-                transactionIdStore.getLastClosedTransaction().logPosition();
+                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
 
         // Now the upgrade transaction is our latest transaction in the log, and it is on the 'old' version
         shutdownDbms();

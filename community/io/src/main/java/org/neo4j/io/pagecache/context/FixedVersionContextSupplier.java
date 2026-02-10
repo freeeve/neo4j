@@ -32,7 +32,7 @@ public class FixedVersionContextSupplier implements VersionContextSupplier {
     @Override
     public void init(
             TransactionIdSnapshotFactory transactionIdSnapshotFactory,
-            OldestTransactionIdFactory oldestTransactionIdFactory) {}
+            OldestVisibilityHorizonFactory oldestVisibilityHorizonFactory) {}
 
     @Override
     public VersionContext createVersionContext() {
