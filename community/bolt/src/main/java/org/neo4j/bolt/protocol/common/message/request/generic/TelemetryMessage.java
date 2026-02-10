@@ -20,11 +20,7 @@
 
 package org.neo4j.bolt.protocol.common.message.request.generic;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.packstream.error.reader.PackstreamReaderException;
 
 public record TelemetryMessage(DriverInterfaceType interfaceType) implements RequestMessage {
     public static final short SIGNATURE = 0x54;
@@ -41,29 +37,13 @@ public record TelemetryMessage(DriverInterfaceType interfaceType) implements Req
         EXECUTE_QUERY(3);
 
         private final long marker;
-        private static final Map<Long, DriverInterfaceType> DRIVER_INTERFACE_MAP;
 
         DriverInterfaceType(long marker) {
             this.marker = marker;
         }
 
-        static {
-            var map = new HashMap<Long, DriverInterfaceType>();
-
-            for (var type : values()) {
-                map.put(type.marker, type);
-            }
-
-            DRIVER_INTERFACE_MAP = Collections.unmodifiableMap(map);
-        }
-
-        public static DriverInterfaceType fromLong(long type) throws PackstreamReaderException {
-            DriverInterfaceType interfaceType = DRIVER_INTERFACE_MAP.get(type);
-            if (interfaceType == null) {
-                throw PackstreamReaderException.unknownDriverInterfaceType(type, DRIVER_INTERFACE_MAP.keySet());
-            }
-
-            return interfaceType;
+        public long getMarker() {
+            return marker;
         }
     }
 }

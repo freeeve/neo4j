@@ -20,6 +20,9 @@
 
 package org.neo4j.bolt.protocol.common.message.decoder.generic;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
 import org.neo4j.bolt.protocol.common.message.request.generic.TelemetryMessage;
@@ -32,6 +35,7 @@ import org.neo4j.packstream.util.PackstreamConditions;
 public class TelemetryMessageDecoder implements MessageDecoder<TelemetryMessage> {
 
     private static final TelemetryMessageDecoder INSTANCE = new TelemetryMessageDecoder();
+    private static final Map<Long, TelemetryMessage.DriverInterfaceType> DRIVER_INTERFACE_MAP;
 
     public static TelemetryMessageDecoder getInstance() {
         return INSTANCE;
@@ -53,10 +57,29 @@ public class TelemetryMessageDecoder implements MessageDecoder<TelemetryMessage>
         var apiType = valueReader.readLong();
 
         if (apiType != null) {
-            var driverInterfaceTypeUsage = TelemetryMessage.DriverInterfaceType.fromLong(apiType.value());
+            var driverInterfaceTypeUsage = interfaceFromLong(apiType.value());
             return new TelemetryMessage(driverInterfaceTypeUsage);
         } else {
             throw IllegalStructArgumentException.expectedIntegerButGotNull(apiKey);
         }
+    }
+
+    static {
+        var map = new HashMap<Long, TelemetryMessage.DriverInterfaceType>();
+
+        for (var type : TelemetryMessage.DriverInterfaceType.values()) {
+            map.put(type.getMarker(), type);
+        }
+
+        DRIVER_INTERFACE_MAP = Collections.unmodifiableMap(map);
+    }
+
+    public static TelemetryMessage.DriverInterfaceType interfaceFromLong(long type) throws PackstreamReaderException {
+        TelemetryMessage.DriverInterfaceType interfaceType = DRIVER_INTERFACE_MAP.get(type);
+        if (interfaceType == null) {
+            throw PackstreamReaderException.unknownDriverInterfaceType(type, DRIVER_INTERFACE_MAP.keySet());
+        }
+
+        return interfaceType;
     }
 }
