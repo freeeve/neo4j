@@ -537,10 +537,10 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
   test("var-length-expand-into with min length") {
     // given
-    val (n1, n3, r1, r2, r3, r4) = givenGraph {
+    val (n1, n3, r1, r2, r3) = givenGraph {
       val (Seq(n1, _, n3), Seq(r1, r2, r3)) = lollipopGraph(): @unchecked
-      val r4 = tx.getNodeById(n1.getId).createRelationshipTo(tx.getNodeById(n3.getId), RelationshipType.withName("R"))
-      (n1, n3, r1, r2, r3, r4)
+      n1.createRelationshipTo(n3, RelationshipType.withName("R"))
+      (n1, n3, r1, r2, r3)
     }
 
     // when
@@ -559,6 +559,104 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     )
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
+  }
+
+  test("var-length expand into start node with self reference") {
+
+    /**
+     * {{{
+     *   ,---,    --[R]->
+     *  [X]  (a:A)       (b:B)
+     *   `---^    <-[S]--
+     * }}}
+     */
+    val (r, s, x) = givenGraph {
+      val a = tx.createNode(Label.label("A")) // 0
+      val b = tx.createNode(Label.label("B")) // 1
+      val r = a.createRelationshipTo(b, RelationshipType.withName("R")) // 0
+      val s = b.createRelationshipTo(a, RelationshipType.withName("S")) // 1
+      val x = a.createRelationshipTo(a, RelationshipType.withName("X")) // 2
+      (r, s, x)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .expand("(a)-[r*1..4]->(a)", pathMode = traversalPathMode, expandMode = ExpandInto)
+      .nodeByLabelScan("a", "A")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    traversalPathMode match {
+      case Walk =>
+        runtimeResult should beColumns("r").withRows(Array(
+          Array(Array(r, s)),
+          Array(Array(r, s, r, s)),
+          Array(Array(r, s, x)),
+          Array(Array(r, s, x, x)),
+          Array(Array(x)),
+          Array(Array(x, r, s)),
+          Array(Array(x, r, s, x)),
+          Array(Array(x, x)),
+          Array(Array(x, x, r, s)),
+          Array(Array(x, x, x)),
+          Array(Array(x, x, x, x))
+        ))
+      case Trail =>
+        runtimeResult should beColumns("r").withRows(Array(
+          Array(Array(r, s)),
+          Array(Array(r, s, x)),
+          Array(Array(x)),
+          Array(Array(x, r, s))
+        ))
+      case Acyclic =>
+        runtimeResult should beColumns("r").withNoRows()
+    }
+  }
+
+  test("var-length-expand-into with cycles") {
+    // given
+    val (n1, n3, r1, r2, r3, r4, r5) = givenGraph {
+
+      /**
+       * Postal van graph?
+       * {{{   ,------------------.
+       *       v       -[r1:R]->  |
+       *     (n1:START)         (n2)-[r3:R]->(n3)
+       *       |       -[r2:R]->              ^
+       * }}}   `------------------------------'
+       */
+      val (Seq(n1, n2, n3), Seq(r1, r2, r3)) = lollipopGraph(): @unchecked
+      val r4 = n2.createRelationshipTo(n1, RelationshipType.withName("R"))
+      val r5 = n1.createRelationshipTo(n3, RelationshipType.withName("R"))
+      (n1, n3, r1, r2, r3, r4, r5)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "r", "y")
+      .expand("(x)-[r*1..3]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
+      .input(nodes = Seq("x", "y"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(Array(n1, n3)))
+
+    // then
+    val acyclicExpected: Array[Array[Any]] = Array[Array[Any]](
+      Array(n1, Array(r5), n3),
+      Array(n1, Array(r1, r3), n3),
+      Array(n1, Array(r2, r3), n3)
+    )
+    val walkOrTrailExpected: Array[Array[Any]] = acyclicExpected ++ Array[Array[Any]](
+      Array(n1, Array(r1, r4, r5), n3),
+      Array(n1, Array(r2, r4, r5), n3)
+    )
+
+    runtimeResult should beColumns("x", "r", "y").withRows(inAnyOrder(traversalPathMode match {
+      case Walk    => walkOrTrailExpected
+      case Trail   => walkOrTrailExpected
+      case Acyclic => acyclicExpected
+    }))
   }
 
   // PATH PROJECTION
@@ -735,7 +833,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .expand("(x)-[r*1..2]->(y)")
+      .expand("(x)-[r*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -789,67 +887,52 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
+    val expectedWalk =
+      Array(
+        // First step to (sa1)
+        Array(g.sa1),
+        Array(g.start),
+        Array(g.middle),
+        // First step to (sb1)
+        Array(g.sb1),
+        Array(g.sb2),
+        Array(g.start),
+        // First step to (sc1)
+        Array(g.sc1),
+        Array(g.sc2),
+        Array(g.start),
+        // First step to (middle)
+        Array(g.middle),
+        Array(g.end),
+        Array(g.sa1),
+        Array(g.sb2),
+        Array(g.sc3),
+        Array(g.start),
+        Array(g.ea1),
+        Array(g.eb1),
+        Array(g.ec1)
+      )
+    val expectedTrailOrAcyclic =
+      Array(
+        Array(g.sb1), // outgoing only
+        Array(g.sa1),
+        Array(g.middle),
+        Array(g.sb2),
+        Array(g.middle),
+        Array(g.sc3),
+        Array(g.ea1),
+        Array(g.eb1),
+        Array(g.ec1),
+        Array(g.sc1), // incoming only
+        Array(g.sc2),
+        Array(g.sb2), // mixed
+        Array(g.sa1),
+        Array(g.end)
+      )
     val expected = traversalPathMode match {
-      case TraversalPathMode.Walk =>
-        Array(
-          // First step to (sa1)
-          Array(g.sa1),
-          Array(g.start),
-          Array(g.middle),
-          // First step to (sb1)
-          Array(g.sb1),
-          Array(g.sb2),
-          Array(g.start),
-          // First step to (sc1)
-          Array(g.sc1),
-          Array(g.sc2),
-          Array(g.start),
-          // First step to (middle)
-          Array(g.middle),
-          Array(g.end),
-          Array(g.sa1),
-          Array(g.sb2),
-          Array(g.sc3),
-          Array(g.start),
-          Array(g.ea1),
-          Array(g.eb1),
-          Array(g.ec1)
-        )
-      case TraversalPathMode.Trail =>
-        Array(
-          Array(g.sb1), // outgoing only
-          Array(g.sa1),
-          Array(g.middle),
-          Array(g.sb2),
-          Array(g.middle),
-          Array(g.sc3),
-          Array(g.ea1),
-          Array(g.eb1),
-          Array(g.ec1),
-          Array(g.sc1), // incoming only
-          Array(g.sc2),
-          Array(g.sb2), // mixed
-          Array(g.sa1),
-          Array(g.end)
-        )
-      case TraversalPathMode.Acyclic =>
-        Array(
-          Array(g.sb1), // outgoing only
-          Array(g.sa1),
-          Array(g.middle),
-          Array(g.sb2),
-          Array(g.middle),
-          Array(g.sc3),
-          Array(g.ea1),
-          Array(g.eb1),
-          Array(g.ec1),
-          Array(g.sc1), // incoming only
-          Array(g.sc2),
-          Array(g.sb2), // mixed
-          Array(g.sa1),
-          Array(g.end)
-        )
-
+      case TraversalPathMode.Walk    => expectedWalk
+      case TraversalPathMode.Trail   => expectedTrailOrAcyclic
+      case TraversalPathMode.Acyclic => expectedTrailOrAcyclic
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
