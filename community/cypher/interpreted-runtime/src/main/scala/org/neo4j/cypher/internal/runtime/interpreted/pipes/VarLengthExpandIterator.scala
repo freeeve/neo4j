@@ -75,12 +75,11 @@ case class VarLengthExpandIterator(
             val otherNode = VirtualValues.node(relationships.otherNodeId(node.id()))
 
             if (
+              filteringStep.filterRelationship(row, state, rel, node, otherNode) &&
+              traversalContainer.canAdd(otherNode, rel) &&
               filteringStep.filterNode(row, state, otherNode)
-              && filteringStep.filterRelationship(row, state, rel, node, otherNode)
             ) {
-              if (traversalContainer.canAdd(otherNode, rel)) {
-                stack.push((otherNode, traversalContainer.append(otherNode, rel)))
-              }
+              stack.push((otherNode, traversalContainer.append(otherNode, rel)))
             }
           }
         }
