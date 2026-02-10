@@ -96,7 +96,7 @@ case class Search(
   private def checkIndexName(): SemanticCheck = {
     indexName match {
       case name: StringLiteral =>
-        notifyIfIndexNameShadowsVariable(name.value)
+        notifyIfIndexNameShadowsVariable(name.value, indexName.position)
       case parameter: Parameter if parameter.parameterType == CTString =>
         // This is a restriction for the MVP which we intend to lift later
         // TODO: Once SEARCH can handle parameters, re-enable the auto-parametrization of the Search clause
@@ -114,13 +114,16 @@ case class Search(
     }
   }
 
-  private def notifyIfIndexNameShadowsVariable(name: String): SemanticState => Either[SemanticError, SemanticState] = {
+  private def notifyIfIndexNameShadowsVariable(
+    name: String,
+    position: InputPosition
+  ): SemanticState => Either[SemanticError, SemanticState] = {
     (s: SemanticState) =>
       s.symbol(name) match {
         case None => Right(s)
-        case Some(symbol) =>
+        case Some(_) =>
           Right(s.addNotification(IdentifierShadowsVariableNotification(
-            symbol.definition.asVariable.position,
+            position,
             name,
             "VECTOR INDEX"
           )))
