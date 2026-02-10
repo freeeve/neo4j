@@ -691,7 +691,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             // before _,_,_,_,_,_,_,_,_,_
             // insert _,_,_,X,_,_,_,_,_,_,_
             // split            ^
-            moveKeysAndValues(leftCursor, splitPos - 1, rightCursor, 0, rightKeyCount);
+            moveKeysAndValues(leftCursor, splitPos - 1, rightCursor, 0, rightKeyCount, 0, cursorContext);
             doDefragment(leftCursor, splitPos - 1);
             insertKeyValueAt(
                     leftCursor,
@@ -712,8 +712,10 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             // Copy everything in one go
             int newInsertPos = insertPos - splitPos;
             int keysToMove = leftKeyCount - splitPos;
-            moveKeysAndValues(leftCursor, splitPos, rightCursor, 0, keysToMove);
-            doDefragment(leftCursor, splitPos);
+            if (keysToMove > 0) {
+                moveKeysAndValues(leftCursor, splitPos, rightCursor, 0, keysToMove, 0, cursorContext);
+                doDefragment(leftCursor, splitPos);
+            }
             insertKeyValueAt(
                     rightCursor,
                     newKey,
@@ -741,7 +743,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             CursorContext cursorContext)
             throws IOException {
         int rightKeyCount = keyCount - splitPos;
-        moveKeysAndValues(leftCursor, splitPos, rightCursor, 0, rightKeyCount);
+        moveKeysAndValues(leftCursor, splitPos, rightCursor, 0, rightKeyCount, 0, cursorContext);
 
         if (updatePos >= splitPos) {
             if (!setValueAt(
@@ -774,30 +776,40 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             PageCursor rightCursor,
             int rightKeyCount,
             int fromPosInLeftNode,
-            CursorContext cursorContext) {
-        doDefragment(rightCursor, rightKeyCount);
+            CursorContext cursorContext)
+            throws IOException {
+        int newRightKeyCount = defragment(rightCursor, rightKeyCount, cursorContext);
         int numberOfKeysToMove = leftKeyCount - fromPosInLeftNode;
 
         // Push keys and values in right sibling to the right
         TreeNodeUtil.insertSlotsAt(
-                rightCursor, 0, numberOfKeysToMove, rightKeyCount, keyPosOffsetLeaf(0), DynamicSizeUtil.OFFSET_SIZE);
+                rightCursor, 0, numberOfKeysToMove, newRightKeyCount, keyPosOffsetLeaf(0), DynamicSizeUtil.OFFSET_SIZE);
 
         // Move (also updates keyCount of left)
-        moveKeysAndValues(leftCursor, fromPosInLeftNode, rightCursor, 0, numberOfKeysToMove);
+        moveKeysAndValues(
+                leftCursor, fromPosInLeftNode, rightCursor, 0, numberOfKeysToMove, newRightKeyCount, cursorContext);
 
         // Right keyCount
-        TreeNodeUtil.setKeyCount(rightCursor, rightKeyCount + numberOfKeysToMove);
+        TreeNodeUtil.setKeyCount(rightCursor, newRightKeyCount + numberOfKeysToMove);
     }
 
     // NOTE: Does update keyCount
-    private void moveKeysAndValues(PageCursor fromCursor, int fromPos, PageCursor toCursor, int toPos, int count) {
-        int firstAllocOffset = DynamicSizeUtil.getAllocOffset(toCursor);
+    protected void moveKeysAndValues(
+            PageCursor fromCursor,
+            int fromPos,
+            PageCursor targetCursor,
+            int targetPos,
+            int countToMove,
+            int targetExistingKeyCount,
+            CursorContext cursorContext)
+            throws IOException {
+        int firstAllocOffset = DynamicSizeUtil.getAllocOffset(targetCursor);
         int toAllocOffset = firstAllocOffset;
-        for (int i = 0; i < count; i++, toPos++) {
-            toAllocOffset = copyRawKeyValue(fromCursor, fromPos + i, toCursor, toAllocOffset, true);
-            resetOffsetAtPos(toCursor, toPos, toAllocOffset);
+        for (int i = 0; i < countToMove; i++, targetPos++) {
+            toAllocOffset = copyRawKeyValue(fromCursor, fromPos + i, targetCursor, toAllocOffset, true);
+            resetOffsetAtPos(targetCursor, targetPos, toAllocOffset);
         }
-        setAllocOffset(toCursor, toAllocOffset);
+        setAllocOffset(targetCursor, toAllocOffset);
 
         // Update deadSpace
         int deadSpace = getDeadSpace(fromCursor);

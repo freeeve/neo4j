@@ -360,7 +360,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             // before _,_,_,_,_,_,_,_,_,_
             // insert _,_,_,X,_,_,_,_,_,_,_
             // split            ^
-            copyKeysAndValues(leftCursor, splitPos - 1, rightCursor, 0, rightKeyCount);
+            copyKeysAndValues(leftCursor, splitPos - 1, rightCursor, 0, rightKeyCount, 0, cursorContext);
             insertKeyValueAt(
                     leftCursor,
                     newKey,
@@ -379,7 +379,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int countBeforePos = insertPos - splitPos;
             if (countBeforePos > 0) {
                 // first copy
-                copyKeysAndValues(leftCursor, splitPos, rightCursor, 0, countBeforePos);
+                copyKeysAndValues(leftCursor, splitPos, rightCursor, 0, countBeforePos, 0, cursorContext);
             }
             insertKeyValueAt(
                     rightCursor,
@@ -393,7 +393,14 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int countAfterPos = leftKeyCount - insertPos;
             if (countAfterPos > 0) {
                 // second copy
-                copyKeysAndValues(leftCursor, insertPos, rightCursor, countBeforePos + 1, countAfterPos);
+                copyKeysAndValues(
+                        leftCursor,
+                        insertPos,
+                        rightCursor,
+                        countBeforePos + 1,
+                        countAfterPos,
+                        countBeforePos + 1,
+                        cursorContext);
             }
         }
         setKeyCount(leftCursor, splitPos);
@@ -423,17 +430,18 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int fromPosInLeftNode,
             CursorContext cursorContext)
             throws IOException {
-        rightKeyCount = defragment(rightCursor, rightKeyCount, cursorContext);
+        int newRightKeyCount = defragment(rightCursor, rightKeyCount, cursorContext);
         int numberOfKeysToMove = leftKeyCount - fromPosInLeftNode;
 
         // Push keys and values in right sibling to the right
-        insertKeyValueSlots(rightCursor, numberOfKeysToMove, rightKeyCount);
+        insertKeyValueSlots(rightCursor, numberOfKeysToMove, newRightKeyCount);
 
         // Move keys and values from left sibling to right sibling
-        copyKeysAndValues(leftCursor, fromPosInLeftNode, rightCursor, 0, numberOfKeysToMove);
+        copyKeysAndValues(
+                leftCursor, fromPosInLeftNode, rightCursor, 0, numberOfKeysToMove, newRightKeyCount, cursorContext);
 
         setKeyCount(leftCursor, leftKeyCount - numberOfKeysToMove);
-        setKeyCount(rightCursor, rightKeyCount + numberOfKeysToMove);
+        setKeyCount(rightCursor, newRightKeyCount + numberOfKeysToMove);
     }
 
     @Override
@@ -444,23 +452,31 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int rightKeyCount,
             CursorContext cursorContext)
             throws IOException {
-        rightKeyCount = defragment(rightCursor, rightKeyCount, cursorContext);
+        int newRightKeyCount = defragment(rightCursor, rightKeyCount, cursorContext);
 
         // Push keys and values in right sibling to the right
-        insertKeyValueSlots(rightCursor, leftKeyCount, rightKeyCount);
+        insertKeyValueSlots(rightCursor, leftKeyCount, newRightKeyCount);
 
         // Move keys and values from left sibling to right sibling
-        copyKeysAndValues(leftCursor, 0, rightCursor, 0, leftKeyCount);
+        copyKeysAndValues(leftCursor, 0, rightCursor, 0, leftKeyCount, newRightKeyCount, cursorContext);
 
         // KeyCount
-        setKeyCount(rightCursor, rightKeyCount + leftKeyCount);
+        setKeyCount(rightCursor, newRightKeyCount + leftKeyCount);
     }
 
-    private void copyKeysAndValues(PageCursor fromCursor, int fromPos, PageCursor toCursor, int toPos, int count) {
-        fromCursor.copyTo(keyOffset(fromPos), toCursor, keyOffset(toPos), count * keySize);
-        int valueLength = count * valueSize;
+    protected void copyKeysAndValues(
+            PageCursor fromCursor,
+            int fromPos,
+            PageCursor targetCursor,
+            int targetPos,
+            int countToMove,
+            int targetExistingKeyCount,
+            CursorContext cursorContext)
+            throws IOException {
+        fromCursor.copyTo(keyOffset(fromPos), targetCursor, keyOffset(targetPos), countToMove * keySize);
+        int valueLength = countToMove * valueSize;
         if (valueLength > 0) {
-            fromCursor.copyTo(valueOffset(fromPos), toCursor, valueOffset(toPos), valueLength);
+            fromCursor.copyTo(valueOffset(fromPos), targetCursor, valueOffset(targetPos), valueLength);
         }
     }
 
