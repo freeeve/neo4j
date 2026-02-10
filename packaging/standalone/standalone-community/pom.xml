@@ -78,7 +78,7 @@
                     <repositoryLayout>flat</repositoryLayout>
                     <useAllProjectDependencies>true</useAllProjectDependencies>
                     <useWildcardClassPath>true</useWildcardClassPath>
-                    <extraJvmArguments>-Xmx128m</extraJvmArguments>
+                    <extraJvmArguments>-Xmx128m -XX:+IgnoreUnrecognizedVMOptions --sun-misc-unsafe-memory-access=allow</extraJvmArguments>
                     <platforms>
                         <platform>unix</platform>
                     </platforms>
