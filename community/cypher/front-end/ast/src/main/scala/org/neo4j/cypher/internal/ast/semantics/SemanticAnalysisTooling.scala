@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableTypeCheckingInSemanticAnalysis
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.DefaultTypeMismatchMessageGenerator
@@ -197,16 +198,23 @@ trait SemanticAnalysisTooling {
             if !p.name.matches(
               """\s\sAUTO(INT|STRING|DOUBLE|LIST)\d+"""
             ) => // See literalReplacement for list of all AUTOs
-            SemanticCheckResult.error(
-              ss,
-              SemanticError.invalidEntityType(
-                existingCypherTypeString,
-                s"${typeMismatchVal.txt} parameter: ${p.name}",
-                possibleTypes.toCypherStrings.toList,
-                "Type mismatch for parameter '" + p.name + "': " + messageGen(expectedTypesString, existingTypesString),
-                expression.position
+            if (ss.features.contains(DisableTypeCheckingInSemanticAnalysis)) {
+              SemanticCheckResult.success(ss)
+            } else {
+              SemanticCheckResult.error(
+                ss,
+                SemanticError.invalidEntityType(
+                  existingCypherTypeString,
+                  s"${typeMismatchVal.txt} parameter: ${p.name}",
+                  possibleTypes.toCypherStrings.toList,
+                  "Type mismatch for parameter '" + p.name + "': " + messageGen(
+                    expectedTypesString,
+                    existingTypesString
+                  ),
+                  expression.position
+                )
               )
-            )
+            }
           case _ =>
             val semanticError =
               if (typeMismatchVal == TypeMismatchContext.EMPTY) {
@@ -230,10 +238,11 @@ trait SemanticAnalysisTooling {
                 )
               }
 
-            SemanticCheckResult.error(
-              ss,
-              semanticError
-            )
+            if (ss.features.contains(DisableTypeCheckingInSemanticAnalysis)) {
+              SemanticCheckResult.success(ss)
+            } else {
+              SemanticCheckResult.error(ss, semanticError)
+            }
         }
       case (ss, _) =>
         SemanticCheckResult.success(ss)

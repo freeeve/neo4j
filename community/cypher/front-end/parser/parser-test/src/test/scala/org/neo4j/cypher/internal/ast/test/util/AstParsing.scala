@@ -204,7 +204,7 @@ object Parsers {
   private object Cypher5Factory extends ParserFactory {
 
     private def parse[T <: ASTNode](f: Cypher5Parser => AstRuleCtx): Parser[T] = (cypher: String) => {
-      new Cypher5AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None).parse(f)
+      new Cypher5AstParser(cypher, Neo4jCypherExceptionFactory(cypher, None), None, Seq()).parse(f)
     }
     override def statements(): Parser[Statements] = parse(_.statements())
     override def statement(): Parser[Statement] = parse(_.statement())

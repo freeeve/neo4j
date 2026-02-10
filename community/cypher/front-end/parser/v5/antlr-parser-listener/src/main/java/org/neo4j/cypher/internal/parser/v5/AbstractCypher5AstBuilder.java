@@ -236,6 +236,8 @@ public abstract class AbstractCypher5AstBuilder implements Cypher5ParserListener
             case Cypher5Parser.RULE_functionName -> exitFunctionName((Cypher5Parser.FunctionNameContext) ctx);
             case Cypher5Parser.RULE_namespace -> exitNamespace((Cypher5Parser.NamespaceContext) ctx);
             case Cypher5Parser.RULE_variable -> exitVariable((Cypher5Parser.VariableContext) ctx);
+            case Cypher5Parser.RULE_obfuscatedLiteral ->
+                exitObfuscatedLiteral((Cypher5Parser.ObfuscatedLiteralContext) ctx);
             case Cypher5Parser.RULE_nonEmptyNameList ->
                 exitNonEmptyNameList((Cypher5Parser.NonEmptyNameListContext) ctx);
             case Cypher5Parser.RULE_type -> exitType((Cypher5Parser.TypeContext) ctx);

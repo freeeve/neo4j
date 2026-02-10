@@ -278,6 +278,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_functionName -> exitFunctionName((Cypher25Parser.FunctionNameContext) ctx);
             case Cypher25Parser.RULE_namespace -> exitNamespace((Cypher25Parser.NamespaceContext) ctx);
             case Cypher25Parser.RULE_variable -> exitVariable((Cypher25Parser.VariableContext) ctx);
+            case Cypher25Parser.RULE_obfuscatedLiteral ->
+                exitObfuscatedLiteral((Cypher25Parser.ObfuscatedLiteralContext) ctx);
             case Cypher25Parser.RULE_nonEmptyNameList ->
                 exitNonEmptyNameList((Cypher25Parser.NonEmptyNameListContext) ctx);
             case Cypher25Parser.RULE_type -> exitType((Cypher25Parser.TypeContext) ctx);

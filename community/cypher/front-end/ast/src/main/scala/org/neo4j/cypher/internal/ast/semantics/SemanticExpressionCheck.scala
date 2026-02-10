@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.checkValidLabels
@@ -111,6 +112,7 @@ import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.NumberLiteral
+import org.neo4j.cypher.internal.expressions.ObfuscatedLiteral
 import org.neo4j.cypher.internal.expressions.OctalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Ors
@@ -987,6 +989,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                   specifyType(CTBoolean, x)
               }
           }
+
+      case _: ObfuscatedLiteral => success
 
       // FALLBACK
 

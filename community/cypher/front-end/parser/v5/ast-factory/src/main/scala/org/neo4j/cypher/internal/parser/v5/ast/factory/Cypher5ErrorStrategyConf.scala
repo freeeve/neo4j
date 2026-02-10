@@ -41,7 +41,8 @@ class Cypher5ErrorStrategyConf extends CypherErrorStrategy.Conf {
 
   override def ignoredTokens: util.Set[Integer] = java.util.Set.of[java.lang.Integer](
     Token.EPSILON,
-    Cypher5Parser.SEMICOLON
+    Cypher5Parser.SEMICOLON,
+    Cypher5Parser.OBFUSCATION
   )
 
   override def customTokenDisplayNames: Map[Int, String] = Map(

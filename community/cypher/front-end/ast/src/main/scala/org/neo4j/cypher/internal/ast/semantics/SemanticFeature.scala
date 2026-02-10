@@ -101,6 +101,14 @@ object SemanticFeature {
     override def name: String = "disable reworked rewriters"
   }
 
+  case object EnableParsingOfObfuscatedLiterals extends SemanticFeature with FeatureToString {
+    override def name: String = "enable parsing of obfuscated literals"
+  }
+
+  case object DisableTypeCheckingInSemanticAnalysis extends SemanticFeature with FeatureToString {
+    override def name: String = "disable type checking in semantic analysis"
+  }
+
   /**
    * Normally it's not allowed to mix old and new label expression syntax within a clause.
    * The implementation of this check has had bugs in the past, can be inconvenient for users
@@ -137,6 +145,8 @@ object SemanticFeature {
     ScopeQueries,
     VariableChecking,
     DisableReworkedRewriters,
+    EnableParsingOfObfuscatedLiterals,
+    DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
     PathModes,
     AttributeBasedAccessControl,

@@ -351,6 +351,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitVariable(Cypher25Parser.VariableContext ctx);
 
+    void exitObfuscatedLiteral(Cypher25Parser.ObfuscatedLiteralContext ctx);
+
     void exitNonEmptyNameList(Cypher25Parser.NonEmptyNameListContext ctx);
 
     void exitType(Cypher25Parser.TypeContext ctx);

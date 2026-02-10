@@ -101,6 +101,7 @@ import org.neo4j.cypher.internal.expressions.NormalForm
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.NumberLiteral
+import org.neo4j.cypher.internal.expressions.ObfuscatedLiteral
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Parameter
@@ -810,6 +811,9 @@ private class DefaultExpressionStringifier(
 
       case IsRepeatAcyclic(argument) =>
         noEagerConsumption(s"IsRepeatAcyclic(${apply(argument)})")
+
+      case ObfuscatedLiteral() =>
+        noEagerConsumption("******")
 
       case _ =>
         noEagerConsumption(extensionStringifier(this)(ast))

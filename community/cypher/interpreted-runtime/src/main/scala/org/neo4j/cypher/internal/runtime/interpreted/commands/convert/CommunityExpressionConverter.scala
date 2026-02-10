@@ -574,8 +574,9 @@ case class CommunityExpressionConverter(
         NameExpressionGraphReference(self.toCommandExpression(id, name), parseStringGraphReferences)
       case GraphFunctionReference(GraphByElementId(elementId), _) =>
         IdExpressionGraphReference(self.toCommandExpression(id, elementId))
-      case TraversalEndpoint(v, _) => variable(v)
-      case _                       => null
+      case TraversalEndpoint(v, _)                   => variable(v)
+      case _: internal.expressions.ObfuscatedLiteral => commands.expressions.Null()
+      case _                                         => null
     }
 
     Option(result)

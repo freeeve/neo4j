@@ -33,10 +33,10 @@ public class Cypher5WatchdogTest {
     void cypher5IsFrozen() throws IOException, NoSuchAlgorithmException {
         assertThat(sha256(Paths.get("src/main/antlr4/org/neo4j/cypher/internal/parser/v5/Cypher5Lexer.g4")))
                 .as("Cypher 5 is frozen. If you need to make changes, get approval from #team-clg first.")
-                .isEqualTo("530adb6ad41ace5f368c19241f2631fac23ebbccf060dcc082146fc8f10c80f6");
+                .isEqualTo("4d78b36b66ce150bdf599cab56b13e7b9b0dc471490796a531c08fb866cd1c3f");
         assertThat(sha256(Paths.get("src/main/antlr4/org/neo4j/cypher/internal/parser/v5/Cypher5Parser.g4")))
                 .as("Cypher 5 is frozen. If you need to make changes, get approval from #team-clg first.")
-                .isEqualTo("98b40da8833fce42bebc6249d94d4785f6fd951a20ec03486d816a3f6899a437");
+                .isEqualTo("2779d592bd8ba6ee56143a1fc6aae16569f5303a08646480fc21147254c8c3c8");
     }
 
     private String sha256(Path filePath) throws IOException, NoSuchAlgorithmException {

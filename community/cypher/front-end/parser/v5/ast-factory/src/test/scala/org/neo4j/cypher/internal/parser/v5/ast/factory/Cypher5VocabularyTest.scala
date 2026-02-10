@@ -246,6 +246,7 @@ class Cypher5VocabularyTest extends CypherFunSuite {
     Cypher5Parser.NOTHING -> "'NOTHING'",
     Cypher5Parser.NOWAIT -> "'NOWAIT'",
     Cypher5Parser.NULL -> "'NULL'",
+    Cypher5Parser.OBFUSCATION -> "'******'",
     Cypher5Parser.OF -> "'OF'",
     Cypher5Parser.OFFSET -> "'OFFSET'",
     Cypher5Parser.ON -> "'ON'",

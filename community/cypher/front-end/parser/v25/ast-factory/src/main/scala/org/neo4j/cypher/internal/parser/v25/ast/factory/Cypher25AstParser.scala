@@ -78,7 +78,8 @@ final protected class CypherAstBuildingAntlrParser(
 
   removeErrorListeners() // Avoid printing errors to stdout
 
-  override def createSyntaxChecker(): SyntaxChecker = new Cypher25SyntaxChecker(exceptionFactory)
+  override def createSyntaxChecker(): SyntaxChecker =
+    new Cypher25SyntaxChecker(exceptionFactory, semanticFeatures)
 
   override def createAstBuilder(): ParseTreeListener =
     new Cypher25AstBuilder(notificationLogger, exceptionFactory, semanticFeatures, jsSemanticAnalysis)

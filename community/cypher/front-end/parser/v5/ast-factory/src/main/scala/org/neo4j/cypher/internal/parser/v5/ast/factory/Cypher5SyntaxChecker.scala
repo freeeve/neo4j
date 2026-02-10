@@ -21,6 +21,8 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.ast.SyntaxChecker
@@ -53,7 +55,10 @@ import org.neo4j.internal.helpers.NameUtil
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) extends SyntaxChecker {
+final class Cypher5SyntaxChecker(
+  exceptionFactory: CypherExceptionFactory,
+  semanticFeatures: Seq[SemanticFeature]
+) extends SyntaxChecker {
   private[this] var _errors: Seq[Exception] = Seq.empty
 
   override def errors: Seq[Throwable] = _errors
@@ -96,6 +101,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       case Cypher5Parser.RULE_databaseScope                    => checkDatabaseScope(cast(ctx))
       case Cypher5Parser.RULE_graphScope                       => checkGraphScope(cast(ctx))
       case Cypher5Parser.RULE_defaultLanguageSpecification     => checkDefaultLanguageSpecification(cast(ctx))
+      case Cypher5Parser.RULE_obfuscatedLiteral                => failOnObfuscatedLiteral(ctx)
       case _                                                   =>
     }
   }
@@ -856,6 +862,11 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
           pos(ctx.UNSIGNED_DECIMAL_INTEGER())
         )
     }
+  }
+
+  def failOnObfuscatedLiteral(ctx: ParserRuleContext): Unit = {
+    if (!semanticFeatures.contains(EnableParsingOfObfuscatedLiterals))
+      throw exceptionFactory.invalidInputException("******", List("an expression"), "Invalid input '******'", pos(ctx))
   }
 }
 

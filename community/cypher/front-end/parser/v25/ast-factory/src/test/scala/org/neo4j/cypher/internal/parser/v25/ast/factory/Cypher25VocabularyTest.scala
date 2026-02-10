@@ -269,6 +269,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.NOTHING -> "'NOTHING'",
     Cypher25Parser.NOWAIT -> "'NOWAIT'",
     Cypher25Parser.NULL -> "'NULL'",
+    Cypher25Parser.OBFUSCATION -> "'******'",
     Cypher25Parser.OF -> "'OF'",
     Cypher25Parser.OFFSET -> "'OFFSET'",
     Cypher25Parser.OIDC -> "'OIDC'",

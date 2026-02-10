@@ -529,6 +529,20 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
         )
     })
   }
+
+  test("return ******") {
+    failsParsing[Statements].in(_ => {
+      _.withSyntaxError(
+        s"""Invalid input '******' (line 1, column 8 (offset: 7))
+           |"$testName"
+           | ${" " * 7}^""".stripMargin
+      )
+    })
+  }
+
+  test("call (******) { return 1 as x } return x") {
+    invalid("******", "a variable name, ')' or '*'", 6)
+  }
 }
 
 object SyntaxErrorParserTest {

@@ -553,6 +553,7 @@ expression1
    | parenthesizedExpression
    | functionInvocation
    | variable
+   | obfuscatedLiteral
    ;
 
 literal
@@ -720,6 +721,10 @@ namespace
 
 variable
    : symbolicVariableNameString
+   ;
+
+obfuscatedLiteral
+   : OBFUSCATION
    ;
 
 // Returns non-list of propertyKeyNames

@@ -408,6 +408,18 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Enable parsing of obfuscated literals")
+    public static final Setting<Boolean> cypher_enable_parsing_of_obfuscated_literals = newBuilder(
+                    "internal.cypher.enable_parsing_of_obfuscated_literals", BOOL, false)
+            .build();
+
+    @Internal
+    @Description("Disable type checking in semantic analysis")
+    public static final Setting<Boolean> cypher_disable_type_checking = newBuilder(
+                    "internal.cypher.disable_type_checking_in_semantic_analysis", BOOL, false)
+            .build();
+
+    @Internal
     @Description("Set this to enable monitors in the Cypher runtime.")
     public static final Setting<Boolean> cypher_enable_runtime_monitors =
             newBuilder("internal.cypher.enable_runtime_monitors", BOOL, false).build();

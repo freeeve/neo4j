@@ -303,6 +303,8 @@ public interface Cypher5ParserListener extends ParseTreeListener {
 
     void exitVariable(Cypher5Parser.VariableContext ctx);
 
+    void exitObfuscatedLiteral(Cypher5Parser.ObfuscatedLiteralContext ctx);
+
     void exitNonEmptyNameList(Cypher5Parser.NonEmptyNameListContext ctx);
 
     void exitType(Cypher5Parser.TypeContext ctx);

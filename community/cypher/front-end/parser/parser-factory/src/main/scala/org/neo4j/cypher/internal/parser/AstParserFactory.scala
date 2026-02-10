@@ -56,14 +56,14 @@ object Cypher5AstParserFactory extends AstParserFactory {
     query: String,
     cypherExceptionFactory: CypherExceptionFactory,
     notificationLogger: Option[InternalNotificationLogger]
-  ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger)
+  ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger, Seq())
 
   override def apply(
     query: String,
     cypherExceptionFactory: CypherExceptionFactory,
     notificationLogger: Option[InternalNotificationLogger],
     semanticFeatures: Seq[SemanticFeature]
-  ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger)
+  ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger, semanticFeatures)
 }
 
 object Cypher25AstParserFactory extends AstParserFactory {

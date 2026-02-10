@@ -22,6 +22,8 @@ import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.PropertyType
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.parser.AstRuleCtx
 import org.neo4j.cypher.internal.parser.ast.SyntaxChecker
@@ -48,7 +50,10 @@ import org.neo4j.gqlstatus.GqlHelper
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) extends SyntaxChecker {
+final class Cypher25SyntaxChecker(
+  exceptionFactory: CypherExceptionFactory,
+  semanticFeatures: Seq[SemanticFeature]
+) extends SyntaxChecker {
   private[this] var _errors: Seq[Exception] = Seq.empty
 
   override def errors: Seq[Throwable] = _errors
@@ -85,6 +90,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       case Cypher25Parser.RULE_constraintSpecification          => checkConstraintSpecification(cast(ctx))
       case Cypher25Parser.RULE_nodeTypeInlineConstraintList     => checkNodeTypeInlineConstraintList(cast(ctx))
       case Cypher25Parser.RULE_edgeTypeInlineConstraintList     => checkEdgeTypeInlineConstraintList(cast(ctx))
+      case Cypher25Parser.RULE_obfuscatedLiteral                => failOnObfuscatedLiteral(ctx)
       case _                                                    =>
     }
   }
@@ -606,6 +612,12 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
         }
       case _: ConstraintTypedContext | _: ConstraintIsNotNullContext =>
       case _ => throw exceptionFactory.internalError("Constraint type is not recognized", pos(constraintTypeContext))
+    }
+  }
+
+  def failOnObfuscatedLiteral(ctx: ParserRuleContext): Unit = {
+    if (!semanticFeatures.contains(EnableParsingOfObfuscatedLiterals)) {
+      throw exceptionFactory.invalidInputException("******", List("an expression"), "Invalid input '******'", pos(ctx))
     }
   }
 }

@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.Infinity
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.NaN
 import org.neo4j.cypher.internal.expressions.Null
+import org.neo4j.cypher.internal.expressions.ObfuscatedLiteral
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
@@ -97,6 +98,10 @@ trait LiteralBuilder extends Cypher25ParserListener {
   override def exitStringLiteral(ctx: Cypher25Parser.StringLiteralContext): Unit = {
     val text = ctx.start.getInputStream.getText(new Interval(ctx.start.getStartIndex + 1, ctx.stop.getStopIndex - 1))
     ctx.ast = StringLiteral(cypherStringToString(text, pos(ctx), exceptionFactory))(rangePos(ctx))
+  }
+
+  override def exitObfuscatedLiteral(ctx: Cypher25Parser.ObfuscatedLiteralContext): Unit = {
+    ctx.ast = ObfuscatedLiteral()(rangePos(ctx))
   }
 }
 

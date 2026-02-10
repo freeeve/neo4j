@@ -213,3 +213,10 @@ case class False()(override val position: InputPosition.Range) extends BooleanLi
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral = new False()(position) with SensitiveLiteral
 }
+
+case class ObfuscatedLiteral()(override val position: InputPosition.Range) extends Expression {
+  val value: java.lang.Boolean = false
+  override def asCanonicalStringVal = "******"
+
+  override def isConstantForQuery: Boolean = true
+}
