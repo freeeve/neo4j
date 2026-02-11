@@ -158,9 +158,10 @@ case class Search(
        */
       if (where.isDefined && !state.semanticCheckHasRunOnce) {
         checkSingleStageFeatureFlag() ifOkChain
+          where.semanticCheck ifOkChain
           checkExpressionsRangeOrExact(where.get.expression)
       } else {
-        SemanticCheck.success
+        where.semanticCheck
       }
     }
   }

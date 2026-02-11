@@ -1478,9 +1478,19 @@ case class Match(
     allLabels ++ allRelTypes
   }
 
-  def allExportedVariables: Set[LogicalVariable] = pattern.patternParts.folder.treeFold(Set.empty[LogicalVariable]) {
-    case _: ScopeExpression          => acc => SkipChildren(acc)
-    case logicalVar: LogicalVariable => acc => TraverseChildren(acc ++ Set(logicalVar))
+  def allExportedVariables: Set[LogicalVariable] = {
+
+    val patternVariables = pattern.patternParts.folder.treeFold(Set.empty[LogicalVariable]) {
+      case _: ScopeExpression          => acc => SkipChildren(acc)
+      case logicalVar: LogicalVariable => acc => TraverseChildren(acc ++ Set(logicalVar))
+    }
+
+    val maybeScoreVariable = search match {
+      case Some(Search(_, Some(score), _, _, _, _)) => Set(score)
+      case _                                        => Set.empty
+    }
+
+    patternVariables ++ maybeScoreVariable
   }
 }
 

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.ProjectingUnionDistinct
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.Where
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -40,6 +41,10 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with RewritePhaseTest {
+
+  override val phaseTestConfig: PhaseTestConfig = PhaseTestConfig(
+    semanticFeatures = Seq(SemanticFeature.VectorSearch, SemanticFeature.VectorSingleStageFilteringEnabled)
+  )
 
   private val tests: Seq[Test] = Seq(
     TestCase(
@@ -319,6 +324,35 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
         varFor("  a@6"),
         varFor("  b@7")
       )
+    ),
+    TestCase(
+      """
+        |MATCH (movie:Movie)
+        |WITH 1 AS sq
+        |MATCH (movie:Movie)
+        | WHERE movie.prop > 2
+        | SEARCH movie IN (
+        |  VECTOR INDEX moviePlots
+        |  FOR [1, 2, 3]
+        |  WHERE movie.rating > 5
+        |  LIMIT 25
+        | )
+        |RETURN 1""".stripMargin,
+      """
+        |MATCH (`  movie@0`)
+        |  WHERE `  movie@0`:Movie
+        |WITH 1 AS sq
+        |MATCH (`  movie@1`)
+        | SEARCH `  movie@1` IN (
+        |  VECTOR INDEX moviePlots
+        |  FOR [1, 2, 3]
+        |  WHERE `  movie@1`.rating > 5
+        |  LIMIT 25
+        | )
+        | WHERE `  movie@1`:Movie AND `  movie@1`.prop > 2
+        |RETURN 1 AS `1`""".stripMargin,
+      List(varFor("  movie@0")),
+      excludedVersions = Set(CypherVersion.Cypher5)
     )
   )
 
@@ -417,18 +451,24 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
 
   sealed trait Test
 
-  case class TestCase(query: String, rewrittenQuery: String, semanticTableExpressions: List[Expression]) extends Test
+  case class TestCase(
+    query: String,
+    rewrittenQuery: String,
+    semanticTableExpressions: List[Expression],
+    excludedVersions: Set[CypherVersion] = Set.empty
+  ) extends Test
 
   case class TestCaseWithStatement(query: String, rewrittenQuery: Statement, semanticTableExpressions: List[Expression])
       extends Test
 
   tests.foreach {
-    case TestCase(q, rewritten, semanticTableExpressions) =>
+    case TestCase(q, rewritten, semanticTableExpressions, excludedVersions) =>
       test(q) {
         assertRewritten(
           q.replace("\r\n", "\n"),
           rewritten,
-          semanticTableExpressions = semanticTableExpressions
+          semanticTableExpressions = semanticTableExpressions,
+          excludedVersions = excludedVersions
         )
       }
     case TestCaseWithStatement(q, rewritten, semanticTableExpressions) =>
