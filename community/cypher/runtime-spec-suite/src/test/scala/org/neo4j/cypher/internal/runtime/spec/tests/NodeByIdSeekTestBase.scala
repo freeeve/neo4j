@@ -24,6 +24,8 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.cantCoerceException
+import org.neo4j.exceptions.CypherTypeException
 
 import scala.util.Random
 
@@ -213,5 +215,23 @@ abstract class NodeByIdSeekTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x").withRows(singleColumn(Seq(nodes(chosenIndex1), nodes(chosenIndex2))))
+  }
+
+  test("should throw the correct type error if nodeIds is not a list") {
+    givenGraph(nodeGraph(1))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .nodeByIdSeek("x", Set.empty, literalString("foo"))
+      .build()
+
+    val exception = the[CypherTypeException] thrownBy execute(logicalQuery).consume()
+
+    exception should be(cantCoerceException(
+      "Can't coerce `String(\"foo\")` to SequenceValue",
+      "String(\"foo\")",
+      "SequenceValue"
+    ))
   }
 }

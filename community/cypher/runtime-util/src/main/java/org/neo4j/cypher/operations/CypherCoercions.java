@@ -325,10 +325,10 @@ public final class CypherCoercions {
 
     public static SequenceValue asSequenceValue(AnyValue value) {
         assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
-        if (!(value instanceof SequenceValue)) {
-            throw cantCoerce(value, "SequenceValue");
+        if (value instanceof SequenceValue sequence) {
+            return sequence;
         }
-        return (SequenceValue) value;
+        throw cantCoerce(value, "SequenceValue");
     }
 
     public static VectorValue asVectorValue(AnyValue value) {

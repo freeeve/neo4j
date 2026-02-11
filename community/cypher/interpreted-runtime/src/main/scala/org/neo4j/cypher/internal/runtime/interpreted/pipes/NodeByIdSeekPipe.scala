@@ -21,29 +21,28 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.IsList
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
-import org.neo4j.values.virtual.ListValue
+import org.neo4j.cypher.operations.CypherCoercions
+import org.neo4j.values.SequenceValue
 import org.neo4j.values.virtual.VirtualValues
 
 sealed trait SeekArgs {
-  def expressions(ctx: ReadableRow, state: QueryState): ListValue
+  def expressions(ctx: ReadableRow, state: QueryState): SequenceValue
 }
 
 object SeekArgs {
 
   object empty extends SeekArgs {
-    def expressions(ctx: ReadableRow, state: QueryState): ListValue = VirtualValues.EMPTY_LIST
+    def expressions(ctx: ReadableRow, state: QueryState): SequenceValue = VirtualValues.EMPTY_LIST
   }
 }
 
 case class SingleSeekArg(expr: Expression) extends SeekArgs {
 
-  def expressions(ctx: ReadableRow, state: QueryState): ListValue =
+  def expressions(ctx: ReadableRow, state: QueryState): SequenceValue =
     expr(ctx, state) match {
       case value => VirtualValues.list(value)
     }
@@ -51,12 +50,8 @@ case class SingleSeekArg(expr: Expression) extends SeekArgs {
 
 case class ManySeekArgs(coll: Expression) extends SeekArgs {
 
-  def expressions(ctx: ReadableRow, state: QueryState): ListValue = {
-    coll(ctx, state) match {
-      case IsList(values) => values
-      case x =>
-        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
-    }
+  def expressions(ctx: ReadableRow, state: QueryState): SequenceValue = {
+    CypherCoercions.asSequenceValue(coll(ctx, state))
   }
 }
 

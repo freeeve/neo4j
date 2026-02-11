@@ -402,4 +402,14 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
       )
     )
   }
+
+  def cantCoerceException(legacyMsg: String, value: String, expectedType: String): BeMatcher[Exception] =
+    gqlException(
+      legacyMsg,
+      gqlStatus(GqlStatusInfoCodes.STATUS_22G03, "error: data exception - invalid value type")
+        .withCause(
+          GqlStatusInfoCodes.STATUS_22N37,
+          s"error: data exception - invalid coercion. Cannot coerce $value to $expectedType."
+        )
+    )
 }

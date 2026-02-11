@@ -63,6 +63,11 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
       .run()
 
   protected def execute(
+    logicalQuery: LogicalQuery
+  ): RecordingRuntimeResult =
+    execute(logicalQuery, runtime, NoInput)
+
+  protected def execute(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT]
   ): RecordingRuntimeResult =
@@ -311,7 +316,8 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
   protected def executeAndExplain(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT] = runtime,
-    input: InputValues = InputValues.EMPTY
+    input: InputValues = InputValues.EMPTY,
+    parameters: Map[String, Any] = Map.empty
   ): (RecordingRuntimeResult, InternalPlanDescription) = {
     val executionPlan =
       buildPlan(
@@ -325,6 +331,7 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] {
       .withPlan(executionPlan)
       .recording
       .withInput(input.stream())
+      .withParams(parameters)
       .mapResult(result => (result, runtimeTestSupport.explainDescription(logicalQuery, executionPlan)))
       .run()
   }
