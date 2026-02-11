@@ -38,7 +38,7 @@ Accessing Neo4j graph tools
 
 You can access Neo4j graph tools for querying, exploring, and visualizing data by going to - no subscription required.
 
-1. Sign up or log in to https://console-preview.neo4j.io/self-managed
+1. Sign up or log in to https://console.neo4j.io/ce
 2. Register a self-managed instance and connect to http://localhost:7474 using the default password which is documented in installation instructions: https://neo4j.com/docs/operations-manual/current/installation/
 
 Alternatively, you can navigate to http://localhost:7474 in your local browser to access the Query application.
