@@ -22,6 +22,9 @@ package org.neo4j.cypher.internal.ir.helpers
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 
+import scala.collection.mutable
+import scala.util.DynamicVariable
+
 trait CachedFunction {
   def cacheSize: Long
 }
@@ -31,32 +34,59 @@ trait CachedFunction {
  */
 object CachedFunction {
 
-  def apply[A, B](f: A => B): (A => B) with CachedFunction = new (A => B) with CachedFunction {
-    private val cache: Cache[A, B] = Caffeine.newBuilder().maximumSize(100).build[A, B]()
+  private def defaultCaffeineConfig: Caffeine[AnyRef, AnyRef] = {
+    Caffeine.newBuilder().maximumSize(100)
+  }
 
-    override def cacheSize: Long = {
-      cache.cleanUp()
-      cache.estimatedSize()
-    }
+  sealed trait CacheFactory {
+    def makeCache[A, B](name: String): Cache[A, B]
+  }
 
-    def apply(input: A): B = {
-      /*
-       * For concurrency reasons, it's better to use cache.get(), which utilizes proper locking.
-       * However, because `f` may update other mappings of this cache, cache.get() can not be used.
-       * This means that `CachedFunction` is not thread-safe.
-       */
-      val cachedValue = cache.getIfPresent(input)
-      if (cachedValue != null) {
-        cachedValue
-      } else {
-        val newValue = f(input)
-        cache.put(input, newValue)
-        newValue
+  private val FACTORY: DynamicVariable[CacheFactory] = new DynamicVariable[CacheFactory](CacheFactory.Default)
+
+  /**
+   * Wrap a block of code creating and using CachedFunction to print cache usage stats at the end.
+   * E.g. in an acceptance test:
+   * {{{
+   * val result = CachedFunction.withScopedStatsRecordingEnabled {
+   *   executeSingle(query)
+   * }
+   * }}}
+   */
+  def withScopedStatsRecordingEnabled[T](thunk: => T): T = {
+    val factory = new CacheFactory.WithStatsRecording()
+    try FACTORY.withValue(factory) { thunk }
+    finally factory.printStats()
+  }
+
+  def apply[A, B](f: A => B)(implicit meta: sourcecode.Enclosing): (A => B) with CachedFunction = {
+    new (A => B) with CachedFunction {
+      private val cache: Cache[A, B] = FACTORY.value.makeCache(meta.value)
+
+      override def cacheSize: Long = {
+        cache.cleanUp()
+        cache.estimatedSize()
+      }
+
+      def apply(input: A): B = {
+        /*
+         * For concurrency reasons, it's better to use cache.get(), which utilizes proper locking.
+         * However, because `f` may update other mappings of this cache, cache.get() can not be used.
+         * This means that `CachedFunction` is not thread-safe.
+         */
+        val cachedValue = cache.getIfPresent(input)
+        if (cachedValue != null) {
+          cachedValue
+        } else {
+          val newValue = f(input)
+          cache.put(input, newValue)
+          newValue
+        }
       }
     }
   }
 
-  def apply[A, B, C](f: (A, B) => C): ((A, B) => C) with CachedFunction = {
+  def apply[A, B, C](f: (A, B) => C)(implicit meta: sourcecode.Enclosing): ((A, B) => C) with CachedFunction = {
     val tupledCachedFunction = apply(f.tupled)
     val untupledCachedFunction = Function.untupled(tupledCachedFunction)
     new ((A, B) => C) with CachedFunction {
@@ -65,7 +95,8 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D](f: (A, B, C) => D): ((A, B, C) => D) with CachedFunction = {
+  def apply[A, B, C, D](f: (A, B, C) => D)(implicit
+    meta: sourcecode.Enclosing): ((A, B, C) => D) with CachedFunction = {
     val tupledCachedFunction = apply(f.tupled)
     val untupledCachedFunction = Function.untupled(tupledCachedFunction)
     new ((A, B, C) => D) with CachedFunction {
@@ -74,7 +105,8 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D, E](f: (A, B, C, D) => E): ((A, B, C, D) => E) with CachedFunction = {
+  def apply[A, B, C, D, E](f: (A, B, C, D) => E)(implicit
+    meta: sourcecode.Enclosing): ((A, B, C, D) => E) with CachedFunction = {
     val tupledCachedFunction = apply(f.tupled)
     val untupledCachedFunction = Function.untupled(tupledCachedFunction)
     new ((A, B, C, D) => E) with CachedFunction {
@@ -83,7 +115,8 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D, E, F](f: (A, B, C, D, E) => F): ((A, B, C, D, E) => F) with CachedFunction = {
+  def apply[A, B, C, D, E, F](f: (A, B, C, D, E) => F)(implicit
+    meta: sourcecode.Enclosing): ((A, B, C, D, E) => F) with CachedFunction = {
     val tupledCachedFunction = apply(f.tupled)
     val untupledCachedFunction = Function.untupled(tupledCachedFunction)
     new ((A, B, C, D, E) => F) with CachedFunction {
@@ -92,7 +125,8 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D, E, F, G](f: (A, B, C, D, E, F) => G): ((A, B, C, D, E, F) => G) with CachedFunction = {
+  def apply[A, B, C, D, E, F, G](f: (A, B, C, D, E, F) => G)(implicit
+    meta: sourcecode.Enclosing): ((A, B, C, D, E, F) => G) with CachedFunction = {
     {
       val tupledCachedFunction = apply(f.tupled)
       val untupledCachedFunction = untupled(tupledCachedFunction)
@@ -103,7 +137,8 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D, E, F, G, H](f: (A, B, C, D, E, F, G) => H): ((A, B, C, D, E, F, G) => H) with CachedFunction = {
+  def apply[A, B, C, D, E, F, G, H](f: (A, B, C, D, E, F, G) => H)(implicit
+    meta: sourcecode.Enclosing): ((A, B, C, D, E, F, G) => H) with CachedFunction = {
     {
       val tupledCachedFunction = apply(f.tupled)
       val untupledCachedFunction = untupled(tupledCachedFunction)
@@ -116,7 +151,7 @@ object CachedFunction {
     }
   }
 
-  def apply[A, B, C, D, E, F, G, H, I](f: (A, B, C, D, E, F, G, H) => I)
+  def apply[A, B, C, D, E, F, G, H, I](f: (A, B, C, D, E, F, G, H) => I)(implicit meta: sourcecode.Enclosing)
     : ((A, B, C, D, E, F, G, H) => I) with CachedFunction = {
     {
       val tupledCachedFunction = apply(f.tupled)
@@ -163,6 +198,101 @@ object CachedFunction {
 
     def computeFrom[Key, Value](value: Value)(f: Value => Key): CacheKey[Key, Value] = {
       CacheKey(f(value))(value)
+    }
+  }
+
+  private object CacheFactory {
+
+    case object Default extends CacheFactory {
+
+      override def makeCache[A, B](name: String): Cache[A, B] = {
+        defaultCaffeineConfig.build().asInstanceOf[Cache[A, B]]
+      }
+    }
+
+    class WithStatsRecording() extends CacheFactory {
+
+      private val caches: mutable.ArrayBuffer[(Cache[_, _], String)] = mutable.ArrayBuffer.empty
+
+      override def makeCache[A, B](name: String): Cache[A, B] = {
+        val cache = defaultCaffeineConfig
+          .recordStats()
+          .build()
+          .asInstanceOf[Cache[A, B]]
+
+        caches += ((cache, name))
+        cache
+      }
+
+      def printStats(): Unit = {
+        val table = new Table()
+        table.addRow(" name", "hit%", "hits", "misses", "cache size", " raw caffeine stats")
+
+        caches
+          .sortBy { case (cache, _) => (cache.stats().hitRate(), -cache.stats().missCount()) }
+          .foreach { case (cache, name) =>
+            val stats = cache.stats()
+            table.addRow(
+              name,
+              (100 * stats.hitRate()).toInt.toString,
+              stats.hitCount().toString,
+              stats.missCount().toString,
+              cache.estimatedSize().toString,
+              stats.toString
+            )
+          }
+        table.printTable()
+      }
+
+      private class Table() {
+        private val segments: mutable.Map[(Int, Int, Int), String] = mutable.Map.empty
+        private val rowHeights: mutable.Map[Int, Int] = mutable.Map.empty
+        private val columnWidths: mutable.Map[Int, Int] = mutable.Map.empty
+        private var rows = 0
+        private var columns = 0
+        private val MAX_WIDTH: Int = 60
+
+        def addRow(cells: String*): Unit = {
+          val row = rows
+          for ((cell, col) <- cells.zipWithIndex) {
+            val width = math.min(MAX_WIDTH, cell.length)
+            val wrappedCell = wordwrap(cell)
+            val height = wrappedCell.linesIterator.length
+            columnWidths.update(col, math.max(columnWidths.getOrElse(col, 0), width))
+            rowHeights.update(row, math.max(rowHeights.getOrElse(row, 0), height))
+            for ((segment, line) <- wrappedCell.linesIterator.zipWithIndex) {
+              segments.update((row, col, line), segment)
+            }
+          }
+          rows += 1
+          columns = math.max(columns, cells.length)
+        }
+
+        def printTable(): Unit = {
+          val separatorSegments = (0 until columns).map(col => "─" * columnWidths(col))
+          val separator = separatorSegments.mkString("├", "┼", "┤")
+          val header = separatorSegments.mkString("┌", "┬", "┐")
+          val footer = separatorSegments.mkString("└", "┴", "┘")
+
+          println(header)
+          for (row <- 0 until rows) {
+            for (line <- 0 until rowHeights(row)) {
+              val lineSegments = for (col <- 0 until columns) yield {
+                segments.getOrElse((row, col, line), "")
+                  .padTo(columnWidths(col), ' ')
+              }
+              val lineStr = lineSegments.mkString("│", "│", "│")
+              println(lineStr)
+            }
+            if (row != rows - 1) {
+              println(separator)
+            }
+          }
+          println(footer)
+        }
+
+        private def wordwrap(s: String): String = s.grouped(MAX_WIDTH).mkString("\n")
+      }
     }
   }
 }

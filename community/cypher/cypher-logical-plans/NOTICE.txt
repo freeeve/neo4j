@@ -52,6 +52,9 @@ Eclipse Public License - v 1.0
   Eclipse Collections API
   Eclipse Collections Main Library
 
+MIT License
+  sourcecode_2.13
+
 Dependencies with multiple licenses
 -----------------------------------
 

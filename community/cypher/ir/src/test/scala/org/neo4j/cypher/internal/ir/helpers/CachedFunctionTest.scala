@@ -22,6 +22,10 @@ package org.neo4j.cypher.internal.ir.helpers
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction.CacheKey
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
+import java.io.ByteArrayOutputStream
+
+import scala.annotation.unused
+
 class CachedFunctionTest extends CypherFunSuite {
 
   test("1 argument") {
@@ -184,5 +188,44 @@ class CachedFunctionTest extends CypherFunSuite {
     cachedG(cacheKey("hello"))
 
     i shouldBe 2
+  }
+
+  test("should print stats when enabled") {
+    def f(a: Int, b: Int): Int = a + b
+
+    val cachedF = CachedFunction(f _)
+
+    val output = new ByteArrayOutputStream()
+    Console.withOut(output) {
+      CachedFunction.withScopedStatsRecordingEnabled {
+        val cachedFWithStats = CachedFunction(f _)
+        val cachedFWithStatsSingleArg = CachedFunction(i => f(i, i))
+        @unused val cachedFWithStatsNeverCalled = CachedFunction(f _)
+
+        for (i <- 1 to 100) {
+          cachedF(i % 10, i % 10)
+          cachedFWithStats(i % 10, i % 10)
+          cachedFWithStatsSingleArg(i % 5)
+        }
+      }
+    }
+
+    output.toString shouldEqual
+      """┌────────────────────────────────────────────────────────────┬────┬────┬──────┬──────────┬────────────────────────────────────────────────────────────┐
+        |│ name                                                       │hit%│hits│misses│cache size│ raw caffeine stats                                         │
+        |├────────────────────────────────────────────────────────────┼────┼────┼──────┼──────────┼────────────────────────────────────────────────────────────┤
+        |│org.neo4j.cypher.internal.ir.helpers.CachedFunctionTest#cach│90  │90  │10    │10        │CacheStats{hitCount=90, missCount=10, loadSuccessCount=0, lo│
+        |│edFWithStats                                                │    │    │      │          │adFailureCount=0, totalLoadTime=0, evictionCount=0, eviction│
+        |│                                                            │    │    │      │          │Weight=0}                                                   │
+        |├────────────────────────────────────────────────────────────┼────┼────┼──────┼──────────┼────────────────────────────────────────────────────────────┤
+        |│org.neo4j.cypher.internal.ir.helpers.CachedFunctionTest#cach│95  │95  │5     │5         │CacheStats{hitCount=95, missCount=5, loadSuccessCount=0, loa│
+        |│edFWithStatsSingleArg                                       │    │    │      │          │dFailureCount=0, totalLoadTime=0, evictionCount=0, evictionW│
+        |│                                                            │    │    │      │          │eight=0}                                                    │
+        |├────────────────────────────────────────────────────────────┼────┼────┼──────┼──────────┼────────────────────────────────────────────────────────────┤
+        |│org.neo4j.cypher.internal.ir.helpers.CachedFunctionTest#cach│100 │0   │0     │0         │CacheStats{hitCount=0, missCount=0, loadSuccessCount=0, load│
+        |│edFWithStatsNeverCalled                                     │    │    │      │          │FailureCount=0, totalLoadTime=0, evictionCount=0, evictionWe│
+        |│                                                            │    │    │      │          │ight=0}                                                     │
+        |└────────────────────────────────────────────────────────────┴────┴────┴──────┴──────────┴────────────────────────────────────────────────────────────┘
+        |""".stripMargin
   }
 }

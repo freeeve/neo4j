@@ -2240,6 +2240,11 @@
           </exclusion>
         </exclusions>
       </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>sourcecode_${scala.binary.version}</artifactId>
+        <version>0.4.2</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>

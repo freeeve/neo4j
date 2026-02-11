@@ -215,6 +215,7 @@ MIT License
   jersey-core-client
   jersey-inject-hk2
   SLF4J API Module
+  sourcecode_2.13
 
 MIT No Attribution License
   reactive-streams

@@ -1624,6 +1624,7 @@ MIT License
   jersey-inject-hk2
   mockito-core
   SLF4J API Module
+  sourcecode_2.13
 ------------------------------------------------------------------------------
 
 The MIT License

@@ -129,6 +129,10 @@
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>sourcecode_${scala.binary.version}</artifactId>
+    </dependency>
 
     <!-- test dependencies -->
 

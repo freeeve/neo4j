@@ -87,6 +87,7 @@ GNU General Public License, version 2 with the Classpath Exception
 
 MIT License
   SLF4J API Module
+  sourcecode_2.13
 
 Dependencies with multiple licenses
 -----------------------------------
