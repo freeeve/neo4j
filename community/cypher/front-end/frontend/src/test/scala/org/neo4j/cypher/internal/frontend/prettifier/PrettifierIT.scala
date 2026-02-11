@@ -67,6 +67,45 @@ class PrettifierIT extends AbstractPrettifierTest {
     """RETURN [`c` IN (true IS NOT :: INTEGER) | NULL] AS x""" -> """RETURN [c IN (true IS NOT :: INTEGER) | NULL] AS x""",
     """RETURN [`c` IN (true IS :: INTEGER | NULL)] AS x""" -> """RETURN [c IN (true IS :: NULL | INTEGER)] AS x""",
     """RETURN [`c` IN (true IS NOT :: INTEGER | NULL)] AS x""" -> """RETURN [c IN (true IS NOT :: NULL | INTEGER)] AS x""",
+    // Check parenthesis are respected and not removed in longer expressions
+    "RETURN \"w\" = NULL > $param1 < {} > $param2 >= 7 <> 9 AS x" ->
+      "RETURN \"w\" = NULL > $param1 < {} > $param2 >= 7 <> 9 AS x",
+    "RETURN (\"w\" = NULL) > $param1 < {} > $param2 >= 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL) > $param1 < {} > $param2 >= 7 <> 9 AS x",
+    "RETURN \"w\" = (NULL > $param1) < {} > $param2 >= 7 <> 9 AS x" ->
+      "RETURN \"w\" = (NULL > $param1) < {} > $param2 >= 7 <> 9 AS x",
+    "RETURN \"w\" = NULL > ($param1 < {}) > $param2 >= 7 <> 9 AS x" ->
+      "RETURN \"w\" = NULL > ($param1 < {}) > $param2 >= 7 <> 9 AS x",
+    "RETURN \"w\" = NULL > $param1 < ({} > $param2) >= 7 <> 9 AS x" ->
+      "RETURN \"w\" = NULL > $param1 < ({} > $param2) >= 7 <> 9 AS x",
+    "RETURN \"w\" = NULL > $param1 < {} > ($param2 >= 7) <> 9 AS x" ->
+      "RETURN \"w\" = NULL > $param1 < {} > ($param2 >= 7) <> 9 AS x",
+    "RETURN \"w\" = NULL > $param1 < {} > $param2 >= (7 <> 9) AS x" ->
+      "RETURN \"w\" = NULL > $param1 < {} > $param2 >= (7 <> 9) AS x",
+    "RETURN \"w\" = NULL AND $param1 < {} AND $param2 AND 7 <> 9 AS x" ->
+      "RETURN ((\"w\" = NULL AND $param1 < {}) AND $param2) AND 7 <> 9 AS x",
+    "RETURN (\"w\" = NULL AND $param1 < {}) AND $param2 AND 7 <> 9 AS x" ->
+      "RETURN ((\"w\" = NULL AND $param1 < {}) AND $param2) AND 7 <> 9 AS x",
+    "RETURN \"w\" = NULL AND ($param1 < {} AND $param2) AND 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL AND ($param1 < {} AND $param2)) AND 7 <> 9 AS x",
+    "RETURN \"w\" = NULL AND $param1 < {} AND ($param2 AND 7 <> 9) AS x" ->
+      "RETURN (\"w\" = NULL AND $param1 < {}) AND ($param2 AND 7 <> 9) AS x",
+    "RETURN \"w\" = NULL OR $param1 < {} OR $param2 OR 7 <> 9 AS x" ->
+      "RETURN ((\"w\" = NULL OR $param1 < {}) OR $param2) OR 7 <> 9 AS x",
+    "RETURN (\"w\" = NULL OR $param1 < {}) OR $param2 OR 7 <> 9 AS x" ->
+      "RETURN ((\"w\" = NULL OR $param1 < {}) OR $param2) OR 7 <> 9 AS x",
+    "RETURN \"w\" = NULL OR ($param1 < {} OR $param2) OR 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL OR ($param1 < {} OR $param2)) OR 7 <> 9 AS x",
+    "RETURN \"w\" = NULL OR $param1 < {} OR ($param2 OR 7 <> 9) AS x" ->
+      "RETURN (\"w\" = NULL OR $param1 < {}) OR ($param2 OR 7 <> 9) AS x",
+    "RETURN \"w\" = NULL OR $param1 < {} AND $param2 OR 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL OR $param1 < {} AND $param2) OR 7 <> 9 AS x",
+    "RETURN (\"w\" = NULL OR $param1 < {}) AND $param2 OR 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL OR $param1 < {}) AND $param2 OR 7 <> 9 AS x",
+    "RETURN \"w\" = NULL OR ($param1 < {} AND $param2) OR 7 <> 9 AS x" ->
+      "RETURN (\"w\" = NULL OR $param1 < {} AND $param2) OR 7 <> 9 AS x",
+    "RETURN \"w\" = NULL OR $param1 < {} AND ($param2 OR 7 <> 9) AS x" ->
+      "RETURN \"w\" = NULL OR $param1 < {} AND ($param2 OR 7 <> 9) AS x",
     "fiNIsh" -> "FINISH",
     "match (a) return a" ->
       """MATCH (a)

@@ -683,7 +683,8 @@ private class DefaultExpressionStringifier(
           case Some(chain) =>
             val head = apply(chain.head)
             val (tailUnflattened, eagerConsumptions) = chain.tail.map(o => {
-              val (rhs, eagerConsumption) = inner(ast)(o.rhs)
+              // Use `o` for outer context to correctly calculate if parenthesis are needed
+              val (rhs, eagerConsumption) = inner(o)(o.rhs)
               (List(o.canonicalOperatorSymbol, rhs), eagerConsumption)
             }).unzip
             ((head :: tailUnflattened.flatten).mkString(" "), eagerConsumptions.last)

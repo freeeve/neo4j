@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.RelationshipsPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.util.symbols.CTAny
 
 class ExpressionParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
 
@@ -115,6 +116,301 @@ class ExpressionParserTest extends AstParsingTestBase with LegacyAstParsingTestS
         )),
         projection = varFor("p")
       )(pos, None, None)
+    }
+  }
+
+  test("\"w\" = NULL > $param1 < {} > $param2 >= 7 <> 9") {
+    parsesTo[Expression] {
+      ands(
+        equals(literalString("w"), nullLiteral),
+        greaterThan(nullLiteral, parameter("param1", CTAny)),
+        lessThan(parameter("param1", CTAny), mapOf()),
+        greaterThan(mapOf(), parameter("param2", CTAny)),
+        greaterThanOrEqual(parameter("param2", CTAny), literalInt(7)),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("(\"w\" = NULL) > $param1 < {} > $param2 >= 7 <> 9") {
+    parsesTo[Expression] {
+      ands(
+        greaterThan(
+          equals(literalString("w"), nullLiteral),
+          parameter("param1", CTAny)
+        ),
+        lessThan(parameter("param1", CTAny), mapOf()),
+        greaterThan(mapOf(), parameter("param2", CTAny)),
+        greaterThanOrEqual(parameter("param2", CTAny), literalInt(7)),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = (NULL > $param1) < {} > $param2 >= 7 <> 9") {
+    parsesTo[Expression] {
+      ands(
+        equals(
+          literalString("w"),
+          greaterThan(nullLiteral, parameter("param1", CTAny))
+        ),
+        lessThan(
+          greaterThan(nullLiteral, parameter("param1", CTAny)),
+          mapOf()
+        ),
+        greaterThan(mapOf(), parameter("param2", CTAny)),
+        greaterThanOrEqual(parameter("param2", CTAny), literalInt(7)),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL > ($param1 < {}) > $param2 >= 7 <> 9") {
+    parsesTo[Expression] {
+      ands(
+        equals(literalString("w"), nullLiteral),
+        greaterThan(
+          nullLiteral,
+          lessThan(parameter("param1", CTAny), mapOf())
+        ),
+        greaterThan(
+          lessThan(parameter("param1", CTAny), mapOf()),
+          parameter("param2", CTAny)
+        ),
+        greaterThanOrEqual(parameter("param2", CTAny), literalInt(7)),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL > $param1 < ({} > $param2) >= 7 <> 9") {
+    parsesTo[Expression] {
+      ands(
+        equals(literalString("w"), nullLiteral),
+        greaterThan(nullLiteral, parameter("param1", CTAny)),
+        lessThan(
+          parameter("param1", CTAny),
+          greaterThan(mapOf(), parameter("param2", CTAny))
+        ),
+        greaterThanOrEqual(
+          greaterThan(mapOf(), parameter("param2", CTAny)),
+          literalInt(7)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL > $param1 < {} > ($param2 >= 7) <> 9") {
+    parsesTo[Expression] {
+      ands(
+        equals(literalString("w"), nullLiteral),
+        greaterThan(nullLiteral, parameter("param1", CTAny)),
+        lessThan(parameter("param1", CTAny), mapOf()),
+        greaterThan(
+          mapOf(),
+          greaterThanOrEqual(parameter("param2", CTAny), literalInt(7))
+        ),
+        notEquals(
+          greaterThanOrEqual(parameter("param2", CTAny), literalInt(7)),
+          literalInt(9)
+        )
+      )
+    }
+  }
+
+  test("\"w\" = NULL > $param1 < {} > $param2 >= (7 <> 9)") {
+    parsesTo[Expression] {
+      ands(
+        equals(literalString("w"), nullLiteral),
+        greaterThan(nullLiteral, parameter("param1", CTAny)),
+        lessThan(parameter("param1", CTAny), mapOf()),
+        greaterThan(mapOf(), parameter("param2", CTAny)),
+        greaterThanOrEqual(
+          parameter("param2", CTAny),
+          notEquals(literalInt(7), literalInt(9))
+        )
+      )
+    }
+  }
+
+  test("\"w\" = NULL AND $param1 < {} AND $param2 AND 7 <> 9") {
+    parsesTo[Expression] {
+      and(
+        and(
+          and(
+            equals(literalString("w"), nullLiteral),
+            lessThan(parameter("param1", CTAny), mapOf())
+          ),
+          parameter("param2", CTAny)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("(\"w\" = NULL AND $param1 < {}) AND $param2 AND 7 <> 9") {
+    parsesTo[Expression] {
+      and(
+        and(
+          and(
+            equals(literalString("w"), nullLiteral),
+            lessThan(parameter("param1", CTAny), mapOf())
+          ),
+          parameter("param2", CTAny)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL AND ($param1 < {} AND $param2) AND 7 <> 9") {
+    parsesTo[Expression] {
+      and(
+        and(
+          equals(literalString("w"), nullLiteral),
+          and(
+            lessThan(parameter("param1", CTAny), mapOf()),
+            parameter("param2", CTAny)
+          )
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL AND $param1 < {} AND ($param2 AND 7 <> 9)") {
+    parsesTo[Expression] {
+      and(
+        and(
+          equals(literalString("w"), nullLiteral),
+          lessThan(parameter("param1", CTAny), mapOf())
+        ),
+        and(
+          parameter("param2", CTAny),
+          notEquals(literalInt(7), literalInt(9))
+        )
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR $param1 < {} OR $param2 OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        or(
+          or(
+            equals(literalString("w"), nullLiteral),
+            lessThan(parameter("param1", CTAny), mapOf())
+          ),
+          parameter("param2", CTAny)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("(\"w\" = NULL OR $param1 < {}) OR $param2 OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        or(
+          or(
+            equals(literalString("w"), nullLiteral),
+            lessThan(parameter("param1", CTAny), mapOf())
+          ),
+          parameter("param2", CTAny)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR ($param1 < {} OR $param2) OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        or(
+          equals(literalString("w"), nullLiteral),
+          or(
+            lessThan(parameter("param1", CTAny), mapOf()),
+            parameter("param2", CTAny)
+          )
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR $param1 < {} OR ($param2 OR 7 <> 9)") {
+    parsesTo[Expression] {
+      or(
+        or(
+          equals(literalString("w"), nullLiteral),
+          lessThan(parameter("param1", CTAny), mapOf())
+        ),
+        or(
+          parameter("param2", CTAny),
+          notEquals(literalInt(7), literalInt(9))
+        )
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR $param1 < {} AND $param2 OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        or(
+          equals(literalString("w"), nullLiteral),
+          and(
+            lessThan(parameter("param1", CTAny), mapOf()),
+            parameter("param2", CTAny)
+          )
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("(\"w\" = NULL OR $param1 < {}) AND $param2 OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        and(
+          or(
+            equals(literalString("w"), nullLiteral),
+            lessThan(parameter("param1", CTAny), mapOf())
+          ),
+          parameter("param2", CTAny)
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR ($param1 < {} AND $param2) OR 7 <> 9") {
+    parsesTo[Expression] {
+      or(
+        or(
+          equals(literalString("w"), nullLiteral),
+          and(
+            lessThan(parameter("param1", CTAny), mapOf()),
+            parameter("param2", CTAny)
+          )
+        ),
+        notEquals(literalInt(7), literalInt(9))
+      )
+    }
+  }
+
+  test("\"w\" = NULL OR $param1 < {} AND ($param2 OR 7 <> 9)") {
+    parsesTo[Expression] {
+      or(
+        equals(literalString("w"), nullLiteral),
+        and(
+          lessThan(parameter("param1", CTAny), mapOf()),
+          or(
+            parameter("param2", CTAny),
+            notEquals(literalInt(7), literalInt(9))
+          )
+        )
+      )
     }
   }
 }
