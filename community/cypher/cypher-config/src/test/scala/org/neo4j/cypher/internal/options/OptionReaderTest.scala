@@ -148,14 +148,10 @@ class OptionReaderTest extends CypherFunSuite {
     )
   }
 
-  test("Fails on parallel runtime config with slotted runtime") {
-    val exception = intercept[InvalidCypherOption](CypherQueryOptions.fromValues(
+  test("Does not fail on parallel runtime config with slotted runtime") {
+    CypherQueryOptions.fromValues(
       config = CypherConfiguration.fromConfig(Config.defaults()),
       keyValues = Set("runtime" -> "slotted", "parallelRuntimeConfig" -> "leverageOrder")
-    ))
-
-    exception.getMessage.should(
-      be("Cannot combine PARALLEL RUNTIME CONFIG 'leverageorder' with RUNTIME 'slotted'")
     )
   }
 
