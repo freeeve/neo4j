@@ -689,14 +689,32 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
         val unionOfBranches =
           branchQueries.tail.foldLeft[Query](branchQueries.head) { case (acc, query) => UnionAll(acc, query)(pos) }
 
+        // If the incoming variables need to be deanonymized we can't reference them in the CASE expression
+        // if it is in the same WITH clause. In this case we split the deanonymization to a preceding clause.
         val incomingItems =
-          if (incomingLayout.ingress.nonEmpty) referenced.toSeq.map(lv => AliasedReturnItem(lv))
+          if (
+            incomingLayout.ingress.nonEmpty ||
+            incomingLayout.incomingMapping.isEmpty ||
+            incomingLayout.incomingMapping.forall(!_._2.anonymizedIncoming)
+          )
+            (None, referenced.toSeq.map(lv => AliasedReturnItem(lv)))
           else
-            referenced.toSeq.map(lv =>
-              AliasedReturnItem(
-                incomingLayout.incomingMapping.get(lv).fold(lv)(_.incoming).copyId,
-                lv.copyId
-              )(lv.position)
+            (
+              Some(
+                With(
+                  ReturnItems(
+                    FreeProjection,
+                    referenced.toSeq.map(lv =>
+                      AliasedReturnItem(
+                        incomingLayout.incomingMapping.get(lv).fold(lv)(_.incoming).copyId,
+                        lv.copyId
+                      )(lv.position)
+                    )
+                  )(ast.position),
+                  AddedInRewriteGeneral(Some("WHEN"))
+                )(ast.position)
+              ),
+              referenced.toSeq.map(lv => AliasedReturnItem(lv))
             )
 
         /**
@@ -706,10 +724,10 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
          *          ELSE 2
          *  END AS condition
          */
-        val preface: Seq[Clause] = Seq(With(
+        val preface: Seq[Clause] = incomingItems._1.toSeq ++ Seq(With(
           ReturnItems(
             FreeProjection,
-            incomingItems :+ AliasedReturnItem(
+            incomingItems._2 :+ AliasedReturnItem(
               CaseExpression(
                 expression = None,
                 alternatives = branches.zipWithIndex.map { case (branch, index) =>
