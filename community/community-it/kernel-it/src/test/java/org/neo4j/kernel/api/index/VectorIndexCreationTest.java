@@ -36,7 +36,6 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.set.SetIterable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -134,24 +133,28 @@ public class VectorIndexCreationTest {
                 super(Entity.this.factory, inclusiveVersionRangeFrom(minimumVersionForEntity));
             }
 
-            @Disabled("IND-156")
             @ParameterizedTest
             @MethodSource("validVersions")
-            void shouldRejectCompositeKeys(VectorIndexVersion version) {
-                assertUnsupportedComposite(() -> createVectorIndex(version, defaultSettings(), propKeyIds));
+            void shouldOnlyAcceptCompositeKeysInSupportedVersions(VectorIndexVersion version) {
+                switch (version) {
+                    case UNKNOWN, V1_0, V2_0 ->
+                        assertUnsupportedComposite(() -> createVectorIndex(version, defaultSettings(), propKeyIds));
+                    case V3_0 -> assertDoesNotThrow(() -> createVectorIndex(version, defaultSettings(), propKeyIds));
+                }
             }
 
-            @Disabled("IND-156")
             @Test
             @EnabledIf("latestIsValid")
             void shouldRejectCompositeKeysCoreAPI() {
-                assertUnsupportedComposite(() -> createVectorIndex(defaultSettings(), PROP_KEYS));
+                assertDoesNotThrow(() -> createVectorIndex(defaultSettings(), PROP_KEYS));
             }
 
             private static void assertUnsupportedComposite(ThrowingCallable operation) {
                 ErrorGqlStatusObjectAssertions.assertThatThrownBy(operation)
                         .isInstanceOf(InvalidArgumentException.class)
-                        .hasMessageContainingAll("A composite", IndexType.VECTOR.name(), "index is not supported")
+                        .hasMessageContainingAll(
+                                "Creating a filtering vector index with provider ",
+                                "Please use a newer index provider.")
                         .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31);
             }
         }

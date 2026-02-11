@@ -2084,8 +2084,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
                 if (version.compareTo(minimumRequiredVersion) < 0) {
                     throw InvalidArgumentException.unsupportedOperation(
-                            "Creating a single stage filtering vector index with provider '%s'"
-                                    .formatted(descriptor.name()),
+                            "Creating a filtering vector index with provider '%s'".formatted(descriptor.name()),
                             "Neo4j. Please use a newer index provider.");
                 }
             } else {

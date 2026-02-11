@@ -283,7 +283,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N31)
                 .hasMessageContainingAll(
-                        "Creating a single stage filtering vector index with provider",
+                        "Creating a filtering vector index with provider",
                         "is not supported in Neo4j",
                         "Please use a newer index provider");
     }
