@@ -62,6 +62,7 @@ import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.logging.internal.SimpleLogService;
+import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.time.Clocks;
 import org.neo4j.time.FakeClock;
@@ -251,7 +252,14 @@ class KernelTransactionTimeoutMonitorTest {
 
     private KernelTransactionMonitor buildTransactionMonitor(Config config) {
         return new KernelTransactionMonitor(
-                kernelTransactions, transactionIdStore, config, fakeClock, logService, mock(IndexingService.class));
+                kernelTransactions,
+                transactionIdStore,
+                config,
+                fakeClock,
+                logService,
+                mock(IndexingService.class),
+                mock(DatabaseHealth.class),
+                false);
     }
 
     private static KernelTransactionImplementation prepareTxMock(

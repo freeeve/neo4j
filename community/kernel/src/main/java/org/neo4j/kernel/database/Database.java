@@ -686,8 +686,8 @@ public class Database extends AbstractDatabase {
                         + "severe performance degradation.");
                 return;
             }
-            internalLog.info(
-                    "Previous database creation looks incomplete. Creating the missing token lookup indexes to complete database creation.");
+            internalLog.info("Previous database creation looks incomplete. Creating the missing token lookup indexes to"
+                    + " complete database creation.");
             createTokenIndexes();
         }
     }
@@ -1166,7 +1166,14 @@ public class Database extends AbstractDatabase {
             Config config,
             IndexingService indexingService) {
         var kernelTransactionMonitor = new KernelTransactionMonitor(
-                kernelTransactions, transactionIdStore, config, clock, databaseLogService, indexingService);
+                kernelTransactions,
+                transactionIdStore,
+                config,
+                clock,
+                databaseLogService,
+                indexingService,
+                databaseHealth,
+                isMultiVersioned(storageEngineFactory, namedDatabaseId));
         databaseDependencies.satisfyDependency(kernelTransactionMonitor);
         TransactionMonitorScheduler transactionMonitorScheduler = new TransactionMonitorScheduler(
                 kernelTransactionMonitor,

@@ -40,6 +40,7 @@ import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.monitor.KernelTransactionMonitor;
 import org.neo4j.logging.internal.NullLogService;
+import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
@@ -62,7 +63,9 @@ class KernelTransactionMonitorTest {
                 Config.defaults(),
                 clock,
                 NullLogService.getInstance(),
-                mock(IndexingService.class));
+                mock(IndexingService.class),
+                mock(DatabaseHealth.class),
+                false);
 
         // a 2 minutes old schema transaction which has a timeout of 1 minute
         KernelTransactionHandle oldSchemaTransaction = mock(KernelTransactionHandle.class);
@@ -94,7 +97,9 @@ class KernelTransactionMonitorTest {
                 Config.defaults(),
                 new FakeClock(100, MINUTES),
                 NullLogService.getInstance(),
-                mock(IndexingService.class));
+                mock(IndexingService.class),
+                mock(DatabaseHealth.class),
+                false);
 
         assertEquals(1, transactionMonitor.oldestVisibilityHorizon());
         assertEquals(1, transactionMonitor.oldestCleanupHorizon());
@@ -140,7 +145,9 @@ class KernelTransactionMonitorTest {
                 Config.defaults(),
                 new FakeClock(100, MINUTES),
                 NullLogService.getInstance(),
-                mock(IndexingService.class));
+                mock(IndexingService.class),
+                mock(DatabaseHealth.class),
+                false);
 
         assertEquals(42, transactionMonitor.oldestVisibilityHorizon());
         assertEquals(42, transactionMonitor.oldestCleanupHorizon());

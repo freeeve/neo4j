@@ -35,6 +35,7 @@ import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.time.SystemNanoClock;
 
@@ -43,6 +44,8 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
     private final KernelTransactions kernelTransactions;
     private final TransactionIdStore transactionIdStore;
     private final IndexingService indexingService;
+    private final DatabaseHealth databaseHealth;
+    private final boolean multiVersion;
     private final AtomicLong oldestCleanupHorizon = new AtomicLong(BASE_TX_ID);
     private final AtomicLong oldestVisibilityHorizon = new AtomicLong(BASE_TX_ID);
 
@@ -52,14 +55,18 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
             Config config,
             SystemNanoClock clock,
             LogService logService,
-            IndexingService indexingService) {
+            IndexingService indexingService,
+            DatabaseHealth databaseHealth,
+            boolean multiVersion) {
         super(config, clock, logService);
         this.kernelTransactions = kernelTransactions;
         this.transactionIdStore = transactionIdStore;
         this.indexingService = indexingService;
-        oldestVisibilityHorizon.setRelease(
+        this.databaseHealth = databaseHealth;
+        this.multiVersion = multiVersion;
+        this.oldestVisibilityHorizon.setRelease(
                 transactionIdStore.getHighestEverClosedTransaction().id());
-        oldestCleanupHorizon.setRelease(
+        this.oldestCleanupHorizon.setRelease(
                 transactionIdStore.getHighestEverClosedTransaction().id());
     }
 
@@ -86,6 +93,12 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
             long populationHorizon = job.populationHorizon();
             minHighestGapFree = Math.min(minHighestGapFree, populationHorizon);
             minCleanupHorizon = Math.min(minCleanupHorizon, populationHorizon);
+        }
+        long previousHorizon = oldestVisibilityHorizon.getAcquire();
+        if (minHighestGapFree < previousHorizon && multiVersion) {
+            databaseHealth.panic(new Exception(
+                    "Global visibility horizon went backwards from " + previousHorizon + " to " + minHighestGapFree));
+            return;
         }
         oldestVisibilityHorizon.setRelease(minHighestGapFree);
         oldestCleanupHorizon.setRelease(minCleanupHorizon);
