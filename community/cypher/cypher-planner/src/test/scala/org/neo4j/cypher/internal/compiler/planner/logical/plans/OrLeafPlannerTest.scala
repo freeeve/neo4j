@@ -71,13 +71,14 @@ import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.neo4j.storageengine.api.AllRelationshipsScan
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-class OrLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 with ScalaCheckDrivenPropertyChecks {
+class OrLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2
+    with CypherScalaCheckDrivenPropertyChecks {
   import OrLeafPlannerTest._
 
   private lazy val expressionStringifier: ExpressionStringifier = ExpressionStringifier()
@@ -225,8 +226,6 @@ class OrLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 
           numSuccessfulOrLeafsPlanned += 1
       }
     }
-
-    println(s"Total number of successful orleafs planned: $numSuccessfulOrLeafsPlanned")
   }
 
   private def orleafPlannerWithSubplans: OrLeafPlanner = {
