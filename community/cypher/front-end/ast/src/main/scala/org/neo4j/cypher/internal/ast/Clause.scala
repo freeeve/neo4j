@@ -1717,13 +1717,14 @@ case class Unwind(
 abstract class CallClause extends Clause {
   override def name = "CALL"
 
+  def procedureName: ProcedureName
   def containsNoUpdates: Boolean
   def yieldAll: Boolean
   def optional: Boolean
 }
 
 case class UnresolvedCall(
-  procedureName: ProcedureName,
+  override val procedureName: ProcedureName,
   // None: No arguments given
   declaredArguments: Option[Seq[Expression]] = None,
   // None: No results declared  (i.e. no "YIELD" part or "YIELD *")

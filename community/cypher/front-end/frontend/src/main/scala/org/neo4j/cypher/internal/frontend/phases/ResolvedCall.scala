@@ -116,7 +116,7 @@ case class ResolvedCall(
 )(val position: InputPosition)
     extends CallClause {
 
-  def procedureName: ProcedureName = signature.name
+  override def procedureName: ProcedureName = signature.name
 
   def fullyDeclared: Boolean = declaredArguments && declaredResults
 
