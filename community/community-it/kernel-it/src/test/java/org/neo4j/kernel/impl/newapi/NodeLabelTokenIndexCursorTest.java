@@ -20,10 +20,13 @@
 package org.neo4j.kernel.impl.newapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.internal.kernel.api.IndexQueryConstraints.ordered;
+import static org.neo4j.internal.schema.IndexOrder.ASCENDING;
 import static org.neo4j.kernel.impl.newapi.IndexReadAsserts.assertNodeCount;
 import static org.neo4j.kernel.impl.newapi.IndexReadAsserts.assertNodes;
 import static org.neo4j.values.storable.Values.stringValue;
 
+import java.util.Arrays;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
@@ -258,16 +261,15 @@ public class NodeLabelTokenIndexCursorTest extends KernelAPIWriteTestBase<WriteT
     @Test
     void shouldNotLoadDeletedNodesOnReadFromStore() throws Exception {
         // given
-        long first;
-        long second;
-        long third;
 
+        long[] nodes = new long[3];
         try (KernelTransaction tx = beginTransaction()) {
-            first = createNode(tx.dataWrite(), labelOne);
-            second = createNode(tx.dataWrite(), labelOne);
-            third = createNode(tx.dataWrite(), labelOne);
+            nodes[0] = createNode(tx.dataWrite(), labelOne);
+            nodes[1] = createNode(tx.dataWrite(), labelOne);
+            nodes[2] = createNode(tx.dataWrite(), labelOne);
             tx.commit();
         }
+        Arrays.sort(nodes);
 
         try (KernelTransaction tx = beginTransaction()) {
             Read read = tx.dataRead();
@@ -275,27 +277,22 @@ public class NodeLabelTokenIndexCursorTest extends KernelAPIWriteTestBase<WriteT
             CursorContext cursorContext = tx.cursorContext();
             try (NodeLabelIndexCursor cursor = tx.cursors().allocateNodeLabelIndexCursor(cursorContext)) {
                 // when
-                read.nodeLabelScan(
-                        session,
-                        cursor,
-                        IndexQueryConstraints.unconstrained(),
-                        new TokenPredicate(labelOne),
-                        cursorContext);
+                read.nodeLabelScan(session, cursor, ordered(ASCENDING), new TokenPredicate(labelOne), cursorContext);
 
                 // then
                 assertThat(cursor.next()).isTrue();
                 assertThat(cursor.readFromStore()).isTrue();
-                assertThat(cursor.nodeReference()).isEqualTo(first);
+                assertThat(cursor.nodeReference()).isEqualTo(nodes[0]);
 
-                tx.dataWrite().nodeDelete(second);
+                tx.dataWrite().nodeDelete(nodes[1]);
 
                 assertThat(cursor.next()).isTrue();
                 assertThat(cursor.readFromStore()).isFalse();
-                assertThat(cursor.nodeReference()).isEqualTo(second);
+                assertThat(cursor.nodeReference()).isEqualTo(nodes[1]);
 
                 assertThat(cursor.next()).isTrue();
                 assertThat(cursor.readFromStore()).isTrue();
-                assertThat(cursor.nodeReference()).isEqualTo(third);
+                assertThat(cursor.nodeReference()).isEqualTo(nodes[2]);
 
                 assertThat(cursor.next()).isFalse();
             }
