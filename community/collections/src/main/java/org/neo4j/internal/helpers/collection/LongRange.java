@@ -109,6 +109,10 @@ public final class LongRange {
         return to;
     }
 
+    public long size() {
+        return to - from + 1;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
