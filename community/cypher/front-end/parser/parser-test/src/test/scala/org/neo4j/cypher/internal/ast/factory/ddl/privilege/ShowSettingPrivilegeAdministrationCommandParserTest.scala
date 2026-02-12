@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.ShowSettingAction
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.util.InputPosition
 
 class ShowSettingPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -261,9 +262,15 @@ class ShowSettingPrivilegeAdministrationCommandParserTest extends Administration
 
           test(s"$verb$immutableString SHOW SOME SETTING * ON DATABASE * $preposition role") {
             val offset = s"$verb$immutableString SHOW ".length
-            failsParsing[Statements].withSyntaxErrorContaining(
-              s"""Invalid input 'SOME': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
-            )
+
+            failsParsing[Statements].in {
+              case Cypher5 => _.withSyntaxErrorContaining(
+                  s"""Invalid input 'SOME': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
+                )
+              case _ => _.withSyntaxErrorContaining(
+                  s"""Invalid input 'SOME': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'AUTH RULE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 1} (offset: $offset))""".stripMargin
+                )
+            }
           }
       }
   }

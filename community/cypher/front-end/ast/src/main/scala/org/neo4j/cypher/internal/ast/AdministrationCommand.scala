@@ -888,122 +888,16 @@ final case class RevokeRolesFromAuthRules(
 
 // AuthRule commands
 
-final case class ShowAuthRules(
-  override val yieldOrWhere: YieldOrWhere,
-  override val defaultColumnSet: List[ShowColumn],
-  asCommands: Boolean
-)(val position: InputPosition) extends ReadAdministrationCommand {
+sealed trait AuthRules extends SemanticAnalysisTooling {
 
-  override def name: String = "SHOW AUTH RULES"
-
-  override def semanticCheck: SemanticCheck =
-    super.semanticCheck chain
-      featureCheck chain
-      SemanticState.recordCurrentScope(this)
-
-  override def withYieldOrWhere(newYieldOrWhere: YieldOrWhere): ShowAuthRules =
-    this.copy(yieldOrWhere = newYieldOrWhere)(position)
-
-  private val featureCheck =
-    requireFeatureSupport(
-      s"The `$name` clause",
-      SemanticFeature.AttributeBasedAccessControl,
-      position
-    )
-}
-
-object ShowAuthRules {
-
-  def apply(yieldOrWhere: YieldOrWhere, asCommands: Boolean)(position: InputPosition): ShowAuthRules = {
-    val columns =
-      if (asCommands)
-        List(
-          (ShowColumn("command")(position), true),
-          (ShowColumn("roles", CTList(CTString))(position), false)
-        )
-      else
-        List(
-          ShowColumn("name")(position),
-          ShowColumn("condition", CTString)(position),
-          ShowColumn("enabled", CTBoolean)(position),
-          ShowColumn("roles", CTList(CTString))(position)
-        ).map(column => (column, true))
-
-    ShowAuthRules(
-      yieldOrWhere,
-      DefaultOrAllShowColumns(columns, yieldOrWhere).columns,
-      asCommands
-    )(position)
-  }
-}
-
-final case class CreateAuthRule(
-  authRuleName: Expression,
-  ifExistsDo: IfExistsDo,
-  setClauses: List[AuthRuleSetClause]
-)(val position: InputPosition) extends WriteAdministrationCommand {
-
-  private val featureCheck =
+  protected def featureCheck(name: String, position: InputPosition): SemanticCheck =
     requireFeatureSupport(
       s"The `$name` clause",
       SemanticFeature.AttributeBasedAccessControl,
       position
     )
 
-  override def name: String = ifExistsDo match {
-    case IfExistsReplace | IfExistsInvalidSyntax => s"CREATE OR REPLACE AUTH RULE"
-    case _                                       => s"CREATE AUTH RULE"
-  }
-
-  override def semanticCheck: SemanticCheck =
-    ifExistsDo match {
-      case IfExistsInvalidSyntax =>
-        val name = Prettifier.escapeName(authRuleName)
-        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("auth rule", name, position))
-      case _ =>
-        super.semanticCheck chain
-          featureCheck chain
-          checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
-          checkSetClauses chain
-          checkExpression chain
-          SemanticState.recordCurrentScope(this)
-    }
-
-  def condition: Option[AuthRuleCondition] = setClauses.collectFirst { case condition: AuthRuleCondition => condition }
-
-  def enabled: Option[AuthRuleEnabled] = setClauses.collectFirst { case enabled: AuthRuleEnabled => enabled }
-
-  private def checkSetClauses: SemanticCheck = {
-    val (conditions, enableds) = setClauses.partition {
-      case _: AuthRuleCondition => true
-      case _: AuthRuleEnabled   => false
-    }
-
-    val conditionCheck = conditions match {
-      case Seq() => SemanticCheck.error(SemanticError.authRuleMustHaveACondition(position))
-      case Seq(_, second, _*) =>
-        AdministrationCommandSemanticAnalysis.duplicateClauseError(
-          s"SET CONDITION",
-          s"Duplicate `SET CONDITION` clause.",
-          second.position
-        )
-      case _ => SemanticCheck.success
-    }
-
-    val enabledCheck = enableds match {
-      case Seq(_, second, _*) =>
-        AdministrationCommandSemanticAnalysis.duplicateClauseError(
-          s"SET ENABLED",
-          s"Duplicate `SET ENABLED` clause.",
-          second.position
-        )
-      case _ => SemanticCheck.success
-    }
-
-    conditionCheck chain enabledCheck
-  }
-
-  private def checkExpression: SemanticCheck = {
+  protected def checkExpression(condition: Option[AuthRuleCondition]): SemanticCheck = {
     condition.map(_.expression).toSeq
       .flatMap(e => Seq(e) ++ e.subExpressions)
       .foldSemanticCheck {
@@ -1011,13 +905,13 @@ final case class CreateAuthRule(
             SemanticError.authRuleConditionCannotSubqueryExpression(subqueryExpression.position)
           )
         case parameter: Parameter => SemanticCheck.error(
-            SemanticError.authRuleConditionCannotContainParameter(parameter.position)
+            SemanticError.authRuleConditionCannotContainParameter(parameter)
           )
         case _ => SemanticCheck.success
-      } chain checkFunctions
+      } chain checkFunctions(condition)
   }
 
-  private def checkFunctions: SemanticCheck = {
+  protected def checkFunctions(condition: Option[AuthRuleCondition]): SemanticCheck = {
     condition.map(_.expression).toSeq
       .flatMap(e => Seq(e) ++ e.subExpressions)
       .flatMap {
@@ -1031,7 +925,7 @@ final case class CreateAuthRule(
       })
   }
 
-  private def checkAllowlist(functionInvocation: FunctionInvocation): SemanticCheck = {
+  protected def checkAllowlist(functionInvocation: FunctionInvocation): SemanticCheck = {
     val allowListedFunctions = Seq(
       // ABAC oidc user metadata function
       "abac.oidc.user_attribute",
@@ -1123,7 +1017,7 @@ final case class CreateAuthRule(
       ))
   }
 
-  private def checkTemporalFunctionsArguments(functionInvocation: FunctionInvocation): SemanticCheck = {
+  protected def checkTemporalFunctionsArguments(functionInvocation: FunctionInvocation): SemanticCheck = {
     val temporalFunctionsThatRequireArgs = Seq(
       "date",
       "datetime",
@@ -1145,7 +1039,7 @@ final case class CreateAuthRule(
     }
   }
 
-  private def checkAbacOidcUserAttributeFunction(functionInvocation: FunctionInvocation): SemanticCheck = {
+  protected def checkAbacOidcUserAttributeFunction(functionInvocation: FunctionInvocation): SemanticCheck = {
     if (functionInvocation.name == "abac.oidc.user_attribute") {
       lazy val argHeadOption = functionInvocation.args.headOption
         .flatMap {
@@ -1186,6 +1080,82 @@ final case class CreateAuthRule(
   }
 }
 
+final case class ShowAuthRules(
+  override val yieldOrWhere: YieldOrWhere,
+  override val defaultColumnSet: List[ShowColumn],
+  asCommands: Boolean
+)(val position: InputPosition) extends ReadAdministrationCommand with AuthRules {
+
+  override def name: String = "SHOW AUTH RULES"
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck(name, position) chain
+      SemanticState.recordCurrentScope(this)
+
+  override def withYieldOrWhere(newYieldOrWhere: YieldOrWhere): ShowAuthRules =
+    this.copy(yieldOrWhere = newYieldOrWhere)(position)
+}
+
+object ShowAuthRules {
+
+  def apply(yieldOrWhere: YieldOrWhere, asCommands: Boolean)(position: InputPosition): ShowAuthRules = {
+    val columns =
+      if (asCommands)
+        List(
+          (ShowColumn("command")(position), true),
+          (ShowColumn("roles", CTList(CTString))(position), false)
+        )
+      else
+        List(
+          ShowColumn("name")(position),
+          ShowColumn("condition", CTString)(position),
+          ShowColumn("enabled", CTBoolean)(position),
+          ShowColumn("roles", CTList(CTString))(position)
+        ).map(column => (column, true))
+
+    ShowAuthRules(
+      yieldOrWhere,
+      DefaultOrAllShowColumns(columns, yieldOrWhere).columns,
+      asCommands
+    )(position)
+  }
+}
+
+final case class CreateAuthRule(
+  authRuleName: Expression,
+  ifExistsDo: IfExistsDo,
+  setClauses: List[AuthRuleSetClause]
+)(val position: InputPosition) extends WriteAdministrationCommand with AuthRules {
+
+  override def name: String = ifExistsDo match {
+    case IfExistsReplace | IfExistsInvalidSyntax => s"CREATE OR REPLACE AUTH RULE"
+    case _                                       => s"CREATE AUTH RULE"
+  }
+
+  override def semanticCheck: SemanticCheck =
+    ifExistsDo match {
+      case IfExistsInvalidSyntax =>
+        val name = Prettifier.escapeName(authRuleName)
+        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("auth rule", name, position))
+      case _ =>
+        super.semanticCheck chain
+          featureCheck(name, position) chain
+          checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
+          checkMustHaveCondition chain
+          checkExpression(condition) chain
+          SemanticState.recordCurrentScope(this)
+    }
+
+  def condition: Option[AuthRuleCondition] = setClauses.collectFirst { case condition: AuthRuleCondition => condition }
+
+  def enabled: Option[AuthRuleEnabled] = setClauses.collectFirst { case enabled: AuthRuleEnabled => enabled }
+
+  private def checkMustHaveCondition: SemanticCheck =
+    if (condition.isEmpty) SemanticCheck.error(SemanticError.authRuleMustHaveACondition(position))
+    else SemanticCheck.success
+}
+
 sealed trait AuthRuleSetClause extends ASTNode {
   def position: InputPosition
   def name: String
@@ -1204,22 +1174,51 @@ final case class AuthRuleEnabled(
 }
 
 final case class DropAuthRule(authRuleName: Expression, ifExists: Boolean)(val position: InputPosition)
-    extends WriteAdministrationCommand {
+    extends WriteAdministrationCommand with AuthRules {
 
   override def name = "DROP AUTH RULE"
 
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
-      featureCheck chain
+      featureCheck(name, position) chain
       checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
       SemanticState.recordCurrentScope(this)
+}
 
-  private val featureCheck =
-    requireFeatureSupport(
-      s"The `$name` clause",
-      SemanticFeature.AttributeBasedAccessControl,
-      position
-    )
+final case class RenameAuthRule(
+  fromAuthRuleName: Expression,
+  toAuthRuleName: Expression,
+  ifExists: Boolean
+)(val position: InputPosition) extends WriteAdministrationCommand with AuthRules {
+
+  override def name: String = "RENAME AUTH RULE"
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck(name, position) chain
+      checkIsStringLiteralOrParameter("from auth rule name", fromAuthRuleName) chain
+      checkIsStringLiteralOrParameter("to auth rule name", fromAuthRuleName) chain
+      SemanticState.recordCurrentScope(this)
+}
+
+final case class AlterAuthRule(
+  authRuleName: Expression,
+  ifExists: Boolean,
+  setClauses: List[AuthRuleSetClause]
+)(val position: InputPosition) extends WriteAdministrationCommand with AuthRules {
+
+  override def name: String = "ALTER AUTH RULE"
+
+  override def semanticCheck: SemanticCheck =
+    super.semanticCheck chain
+      featureCheck(name, position) chain
+      checkIsStringLiteralOrParameter("auth rule", authRuleName) chain
+      checkExpression(condition) chain
+      SemanticState.recordCurrentScope(this)
+
+  def condition: Option[AuthRuleCondition] = setClauses.collectFirst { case condition: AuthRuleCondition => condition }
+
+  def enabled: Option[AuthRuleEnabled] = setClauses.collectFirst { case enabled: AuthRuleEnabled => enabled }
 }
 
 // Privilege commands

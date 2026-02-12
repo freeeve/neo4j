@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
@@ -1019,13 +1020,20 @@ object SemanticError {
     SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
-  // TODO: Remove when we support parameters in auth rules conditions
-  def authRuleConditionCannotContainParameter(position: InputPosition): SemanticError = {
+  def authRuleConditionCannotContainParameter(parameter: Parameter): SemanticError = {
+    val position = parameter.position
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+          .withParam(GqlParams.StringParam.input, s"$$${parameter.name}")
+          .withParam(GqlParams.StringParam.context, "auth rule condition")
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      )
       .build()
 
-    SemanticError(gql, gql.getMessage, position)
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
   def denyMergeUnsupported(position: InputPosition): SemanticError = {

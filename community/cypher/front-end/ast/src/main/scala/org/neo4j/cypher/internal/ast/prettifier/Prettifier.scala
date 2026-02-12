@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AllLabelResource
 import org.neo4j.cypher.internal.ast.AllPropertyResource
 import org.neo4j.cypher.internal.ast.AllQualifier
+import org.neo4j.cypher.internal.ast.AlterAuthRule
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
@@ -37,6 +38,7 @@ import org.neo4j.cypher.internal.ast.AlterUser
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.AuthRuleCondition
 import org.neo4j.cypher.internal.ast.AuthRuleEnabled
+import org.neo4j.cypher.internal.ast.AuthRuleSetClause
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
@@ -165,6 +167,7 @@ import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.RemoveItem
 import org.neo4j.cypher.internal.ast.RemoveLabelItem
 import org.neo4j.cypher.internal.ast.RemovePropertyItem
+import org.neo4j.cypher.internal.ast.RenameAuthRule
 import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RenameServer
 import org.neo4j.cypher.internal.ast.RenameUser
@@ -256,6 +259,7 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.YieldOrWhere
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.authRuleSetClausesToString
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.escapeName
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.stringifyOptions
 import org.neo4j.cypher.internal.expressions.CoerceTo
@@ -682,22 +686,20 @@ case class Prettifier(
         s"${x.name}$asCmd$y$r"
 
       case x @ CreateAuthRule(authRuleName, ifExistsDo, setClauses) =>
-        val setClausesString = setClauses.map(clause =>
-          (
-            clause.name,
-            clause match {
-              case condition: AuthRuleCondition => ExpressionStringifier().apply(condition.expression)
-              case enabled: AuthRuleEnabled     => if (enabled.enabled) "TRUE" else "FALSE"
-            }
-          )
-        ).map { case (name, value) => s"$name $value" }
-          .mkString(" ")
+        val setClausesString = authRuleSetClausesToString(setClauses)
 
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(authRuleName)} IF NOT EXISTS $setClausesString"
           case _ => s"${x.name} ${Prettifier.escapeName(authRuleName)} $setClausesString"
         }
+
+      case x @ AlterAuthRule(authRuleName, ifExists, setClauses) =>
+        val ifExistsString = if (ifExists) " IF EXISTS" else ""
+        s"${x.name} ${Prettifier.escapeName(authRuleName)}$ifExistsString ${authRuleSetClausesToString(setClauses)}"
+
+      case x @ RenameAuthRule(fromAuthRuleName, toAuthRuleName, ifExists) =>
+        Prettifier.prettifyRename(x.name, fromAuthRuleName, toAuthRuleName, ifExists)
 
       case x @ DropAuthRule(ruleName, ifExists) =>
         if (ifExists) s"${x.name} ${Prettifier.escapeName(ruleName)} IF EXISTS"
@@ -1931,5 +1933,18 @@ object Prettifier {
     }
 
   def maybeImmutable(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""
+
+  private def authRuleSetClausesToString(setClauses: List[AuthRuleSetClause]): String =
+    setClauses
+      .map(clause =>
+        (
+          clause.name,
+          clause match {
+            case condition: AuthRuleCondition => ExpressionStringifier().apply(condition.expression)
+            case enabled: AuthRuleEnabled     => enabled.enabled.toString
+          }
+        )
+      ).map { case (name, value) => s"$name $value" }
+      .mkString(" ")
 
 }

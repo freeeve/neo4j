@@ -48,6 +48,8 @@ import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterAuthRule
+import org.neo4j.cypher.internal.ast.AlterAuthRuleAction
 import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.AlterDatabase
@@ -78,6 +80,7 @@ import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateAliasAction
 import org.neo4j.cypher.internal.ast.CreateAuthRule
+import org.neo4j.cypher.internal.ast.CreateAuthRuleAction
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateConstraint
@@ -114,6 +117,7 @@ import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.DestroyData
 import org.neo4j.cypher.internal.ast.DropAliasAction
 import org.neo4j.cypher.internal.ast.DropAuthRule
+import org.neo4j.cypher.internal.ast.DropAuthRuleAction
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropConstraintAction
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
@@ -284,6 +288,8 @@ import org.neo4j.cypher.internal.ast.RemoveLabelItem
 import org.neo4j.cypher.internal.ast.RemovePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.RemoveRoleAction
+import org.neo4j.cypher.internal.ast.RenameAuthRule
+import org.neo4j.cypher.internal.ast.RenameAuthRuleAction
 import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RenameRoleAction
 import org.neo4j.cypher.internal.ast.RenameServer
@@ -326,6 +332,7 @@ import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliasAction
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
+import org.neo4j.cypher.internal.ast.ShowAuthRuleAction
 import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowConstraintAction
 import org.neo4j.cypher.internal.ast.ShowConstraintType
@@ -3395,6 +3402,19 @@ class AstGenerator(
     enabled <- option(_AuthRuleEnabled)
   } yield CreateAuthRule(authRuleName, ifExistsDo, List(condition) ++ enabled)(pos)
 
+  def _alterAuthRule: Gen[AlterAuthRule] = for {
+    authRuleName <- _stringLiteralOrParameter
+    ifExists <- boolean
+    condition <- option(_authRuleCondition)
+    enabled <- if (condition.isEmpty) some(_AuthRuleEnabled) else option(_AuthRuleEnabled)
+  } yield AlterAuthRule(authRuleName, ifExists, condition.toList ++ enabled)(pos)
+
+  def _renameAuthRule: Gen[RenameAuthRule] = for {
+    fromAuthRuleName <- _stringLiteralOrParameter
+    toAuthRuleName <- _stringLiteralOrParameter
+    ifExists <- boolean
+  } yield RenameAuthRule(fromAuthRuleName, toAuthRuleName, ifExists)(pos)
+
   def _dropAuthRule: Gen[DropAuthRule] = for {
     authRuleName <- _stringLiteralOrParameter
     ifExists <- boolean
@@ -3412,6 +3432,8 @@ class AstGenerator(
     oneOf(
       _showAuthRules.filterNot(_ => usesCypher5),
       _createAuthRule.filterNot(_ => usesCypher5),
+      _alterAuthRule.filterNot(_ => usesCypher5),
+      _renameAuthRule.filterNot(_ => usesCypher5),
       _dropAuthRule.filterNot(_ => usesCypher5)
     )
 
@@ -3533,7 +3555,14 @@ class AstGenerator(
     ServerManagementAction,
     ShowServerAction,
     ShowSettingAction
-  ) ++ Seq(AllAuthRuleActions) // Actions not available in Cypher 5
+  ) ++ Seq(
+    AllAuthRuleActions,
+    CreateAuthRuleAction,
+    RenameAuthRuleAction,
+    AlterAuthRuleAction,
+    DropAuthRuleAction,
+    ShowAuthRuleAction
+  ) // Actions not available in Cypher 5
     .filterNot(_ => usesCypher5))
 
   def _databaseAction: Gen[DatabaseAction] = oneOf(

@@ -963,6 +963,7 @@ alterCommand
       | alterDatabase
       | alterUser
       | alterServer
+      | alterAuthRule
    )
    ;
 
@@ -1359,7 +1360,7 @@ constraintSpecification
 // Admin commands
 
 renameCommand
-   : RENAME (renameRole | renameServer | renameUser)
+   : RENAME (renameRole | renameServer | renameUser | renameAuthRule)
    ;
 
 grantCommand
@@ -1638,6 +1639,7 @@ createPropertyPrivilegeToken
 
 actionForDBMS
    : ALIAS
+   | AUTH RULE
    | COMPOSITE? DATABASE
    | ROLE
    | USER
@@ -1660,7 +1662,7 @@ loadPrivilege
 showPrivilege
    : SHOW (
       (indexToken | constraintToken | transactionToken userQualifier?) ON databaseScope
-      | (ALIAS | PRIVILEGE | ROLE | SERVER | SERVERS | settingToken settingQualifier | USER) ON DBMS
+      | (ALIAS | AUTH RULE | PRIVILEGE | ROLE | SERVER | SERVERS | settingToken settingQualifier | USER) ON DBMS
    )
    ;
 
@@ -1703,11 +1705,11 @@ databasePrivilege
 
 dbmsPrivilege
    : (
-      ALTER (ALIAS | COMPOSITE? DATABASE | USER)
+      ALTER (ALIAS | AUTH RULE | COMPOSITE? DATABASE | USER)
       | ASSIGN (PRIVILEGE | ROLE)
       | (ALIAS | COMPOSITE? DATABASE | PRIVILEGE | ROLE | SERVER | USER | AUTH RULE) MANAGEMENT
       | dbmsPrivilegeExecute
-      | RENAME (ROLE | USER)
+      | RENAME (AUTH RULE | ROLE | USER)
       | IMPERSONATE userQualifier?
    )
    ON DBMS
@@ -1859,7 +1861,15 @@ authRuleSetCondition
     ;
 
 authRuleSetEnabled
-    : ENABLED (TRUE | FALSE) // do we not have a booleanLiteral??
+    : ENABLED (TRUE | FALSE)
+    ;
+
+renameAuthRule
+    : AUTH RULE commandNameExpression (IF EXISTS)? TO commandNameExpression
+    ;
+
+alterAuthRule
+    : AUTH RULE commandNameExpression (IF EXISTS)? (authRuleSetClause)+
     ;
 
 dropAuthRule

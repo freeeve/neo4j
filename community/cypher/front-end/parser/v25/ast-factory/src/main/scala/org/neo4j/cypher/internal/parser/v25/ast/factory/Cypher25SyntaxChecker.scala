@@ -21,6 +21,9 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
+import org.neo4j.cypher.internal.ast.AuthRuleSetClause
 import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
@@ -47,8 +50,11 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.gqlstatus.GqlHelper
 
+import java.util
+
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 final class Cypher25SyntaxChecker(
   exceptionFactory: CypherExceptionFactory,
@@ -91,6 +97,8 @@ final class Cypher25SyntaxChecker(
       case Cypher25Parser.RULE_nodeTypeInlineConstraintList     => checkNodeTypeInlineConstraintList(cast(ctx))
       case Cypher25Parser.RULE_edgeTypeInlineConstraintList     => checkEdgeTypeInlineConstraintList(cast(ctx))
       case Cypher25Parser.RULE_obfuscatedLiteral                => failOnObfuscatedLiteral(ctx)
+      case Cypher25Parser.RULE_createAuthRule                   => checkCreateAuthRule(cast(ctx))
+      case Cypher25Parser.RULE_alterAuthRule                    => checkAlterAuthRule(cast(ctx))
       case _                                                    =>
     }
   }
@@ -167,6 +175,25 @@ final class Cypher25SyntaxChecker(
   private def checkAlterUser(ctx: Cypher25Parser.AlterUserContext): Unit = {
     errorOnDuplicateRule(ctx.userStatus(), "SET STATUS {SUSPENDED|ACTIVE}")
     errorOnDuplicateRule(ctx.homeDatabase(), "SET HOME DATABASE")
+  }
+
+  private def checkCreateAuthRule(ctx: Cypher25Parser.CreateAuthRuleContext): Unit = {
+    checkAuthRuleSetClauses(ctx.authRuleSetClause())
+  }
+
+  private def checkAlterAuthRule(ctx: Cypher25Parser.AlterAuthRuleContext): Unit = {
+    checkAuthRuleSetClauses(ctx.authRuleSetClause())
+  }
+
+  private def checkAuthRuleSetClauses(clauses: util.List[Cypher25Parser.AuthRuleSetClauseContext]): Unit = {
+    val (setConditions, setEnableds) = clauses.asScala.toList
+      .partition(_.ast[AuthRuleSetClause] match {
+        case _: AuthRuleCondition => true
+        case _: AuthRuleEnabled   => false
+      })
+
+    errorOnDuplicateRule(setConditions.asJava, "SET CONDITION")
+    errorOnDuplicateRule(setEnableds.asJava, "SET ENABLED")
   }
 
   private def checkAllPrivilege(ctx: Cypher25Parser.AllPrivilegeContext): Unit = {

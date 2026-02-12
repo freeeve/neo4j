@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterAuthRule
+import org.neo4j.cypher.internal.ast.AlterAuthRuleAction
 import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterDatabaseOptionsAction
@@ -100,6 +102,8 @@ import org.neo4j.cypher.internal.ast.ParsedAsYield
 import org.neo4j.cypher.internal.ast.ReallocateDatabases
 import org.neo4j.cypher.internal.ast.RemovePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemoveRoleAction
+import org.neo4j.cypher.internal.ast.RenameAuthRule
+import org.neo4j.cypher.internal.ast.RenameAuthRuleAction
 import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RenameRoleAction
 import org.neo4j.cypher.internal.ast.RenameServer
@@ -575,12 +579,39 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           prettifier.asString(c)
         ))
 
+      // ALTER AUTH RULE foo [IF EXISTS] [SET CONDITION expr] [SET ENABLED true|false]
+      case c @ AlterAuthRule(authRuleName, ifExists, _) =>
+        val assertAllowed = plans.AssertAllowedDbmsActions(AlterAuthRuleAction)
+        val source =
+          if (ifExists)
+            plans.DoNothingIfNotExists(assertAllowed, "ALTER AUTH RULE", plans.AuthRuleEntity, authRuleName, "alter")
+          else assertAllowed
+        Some(plans.LogSystemCommand(
+          plans.AlterAuthRule(source, authRuleName, c.condition.map(_.expression), c.enabled.map(_.enabled)),
+          prettifier.asString(c)
+        ))
+
+      // RENAME AUTH RULE foo [IF EXISTS] TO bar
+      case c @ RenameAuthRule(fromAuthRuleName, toAuthRuleName, ifExists) =>
+        val assertAllowed = plans.AssertAllowedDbmsActions(RenameAuthRuleAction)
+        val source =
+          if (ifExists)
+            plans.DoNothingIfNotExists(
+              assertAllowed,
+              "RENAME AUTH RULE",
+              plans.AuthRuleEntity,
+              fromAuthRuleName,
+              "rename"
+            )
+          else assertAllowed
+        Some(plans.LogSystemCommand(
+          plans.RenameAuthRule(source, fromAuthRuleName, toAuthRuleName),
+          prettifier.asString(c)
+        ))
+
       // DROP AUTH RULE foo [IF EXISTS]
       case d @ DropAuthRule(authRuleName, ifExists) =>
-        val assertAllowed = plans.AssertAllowedDbmsActions(
-          None,
-          Seq(DropAuthRuleAction)
-        )
+        val assertAllowed = plans.AssertAllowedDbmsActions(DropAuthRuleAction)
         val source =
           if (ifExists)
             plans.DoNothingIfNotExists(assertAllowed, "DROP AUTH RULE", plans.AuthRuleEntity, authRuleName, "delete")

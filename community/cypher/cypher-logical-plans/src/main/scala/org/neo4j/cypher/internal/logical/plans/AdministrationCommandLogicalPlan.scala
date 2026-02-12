@@ -191,6 +191,19 @@ case class CreateAuthRule(
   enabled: Option[Boolean]
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
 
+case class AlterAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  authRuleName: Either[String, Parameter],
+  condition: Option[Expression],
+  enabled: Option[Boolean]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+case class RenameAuthRule(
+  source: SecurityAdministrationLogicalPlan,
+  fromAuthRuleName: Either[String, Parameter],
+  toAuthRuleName: Either[String, Parameter]
+)(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
 case class DropAuthRule(
   source: SecurityAdministrationLogicalPlan,
   authRuleName: Either[String, Parameter]

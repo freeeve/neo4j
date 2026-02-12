@@ -671,7 +671,7 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
             |       ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'ROLE': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+          """Invalid input 'ROLE': expected 'ALIAS', 'CURRENT', 'DATABASE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
             |"ALTER ROLE foo SET NAME bar"
             |       ^""".stripMargin
         )
@@ -703,19 +703,33 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
   }
 
   test("RENAME IF EXISTS ROLE foo TO bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'IF': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
-        |"RENAME IF EXISTS ROLE foo TO bar"
-        |        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'IF': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME IF EXISTS ROLE foo TO bar"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'IF': expected 'ROLE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME IF EXISTS ROLE foo TO bar"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("RENAME OR REPLACE ROLE foo TO bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OR': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
-        |"RENAME OR REPLACE ROLE foo TO bar"
-        |        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME OR REPLACE ROLE foo TO bar"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ROLE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME OR REPLACE ROLE foo TO bar"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   //  Dropping role

@@ -521,6 +521,14 @@ public class InvalidArgumentException extends Neo4jException {
                 "alter the specified user '%s'".formatted(username), PrivilegeGqlCodeEntity.USER, username, paramName);
     }
 
+    public static InvalidArgumentException alterMissingAuthRule(String authRule, String paramName) {
+        return failedActionEntityNotFound(
+                "alter the specified auth rule '%s'".formatted(authRule),
+                PrivilegeGqlCodeEntity.AUTHRULE,
+                authRule,
+                paramName);
+    }
+
     public static InvalidArgumentException roleMissingUser(
             String role, String username, String paramName, String command) {
         return failedActionEntityNotFound(

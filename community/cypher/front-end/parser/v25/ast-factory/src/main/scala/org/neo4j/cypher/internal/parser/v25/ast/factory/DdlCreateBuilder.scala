@@ -20,6 +20,8 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthAttribute
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
 import org.neo4j.cypher.internal.ast.AuthRuleSetClause
 import org.neo4j.cypher.internal.ast.CreateAuthRule
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
@@ -478,6 +480,11 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     val setClauses = ctx.authRuleSetClause().asScala.toList
       .map(_.ast[AuthRuleSetClause])
+      // Sorting the set clauses so the condition clause always comes before the enabled clause. To conform with the canonical syntax
+      .sortBy {
+        case _: AuthRuleCondition => false
+        case _: AuthRuleEnabled   => true
+      }
 
     ctx.ast = CreateAuthRule(
       ctx.commandNameExpression().ast[Expression](),

@@ -76,6 +76,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.logical.plans.AllScope
 import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
+import org.neo4j.cypher.internal.logical.plans.AlterAuthRule
 import org.neo4j.cypher.internal.logical.plans.AlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.AlterRemoteDatabaseAlias
@@ -122,6 +123,7 @@ import org.neo4j.cypher.internal.logical.plans.GrantRoleToUser
 import org.neo4j.cypher.internal.logical.plans.HomeScope
 import org.neo4j.cypher.internal.logical.plans.LogSystemCommand
 import org.neo4j.cypher.internal.logical.plans.NamedScope
+import org.neo4j.cypher.internal.logical.plans.RenameAuthRule
 import org.neo4j.cypher.internal.logical.plans.RenameRole
 import org.neo4j.cypher.internal.logical.plans.RenameServer
 import org.neo4j.cypher.internal.logical.plans.RenameUser
@@ -290,6 +292,16 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(CreateAuthRule(privLhsLP, util.Left("authRule"), literalBoolean(true), Some(true)), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(AlterAuthRule(privLhsLP, util.Left("authRule"), Some(literalBoolean(true)), Some(true)), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(RenameAuthRule(privLhsLP, util.Left("fromAuthRuleName"), util.Left("toAuthRuleName")), 1.0),
       adminPlanDescription
     )
 

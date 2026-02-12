@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterAuthRuleAction
 import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseOptionsAction
@@ -79,6 +80,7 @@ import org.neo4j.cypher.internal.ast.ReadAction
 import org.neo4j.cypher.internal.ast.RemoveLabelAction
 import org.neo4j.cypher.internal.ast.RemovePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemoveRoleAction
+import org.neo4j.cypher.internal.ast.RenameAuthRuleAction
 import org.neo4j.cypher.internal.ast.RenameRoleAction
 import org.neo4j.cypher.internal.ast.RenameUserAction
 import org.neo4j.cypher.internal.ast.ServerManagementAction
@@ -172,6 +174,8 @@ object ActionMapper {
     case AllAuthRuleActions   => security.PrivilegeAction.AUTH_RULE_MANAGEMENT
     case ShowAuthRuleAction   => security.PrivilegeAction.SHOW_AUTH_RULE
     case CreateAuthRuleAction => security.PrivilegeAction.CREATE_AUTH_RULE
+    case RenameAuthRuleAction => security.PrivilegeAction.RENAME_AUTH_RULE
+    case AlterAuthRuleAction  => security.PrivilegeAction.ALTER_AUTH_RULE
     case DropAuthRuleAction   => security.PrivilegeAction.DROP_AUTH_RULE
 
     case AllDatabaseManagementActions        => security.PrivilegeAction.DATABASE_MANAGEMENT

@@ -2894,29 +2894,63 @@ class PrettifierIT extends AbstractPrettifierTest {
     FailsInCypher5("create auth rule `ab%$c` set condition true", "CREATE AUTH RULE `ab%$c` SET CONDITION true"),
     FailsInCypher5(
       "create auth rule abc set condition true set enabled true",
-      "CREATE AUTH RULE abc SET CONDITION true SET ENABLED TRUE"
+      "CREATE AUTH RULE abc SET CONDITION true SET ENABLED true"
     ),
     FailsInCypher5(
-      "create or replace auth rule abc set condition true set enabled true",
-      "CREATE OR REPLACE AUTH RULE abc SET CONDITION true SET ENABLED TRUE"
+      "create or replace auth rule abc set condition true set enabled TRUE",
+      "CREATE OR REPLACE AUTH RULE abc SET CONDITION true SET ENABLED true"
     ),
     FailsInCypher5(
-      "create auth rule $abc set condition true set enabled false",
-      "CREATE AUTH RULE $abc SET CONDITION true SET ENABLED FALSE"
+      "create auth rule $abc set condition true set enabled FALSE",
+      "CREATE AUTH RULE $abc SET CONDITION true SET ENABLED false"
     ),
     FailsInCypher5(
       "create or replace auth rule $abc set condition true set enabled false",
-      "CREATE OR REPLACE AUTH RULE $abc SET CONDITION true SET ENABLED FALSE"
+      "CREATE OR REPLACE AUTH RULE $abc SET CONDITION true SET ENABLED false"
     ),
     FailsInCypher5(
-      "create auth rule abc if not exists set condition true set enabled true",
-      "CREATE AUTH RULE abc IF NOT EXISTS SET CONDITION true SET ENABLED TRUE"
+      """create auth rule abc if not exists set condition abac.oidc.user_attribute("country") = "SE" set enabled true""",
+      """CREATE AUTH RULE abc IF NOT EXISTS SET CONDITION abac.oidc.user_attribute("country") = "SE" SET ENABLED true"""
     ),
     // Weird semantically incorrect query from failing property based test.
     IgnoreInCypher5(
       "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE",
-      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED TRUE"
+      "CREATE AUTH RULE rule IF NOT EXISTS SET CONDITION (-(7.374271256847047E233)).p SET ENABLED true"
     ),
+    // ALTER AUTH RULE
+    FailsInCypher5("alter auth rule abc set condition true", "ALTER AUTH RULE abc SET CONDITION true"),
+    FailsInCypher5("alter auth rule $abc set condition true", "ALTER AUTH RULE $abc SET CONDITION true"),
+    FailsInCypher5(
+      "alter auth rule abc if exists set condition true",
+      "ALTER AUTH RULE abc IF EXISTS SET CONDITION true"
+    ),
+    FailsInCypher5("alter auth rule `ab%$c` set condition true", "ALTER AUTH RULE `ab%$c` SET CONDITION true"),
+    FailsInCypher5(
+      "alter auth rule abc set enabled true set condition true ",
+      "ALTER AUTH RULE abc SET CONDITION true SET ENABLED true"
+    ),
+    FailsInCypher5(
+      "alter auth rule abc set enabled TRUE",
+      "ALTER AUTH RULE abc SET ENABLED true"
+    ),
+    FailsInCypher5(
+      "alter auth rule $abc set condition TRUE set enabled FALSE",
+      "ALTER AUTH RULE $abc SET CONDITION true SET ENABLED false"
+    ),
+    FailsInCypher5(
+      "alter auth rule $abc set enabled false",
+      "ALTER AUTH RULE $abc SET ENABLED false"
+    ),
+    FailsInCypher5(
+      """alter auth rule abc if exists set condition abac.oidc.user_attribute("country") = "SE" set enabled true""",
+      """ALTER AUTH RULE abc IF EXISTS SET CONDITION abac.oidc.user_attribute("country") = "SE" SET ENABLED true"""
+    ),
+    // RENAME AUTH RULE
+    FailsInCypher5("rename auth rule abc to abcd", "RENAME AUTH RULE abc TO abcd"),
+    FailsInCypher5("rename auth rule $abc to $abcd", "RENAME AUTH RULE $abc TO $abcd"),
+    FailsInCypher5("rename auth rule abc if exists TO abcd", "RENAME AUTH RULE abc IF EXISTS TO abcd"),
+    FailsInCypher5("rename auth rule $abc if exists TO $abcd", "RENAME AUTH RULE $abc IF EXISTS TO $abcd"),
+    FailsInCypher5("rename auth rule `ab%$c` to `ab%$cd`", "RENAME AUTH RULE `ab%$c` TO `ab%$cd`"),
     // DROP AUTH RULE
     FailsInCypher5("drop auth rule abc", "DROP AUTH RULE abc"),
     FailsInCypher5("drop auth rule $abc", "DROP AUTH RULE $abc"),
@@ -4162,6 +4196,30 @@ class PrettifierIT extends AbstractPrettifierTest {
             s"$action REMOVE ROLE ON DBMS $preposition role",
           s"$action show role on dbms $preposition role" ->
             s"$action SHOW ROLE ON DBMS $preposition role",
+          FailsInCypher5(
+            s"$action auth rule management on dbms $preposition $$role",
+            s"$action AUTH RULE MANAGEMENT ON DBMS $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action create auth rule on dbms $preposition $$role",
+            s"$action CREATE AUTH RULE ON DBMS $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action rename auth rule on dbms $preposition $$role",
+            s"$action RENAME AUTH RULE ON DBMS $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action drop auth rule on dbms $preposition $$role",
+            s"$action DROP AUTH RULE ON DBMS $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action alter auth rule on dbms $preposition $$role",
+            s"$action ALTER AUTH RULE ON DBMS $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action show auth rule on dbms $preposition $$role",
+            s"$action SHOW AUTH RULE ON DBMS $preposition $$role"
+          ),
           s"$action user management on dbms $preposition role" ->
             s"$action USER MANAGEMENT ON DBMS $preposition role",
           s"$action create user on dbms $preposition $$role" ->

@@ -25,6 +25,7 @@ import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ACCESS;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ADMIN;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALIAS_MANAGEMENT;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_ALIAS;
+import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_AUTH_RULE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_COMPOSITE_DATABASE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE_OPTIONS;
@@ -73,6 +74,7 @@ import static org.neo4j.internal.kernel.api.security.PrivilegeAction.READ;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.REMOVE_LABEL;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.REMOVE_PRIVILEGE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.REMOVE_ROLE;
+import static org.neo4j.internal.kernel.api.security.PrivilegeAction.RENAME_AUTH_RULE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.RENAME_ROLE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.RENAME_USER;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ROLE_MANAGEMENT;
@@ -121,7 +123,9 @@ class PrivilegeActionTest {
                 TRANSACTION_MANAGEMENT,
                 Set.of(SHOW_TRANSACTION, TERMINATE_TRANSACTION, SHOW_CONNECTION, TERMINATE_CONNECTION));
         expected.put(ROLE_MANAGEMENT, Set.of(SHOW_ROLE, CREATE_ROLE, RENAME_ROLE, DROP_ROLE, ASSIGN_ROLE, REMOVE_ROLE));
-        expected.put(AUTH_RULE_MANAGEMENT, Set.of(SHOW_AUTH_RULE, CREATE_AUTH_RULE, DROP_AUTH_RULE));
+        expected.put(
+                AUTH_RULE_MANAGEMENT,
+                Set.of(SHOW_AUTH_RULE, CREATE_AUTH_RULE, DROP_AUTH_RULE, ALTER_AUTH_RULE, RENAME_AUTH_RULE));
         expected.put(USER_MANAGEMENT, Set.of(SHOW_USER, CREATE_USER, RENAME_USER, DROP_USER, ALTER_USER));
         expected.put(ALTER_USER, Set.of(SET_USER_STATUS, SET_PASSWORDS, SET_AUTH, SET_USER_HOME_DATABASE));
         expected.put(SET_AUTH, Set.of(SET_PASSWORDS));

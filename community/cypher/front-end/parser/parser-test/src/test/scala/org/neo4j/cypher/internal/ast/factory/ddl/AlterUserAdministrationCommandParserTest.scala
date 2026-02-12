@@ -1679,7 +1679,7 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
             |       ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'PASSWORD': expected 'ALIAS', 'CURRENT', 'DATABASE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
+          """Invalid input 'PASSWORD': expected 'ALIAS', 'CURRENT', 'DATABASE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 7 (offset: 6))
             |"ALTER PASSWORD FROM 'current' TO 'new'"
             |       ^""".stripMargin
         )

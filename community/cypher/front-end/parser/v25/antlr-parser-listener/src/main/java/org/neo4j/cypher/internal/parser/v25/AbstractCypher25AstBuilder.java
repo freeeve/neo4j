@@ -550,6 +550,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitAuthRuleSetCondition((Cypher25Parser.AuthRuleSetConditionContext) ctx);
             case Cypher25Parser.RULE_authRuleSetEnabled ->
                 exitAuthRuleSetEnabled((Cypher25Parser.AuthRuleSetEnabledContext) ctx);
+            case Cypher25Parser.RULE_renameAuthRule -> exitRenameAuthRule((Cypher25Parser.RenameAuthRuleContext) ctx);
+            case Cypher25Parser.RULE_alterAuthRule -> exitAlterAuthRule((Cypher25Parser.AlterAuthRuleContext) ctx);
             case Cypher25Parser.RULE_dropAuthRule -> exitDropAuthRule((Cypher25Parser.DropAuthRuleContext) ctx);
             case Cypher25Parser.RULE_showAuthRules -> exitShowAuthRules((Cypher25Parser.ShowAuthRulesContext) ctx);
             case Cypher25Parser.RULE_createCompositeDatabase ->

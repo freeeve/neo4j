@@ -25,24 +25,29 @@ import org.neo4j.cypher.internal.ast.AllPrivilegeActions
 import org.neo4j.cypher.internal.ast.AllRoleActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterAuthRuleAction
 import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterUserAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
+import org.neo4j.cypher.internal.ast.AuthRuleManagementAction
 import org.neo4j.cypher.internal.ast.CompositeDatabaseManagementActions
 import org.neo4j.cypher.internal.ast.CreateAliasAction
+import org.neo4j.cypher.internal.ast.CreateAuthRuleAction
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.DropAliasAction
+import org.neo4j.cypher.internal.ast.DropAuthRuleAction
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
 import org.neo4j.cypher.internal.ast.DropRoleAction
 import org.neo4j.cypher.internal.ast.DropUserAction
 import org.neo4j.cypher.internal.ast.RemovePrivilegeAction
 import org.neo4j.cypher.internal.ast.RemoveRoleAction
+import org.neo4j.cypher.internal.ast.RenameAuthRuleAction
 import org.neo4j.cypher.internal.ast.RenameRoleAction
 import org.neo4j.cypher.internal.ast.RenameUserAction
 import org.neo4j.cypher.internal.ast.ServerManagementAction
@@ -53,6 +58,7 @@ import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetUserStatusAction
 import org.neo4j.cypher.internal.ast.ShowAliasAction
+import org.neo4j.cypher.internal.ast.ShowAuthRuleAction
 import org.neo4j.cypher.internal.ast.ShowPrivilegeAction
 import org.neo4j.cypher.internal.ast.ShowRoleAction
 import org.neo4j.cypher.internal.ast.ShowServerAction
@@ -86,6 +92,11 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       ("SET USER HOME DATABASE", SetUserHomeDatabaseAction),
       ("ALTER USER", AlterUserAction),
       ("USER MANAGEMENT", AllUserActions),
+      ("SHOW AUTH RULE", ShowAuthRuleAction),
+      ("CREATE AUTH RULE", CreateAuthRuleAction),
+      ("DROP AUTH RULE", DropAuthRuleAction),
+      ("ALTER AUTH RULE", AlterAuthRuleAction),
+      ("RENAME AUTH RULE", RenameAuthRuleAction),
       ("AUTH RULE MANAGEMENT", AllAuthRuleActions),
       ("CREATE DATABASE", CreateDatabaseAction),
       ("DROP DATABASE", DropDatabaseAction),
@@ -119,8 +130,8 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
   private def supportedInCypher5(action: AdministrationAction): Boolean =
     action match {
-      case AllAuthRuleActions => false
-      case _                  => true
+      case _: AuthRuleManagementAction => false
+      case _                           => true
     }
 
   def privilegeTests(command: String, preposition: String, privilegeFunc: adminPrivilegeFunc): Unit = {
@@ -375,9 +386,14 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
         }
 
         test(s"$command$immutableString SHOW DATABASE ALIAS ON DBMS $preposition role") {
-          failsParsing[Statements].withSyntaxErrorContaining(
-            s"""Invalid input 'DATABASE': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 6} (offset: ${offset + 5}))"""
-          )
+          failsParsing[Statements].in {
+            case Cypher5 => _.withSyntaxErrorContaining(
+                s"""Invalid input 'DATABASE': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 6} (offset: ${offset + 5}))"""
+              )
+            case _ => _.withSyntaxErrorContaining(
+                s"""Invalid input 'DATABASE': expected 'ALIAS', 'CONSTRAINT', 'CONSTRAINTS', 'INDEX', 'INDEXES', 'PRIVILEGE', 'ROLE', 'AUTH RULE', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'TRANSACTION', 'TRANSACTIONS' or 'USER' (line 1, column ${offset + 6} (offset: ${offset + 5}))"""
+              )
+          }
         }
 
         // Other invalid tests

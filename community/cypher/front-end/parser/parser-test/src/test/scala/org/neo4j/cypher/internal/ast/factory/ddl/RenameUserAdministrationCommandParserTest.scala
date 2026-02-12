@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast.RenameUser
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 
 class RenameUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
@@ -130,19 +131,33 @@ class RenameUserAdministrationCommandParserTest extends UserAdministrationComman
   }
 
   test("RENAME IF EXISTS USER foo TO bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'IF': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
-        |"RENAME IF EXISTS USER foo TO bar"
-        |        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'IF': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME IF EXISTS USER foo TO bar"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'IF': expected 'ROLE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME IF EXISTS USER foo TO bar"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("RENAME OR REPLACE USER foo TO bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OR': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
-        |"RENAME OR REPLACE USER foo TO bar"
-        |        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ROLE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME OR REPLACE USER foo TO bar"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OR': expected 'ROLE', 'AUTH RULE', 'SERVER' or 'USER' (line 1, column 8 (offset: 7))
+            |"RENAME OR REPLACE USER foo TO bar"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("RENAME USER foo TO bar SET PASSWORD 'secret'") {

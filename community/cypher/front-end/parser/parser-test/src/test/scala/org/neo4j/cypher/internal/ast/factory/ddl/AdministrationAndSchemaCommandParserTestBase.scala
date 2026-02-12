@@ -91,6 +91,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   val literalRole2: Expression = literal("role2")
   val paramUser: Parameter = stringParam("user")
   val paramFoo: Parameter = stringParam("foo")
+  val paramBar: Parameter = stringParam("bar")
   val namespacedParamFoo: ast.ParameterName = stringParamName("foo")
   val paramRole: Expression = stringParam("role")
   val paramRole1: Expression = stringParam("role1")

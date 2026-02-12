@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.parser.v25.ast.factory
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
+import org.neo4j.cypher.internal.ast.AlterAuthRule
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
@@ -27,11 +28,15 @@ import org.neo4j.cypher.internal.ast.AlterUser
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthAttribute
 import org.neo4j.cypher.internal.ast.AuthId
+import org.neo4j.cypher.internal.ast.AuthRuleCondition
+import org.neo4j.cypher.internal.ast.AuthRuleEnabled
+import org.neo4j.cypher.internal.ast.AuthRuleSetClause
 import org.neo4j.cypher.internal.ast.CascadeAliases
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DeallocateServers
 import org.neo4j.cypher.internal.ast.DestroyData
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropDatabase
 import org.neo4j.cypher.internal.ast.DropDatabaseAlias
@@ -58,6 +63,7 @@ import org.neo4j.cypher.internal.ast.ReadWriteAccess
 import org.neo4j.cypher.internal.ast.ReallocateDatabases
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.RemoveHomeDatabaseAction
+import org.neo4j.cypher.internal.ast.RenameAuthRule
 import org.neo4j.cypher.internal.ast.RenameRole
 import org.neo4j.cypher.internal.ast.RenameServer
 import org.neo4j.cypher.internal.ast.RenameUser
@@ -409,6 +415,53 @@ trait DdlBuilder extends Cypher25ParserListener {
   ): Unit = {
     val dbName = ctx.symbolicAliasNameOrParameter().ast[DatabaseName]()
     ctx.ast = SetHomeDatabaseAction(dbName)
+  }
+
+  // Auth rule command contexts
+
+  final override def exitRenameAuthRule(
+    ctx: Cypher25Parser.RenameAuthRuleContext
+  ): Unit = {
+    val names = ctx.commandNameExpression()
+    ctx.ast = RenameAuthRule(names.get(0).ast(), names.get(1).ast(), ctx.EXISTS() != null)(pos(ctx.getParent))
+  }
+
+  final override def exitAlterAuthRule(
+    ctx: Cypher25Parser.AlterAuthRuleContext
+  ): Unit = {
+    val setClauses = ctx.authRuleSetClause().asScala.toList
+      .map(_.ast[AuthRuleSetClause])
+      // Sorting the set clauses so the condition clause always comes before the enabled clause. To conform with the canonical syntax
+      .sortBy {
+        case _: AuthRuleCondition => false
+        case _: AuthRuleEnabled   => true
+      }
+
+    ctx.ast = AlterAuthRule(
+      ctx.commandNameExpression().ast[Expression](),
+      ctx.EXISTS() != null,
+      setClauses
+    )(pos(ctx.getParent))
+  }
+
+  def exitDropAuthRule(ctx: Cypher25Parser.DropAuthRuleContext): Unit = {
+    ctx.ast = DropAuthRule(ctx.commandNameExpression().ast(), ctx.EXISTS() != null)(pos(ctx.getParent))
+  }
+
+  def exitAuthRuleSetClause(ctx: Cypher25Parser.AuthRuleSetClauseContext): Unit = {
+    if (ctx.authRuleSetCondition() != null)
+      ctx.ast = ctx.authRuleSetCondition().ast[AuthRuleCondition]
+    else if (ctx.authRuleSetEnabled() != null)
+      ctx.ast = ctx.authRuleSetEnabled().ast[AuthRuleEnabled]
+  }
+
+  def exitAuthRuleSetCondition(ctx: Cypher25Parser.AuthRuleSetConditionContext): Unit = {
+    ctx.ast = AuthRuleCondition(ctx.expression().ast[Expression])(pos(ctx))
+  }
+
+  def exitAuthRuleSetEnabled(ctx: Cypher25Parser.AuthRuleSetEnabledContext): Unit = {
+    val enabled = if (ctx.TRUE() != null) true else false
+    ctx.ast = AuthRuleEnabled(enabled)(pos(ctx))
   }
 
   // Database command contexts
