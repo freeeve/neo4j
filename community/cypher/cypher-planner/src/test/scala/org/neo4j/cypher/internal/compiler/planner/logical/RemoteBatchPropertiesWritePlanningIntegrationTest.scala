@@ -1102,8 +1102,8 @@ abstract class AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(executi
       .emptyResult()
       .subqueryForeach()
       .|.create(createNodeFull("a", labels = Seq("Artist"), properties = Some("{name: cacheN[p.name]}")))
-      .|.remoteBatchProperties("cacheNFromStore[p.name]")
       .|.argument("p")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
       .nodeByLabelScan("p", "Person")
       .build()
   }
@@ -1118,8 +1118,8 @@ abstract class AbstractRemoteBatchPropertiesWritePlanningIntegrationTest(executi
       .emptyResult()
       .transactionForeach(100)
       .|.create(createNodeFull("a", labels = Seq("Artist"), properties = Some("{name: cacheN[p.name]}")))
-      .|.remoteBatchProperties("cacheNFromStore[p.name]")
       .|.argument("p")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
       .nodeByLabelScan("p", "Person")
       .build()
   }

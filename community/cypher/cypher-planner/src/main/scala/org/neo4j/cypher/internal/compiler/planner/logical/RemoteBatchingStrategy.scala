@@ -130,6 +130,12 @@ sealed trait RemoteBatchingStrategy {
     context: LogicalPlanningContext
   ): Iterable[LogicalPlan]
 
+  def planRemotePropertiesBeforeCall(
+    query: SinglePlannerQuery,
+    plan: LogicalPlan,
+    context: LogicalPlanningContext
+  ): LogicalPlan
+
   def planBatchPropertiesForHorizonSelections(
     queryGraph: QueryGraph,
     input: LogicalPlan,
@@ -387,6 +393,26 @@ object RemoteBatchingStrategy {
         if (extraRequirement.fulfils(plan)) Iterator(plan)
         else planRemoteBatchPropertiesWithLookahead(queryGraph, plan, context)
       }.toVector
+    }
+
+    override def planRemotePropertiesBeforeCall(
+      query: SinglePlannerQuery,
+      plan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = {
+      // This restricts it to properties in the current CALL horizon
+      val restrictedContext = context.withModifiedPlannerState(
+        _.withContextualPropertyAccess(
+          context.settings.remoteBatchPropertiesStrategy.findGlobalPropertyAccessesWithContext(query.withoutTail)
+        )
+      )
+      // We want to plan all necessary remote batch properties before planning the subquery, so we have the chance to use previously cached properties for the subquery plan.
+      context.settings.remoteBatchPropertiesStrategy
+        .planPrefetchRemoteBatchPropertiesIfRequired(
+          QueryGraph.empty,
+          Seq(plan),
+          restrictedContext
+        ).headOption.getOrElse(plan)
     }
 
     private def planRemoteBatchPropertiesWithLookahead(
@@ -919,6 +945,12 @@ object RemoteBatchingStrategy {
       plans: Iterable[LogicalPlan],
       context: LogicalPlanningContext
     ): Iterable[LogicalPlan] = Iterable.empty
+
+    override def planRemotePropertiesBeforeCall(
+      query: SinglePlannerQuery,
+      plan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = plan
 
     override def planBatchPropertiesForHorizonSelections(
       queryGraph: QueryGraph,

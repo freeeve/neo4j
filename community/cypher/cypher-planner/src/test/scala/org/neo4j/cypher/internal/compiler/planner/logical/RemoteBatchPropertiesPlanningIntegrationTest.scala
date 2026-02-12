@@ -1662,21 +1662,40 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |LIMIT 100
         |""".stripMargin
 
-    planner.plan(query) should equal(planner
-      .planBuilder()
-      .produceResults("`a.lastName`", "`b.name`")
-      .projection("cacheN[a.lastName] AS `a.lastName`")
-      .top(100, "`b.name` ASC")
-      .projection("cacheN[b.name] AS `b.name`")
-      .apply()
-      .|.top(1, "`b.name` ASC")
-      .|.projection("cacheN[b.name] AS `b.name`")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
-      .|.expandAll("(a)-[:KNOWS]->(b)")
-      .|.argument("a")
-      .remoteBatchProperties("cacheNFromStore[a.firstName]", "cacheNFromStore[a.lastName]")
-      .nodeByLabelScan("a", "Person")
-      .build())
+    val expectedPlan = if (orderPreserving)
+      planner
+        .planBuilder()
+        .produceResults("`a.lastName`", "`b.name`")
+        .projection("cacheN[a.lastName] AS `a.lastName`")
+        .remoteBatchProperties("cacheNFromStore[a.lastName]")
+        .top(100, "`b.name` ASC")
+        .projection("cacheN[b.name] AS `b.name`")
+        .apply()
+        .|.top(1, "`b.name` ASC")
+        .|.projection("cacheN[b.name] AS `b.name`")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
+        .|.expandAll("(a)-[:KNOWS]->(b)")
+        .|.argument("a")
+        .remoteBatchProperties("cacheNFromStore[a.firstName]")
+        .nodeByLabelScan("a", "Person", IndexOrderNone)
+        .build()
+    else
+      planner
+        .planBuilder()
+        .produceResults("`a.lastName`", "`b.name`")
+        .projection("cacheN[a.lastName] AS `a.lastName`")
+        .top(100, "`b.name` ASC")
+        .projection("cacheN[b.name] AS `b.name`")
+        .apply()
+        .|.top(1, "`b.name` ASC")
+        .|.projection("cacheN[b.name] AS `b.name`")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
+        .|.expandAll("(a)-[:KNOWS]->(b)")
+        .|.argument("a")
+        .remoteBatchProperties("cacheNFromStore[a.firstName]", "cacheNFromStore[a.lastName]")
+        .nodeByLabelScan("a", "Person", IndexOrderNone)
+        .build()
+    planner.plan(query) should equal(expectedPlan)
 
   }
 
@@ -3284,12 +3303,13 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.|.argument("n")
       .|.projection("k AS k")
       .|.projection("m AS k")
-      .|.remoteBatchPropertiesWithFilter(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))(not(equals(
-        prop("m", "lastName"),
+      .|.filter(not(equals(
+        cachedNodeProp("n", "lastName", "m"),
         literal("Smith")
       )))
       .|.projection("n AS m")
       .|.argument("n")
+      .remoteBatchProperties("cacheNFromStore[n.lastName]")
       .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
       .build()
   }

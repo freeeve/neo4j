@@ -51,6 +51,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.util.NonEmptyList
 
+import scala.util.chaining.scalaUtilChainingOps
+
 /**
  * Planning event horizons means planning the WITH clauses between query patterns. Some of these clauses are inlined
  * away when going from a string query to a QueryGraph. The remaining WITHs are the ones containing ORDER BY/LIMIT,
@@ -503,45 +505,51 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           optional,
           importedVariables
         ) =>
-        val subqueryContext =
-          if (correlated)
-            context.withModifiedPlannerState(_
-              .forSubquery(importedVariables, isExistsSubquery = false)
-              .withUpdatedLabelInfo(plan, context.staticComponents.planningAttributes.solveds)
-              .withPreviouslyCachedProperties(
-                context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
-              ))
-          else
-            context.withModifiedPlannerState(_.forSubquery(importedVariables, isExistsSubquery = false)
-              .withPreviouslyCachedProperties(
-                context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
-              ))
+        (plan, context)
+          .pipe { case (plan, context) =>
+            context.settings.remoteBatchPropertiesStrategy.planRemotePropertiesBeforeCall(query, plan, context)
+          }
+          .pipe { plan =>
+            val subqueryContext =
+              if (correlated)
+                context.withModifiedPlannerState(_
+                  .forSubquery(importedVariables, isExistsSubquery = false)
+                  .withUpdatedLabelInfo(plan, context.staticComponents.planningAttributes.solveds)
+                  .withPreviouslyCachedProperties(
+                    context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
+                  ))
+              else
+                context.withModifiedPlannerState(_.forSubquery(importedVariables, isExistsSubquery = false)
+                  .withPreviouslyCachedProperties(
+                    context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
+                  ))
 
-        val subPlan = plannerQueryPlanner.plan(callSubquery, subqueryContext)
-        val subPlanUsingPreviouslyCachedProperties = context.settings.remoteBatchPropertiesStrategy
-          .usePreviouslyCachedProperty(subPlan, subqueryContext)
+            val subPlan = plannerQueryPlanner.plan(callSubquery, subqueryContext)
+            val subPlanUsingPreviouslyCachedProperties = context.settings.remoteBatchPropertiesStrategy
+              .usePreviouslyCachedProperty(subPlan, subqueryContext)
 
-        val variables = plan.availableSymbols intersect subPlanUsingPreviouslyCachedProperties.availableSymbols
+            val variables = plan.availableSymbols intersect subPlanUsingPreviouslyCachedProperties.availableSymbols
 
-        val finalSubPlan = if (optional)
-          context.staticComponents.logicalPlanProducer.planOptional(
-            subPlanUsingPreviouslyCachedProperties,
-            variables,
-            subqueryContext
-          )
-        else subPlanUsingPreviouslyCachedProperties
+            val finalSubPlan = if (optional)
+              context.staticComponents.logicalPlanProducer.planOptional(
+                subPlanUsingPreviouslyCachedProperties,
+                variables,
+                subqueryContext
+              )
+            else subPlanUsingPreviouslyCachedProperties
 
-        val projected = context.staticComponents.logicalPlanProducer.planSubquery(
-          plan,
-          finalSubPlan,
-          context,
-          correlated,
-          yielding,
-          inTransactionsParameters,
-          optional,
-          importedVariables
-        )
-        SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
+            val projected = context.staticComponents.logicalPlanProducer.planSubquery(
+              plan,
+              finalSubPlan,
+              context,
+              correlated,
+              yielding,
+              inTransactionsParameters,
+              optional,
+              importedVariables
+            )
+            SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
+          }
 
       case CommandProjection(clause) =>
         val commandPlan = context.staticComponents.logicalPlanProducer.planCommand(plan, clause, context)

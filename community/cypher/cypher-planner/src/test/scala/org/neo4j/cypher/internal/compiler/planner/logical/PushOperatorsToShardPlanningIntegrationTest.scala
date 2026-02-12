@@ -1346,6 +1346,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .planBuilder()
       .produceResults("`a.lastName`", "`b.name`")
       .projection("cacheN[a.lastName] AS `a.lastName`")
+      .remoteBatchProperties("cacheNFromStore[a.lastName]")
       .top(100, "`b.name` ASC")
       .projection("cacheN[b.name] AS `b.name`")
       .apply()
@@ -1358,7 +1359,7 @@ class PushOperatorsToShardPlanningIntegrationTest
         .importedPerRowValues(Map("anon_0" -> "cacheN[a.firstName]")))
       .|.expandAll("(a)-[:KNOWS]->(b)")
       .|.argument("a")
-      .remoteBatchProperties("cacheNFromStore[a.firstName]", "cacheNFromStore[a.lastName]")
+      .remoteBatchProperties("cacheNFromStore[a.firstName]")
       .nodeByLabelScan("a", "Person")
       .build())
   }
