@@ -442,7 +442,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
           Some(where(ands(equals(prop(varFor("m"), property1), expr1), equals(prop(varFor("m"), property2), expr2)))),
         additionalProperties = Seq(property1),
         indexName = "indexName"
-      ) should have message "22ND3: The property `property2` has not been added as an additional property for the vector index `indexName`."
+      ) should have message "22ND3: The property `property2` is not an additional property for vector search with filters on the vector index `indexName`."
   }
 
   test("queryExpressionFromFilterExpressions should combine multiple inequalities on the same property into a range") {

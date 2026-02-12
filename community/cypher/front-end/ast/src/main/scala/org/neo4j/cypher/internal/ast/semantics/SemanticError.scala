@@ -2321,7 +2321,7 @@ object SemanticError {
     val exprString = And.flatten(expr).map(ExpressionStringifier().apply).mkString(" AND ")
     SemanticError(
       GqlHelper.getGql42001_42I73(exprString, position.offset, position.line, position.column),
-      s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). '$exprString' does not fulfill this.",
+      s"The vector search filter predicate '$exprString' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
       position
     )
   }
@@ -2341,7 +2341,7 @@ object SemanticError {
   ): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I75(expression, variable, position.offset, position.line, position.column),
-      s"Vector search filters referencing the search variable",
+      s"Vector search filter predicate referencing the search binding variable",
       position
     )
   }
@@ -2353,7 +2353,7 @@ object SemanticError {
   ): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42I75(expression, variable, position.offset, position.line, position.column),
-      s"Vector search embeddings referencing the search variable",
+      s"Vector search query vector referencing the search binding variable",
       position
     )
   }

@@ -347,7 +347,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("m.embedding", "m", 92 + optionalLength, 4, 10),
-          s"Vector search embeddings referencing the search variable",
+          s"Vector search query vector referencing the search binding variable",
           InputPosition(92 + optionalLength, 4, 10)
         )
       )
@@ -366,7 +366,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("movie.embedding", "movie", 82 + optionalLength, 4, 14),
-          s"Vector search embeddings referencing the search variable",
+          s"Vector search query vector referencing the search binding variable",
           InputPosition(82 + optionalLength, 4, 14)
         )
       )
@@ -538,7 +538,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 97 + optionalLength, 5, 11),
-          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'true' does not fulfill this.",
+          "The vector search filter predicate 'true' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
           p(97 + optionalLength, 5, 11).withInputLength(4)
         )
       )
@@ -572,7 +572,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("movie.imdbRating > 8 OR movie.year > 2010", 118 + optionalLength, 5, 32),
-          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.imdbRating > 8 OR movie.year > 2010' does not fulfill this.",
+          "The vector search filter predicate 'movie.imdbRating > 8 OR movie.year > 2010' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
           p(118 + optionalLength, 5, 32)
         )
       )
@@ -592,7 +592,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("NOT movie.imdbRating = 8", 97 + optionalLength, 5, 11),
-          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'NOT movie.imdbRating = 8' does not fulfill this.",
+          "The vector search filter predicate 'NOT movie.imdbRating = 8' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
           p(97 + optionalLength, 5, 11)
         )
       )
@@ -612,7 +612,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearch().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 122 + optionalLength, 5, 36),
-          "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'true' does not fulfill this.",
+          "The vector search filter predicate 'true' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
           p(122 + optionalLength, 5, 36).withInputLength(4)
         )
       )
@@ -775,7 +775,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
               8,
               7
             ),
-            s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.p > 8.2 AND movie.p $comparator 8.8 AND movie.q < \"a\" AND movie.q > \"b\" AND movie.r = 7.5' does not fulfill this.",
+            s"The vector search filter predicate 'movie.p > 8.2 AND movie.p $comparator 8.8 AND movie.q < \"a\" AND movie.q > \"b\" AND movie.r = 7.5' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
             p(250 + optionalLength + comparator.length, 8, 7)
           )
         )
@@ -913,7 +913,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       runSearchWithRewriter().hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("movie.prop", "movie", 122 + optionalLength, 5, 36),
-          s"Vector search filters referencing the search variable",
+          s"Vector search filter predicate referencing the search binding variable",
           InputPosition(122 + optionalLength, 5, 36)
         )
       )
@@ -940,7 +940,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
         runSearch().hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I73(s"movie.imdbRating $comparison", 114 + optionalLength, 5, 28),
-            s"A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). 'movie.imdbRating $comparison' does not fulfill this.",
+            s"The vector search filter predicate 'movie.imdbRating $comparison' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
             p(114 + optionalLength, 5, 28)
           )
         )

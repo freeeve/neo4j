@@ -2262,11 +2262,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22ND3(
             new GqlStatus("22ND3"),
-            "The property { %s } has not been added as an additional property for the vector index { %s }.",
+            "The property { %s } is not an additional property for vector search with filters on the vector index { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.idx},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "wrong property for vector search filtering",
+            "wrong property for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
@@ -3233,11 +3233,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I73(
             new GqlStatus("42I73"),
-            "A vector search filter must consist of one or more predicates joined by AND, and the combined predicates for each property must specify either an exact value (e.g. x.prop = 1), an open range (e.g. x.prop >= 1), or a between range (e.g. x.prop > 1 AND x.prop < 100). { %s } does not fulfill this.",
+            "The vector search filter predicate { %s } must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "invalid predicate for vector search filtering",
+            "invalid predicate for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I74(
             new GqlStatus("42I74"),
@@ -3245,7 +3245,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable1, GqlParams.StringParam.variable2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "wrong variable for vector search filtering",
+            "wrong variable for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I75(
             new GqlStatus("42I75"),

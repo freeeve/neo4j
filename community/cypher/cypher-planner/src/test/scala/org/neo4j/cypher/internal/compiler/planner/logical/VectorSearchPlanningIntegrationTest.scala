@@ -1464,7 +1464,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
         exception should not equal null
         exception.getMessage should equal(
-          "22ND3: The property `imdbVotes` has not been added as an additional property for the vector index `moviePlots`."
+          "22ND3: The property `imdbVotes` is not an additional property for vector search with filters on the vector index `moviePlots`."
         )
       }
     }
