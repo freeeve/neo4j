@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactor
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.FunctionName
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Condition
@@ -49,8 +51,34 @@ case object GQLAliasFunctionNameRewriter extends StepSequencer.Step with ASTRewr
   private val GQLFunctionAliases: Map[String, String] = Map(
     "char_length" -> "character_length",
     "upper" -> "toUpper",
-    "lower" -> "toLower"
+    "lower" -> "toLower",
+    "ceiling" -> "ceil",
+    "local_time" -> "localtime",
+    "local_datetime" -> "localdatetime",
+    "zoned_time" -> "time",
+    "zoned_datetime" -> "datetime",
+    "path_length" -> "length",
+    "ln" -> "log",
+    "collect_list" -> "collect",
+    "percentile_disc" -> "percentileDisc",
+    "percentile_cont" -> "percentileCont",
+    "stdev_pop" -> "stDevP",
+    "stdev_samp" -> "stDev",
+    "duration_between" -> "duration.between"
   )
+
+  private def functionNameForTarget(
+    name: String,
+    position: InputPosition
+  ): FunctionName = {
+    val parts = name.split('.')
+    if (parts.length == 1) {
+      FunctionName(name)(position)
+    } else {
+      val namespace = Namespace(parts.dropRight(1).toList)(position)
+      FunctionName(namespace, parts.last)(position)
+    }
+  }
 
   override def getRewriter(
     semanticState: SemanticState,
@@ -63,6 +91,7 @@ case object GQLAliasFunctionNameRewriter extends StepSequencer.Step with ASTRewr
   val instance: Rewriter = bottomUp(Rewriter.lift {
     case f @ FunctionInvocation(FunctionName(namespace, name), _, _, _, _, _)
       if namespace.parts.isEmpty && GQLFunctionAliases.exists(gqlAlias => name.equalsIgnoreCase(gqlAlias._1)) =>
-      f.copy(functionName = FunctionName(GQLFunctionAliases(name.toLowerCase))(f.position))(f.position)
+      val targetName = GQLFunctionAliases(name.toLowerCase)
+      f.copy(functionName = functionNameForTarget(targetName, f.position))(f.position)
   })
 }
