@@ -140,6 +140,9 @@ public class QueryStatementLifecycles {
         public void endFailure(Throwable failure) {}
 
         @Override
+        public void endFailure(String reason, Status status, ErrorGqlStatusObject errorGqlStatusObject) {}
+
+        @Override
         public ExecutingQuery getMonitoredQuery() {
             return executingQuery;
         }
@@ -211,6 +214,10 @@ public class QueryStatementLifecycles {
             monitor.endSuccess(executingQuery);
         }
 
+        private QueryExecutionMonitor getQueryExecutionMonitor() {
+            return getDbMonitor().orElse(dbmsMonitor);
+        }
+
         @Override
         public void endFailure(Throwable failure) {
             QueryExecutionMonitor monitor = getQueryExecutionMonitor();
@@ -220,8 +227,11 @@ public class QueryStatementLifecycles {
             monitor.endFailure(executingQuery, failure.getMessage(), status, errorGqlStatusObject);
         }
 
-        private QueryExecutionMonitor getQueryExecutionMonitor() {
-            return getDbMonitor().orElse(dbmsMonitor);
+        @Override
+        public void endFailure(String reason, Status status, ErrorGqlStatusObject errorGqlStatusObject) {
+            QueryExecutionMonitor monitor = getQueryExecutionMonitor();
+            monitor.beforeEnd(executingQuery, false);
+            monitor.endFailure(executingQuery, reason, status, errorGqlStatusObject);
         }
 
         private Optional<QueryExecutionMonitor> getDbMonitor() {
@@ -321,6 +331,8 @@ public class QueryStatementLifecycles {
         void endSuccess();
 
         void endFailure(Throwable failure);
+
+        void endFailure(String reason, Status status, ErrorGqlStatusObject errorGqlStatusObject);
 
         ExecutingQuery getMonitoredQuery();
 

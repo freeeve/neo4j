@@ -34,12 +34,13 @@ import org.neo4j.fabric.executor.QueryStatementLifecycles;
 import org.neo4j.fabric.executor.TaggingPlanDescriptionWrapper;
 import org.neo4j.function.ThrowingAction;
 import org.neo4j.function.ThrowingSupplier;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
-import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.query.ConstituentTransactionFactory;
 import org.neo4j.kernel.impl.query.QueryExecution;
@@ -49,7 +50,6 @@ import org.neo4j.kernel.impl.query.QuerySubscriber;
 import org.neo4j.kernel.impl.query.TransactionalContext;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.router.impl.subscriber.DelegatingQueryExecution;
-import org.neo4j.router.impl.subscriber.StatementLifecycleQuerySubscriber;
 import org.neo4j.router.query.Query;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.TransactionInfo;
@@ -147,13 +147,9 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
                     constituentTransactionFactory);
             statementLifecycle.startExecution(true);
             openExecutionContexts.add(transactionalContext);
+            QueryExecutionMonitor monitor = new QueryExecutionEndMonitor(statementLifecycle);
             var execution = queryExecutionEngine.executeQuery(
-                    query.text(),
-                    query.parameters(),
-                    transactionalContext,
-                    true,
-                    new QuerySubscriberImpl(transactionalContext, querySubscriber, statementLifecycle),
-                    QueryExecutionMonitor.NO_OP);
+                    query.text(), query.parameters(), transactionalContext, true, querySubscriber, monitor);
             return new TransactionalContextQueryExecution(execution, transactionalContext, routerNotifications);
         });
     }
@@ -235,30 +231,33 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
         return internalTransaction.kernelTransaction().defaultQueryLanguageScope();
     }
 
-    private class QuerySubscriberImpl extends StatementLifecycleQuerySubscriber {
+    private record QueryExecutionEndMonitor(QueryStatementLifecycles.StatementLifecycle statementLifecycle)
+            implements QueryExecutionMonitor {
 
-        private final TransactionalContext transactionalContext;
-
-        public QuerySubscriberImpl(
-                TransactionalContext transactionalContext,
-                QuerySubscriber querySubscriber,
-                QueryStatementLifecycles.StatementLifecycle statementLifecycle) {
-            super(querySubscriber, statementLifecycle);
-            this.transactionalContext = transactionalContext;
+        @Override
+        public void startProcessing(ExecutingQuery query) {
+            // Do nothing
         }
 
         @Override
-        public void onResultCompleted(QueryStatistics statistics) {
-            super.onResultCompleted(statistics);
-            openExecutionContexts.remove(transactionalContext);
-            transactionalContext.close();
+        public void startExecution(ExecutingQuery query) {
+            // Do nothing
         }
 
         @Override
-        public void onError(Throwable throwable) throws Exception {
-            super.onError(throwable);
-            openExecutionContexts.remove(transactionalContext);
-            transactionalContext.close();
+        public void endFailure(ExecutingQuery query, Throwable failure) {
+            statementLifecycle.endFailure(failure);
+        }
+
+        @Override
+        public void endFailure(
+                ExecutingQuery query, String reason, Status status, ErrorGqlStatusObject errorGqlStatusObject) {
+            statementLifecycle.endFailure(reason, status, errorGqlStatusObject);
+        }
+
+        @Override
+        public void endSuccess(ExecutingQuery query) {
+            statementLifecycle.endSuccess();
         }
     }
 }

@@ -432,8 +432,8 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description(
-            "By default, the query log is enabled for property shards. This means that all internal queries will be logged in the query log. "
-                    + "If this setting is set to false, the query log will be disabled for internal shard queries.")
+            "By default, the query log is disabled for property shards. This means that no internal queries will be logged in the query log. "
+                    + "If this setting is set to true, the query log will be enabled for internal shard queries.")
     public static final Setting<Boolean> shard_query_log_enabled = newBuilder(
                     "internal.dbms.sharded_property_database.shard_query_log_enabled", BOOL, false)
             .build();
