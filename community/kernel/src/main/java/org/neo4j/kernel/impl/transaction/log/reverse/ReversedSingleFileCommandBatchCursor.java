@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.reverse;
 
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import static org.neo4j.util.Preconditions.checkState;
 
 import java.io.IOException;
@@ -106,7 +107,8 @@ public class ReversedSingleFileCommandBatchCursor implements CommandBatchCursor 
             }
             if (startOffset == maxOffset) {
                 // Nothing interesting in this file at all
-                return new ReversedSingleFileCommandBatchCursor(channel, logEntryReader, new long[] {}, 0, startOffset);
+                return new ReversedSingleFileCommandBatchCursor(
+                        channel, logEntryReader, EMPTY_LONG_ARRAY, 0, startOffset);
             }
         }
 

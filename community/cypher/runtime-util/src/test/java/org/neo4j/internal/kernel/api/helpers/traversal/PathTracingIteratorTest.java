@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal;
 
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.util.Arrays;
@@ -48,7 +49,7 @@ class PathTracingIteratorTest {
                         intersection, 0, 0, emptyPathTraceData, emptyPathTraceData);
 
         assertThat(pti.hasNext()).isTrue();
-        assertThat(pti.next()).isEqualTo(VirtualValues.pathReference(new long[] {10}, new long[] {}));
+        assertThat(pti.next()).isEqualTo(VirtualValues.pathReference(new long[] {10}, EMPTY_LONG_ARRAY));
         assertThat(pti.hasNext()).isFalse();
     }
 

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.store;
 
 import static java.util.Collections.singletonList;
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfThrowable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -145,7 +146,7 @@ class NodeStoreTest {
     void shouldReadFirstAsNullFromEmptyDynamicLongArray() {
         // GIVEN
         Long expectedId = null;
-        long[] ids = new long[] {};
+        long[] ids = EMPTY_LONG_ARRAY;
         DynamicRecord firstRecord = new DynamicRecord(0L);
         allocateFromNumbers(
                 new ArrayList<>(), ids, new ReusableRecordsAllocator(60, firstRecord), NULL_CONTEXT, INSTANCE);

@@ -100,6 +100,6 @@ class TokenIndexScanIdIteratorTest {
         while (iter.hasNext()) {
             found.add(iter.next());
         }
-        return found.toArray(new long[] {});
+        return found.toArray();
     }
 }
