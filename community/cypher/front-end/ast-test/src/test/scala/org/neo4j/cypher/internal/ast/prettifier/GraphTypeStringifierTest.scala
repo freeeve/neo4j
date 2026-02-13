@@ -162,6 +162,56 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         |}""".stripMargin
   }
 
+  test("should stringify multiple independent constraints in sorted order") {
+    /*
+      {
+          CONSTRAINT `cst1` FOR (`n`:`Person`) REQUIRE (`n`.`style`) IS UNIQUE,
+          CONSTRAINT `cst2` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS UNIQUE,
+          CONSTRAINT `cst3` FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS NOT NULL,
+          CONSTRAINT `cst4` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS KEY
+      }
+     */
+    graphType(
+      Seq(),
+      Seq(
+        uniquenessConstraint(
+          "cst1",
+          nodeTypeRefByLabel("Person", "n"),
+          ArraySeq(
+            prop(varFor("n"), "style")
+          )
+        ),
+        uniquenessConstraint(
+          "cst2",
+          nodeTypeRefByLabel("Person", "n"),
+          ArraySeq(
+            prop(varFor("n"), "id")
+          )
+        ),
+        existsConstraint(
+          "cst3",
+          nodeTypeRefByLabel("Person", "n"),
+          ArraySeq(
+            prop(varFor("n"), "age")
+          )
+        ),
+        keyConstraint(
+          "cst4",
+          nodeTypeRefByLabel("Person", "n"),
+          ArraySeq(
+            prop(varFor("n"), "id")
+          )
+        )
+      )
+    ) shouldStringifyTo
+      """{
+        | CONSTRAINT `cst3` FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS NOT NULL,
+        | CONSTRAINT `cst4` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS KEY,
+        | CONSTRAINT `cst2` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS UNIQUE,
+        | CONSTRAINT `cst1` FOR (`n`:`Person`) REQUIRE (`n`.`style`) IS UNIQUE
+        |}""".stripMargin
+  }
+
   GraphTypeTestCase.testcases.collect { case GraphTypeTestCase(name, _, ast, prettifiedCypher) =>
     test(name) {
       ast shouldStringifyTo prettifiedCypher
