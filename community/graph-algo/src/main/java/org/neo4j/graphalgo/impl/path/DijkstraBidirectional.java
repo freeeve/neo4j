@@ -48,7 +48,6 @@ import org.neo4j.graphdb.traversal.TraversalMetadata;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.graphdb.traversal.Uniqueness;
 import org.neo4j.internal.helpers.MathUtil;
-import org.neo4j.internal.helpers.collection.Iterables;
 
 /**
  * Find (one or all) simple shortest path(s) between two nodes.
@@ -163,7 +162,7 @@ public class DijkstraBidirectional implements PathFinder<WeightedPath> {
             thisSideShortest.setValue(thisState);
             if (MathUtil.compare(thisState + otherSideShortest.doubleValue(), shortestSoFar.doubleValue(), epsilon) > 0
                     && stopAfterLowestCost) {
-                return Iterables.emptyResourceIterable();
+                return ResourceIterable.empty();
             }
             return source.expand(path, state);
         }

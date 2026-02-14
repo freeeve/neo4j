@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -144,9 +145,13 @@ public abstract class Neo4jAlgoTestCase {
         }
         assertTrue(
                 unexpectedDefs.isEmpty(),
-                "These unexpected paths were found: " + unexpectedDefs
-                        + ". In addition these expected paths weren't found:" + pathDefs);
-        assertTrue(pathDefs.isEmpty(), "These were expected, but not found: " + pathDefs);
+                "These unexpected paths were found: " + listOfPathDefsToString(unexpectedDefs)
+                        + ". In addition these expected paths weren't found:" + listOfPathDefsToString(pathDefs));
+        assertTrue(pathDefs.isEmpty(), "These were expected, but not found: " + listOfPathDefsToString(pathDefs));
+    }
+
+    private static String listOfPathDefsToString(List<String> listOfPathDefs) {
+        return listOfPathDefs.stream().map(p -> "[" + p + "]").collect(Collectors.joining(", "));
     }
 
     protected static void assertPaths(Iterable<? extends Path> paths, String... pathDefinitions) {

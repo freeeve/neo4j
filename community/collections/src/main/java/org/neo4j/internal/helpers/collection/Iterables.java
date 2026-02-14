@@ -57,11 +57,6 @@ public final class Iterables {
         return Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> ResourceIterable<T> emptyResourceIterable() {
-        return (ResourceIterable<T>) EmptyResourceIterable.EMPTY_RESOURCE_ITERABLE;
-    }
-
     /**
      * Collect all the elements available in {@code iterable} and add them to the
      * provided {@code collection}.
@@ -600,20 +595,6 @@ public final class Iterables {
     public static void tryCloseResource(Iterable<?> iterable) {
         if (iterable instanceof Resource closeable) {
             closeable.close();
-        }
-    }
-
-    private static class EmptyResourceIterable<T> implements ResourceIterable<T> {
-        private static final ResourceIterable<Object> EMPTY_RESOURCE_ITERABLE = new EmptyResourceIterable<>();
-
-        @Override
-        public ResourceIterator<T> iterator() {
-            return Iterators.emptyResourceIterator();
-        }
-
-        @Override
-        public void close() {
-            // no-op
         }
     }
 }

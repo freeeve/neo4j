@@ -2,6 +2,9 @@ org.neo4j.graphdb.Resource public abstract interface implements java.lang.AutoCl
 org.neo4j.graphdb.Resource::EMPTY org.neo4j.graphdb.Resource public static final
 org.neo4j.graphdb.Resource::close() void public abstract
 org.neo4j.graphdb.ResourceIterable<T extends java.lang.Object> public abstract interface implements java.lang.Iterable<T>, org.neo4j.graphdb.Resource
+org.neo4j.graphdb.ResourceIterable<T>::<T extends java.lang.Object>empty() org.neo4j.graphdb.ResourceIterable<T> public static
+org.neo4j.graphdb.ResourceIterable<T>::<T extends java.lang.Object>of(java.lang.Iterable<T>) org.neo4j.graphdb.ResourceIterable<T> public static
+org.neo4j.graphdb.ResourceIterable<T>::EMPTY_RESOURCE_ITERABLE org.neo4j.graphdb.ResourceIterable<?> public static final
 org.neo4j.graphdb.ResourceIterable<T>::iterator() org.neo4j.graphdb.ResourceIterator<T> public abstract
 org.neo4j.graphdb.ResourceIterable<T>::stream() java.util.stream.Stream<T> public default
 org.neo4j.graphdb.ResourceIterator<T extends java.lang.Object> public abstract interface implements java.util.Iterator<T>, org.neo4j.graphdb.Resource

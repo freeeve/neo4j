@@ -19,6 +19,8 @@
  */
 package org.neo4j.graphdb;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.stream.Stream;
 import org.neo4j.annotations.api.PublicApi;
 
@@ -77,6 +79,12 @@ import org.neo4j.annotations.api.PublicApi;
  */
 @PublicApi
 public interface ResourceIterable<T> extends Iterable<T>, Resource {
+
+    /**
+     * Empty resource iterable.
+     */
+    ResourceIterable<?> EMPTY_RESOURCE_ITERABLE = ResourceIterable.of(Collections.emptyList());
+
     /**
      * Returns an {@link ResourceIterator iterator} with associated resources that may be managed.
      */
@@ -91,5 +99,50 @@ public interface ResourceIterable<T> extends Iterable<T>, Resource {
      */
     default Stream<T> stream() {
         return iterator().stream().onClose(this::close);
+    }
+
+    /**
+     * Returns an empty {@link ResourceIterable}.
+     * @return a {@link ResourceIterable}
+     */
+    @SuppressWarnings("unchecked")
+    static <T> ResourceIterable<T> empty() {
+        return (ResourceIterable<T>) EMPTY_RESOURCE_ITERABLE;
+    }
+
+    /**
+     * Returns a {@link ResourceIterable} based on a given iterable.
+     * @param iterable provided iterable to wrap into a {@link ResourceIterable}
+     * @return a {@link ResourceIterable}
+     */
+    static <T> ResourceIterable<T> of(final Iterable<T> iterable) {
+        return new ResourceIterable<>() {
+            @Override
+            public ResourceIterator<T> iterator() {
+                return new ResourceIterator<>() {
+                    private final Iterator<T> sourceIterator = iterable.iterator();
+
+                    @Override
+                    public void close() {
+                        // nothing to release
+                    }
+
+                    @Override
+                    public boolean hasNext() {
+                        return sourceIterator.hasNext();
+                    }
+
+                    @Override
+                    public T next() {
+                        return sourceIterator.next();
+                    }
+                };
+            }
+
+            @Override
+            public void close() {
+                // nothing to release
+            }
+        };
     }
 }
