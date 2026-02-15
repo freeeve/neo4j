@@ -90,7 +90,7 @@ class VectorIndexProviderTest {
             return VectorIndexSettings.create()
                     .withDimensions(version.maxDimensions())
                     .withSimilarityFunction(
-                            version.supportedSimilarityFunctions().getAny());
+                            version.supportedSimilarityFunctions().iterator().next());
         }
 
         @Override

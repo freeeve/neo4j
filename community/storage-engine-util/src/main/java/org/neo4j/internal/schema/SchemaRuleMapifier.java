@@ -24,10 +24,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalLong;
-import org.eclipse.collections.api.RichIterable;
-import org.eclipse.collections.api.tuple.Pair;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.kernel.api.exceptions.schema.MalformedSchemaRuleException;
 import org.neo4j.internal.schema.constraints.ConstrainableType;
@@ -149,9 +148,8 @@ public class SchemaRuleMapifier {
     }
 
     private static void indexConfigToMap(IndexConfig indexConfig, Map<String, Value> map) {
-        RichIterable<Pair<String, Value>> entries = indexConfig.entries();
-        for (Pair<String, Value> entry : entries) {
-            putIndexConfigProperty(map, entry.getOne(), entry.getTwo());
+        for (Entry<String, Value> entry : indexConfig.entries()) {
+            putIndexConfigProperty(map, entry.getKey(), entry.getValue());
         }
     }
 

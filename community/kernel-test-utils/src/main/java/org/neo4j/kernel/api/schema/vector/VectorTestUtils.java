@@ -21,8 +21,10 @@ package org.neo4j.kernel.api.schema.vector;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.LazyIterable;
@@ -36,10 +38,8 @@ import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.ShortLists;
 import org.eclipse.collections.api.map.MutableMap;
-import org.eclipse.collections.api.set.SetIterable;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
-import org.eclipse.collections.impl.utility.LazyIterate;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.internal.schema.IndexConfig;
@@ -659,17 +659,19 @@ public class VectorTestUtils {
         return Sets.mutable.of(versions).max();
     }
 
-    public static SetIterable<VectorIndexVersion> inclusiveVersionRangeFrom(VectorIndexVersion from) {
+    public static Set<VectorIndexVersion> inclusiveVersionRangeFrom(VectorIndexVersion from) {
         return inclusiveVersionRange(
                 from, VectorIndexVersion.latestSupportedVersion(LatestVersions.LATEST_KERNEL_VERSION));
     }
 
-    public static SetIterable<VectorIndexVersion> inclusiveVersionRange(
-            VectorIndexVersion from, VectorIndexVersion to) {
-        return LazyIterate.select(
-                        VectorIndexVersion.KNOWN_VERSIONS,
-                        version -> from.compareTo(version) <= 0 && version.compareTo(to) <= 0)
-                .toSet();
+    public static Set<VectorIndexVersion> inclusiveVersionRange(VectorIndexVersion from, VectorIndexVersion to) {
+        final Set<VectorIndexVersion> inclusiveVersions = new HashSet<>();
+        for (final VectorIndexVersion version : VectorIndexVersion.KNOWN_VERSIONS) {
+            if (from.compareTo(version) <= 0 && version.compareTo(to) <= 0) {
+                inclusiveVersions.add(version);
+            }
+        }
+        return inclusiveVersions;
     }
 
     public static class VectorIndexSettings {

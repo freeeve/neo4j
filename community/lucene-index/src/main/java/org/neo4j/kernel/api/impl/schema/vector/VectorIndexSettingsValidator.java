@@ -25,14 +25,18 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.ass
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toIndexConfig;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toValidSettings;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
-import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.factory.SortedSets;
-import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;
@@ -54,24 +58,24 @@ public interface VectorIndexSettingsValidator {
 
     VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords);
 
-    ImmutableSortedSet<IndexSetting> validSettings();
+    SortedSet<IndexSetting> validSettings();
 
     class Validators implements VectorIndexSettingsValidator {
         private final VectorIndexVersion version;
-        private final ImmutableSortedSet<IndexSettingValidator<? extends Value, ?>> validators;
-        private final ImmutableSortedSet<IndexSetting> validSettings;
-        private final ImmutableSortedSet<String> validSettingNames;
-        private final ImmutableSortedSet<String> handledSettingNames;
+        private final SortedSet<IndexSettingValidator<? extends Value, ?>> validators;
+        private final SortedSet<IndexSetting> validSettings;
+        private final SortedSet<String> validSettingNames;
+        private final SortedSet<String> handledSettingNames;
 
         @SafeVarargs
         Validators(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
             this.version = version;
 
             // check we've not passed multiple validators for the same setting
-            final var seenSettingNames = Sets.mutable.<String>withInitialCapacity(validators.length);
-            final var checkedValidators =
-                    Lists.mutable.<IndexSettingValidator<? extends Value, ?>>withInitialCapacity(validators.length);
-            for (final var validator : validators) {
+            final Set<String> seenSettingNames = new HashSet<>(validators.length);
+            final List<IndexSettingValidator<? extends Value, ?>> checkedValidators =
+                    new ArrayList<>(validators.length);
+            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
                 if (!seenSettingNames.add(validator.setting().getSettingName())) {
                     throw new IllegalStateException("Expected a single %s to be provided for '%s', multiple given."
                             .formatted(
@@ -80,36 +84,46 @@ public interface VectorIndexSettingsValidator {
                 }
                 checkedValidators.add(validator);
             }
-
-            this.validators = checkedValidators.toImmutableSortedSet(
+            final SortedSet<IndexSettingValidator<? extends Value, ?>> sortedValidators = new TreeSet<>(
                     Comparator.comparing(validator -> validator.setting().getSettingName(), CASE_INSENSITIVE_ORDER));
+            sortedValidators.addAll(checkedValidators);
+            this.validators = Collections.unmodifiableSortedSet(sortedValidators);
 
-            final var handledSettings =
-                    this.validators.collect(IndexSettingValidator::setting).toSet();
-            this.handledSettingNames =
-                    handledSettings.collect(IndexSetting::getSettingName).toImmutableSortedSet(CASE_INSENSITIVE_ORDER);
+            final Set<IndexSetting> handledSettings = new HashSet<>(this.validators.size());
+            final SortedSet<String> handledSettingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
+            for (final IndexSettingValidator<? extends Value, ?> validator : this.validators) {
+                final IndexSetting setting = validator.setting();
+                handledSettings.add(setting);
+                handledSettingNames.add(setting.getSettingName());
+            }
+            this.handledSettingNames = Collections.unmodifiableSortedSet(handledSettingNames);
 
-            this.validSettings = handledSettings
-                    .difference(this.validators
-                            .asLazy()
-                            .selectInstancesOf(ReadDefaultOnly.class)
-                            .collect(IndexSettingValidator::setting)
-                            .toSet())
-                    .toImmutableSortedSet(INDEX_SETTING_COMPARATOR);
+            final Set<IndexSetting> readDefaultOnlySettings = new HashSet<>();
+            for (final IndexSettingValidator<? extends Value, ?> validator : this.validators) {
+                if (validator instanceof final ReadDefaultOnly<?> readDefaultOnly) {
+                    readDefaultOnlySettings.add(readDefaultOnly.setting());
+                }
+            }
 
-            this.validSettingNames = this.validSettings
-                    .collect(IndexSetting::getSettingName)
-                    .toImmutableSortedSet(CASE_INSENSITIVE_ORDER);
+            final SortedSet<IndexSetting> validSettings = new TreeSet<>(INDEX_SETTING_COMPARATOR);
+            final SortedSet<String> validSettingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
+            for (final IndexSetting setting : handledSettings) {
+                if (!readDefaultOnlySettings.contains(setting)) {
+                    validSettings.add(setting);
+                    validSettingNames.add(setting.getSettingName());
+                }
+            }
+            this.validSettings = Collections.unmodifiableSortedSet(validSettings);
+            this.validSettingNames = Collections.unmodifiableSortedSet(validSettingNames);
         }
 
         @Override
         public IndexConfigValidationRecords validate(SettingsAccessor settings) {
-            final var validationRecords =
+            final IndexConfigValidationRecords validationRecords =
                     IndexConfigValidationWrapper.validateSettingNames(settings.settingNames(), handledSettingNames);
-            validators
-                    .asLazy()
-                    .collect(validator -> validator.validate(settings))
-                    .forEach(validationRecords::with);
+            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
+                validationRecords.with(validator.validate(settings));
+            }
             return validationRecords;
         }
 
@@ -117,7 +131,7 @@ public interface VectorIndexSettingsValidator {
         public VectorIndexConfig validateToVectorIndexConfig(
                 SettingsAccessor settings, IndexConfigValidationRecords validationRecords) {
             assertValidRecords(validationRecords, version.descriptor(), validSettingNames);
-            final var validRecords = validationRecords.validRecords();
+            final SortedSet<Valid> validRecords = validationRecords.validRecords();
             return new VectorIndexConfig(
                     version,
                     toIndexConfig(validRecords, validSettingNames),
@@ -128,7 +142,10 @@ public interface VectorIndexSettingsValidator {
 
         @Override
         public VectorIndexConfig trustIsValidToVectorIndexConfig(SettingsAccessor settings) {
-            final var validRecords = validators.collect(validator -> validator.trustIsValid(settings));
+            final List<Valid> validRecords = new ArrayList<>(validators.size());
+            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
+                validRecords.add(validator.trustIsValid(settings));
+            }
             return new VectorIndexConfig(
                     version,
                     toIndexConfig(validRecords),
@@ -149,7 +166,7 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public ImmutableSortedSet<IndexSetting> validSettings() {
+        public SortedSet<IndexSetting> validSettings() {
             return validSettings;
         }
     }
@@ -188,8 +205,8 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public ImmutableSortedSet<IndexSetting> validSettings() {
-            return SortedSets.immutable.empty();
+        public SortedSet<IndexSetting> validSettings() {
+            return Collections.emptySortedSet();
         }
     }
 

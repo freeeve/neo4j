@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
-import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
@@ -69,10 +68,10 @@ public class IndexSettingUtil {
      */
     public static Map<IndexSetting, Object> toIndexSettingObjectMapFromIndexConfig(IndexConfig indexConfig) {
         Map<IndexSetting, Object> asMap = Maps.mutable.of();
-        for (Pair<String, Value> entry : indexConfig.entries()) {
-            IndexSetting key = fromString(entry.getOne());
+        for (Map.Entry<String, Value> entry : indexConfig.entries()) {
+            IndexSetting key = fromString(entry.getKey());
             if (key != null) {
-                Object value = entry.getTwo().asObjectCopy();
+                Object value = entry.getValue().asObjectCopy();
                 asMap.put(key, value);
             }
         }

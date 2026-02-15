@@ -19,14 +19,12 @@
  */
 package org.neo4j.internal.schema;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
-import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.map.ImmutableMap;
-import org.eclipse.collections.api.map.MapIterable;
-import org.eclipse.collections.api.set.ImmutableSet;
-import org.eclipse.collections.api.tuple.Pair;
-import org.eclipse.collections.impl.map.mutable.MapAdapter;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingImpl;
 import org.neo4j.values.AnyValue;
@@ -38,17 +36,22 @@ public interface SettingsAccessor {
 
     AnyValue get(IndexSetting setting);
 
-    ImmutableSet<String> settingNames();
+    Set<String> settingNames();
 
-    default ImmutableSet<IndexSetting> settings() {
-        return settingNames().asLazy().collect(INDEX_SETTING_LOOKUP::get).toImmutableSet();
+    default Set<IndexSetting> settings() {
+        final Set<String> settingNames = settingNames();
+        final Set<IndexSetting> settings = new HashSet<>(settingNames.size());
+        for (final String settingName : settingNames) {
+            settings.add(lookup(settingName));
+        }
+        return Collections.unmodifiableSet(settings);
     }
 
     class IndexSettingObjectMapAccessor implements SettingsAccessor {
-        private final MapIterable<IndexSetting, Object> settings;
+        private final Map<IndexSetting, Object> settings;
 
         public IndexSettingObjectMapAccessor(Map<IndexSetting, Object> settings) {
-            this.settings = MapAdapter.adapt(settings);
+            this.settings = Collections.unmodifiableMap(settings);
         }
 
         @Override
@@ -62,11 +65,12 @@ public interface SettingsAccessor {
         }
 
         @Override
-        public ImmutableSet<String> settingNames() {
-            return settings.keysView()
-                    .asLazy()
-                    .collect(IndexSetting::getSettingName)
-                    .toImmutableSet();
+        public Set<String> settingNames() {
+            final Set<String> settingNames = new HashSet<>(settings.size());
+            for (final IndexSetting setting : settings.keySet()) {
+                settingNames.add(setting.getSettingName());
+            }
+            return Collections.unmodifiableSet(settingNames);
         }
     }
 
@@ -88,8 +92,8 @@ public interface SettingsAccessor {
         }
 
         @Override
-        public ImmutableSet<String> settingNames() {
-            return config.entries().asLazy().collect(Pair::getOne).toImmutableSet();
+        public Set<String> settingNames() {
+            return config.settingNames();
         }
     }
 
@@ -111,12 +115,19 @@ public interface SettingsAccessor {
         }
 
         @Override
-        public ImmutableSet<String> settingNames() {
-            return Sets.immutable.ofAll(map.keySet());
+        public Set<String> settingNames() {
+            final Set<String> settingNames = new HashSet<>();
+            for (final String settingName : map.keySet()) {
+                settingNames.add(settingName);
+            }
+            return Collections.unmodifiableSet(settingNames);
         }
     }
 
-    ImmutableMap<String, IndexSetting> INDEX_SETTING_LOOKUP = Lists.mutable
-            .of(IndexSettingImpl.values())
-            .toImmutableMap(IndexSetting::getSettingName, setting -> setting);
+    Map<String, IndexSetting> INDEX_SETTING_LOOKUP = Arrays.stream(IndexSettingImpl.values())
+            .collect(Collectors.toUnmodifiableMap(IndexSetting::getSettingName, setting -> setting));
+
+    static IndexSetting lookup(String settingName) {
+        return INDEX_SETTING_LOOKUP.get(settingName);
+    }
 }

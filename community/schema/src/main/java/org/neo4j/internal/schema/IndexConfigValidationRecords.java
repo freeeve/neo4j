@@ -21,42 +21,102 @@ package org.neo4j.internal.schema;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 
+import java.util.Collections;
 import java.util.Comparator;
-import org.eclipse.collections.api.factory.SortedSets;
-import org.eclipse.collections.api.multimap.sortedset.MutableSortedSetMultimap;
-import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
-import org.eclipse.collections.impl.block.factory.Predicates;
-import org.eclipse.collections.impl.factory.Multimaps;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.function.Function;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Value;
 
 public class IndexConfigValidationRecords {
-    private final MutableSortedSetMultimap<State, IndexConfigValidationRecord> records =
-            Multimaps.mutable.sortedSet.with(IndexConfigValidationRecord.COMPARATOR);
+    private static final Function<State, SortedSet<IndexConfigValidationRecord>> NEW_RECORD_SORTED_SET =
+            ignored -> new TreeSet<>();
+
+    private final SortedMap<State, SortedSet<IndexConfigValidationRecord>> records = new TreeMap<>();
 
     public IndexConfigValidationRecords with(IndexConfigValidationRecord record) {
-        records.put(record.state(), record);
+        records.computeIfAbsent(record.state(), NEW_RECORD_SORTED_SET).add(record);
         return this;
     }
 
-    public ImmutableSortedSet<IndexConfigValidationRecord> get(State state) {
-        return records.get(state).toImmutableSortedSet();
+    public SortedSet<IndexConfigValidationRecord> get(State state) {
+        final SortedSet<IndexConfigValidationRecord> recordsForState = records.get(state);
+        return recordsForState != null
+                ? Collections.unmodifiableSortedSet(recordsForState)
+                : Collections.emptySortedSet();
     }
 
     public boolean invalid() {
-        return records.keysView()
-                .asLazy()
-                .select(Predicates.notEqual(State.VALID))
-                .notEmpty();
+        for (final State state : records.keySet()) {
+            if (state != State.VALID) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean valid() {
         return !invalid();
     }
 
-    public ImmutableSortedSet<Valid> validRecords() {
-        return records.get(State.VALID).asLazy().collect(Valid.class::cast).toImmutableSortedSet();
+    public SortedSet<Valid> validRecords() {
+        final SortedSet<IndexConfigValidationRecord> shouldBeValidRecords = records.get(State.VALID);
+        if (shouldBeValidRecords == null || shouldBeValidRecords.isEmpty()) {
+            return Collections.emptySortedSet();
+        }
+
+        final SortedSet<Valid> validRecords = new TreeSet<>();
+        for (final IndexConfigValidationRecord record : shouldBeValidRecords) {
+            if (!(record instanceof final Valid valid)) {
+                throw new IllegalStateException("%s has %s state but was not an instance of %s"
+                        .formatted(record, State.VALID, Valid.class.getSimpleName()));
+            }
+            validRecords.add(valid);
+        }
+        return Collections.unmodifiableSortedSet(validRecords);
+    }
+
+    public SortedSet<IndexConfigValidationRecord> invalidRecords() {
+        final SortedSet<IndexConfigValidationRecord> invalidRecords = new TreeSet<>();
+        for (final State state : State.INVALID_STATES) {
+            final SortedSet<IndexConfigValidationRecord> invalidRecordsForState = records.get(state);
+            if (invalidRecordsForState == null || invalidRecordsForState.isEmpty()) {
+                continue;
+            }
+
+            for (final IndexConfigValidationRecord record : invalidRecordsForState) {
+                if (record instanceof final Valid valid) {
+                    throw new IllegalStateException("%s has %s state but was an instance of %s"
+                            .formatted(valid, state, Valid.class.getSimpleName()));
+                }
+                invalidRecords.add(record);
+            }
+        }
+        return invalidRecords.isEmpty()
+                ? Collections.emptySortedSet()
+                : Collections.unmodifiableSortedSet(invalidRecords);
+    }
+
+    public IndexConfigValidationRecord getFirstInvalidRecordOrNull() {
+        for (final State state : State.INVALID_STATES) {
+            final SortedSet<IndexConfigValidationRecord> invalidRecordsForState = records.get(state);
+            if (invalidRecordsForState == null || invalidRecordsForState.isEmpty()) {
+                continue;
+            }
+
+            for (final IndexConfigValidationRecord record : invalidRecordsForState) {
+                if (record instanceof final Valid valid) {
+                    throw new IllegalStateException("%s has %s state but was an instance of %s"
+                            .formatted(valid, state, Valid.class.getSimpleName()));
+                }
+                return record;
+            }
+        }
+        return null;
     }
 
     public enum State {
@@ -67,8 +127,17 @@ public class IndexConfigValidationRecords {
         INCORRECT_TYPE,
         INVALID_VALUE;
 
-        public static final ImmutableSortedSet<State> INVALID_STATES =
-                SortedSets.mutable.of(State.values()).without(VALID).toImmutableSortedSet();
+        public static final SortedSet<State> INVALID_STATES;
+
+        static {
+            final TreeSet<State> invalidStates = new TreeSet<>();
+            for (final State state : values()) {
+                if (state != VALID) {
+                    invalidStates.add(state);
+                }
+            }
+            INVALID_STATES = Collections.unmodifiableSortedSet(invalidStates);
+        }
     }
 
     @FunctionalInterface

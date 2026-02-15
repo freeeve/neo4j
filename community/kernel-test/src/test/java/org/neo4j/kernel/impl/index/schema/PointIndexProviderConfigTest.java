@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.graphdb.schema.IndexSettingUtil.spatialMaxSettingForCrs;
 import static org.neo4j.graphdb.schema.IndexSettingUtil.spatialMinSettingForCrs;
@@ -67,8 +68,7 @@ class PointIndexProviderConfigTest {
         // Then
         IndexConfig sinfulIndexConfig = incompleteDescriptor.getIndexConfig();
         IndexConfig completedIndexConfig = completedDescriptor.getIndexConfig();
-        assertEquals(
-                0, sinfulIndexConfig.entries().count(p -> true), "expected sinful index config to have no entries");
+        assertTrue(sinfulIndexConfig.entries().isEmpty(), "expected sinful index config to have no entries");
         for (CoordinateReferenceSystem crs : CoordinateReferenceSystem.all()) {
             assertNotNull(completedIndexConfig.get(spatialMinSettingForCrs(crs).getSettingName()));
             assertNotNull(completedIndexConfig.get(spatialMaxSettingForCrs(crs).getSettingName()));

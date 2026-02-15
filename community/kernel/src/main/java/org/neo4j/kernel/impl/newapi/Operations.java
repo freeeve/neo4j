@@ -55,6 +55,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.function.Function;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.iterator.IntIterator;
@@ -62,9 +63,7 @@ import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
-import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
-import org.eclipse.collections.impl.block.factory.Predicates;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.common.EntityType;
@@ -79,6 +78,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingLongConsumer;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Vector;
+import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.CursorFactory;
@@ -131,7 +131,7 @@ import org.neo4j.internal.schema.SchemaDescriptorImplementation;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaNameUtil;
-import org.neo4j.internal.schema.SettingsAccessor;
+import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.IndexBackedConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.KeyConstraintDescriptor;
@@ -2095,18 +2095,15 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         // valid config settings
         if (indexType == IndexType.VECTOR) {
-            prototype
-                    .getIndexConfig()
-                    .entries()
-                    .asLazy()
-                    .collect(Pair::getOne)
-                    .collect(SettingsAccessor.INDEX_SETTING_LOOKUP::get)
-                    .collectIf(
-                            Predicates.in(INDEX_SETTING_INTRODUCED_VERSIONS.keysView()),
-                            INDEX_SETTING_INTRODUCED_VERSIONS::get)
-                    .maxOptional()
-                    .ifPresent(kernelVersion ->
-                            assertSupportedInVersion(kernelVersion, "Creating a vector index with provided settings"));
+            KernelVersion minimumRequiredVersion = KernelVersion.EARLIEST;
+            final Set<IndexSetting> settings = new IndexConfigAccessor(prototype.getIndexConfig()).settings();
+            for (final IndexSetting setting : settings) {
+                final KernelVersion introducedVersion = INDEX_SETTING_INTRODUCED_VERSIONS.get(setting);
+                if (introducedVersion != null && introducedVersion.isGreaterThan(minimumRequiredVersion)) {
+                    minimumRequiredVersion = introducedVersion;
+                }
+            }
+            assertSupportedInVersion(minimumRequiredVersion, "Creating a vector index with provided settings");
         }
 
         // ensure named

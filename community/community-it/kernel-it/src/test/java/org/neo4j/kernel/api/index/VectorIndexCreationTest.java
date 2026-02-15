@@ -27,13 +27,15 @@ import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.inclusiveVersio
 import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.inclusiveVersionRangeFrom;
 import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.max;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
-import org.eclipse.collections.api.RichIterable;
-import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.set.SetIterable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -94,11 +96,18 @@ public class VectorIndexCreationTest {
 
         @Nested
         class IndexProvider extends TestBase {
-            private final SetIterable<VectorIndexVersion> invalidVersions;
+            private final Set<VectorIndexVersion> invalidVersions;
 
             IndexProvider() {
                 super(Entity.this.factory, inclusiveVersionRangeFrom(minimumVersionForEntity));
-                this.invalidVersions = VectorIndexVersion.KNOWN_VERSIONS.toSet().difference(validVersions());
+                final Set<VectorIndexVersion> validVersions = validVersions();
+                final Set<VectorIndexVersion> invalidVersions = new HashSet<>();
+                for (final VectorIndexVersion indexVersion : VectorIndexVersion.KNOWN_VERSIONS) {
+                    if (!validVersions.contains(indexVersion)) {
+                        invalidVersions.add(indexVersion);
+                    }
+                }
+                this.invalidVersions = Collections.unmodifiableSet(invalidVersions);
             }
 
             @ParameterizedTest
@@ -108,12 +117,12 @@ public class VectorIndexCreationTest {
                 assertUnsupportedIndex(() -> createVectorIndex(version, defaultSettings(), propKeyIds[0]));
             }
 
-            SetIterable<VectorIndexVersion> invalidVersions() {
-                return invalidVersions;
+            Stream<VectorIndexVersion> invalidVersions() {
+                return invalidVersions.stream();
             }
 
             boolean hasInvalidVersions() {
-                return invalidVersions.notEmpty();
+                return !invalidVersions.isEmpty();
             }
 
             private static void assertUnsupportedIndex(ThrowingCallable operation) {
@@ -185,10 +194,14 @@ public class VectorIndexCreationTest {
                         SETTING, findIndex(index.getName()).getIndexConfig(), Values.intValue(dimensions));
             }
 
-            Iterable<Arguments> shouldAcceptSupported() {
-                return validVersions().asLazy().flatCollect(version -> supported(1, version.maxDimensions())
-                        .asLazy()
-                        .collect(dimension -> Arguments.of(version, dimension)));
+            Stream<Arguments> shouldAcceptSupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int dimension : supported(1, version.maxDimensions())) {
+                        builder.add(Arguments.of(version, dimension));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -212,8 +225,8 @@ public class VectorIndexCreationTest {
                 return supported(1, LATEST.maxDimensions());
             }
 
-            static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
+            static Iterable<Integer> supported(int min, int max) {
+                return List.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest
@@ -223,10 +236,14 @@ public class VectorIndexCreationTest {
                 assertUnsupported(version, () -> createVectorIndex(version, settings, propKeyIds[0]));
             }
 
-            Iterable<Arguments> shouldRejectUnsupported() {
-                return validVersions().asLazy().flatCollect(version -> unsupportedDimensions(version)
-                        .asLazy()
-                        .collect(dimension -> Arguments.of(version, dimension)));
+            Stream<Arguments> shouldRejectUnsupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int dimension : unsupportedDimensions(version)) {
+                        builder.add(Arguments.of(version, dimension));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -241,8 +258,8 @@ public class VectorIndexCreationTest {
                 return unsupportedDimensions(LATEST);
             }
 
-            static RichIterable<Integer> unsupportedDimensions(VectorIndexVersion version) {
-                return Lists.immutable.of(-1, 0, version.maxDimensions() + 1);
+            static Iterable<Integer> unsupportedDimensions(VectorIndexVersion version) {
+                return List.of(-1, 0, version.maxDimensions() + 1);
             }
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
@@ -354,10 +371,14 @@ public class VectorIndexCreationTest {
                         Values.stringValue(similarityFunction.functionName()));
             }
 
-            Iterable<Arguments> shouldAcceptSupported() {
-                return validVersions().asLazy().flatCollect(version -> supported(version)
-                        .asLazy()
-                        .collect(similarityFunction -> Arguments.of(version, similarityFunction)));
+            Stream<Arguments> shouldAcceptSupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final VectorSimilarityFunction similarityFunction : supported(version)) {
+                        builder.add(Arguments.of(version, similarityFunction));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -384,7 +405,7 @@ public class VectorIndexCreationTest {
                 return supported(LATEST);
             }
 
-            static RichIterable<VectorSimilarityFunction> supported(VectorIndexVersion version) {
+            static Iterable<VectorSimilarityFunction> supported(VectorIndexVersion version) {
                 return version.supportedSimilarityFunctions();
             }
 
@@ -406,16 +427,15 @@ public class VectorIndexCreationTest {
             }
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
+                final StringJoiner supported = new StringJoiner(", ", "[", "]");
+                for (final VectorSimilarityFunction similarityFunction : version.supportedSimilarityFunctions()) {
+                    supported.add(similarityFunction.functionName());
+                }
+
                 assertThatThrownBy(callable)
                         .isInstanceOf(InvalidArgumentException.class)
                         .hasMessageContainingAll(
-                                "is an unsupported",
-                                SETTING.getSettingName(),
-                                "Supported",
-                                version.supportedSimilarityFunctions()
-                                        .asLazy()
-                                        .collect(VectorSimilarityFunction::functionName)
-                                        .toString());
+                                "is an unsupported", SETTING.getSettingName(), "Supported", supported.toString());
             }
         }
 
@@ -516,10 +536,14 @@ public class VectorIndexCreationTest {
                         SETTING, findIndex(index.getName()).getIndexConfig(), Values.booleanValue(quantizationEnabled));
             }
 
-            Iterable<Arguments> shouldAcceptSupported() {
-                return validVersions().asLazy().flatCollect(version -> supported(version)
-                        .asLazy()
-                        .collect(similarityFunction -> Arguments.of(version, similarityFunction)));
+            Stream<Arguments> shouldAcceptSupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final boolean quantizationEnabled : supported(version)) {
+                        builder.add(Arguments.of(version, quantizationEnabled));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -543,8 +567,8 @@ public class VectorIndexCreationTest {
                 return supported(LATEST);
             }
 
-            RichIterable<Boolean> supported(VectorIndexVersion version) {
-                return version.supportedQuantizationBooleans().asLazy().collect(b -> b);
+            Iterable<Boolean> supported(VectorIndexVersion version) {
+                return version.supportedQuantizationBooleans();
             }
 
             @ParameterizedTest
@@ -604,10 +628,14 @@ public class VectorIndexCreationTest {
                 assertSettingHasValue(SETTING, findIndex(index.getName()).getIndexConfig(), Values.intValue(M));
             }
 
-            Iterable<Arguments> shouldAcceptSupported() {
-                return validVersions().asLazy().flatCollect(version -> supported(1, version.maxHnswM())
-                        .asLazy()
-                        .collect(M -> Arguments.of(version, M)));
+            Stream<Arguments> shouldAcceptSupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int M : supported(1, version.maxHnswM())) {
+                        builder.add(Arguments.of(version, M));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -629,8 +657,8 @@ public class VectorIndexCreationTest {
                 return supported(1, LATEST.maxHnswM());
             }
 
-            static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
+            static Iterable<Integer> supported(int min, int max) {
+                return List.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest
@@ -671,10 +699,14 @@ public class VectorIndexCreationTest {
                 assertUnsupported(version, () -> createVectorIndex(version, settings, propKeyIds[0]));
             }
 
-            Iterable<Arguments> shouldRejectUnsupported() {
-                return validVersions()
-                        .asLazy()
-                        .flatCollect(version -> unsupportedM(version).asLazy().collect(M -> Arguments.of(version, M)));
+            Stream<Arguments> shouldRejectUnsupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int M : unsupportedM(version)) {
+                        builder.add(Arguments.of(version, M));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -689,8 +721,8 @@ public class VectorIndexCreationTest {
                 return unsupportedM(LATEST);
             }
 
-            static RichIterable<Integer> unsupportedM(VectorIndexVersion version) {
-                return Lists.immutable.of(-1, 0, version.maxHnswM() + 1);
+            static Iterable<Integer> unsupportedM(VectorIndexVersion version) {
+                return List.of(-1, 0, version.maxHnswM() + 1);
             }
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
@@ -730,10 +762,14 @@ public class VectorIndexCreationTest {
                         SETTING, findIndex(index.getName()).getIndexConfig(), Values.intValue(efConstruction));
             }
 
-            Iterable<Arguments> shouldAcceptSupported() {
-                return validVersions().asLazy().flatCollect(version -> supported(1, version.maxHnswEfConstruction())
-                        .asLazy()
-                        .collect(efConstruction -> Arguments.of(version, efConstruction)));
+            Stream<Arguments> shouldAcceptSupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int efConstruction : supported(1, version.maxHnswEfConstruction())) {
+                        builder.add(Arguments.of(version, efConstruction));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -756,8 +792,8 @@ public class VectorIndexCreationTest {
                 return supported(1, LATEST.maxHnswEfConstruction());
             }
 
-            static RichIterable<Integer> supported(int min, int max) {
-                return Lists.immutable.of(min, ceilDiv(max - min, 2), max);
+            static Iterable<Integer> supported(int min, int max) {
+                return List.of(min, ceilDiv(max - min, 2), max);
             }
 
             @ParameterizedTest
@@ -798,10 +834,14 @@ public class VectorIndexCreationTest {
                 assertUnsupported(version, () -> createVectorIndex(version, settings, propKeyIds[0]));
             }
 
-            Iterable<Arguments> shouldRejectUnsupported() {
-                return validVersions().asLazy().flatCollect(version -> unsupportedEfConstruction(version)
-                        .asLazy()
-                        .collect(M -> Arguments.of(version, M)));
+            Stream<Arguments> shouldRejectUnsupported() {
+                final Stream.Builder<Arguments> builder = Stream.builder();
+                for (final VectorIndexVersion version : validVersions()) {
+                    for (final int efConstruction : unsupportedEfConstruction(version)) {
+                        builder.add(Arguments.of(version, efConstruction));
+                    }
+                }
+                return builder.build();
             }
 
             @ParameterizedTest
@@ -816,8 +856,8 @@ public class VectorIndexCreationTest {
                 return unsupportedEfConstruction(LATEST);
             }
 
-            static RichIterable<Integer> unsupportedEfConstruction(VectorIndexVersion version) {
-                return Lists.immutable.of(-1, 0, version.maxHnswEfConstruction() + 1);
+            static Iterable<Integer> unsupportedEfConstruction(VectorIndexVersion version) {
+                return List.of(-1, 0, version.maxHnswEfConstruction() + 1);
             }
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
@@ -871,7 +911,7 @@ public class VectorIndexCreationTest {
                 new Tokens.Suppliers.PropertyKey("vector", Tokens.Suppliers.Suffixes.incrementing()).get(2);
 
         protected final Factory factory;
-        private final SetIterable<VectorIndexVersion> validVersions;
+        private final Set<VectorIndexVersion> validVersions;
 
         @Inject
         private GraphDatabaseAPI db;
@@ -879,9 +919,9 @@ public class VectorIndexCreationTest {
         protected int tokenId;
         protected int[] propKeyIds;
 
-        TestBase(Factory factory, SetIterable<VectorIndexVersion> validVersions) {
+        TestBase(Factory factory, Set<VectorIndexVersion> validVersions) {
             this.factory = factory;
-            this.validVersions = validVersions;
+            this.validVersions = Collections.unmodifiableSet(validVersions);
         }
 
         @ExtensionCallback
@@ -907,12 +947,12 @@ public class VectorIndexCreationTest {
             }
         }
 
-        protected SetIterable<VectorIndexVersion> validVersions() {
+        protected Set<VectorIndexVersion> validVersions() {
             return validVersions;
         }
 
         protected boolean hasValidVersions() {
-            return validVersions.notEmpty();
+            return !validVersions.isEmpty();
         }
 
         protected boolean latestIsValid() {

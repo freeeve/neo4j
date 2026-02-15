@@ -23,22 +23,19 @@ import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunct
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.L2_NORM_COSINE;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.SIMPLE_COSINE;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.OptionalInt;
-import org.eclipse.collections.api.RichIterable;
-import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.factory.SortedMaps;
-import org.eclipse.collections.api.factory.primitive.BooleanSets;
-import org.eclipse.collections.api.list.ImmutableList;
-import org.eclipse.collections.api.map.ImmutableMap;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
-import org.eclipse.collections.api.set.SetIterable;
-import org.eclipse.collections.api.set.primitive.BooleanSet;
-import org.eclipse.collections.api.set.primitive.ImmutableBooleanSet;
-import org.eclipse.collections.api.tuple.Pair;
-import org.eclipse.collections.impl.tuple.Tuples;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
@@ -67,11 +64,11 @@ public enum VectorIndexVersion {
             0,
             0,
             0,
-            Sets.immutable.empty(),
-            BooleanSets.immutable.empty()) {
+            Collections.emptySet(),
+            Collections.emptySet()) {
         @Override
-        protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
-            return Lists.mutable.of(Tuples.pair(
+        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+            return Map.ofEntries(Map.entry(
                     KernelVersion.EARLIEST,
                     new ValidatorNotFound(InvalidArgumentException.internalError(
                             "Validator Not Found",
@@ -93,12 +90,12 @@ public enum VectorIndexVersion {
             2048,
             512,
             3200,
-            Sets.mutable.of(EUCLIDEAN, SIMPLE_COSINE),
-            BooleanSets.immutable.empty()) {
+            Set.of(EUCLIDEAN, SIMPLE_COSINE),
+            Collections.emptySet()) {
         @Override
-        protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
-            return Lists.mutable.of(
-                    Tuples.pair(
+        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+            return Map.ofEntries(
+                    Map.entry(
                             KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED,
                             new Validators(
                                     this,
@@ -109,7 +106,7 @@ public enum VectorIndexVersion {
                                     new ReadDefaultOnly<>(IndexSetting.vector_Quantization_Enabled(), false),
                                     new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_M(), 16),
                                     new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_Ef_Construction(), 100))),
-                    Tuples.pair(
+                    Map.entry(
                             KernelVersion.V5_12,
                             new Validators(
                                     this,
@@ -133,12 +130,12 @@ public enum VectorIndexVersion {
             4096,
             512,
             3200,
-            Sets.mutable.of(EUCLIDEAN, L2_NORM_COSINE),
-            BooleanSets.immutable.of(false, true)) {
+            Set.of(EUCLIDEAN, L2_NORM_COSINE),
+            Set.of(false, true)) {
         @Override
-        protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
-            return Lists.mutable.of(
-                    Tuples.pair(
+        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+            return Map.ofEntries(
+                    Map.entry(
                             KernelVersion.VERSION_VECTOR_2_INTRODUCED,
                             new Validators(
                                     this,
@@ -148,7 +145,7 @@ public enum VectorIndexVersion {
                                     new ReadDefaultOnly<>(IndexSetting.vector_Quantization_Enabled(), false),
                                     new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_M(), 16),
                                     new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_Ef_Construction(), 100))),
-                    Tuples.pair(
+                    Map.entry(
                             KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS,
                             new Validators(
                                     this,
@@ -176,11 +173,11 @@ public enum VectorIndexVersion {
             4096,
             512,
             3200,
-            Sets.mutable.of(EUCLIDEAN, L2_NORM_COSINE),
-            BooleanSets.immutable.of(false, true)) {
+            Set.of(EUCLIDEAN, L2_NORM_COSINE),
+            Set.of(false, true)) {
         @Override
-        protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
-            return Lists.mutable.of(Tuples.pair(
+        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+            return Map.ofEntries(Map.entry(
                     KernelVersion.VERSION_LUCENE_10_INTRODUCED,
                     new Validators(
                             this,
@@ -203,11 +200,20 @@ public enum VectorIndexVersion {
         }
     };
 
-    public static final ImmutableList<VectorIndexVersion> KNOWN_VERSIONS =
-            Lists.mutable.with(values()).without(UNKNOWN).toImmutableList();
+    public static final SortedSet<VectorIndexVersion> KNOWN_VERSIONS;
+
+    static {
+        final TreeSet<VectorIndexVersion> versions = new TreeSet<>();
+        for (final VectorIndexVersion version : values()) {
+            if (version != UNKNOWN) {
+                versions.add(version);
+            }
+        }
+        KNOWN_VERSIONS = Collections.unmodifiableSortedSet(versions);
+    }
 
     public static VectorIndexVersion latestSupportedVersion(KernelVersion kernelVersion) {
-        for (final var version : KNOWN_VERSIONS.asReversed()) {
+        for (final var version : KNOWN_VERSIONS.reversed()) {
             if (kernelVersion.isAtLeast(version.minimumRequiredKernelVersion)) {
                 return version;
             }
@@ -216,7 +222,7 @@ public enum VectorIndexVersion {
     }
 
     public static VectorIndexVersion fromDescriptor(IndexProviderDescriptor descriptor) {
-        for (final var version : KNOWN_VERSIONS.asReversed()) {
+        for (final var version : KNOWN_VERSIONS.reversed()) {
             if (version.descriptor.equals(descriptor)) {
                 return version;
             }
@@ -227,11 +233,11 @@ public enum VectorIndexVersion {
     private final KernelVersion minimumRequiredKernelVersion;
     private final IndexProviderDescriptor descriptor;
     private final int maxDimensions;
-    private final ImmutableMap<String, VectorSimilarityFunction> similarityFunctions;
-    private final ImmutableBooleanSet quantizationBooleans;
+    private final Map<String, VectorSimilarityFunction> similarityFunctions;
+    private final Set<Boolean> quantizationBooleans;
     private final int maxHnswM;
     private final int maxHnswEfConstruction;
-    private final ImmutableSortedMap<KernelVersion, VectorIndexSettingsValidator> validators;
+    private final SortedMap<KernelVersion, VectorIndexSettingsValidator> validators;
     private final VectorIndexSettingsValidator latestIndexSettingValidator;
 
     VectorIndexVersion(
@@ -240,23 +246,28 @@ public enum VectorIndexVersion {
             int maxDimensions,
             int maxHnswM,
             int maxHnswEfConstruction,
-            SetIterable<VectorSimilarityFunction> supportedSimilarityFunctions,
-            BooleanSet supportedQuantizationEnableds) {
+            Set<VectorSimilarityFunction> supportedSimilarityFunctions,
+            Set<Boolean> supportedQuantizationEnableds) {
         this.minimumRequiredKernelVersion = minimumRequiredKernelVersion;
         this.descriptor = providerDescriptor;
-
         this.maxDimensions = maxDimensions;
-        this.similarityFunctions = supportedSimilarityFunctions.toImmutableMap(
-                similarityFunction -> similarityFunction.functionName().toUpperCase(Locale.ROOT),
-                similarityFunction -> similarityFunction);
-        this.quantizationBooleans = supportedQuantizationEnableds.toImmutable();
+        {
+            final Map<String, VectorSimilarityFunction> similarityFunctions =
+                    new HashMap<>(supportedSimilarityFunctions.size());
+            for (final VectorSimilarityFunction similarityFunction : supportedSimilarityFunctions) {
+                similarityFunctions.put(similarityFunction.functionName().toUpperCase(Locale.ROOT), similarityFunction);
+            }
+            this.similarityFunctions = Collections.unmodifiableMap(similarityFunctions);
+        }
+        this.quantizationBooleans = Collections.unmodifiableSet(supportedQuantizationEnableds);
         this.maxHnswM = maxHnswM;
         this.maxHnswEfConstruction = maxHnswEfConstruction;
-
-        this.validators = SortedMaps.mutable
-                .<KernelVersion, VectorIndexSettingsValidator>of(Comparator.reverseOrder())
-                .withAllKeyValues(configureValidators())
-                .toImmutable();
+        {
+            final TreeMap<KernelVersion, VectorIndexSettingsValidator> validators =
+                    new TreeMap<>(Comparator.reverseOrder());
+            validators.putAll(configureValidators());
+            this.validators = Collections.unmodifiableSortedMap(validators);
+        }
         this.latestIndexSettingValidator = indexSettingValidator(KernelVersion.getLatestVersion(Config.defaults()));
     }
 
@@ -283,7 +294,7 @@ public enum VectorIndexVersion {
         return maxHnswEfConstruction;
     }
 
-    protected abstract RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators();
+    protected abstract Map<KernelVersion, VectorIndexSettingsValidator> configureValidators();
 
     public abstract boolean acceptsValueInstanceType(Value candidate);
 
@@ -298,23 +309,23 @@ public enum VectorIndexVersion {
                     "'%s' is an unsupported vector similarity function for index with provider %s. "
                                     .formatted(name, descriptor.name())
                             + "Supported: "
-                            + similarityFunctions.keysView());
+                            + similarityFunctions.keySet());
         }
 
         return similarityFunction;
     }
 
     @VisibleForTesting
-    public RichIterable<VectorSimilarityFunction> supportedSimilarityFunctions() {
-        return similarityFunctions.valuesView();
+    public Collection<VectorSimilarityFunction> supportedSimilarityFunctions() {
+        return similarityFunctions.values();
     }
 
-    ImmutableMap<String, VectorSimilarityFunction> nameToSimilarityFunction() {
+    Map<String, VectorSimilarityFunction> nameToSimilarityFunction() {
         return similarityFunctions;
     }
 
     @VisibleForTesting
-    public ImmutableBooleanSet supportedQuantizationBooleans() {
+    public Set<Boolean> supportedQuantizationBooleans() {
         return quantizationBooleans;
     }
 
@@ -323,13 +334,11 @@ public enum VectorIndexVersion {
     }
 
     public VectorIndexSettingsValidator indexSettingValidator(KernelVersion kernelVersion) {
-        final var validator = validators
-                .keyValuesView()
-                .detect(kernelVersionAndValidator -> kernelVersion.isAtLeast(kernelVersionAndValidator.getOne()));
-        if (validator == null) {
-            return new ValidatorNotFoundForKernelVersion(this, kernelVersion);
+        for (final Entry<KernelVersion, VectorIndexSettingsValidator> entry : validators.entrySet()) {
+            if (kernelVersion.isAtLeast(entry.getKey())) {
+                return entry.getValue();
+            }
         }
-
-        return validator.getTwo();
+        return new ValidatorNotFoundForKernelVersion(this, kernelVersion);
     }
 }

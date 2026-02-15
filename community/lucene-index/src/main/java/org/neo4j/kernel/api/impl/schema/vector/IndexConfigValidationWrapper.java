@@ -19,35 +19,33 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
-import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.INVALID_STATES;
-
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
-import org.eclipse.collections.api.set.SetIterable;
-import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
-import org.eclipse.collections.api.tuple.Pair;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.values.storable.Value;
 
 public abstract class IndexConfigValidationWrapper {
     private final IndexProviderDescriptor descriptor;
-    private final ImmutableSortedSet<String> validSettingNames;
-    private final ImmutableSortedSet<String> possibleValidSettingNames;
+    private final SortedSet<String> validSettingNames;
+    private final SortedSet<String> possibleValidSettingNames;
 
     private final IndexConfig config;
-    private final ImmutableSortedMap<IndexSetting, Object> settings;
+    private final SortedMap<IndexSetting, Object> settings;
 
     protected IndexConfigValidationWrapper(
             IndexProviderDescriptor descriptor,
             IndexConfig config,
-            ImmutableSortedMap<IndexSetting, Object> settings,
-            ImmutableSortedSet<String> validSettingNames,
-            ImmutableSortedSet<String> possibleValidSettingNames) {
+            SortedMap<IndexSetting, Object> settings,
+            SortedSet<String> validSettingNames,
+            SortedSet<String> possibleValidSettingNames) {
         this.descriptor = descriptor;
         this.validSettingNames = validSettingNames;
         this.possibleValidSettingNames = possibleValidSettingNames;
@@ -72,7 +70,7 @@ public abstract class IndexConfigValidationWrapper {
 
     @SuppressWarnings("unchecked")
     public <T> T get(IndexSetting setting) {
-        final var settingName = setting.getSettingName();
+        final String settingName = setting.getSettingName();
         if (!possibleValidSettingNames.contains(settingName)) {
             throw unrecognizedSetting(settingName, possibleValidSettingNames);
         }
@@ -80,43 +78,46 @@ public abstract class IndexConfigValidationWrapper {
     }
 
     public static IndexConfigValidationRecords validateSettingNames(
-            SetIterable<String> settingNames, SetIterable<String> validSettingNames) {
-        final var validationRecords = new IndexConfigValidationRecords();
-        settingNames
-                .differenceInto(validSettingNames, Sets.mutable.empty())
-                .asLazy()
-                .collect(UnrecognizedSetting::new)
-                .forEach(validationRecords::with);
+            Set<String> settingNames, Set<String> validSettingNames) {
+        final IndexConfigValidationRecords validationRecords = new IndexConfigValidationRecords();
+        for (final String settingName : settingNames) {
+            if (!validSettingNames.contains(settingName)) {
+                validationRecords.with(new UnrecognizedSetting(settingName));
+            }
+        }
         return validationRecords;
     }
 
     private IndexConfig validateSettingNames(IndexConfig config) {
-        final var settingNames = config.entries().asLazy().collect(Pair::getOne).toSet();
-        assertValidSettingNames(validateSettingNames(settingNames, validSettingNames), validSettingNames);
+        assertValidSettingNames(validateSettingNames(config.settingNames(), validSettingNames), validSettingNames);
         return config;
     }
 
-    private ImmutableSortedMap<IndexSetting, Object> validatePossibleSettingNames(
-            ImmutableSortedMap<IndexSetting, Object> settings) {
-        final var settingNames = settings.keysView()
-                .asLazy()
-                .collect(IndexSetting::getSettingName)
-                .toSet();
+    private SortedMap<IndexSetting, Object> validatePossibleSettingNames(SortedMap<IndexSetting, Object> settings) {
+        final Set<String> settingNames = new HashSet<>(settings.size());
+        for (final IndexSetting setting : settings.keySet()) {
+            settingNames.add(setting.getSettingName());
+        }
 
         assertValidSettingNames(
                 validateSettingNames(settingNames, possibleValidSettingNames), possibleValidSettingNames);
         return settings;
     }
 
-    private void assertValidSettingNames(
+    private static void assertValidSettingNames(
             IndexConfigValidationRecords validationRecords, Iterable<String> validSettingNames) {
         if (validationRecords.valid()) {
             return;
         }
 
         // fail on first
-        final var invalidRecord =
-                INVALID_STATES.asLazy().flatCollect(validationRecords::get).getFirst();
+        final IndexConfigValidationRecord invalidRecord = validationRecords.getFirstInvalidRecordOrNull();
+        if (invalidRecord == null) {
+            throw new IllegalStateException("%s were invalid but found a null %s"
+                    .formatted(
+                            IndexConfigValidationRecords.class.getSimpleName(),
+                            IndexConfigValidationRecord.class.getSimpleName()));
+        }
         throw unrecognizedSetting(invalidRecord.settingName(), validSettingNames);
     }
 

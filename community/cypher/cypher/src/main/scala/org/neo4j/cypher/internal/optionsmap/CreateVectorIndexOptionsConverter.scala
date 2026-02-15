@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.optionsmap
 
 import org.eclipse.collections.api.PrimitiveIterable
-import org.eclipse.collections.api.set.sorted.ImmutableSortedSet
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
@@ -28,7 +27,6 @@ import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexConfigValidationRecords
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType
-import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord
 import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue
 import org.neo4j.internal.schema.IndexConfigValidationRecords.State.INCORRECT_TYPE
 import org.neo4j.internal.schema.IndexConfigValidationRecords.State.INVALID_VALUE
@@ -94,24 +92,21 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
             itemsMap,
             unrecognized,
             schemaType,
-            validSettingNames.toList.asJava
+            validSettingNames.toSeq.asJava
           )
       }
     }
 
     def assertMandatoryConfigSettingsExists(validationRecords: IndexConfigValidationRecords): Unit = {
-      val missingSettings: ImmutableSortedSet[IndexConfigValidationRecord] = validationRecords.get(MISSING_SETTING)
-      if (!missingSettings.isEmpty) {
+      val missingSettings = validationRecords.get(MISSING_SETTING).asScala
+      if (missingSettings.nonEmpty) {
         val missingQuoted =
-          missingSettings.makeString(
-            (r: IndexConfigValidationRecord) => s"'${r.settingName}'",
+          missingSettings.map(r => s"'${r.settingName}'").mkString(
             "[",
             ", ",
             "]"
           )
-        val missing = missingSettings
-          .collect[String](_.settingName)
-          .castToList()
+        val missing = missingSettings.map(_.settingName).toSeq.asJava
         throw InvalidArgumentsException.missingOptionCreateSchema(schemaType, missing, missingQuoted)
       }
     }

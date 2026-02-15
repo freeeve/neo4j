@@ -19,10 +19,11 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.OptionalInt;
-import org.eclipse.collections.api.map.MapIterable;
-import org.eclipse.collections.api.set.primitive.BooleanSet;
+import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
@@ -34,6 +35,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.Range;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.NoValue;
@@ -78,7 +80,7 @@ class IndexSettingValidators {
         }
 
         protected Valid trustIsValid(SettingsAccessor accessor) {
-            final var value = accessor.containsSetting(setting) ? map((VALUE) accessor.get(setting)) : readDefault;
+            final TYPE value = accessor.containsSetting(setting) ? map((VALUE) accessor.get(setting)) : readDefault;
             return new Valid(setting, value, map(value));
         }
 
@@ -121,7 +123,7 @@ class IndexSettingValidators {
         IntegerValidator(IndexSetting setting, Integer defaultValue, Range<Integer> supportedRange) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
-            assert defaultValue == null || supportedRange.contains(defaultValue);
+            assert defaultValue == null || this.supportedRange.contains(defaultValue);
         }
 
         @Override
@@ -136,12 +138,12 @@ class IndexSettingValidators {
 
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final var record = extractOrDefault(accessor);
+            final IndexConfigValidationRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Pending pending)) {
                 return record;
             }
 
-            final var rawValue = pending.rawValue();
+            final AnyValue rawValue = pending.rawValue();
             if (rawValue == Values.NO_VALUE) {
                 return new InvalidValue(pending, null, supportedRange);
             }
@@ -149,7 +151,7 @@ class IndexSettingValidators {
                 return new IncorrectType(pending, IntegralValue.class);
             }
 
-            final var value = map(integralValue);
+            final Integer value = map(integralValue);
             return supportedRange.contains(value)
                     ? new Valid(setting, value, map(value))
                     : new InvalidValue(pending, value, supportedRange);
@@ -166,7 +168,9 @@ class IndexSettingValidators {
         OptionalIntSettingValidator(IndexSetting setting, Range<Integer> supportedRange, OptionalInt defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
-            assert defaultValue == null || defaultValue.isEmpty() || supportedRange.contains(defaultValue.getAsInt());
+            assert defaultValue == null
+                    || defaultValue.isEmpty()
+                    || this.supportedRange.contains(defaultValue.getAsInt());
         }
 
         @Override
@@ -181,12 +185,12 @@ class IndexSettingValidators {
 
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final var record = extractOrDefault(accessor);
+            final IndexConfigValidationRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Pending pending)) {
                 return record;
             }
 
-            final var rawValue = pending.rawValue();
+            final AnyValue rawValue = pending.rawValue();
             if (rawValue == Values.NO_VALUE) {
                 return new InvalidValue(pending, null, supportedRange);
             }
@@ -194,7 +198,7 @@ class IndexSettingValidators {
                 return new IncorrectType(pending, IntegralValue.class);
             }
 
-            final var dimensions = map(integralValue);
+            final OptionalInt dimensions = map(integralValue);
             return supportedRange.contains(dimensions.orElseThrow(() ->
                             new IllegalStateException("'%s' should not be empty at this point.".formatted(setting))))
                     ? new Valid(setting, dimensions, map(dimensions))
@@ -203,19 +207,19 @@ class IndexSettingValidators {
     }
 
     static final class SimilarityFunctionValidator extends IndexSettingValidator<TextValue, VectorSimilarityFunction> {
-        private final MapIterable<String, VectorSimilarityFunction> similarityFunctions;
+        private final Map<String, VectorSimilarityFunction> similarityFunctions;
 
-        SimilarityFunctionValidator(MapIterable<String, VectorSimilarityFunction> supportedSimilarityFunctions) {
+        SimilarityFunctionValidator(Map<String, VectorSimilarityFunction> supportedSimilarityFunctions) {
             this(supportedSimilarityFunctions, null);
         }
 
         SimilarityFunctionValidator(
-                MapIterable<String, VectorSimilarityFunction> supportedSimilarityFunctions,
+                Map<String, VectorSimilarityFunction> supportedSimilarityFunctions,
                 VectorSimilarityFunction defaultSimilarityFunction) {
             super(IndexSetting.vector_Similarity_Function(), defaultSimilarityFunction);
-            this.similarityFunctions = supportedSimilarityFunctions;
+            this.similarityFunctions = Collections.unmodifiableMap(supportedSimilarityFunctions);
             assert defaultSimilarityFunction == null
-                    || supportedSimilarityFunctions.containsValue(defaultSimilarityFunction);
+                    || this.similarityFunctions.containsValue(defaultSimilarityFunction);
         }
 
         @Override
@@ -230,40 +234,40 @@ class IndexSettingValidators {
 
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final var record = extractOrDefault(accessor);
+            final IndexConfigValidationRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Pending pending)) {
                 return record;
             }
 
-            final var rawValue = pending.rawValue();
+            final AnyValue rawValue = pending.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, similarityFunctions.keysView());
+                return new InvalidValue(pending, null, similarityFunctions.keySet());
             }
             if (!(rawValue instanceof final TextValue textValue)) {
                 return new IncorrectType(pending, TextValue.class);
             }
 
-            final var similarityFunction = map(textValue);
+            final VectorSimilarityFunction similarityFunction = map(textValue);
             return similarityFunction == null
-                    ? new InvalidValue(pending, similarityFunctions.keysView())
+                    ? new InvalidValue(pending, similarityFunctions.keySet())
                     : new Valid(setting, similarityFunction, map(similarityFunction));
         }
     }
 
     static final class QuantizationEnabledValidator extends IndexSettingValidator<BooleanValue, Boolean> {
-        private final BooleanSet quantizationBooleans;
+        private final Set<Boolean> quantizationBooleans;
 
         QuantizationEnabledValidator(
-                BooleanSet supportedQuantizationBooleans,
+                Set<Boolean> supportedQuantizationBooleans,
                 boolean readDefaultQuantizationEnabled,
                 boolean writeDefaultQuantizationEnabled) {
             super(
                     IndexSetting.vector_Quantization_Enabled(),
                     readDefaultQuantizationEnabled,
                     writeDefaultQuantizationEnabled);
-            this.quantizationBooleans = supportedQuantizationBooleans;
-            assert supportedQuantizationBooleans.containsAll(
-                    readDefaultQuantizationEnabled, writeDefaultQuantizationEnabled);
+            this.quantizationBooleans = Collections.unmodifiableSet(supportedQuantizationBooleans);
+            assert this.quantizationBooleans.contains(readDefaultQuantizationEnabled)
+                    && this.quantizationBooleans.contains(writeDefaultQuantizationEnabled);
         }
 
         @Override
@@ -278,12 +282,12 @@ class IndexSettingValidators {
 
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final var record = extractOrDefault(accessor);
+            final IndexConfigValidationRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Pending pending)) {
                 return record;
             }
 
-            final var rawValue = pending.rawValue();
+            final AnyValue rawValue = pending.rawValue();
             if (rawValue == Values.NO_VALUE) {
                 return new InvalidValue(pending, null, quantizationBooleans);
             }
@@ -291,7 +295,7 @@ class IndexSettingValidators {
                 return new IncorrectType(pending, BooleanValue.class);
             }
 
-            final var quantization = map(booleanValue);
+            final Boolean quantization = map(booleanValue);
             return quantization == null
                     ? new InvalidValue(pending, quantizationBooleans)
                     : new Valid(setting, quantization, map(quantization));

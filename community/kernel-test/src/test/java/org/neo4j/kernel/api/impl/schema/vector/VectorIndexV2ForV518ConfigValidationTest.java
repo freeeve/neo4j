@@ -33,9 +33,9 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUA
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION;
 
 import java.util.OptionalInt;
+import java.util.StringJoiner;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.eclipse.collections.api.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -86,7 +86,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                         false,
                         new HnswConfig(16, 100));
 
-        assertThat(vectorIndexConfig.config().entries().collect(Pair::getOne))
+        assertThat(vectorIndexConfig.config().settingNames())
                 .containsExactlyInAnyOrder(DIMENSIONS.getSettingName(), SIMILARITY_FUNCTION.getSettingName());
     }
 
@@ -101,7 +101,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(UNRECOGNIZED_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
@@ -121,7 +121,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(MISSING_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(MISSING_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(MissingSetting.class))
@@ -142,7 +142,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE).castToSortedSet())
+        assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
@@ -165,8 +165,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        final var incorrectTypeAssert = assertThat(
-                        validationRecords.get(INCORRECT_TYPE).castToSortedSet())
+        final var incorrectTypeAssert = assertThat(validationRecords.get(INCORRECT_TYPE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(IncorrectType.class));
@@ -212,7 +211,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
     private void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE).castToSortedSet())
+        assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
@@ -233,7 +232,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(MISSING_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(MISSING_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(MissingSetting.class))
@@ -254,22 +253,24 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE).castToSortedSet())
+        assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
                 .extracting(InvalidValue::setting, InvalidValue::value)
                 .containsExactly(SIMILARITY_FUNCTION, null);
 
+        final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
+        for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
+            supportedSimilarityFunctions.add(similarityFunction.functionName());
+        }
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "null",
                         "is an unsupported",
                         SIMILARITY_FUNCTION.getSettingName(),
-                        VERSION.supportedSimilarityFunctions()
-                                .collect(VectorSimilarityFunction::functionName)
-                                .toString());
+                        supportedSimilarityFunctions.toString());
     }
 
     @Test
@@ -282,8 +283,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        final var incorrectTypeAssert = assertThat(
-                        validationRecords.get(INCORRECT_TYPE).castToSortedSet())
+        final var incorrectTypeAssert = assertThat(validationRecords.get(INCORRECT_TYPE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(IncorrectType.class));
@@ -314,22 +314,24 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE).castToSortedSet())
+        assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
                 .extracting(InvalidValue::setting, InvalidValue::rawValue)
                 .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
 
+        final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
+        for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
+            supportedSimilarityFunctions.add(similarityFunction.functionName());
+        }
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         invalidSimilarityFunction,
                         "is an unsupported",
                         SIMILARITY_FUNCTION.getSettingName(),
-                        VERSION.supportedSimilarityFunctions()
-                                .collect(VectorSimilarityFunction::functionName)
-                                .toString());
+                        supportedSimilarityFunctions.toString());
     }
 
     @Test
@@ -342,7 +344,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(UNRECOGNIZED_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
@@ -360,7 +362,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(UNRECOGNIZED_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
@@ -378,7 +380,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(UNRECOGNIZED_SETTING).castToSortedSet())
+        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
                 .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))

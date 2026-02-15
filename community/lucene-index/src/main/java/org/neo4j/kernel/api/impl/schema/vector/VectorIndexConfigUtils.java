@@ -20,20 +20,19 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
-import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.INVALID_STATES;
 import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.VALID;
 import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.function.Predicate;
 import org.eclipse.collections.api.PrimitiveIterable;
-import org.eclipse.collections.api.RichIterable;
-import org.eclipse.collections.api.block.predicate.Predicate;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
-import org.eclipse.collections.impl.block.factory.Predicates;
-import org.eclipse.collections.impl.map.sorted.mutable.TreeSortedMap;
-import org.eclipse.collections.impl.tuple.Tuples;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
@@ -46,6 +45,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.util.Preconditions;
+import org.neo4j.values.storable.Value;
 
 public class VectorIndexConfigUtils {
     static final Comparator<IndexSetting> INDEX_SETTING_COMPARATOR =
@@ -57,17 +57,20 @@ public class VectorIndexConfigUtils {
     static final IndexSetting HNSW_M = IndexSetting.vector_Hnsw_M();
     static final IndexSetting HNSW_EF_CONSTRUCTION = IndexSetting.vector_Hnsw_Ef_Construction();
 
-    public static final ImmutableSortedMap<IndexSetting, KernelVersion> INDEX_SETTING_INTRODUCED_VERSIONS =
-            TreeSortedMap.<IndexSetting, KernelVersion>newMapWith(
-                            INDEX_SETTING_COMPARATOR,
-                            Tuples.pair(DIMENSIONS, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED),
-                            Tuples.pair(SIMILARITY_FUNCTION, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED),
-                            Tuples.pair(
-                                    QUANTIZATION_ENABLED, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS),
-                            Tuples.pair(HNSW_M, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS),
-                            Tuples.pair(
-                                    HNSW_EF_CONSTRUCTION, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS))
-                    .toImmutable();
+    public static final SortedMap<IndexSetting, KernelVersion> INDEX_SETTING_INTRODUCED_VERSIONS;
+
+    static {
+        final SortedMap<IndexSetting, KernelVersion> indexSettingIntroducedVersions =
+                new TreeMap<>(INDEX_SETTING_COMPARATOR);
+        indexSettingIntroducedVersions.put(DIMENSIONS, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
+        indexSettingIntroducedVersions.put(SIMILARITY_FUNCTION, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
+        indexSettingIntroducedVersions.put(
+                QUANTIZATION_ENABLED, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
+        indexSettingIntroducedVersions.put(HNSW_M, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
+        indexSettingIntroducedVersions.put(
+                HNSW_EF_CONSTRUCTION, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
+        INDEX_SETTING_INTRODUCED_VERSIONS = Collections.unmodifiableSortedMap(indexSettingIntroducedVersions);
+    }
 
     public record Range<T extends Comparable<T>>(T min, T max) {
         public Range {
@@ -92,30 +95,43 @@ public class VectorIndexConfigUtils {
         }
     }
 
-    static ImmutableSortedMap<IndexSetting, Object> toValidSettings(RichIterable<Valid> validRecords) {
-        return validRecords
-                .toSortedMap(
-                        Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER),
-                        Valid::setting,
-                        Valid::value)
-                .toImmutable();
+    static SortedMap<IndexSetting, Object> toValidSettings(Iterable<Valid> validRecords) {
+        final TreeMap<IndexSetting, Object> validSettings =
+                new TreeMap<>(Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER));
+        for (final Valid valid : validRecords) {
+            validSettings.put(valid.setting(), valid.value());
+        }
+        return validSettings;
     }
 
-    static IndexConfig toIndexConfig(RichIterable<Valid> validRecords) {
+    static IndexConfig toIndexConfig(Iterable<Valid> validRecords) {
         return toIndexConfig(validRecords, valid -> true);
     }
 
-    static IndexConfig toIndexConfig(RichIterable<Valid> validRecords, RichIterable<String> validSettingNames) {
-        return toIndexConfig(validRecords, Predicates.attributeIn(Valid::settingName, validSettingNames));
+    static IndexConfig toIndexConfig(Iterable<Valid> validRecords, Iterable<String> validSettingNames) {
+        return toIndexConfig(validRecords, containsSettingNamePredicate(validSettingNames));
     }
 
-    static IndexConfig toIndexConfig(RichIterable<Valid> validRecords, Predicate<Valid> filter) {
-        return IndexConfig.with(validRecords
-                .asLazy()
-                .select(filter)
-                .select(Predicates.attributeNotNull(Valid::stored))
-                .select(Predicates.attributeNotEqual(Valid::stored, NO_VALUE))
-                .toMap(valid -> valid.setting().getSettingName(), Valid::stored));
+    private static <RECORD extends IndexConfigValidationRecord> Predicate<RECORD> containsSettingNamePredicate(
+            Iterable<String> settingNames) {
+        return record -> {
+            for (final String settingName : settingNames) {
+                if (record.settingName().equals(settingName)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    }
+
+    static IndexConfig toIndexConfig(Iterable<Valid> validRecords, Predicate<Valid> filter) {
+        final Map<String, Value> settings = new HashMap<>();
+        for (final Valid valid : validRecords) {
+            if (filter.test(valid) && valid.stored() != null && valid.stored() != NO_VALUE) {
+                settings.put(valid.settingName(), valid.stored());
+            }
+        }
+        return IndexConfig.with(settings);
     }
 
     static void assertValidRecords(
@@ -123,8 +139,7 @@ public class VectorIndexConfigUtils {
             IndexProviderDescriptor descriptor,
             Iterable<String> validSettingNames) {
         // fail on first
-        final var invalidRecord =
-                INVALID_STATES.asLazy().flatCollect(validationRecords::get).getFirst();
+        final IndexConfigValidationRecord invalidRecord = validationRecords.getFirstInvalidRecordOrNull();
         if (invalidRecord == null) {
             return;
         }

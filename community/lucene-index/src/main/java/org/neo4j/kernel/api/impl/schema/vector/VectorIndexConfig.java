@@ -25,12 +25,11 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNS
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.OptionalInt;
-import org.eclipse.collections.api.factory.SortedMaps;
-import org.eclipse.collections.api.factory.SortedSets;
-import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
-import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
+import java.util.SortedMap;
+import java.util.SortedSet;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
@@ -47,9 +46,9 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     VectorIndexConfig(
             VectorIndexVersion version,
             IndexConfig config,
-            ImmutableSortedMap<IndexSetting, Object> settings,
-            ImmutableSortedSet<String> validSettingNames,
-            ImmutableSortedSet<String> possibleValidSettingNames) {
+            SortedMap<IndexSetting, Object> settings,
+            SortedSet<String> validSettingNames,
+            SortedSet<String> possibleValidSettingNames) {
         super(version.descriptor(), config, settings, validSettingNames, possibleValidSettingNames);
         this.version = version;
         this.dimensions = get(DIMENSIONS);
@@ -62,9 +61,9 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
         super(
                 VectorIndexVersion.UNKNOWN.descriptor(),
                 IndexConfig.empty(),
-                SortedMaps.immutable.empty(),
-                SortedSets.immutable.empty(),
-                SortedSets.immutable.empty());
+                Collections.emptySortedMap(),
+                Collections.emptySortedSet(),
+                Collections.emptySortedSet());
         this.version = VectorIndexVersion.UNKNOWN;
         this.dimensions = OptionalInt.empty();
         this.similarityFunction = null;

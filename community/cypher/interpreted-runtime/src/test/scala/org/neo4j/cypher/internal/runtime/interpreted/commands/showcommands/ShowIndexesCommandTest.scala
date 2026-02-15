@@ -205,7 +205,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
   private def vectorConfigMap(version: VectorIndexVersion): MapValue = {
     val entries = vectorConfig(version).entries
     val builder = new MapValueBuilder(entries.size)
-    entries.each(kv => builder.add(kv.getOne, kv.getTwo))
+    entries.forEach(kv => builder.add(kv.getKey, kv.getValue))
     builder.build
   }
 
