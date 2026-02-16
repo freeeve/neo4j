@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingImpl;
 import org.neo4j.values.AnyValue;
@@ -124,7 +125,8 @@ public interface SettingsAccessor {
         }
     }
 
-    Map<String, IndexSetting> INDEX_SETTING_LOOKUP = Arrays.stream(IndexSettingImpl.values())
+    Map<String, IndexSetting> INDEX_SETTING_LOOKUP = Stream.of(IndexSettingImpl.values(), InternalIndexSetting.values())
+            .flatMap(Arrays::stream)
             .collect(Collectors.toUnmodifiableMap(IndexSetting::getSettingName, setting -> setting));
 
     static IndexSetting lookup(String settingName) {

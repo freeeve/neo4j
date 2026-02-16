@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.VALID;
+import static org.neo4j.internal.schema.InternalIndexSetting.VECTOR_QUANTIZATION_TYPE;
 import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
@@ -66,6 +67,7 @@ public class VectorIndexConfigUtils {
         indexSettingIntroducedVersions.put(SIMILARITY_FUNCTION, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
         indexSettingIntroducedVersions.put(
                 QUANTIZATION_ENABLED, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
+        indexSettingIntroducedVersions.put(VECTOR_QUANTIZATION_TYPE, KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION);
         indexSettingIntroducedVersions.put(HNSW_M, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
         indexSettingIntroducedVersions.put(
                 HNSW_EF_CONSTRUCTION, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);

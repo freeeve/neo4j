@@ -40,7 +40,7 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     private final VectorIndexVersion version;
     private final OptionalInt dimensions;
     private final VectorSimilarityFunction similarityFunction;
-    private final boolean quantizationEnabled;
+    private final VectorQuantizationType quantization;
     private final HnswConfig hnswConfig;
 
     VectorIndexConfig(
@@ -53,7 +53,8 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
         this.version = version;
         this.dimensions = get(DIMENSIONS);
         this.similarityFunction = get(SIMILARITY_FUNCTION);
-        this.quantizationEnabled = get(QUANTIZATION_ENABLED);
+        final boolean quantizationEnabled = get(QUANTIZATION_ENABLED);
+        this.quantization = quantizationEnabled ? VectorQuantizationType.SCALAR : VectorQuantizationType.NONE;
         this.hnswConfig = new HnswConfig(get(HNSW_M), get(HNSW_EF_CONSTRUCTION));
     }
 
@@ -67,7 +68,7 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
         this.version = VectorIndexVersion.UNKNOWN;
         this.dimensions = OptionalInt.empty();
         this.similarityFunction = null;
-        this.quantizationEnabled = false;
+        this.quantization = VectorQuantizationType.NONE;
         this.hnswConfig = HnswConfig.DUMMY;
     }
 
@@ -84,7 +85,11 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     }
 
     public boolean quantizationEnabled() {
-        return quantizationEnabled;
+        return quantization != VectorQuantizationType.NONE;
+    }
+
+    public VectorQuantizationType quantization() {
+        return quantization;
     }
 
     public HnswConfig hnsw() {
@@ -93,7 +98,7 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
 
     @Override
     public int hashCode() {
-        return Objects.hash(dimensions, similarityFunction, quantizationEnabled, hnswConfig);
+        return Objects.hash(dimensions, similarityFunction, quantization, hnswConfig);
     }
 
     @Override
@@ -106,7 +111,7 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
         }
         return Objects.equals(this.dimensions, that.dimensions)
                 && Objects.equals(this.similarityFunction, that.similarityFunction)
-                && this.quantizationEnabled == that.quantizationEnabled
+                && this.quantization == that.quantization
                 && Objects.equals(this.hnswConfig, that.hnswConfig);
     }
 
