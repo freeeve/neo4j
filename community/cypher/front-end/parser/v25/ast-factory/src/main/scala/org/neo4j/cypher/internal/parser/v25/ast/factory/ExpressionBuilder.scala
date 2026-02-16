@@ -152,6 +152,7 @@ import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -183,6 +184,7 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+import org.neo4j.cypher.internal.util.topDown
 
 import java.util.stream.Collectors
 
@@ -639,6 +641,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     while (i < size) {
       ctx.children.get(i) match {
         case whenCtx: Cypher25Parser.ExtendedWhenContext =>
+          val uniqueThen = thenExp.endoRewrite(topDown(Rewriter.lift { case v: LogicalVariable => v.copyId }))
           val newWhen = whenCtx match {
             case _: Cypher25Parser.WhenEqualsContext =>
               Equals(lhs, astChild(whenCtx, 0))(pos(nodeChild(ctx, i - 1)))
@@ -648,7 +651,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
               advancedPredicate(lhs, child(whenCtx, 0))
             case _ => throw new IllegalStateException(s"Unexpected context $whenCtx")
           }
-          buffer.addOne(newWhen -> thenExp)
+          buffer.addOne(newWhen -> uniqueThen)
         case _ =>
       }
       i += 1
