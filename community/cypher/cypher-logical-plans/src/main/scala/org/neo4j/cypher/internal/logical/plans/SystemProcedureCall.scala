@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.logical.plans
 
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.values.virtual.MapValue
 
@@ -31,7 +31,7 @@ import org.neo4j.values.virtual.MapValue
  */
 case class SystemProcedureCall(
   procedureName: String,
-  call: ResolvedCall,
+  call: ResolvedNonLocalCall,
   returns: Option[Return],
   params: MapValue,
   checkCredentialsExpired: Boolean

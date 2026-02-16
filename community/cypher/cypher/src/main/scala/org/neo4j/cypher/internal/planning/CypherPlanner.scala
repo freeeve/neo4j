@@ -83,7 +83,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
@@ -830,7 +830,8 @@ final class TransformingPlanner private[planning] (
           (FineToReuse, allowQueryCaching)
         } else {
           logicalPlanState.maybeLogicalPlan match {
-            case Some(ProcedureCall(_, ResolvedCall(signature, _, _, _, _, _, _))) if signature.systemProcedure =>
+            case Some(ProcedureCall(_, ResolvedNonLocalCall(signature, _, _, _, _, _, _)))
+              if signature.systemProcedure =>
               (FineToReuse, false)
             case Some(_: ProcedureCall) =>
               throw DisallowedOnSystemException.disallowedOnSystemException(

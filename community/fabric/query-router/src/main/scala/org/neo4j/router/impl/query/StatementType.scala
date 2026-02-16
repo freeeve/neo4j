@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.UpdateClause
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.exceptions.InternalException
@@ -129,9 +129,9 @@ object StatementType {
     }
 
   private def containsUpdates(ast: CallClause): Mode = ast match {
-    case _: UnresolvedCall                      => MaybeWrite
-    case c: ResolvedCall if c.containsNoUpdates => Read
-    case _                                      => Write
+    case _: UnresolvedCall                              => MaybeWrite
+    case c: ResolvedNonLocalCall if c.containsNoUpdates => Read
+    case _                                              => Write
   }
 
   private def containsUpdates(ast: CallClause, resolver: ScopedProcedureSignatureResolver): Mode = ast match {
@@ -140,7 +140,7 @@ object StatementType {
   }
 
   private def tryResolve(unresolved: UnresolvedCall, resolver: ScopedProcedureSignatureResolver): CallClause =
-    Try(ResolvedCall(resolver.procedureSignature)(unresolved)).getOrElse(unresolved)
+    Try(ResolvedNonLocalCall(resolver.procedureSignature)(unresolved)).getOrElse(unresolved)
 
   private def merge: (Mode, Mode) => Mode = {
     case (Write, _)   => Write

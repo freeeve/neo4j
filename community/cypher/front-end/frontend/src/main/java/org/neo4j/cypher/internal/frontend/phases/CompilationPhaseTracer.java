@@ -25,6 +25,7 @@ public interface CompilationPhaseTracer {
         VARIABLE_CHECK,
         SEMANTIC_CHECK,
         SEMANTIC_TYPE_CHECK,
+        LOCAL_DEFINITION_EXTRACTION,
         AST_REWRITE,
         LOGICAL_PLANNING,
         CODE_GENERATION,

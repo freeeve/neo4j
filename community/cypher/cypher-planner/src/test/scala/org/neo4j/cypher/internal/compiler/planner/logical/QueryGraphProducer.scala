@@ -122,6 +122,7 @@ trait QueryGraphProducer {
       Some(resolver.procedureSignatureVersion),
       Some(firstRewriteStep),
       None,
+      None,
       Some(semanticState)
     )
     val context = ContextHelper.create(

@@ -71,7 +71,7 @@ import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Point
 import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.frontend.PlannerName
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.CreateRelationship
@@ -3960,7 +3960,7 @@ case class LogicalPlan2PlanDescription(
       pretty"= ${asPrettyString(expr)}"
   }
 
-  private def signatureInfo(call: ResolvedCall): PrettyString = {
+  private def signatureInfo(call: ResolvedNonLocalCall): PrettyString = {
     val argString = call.callArguments.map(asPrettyString(_)).mkPrettyString(SEPARATOR)
     val resultString = call.callResultTypes
       .map { case (name, typ) =>

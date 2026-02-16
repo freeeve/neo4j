@@ -28,8 +28,8 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
@@ -925,8 +925,8 @@ class FabricFragmenterTest
   private def returnAliased(vars: (String, String)*) =
     return_(vars.map(v => varFor(v._1).as(v._2)): _*)
 
-  private def resolved(unresolved: UnresolvedCall): ResolvedCall =
-    ResolvedCall(scopedSignatures.procedureSignature)(unresolved)
+  private def resolved(unresolved: UnresolvedCall): ResolvedNonLocalCall =
+    ResolvedNonLocalCall(scopedSignatures.procedureSignature)(unresolved)
 
   private def resolved(unresolved: FunctionInvocation): ResolvedFunctionInvocation =
     ResolvedFunctionInvocation(scopedSignatures.functionSignature)(unresolved)

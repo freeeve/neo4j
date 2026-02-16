@@ -51,7 +51,7 @@ import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.CreateCommand
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
@@ -736,7 +736,7 @@ object LogicalPlanToPlanBuilderString {
 
       case ProcedureCall(
           _,
-          ResolvedCall(
+          ResolvedNonLocalCall(
             ProcedureSignature(procedureName, _, _, _, _, _, _, _, _, _, _, _),
             callArguments,
             callResults,

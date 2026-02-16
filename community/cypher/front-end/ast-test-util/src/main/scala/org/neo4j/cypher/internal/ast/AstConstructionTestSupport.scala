@@ -1585,6 +1585,24 @@ trait AstConstructionTestSupport {
   def unwind(e: Expression, v: Variable): Unwind =
     Unwind(e, v)(pos)
 
+  def unresolvedCall(
+    procedureName: ProcedureName,
+    args: Option[Seq[Expression]] = Some(Vector()),
+    yields: Option[Seq[Variable]] = None,
+    where: Option[Expression] = None,
+    standalone: Boolean = false,
+    optional: Boolean = false
+  ): UnresolvedCall =
+    UnresolvedCall(
+      procedureName,
+      args,
+      yields.map(vs =>
+        ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
+      ),
+      standalone,
+      optional = optional
+    )(pos)
+
   def call(
     ns: Seq[String],
     name: String,
@@ -1593,14 +1611,13 @@ trait AstConstructionTestSupport {
     where: Option[Expression] = None,
     standalone: Boolean = false
   ): UnresolvedCall =
-    UnresolvedCall(
+    unresolvedCall(
       ProcedureName(Namespace(ns.toList)(pos), name)(pos),
       args,
-      yields.map(vs =>
-        ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
-      ),
+      yields,
+      where,
       standalone
-    )(pos)
+    )
 
   def optCall(
     ns: Seq[String],
@@ -1609,14 +1626,13 @@ trait AstConstructionTestSupport {
     yields: Option[Seq[Variable]] = None,
     where: Option[Expression] = None
   ): UnresolvedCall =
-    UnresolvedCall(
+    unresolvedCall(
       ProcedureName(Namespace(ns.toList)(pos), name)(pos),
       args,
-      yields.map(vs =>
-        ProcedureResult(vs.toIndexedSeq.map(ProcedureResultItem(_)(pos)), where.map(p => Where(p)(pos)))(pos)
-      ),
+      yields,
+      where,
       optional = true
-    )(pos)
+    )
 
   def use(names: List[String], resolveStrictly: Boolean): UseGraph = {
     UseGraph(GraphDirectReference(CatalogName(names, resolveStrictly))(pos))(pos)
@@ -1632,6 +1648,9 @@ trait AstConstructionTestSupport {
 
   def union(lhs: Query, rhs: PartQuery, differentReturnOrderAllowed: Boolean = false): UnionDistinct =
     UnionDistinct(lhs, rhs)(pos)
+
+  def unionAll(lhs: Query, rhs: PartQuery, differentReturnOrderAllowed: Boolean = false): UnionAll =
+    UnionAll(lhs, rhs)(pos)
 
   def yieldClause(
     returnItems: ReturnItems,

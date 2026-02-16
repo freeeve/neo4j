@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.LocalFunctionDefinition
+import org.neo4j.cypher.internal.ast.LocalProcedureDefinition
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
@@ -25,7 +27,9 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.rewriting.SimpleBaseState
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.StepSequencer
 
 trait BaseState extends SimpleBaseState {
@@ -35,6 +39,7 @@ trait BaseState extends SimpleBaseState {
   def maybeStatement: Option[Statement]
   def maybeReturnColumns: Option[Seq[String]]
   def maybeScopeState: Option[ScopeState]
+  def maybeLocalDefinitions: Option[LocalDefinitionsDirectory]
   def maybeSemantics: Option[SemanticState]
   def maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]]
   def maybeResolvedParams: Option[Set[String]]
@@ -46,6 +51,7 @@ trait BaseState extends SimpleBaseState {
   def semanticsUpToDate: Boolean
 
   def statement(): Statement = maybeStatement getOrElse fail("Statement")
+  def localDefinitions(): LocalDefinitionsDirectory = maybeLocalDefinitions getOrElse fail("Local Callable Definitions")
   def returnColumns(): Seq[String] = maybeReturnColumns getOrElse fail("Return columns")
   def semantics(): SemanticState = maybeSemantics getOrElse fail("Semantics")
   def semanticTable(): SemanticTable = maybeSemanticTable getOrElse fail("Semantic table")
@@ -60,6 +66,7 @@ trait BaseState extends SimpleBaseState {
   def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState
   def withReturnColumns(cols: Seq[String]): BaseState
   def withScopeState(s: ScopeState): BaseState
+  def withLocalDefinitions(localDefinitionsDirectory: LocalDefinitionsDirectory): BaseState
   def withSemanticTable(s: SemanticTable): BaseState
   def withSemanticState(s: SemanticState): BaseState
   def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState
@@ -75,6 +82,7 @@ case class InitialState(
   maybeProcedureSignatureVersion: Option[Long] = None,
   maybeStatement: Option[Statement] = None,
   maybeScopeState: Option[ScopeState] = None,
+  maybeLocalDefinitions: Option[LocalDefinitionsDirectory] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
   maybeResolvedParams: Option[Set[String]] = None,
@@ -91,6 +99,9 @@ case class InitialState(
 
   override def withScopeState(s: ScopeState): InitialState = copy(maybeScopeState = Some(s))
 
+  override def withLocalDefinitions(localDefinitionsDirectory: LocalDefinitionsDirectory): InitialState =
+    copy(maybeLocalDefinitions = Some(localDefinitionsDirectory))
+
   override def withSemanticTable(s: SemanticTable): InitialState = copy(maybeSemanticTable = Some(s))
 
   override def withSemanticState(s: SemanticState): InitialState = copy(maybeSemantics = Some(s))
@@ -106,4 +117,13 @@ case class InitialState(
     copy(maybeProcedureSignatureVersion = signatureVersion)
 
   override def withSemanticsUpToDate(b: Boolean): BaseState = copy(semanticsUpToDate = b)
+}
+
+case class LocalDefinitionsDirectory(
+  localProcedureDefinitions: Map[ProcedureName, LocalProcedureDefinition],
+  localFunctionDefinitions: Map[FunctionName, LocalFunctionDefinition]
+)
+
+object LocalDefinitionsDirectory {
+  val empty: LocalDefinitionsDirectory = LocalDefinitionsDirectory(Map.empty, Map.empty)
 }

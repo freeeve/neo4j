@@ -83,7 +83,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariable
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegClause {
@@ -252,8 +252,8 @@ object pegClause {
                 )
             }
         }
-      // resolved named call
-      case ResolvedCall(signature, callArguments, callResults, _, _, _, _) =>
+      // resolved non-local named call
+      case ResolvedNonLocalCall(signature, callArguments, callResults, _, _, _, _) =>
         val children = callArguments.map(arg => pegExpression(arg, incoming.constantChildContext()))
         val referenced = Some(WorkingScope.referencedInChildren(children))
 

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.LocalDefinitionsDirectory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -36,6 +37,7 @@ case class InputDataStreamTestInitialState(
   initialFields: Map[String, CypherType] = Map.empty,
   maybeProcedureSignatureVersion: Option[Long] = None,
   maybeStatement: Option[ast.Statement] = None,
+  maybeLocalDefinitions: Option[LocalDefinitionsDirectory] = None,
   maybeScopeState: Option[ScopeState] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
@@ -58,6 +60,9 @@ case class InputDataStreamTestInitialState(
   }
 
   override def withScopeState(s: ScopeState): InputDataStreamTestInitialState = copy(maybeScopeState = Some(s))
+
+  override def withLocalDefinitions(localDefinitionsDirectory: LocalDefinitionsDirectory)
+    : InputDataStreamTestInitialState = copy(maybeLocalDefinitions = Some(localDefinitionsDirectory))
 
   override def withSemanticTable(s: SemanticTable): InputDataStreamTestInitialState = copy(maybeSemanticTable = Some(s))
 

@@ -65,8 +65,10 @@ import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransform
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
@@ -149,7 +151,9 @@ object CompilationPhases extends FrontEndCompilationPhases {
 
   // Phase 2
   val prepareForCaching: Transformer[PlannerContext, BaseState, BaseState] =
-    RewriteProcedureCalls andThen
+    ScopeSurveyor andThen
+      ExtractLocalDefinitions andThen
+      RewriteProcedureCalls andThen
       AmbiguousAggregationAnalysis andThen
       ProcedureAndFunctionDeprecationWarnings andThen
       ProcedureWarnings andThen
@@ -174,7 +178,8 @@ object CompilationPhases extends FrontEndCompilationPhases {
 
   // Alternative Phase 3
   def systemPipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
-    SetSemanticsNotUpToDate andThen
+    ScopeSurveyor andThen
+      SetSemanticsNotUpToDate andThen
       RewriteProcedureCalls andThen
       simplifyPredicates andThen
       AdministrationCommandPlanBuilder andThen

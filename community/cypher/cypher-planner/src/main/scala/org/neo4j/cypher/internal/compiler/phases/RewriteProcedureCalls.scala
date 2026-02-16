@@ -34,7 +34,8 @@ case object RewriteProcedureCalls extends Phase[PlannerContext, BaseState, BaseS
 
   override def phase = AST_REWRITE
 
-  override def process(from: BaseState, context: PlannerContext): BaseState = process(from, context.planContext)
+  override def process(from: BaseState, context: PlannerContext): BaseState =
+    process(from, context, context.planContext)
 
   override def postConditions: Set[StepSequencer.Condition] =
     Set(CallInvocationsResolved, FunctionInvocationsResolved)

@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -35,7 +35,7 @@ object QueryRenderer {
   private object clauseExtension extends Prettifier.ClausePrettifier {
 
     override def asString(ctx: Prettifier.QueryPrettifier): PartialFunction[Clause, String] = {
-      case rc: ResolvedCall => ctx.asString(rc.asUnresolvedCall)
+      case rc: ResolvedNonLocalCall => ctx.asString(rc.asUnresolvedCall)
     }
   }
 

@@ -73,8 +73,8 @@ import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.ir.CSVFormat
 import org.neo4j.cypher.internal.ir.CreateCommand
@@ -502,7 +502,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val unresolvedCall = parser.parseProcedureCall(call)
     appendAtCurrentIndent(UnaryOperator(lp => {
       val resolvedCall =
-        ResolvedCall(resolver.procedureSignature)(unresolvedCall)
+        ResolvedNonLocalCall(resolver.procedureSignature)(unresolvedCall)
           .coerceArguments
       val rewrittenResolvedCall =
         if (withFakedFullDeclarations) resolvedCall.withFakedFullDeclarations else resolvedCall
@@ -511,7 +511,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     self
   }
 
-  def procedureCall(call: ResolvedCall): IMPL = {
+  def procedureCall(call: ResolvedNonLocalCall): IMPL = {
     appendAtCurrentIndent(UnaryOperator(lp => {
       ProcedureCall(lp, call)(_)
     }))

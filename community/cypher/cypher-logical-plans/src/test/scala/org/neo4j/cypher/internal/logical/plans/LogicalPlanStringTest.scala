@@ -264,7 +264,7 @@ object LogicalPlanStringTest {
       classOf[plans.CommandLogicalPlan],
       classOf[expressions.RelTypeName],
       classOf[expressions.LabelName],
-      classOf[phases.ResolvedCall],
+      classOf[phases.ResolvedNonLocalCall],
       classOf[plans.PointDistanceRange[_]],
       classOf[plans.PrefixRange[_]],
       classOf[plans.QueryExpression[_]],

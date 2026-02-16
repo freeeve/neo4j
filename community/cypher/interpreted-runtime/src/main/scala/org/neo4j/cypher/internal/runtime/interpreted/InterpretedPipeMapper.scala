@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
@@ -1827,7 +1827,7 @@ case class InterpretedPipeMapper(
       case PartitionedUnwindCollection(_, maybeVariable, collection) =>
         UnwindPipe(source, buildExpression(collection), maybeVariable.map(_.name))(id = id)
 
-      case ProcedureCall(_, call @ ResolvedCall(signature, callArguments, _, _, _, _, _)) =>
+      case ProcedureCall(_, call @ ResolvedNonLocalCall(signature, callArguments, _, _, _, _, _)) =>
         val callMode = ProcedureCallMode.fromAccessMode(signature.accessMode)
         val callArgumentCommands: Array[Expression] = callArguments
           .map(Some(_))

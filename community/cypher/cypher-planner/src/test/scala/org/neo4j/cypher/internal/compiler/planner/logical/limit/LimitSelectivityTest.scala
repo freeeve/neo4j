@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryPagination
@@ -363,7 +363,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val name = procedureName("my", "proc", "foo")
     val signature = ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadWriteAccess, id = 42)
 
-    val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
+    val resolvedCall = ResolvedNonLocalCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 
     // MATCH (n), (m) CALL my.proc.foo() RETURN * LIMIT 10
     new givenConfig {
@@ -399,7 +399,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val signature =
       ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42, eager = true)
 
-    val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
+    val resolvedCall = ResolvedNonLocalCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 
     // MATCH (n), (m) CALL my.proc.foo() RETURN * LIMIT 10
     new givenConfig {
@@ -434,7 +434,7 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
     val name = procedureName("my", "proc", "foo")
     val signature = ProcedureSignature(name, IndexedSeq.empty, None, None, ProcedureReadOnlyAccess, id = 42)
 
-    val resolvedCall = ResolvedCall(signature, Seq.empty, IndexedSeq.empty)(pos)
+    val resolvedCall = ResolvedNonLocalCall(signature, Seq.empty, IndexedSeq.empty)(pos)
 
     // MATCH (n), (m) CALL my.proc.foo() RETURN * LIMIT 10
     new givenConfig {

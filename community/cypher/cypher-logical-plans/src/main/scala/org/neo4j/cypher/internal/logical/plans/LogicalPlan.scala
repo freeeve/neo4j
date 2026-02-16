@@ -42,7 +42,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.CSVFormat
 import org.neo4j.cypher.internal.ir.CreateCommand
 import org.neo4j.cypher.internal.ir.CreateNode
@@ -4292,7 +4292,7 @@ object Prober {
  *   If the procedure returns a stream, produce one row per result in this stream with result appended to the row
  *   If the procedure returns void, produce the source row
  */
-case class ProcedureCall(override val source: LogicalPlan, call: ResolvedCall)(implicit idGen: IdGen)
+case class ProcedureCall(override val source: LogicalPlan, call: ResolvedNonLocalCall)(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) {
 
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)

@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.UpdateClause
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.fabric.util.Folded.FoldableOps
@@ -77,9 +77,9 @@ object QueryType {
     ast.map(of).fold(default)(merge)
 
   def of(ast: CallClause): QueryType = ast match {
-    case _: UnresolvedCall                      => ReadPlusUnresolved
-    case c: ResolvedCall if c.containsNoUpdates => Read
-    case _                                      => Write
+    case _: UnresolvedCall                              => ReadPlusUnresolved
+    case c: ResolvedNonLocalCall if c.containsNoUpdates => Read
+    case _                                              => Write
   }
 
   private def of(ast: CallClause, resolver: ScopedProcedureSignatureResolver): QueryType = ast match {
@@ -88,7 +88,7 @@ object QueryType {
   }
 
   private def tryResolve(unresolved: UnresolvedCall, resolver: ScopedProcedureSignatureResolver): CallClause =
-    Try(ResolvedCall(resolver.procedureSignature)(unresolved)).getOrElse(unresolved)
+    Try(ResolvedNonLocalCall(resolver.procedureSignature)(unresolved)).getOrElse(unresolved)
 
   def recursive(fragment: Fragment): QueryType =
     fragment match {

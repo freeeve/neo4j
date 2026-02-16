@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
@@ -53,10 +53,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val callArguments = IndexedSeq(parameter("a", CTInteger))
     val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -79,10 +79,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val callArguments = Seq(parameter("a", CTInteger))
     val callResults = IndexedSeq.empty
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -105,10 +105,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
     val unresolved = UnresolvedCall(name, None, Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -131,10 +131,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val callResults = IndexedSeq(ProcedureResultItem(v"x")(pos), ProcedureResultItem(v"y")(pos))
     val unresolved = UnresolvedCall(name, Some(callArguments), None, isStandalone = true)(pos)
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -157,10 +157,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val callResults = IndexedSeq.empty
     val unresolved = UnresolvedCall(name, Some(callArguments), None, isStandalone = true)(pos)
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -187,10 +187,10 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
 
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     resolved should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         callArguments,
         callResults,
@@ -211,7 +211,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
       ProcedureReadOnlyAccess,
       id = ID
     )
-    val call = ResolvedCall(signature, null, null, declaredArguments = false, declaredResults = false)(pos)
+    val call = ResolvedNonLocalCall(signature, null, null, declaredArguments = false, declaredResults = false)(pos)
 
     call.withFakedFullDeclarations.declaredArguments should be(true)
     call.withFakedFullDeclarations.declaredResults should be(true)
@@ -229,12 +229,12 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     val coerced = resolved.coerceArguments
 
     coerced should equal(
-      ResolvedCall(
+      ResolvedNonLocalCall(
         signature,
         Seq(coerceTo(parameter("a", CTAny), CTInteger)),
         callResults,
@@ -258,7 +258,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     val toList: List[String] =
       errorTexts(resolved.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)).toList
@@ -283,7 +283,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     errorTexts(resolved.semanticCheck.run(
       SemanticState.clean,
@@ -305,7 +305,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     val result = resolved.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     errorTexts(result) should equal(Seq(
@@ -326,7 +326,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val unresolved =
       UnresolvedCall(name, Some(callArguments), Some(ProcedureResult(callResults)(pos)), isStandalone = true)(pos)
-    val resolved = ResolvedCall(_ => signature)(unresolved)
+    val resolved = ResolvedNonLocalCall(_ => signature)(unresolved)
 
     errorTexts(resolved.semanticCheck.run(
       SemanticState.clean,

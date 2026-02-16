@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AbstractFieldSignature
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CypherType
@@ -77,7 +78,7 @@ object QueryLanguage {
     case CypherVersion.Cypher25 => QueryLanguage.Cypher25
   }
 
-  def toCypherVersion(scope: QueryLanguage) = scope match {
+  def toCypherVersion(scope: QueryLanguage): CypherVersion = scope match {
     case QueryLanguage.Cypher5  => CypherVersion.Cypher5
     case QueryLanguage.Cypher25 => CypherVersion.Cypher25
   }
@@ -90,13 +91,20 @@ object QueryLanguage {
 }
 
 case class FieldSignature(
-  name: String,
+  override val name: String,
   typ: CypherType,
   default: Option[AnyValue] = None,
   deprecated: Boolean = false,
   sensitive: Boolean = false,
   description: String = null
-) {
+) extends AbstractFieldSignature {
+
+  /**
+   * Returns value of `typ`.
+   */
+  lazy val getType: CypherType = typ
+
+  def hasDefault: Boolean = default.nonEmpty
 
   override def toString: String = {
     val nameValue = default.map(d => s"$name  =  ${stringOf(d)}").getOrElse(name)

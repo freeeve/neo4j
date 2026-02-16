@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.LocalDefinitionsDirectory
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttribute
@@ -47,10 +48,10 @@ import org.neo4j.cypher.internal.util.attribution.PartialAttribute
 
 /*
 This is the state that is used during query compilation. It accumulates more and more values as it passes through
-the compiler pipe line, finally ending up containing a logical plan.
+the compiler pipeline, finally ending up containing a logical plan.
 
 Normally, it is created with only the first three params as given, and the rest is built up while passing through
-the pipe line
+the pipeline
  */
 case class LogicalPlanState(
   queryText: String,
@@ -60,6 +61,7 @@ case class LogicalPlanState(
   maybeProcedureSignatureVersion: Option[Long] = None,
   maybeStatement: Option[Statement] = None,
   maybeScopeState: Option[ScopeState] = None,
+  maybeLocalDefinitions: Option[LocalDefinitionsDirectory] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
   maybeResolvedParams: Option[Set[String]] = None,
@@ -102,6 +104,9 @@ case class LogicalPlanState(
   override def withStatement(s: Statement): LogicalPlanState = copy(maybeStatement = Some(s))
   override def withReturnColumns(cols: Seq[String]): LogicalPlanState = copy(maybeReturnColumns = Some(cols))
   override def withScopeState(s: ScopeState): LogicalPlanState = copy(maybeScopeState = Some(s))
+
+  override def withLocalDefinitions(localDefinitionsDirectory: LocalDefinitionsDirectory): LogicalPlanState =
+    copy(maybeLocalDefinitions = Some(localDefinitionsDirectory))
   override def withSemanticTable(s: SemanticTable): LogicalPlanState = copy(maybeSemanticTable = Some(s))
   override def withSemanticState(s: SemanticState): LogicalPlanState = copy(maybeSemantics = Some(s))
 

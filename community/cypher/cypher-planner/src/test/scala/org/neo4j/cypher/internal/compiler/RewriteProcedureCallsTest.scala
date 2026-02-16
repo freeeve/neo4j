@@ -30,13 +30,17 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
+import org.neo4j.cypher.internal.frontend.helpers.TestContext
+import org.neo4j.cypher.internal.frontend.helpers.TestState
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.InstrumentedProcedureSignatureResolver
+import org.neo4j.cypher.internal.frontend.phases.LocalDefinitionsDirectory
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.TryRewriteProcedureCalls
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.util.FunctionName
@@ -69,7 +73,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
 
     val expected = SingleQuery(
       Seq(
-        ResolvedCall(resolver.procedureSignature)(unresolved).coerceArguments.withFakedFullDeclarations,
+        ResolvedNonLocalCall(resolver.procedureSignature)(unresolved).coerceArguments.withFakedFullDeclarations,
         Return(
           distinct = false,
           ReturnItems(
@@ -100,7 +104,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
     val rewrittenTry = tryRewriteProcedureCalls(resolver, original)
 
     val expected =
-      SingleQuery(Seq(headClause, ResolvedCall(resolver.procedureSignature)(unresolved).coerceArguments))(pos)
+      SingleQuery(Seq(headClause, ResolvedNonLocalCall(resolver.procedureSignature)(unresolved).coerceArguments))(pos)
 
     rewritten should equal(expected)
     rewrittenTry should equal(expected)
@@ -138,7 +142,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
     val rewritten = rewriteProcedureCalls(resolver, original)
     val rewrittenTry = tryRewriteProcedureCalls(resolver, original)
 
-    val resolved = ResolvedCall(procLookupNoOutput)(unresolved).coerceArguments.withFakedFullDeclarations
+    val resolved = ResolvedNonLocalCall(procLookupNoOutput)(unresolved).coerceArguments.withFakedFullDeclarations
     val expected = SingleQuery(Seq(resolved))(pos)
 
     rewritten should equal(expected)
@@ -187,12 +191,18 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
       funcSignatureLookup
     ))
 
+  private val context = TestContext()
+
   def rewriteProcedureCalls(
     resolver: InstrumentedProcedureSignatureResolver,
     original: Query
   ): Query = {
+    val from = TestState(
+      Some(original),
+      maybeLocalDefinitions = Some(LocalDefinitionsDirectory.empty)
+    )
     original.endoRewrite(
-      RewriteProcedureCalls.rewriter(resolver)
+      RewriteProcedureCalls.rewriter(ScopeSurveyor.process(from, context), context, resolver)
     )
   }
 
@@ -200,8 +210,12 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
     resolver: InstrumentedProcedureSignatureResolver,
     original: Query
   ): Query = {
+    val from = TestState(
+      Some(original),
+      maybeLocalDefinitions = Some(LocalDefinitionsDirectory.empty)
+    )
     original.endoRewrite(
-      TryRewriteProcedureCalls(resolver).rewriter
+      TryRewriteProcedureCalls(resolver).rewriter(ScopeSurveyor.process(from, context), context)
     )
   }
 }

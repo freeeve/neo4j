@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.ir.NoHeaders
@@ -1008,7 +1008,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         slots.newReference(variableName, nullable, CTMap)
         slots.newMetaData(LOAD_CSV_METADATA_KEY)
 
-      case ProcedureCall(_, ResolvedCall(_, _, callResults, _, _, _, _)) =>
+      case ProcedureCall(_, ResolvedNonLocalCall(_, _, callResults, _, _, _, _)) =>
         callResults.foreach {
           case ProcedureResultItem(_, variable) =>
             slots.newReference(variable.name, true, CTAny)

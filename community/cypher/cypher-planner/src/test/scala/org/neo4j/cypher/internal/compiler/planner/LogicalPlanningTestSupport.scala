@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
@@ -570,6 +571,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       ExpandClauses andThen
       SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting() andThen
+      ExtractLocalDefinitions andThen
       RewriteProcedureCalls andThen
       SemanticAnalysis(warn = Some(true)) andThen
       Namespacer andThen

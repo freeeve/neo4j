@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
@@ -736,7 +736,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       id = 0
     )
     shouldEliminateProvidedOrder(ctx =>
-      ctx.producer.planProcedureCall(ctx.lhs, ResolvedCall(writer, Seq(), IndexedSeq())(pos), ctx.context)
+      ctx.producer.planProcedureCall(ctx.lhs, ResolvedNonLocalCall(writer, Seq(), IndexedSeq())(pos), ctx.context)
     )
   }
 
@@ -751,7 +751,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
     )
 
     shouldRetainProvidedOrder(ctx =>
-      ctx.producer.planProcedureCall(ctx.lhs, ResolvedCall(reader, Seq(), IndexedSeq())(pos), ctx.context)
+      ctx.producer.planProcedureCall(ctx.lhs, ResolvedNonLocalCall(reader, Seq(), IndexedSeq())(pos), ctx.context)
     )
   }
 
@@ -2449,7 +2449,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
     shouldResetCachedPropertiesToEmpty((ctx: PlanCreationContext) =>
       ctx.producer.planProcedureCall(
         ctx.lhs,
-        ResolvedCall(
+        ResolvedNonLocalCall(
           signature = ProcedureSignature(
             name = procedureName("foo"),
             inputSignature = IndexedSeq.empty,
@@ -2470,7 +2470,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
     shouldUseCachedPropertiesFromLHS((ctx: PlanCreationContext) =>
       ctx.producer.planProcedureCall(
         ctx.lhs,
-        ResolvedCall(
+        ResolvedNonLocalCall(
           signature = ProcedureSignature(
             name = procedureName("foo"),
             inputSignature = IndexedSeq.empty,

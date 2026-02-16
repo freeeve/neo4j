@@ -88,7 +88,7 @@ import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CommandProjection
 import org.neo4j.cypher.internal.ir.CreateCommand
@@ -170,18 +170,18 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
     cancellationChecker: CancellationChecker,
     position: QueryProjection.Position
   ): PlannerQueryBuilder = clause match {
-    case _: Finish          => acc
-    case c: Return          => addReturnToLogicalPlanInput(acc, c, position)
-    case c: Match           => addMatchToLogicalPlanInput(acc, c, anonymousVariableNameGenerator)
-    case c: With            => addWithToLogicalPlanInput(acc, c, nextClause)
-    case c: Unwind          => addUnwindToLogicalPlanInput(acc, c)
-    case c: ResolvedCall    => addCallToLogicalPlanInput(acc, c)
-    case c: CreateOrInsert  => addCreateToLogicalPlanInput(acc, c)
-    case c: SetClause       => addSetClauseToLogicalPlanInput(acc, c)
-    case c: Delete          => addDeleteToLogicalPlanInput(acc, c)
-    case c: Remove          => addRemoveToLogicalPlanInput(acc, c)
-    case c: Merge           => addMergeToLogicalPlanInput(acc, c)
-    case c: LoadCSV         => addLoadCSVToLogicalPlanInput(acc, c)
+    case _: Finish               => acc
+    case c: Return               => addReturnToLogicalPlanInput(acc, c, position)
+    case c: Match                => addMatchToLogicalPlanInput(acc, c, anonymousVariableNameGenerator)
+    case c: With                 => addWithToLogicalPlanInput(acc, c, nextClause)
+    case c: Unwind               => addUnwindToLogicalPlanInput(acc, c)
+    case c: ResolvedNonLocalCall => addCallToLogicalPlanInput(acc, c)
+    case c: CreateOrInsert       => addCreateToLogicalPlanInput(acc, c)
+    case c: SetClause            => addSetClauseToLogicalPlanInput(acc, c)
+    case c: Delete               => addDeleteToLogicalPlanInput(acc, c)
+    case c: Remove               => addRemoveToLogicalPlanInput(acc, c)
+    case c: Merge                => addMergeToLogicalPlanInput(acc, c)
+    case c: LoadCSV              => addLoadCSVToLogicalPlanInput(acc, c)
     case c: Foreach         => addForeachToLogicalPlanInput(acc, c, anonymousVariableNameGenerator, cancellationChecker)
     case c: InputDataStream => addInputDataStreamToLogicalPlanInput(acc, c)
     case c: SubqueryCall =>
@@ -1015,7 +1015,10 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
       )
     ).withTail(builder.emptySinglePlannerQuery)
 
-  private def addCallToLogicalPlanInput(builder: PlannerQueryBuilder, call: ResolvedCall): PlannerQueryBuilder = {
+  private def addCallToLogicalPlanInput(
+    builder: PlannerQueryBuilder,
+    call: ResolvedNonLocalCall
+  ): PlannerQueryBuilder = {
     builder
       .withHorizon(ProcedureCallProjection(call))
       .withTail(builder.emptySinglePlannerQuery)

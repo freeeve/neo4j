@@ -149,11 +149,25 @@ case class LocalFunctionDefinition(
   }
 }
 
+trait AbstractFieldSignature {
+  def name: String
+  def getType: CypherType
+  def hasDefault: Boolean
+}
+
 case class LocalFieldSignature(
-  name: String,
+  override val name: String,
   typ: Option[CypherType],
   default: Option[Expression] = None
-)(val position: InputPosition) extends ASTNode {}
+)(val position: InputPosition) extends ASTNode with AbstractFieldSignature {
+
+  /**
+   * Returns value of `typ` if non-empty, otherwise ctAny.
+   */
+  lazy val getType: CypherType = typ.getOrElse(CTAny)
+
+  def hasDefault: Boolean = default.nonEmpty
+}
 
 sealed trait LocalFunctionBody extends ASTNode
 

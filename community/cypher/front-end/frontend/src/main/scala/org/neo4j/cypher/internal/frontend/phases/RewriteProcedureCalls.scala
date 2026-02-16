@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnresolvedCall
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
@@ -37,9 +38,9 @@ import scala.util.Try
 
 trait RewriteProcedureCalls {
 
-  def process(from: BaseState, resolver: ScopedProcedureSignatureResolver): BaseState = {
+  def process(from: BaseState, context: BaseContext, resolver: ScopedProcedureSignatureResolver): BaseState = {
     val instrumentedResolver = new InstrumentedProcedureSignatureResolver(resolver)
-    val rewrittenStatement = from.statement().endoRewrite(rewriter(instrumentedResolver))
+    val rewrittenStatement = from.statement().endoRewrite(rewriter(from, context, instrumentedResolver))
 
     from.withStatement(rewrittenStatement)
       // normalizeWithAndReturnClauses aliases return columns, but only now do we have return columns for procedure calls
@@ -48,22 +49,48 @@ trait RewriteProcedureCalls {
       .withProcedureSignatureVersion(instrumentedResolver.signatureVersionIfResolved)
   }
 
-  def rewriter(resolver: ScopedProcedureSignatureResolver): Rewriter =
-    resolverProcedureCall(resolver) andThen fakeStandaloneCallDeclarations
+  def rewriter(from: BaseState, context: BaseContext, resolver: ScopedProcedureSignatureResolver): Rewriter =
+    resolverProcedureCall(from, context, resolver) andThen fakeStandaloneCallDeclarations
 
   // rewriter that amends unresolved procedure calls with procedure signature information
-  private def resolverProcedureCall(resolver: ScopedProcedureSignatureResolver): Rewriter =
+  private def resolverProcedureCall(
+    from: BaseState,
+    context: BaseContext,
+    resolver: ScopedProcedureSignatureResolver
+  ): Rewriter =
     bottomUp(Rewriter.lift {
       case unresolved: UnresolvedCall =>
-        resolveProcedure(resolver, unresolved)
+        resolveProcedure(from, context, resolver, unresolved)
 
       case function: FunctionInvocation
         if function.scopedNeedsToBeResolved(QueryLanguage.toCypherVersion(resolver.queryLanguage)) =>
         resolveFunction(resolver, function)
     })
 
-  def resolveProcedure(resolver: ScopedProcedureSignatureResolver, unresolved: UnresolvedCall): CallClause = {
-    val resolved = ResolvedCall(resolver.procedureSignature)(unresolved)
+  def resolveProcedure(
+    from: BaseState,
+    context: BaseContext,
+    resolver: ScopedProcedureSignatureResolver,
+    unresolved: UnresolvedCall
+  ): CallClause = {
+    // try resolve to local procedure
+    val procedureName = unresolved.procedureName
+    val definitions = from.localDefinitions().localProcedureDefinitions
+    val locallyResolved = {
+      if (context.semanticFeatures contains LocalCallables)
+        from.scopeState().recordedScopes(unresolved).incoming.localCallables.collectFirst(Function.unlift {
+          case sig if sig.name.fullNameEqual(procedureName) =>
+            definitions.get(procedureName).map(definition =>
+              ResolvedLocalCall(unresolved, definition)
+            )
+          case _ => None
+        })
+      else None
+    }
+    val resolved = locallyResolved.getOrElse(
+      // otherwise resolve to non-local procedure
+      ResolvedNonLocalCall(resolver.procedureSignature)(unresolved)
+    )
     // We coerce here to ensure that the semantic check run after this rewriter assigns a type
     // to the coercion expressions
     val coerced = resolved.coerceArguments
@@ -85,16 +112,16 @@ trait RewriteProcedureCalls {
   // This rewriter rewrites standalone calls in simplified syntax to calls in standard
   // syntax to prevent them from being rejected during semantic checking.
   private val fakeStandaloneCallDeclarations = Rewriter.lift {
-    case q @ SingleQuery(Seq(resolved: ResolvedCall)) =>
+    case q @ SingleQuery(Seq(resolved: ResolvedNonLocalCall)) =>
       val (newResolved, projection) = getResolvedAndProjection(resolved)
       q.copy(clauses = newResolved +: projection.toSeq)(q.position)
 
-    case q @ SingleQuery(Seq(graph: GraphSelection, resolved: ResolvedCall)) =>
+    case q @ SingleQuery(Seq(graph: GraphSelection, resolved: ResolvedNonLocalCall)) =>
       val (newResolved, projection) = getResolvedAndProjection(resolved)
       q.copy(clauses = Seq(graph, newResolved) ++ projection)(q.position)
   }
 
-  private def getResolvedAndProjection(resolved: ResolvedCall): (ResolvedCall, Option[Return]) = {
+  private def getResolvedAndProjection(resolved: ResolvedNonLocalCall): (ResolvedNonLocalCall, Option[Return]) = {
     val newResolved = resolved.withFakedFullDeclarations
 
     // Add the equivalent of a return for each item yielded by the procedure
@@ -128,12 +155,17 @@ case class TryRewriteProcedureCalls(resolver: ScopedProcedureSignatureResolver)
 
   override def phase = AST_REWRITE
 
-  override def process(from: BaseState, context: BaseContext): BaseState = process(from, resolver)
+  override def process(from: BaseState, context: BaseContext): BaseState = process(from, context, resolver)
 
   override def postConditions: Set[StepSequencer.Condition] = Set()
 
-  override def resolveProcedure(resolver: ScopedProcedureSignatureResolver, unresolved: UnresolvedCall): CallClause =
-    Try(super.resolveProcedure(resolver, unresolved)).getOrElse(unresolved)
+  override def resolveProcedure(
+    from: BaseState,
+    context: BaseContext,
+    resolver: ScopedProcedureSignatureResolver,
+    unresolved: UnresolvedCall
+  ): CallClause =
+    Try(super.resolveProcedure(from, context, resolver, unresolved)).getOrElse(unresolved)
 
   override def resolveFunction(
     resolver: ScopedProcedureSignatureResolver,
@@ -145,7 +177,7 @@ case class TryRewriteProcedureCalls(resolver: ScopedProcedureSignatureResolver)
     }
   }
 
-  val rewriter: Rewriter = rewriter(resolver)
+  def rewriter(from: BaseState, context: BaseContext): Rewriter = rewriter(from, context, resolver)
 }
 
 class InstrumentedProcedureSignatureResolver(resolver: ScopedProcedureSignatureResolver)

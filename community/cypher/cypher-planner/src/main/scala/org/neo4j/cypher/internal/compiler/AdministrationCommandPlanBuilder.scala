@@ -174,7 +174,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.PIPE_BUILDING
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.AssertRoleCanBeDropped
 import org.neo4j.cypher.internal.logical.plans.AssertRoleCanBeRenamed
@@ -310,7 +310,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
     def planSystemProcedureCall(
       language: CypherVersion,
-      resolved: ResolvedCall,
+      resolved: ResolvedNonLocalCall,
       returns: Option[Return]
     ): plans.LogicalPlan = {
       val semanticContext = SemanticCheckContext(language, EmptyErrorMessageProvider)
@@ -1819,7 +1819,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       // Global call: CALL foo.bar.baz("arg1", 2) // only if system procedure is allowed!
       case q @ SingleQuery(Seq(
-          resolved @ ResolvedCall(signature, _, _, _, _, _, _),
+          resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _),
           returns @ Return(_, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
         blockSubqueries(q)
@@ -1827,20 +1827,21 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       case q @ SingleQuery(Seq(
           UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
-          resolved @ ResolvedCall(signature, _, _, _, _, _, _),
+          resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _),
           returns @ Return(_, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
         blockSubqueries(q)
         Some(planSystemProcedureCall(context.cypherVersion, resolved, Some(returns)))
 
-      case q @ SingleQuery(Seq(resolved @ ResolvedCall(signature, _, _, _, _, _, _))) if signature.systemProcedure =>
+      case q @ SingleQuery(Seq(resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _)))
+        if signature.systemProcedure =>
         blockSubqueries(q)
         Some(planSystemProcedureCall(context.cypherVersion, resolved, None))
 
       case q @ SingleQuery(
           Seq(
             UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
-            resolved @ ResolvedCall(signature, _, _, _, _, _, _)
+            resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _)
           )
         ) if signature.systemProcedure =>
         blockSubqueries(q)

@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.util.Foldable
@@ -460,5 +460,5 @@ case class CommandProjection(clause: CommandClause) extends QueryHorizon {
 }
 
 abstract class AbstractProcedureCallProjection extends QueryHorizon {
-  val call: ResolvedCall
+  val call: ResolvedNonLocalCall
 }

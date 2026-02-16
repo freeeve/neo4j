@@ -24,11 +24,16 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.LocalDefinitionsDirectory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 
 //noinspection TypeAnnotation
-case class TestState(override val maybeStatement: Option[ast.Statement]) extends BaseState {
+case class TestState(
+  override val maybeStatement: Option[ast.Statement],
+  override val maybeScopeState: Option[ScopeState] = None,
+  override val maybeLocalDefinitions: Option[LocalDefinitionsDirectory] = None
+) extends BaseState {
   override def queryText: String = statement().toString
 
   override object plannerName extends PlannerName {
@@ -42,8 +47,6 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
   override def maybeReturnColumns: Option[Seq[String]] = None
 
   override def maybeProcedureSignatureVersion: Option[Long] = None
-
-  override def maybeScopeState: Option[ScopeState] = None
 
   override def maybeSemantics = None
 
@@ -59,24 +62,28 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
 
   override def semanticsUpToDate: Boolean = true
 
-  override def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState = fail("not implemented")
-  override def withStatement(s: ast.Statement) = copy(Some(s))
+  override def withProcedureSignatureVersion(signatureVersion: Option[Long]): TestState = fail("not implemented")
 
-  override def withReturnColumns(cols: Seq[String]): BaseState = fail("not implemented")
+  override def withStatement(s: ast.Statement): TestState = copy(maybeStatement = Some(s))
 
-  override def withScopeState(s: ScopeState): BaseState = fail("not implemented")
+  override def withReturnColumns(cols: Seq[String]): TestState = fail("not implemented")
 
-  override def withSemanticTable(s: SemanticTable) = fail("not implemented")
+  override def withScopeState(s: ScopeState): TestState = copy(maybeScopeState = Some(s))
 
-  override def withSemanticState(s: SemanticState) = fail("not implemented")
+  override def withLocalDefinitions(localDefinitionsDirectory: LocalDefinitionsDirectory): TestState =
+    copy(maybeLocalDefinitions = Some(localDefinitionsDirectory))
 
-  override def withParams(p: Map[AutoExtractedParameter, Expression]) = fail("not implemented")
+  override def withSemanticTable(s: SemanticTable): TestState = fail("not implemented")
 
-  override def withResolvedParams(p: Set[String]) = fail("not implemented")
+  override def withSemanticState(s: SemanticState): TestState = fail("not implemented")
 
-  override def withObfuscationMetadata(o: ObfuscationMetadata) = fail("not implemented")
+  override def withParams(p: Map[AutoExtractedParameter, Expression]): TestState = fail("not implemented")
+
+  override def withResolvedParams(p: Set[String]): TestState = fail("not implemented")
+
+  override def withObfuscationMetadata(o: ObfuscationMetadata): TestState = fail("not implemented")
 
   override val anonymousVariableNameGenerator: AnonymousVariableNameGenerator = new AnonymousVariableNameGenerator()
 
-  override def withSemanticsUpToDate(b: Boolean): BaseState = fail("not implemented")
+  override def withSemanticsUpToDate(b: Boolean): TestState = fail("not implemented")
 }

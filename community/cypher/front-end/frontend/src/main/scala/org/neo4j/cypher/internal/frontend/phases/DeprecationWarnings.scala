@@ -45,7 +45,7 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
 
   private def findDeprecations(statement: Statement): Set[InternalNotification] =
     statement.folder.treeFold(Set.empty[InternalNotification]) {
-      case f @ ResolvedCall(
+      case f @ ResolvedNonLocalCall(
           ProcedureSignature(name, inputFields, maybeOutput, maybeDeprecatedInfo, _, _, _, _, _, _, _, _),
           _,
           results,
@@ -129,7 +129,7 @@ case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
 
   private def findWarnings(statement: Statement): Set[InternalNotification] =
     statement.folder.treeFold(Set.empty[InternalNotification]) {
-      case f @ ResolvedCall(
+      case f @ ResolvedNonLocalCall(
           ProcedureSignature(name, _, _, _, _, _, maybeWarning, _, _, _, _, _),
           _,
           result,

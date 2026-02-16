@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSynta
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandNext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LiteralExtraction
@@ -118,7 +119,8 @@ trait FrontEndCompilationPhases {
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
         IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))
       ) andThen
-      SemanticAnalysis.ifSemanticsNotUpToDate(warn = Some(false))
+      SemanticAnalysis.ifSemanticsNotUpToDate(warn = Some(false)) andThen
+      ExtractLocalDefinitions
   }
 
   // Phase 1

@@ -40,6 +40,9 @@ sealed trait CallableName extends SymbolicName {
   def fullName: String = namespace.parts.map(_ + ".").mkString("", "", name)
 
   def fullNameEqual(that: CallableName): Boolean = name == that.name && namespace == that.namespace
+
+  def fullNameCaseInsensitiveEqual(that: CallableName): Boolean =
+    name.equalsIgnoreCase(that.name) && namespace.equalsIgnoreCase(that.namespace)
 }
 
 object CallableName {
