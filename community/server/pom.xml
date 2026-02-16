@@ -28,6 +28,18 @@
         <url>https://github.com/neo4j/neo4j</url>
     </scm>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.neo4j</groupId>
+                <artifactId>arrow-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.neo4j</groupId>
@@ -139,14 +151,6 @@
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>arrow-bom</artifactId>
-            <version>${project.version}</version>
-            <type>pom</type>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
