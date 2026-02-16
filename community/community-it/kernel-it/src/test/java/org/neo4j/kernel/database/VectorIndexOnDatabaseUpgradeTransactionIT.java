@@ -256,7 +256,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
             final KernelVersion introducedKernelVersion =
                     VectorIndexConfigUtils.INDEX_SETTING_INTRODUCED_VERSIONS.get(setting);
             final VectorIndexVersion version = VectorIndexVersion.latestSupportedVersion(introducedKernelVersion);
-            for (final EntityType entityType : EntityType.values()) {
+            for (final EntityType entityType : EntityType.ENTITY_TYPES) {
                 arguments.accept(Arguments.of(version, entityType, setting, validValue));
             }
         }
@@ -333,7 +333,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
         final VectorIndexVersion minimumVersion =
                 VectorIndexVersion.latestSupportedVersion(KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
         for (final VectorIndexVersion version : VectorTestUtils.inclusiveVersionRangeFrom(minimumVersion)) {
-            for (final EntityType entityType : EntityType.values()) {
+            for (final EntityType entityType : EntityType.ENTITY_TYPES) {
                 arguments.accept(Arguments.of(version, entityType));
             }
         }

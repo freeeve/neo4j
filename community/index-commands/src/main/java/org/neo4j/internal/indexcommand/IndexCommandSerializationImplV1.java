@@ -23,6 +23,7 @@ import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.readN
 import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.writeNumber;
 
 import java.io.IOException;
+import org.neo4j.common.EntityType;
 import org.neo4j.internal.indexcommand.encode.PeekableChannel;
 import org.neo4j.internal.indexcommand.encode.ValueStream;
 import org.neo4j.io.fs.ReadableChannel;
@@ -133,6 +134,7 @@ public class IndexCommandSerializationImplV1 implements IndexCommandSerializatio
     }
 
     private static void writeTokenPart(WritableChannel out, TokenIndexUpdateCommand command) throws IOException {
+        writeNumber(out, command.getEntityType().ordinal());
         switch (command.getUpdateMode()) {
             case ADDED, REMOVED -> writeTokenArray(out, command.getAfter());
             case CHANGED -> {
@@ -149,11 +151,12 @@ public class IndexCommandSerializationImplV1 implements IndexCommandSerializatio
             long indexId,
             long entityId)
             throws IOException {
+        EntityType type = EntityType.of((byte) readNumber(in));
         return switch (updateMode) {
             case CHANGED -> {
                 int[] before = readTokenArray(in);
                 int[] values = readTokenArray(in);
-                yield new TokenIndexUpdateCommand(serialization, indexId, entityId, before, values);
+                yield new TokenIndexUpdateCommand(serialization, indexId, entityId, before, values, type);
             }
             case ADDED, REMOVED ->
                 throw new IllegalArgumentException("TokenIndexUpdateCommand can only have update mode CHANGED");

@@ -71,7 +71,8 @@ public class IndexRecordState implements RecordState, IndexUpdatesState {
                         update.indexKey().getId(),
                         update.getEntityId(),
                         update.removed(),
-                        update.added()));
+                        update.added(),
+                        update.indexKey().schema().entityType()));
             }
 
             tokenIndexIndexCommands.sort(IndexComamdComparator.INDEX_COMMANDS_COMPARATOR);

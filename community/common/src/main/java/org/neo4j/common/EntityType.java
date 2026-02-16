@@ -24,12 +24,13 @@ package org.neo4j.common;
  * associated with them, as well as labeled with additional type information. Nodes have labels, and relationships
  * have relationship types.
  * <p>
- * NOTE: The ordinal is used in the hash function for the auto-generated SchemaRule names, so avoid changing the ordinals when modifying this enum.
+ * NOTE: do not changing the id when modifying this enum.
  */
 public enum EntityType {
     NODE((byte) 0),
     RELATIONSHIP((byte) 1);
 
+    public static final EntityType[] ENTITY_TYPES = EntityType.values();
     private final byte id;
 
     EntityType(byte id) {
@@ -38,5 +39,14 @@ public enum EntityType {
 
     public byte id() {
         return id;
+    }
+
+    public static EntityType of(byte id) {
+        for (EntityType type : ENTITY_TYPES) {
+            if (type.id == id) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("No such entity type: " + id);
     }
 }

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.common.EntityType;
 import org.neo4j.internal.indexcommand.TokenIndexUpdateCommand;
 import org.neo4j.internal.indexcommand.ValueIndexUpdateCommand;
 import org.neo4j.internal.recordstorage.Command.NodeCountsCommand;
@@ -136,9 +137,9 @@ class LogTruncationTest {
         // CDC - empty permutation as the read/write behaviour is different for enrichment commands
         permutations.put(Command.RecordEnrichmentCommand.class, new Command[0]);
 
-        permutations.put(
-                TokenIndexUpdateCommand.class,
-                new StorageCommand[] {new TokenIndexUpdateCommand(serialization, 1, 2, new int[] {1}, new int[] {2})});
+        permutations.put(TokenIndexUpdateCommand.class, new StorageCommand[] {
+            new TokenIndexUpdateCommand(serialization, 1, 2, new int[] {1}, new int[] {2}, EntityType.NODE)
+        });
         permutations.put(ValueIndexUpdateCommand.class, new StorageCommand[] {
             new ValueIndexUpdateCommand(
                     serialization, UpdateMode.CHANGED, 1, 2, new Value[] {Values.intValue(5)}, new Value[] {

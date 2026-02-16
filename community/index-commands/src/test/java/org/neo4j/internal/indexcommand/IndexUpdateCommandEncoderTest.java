@@ -27,6 +27,7 @@ import static org.neo4j.values.storable.Values.longValue;
 import java.io.IOException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
+import org.neo4j.common.EntityType;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
@@ -58,7 +59,12 @@ class IndexUpdateCommandEncoderTest {
     @Test
     void packTokensAdd() throws IOException {
         var command = new TokenIndexUpdateCommand(
-                serialization, 123, 3456789, ArrayUtils.EMPTY_INT_ARRAY, new int[] {1, 22, 333});
+                serialization,
+                123,
+                3456789,
+                ArrayUtils.EMPTY_INT_ARRAY,
+                new int[] {1, 22, 333},
+                EntityType.RELATIONSHIP);
         SERIALIZATION_UNDER_TEST.writeCommand(channel, command);
         var readCommand = SERIALIZATION_UNDER_TEST.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
@@ -66,8 +72,8 @@ class IndexUpdateCommandEncoderTest {
 
     @Test
     void packTokensChange() throws IOException {
-        var command =
-                new TokenIndexUpdateCommand(serialization, 123, 3456789, new int[] {12345}, new int[] {1, 22, 333});
+        var command = new TokenIndexUpdateCommand(
+                serialization, 123, 3456789, new int[] {12345}, new int[] {1, 22, 333}, EntityType.NODE);
         SERIALIZATION_UNDER_TEST.writeCommand(channel, command);
         var readCommand = SERIALIZATION_UNDER_TEST.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
@@ -76,7 +82,12 @@ class IndexUpdateCommandEncoderTest {
     @Test
     void packTokensRemove() throws IOException {
         var command = new TokenIndexUpdateCommand(
-                serialization, 123, 3456789, ArrayUtils.EMPTY_INT_ARRAY, new int[] {1, 22, 333});
+                serialization,
+                123,
+                3456789,
+                ArrayUtils.EMPTY_INT_ARRAY,
+                new int[] {1, 22, 333},
+                EntityType.RELATIONSHIP);
         SERIALIZATION_UNDER_TEST.writeCommand(channel, command);
         var readCommand = SERIALIZATION_UNDER_TEST.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);

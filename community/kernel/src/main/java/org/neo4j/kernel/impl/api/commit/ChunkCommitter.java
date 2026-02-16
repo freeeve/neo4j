@@ -179,10 +179,10 @@ public final class ChunkCommitter implements TransactionCommitter {
                     transactionWriteEvent.chunkAppended(
                             chunkNumber, ktx.getTransactionSequenceNumber(), transactionPayload.transactionId());
                 } catch (TransactionConflictException tce) {
-                    long txId = transactionPayload != null ? transactionPayload.transactionId() : UNKNOWN_TX_ID;
-                    validationLockDumper.dumpLocks(lockClient, chunkNumber, txId, memoryTracker);
+                    dumpLocks(lockClient, memoryTracker);
                     throw tce;
                 } catch (Exception e) {
+                    dumpLocks(lockClient, memoryTracker);
                     log.debug("Transaction chunk commit failure.", e);
                     throw e;
                 }
@@ -193,6 +193,11 @@ public final class ChunkCommitter implements TransactionCommitter {
         } finally {
             lockClient.reset();
         }
+    }
+
+    private void dumpLocks(LockManager.Client lockClient, MemoryTracker memoryTracker) {
+        long txId = transactionPayload != null ? transactionPayload.transactionId() : UNKNOWN_TX_ID;
+        validationLockDumper.dumpLocks(lockClient, chunkNumber, txId, memoryTracker);
     }
 
     @Override
