@@ -41,6 +41,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.cypher.internal.frontend.notification.InternalNotificationStats;
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.graphdb.event.DatabaseEventContext;
 import org.neo4j.graphdb.event.DatabaseEventListener;
 import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
@@ -283,6 +284,9 @@ public class GlobalModule {
 
         connectorPortRegister = new ConnectorPortRegister();
         globalDependencies.satisfyDependency(connectorPortRegister);
+
+        var fleetManagerState = new State();
+        globalDependencies.satisfyDependency(fleetManagerState);
 
         capabilitiesService = loadCapabilities();
         globalDependencies.satisfyDependency(capabilitiesService);

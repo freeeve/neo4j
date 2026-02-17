@@ -26,7 +26,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.identity.ServerIdentity;
-import org.neo4j.exceptions.KernelException;
 import org.neo4j.fleetmanagement.FleetManagementSettings;
 import org.neo4j.fleetmanagement.communication.ConfigService;
 import org.neo4j.fleetmanagement.communication.ConnectService;
@@ -37,14 +36,11 @@ import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
 import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
-import org.neo4j.fleetmanagement.procedures.DebugLogging;
-import org.neo4j.fleetmanagement.procedures.Documentation;
 import org.neo4j.fleetmanagement.procedures.MetricNamesSupplier;
 import org.neo4j.fleetmanagement.procedures.Neo4jConfigNamesSupplier;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -62,11 +58,11 @@ public class FleetManagement extends LifecycleAdapter {
     public FleetManagement(
             LogService logService,
             DatabaseManagementService databaseManagementService,
-            GlobalProcedures globalProcedures,
             Config config,
             DbmsInfo dbmsInfo,
             FileSystemAbstraction fs,
-            ServerIdentity serverIdentity) {
+            ServerIdentity serverIdentity,
+            State state) {
 
         if (!config.get(FleetManagementSettings.fleet_manager_enabled)) {
             // Stop immediately if disabled
@@ -77,7 +73,7 @@ public class FleetManagement extends LifecycleAdapter {
             var neo4jLog = logService.getUserLog(FleetManagement.class);
             Logger.initLogger(neo4jLog);
             this.log = Logger.getNeo4jLogger();
-            this.state = new State();
+            this.state = state;
             this.configuration = new Configuration();
             MetricNamesSupplier.setConfiguration(this.configuration);
             Neo4jConfigNamesSupplier.setConfiguration(this.configuration);
@@ -86,9 +82,6 @@ public class FleetManagement extends LifecycleAdapter {
                             ITransactor.class, DbmsInfo.class, ServerIdentity.class, State.class)
                     .newInstance(dbmsInfo, serverIdentity, this.state);
             this.transactor.init(databaseManagementService);
-            globalProcedures.registerComponent(ITransactor.class, ctx -> this.transactor, true);
-            globalProcedures.registerComponent(State.class, ctx -> this.state, true);
-            globalProcedures.registerComponent(Configuration.class, ctx -> this.configuration, true);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -126,14 +119,6 @@ public class FleetManagement extends LifecycleAdapter {
                 pingService,
                 this.state,
                 this.configuration);
-
-        try {
-            globalProcedures.registerProcedure(org.neo4j.fleetmanagement.procedures.Configuration.class);
-            globalProcedures.registerProcedure(DebugLogging.class);
-            globalProcedures.registerProcedure(Documentation.class);
-        } catch (KernelException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override

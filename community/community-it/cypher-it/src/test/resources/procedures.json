@@ -4093,6 +4093,293 @@
     "cypherVersionScope": [5]
   },
   {
+    "name": "fleetManagement.debugLogging",
+    "description": "Enable debug or payload logging for fleet manager.",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.debugLogging(debugLoggingEnabled :: BOOLEAN, payloadLoggingEnabled :: BOOLEAN) :: (result :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "debugLoggingEnabled",
+        "description": "debugLoggingEnabled :: BOOLEAN",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      },
+      {
+        "name": "payloadLoggingEnabled",
+        "description": "payloadLoggingEnabled :: BOOLEAN",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "result",
+        "description": "A procedure return value.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.disable",
+    "description": "Disable fleet management",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.disable() :: (result :: STRING)",
+    "argumentDescription": [],
+    "returnDescription": [
+      {
+        "name": "result",
+        "description": "A procedure return value.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.inspectToken",
+    "description": "Inspect the Neo4j Fleet Management token to validate",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.inspectToken(token =  :: STRING) :: (projectId :: STRING, tokenExpires :: STRING, errorMessage :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "token",
+        "description": "token =  :: STRING",
+        "type": "STRING",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=, type=STRING}"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "projectId",
+        "description": "ID of the Aura project the Deployment token belongs to",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "tokenExpires",
+        "description": "Token expiry",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "errorMessage",
+        "description": "Error message if token inspection fails",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.registerToken",
+    "description": "Add a token for authenticating to Neo4j Fleet Management",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.registerToken(token :: STRING) :: (result :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "token",
+        "description": "token :: STRING",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "result",
+        "description": "A procedure return value.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.reportedData",
+    "description": "Generate documentation for the data structures used in fleet management messages",
+    "mode": "READ",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.reportedData() :: (messageType :: STRING, fieldPath :: STRING, description :: STRING, fieldType :: STRING, values :: LIST<STRING>)",
+    "argumentDescription": [],
+    "returnDescription": [
+      {
+        "name": "messageType",
+        "description": "messageType :: STRING",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "fieldPath",
+        "description": "fieldPath :: STRING",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "description",
+        "description": "description :: STRING",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "fieldType",
+        "description": "fieldType :: STRING",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "values",
+        "description": "values :: LIST<STRING>",
+        "type": "LIST<STRING>",
+        "isDeprecated": false
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.restart",
+    "description": "Restart fleet management",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.restart() :: (result :: STRING)",
+    "argumentDescription": [],
+    "returnDescription": [
+      {
+        "name": "result",
+        "description": "A procedure return value.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "fleetManagement.status",
+    "description": "Check the status of fleet management",
+    "mode": "READ",
+    "worksOnSystem": true,
+    "signature": "fleetManagement.status() :: (active :: BOOLEAN, connected :: BOOLEAN, statusMessage :: STRING)",
+    "argumentDescription": [],
+    "returnDescription": [
+      {
+        "name": "active",
+        "description": "Is fleet management active?",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      },
+      {
+        "name": "connected",
+        "description": "Is fleet management connected?",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      },
+      {
+        "name": "statusMessage",
+        "description": "Error message if fleet management is not connected",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
     "name": "tx.getMetaData",
     "description": "Provides attached transaction metadata.",
     "mode": "DBMS",

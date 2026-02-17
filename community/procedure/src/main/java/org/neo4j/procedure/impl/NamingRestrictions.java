@@ -170,7 +170,7 @@ public interface NamingRestrictions {
 
     static List<String> deprecatedProcedureNamespaces(QueryLanguage queryLanguage) {
         return switch (queryLanguage) {
-            case CYPHER_5 -> List.of();
+            case CYPHER_5 -> List.of("fleetManagement.*");
 
             case CYPHER_25 ->
                 List.of(
@@ -178,6 +178,7 @@ public interface NamingRestrictions {
                         "abac.*",
                         "builtin.*",
                         "coll.*",
+                        "fleetManagement.*",
                         "math.*",
                         "plugin.*",
                         "point.*",

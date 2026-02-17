@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.neo4j.fleetmanagement.configuration.State;
-import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.TokenUtils;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -49,13 +48,7 @@ public class Configuration {
     public GraphDatabaseAPI db;
 
     @Context
-    public ITransactor transactor;
-
-    @Context
     public State state;
-
-    @Context
-    public org.neo4j.fleetmanagement.configuration.Configuration configuration;
 
     @Context
     public Log log;
@@ -124,7 +117,7 @@ public class Configuration {
     @Admin
     @Description("Add a token for authenticating to Neo4j Fleet Management")
     public Stream<Result> registerToken(@Name(value = "token") String token) {
-        var active = transactor.getTokenStatus();
+        var active = getTokenStatus();
         var connected = state.isConnected();
 
         ensureSystemDb();
@@ -231,7 +224,7 @@ public class Configuration {
     @Admin
     @Description("Check the status of fleet management")
     public Stream<StatusResult> status() {
-        var active = transactor.getTokenStatus();
+        var active = getTokenStatus();
         var connected = state.isConnected();
         String errorMessage;
         if (!active && !connected && state.getConnectionMessage() == null) {
@@ -248,7 +241,7 @@ public class Configuration {
     @Admin
     @Description("Restart fleet management")
     public Stream<Result> restart() {
-        var hasToken = transactor.getTokenStatus();
+        var hasToken = getTokenStatus();
         var connected = state.isConnected();
 
         state.setActive(false);
@@ -262,5 +255,24 @@ public class Configuration {
         } else {
             return Stream.of(new Result("Register a token to enable Fleet Management"));
         }
+    }
+
+    private boolean getTokenStatus() {
+        return withTransactionAndErrorHandling(
+                db,
+                tx -> {
+                    Optional<Node> maybeNode = tx.findNodes(Label.label("FleetManagementConfiguration")).stream()
+                            .findFirst();
+                    Boolean status =
+                            maybeNode.map(node -> node.hasProperty("token")).orElse(false);
+                    tx.commit();
+                    return status;
+                },
+                e -> {
+                    String message =
+                            "An error occurred while fetching fleet management token status: " + e.getMessage();
+                    log.error(message, e);
+                    return false;
+                });
     }
 }

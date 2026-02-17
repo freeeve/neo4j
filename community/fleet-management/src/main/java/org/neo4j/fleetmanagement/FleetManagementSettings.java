@@ -31,5 +31,5 @@ import org.neo4j.graphdb.config.Setting;
 public class FleetManagementSettings implements SettingsDeclaration {
     @Description("Enable Fleet Manager functionality for monitoring with Neo4j Aura.")
     public static final Setting<Boolean> fleet_manager_enabled =
-            SettingImpl.newBuilder("dbms.fleet_manager.enabled", BOOL, false).build();
+            SettingImpl.newBuilder("dbms.fleet_manager.enabled", BOOL, true).build();
 }

@@ -801,11 +801,11 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName}", cv.equals(CypherVersion.Cypher5)))
         :+ ("", defaultUsesCypher5))
     val expectedSetting = allSettings(graph).head
-    // Cypher 5 has two procedures with 'status' in the name, Cypher 25 only has one
+    // Cypher 5 has three procedures with 'status' in the name, Cypher 25 only has two
     val expectedProceduresCypher5 = allProceduresNamesCypher5.filter(_.toLowerCase.contains("status"))
-    expectedProceduresCypher5 should have size 2
+    expectedProceduresCypher5 should have size 3
     val expectedProcedureCypher25 = allProceduresNamesCypher25.filter(_.toLowerCase.contains("status"))
-    expectedProcedureCypher25 should have size 1
+    expectedProcedureCypher25 should have size 2
     graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
     graph.createRelationshipIndexWithName("my_index", "L", "p")
     createUser()

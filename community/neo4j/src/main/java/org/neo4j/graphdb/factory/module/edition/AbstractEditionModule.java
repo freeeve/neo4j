@@ -48,10 +48,16 @@ import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.dbms.routing.SimpleClientRoutingDomainChecker;
 import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.fleetmanagement.FleetManagementSettings;
+import org.neo4j.fleetmanagement.configuration.State;
+import org.neo4j.fleetmanagement.procedures.Configuration;
+import org.neo4j.fleetmanagement.procedures.DebugLogging;
+import org.neo4j.fleetmanagement.procedures.Documentation;
 import org.neo4j.graphdb.facade.DatabaseManagementServiceFactory;
 import org.neo4j.graphdb.factory.module.GlobalModule;
 import org.neo4j.graphdb.factory.module.id.IdContextFactoryProvider;
 import org.neo4j.internal.collector.DataCollectorProcedures;
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.kernel.api.net.DefaultNetworkConnectionTracker;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
@@ -102,6 +108,7 @@ public abstract class AbstractEditionModule {
         globalProcedures.registerProcedure(VectorIndexProcedures.class);
         globalProcedures.registerProcedure(DataCollectorProcedures.class);
         registerTemporalFunctions(globalProcedures, procedureConfig);
+        registerFleetManagementProcedures(globalProcedures, globalModule);
 
         RoutingProcedureInstaller.install(
                 globalProcedures, routingService, globalModule.getLogService().getInternalLogProvider());
@@ -120,6 +127,18 @@ public abstract class AbstractEditionModule {
             throws KernelException {
         globalProcedures.registerComponent(
                 SpdBuiltInProcedures.class, context -> SpdBuiltInProcedures.COMMUNITY_EDITION_IMPL, false);
+    }
+
+    protected void registerFleetManagementProcedures(GlobalProcedures globalProcedures, GlobalModule globalModule)
+            throws ProcedureException {
+        if (globalModule.getGlobalConfig().get(FleetManagementSettings.fleet_manager_enabled)) {
+            var state = globalModule.getGlobalDependencies().resolveDependency(State.class);
+            globalProcedures.registerComponent(State.class, ctx -> state, true);
+
+            globalProcedures.registerProcedure(Configuration.class);
+            globalProcedures.registerProcedure(DebugLogging.class);
+            globalProcedures.registerProcedure(Documentation.class);
+        }
     }
 
     protected abstract AuthConfigProvider createAuthConfigProvider(GlobalModule globalModule);

@@ -23,8 +23,8 @@ import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.identity.ServerIdentity;
+import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.context.ExtensionContext;
@@ -44,11 +44,11 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
         return new FleetManagement(
                 dependencies.logService(),
                 dependencies.databaseManagementService(),
-                dependencies.globalProcedures(),
                 dependencies.config(),
                 dependencies.dbmsInfo(),
                 dependencies.fs(),
-                dependencies.serverIdentity());
+                dependencies.serverIdentity(),
+                dependencies.state());
     }
 
     public interface Dependencies {
@@ -62,12 +62,12 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
 
         FileSystemAbstraction fileSystem();
 
-        GlobalProcedures globalProcedures();
-
         DbmsInfo dbmsInfo();
 
         FileSystemAbstraction fs();
 
         ServerIdentity serverIdentity();
+
+        State state();
     }
 }
