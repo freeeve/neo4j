@@ -50,9 +50,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.collections.api.tuple.Pair;
@@ -79,6 +81,7 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.importer.FileImporter.CsvImportException;
+import org.neo4j.importer.FileImporter.FileInputType;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.batchimport.DefaultAdditionalIds;
 import org.neo4j.internal.batchimport.input.BadCollector;
@@ -93,6 +96,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -372,8 +376,10 @@ public class ImportCommand {
                                 + " Typically this is on for SSDs, large raid arrays, and network-attached storage.")
         private OnOffAuto highIo;
 
+        private static final String THREADS = "--threads";
+
         @Option(
-                names = "--threads",
+                names = THREADS,
                 paramLabel = "<num>",
                 description =
                         "(advanced) Max number of worker threads used by the importer. Defaults to the number of available processors reported by the JVM. "
@@ -577,9 +583,6 @@ public class ImportCommand {
             Closeable maybeCheckLock(DatabaseLayout databaseLayout) throws CannotWriteException, IOException;
         }
 
-        @Override
-        public abstract void execute() throws Exception;
-
         /**
          * Available since it's otherwise difficult to do this by means of PicoCLI.
          */
@@ -587,23 +590,26 @@ public class ImportCommand {
             this.monitor = monitor;
         }
 
-        protected void doExecute() {
+        @Override
+        public void execute() throws Exception {
+            final var format = importFormat();
+            if (format != null && StorageEngineFactory.isFormatDeprecated(format)) {
+                printf("WARNING: %s%n", DeprecatedFormatWarning.getTargetFormatWarning(format));
+            }
+
+            final var databaseConfig = loadNeo4jConfig(format);
+            final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
+            final var logFilePath = FileImporter.getLogFilePath(databaseConfig);
+
             try {
-                final var format = importFormat();
-                if (format != null && StorageEngineFactory.isFormatDeprecated(format)) {
-                    printf("WARNING: %s%n", DeprecatedFormatWarning.getTargetFormatWarning(format));
-                }
-                final var databaseConfig = loadNeo4jConfig(format);
-                final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
-                final var logFilePath = FileImporter.getLogFilePath(databaseConfig);
                 ctx.fs().mkdirs(logFilePath.toAbsolutePath().getParent());
 
                 try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout);
                         var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
                         var logProvider = FileImporter.getLog(logFile, verbose);
                         var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
-                    preImport(fileSystem);
-                    printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
+                    preImportValidation(fileSystem);
+
                     final var importerBuilder = configureFileImporterBuilder(FileImporter.builder()
                             .withCsvConfig(csvConfiguration(fileSystem))
                             .withImportConfig(importConfiguration(databaseConfig))
@@ -637,8 +643,14 @@ public class ImportCommand {
                     }
 
                     if (dryRun) {
+                        if (verbose) {
+                            printf(
+                                    "Starting dry run of import, output will be saved to: %s%n",
+                                    logFilePath.toAbsolutePath());
+                        }
                         importer.dryRun(this);
                     } else {
+                        printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
                         importer.doImport(this);
                         postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
                     }
@@ -676,15 +688,37 @@ public class ImportCommand {
             throw error;
         }
 
-        protected final void validateParameters() {
+        protected boolean isDryRun() {
+            return dryRun;
+        }
+
+        protected void preImportValidation(SchemeFileSystemAbstraction fs) throws CommandFailedException {
             if (requiresNodeParameter()) {
                 if (nodes == null) {
                     throw new ParameterException(spec.commandLine(), "Missing required option: '--nodes'");
                 }
             }
-        }
 
-        protected void preImport(SchemeFileSystemAbstraction fs) throws IOException {}
+            if (isDistributedGraphShard() && isDistributedPropShard()) {
+                throw new ParameterException(
+                        spec.commandLine(), "Both distributed graph and property shard options have been specified");
+            }
+
+            if (threads > DEFAULT_IMPORTER_CONFIG.maxNumberOfWorkerThreads()) {
+                printf(
+                        "WARNING: '%s' is set to %d but the total number of cores on this machine is only %d"
+                                + " which could severely impact performance.",
+                        THREADS, threads, DEFAULT_IMPORTER_CONFIG.maxNumberOfWorkerThreads());
+            }
+
+            if (badTolerance == BadCollector.UNLIMITED_TOLERANCE && skipBadEntriesLogging) {
+                printf(
+                        "WARNING: '%s' is set to 'true' but the import process will not be stopped upon a bad entry"
+                                + " being encountered (due to '%s' being set to unlimited). You will be unable to identify"
+                                + "  these bad entries upon completion of the import.",
+                        SKIP_BAD_ENTRIES_LOGGING, BAD_TOLERANCE_OPTION);
+            }
+        }
 
         protected void postImport(
                 SchemeFileSystemAbstraction fileSystem,
@@ -754,24 +788,59 @@ public class ImportCommand {
                 throws IOException;
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
-            return setupIndexConfigForImport(databaseConfig, indexConfig);
+            return setupIndexConfigForImport(indexConfig);
         }
 
         private FileImporter.Builder addInputData(FileSystemAbstraction fs, FileImporter.Builder importerBuilder) {
-            var actualInputType = this.fileInputType;
+            var actualInputType = fileInputType;
             for (var n : nodes) {
-                FileGroup fileGroup = n.toFileGroup(fs, patternStyle);
-                importerBuilder.addNodeFiles(n.key, fileGroup);
-                if (fileInputType == null) {
-                    // If undecided, then try to auto-detect the file type.
-                    actualInputType = resolveFileInputType(fileGroup.files());
+                var fileGroup = n.toFileGroup(fs, patternStyle);
+                var inputType = resolveFileInputType(fileInputType, fileGroup);
+                if (actualInputType == null) {
+                    actualInputType = inputType;
+                } else if (inputType != actualInputType) {
+                    throw unexpectedInputType(actualInputType, inputType, fileInputType != null, true, fileGroup);
                 }
+                importerBuilder.addNodeFiles(n.key, fileGroup);
             }
             for (var r : relationships) {
-                importerBuilder.addRelationshipFiles(r.key, r.toFileGroup(fs, patternStyle));
+                var fileGroup = r.toFileGroup(fs, patternStyle);
+                var inputType = resolveFileInputType(fileInputType, fileGroup);
+                if (inputType != actualInputType) {
+                    throw unexpectedInputType(actualInputType, inputType, fileInputType != null, false, fileGroup);
+                }
+                importerBuilder.addRelationshipFiles(r.key, fileGroup);
             }
 
             return importerBuilder.withFileInputType(actualInputType);
+        }
+
+        private ConsoleFriendlyException unexpectedInputType(
+                FileInputType expectedType,
+                FileInputType unexpectedType,
+                boolean configuredInCLI,
+                boolean inNodes,
+                FileGroup fileGroup) {
+            var entity = inNodes ? "node" : "relationship";
+            String message;
+            if (configuredInCLI) {
+                message = "The %s files contain a %s file but only files of type %s should be provided."
+                        .formatted(entity, unexpectedType, expectedType);
+            } else {
+                message = "The %s files contain a mixture of both %s and %s files."
+                        .formatted(entity, expectedType, unexpectedType);
+            }
+
+            return new CommandFailedException(message, ExitCode.USAGE)
+                    .addSupplementaryMessage(
+                            "A mixture of both %s and %s files in the import is not currently supported [%s]."
+                                    .formatted(
+                                            expectedType,
+                                            unexpectedType,
+                                            fileGroup.stream()
+                                                    .map(Path::getFileName)
+                                                    .map(Objects::toString)
+                                                    .collect(Collectors.joining(","))));
         }
 
         private List<SchemaCommand> parseSchemaCommands(SchemeFileSystemAbstraction fileSystem, Config config)
@@ -937,14 +1006,18 @@ public class ImportCommand {
             };
         }
 
-        private FileImporter.FileInputType resolveFileInputType(Path... paths) {
-            // default to CSV and not throw an error for backward compatibility reasons
-            return Arrays.stream(paths).anyMatch(path -> path.getFileName()
-                            .toString()
-                            .toLowerCase(Locale.ROOT)
-                            .endsWith(".parquet"))
-                    ? FileImporter.FileInputType.PARQUET
-                    : FileImporter.FileInputType.CSV;
+        private FileInputType resolveFileInputType(FileInputType expectedType, FileGroup fileGroup) {
+            Predicate<Path> checkForParquet = path ->
+                    path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".parquet");
+            if (expectedType == FileInputType.PARQUET) {
+                // Parquet imports allows the first path of a group to be a header CSV - which obvs isn't .parquet
+                return fileGroup.fileCount() == 1 || fileGroup.stream().skip(1).anyMatch(checkForParquet)
+                        ? FileInputType.PARQUET
+                        : FileInputType.CSV;
+            }
+
+            // default to CSV otherwise
+            return fileGroup.stream().anyMatch(checkForParquet) ? FileInputType.PARQUET : FileInputType.CSV;
         }
 
         static class EscapedCharacterConverter implements ITypeConverter<Character> {
@@ -1031,12 +1104,6 @@ public class ImportCommand {
 
         public Full(ExecutionContext ctx) {
             super(ctx);
-        }
-
-        @Override
-        public void execute() throws Exception {
-            validateParameters();
-            doExecute();
         }
 
         @Override
@@ -1211,7 +1278,7 @@ public class ImportCommand {
     }
 
     @VisibleForTesting
-    public static IndexConfig setupIndexConfigForImport(Config dbConfig, IndexConfig indexConfig) {
+    public static IndexConfig setupIndexConfigForImport(IndexConfig indexConfig) {
         return indexConfig.withLabelIndex().withRelationshipTypeIndex();
     }
 

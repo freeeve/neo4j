@@ -2848,13 +2848,13 @@ class ImportCommandTest {
     @ValueSource(booleans = {true, false})
     void shouldHandleParquetInput(boolean explicitlySetParquetFormat) throws Exception {
         // given
-        String name = explicitlySetParquetFormat ? "nodes.whatever" : "nodes.parquet";
         List<org.apache.parquet.schema.Type> types = List.of(
                 Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
                 Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                         .as(LogicalTypeAnnotation.stringType())
                         .named("name"));
-        var nodes = createParquetFile(name, types, List.of(new Object[] {1L, "Tom"}, new Object[] {2L, "Jerry"}));
+        var nodes = createParquetFile(
+                "nodes.parquet", types, List.of(new Object[] {1L, "Tom"}, new Object[] {2L, "Jerry"}));
 
         // when
         List<String> args = Lists.mutable.of("--nodes", nodes.toString());
@@ -2870,6 +2870,35 @@ class ImportCommandTest {
                 boolean added = namedNodes.add(node.getProperty("name").toString());
                 assertThat(added).isTrue();
             });
+            assertThat(namedNodes).containsExactlyInAnyOrder("Tom", "Jerry");
+        }
+    }
+
+    @Test
+    void shouldHandleParquetInputWithCsvHeader() throws Exception {
+        // given;
+        var types = List.<org.apache.parquet.schema.Type>of(
+                Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ix"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("character"));
+        var header = createAndWriteFile("header.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID,name");
+            writer.println("ix,character");
+        });
+
+        var parquet = createParquetFile(
+                "nodes.parquet", types, List.of(new Object[] {1L, "Tom"}, new Object[] {2L, "Jerry"}));
+
+        // when
+        runImport("--input-type=parquet", "--nodes", header.toString(), parquet.toString());
+
+        // then
+        try (var tx = getDatabaseApi().beginTx()) {
+            var namedNodes = new HashSet<String>();
+            tx.getAllNodes().forEach(node -> assertThat(
+                            namedNodes.add(node.getProperty("name").toString()))
+                    .isTrue());
             assertThat(namedNodes).containsExactlyInAnyOrder("Tom", "Jerry");
         }
     }

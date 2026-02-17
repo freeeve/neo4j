@@ -129,8 +129,9 @@ public abstract class ConsoleFriendlyException extends RuntimeException {
      *
      * @param message the extra message.
      */
-    public void addSupplementaryMessage(String message) {
+    public ConsoleFriendlyException addSupplementaryMessage(String message) {
         supplementaryMessages.add(message);
+        return this;
     }
 
     @Override

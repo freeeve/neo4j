@@ -20,10 +20,26 @@
 package org.neo4j.batchimport.api.input;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 /**
  * A group of files that have been specified together in one command line argument.
  * E.g. `--nodes file1,file2,file3` would be represented as one FileGroup.
  * They are internally viewed as a single stream of data. The first file must contain the header.
  */
-public record FileGroup(Path... files) {}
+public record FileGroup(Path... files) {
+    /**
+     * @return the number of files in the group
+     */
+    public int fileCount() {
+        return files.length;
+    }
+
+    /**
+     * @return the files as a {@link Stream}
+     */
+    public Stream<Path> stream() {
+        return Arrays.stream(files);
+    }
+}
