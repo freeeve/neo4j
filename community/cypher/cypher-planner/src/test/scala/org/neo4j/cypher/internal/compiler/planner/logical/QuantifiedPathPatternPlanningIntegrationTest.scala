@@ -2501,7 +2501,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     val query =
       """MATCH
         |  (a) ((b)-[r]-(c) WHERE i.prop = properties(r).prop)+ (d)-[t]-(e),
-        |  (f)-[u:R]-(d) ((g)-[s]-(h) WHERE properties(s).prop = a.prop)+ (i)
+        |  (f)-[u:R]-(d) ((g)-[s:S]-(h) WHERE properties(s).prop = a.prop)+ (i)
         |RETURN count(*)""".stripMargin
 
     planner.plan(query) should equal(
@@ -2519,8 +2519,8 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
           projectedDir = INCOMING,
           relationshipPredicates = Seq(Predicate("anon_1", "i.prop = properties(anon_1).prop"))
         )
-        .filter("NOT t IN s", "NOT u IN s")
-        .expand("(d)-[s*1..]-(i)", projectedDir = OUTGOING)
+        .filter("NOT t IN s")
+        .expand("(d)-[s:S*1..]-(i)", projectedDir = OUTGOING)
         .filter("NOT t = u")
         .expandAll("(d)-[t]-()")
         .relationshipTypeScan("()-[u:R]-(d)")
