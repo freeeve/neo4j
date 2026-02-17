@@ -362,7 +362,7 @@ class ReadablesTest {
     private static void assertReadTextAsInputStream(Path file, String text, ReadMethod readMethod) throws IOException {
         try (InputStream stream = Files.newInputStream(file)) {
             assertReadText(
-                    Readables.wrap(stream, file.toString(), Charset.defaultCharset(), Files.size(file)),
+                    Readables.wrap(stream, file.toString(), Charset.defaultCharset(), Files.size(file), file),
                     text,
                     readMethod);
         }

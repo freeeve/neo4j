@@ -885,7 +885,7 @@ class BufferedCharSeekerTest {
     }
 
     private static CharSeeker seeker(String data, Configuration config, boolean threadAhead) {
-        return seeker(wrap(stringReaderWithName(data), data.length() * 2L), config, threadAhead);
+        return seeker(wrap(stringReaderWithName(data), data.length() * 2L, null), config, threadAhead);
     }
 
     private static Reader stringReaderWithName(String data) {

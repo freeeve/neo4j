@@ -20,6 +20,7 @@
 package org.neo4j.csv.reader;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Like an ordinary {@link CharReadable}, it's just that the reading happens in a separate thread, so when
@@ -39,6 +40,11 @@ public class ThreadAheadReadable extends ThreadAhead implements CharReadable {
         this.actual = actual;
         this.theOtherBuffer = new SectionedCharBuffer(bufferSize);
         this.sourceDescription = actual.sourceDescription();
+    }
+
+    @Override
+    public Path file() {
+        return actual.file();
     }
 
     /**

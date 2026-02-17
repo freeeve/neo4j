@@ -156,7 +156,8 @@ class MultiReadableTest {
                                 return "Reader" + cursor;
                             }
                         },
-                        string.length() * 2);
+                        string.length() * 2,
+                        null);
             }
 
             private String join(String[] strings) {

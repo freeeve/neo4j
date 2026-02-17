@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
+import java.nio.file.Path;
 
 /**
  * A {@link Readable}, but focused on {@code char[]}, via a {@link SectionedCharBuffer} with one of the main reasons
@@ -72,6 +73,11 @@ public interface CharReadable extends Closeable, SourceTraceability {
      */
     long length();
 
+    /**
+     * The path of the file backing this readable. {@code null} if not file backed.
+     */
+    Path file();
+
     abstract class Adapter extends SourceTraceability.Adapter implements CharReadable {
         @Override
         public void close() throws IOException { // Nothing to close
@@ -80,6 +86,11 @@ public interface CharReadable extends Closeable, SourceTraceability {
         @Override
         public float compressionRatio() {
             return 1f;
+        }
+
+        @Override
+        public Path file() {
+            return null;
         }
     }
 
@@ -102,8 +113,12 @@ public interface CharReadable extends Closeable, SourceTraceability {
 
         @Override
         public void close() {}
+
+        @Override
+        public Path file() {
+            return null;
+        }
     }
-    ;
 
     CharReadable EMPTY = new Empty();
 }

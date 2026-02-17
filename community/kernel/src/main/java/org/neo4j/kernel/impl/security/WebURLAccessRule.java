@@ -218,7 +218,7 @@ public class WebURLAccessRule implements AccessRule<URL> {
         try {
             InputStream stream = openStream(url, securityAuthorizationHandler, securityContext);
             return Readables.wrap(
-                    stream, url.toString(), StandardCharsets.UTF_8, 0); /*length doesn't matter in this context*/
+                    stream, url.toString(), StandardCharsets.UTF_8, 0, null); /*length doesn't matter in this context*/
         } catch (IOException | URISyntaxException e) {
             throw LoadExternalResourceException.couldNotLoadExternalResource(String.valueOf(url), e);
         }

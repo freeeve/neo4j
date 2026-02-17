@@ -1553,7 +1553,7 @@ class CsvInputTest {
     void shouldReportDuplicateNodeSourceFiles() throws IOException {
         // given
         String sourceDescription = "The single data source";
-        Supplier<CharReadable> source = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3);
+        Supplier<CharReadable> source = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1591,7 +1591,7 @@ class CsvInputTest {
         // given
         String sourceDescription = "The single data source";
         Supplier<CharReadable> source =
-                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID,:TYPE", sourceDescription), 3);
+                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID,:TYPE", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1628,10 +1628,10 @@ class CsvInputTest {
     void shouldReportDuplicateSourceFileUsedAsBothNodeAndRelationshipSourceFile() throws IOException {
         // given
         String sourceDescription = "The single data source";
-        Supplier<CharReadable> nodeHeaderSource = () -> wrap(dataWithSourceDescription(":ID", "node source"), 3);
+        Supplier<CharReadable> nodeHeaderSource = () -> wrap(dataWithSourceDescription(":ID", "node source"), 3, null);
         Supplier<CharReadable> relationshipHeaderSource =
-                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID,:TYPE", "relationship source"), 10);
-        Supplier<CharReadable> source = () -> wrap(dataWithSourceDescription("1,2,3", sourceDescription), 6);
+                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID,:TYPE", "relationship source"), 10, null);
+        Supplier<CharReadable> source = () -> wrap(dataWithSourceDescription("1,2,3", sourceDescription), 6, null);
         Iterable<DataFactory> nodeData = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1792,7 +1792,7 @@ class CsvInputTest {
     void shouldReportNoNodeLabels() throws IOException {
         // given
         String sourceDescription = "source";
-        Supplier<CharReadable> headerSource = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3);
+        Supplier<CharReadable> headerSource = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1828,7 +1828,7 @@ class CsvInputTest {
     void shouldNotReportNoNodeLabelsIfDecorated() throws IOException {
         // given
         String sourceDescription = "source";
-        Supplier<CharReadable> headerSource = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3);
+        Supplier<CharReadable> headerSource = () -> wrap(dataWithSourceDescription(":ID", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1865,7 +1865,7 @@ class CsvInputTest {
         // given
         String sourceDescription = "source";
         Supplier<CharReadable> headerSource =
-                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID", sourceDescription), 3);
+                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {
@@ -1902,7 +1902,7 @@ class CsvInputTest {
         // given
         String sourceDescription = "source";
         Supplier<CharReadable> headerSource =
-                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID", sourceDescription), 3);
+                () -> wrap(dataWithSourceDescription(":START_ID,:END_ID", sourceDescription), 3, null);
         Iterable<DataFactory> data = datas(config -> new Data() {
             @Override
             public RawIterator<CharReadable, IOException> stream() {

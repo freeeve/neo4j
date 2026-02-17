@@ -104,7 +104,7 @@ class ThreadAheadReadableTest {
 
         TrackingReader(int length) {
             this.bytes = length * 2;
-            this.actual = Readables.wrap(new CharArrayReader(chars(0, length)), length * 2);
+            this.actual = Readables.wrap(new CharArrayReader(chars(0, length)), length * 2, null);
         }
 
         @Override

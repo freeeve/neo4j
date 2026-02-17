@@ -22,6 +22,7 @@ package org.neo4j.csv.reader;
 import static org.neo4j.csv.reader.BufferedCharSeeker.isEolChar;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import org.neo4j.collection.RawIterator;
 
 /**
@@ -158,5 +159,10 @@ public class MultiReadable implements CharReadable {
     @Override
     public long length() {
         return current.length();
+    }
+
+    @Override
+    public Path file() {
+        return null;
     }
 }
