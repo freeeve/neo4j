@@ -53,8 +53,10 @@ public final class Iterables {
         throw new AssertionError("no instance");
     }
 
+    private static Iterable<Object> EMPTY = Collections::emptyIterator;
+
     public static <T> Iterable<T> empty() {
-        return Collections.emptyList();
+        return (Iterable<T>) EMPTY;
     }
 
     /**

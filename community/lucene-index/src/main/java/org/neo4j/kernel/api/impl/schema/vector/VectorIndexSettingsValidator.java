@@ -58,7 +58,7 @@ public interface VectorIndexSettingsValidator {
 
     VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords);
 
-    SortedSet<IndexSetting> validSettings();
+    Set<IndexSetting> validSettings();
 
     class Validators implements VectorIndexSettingsValidator {
         private final VectorIndexVersion version;
@@ -131,7 +131,7 @@ public interface VectorIndexSettingsValidator {
         public VectorIndexConfig validateToVectorIndexConfig(
                 SettingsAccessor settings, IndexConfigValidationRecords validationRecords) {
             assertValidRecords(validationRecords, version.descriptor(), validSettingNames);
-            final SortedSet<Valid> validRecords = validationRecords.validRecords();
+            final Iterable<Valid> validRecords = validationRecords.validRecords();
             return new VectorIndexConfig(
                     version,
                     toIndexConfig(validRecords, validSettingNames),
@@ -166,7 +166,7 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public SortedSet<IndexSetting> validSettings() {
+        public Set<IndexSetting> validSettings() {
             return validSettings;
         }
     }
@@ -205,8 +205,8 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public SortedSet<IndexSetting> validSettings() {
-            return Collections.emptySortedSet();
+        public Set<IndexSetting> validSettings() {
+            return Collections.emptySet();
         }
     }
 

@@ -53,7 +53,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
@@ -96,7 +95,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
             tx.commit();
         }
 
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             assertEquals(node, tx.getNodeById(node).getId());
         }
     }
@@ -109,7 +108,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
             tx.rollback();
         }
 
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             tx.getNodeById(node);
             fail("There should be no node");
         } catch (NotFoundException e) {
@@ -125,7 +124,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
             tx.dataWrite().nodeDelete(node);
             tx.commit();
         }
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             try {
                 tx.getNodeById(node);
                 fail("Did not remove node");
@@ -1087,7 +1086,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
     private long createNode() {
         long node;
-        try (org.neo4j.graphdb.Transaction ctx = graphDb.beginTx()) {
+        try (Transaction ctx = graphDb.beginTx()) {
             node = ctx.createNode().getId();
             ctx.commit();
         }
@@ -1095,7 +1094,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
     }
 
     private void deleteNode(long node) {
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             tx.getNodeById(node).delete();
             tx.commit();
         }
@@ -1103,7 +1102,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
     private long createNodeWithLabels(String... labelNames) {
         long node;
-        try (org.neo4j.graphdb.Transaction ctx = graphDb.beginTx()) {
+        try (Transaction ctx = graphDb.beginTx()) {
             node = ctx.createNode(stream(labelNames).map(Label::label).toArray(Label[]::new))
                     .getId();
             ctx.commit();
@@ -1113,7 +1112,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
     protected long createNodeWithProperty(String propertyKey, Object value) {
         Node node;
-        try (org.neo4j.graphdb.Transaction ctx = graphDb.beginTx()) {
+        try (Transaction ctx = graphDb.beginTx()) {
             node = ctx.createNode();
             node.setProperty(propertyKey, value);
             ctx.commit();
@@ -1122,25 +1121,25 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
     }
 
     private void assertNoLabels(long nodeId) {
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
-            assertThat(tx.getNodeById(nodeId).getLabels()).isEqualTo(Iterables.empty());
+        try (Transaction tx = graphDb.beginTx()) {
+            assertThat(tx.getNodeById(nodeId).getLabels()).isEmpty();
         }
     }
 
     private void assertLabels(long nodeId, String label) {
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             assertThat(tx.getNodeById(nodeId).getLabels()).contains(label(label));
         }
     }
 
     private void assertNoProperty(long node, String propertyKey) {
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             assertFalse(tx.getNodeById(node).hasProperty(propertyKey));
         }
     }
 
     private void assertProperty(long node, String propertyKey, Object value) {
-        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+        try (Transaction tx = graphDb.beginTx()) {
             assertThat(tx.getNodeById(node).getProperty(propertyKey)).isEqualTo(value);
         }
     }

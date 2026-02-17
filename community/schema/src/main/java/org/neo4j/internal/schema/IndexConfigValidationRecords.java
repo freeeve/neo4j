@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Value;
 
@@ -43,11 +44,9 @@ public class IndexConfigValidationRecords {
         return this;
     }
 
-    public SortedSet<IndexConfigValidationRecord> get(State state) {
+    public Iterable<IndexConfigValidationRecord> get(State state) {
         final SortedSet<IndexConfigValidationRecord> recordsForState = records.get(state);
-        return recordsForState != null
-                ? Collections.unmodifiableSortedSet(recordsForState)
-                : Collections.emptySortedSet();
+        return recordsForState != null ? Collections.unmodifiableSortedSet(recordsForState) : Iterables.empty();
     }
 
     public boolean invalid() {
@@ -63,10 +62,10 @@ public class IndexConfigValidationRecords {
         return !invalid();
     }
 
-    public SortedSet<Valid> validRecords() {
+    public Iterable<Valid> validRecords() {
         final SortedSet<IndexConfigValidationRecord> shouldBeValidRecords = records.get(State.VALID);
         if (shouldBeValidRecords == null || shouldBeValidRecords.isEmpty()) {
-            return Collections.emptySortedSet();
+            return Iterables.empty();
         }
 
         final SortedSet<Valid> validRecords = new TreeSet<>();
@@ -80,7 +79,7 @@ public class IndexConfigValidationRecords {
         return Collections.unmodifiableSortedSet(validRecords);
     }
 
-    public SortedSet<IndexConfigValidationRecord> invalidRecords() {
+    public Iterable<IndexConfigValidationRecord> invalidRecords() {
         final SortedSet<IndexConfigValidationRecord> invalidRecords = new TreeSet<>();
         for (final State state : State.INVALID_STATES) {
             final SortedSet<IndexConfigValidationRecord> invalidRecordsForState = records.get(state);
@@ -96,9 +95,7 @@ public class IndexConfigValidationRecords {
                 invalidRecords.add(record);
             }
         }
-        return invalidRecords.isEmpty()
-                ? Collections.emptySortedSet()
-                : Collections.unmodifiableSortedSet(invalidRecords);
+        return invalidRecords.isEmpty() ? Iterables.empty() : Collections.unmodifiableSortedSet(invalidRecords);
     }
 
     public IndexConfigValidationRecord getFirstInvalidRecordOrNull() {

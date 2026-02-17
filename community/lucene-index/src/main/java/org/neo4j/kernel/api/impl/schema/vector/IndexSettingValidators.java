@@ -34,7 +34,6 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.UnrecognizedSettin
 import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.Range;
-import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -113,14 +112,52 @@ class IndexSettingValidators {
         }
     }
 
+    static final class BooleanValidator extends IndexSettingValidator<BooleanValue, Boolean> {
+        private final Set<Boolean> booleans;
+
+        BooleanValidator(
+                IndexSetting setting, Set<Boolean> supportedBooleans, boolean readDefault, boolean writeDefault) {
+            super(setting, readDefault, writeDefault);
+            this.booleans = Collections.unmodifiableSet(supportedBooleans);
+            assert this.booleans.contains(readDefault) && this.booleans.contains(writeDefault);
+        }
+
+        @Override
+        Boolean map(BooleanValue value) {
+            return value.booleanValue();
+        }
+
+        @Override
+        Value map(Boolean value) {
+            return Values.booleanValue(value);
+        }
+
+        @Override
+        public IndexConfigValidationRecord validate(SettingsAccessor accessor) {
+            final IndexConfigValidationRecord record = extractOrDefault(accessor);
+            if (!(record instanceof final Pending pending)) {
+                return record;
+            }
+
+            final AnyValue rawValue = pending.rawValue();
+            if (rawValue == Values.NO_VALUE) {
+                return new InvalidValue(pending, null, booleans);
+            }
+            if (!(rawValue instanceof final BooleanValue booleanValue)) {
+                return new IncorrectType(pending, BooleanValue.class);
+            }
+
+            final Boolean quantization = map(booleanValue);
+            return quantization == null
+                    ? new InvalidValue(pending, booleans)
+                    : new Valid(setting, quantization, map(quantization));
+        }
+    }
+
     static final class IntegerValidator extends IndexSettingValidator<IntegralValue, Integer> {
         private final Range<Integer> supportedRange;
 
-        IntegerValidator(IndexSetting setting, Range<Integer> supportedRange) {
-            this(setting, null, supportedRange);
-        }
-
-        IntegerValidator(IndexSetting setting, Integer defaultValue, Range<Integer> supportedRange) {
+        IntegerValidator(IndexSetting setting, Range<Integer> supportedRange, Integer defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null || this.supportedRange.contains(defaultValue);
@@ -158,14 +195,10 @@ class IndexSettingValidators {
         }
     }
 
-    static final class OptionalIntSettingValidator extends IndexSettingValidator<IntegralValue, OptionalInt> {
+    static final class OptionalIntValidator extends IndexSettingValidator<IntegralValue, OptionalInt> {
         private final Range<Integer> supportedRange;
 
-        OptionalIntSettingValidator(IndexSetting setting, Range<Integer> supportedRange) {
-            this(setting, supportedRange, null);
-        }
-
-        OptionalIntSettingValidator(IndexSetting setting, Range<Integer> supportedRange, OptionalInt defaultValue) {
+        OptionalIntValidator(IndexSetting setting, Range<Integer> supportedRange, OptionalInt defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null
@@ -206,30 +239,29 @@ class IndexSettingValidators {
         }
     }
 
-    static final class SimilarityFunctionValidator extends IndexSettingValidator<TextValue, VectorSimilarityFunction> {
-        private final Map<String, VectorSimilarityFunction> similarityFunctions;
+    abstract static class StringLookupValidator<TYPE> extends IndexSettingValidator<TextValue, TYPE> {
+        private final Map<String, TYPE> lookup;
 
-        SimilarityFunctionValidator(Map<String, VectorSimilarityFunction> supportedSimilarityFunctions) {
-            this(supportedSimilarityFunctions, null);
+        StringLookupValidator(IndexSetting setting, Map<String, TYPE> supported, TYPE defaultValue) {
+            super(setting, defaultValue);
+            this.lookup = Collections.unmodifiableMap(supported);
+            assert defaultValue == null || this.lookup.containsValue(defaultValue);
         }
 
-        SimilarityFunctionValidator(
-                Map<String, VectorSimilarityFunction> supportedSimilarityFunctions,
-                VectorSimilarityFunction defaultSimilarityFunction) {
-            super(IndexSetting.vector_Similarity_Function(), defaultSimilarityFunction);
-            this.similarityFunctions = Collections.unmodifiableMap(supportedSimilarityFunctions);
-            assert defaultSimilarityFunction == null
-                    || this.similarityFunctions.containsValue(defaultSimilarityFunction);
+        protected String key(TextValue textValue) {
+            return textValue.stringValue().toUpperCase(Locale.ROOT);
+        }
+
+        protected abstract String key(TYPE type);
+
+        @Override
+        TYPE map(TextValue textValue) {
+            return lookup.get(key(textValue));
         }
 
         @Override
-        VectorSimilarityFunction map(TextValue textValue) {
-            return similarityFunctions.get(textValue.stringValue().toUpperCase(Locale.ROOT));
-        }
-
-        @Override
-        Value map(VectorSimilarityFunction similarityFunction) {
-            return Values.stringValue(similarityFunction.functionName());
+        Value map(TYPE type) {
+            return Values.stringValue(key(type));
         }
 
         @Override
@@ -241,64 +273,14 @@ class IndexSettingValidators {
 
             final AnyValue rawValue = pending.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, similarityFunctions.keySet());
+                return new InvalidValue(pending, null, lookup.keySet());
             }
             if (!(rawValue instanceof final TextValue textValue)) {
                 return new IncorrectType(pending, TextValue.class);
             }
 
-            final VectorSimilarityFunction similarityFunction = map(textValue);
-            return similarityFunction == null
-                    ? new InvalidValue(pending, similarityFunctions.keySet())
-                    : new Valid(setting, similarityFunction, map(similarityFunction));
-        }
-    }
-
-    static final class QuantizationEnabledValidator extends IndexSettingValidator<BooleanValue, Boolean> {
-        private final Set<Boolean> quantizationBooleans;
-
-        QuantizationEnabledValidator(
-                Set<Boolean> supportedQuantizationBooleans,
-                boolean readDefaultQuantizationEnabled,
-                boolean writeDefaultQuantizationEnabled) {
-            super(
-                    IndexSetting.vector_Quantization_Enabled(),
-                    readDefaultQuantizationEnabled,
-                    writeDefaultQuantizationEnabled);
-            this.quantizationBooleans = Collections.unmodifiableSet(supportedQuantizationBooleans);
-            assert this.quantizationBooleans.contains(readDefaultQuantizationEnabled)
-                    && this.quantizationBooleans.contains(writeDefaultQuantizationEnabled);
-        }
-
-        @Override
-        Boolean map(BooleanValue value) {
-            return value.booleanValue();
-        }
-
-        @Override
-        Value map(Boolean value) {
-            return Values.booleanValue(value);
-        }
-
-        @Override
-        IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final IndexConfigValidationRecord record = extractOrDefault(accessor);
-            if (!(record instanceof final Pending pending)) {
-                return record;
-            }
-
-            final AnyValue rawValue = pending.rawValue();
-            if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, quantizationBooleans);
-            }
-            if (!(rawValue instanceof final BooleanValue booleanValue)) {
-                return new IncorrectType(pending, BooleanValue.class);
-            }
-
-            final Boolean quantization = map(booleanValue);
-            return quantization == null
-                    ? new InvalidValue(pending, quantizationBooleans)
-                    : new Valid(setting, quantization, map(quantization));
+            final TYPE type = map(textValue);
+            return type == null ? new InvalidValue(pending, lookup.keySet()) : new Valid(setting, type, map(type));
         }
     }
 }
