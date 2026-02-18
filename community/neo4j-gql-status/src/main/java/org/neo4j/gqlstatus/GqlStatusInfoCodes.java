@@ -3861,8 +3861,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N67(
             new GqlStatus("42N67"),
-            "Duplicated { %s } parameter.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param},
+            "Duplicate parameter { %s } in local callable signature.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.procParam},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "duplicate parameter",

@@ -179,7 +179,7 @@ case class VariableChecker(
   private val localCallableAlreadyDefined: VariableCheck = {
     case (
         acc,
-        Scope.Definition.LocalCallable(name)
+        Scope.Definition.LocalCallable(name, _)
       ) =>
       val isError = acc.definedLocalCallableNames.exists(_.fullNameEqual(name))
       val accum = acc.withDefinedLocalCallableName(name)
@@ -187,6 +187,23 @@ case class VariableChecker(
         accum(SemanticError.localCallableAlreadyDefined(name.fullName, name.position))
       } else {
         accum
+      }
+  }
+
+  private val duplicateLocalCallableParameter: VariableCheck = {
+    case (
+        acc,
+        Scope.Definition.LocalCallable(_, inputSignature)
+      ) =>
+      val duplicateParameterErrors = inputSignature.groupBy(_.name).collect {
+        case (name, parameters) if parameters.size > 1 =>
+          val lastDuplicatePosition = parameters.map(_.position).maxBy(_.offset)
+          SemanticError.duplicateParameter(name, lastDuplicatePosition)
+      }
+      if (duplicateParameterErrors.nonEmpty) {
+        acc(duplicateParameterErrors)
+      } else {
+        acc
       }
   }
 
@@ -198,7 +215,8 @@ case class VariableChecker(
       invalidUseOfReturnStar,
       variableNotDefinedInScopeClause,
       invalidEntityReferenceInUpdatingClause,
-      localCallableAlreadyDefined
+      localCallableAlreadyDefined,
+      duplicateLocalCallableParameter
     )
 
   private val unboundVariablesInPatternExpression: VariableCheck = {

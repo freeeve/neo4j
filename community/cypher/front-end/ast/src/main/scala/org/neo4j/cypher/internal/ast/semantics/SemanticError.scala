@@ -2376,6 +2376,15 @@ object SemanticError {
       position
     )
   }
+
+  def duplicateParameter(parameter: String, pos: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N67(parameter, pos.offset, pos.line, pos.column)
+    SemanticError(
+      gql,
+      s"Duplicate parameter $parameter in local callable signature",
+      pos
+    )
+  }
 }
 
 final case class FeatureError(

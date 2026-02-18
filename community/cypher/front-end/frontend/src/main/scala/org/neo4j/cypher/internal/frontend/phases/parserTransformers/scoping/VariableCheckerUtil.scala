@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CreateOrInsert
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.LocalCallableDefinition
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
@@ -267,10 +268,10 @@ trait VariableCheckerUtil {
 
       object LocalCallable {
 
-        def unapply(scope: WorkingScope): Option[CallableName] =
+        def unapply(scope: WorkingScope): Option[(CallableName, Seq[LocalFieldSignature])] =
           scope match {
             case StatementScope(lcd: LocalCallableDefinition, _, _, _, _, _, _, _) =>
-              Some(lcd.name)
+              Some((lcd.name, lcd.inputSignature))
             case _ => None
           }
 

@@ -72,6 +72,12 @@ case object E42N66 extends GqlError {
   override val msg: String = "relationship variable already bound"
 }
 
+case class E42N67(parameter: String) extends GqlError {
+  override val num: String = "42N67"
+
+  override val msg: String = s"Duplicate parameter `$parameter` in local callable signature."
+}
+
 case object E42N3A extends GqlError {
   override val num: String = "42N3A"
 

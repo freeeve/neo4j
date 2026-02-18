@@ -106,6 +106,15 @@ class GQL_42I77_LocalCallableAlreadyDefined extends VariableCheckingWithLocalCal
           Seq.empty
         ),
         TestQuery(
+          s"""${firstDefinition("foo(y :: INT)")}
+             |${secondDefinition(s"$namePart(x :: STRING)")}
+             |
+             |${call("'bar'")}
+             |FINISH""".stripMargin,
+          ignoreBeforeCypher25(outcome("foo")),
+          Seq.empty
+        ),
+        TestQuery(
           s"""${firstDefinition("foo()")}
              |${secondDefinition(s"$namePart()")}
              |
