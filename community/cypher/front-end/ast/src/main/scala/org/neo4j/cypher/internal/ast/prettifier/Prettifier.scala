@@ -322,6 +322,8 @@ case class Prettifier(
 
   def asString(hint: Hint): String = base.asString(hint)
 
+  def asString(lfs: LocalFieldSignature): String = base.asString(lfs)
+
   def backtick(s: String): String = expr.backtick(s)
 
   private def propertiesMapToString(

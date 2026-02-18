@@ -81,7 +81,7 @@ import org.neo4j.internal.schema.constraints.ConstrainableType
 
 import scala.util.Random
 
-class RewriteProcedureCallsTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
+class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
 
   private val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
@@ -136,6 +136,64 @@ class RewriteProcedureCallsTest extends CypherFunSuite with TestName with AstCon
   }
 
   test(
+    s"""DEFINE PROCEDURE foo(a) {
+       |  RETURN 1 AS x
+       |}
+       |
+       |CALL foo(1)
+       |RETURN x""".stripMargin
+  ) {
+    val foo = localProcedureDefinition("foo", localFieldSignature("a")).body(
+      return_(
+        aliasedReturnItem(literalInt(1), "x")
+      )
+    )
+    cypher25testName.hasExtractedLocalProcedures(
+      procedureName("foo") -> foo
+    ).isRewrittenTo(
+      singleQueryWithLocalDefinitions(
+        foo
+      )(
+        resolveLocalCall(
+          procedureName("foo"),
+          inputSignature = Seq(localFieldSignature("a")),
+          callArguments = Seq(literalInt(1))
+        ),
+        return_(returnItem(v"x", "x"))
+      )
+    )
+  }
+
+  test(
+    s"""DEFINE PROCEDURE foo(a :: INT) {
+       |  RETURN 1 AS x
+       |}
+       |
+       |CALL foo(1)
+       |RETURN x""".stripMargin
+  ) {
+    val foo = localProcedureDefinition("foo", localFieldSignature("a", symbols.CTInteger)).body(
+      return_(
+        aliasedReturnItem(literalInt(1), "x")
+      )
+    )
+    cypher25testName.hasExtractedLocalProcedures(
+      procedureName("foo") -> foo
+    ).isRewrittenTo(
+      singleQueryWithLocalDefinitions(
+        foo
+      )(
+        resolveLocalCall(
+          procedureName("foo"),
+          inputSignature = Seq(localFieldSignature("a", symbols.CTInteger)),
+          callArguments = Seq(coerceTo(literalInt(1), symbols.CTInteger))
+        ),
+        return_(returnItem(v"x", "x"))
+      )
+    )
+  }
+
+  test(
     s"""DEFINE PROCEDURE foo() {
        |  RETURN 1 AS x
        |}
@@ -154,12 +212,75 @@ class RewriteProcedureCallsTest extends CypherFunSuite with TestName with AstCon
       singleQueryWithLocalDefinitions(
         foo
       )(
+        /* NOTE:
+         * The external callable resolver mockup used in this test trivially resolves every name
+         * see `PlanContextMock.procedureSignature` below
+         */
         resolveNonLocalCall(
           procedureName("bar")
         ),
         return_(returnItem(v"x", "x"))
       )
     )
+  }
+
+  for {
+    (sig, args, argsCoercedOpt) <- Seq(
+      (Seq.empty[LocalFieldSignature], Seq(literalInt(1)), None),
+      (Seq(localFieldSignature("a")), Seq.empty, None),
+      (
+        Seq(localFieldSignature("a", symbols.CTInteger)),
+        Seq(literalString("abc")),
+        Some(Seq(coerceTo(literalString("abc"), symbols.CTInteger)))
+      ),
+      (Seq(localFieldSignature("a"), localFieldSignature("b")), Seq(literalInt(1)), None),
+      (
+        Seq(localFieldSignature("a"), localFieldSignature("b"), localFieldSignature("c", literalInt(0))),
+        Seq(literalInt(1)),
+        None
+      ),
+      (Seq(localFieldSignature("a"), localFieldSignature("b", literalInt(0))), Seq.empty, None),
+      (
+        Seq(localFieldSignature("a"), localFieldSignature("b", literalInt(0))),
+        Seq(literalInt(1), literalInt(2), literalInt(3)),
+        None
+      )
+    )
+    sigCypher = sig.map(f => prettifier.asString(f)).mkString(", ")
+    argsCypher = args.map(a => prettifier.expr.apply(a)).mkString(", ")
+  } {
+    test(
+      s"""DEFINE PROCEDURE foo($sigCypher) {
+         |  RETURN 1 AS x
+         |}
+         |
+         |CALL foo($argsCypher)
+         |RETURN x""".stripMargin
+    ) {
+      val foo = localProcedureDefinition("foo", sig: _*).body(
+        return_(
+          aliasedReturnItem(literalInt(1), "x")
+        )
+      )
+      cypher25testName.hasExtractedLocalProcedures(
+        procedureName("foo") -> foo
+      ).isRewrittenTo(
+        singleQueryWithLocalDefinitions(
+          foo
+        )(
+          /* NOTE:
+           * call resolution is purely by name
+           * the arguments are checked in semantics analysis, which is not part of this test
+           */
+          resolveLocalCall(
+            procedureName("foo"),
+            inputSignature = sig,
+            callArguments = argsCoercedOpt.getOrElse(args)
+          ),
+          return_(returnItem(v"x", "x"))
+        )
+      )
+    }
   }
 
   for {
