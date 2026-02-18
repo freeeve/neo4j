@@ -179,8 +179,13 @@ public class BuiltInProcedures {
         if (callContext.isSystemDatabase()) {
             return;
         }
-        IndexProcedures indexProcedures = indexProcedures();
-        indexProcedures.awaitIndexByName(indexName, timeout, TimeUnit.SECONDS);
+
+        if (spdBuiltInProcedures.isGraphShard()) {
+            transaction.schema().awaitIndexOnline(indexName, timeout, TimeUnit.SECONDS);
+        } else {
+            IndexProcedures indexProcedures = indexProcedures();
+            indexProcedures.awaitIndexByName(indexName, timeout, TimeUnit.SECONDS);
+        }
     }
 
     @SystemProcedure

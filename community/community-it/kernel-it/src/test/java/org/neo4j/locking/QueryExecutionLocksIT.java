@@ -45,6 +45,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexType;
+import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.Locks;
@@ -85,6 +86,7 @@ import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.kernel.impl.query.ConstituentTransactionFactory;
 import org.neo4j.kernel.impl.query.Neo4jTransactionalContextFactory;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
@@ -1092,6 +1094,11 @@ class QueryExecutionLocksIT {
         @Override
         public ExceptionHandlerService exceptionHandlerService() {
             return internal.exceptionHandlerService();
+        }
+
+        @Override
+        public Schema schema() {
+            return new SchemaImpl(this);
         }
     }
 }

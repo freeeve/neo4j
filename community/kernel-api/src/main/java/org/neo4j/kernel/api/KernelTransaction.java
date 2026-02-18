@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.NotInTransactionException;
+import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.Locks;
@@ -572,4 +573,6 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
     DefaultQueryLanguageScope defaultQueryLanguageScope();
 
     ExceptionHandlerService exceptionHandlerService();
+
+    Schema schema();
 }

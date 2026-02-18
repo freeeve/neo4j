@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
+import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.Locks;
@@ -60,6 +61,7 @@ import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.ExceptionHandlerService;
@@ -393,5 +395,10 @@ public class StubKernelTransaction implements KernelTransaction {
     @Override
     public ExceptionHandlerService exceptionHandlerService() {
         throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Schema schema() {
+        return new SchemaImpl(this);
     }
 }

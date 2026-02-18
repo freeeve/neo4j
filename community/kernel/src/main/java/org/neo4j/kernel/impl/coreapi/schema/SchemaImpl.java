@@ -105,6 +105,14 @@ public class SchemaImpl implements Schema {
         this.actions = new GDBSchemaActions(transaction);
     }
 
+    protected InternalSchemaActions getActions() {
+        return actions;
+    }
+
+    protected KernelTransaction getTransaction() {
+        return transaction;
+    }
+
     @Override
     public IndexCreator indexFor(Label label) {
         return new IndexCreatorImpl(actions, label);
@@ -171,7 +179,7 @@ public class SchemaImpl implements Schema {
         return definitions;
     }
 
-    private IndexDefinition descriptorToDefinition(final TokenRead tokenRead, IndexDescriptor index) {
+    protected IndexDefinition descriptorToDefinition(final TokenRead tokenRead, IndexDescriptor index) {
         try {
             SchemaDescriptor schema = index.schema();
             int[] entityTokenIds = schema.getEntityTokenIds();
@@ -259,7 +267,7 @@ public class SchemaImpl implements Schema {
         }
     }
 
-    private boolean awaitIndexesOnline(
+    protected boolean awaitIndexesOnline(
             Iterable<IndexDescriptor> indexes,
             Function<IndexDescriptor, String> describe,
             long duration,
@@ -356,7 +364,7 @@ public class SchemaImpl implements Schema {
         }
     }
 
-    private static NotFoundException newIndexNotFoundException(IndexDefinition index, KernelException e) {
+    protected static NotFoundException newIndexNotFoundException(IndexDefinition index, KernelException e) {
         return new NotFoundException("No index was found corresponding to " + index + ".", e);
     }
 

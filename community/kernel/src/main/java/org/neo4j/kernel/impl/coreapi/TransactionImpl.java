@@ -77,7 +77,6 @@ import org.neo4j.kernel.impl.api.CloseableResourceManager;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.core.RelationshipEntity;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
-import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
@@ -498,7 +497,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
 
     @Override
     public Schema schema() {
-        return new SchemaImpl(kernelTransaction());
+        return kernelTransaction().schema();
     }
 
     @Override

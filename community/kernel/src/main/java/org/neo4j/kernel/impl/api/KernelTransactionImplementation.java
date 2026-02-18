@@ -67,6 +67,7 @@ import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.graphdb.TransactionTerminatedHelper;
+import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityLocks;
@@ -144,6 +145,7 @@ import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrac
 import org.neo4j.kernel.impl.api.txid.TransactionIdGenerator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.kernel.impl.factory.AccessCapability;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
 import org.neo4j.kernel.impl.locking.LockManager;
@@ -2017,6 +2019,11 @@ public class KernelTransactionImplementation
     @Override
     public ExceptionHandlerService exceptionHandlerService() {
         return exceptionHandlerService;
+    }
+
+    @Override
+    public Schema schema() {
+        return new SchemaImpl(this);
     }
 
     public void ensureValid() throws LeaseException {
