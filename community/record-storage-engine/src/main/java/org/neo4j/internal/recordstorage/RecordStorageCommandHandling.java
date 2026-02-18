@@ -20,33 +20,27 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
+import java.util.Objects;
 import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public class RecordStorageCommandHandling {
 
     public static void handleRecordStorageCommand(
-            StorageCommand command,
-            ThrowingConsumer<Command, IOException> recordCommandConsumer,
-            ThrowingConsumer<IndexUpdateCommand<?>, IOException> indexUpdateCommandConsumer)
-            throws IOException {
-        switch (command) {
-            case Command recordCommand -> recordCommandConsumer.accept(recordCommand);
-            case IndexUpdateCommand<?> indexUpdateCommand -> indexUpdateCommandConsumer.accept(indexUpdateCommand);
-            default ->
-                throw new IllegalArgumentException("StorageCommand of type "
-                        + command.getClass().getSimpleName() + " is not supported by this storage engine");
+            StorageCommand command, ThrowingConsumer<Command, IOException> recordCommandConsumer) throws IOException {
+        if (Objects.requireNonNull(command) instanceof Command recordCommand) {
+            recordCommandConsumer.accept(recordCommand);
+        } else {
+            throw new IllegalArgumentException("StorageCommand of type "
+                    + command.getClass().getSimpleName() + " is not supported by this storage engine");
         }
     }
 
     public static void handleRecordStorageCommands(
-            Iterable<StorageCommand> commands,
-            ThrowingConsumer<Command, IOException> recordCommandConsumer,
-            ThrowingConsumer<IndexUpdateCommand<?>, IOException> indexUpdateCommandConsumer)
+            Iterable<StorageCommand> commands, ThrowingConsumer<Command, IOException> recordCommandConsumer)
             throws IOException {
         for (var command : commands) {
-            handleRecordStorageCommand(command, recordCommandConsumer, indexUpdateCommandConsumer);
+            handleRecordStorageCommand(command, recordCommandConsumer);
         }
     }
 }

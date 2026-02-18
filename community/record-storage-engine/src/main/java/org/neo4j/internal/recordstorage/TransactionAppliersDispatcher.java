@@ -47,7 +47,7 @@ public class TransactionAppliersDispatcher implements Visitor<StorageCommand, IO
     @Override
     public boolean visit(StorageCommand element) throws IOException {
         for (var applier : appliers) {
-            handleRecordStorageCommand(element, c -> c.handle(applier), applier::visitIndexUpdateCommand);
+            handleRecordStorageCommand(element, c -> c.handle(applier));
         }
         return false;
     }

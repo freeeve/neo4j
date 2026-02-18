@@ -20,8 +20,6 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
-import org.neo4j.internal.indexcommand.IndexCommandSerialization;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
@@ -30,7 +28,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.BaseCommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
 
-public abstract class LogCommandSerialization extends BaseCommandReader implements IndexCommandSerialization {
+public abstract class LogCommandSerialization extends BaseCommandReader {
     private final KernelVersion kernelVersion;
 
     LogCommandSerialization(KernelVersion kernelVersion) {
@@ -72,8 +70,6 @@ public abstract class LogCommandSerialization extends BaseCommandReader implemen
             case NeoCommandType.META_DATA_COMMAND -> readMetaDataCommand(channel);
             case NeoCommandType.UPDATE_GROUP_DEGREE_COMMAND -> readGroupDegreeCommand(channel);
             case NeoCommandType.ENRICHMENT_COMMAND -> readEnrichmentCommand(channel);
-
-            case NeoCommandType.INDEX_UPDATE_COMMAND -> readIndexUpdateCommand(channel);
 
             // legacy indexes
             case NeoCommandType.INDEX_DEFINE_COMMAND -> readIndexDefineCommand(channel);
@@ -159,10 +155,6 @@ public abstract class LogCommandSerialization extends BaseCommandReader implemen
     }
 
     protected Command readNodeCommand(ReadableChannel channel) throws IOException {
-        throw unsupportedInThisVersionException();
-    }
-
-    public IndexUpdateCommand<?> readIndexUpdateCommand(ReadableChannel channel) throws IOException {
         throw unsupportedInThisVersionException();
     }
 
@@ -276,10 +268,6 @@ public abstract class LogCommandSerialization extends BaseCommandReader implemen
     }
 
     public void writeMetaDataCommand(WritableChannel channel, Command.MetaDataCommand command) throws IOException {
-        throw unsupportedInThisVersionException();
-    }
-
-    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand<?> command) throws IOException {
         throw unsupportedInThisVersionException();
     }
 

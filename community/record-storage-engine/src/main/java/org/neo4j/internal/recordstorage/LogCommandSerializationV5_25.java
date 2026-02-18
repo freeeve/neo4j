@@ -19,11 +19,6 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import java.io.IOException;
-import org.neo4j.internal.indexcommand.IndexCommandSerializationImpl;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
-import org.neo4j.io.fs.ReadableChannel;
-import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 
 class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
@@ -49,16 +44,5 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
 
     LogCommandSerializationV5_25(KernelVersion kernelVersion) {
         super(kernelVersion);
-    }
-
-    @Override
-    public IndexUpdateCommand<?> readIndexUpdateCommand(ReadableChannel channel) throws IOException {
-        return IndexCommandSerializationImpl.V1.readCommand(this, channel);
-    }
-
-    @Override
-    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand<?> command) throws IOException {
-        channel.put(NeoCommandType.INDEX_UPDATE_COMMAND);
-        IndexCommandSerializationImpl.V1.writeCommand(channel, command);
     }
 }

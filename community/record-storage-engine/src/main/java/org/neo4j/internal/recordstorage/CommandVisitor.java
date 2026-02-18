@@ -20,7 +20,6 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.recordstorage.Command.GroupDegreeCommand;
 import org.neo4j.internal.recordstorage.Command.LabelTokenCommand;
 import org.neo4j.internal.recordstorage.Command.MetaDataCommand;
@@ -63,8 +62,6 @@ public interface CommandVisitor {
     boolean visitMetaDataCommand(MetaDataCommand command) throws IOException;
 
     boolean visitGroupDegreeCommand(GroupDegreeCommand command) throws IOException;
-
-    boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) throws IOException;
 
     /**
      * An empty implementation of a {@link CommandVisitor}. Allows you to implement only the methods you are
@@ -129,11 +126,6 @@ public interface CommandVisitor {
 
         @Override
         public boolean visitGroupDegreeCommand(GroupDegreeCommand command) {
-            return false;
-        }
-
-        @Override
-        public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) {
             return false;
         }
     }

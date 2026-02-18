@@ -47,7 +47,6 @@
     <module>security</module>
     <module>codegen</module>
     <module>index</module>
-    <module>index-commands</module>
     <module>gbptree-tests</module>
     <module>kernel</module>
     <module>kernel-test-utils</module>

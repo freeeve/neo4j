@@ -63,8 +63,6 @@ import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.diagnostics.DiagnosticsManager;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.IdType;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
-import org.neo4j.internal.indexcommand.RelationshipBasedTransactionToIndexUpdateVisitor;
 import org.neo4j.internal.kernel.api.exceptions.TransactionApplyKernelException;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
@@ -73,7 +71,6 @@ import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreIdUsage;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreRecords;
 import org.neo4j.internal.recordstorage.TransactionAppliersDispatcherFactory.IdUpdateListenerFactory;
-import org.neo4j.internal.recordstorage.indexcommand.IndexRecordState;
 import org.neo4j.internal.recordstorage.validation.TransactionCommandValidatorFactory;
 import org.neo4j.internal.schema.IndexConfigCompleter;
 import org.neo4j.internal.schema.SchemaCache;
@@ -108,7 +105,6 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockTracer;
-import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceLocker;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
@@ -335,12 +331,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         appliers.add(new MultiversionCountStoreTransactionApplierFactory(mode, countsStore));
         appliers.add(new MultiversionDegreeStoreTransactionApplierFactory(mode, groupDegreesStore));
         if (mode.needsAuxiliaryStores()) {
-            if (config.get(multiversion_index_commands_enabled)) {
-                appliers.add(new IndexCommandTransactionApplierFactory(
-                        indexUpdateListener, indexUpdatesSync, schemaCache, mode));
-            } else {
-                appliers.add(new IndexTransactionApplierFactory(mode, indexUpdateListener));
-            }
+            appliers.add(new IndexTransactionApplierFactory(mode, indexUpdateListener));
         }
         return new TransactionAppliersDispatcherFactory(
                 idUpdateListenerFunction(mode), appliers.toArray(TransactionApplierFactory[]::new));
@@ -523,13 +514,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 format);
         CountsRecordState countsRecordState = new CountsRecordState(serialization);
         txStateVisitor = additionalTxStateVisitor.apply(txStateVisitor);
-        RecordState indexRecordState = RecordState.EMPTY_RECORD_STATE;
-        if (useIndexCommands()) {
-            var commandState = new IndexRecordState(serialization);
-            txStateVisitor = new RelationshipBasedTransactionToIndexUpdateVisitor(
-                    txStateVisitor, commandState, storageReader, cursorContext, storeCursors, memoryTracker);
-            indexRecordState = commandState;
-        }
         txStateVisitor = new TransactionCountingStateVisitor(
                 txStateVisitor, storageReader, txState, countsRecordState, cursorContext, storeCursors, memoryTracker);
         try (TxStateVisitor visitor = txStateVisitor) {
@@ -538,7 +522,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
         // Convert record state into commands
         recordState.extractCommands(commands, memoryTracker);
-        indexRecordState.extractCommands(commands, memoryTracker);
         countsRecordState.extractCommands(commands, memoryTracker);
 
         // Verify sufficient locks
@@ -557,12 +540,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @Override
     public void lockRecoveryCommands(
             CommandBatch commands, LockService.Client lockService, TransactionApplicationMode mode) throws IOException {
-        handleRecordStorageCommands(
-                commands, c -> c.lockForRecovery(lockService, mode), c -> lockIndexUpdateCommand(lockService, c));
-    }
-
-    private static void lockIndexUpdateCommand(LockService.Client lockService, IndexUpdateCommand<?> c) {
-        lockService.acquireCustomLock(Command.RECOVERY_LOCK_TYPE_SCHEMA_RULE, c.getIndexId(), LockType.EXCLUSIVE);
+        handleRecordStorageCommands(commands, c -> c.lockForRecovery(lockService, mode));
     }
 
     @Override

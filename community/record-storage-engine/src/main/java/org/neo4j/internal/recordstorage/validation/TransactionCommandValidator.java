@@ -32,8 +32,6 @@ import java.util.List;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.neo4j.configuration.Config;
-import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.recordstorage.Command;
 import org.neo4j.internal.recordstorage.CommandVisitor;
 import org.neo4j.io.pagecache.PageCursor;
@@ -91,7 +89,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
             initValidation(cursorContext, lockTracer, validationLockClient, lockDumper);
 
             cursorContext.getVersionContext().resetObsoleteHeadState();
-            handleRecordStorageCommands(commands, c -> c.handle(this), ThrowingConsumer.noop());
+            handleRecordStorageCommands(commands, c -> c.handle(this));
         } catch (TransactionConflictException tce) {
             throw tce;
         } catch (Exception e) {
@@ -208,11 +206,6 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
 
     @Override
     public boolean visitGroupDegreeCommand(Command.GroupDegreeCommand command) {
-        return false;
-    }
-
-    @Override
-    public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) {
         return false;
     }
 
