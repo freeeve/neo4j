@@ -141,4 +141,17 @@ class MultiversionedPageMetadataTest extends AbstractPageMetadataTest {
 
         Futures.getAll(futures);
     }
+
+    @ParameterizedTest(name = "pageRef = {0}")
+    @MethodSource("argumentsProvider")
+    void singleWriteIsBlockedByMultiWrites(int pageId) {
+        init(pageId);
+
+        PageMetadata.unlockExclusive(pageRef);
+        int iterations = ThreadLocalRandom.current().nextInt(1000);
+        for (int i = 0; i < iterations; i++) {
+            assertTrue(PageMetadata.tryWriteLock(pageRef, false), "Iteration " + i);
+            assertFalse(PageMetadata.tryWriteLock(pageRef, true), "Iteration " + i);
+        }
+    }
 }
