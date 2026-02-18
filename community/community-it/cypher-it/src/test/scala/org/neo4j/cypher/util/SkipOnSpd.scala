@@ -33,5 +33,6 @@ case class SkipOnSpd(details: String = "", note: Note, reason: Option[Reason] = 
 object Reason extends Enumeration {
   type Reason = Value
 
-  val SetTopology, TooOldDatabase, Other = Value
+  val SetTopology, TooOldDatabase, PBAC, AwaitEventuallyConsistentIndexRefresh, DifferentPlan, LegacyTextIndex =
+    Value
 }
