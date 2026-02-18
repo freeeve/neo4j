@@ -6,10 +6,15 @@ libraries. For an overview of the licenses see the NOTICE.txt file.
 Apache Software License, Version 2.0
   Apache Commons Lang
   Apache Commons Text
+  Apache Log4j API
+  Apache Log4j Core
+  Apache Log4j JSON Template Layout
   Byte Buddy (without dependencies)
   Byte Buddy agent
   Caffeine cache
+  IPAddress
   Java Native Access
+  Jettison
   JSpecify annotations
   mockito-4.6
   org.apiguardian:apiguardian-api

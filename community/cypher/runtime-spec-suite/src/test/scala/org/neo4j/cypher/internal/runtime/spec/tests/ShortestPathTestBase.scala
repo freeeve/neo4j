@@ -37,18 +37,38 @@ import org.neo4j.cypher.internal.runtime.spec.Rows
 import org.neo4j.cypher.internal.runtime.spec.RowsMatcher
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.runtime.spec.TestPath
+import org.neo4j.cypher.internal.runtime.spec.tests.ShortestPathTestBase.DbInstantiatedGraph
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.NamedEntites
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException
 import org.neo4j.graphdb.Direction.INCOMING
 import org.neo4j.graphdb.Direction.OUTGOING
 import org.neo4j.graphdb.Label.label
+import org.neo4j.graphdb.Node
+import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.internal.helpers.collection.Iterables.single
 import org.neo4j.values.AnyValue
+import org.neo4j.values.virtual.PathReference
 import org.neo4j.values.virtual.VirtualPathValue
+import org.neo4j.values.virtual.VirtualValues
 
 import java.util
 
-object ShortestPathTestBase
+object ShortestPathTestBase {
+
+  implicit class DbInstantiatedGraph(graph: NamedEntites[Node, Relationship]) {
+
+    def pathReference(names: String*): PathReference = {
+      val nodes = names.zipWithIndex.collect { case (n, i) if i % 2 == 0 => graph.node(n).getId }
+      val rels = names.zipWithIndex.collect { case (r, i) if i % 2 == 1 => graph.rel(r).getId }
+
+      VirtualValues.pathReference(
+        nodes.toArray,
+        rels.toArray
+      )
+    }
+  }
+}
 
 //noinspection ZeroIndexToHead
 abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](

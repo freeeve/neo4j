@@ -2,28 +2,25 @@
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
  *
- * This file is part of Neo4j.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.neo4j.cypher.internal.runtime.graphtemplate.parsing
+package org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing
 
-import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.runtime.graphtemplate.Directedness
-import org.neo4j.cypher.internal.runtime.graphtemplate.GraphTemplate
-import org.neo4j.cypher.internal.runtime.graphtemplate.TemplateId
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.Directedness
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.GraphTemplate
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.RelDirection
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.TemplateId
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -158,7 +155,7 @@ case class ParsedRel(
   relType: Option[String],
   startProjection: Projection,
   endProjection: Projection,
-  direction: SemanticDirection
+  direction: RelDirection
 )
 
 /** Extracts relationships from graph text diagram */
@@ -225,11 +222,11 @@ object GraphTemplateParser {
       } {
         usedPoints ++= parsedRel.points
         parsedRel.direction match {
-          case SemanticDirection.OUTGOING =>
+          case RelDirection.Outgoing =>
             template.addRel(start, end, parsedRel.name, parsedRel.relType, Directedness.Directed)
-          case SemanticDirection.INCOMING =>
+          case RelDirection.Incoming =>
             template.addRel(end, start, parsedRel.name, parsedRel.relType, Directedness.Directed)
-          case SemanticDirection.BOTH =>
+          case RelDirection.Both =>
             template.addRel(end, start, parsedRel.name, parsedRel.relType, Directedness.Undirected)
         }
       }

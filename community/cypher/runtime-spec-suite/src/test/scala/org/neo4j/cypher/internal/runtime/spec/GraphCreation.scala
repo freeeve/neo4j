@@ -20,20 +20,21 @@
 package org.neo4j.cypher.internal.runtime.spec
 
 import org.neo4j.cypher.internal.RuntimeContext
-import org.neo4j.cypher.internal.runtime.graphtemplate.InstantiatedGraph
-import org.neo4j.cypher.internal.runtime.graphtemplate.TransactionTemplateInstantiator
-import org.neo4j.cypher.internal.runtime.graphtemplate.parsing.GraphTemplateParser
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.ComplexGraph
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec.WithLabel
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec.WithProperty
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.NamedEntites
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.TemplateInstantiator
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.GraphTemplateParser
 import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
+import org.neo4j.graphdb.Transaction
 import org.neo4j.graphdb.schema.ConstraintCreator
 import org.neo4j.graphdb.schema.IndexCreator
 import org.neo4j.graphdb.schema.IndexType
@@ -125,7 +126,7 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
 
   // GRAPHS
 
-  def fromTemplate(str: String, defaultRelType: String = "R"): InstantiatedGraph[Node, Relationship] = {
+  def fromTemplate(str: String, defaultRelType: String = "R"): NamedEntites[Node, Relationship] = {
     GraphTemplateParser
       .parse(str)
       .instantiate(new TransactionTemplateInstantiator(runtimeTestSupport.tx, defaultRelType))
@@ -1015,3 +1016,13 @@ case class SineGraph(
   startMiddle: Relationship,
   endMiddle: Relationship
 )
+
+class TransactionTemplateInstantiator(tx: Transaction, defaultRelType: String = "R")
+    extends TemplateInstantiator[Node, Relationship] {
+
+  def createNode(labels: Seq[String]): Node =
+    tx.createNode(labels.map(Label.label): _*)
+
+  def createRel(from: Node, to: Node, relType: Option[String]): Relationship =
+    from.createRelationshipTo(to, RelationshipType.withName(relType.getOrElse(defaultRelType)))
+}

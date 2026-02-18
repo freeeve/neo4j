@@ -22,6 +22,7 @@ package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.testGraphs
 
 class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFSTestBase {
@@ -65,7 +66,7 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
         f = f.withK(k)
       }
 
-      withClue(s"into=$into pathMode=$pathMode grouped=$grouped k=$k nfa=$nfa graph=${graph.render}") {
+      withClue(s"\ngraph=${graph.render}\nnfa=$nfa\ninto=$into\npathMode=$pathMode\ngrouped=$grouped\nk=$k\n") {
         f.assertExpected()
       }
     }
@@ -74,26 +75,33 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
 
 object GeneratedPGPathPropagatingBFSTest {
 
-  private case class NamedGraph(render: String, graph: TestGraph, source: Long, target: Long)
+  private case class NamedGraph(render: String, graph: InMemoryGraph, source: Long, target: Long)
 
   /** a generated series of graphs consisting of a variable length chain of relationships from (start) to (end),
    * with another variable length chain connecting two nodes from the original */
   private lazy val testGraphs: Seq[NamedGraph] = {
     for {
       mainLength <- 1 to 4
-      g2 = TestGraph.empty.line(mainLength)
-      start = g2.nodes.min
-      end = g2.nodes.max
-
-      n1 <- g2.nodes
-      n2 <- g2.nodes
       secondaryLength <- 1 to 3
-      g3 = g2.chainRel(n1, n2, secondaryLength)
-    } yield NamedGraph(
-      s"(n$start)-$mainLength->(n$end), (n$n1)-$secondaryLength->(n$n2)",
-      g3,
-      start,
-      end
-    )
+      n1i <- 0 until mainLength
+      n2i <- 0 until mainLength
+    } yield {
+      val builder = new InMemoryGraph.Builder
+
+      val nodes = builder.line(mainLength)
+      val start = nodes.head
+      val end = nodes.last
+
+      val n1 = nodes(n1i)
+      val n2 = nodes(n2i)
+      builder.chainRel(n1, n2, secondaryLength)
+
+      NamedGraph(
+        s"(n$start)-$mainLength->(n$end), (n$n1)-$secondaryLength->(n$n2)",
+        builder.build(),
+        start,
+        end
+      )
+    }
   }
 }

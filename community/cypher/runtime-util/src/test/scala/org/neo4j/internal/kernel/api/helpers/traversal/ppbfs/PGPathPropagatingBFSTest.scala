@@ -21,6 +21,7 @@ package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
 import org.neo4j.function.Predicates
 import org.neo4j.graphdb.Direction
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities
@@ -59,7 +60,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
    *************************************/
 
   test("single node is yielded when state is both start and final state") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n = graph.node()
 
     val paths = fixture()
@@ -74,7 +75,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("single node is yielded when there is an unconditional node juxtaposition between start and final state") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n = graph.node()
 
     val paths = fixture()
@@ -89,7 +90,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("single node is omitted when there is an unmet conditional node juxtaposition between start and final state") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n = graph.node()
 
     val paths = fixture()
@@ -107,7 +108,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   test(
     "single node with loop is yielded when there is an unconditional relationship expansion between start and final state"
   ) {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n = graph.node()
     val r = graph.rel(n, n)
 
@@ -155,7 +156,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("relationship expansions can traverse a loop") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val r = graph.rel(a, a)
 
@@ -175,7 +176,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("multiple discrete paths between two paths can be yielded") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n0 = graph.node()
     val n1 = graph.node()
     val r1 = graph.rel(n0, n1)
@@ -226,7 +227,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("relationship expansions may be filtered on the relationship type") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n0 = graph.node()
     val n1 = graph.node()
     val n2 = graph.node()
@@ -246,7 +247,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("relationship expansions may expose an array of accepted types") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n0 = graph.node()
     val n1 = graph.node()
     val n2 = graph.node()
@@ -346,7 +347,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
    ********************************/
 
   test("paths of different lengths are yielded in order of length") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -370,7 +371,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("relationships are not traversed twice in the same direction") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val ab = graph.rel(a, b)
@@ -404,7 +405,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("loops are traversed in any order") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
 
     val r1 = graph.rel(a, a)
@@ -425,7 +426,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("an r* pattern should be able to be represented by a two NFA states with NJ then loop RE") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -455,7 +456,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("an r+ pattern should be able to be represented by two NFA states with an RE and loop RE") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -485,7 +486,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("an r+ pattern should be able to be represented by three NFA states with an initial NJ") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -566,7 +567,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     val RANDOM = 3
 
     val (graph, n0, n4, n7) = {
-      val g = TestGraph.builder
+      val g = InMemoryGraph.builder
 
       val n0 = g.node()
       val n1 = g.node()
@@ -629,7 +630,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
 
   // a test that failed when trying to fix the above broken test
   test("ruthless cobweb") {
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
          .--->(0)--->(1)--->(2)
          |                   |
          |                  [:R]
@@ -642,7 +643,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
          |    |
          '-->(8)
       """)
-    val NOT_R = TestGraph.DEFAULT_REL
+    val NOT_R = InMemoryGraph.DEFAULT_REL
     val R = graph relTypes "R"
     val s = graph node "3"
 
@@ -660,7 +661,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
       ("t" where isTarget))
 
     fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .from(s)
       .withNfa(n)
       .withK(3)
@@ -670,7 +671,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
 
   // a test that is simplified from the above, but still showed the same error, thus easier to debug
   test("ruthless cobweb mostly simplified") {
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
 
       (0:T)-->(1)-->(2)-->(3:T)
        ^       ^
@@ -683,7 +684,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     val n: Nfa = nfa("s" |> ("a" -- "b" +) |> ("t" where graph.hasLabel("T")))
 
     fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .from(s)
       .withNfa(n)
       .withK(4)
@@ -710,7 +711,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("results are limited to K per source-target pair") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -732,7 +733,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("results are limited to K groups when grouping is enabled") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -772,7 +773,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     "results are limited to K groups when grouping is enabled and the final element of a group is rejected from the filter"
   ) {
     // this tests a very specific interaction in the ppbfs iterator - see https://trello.com/c/G4MEDqwE/
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -857,7 +858,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
       /  \
      ()   ()
      */
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val n1 = graph.node()
     val n2 = graph.node()
     val n3 = graph.node()
@@ -898,7 +899,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("max depth") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -922,7 +923,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
    *******************************************/
 
   test("intoTarget initiates a bidirectional search") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val s1 = graph.node()
     val n2 = graph.node()
     val n3 = graph.node()
@@ -944,7 +945,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("bidirectional search stops searching if the component around the target is exhausted") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -969,7 +970,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("bidirectional search stops searching if the component around the source is exhausted") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
 
     val b = graph.node()
@@ -1001,7 +1002,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("propagation is performed when a previously-seen node is encountered") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -1045,7 +1046,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("algorithm should exit once we hit max depth") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val c = graph.node()
@@ -1104,7 +1105,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   test("predicate is not evaluated twice on the same interior MRE node") {
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
                  .-----.
                  v     |
           (s)-->( )-->( )
@@ -1122,7 +1123,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     }
 
     val lengths = fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .from(graph node "s")
       .withNfa { sb =>
         val s = sb.newState("s", isStartState = true)
@@ -1151,7 +1152,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
 
     // the idea here is we will traverse r twice, in two iterations of the MRE, and the second time we should
     // not rerun the predicate
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
       .---.
       '->(1)-[r]->(2)<-.
                    '---'
@@ -1167,7 +1168,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     }
 
     val lengths = fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .from(graph node "1")
       .withNfa { sb =>
         val s = sb.newState("s", isStartState = true)
@@ -1195,7 +1196,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     "compound predicate in multiple relationship expansion is evaluated with correct nodes in backward bidirectional search"
   ) {
     // the double outgoing rel at node 2 makes the algorithm prefer the backwards expansion of node 4
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
      (0)-->(1)-->(2)-->(3)
             |
             v
@@ -1208,7 +1209,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     }
 
     val paths = fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .from(graph node "1")
       .into(graph node "3")
       .withNfa { sb =>
@@ -1339,7 +1340,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     //   path to a target it's first propagation, and won't be traced with the shorter path to the target which we
     //   missed.
 
-    val graph = TestGraph.fromTemplate("""
+    val graph = InMemoryGraph.fromTemplate("""
                        .----------[:PROBLEM]----------.
                        | .----[:R1]--->()---[:R1]---. |
                        v |                          v |
@@ -1372,7 +1373,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     }
 
     val lengths = fixture()
-      .withGraph(graph.graph)
+      .withGraph(graph)
       .withNfa(nfa.build)
       .from(graph node "START")
       .withK(2)
@@ -1783,7 +1784,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
    *********************************************************/
 
   ignore("single node with loop in graph, single state with loop in NFA") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val r1 = graph.rel(a, a)
 
@@ -1804,7 +1805,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   ignore("an r* pattern should be able to be represented by a single NFA state with loop RE") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val ab = graph.rel(a, b)
@@ -1826,7 +1827,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   ignore("an r* pattern should be able to be represented by a two NFA states with loop RE then NJ") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val ab = graph.rel(a, b)
@@ -1850,7 +1851,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   ignore("an r+ pattern should be able to be represented by two NFA states with an RE and NJ") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val ab = graph.rel(a, b)
@@ -1874,7 +1875,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
   }
 
   ignore("an r+ pattern should be able to be represented by three NFA states with a final NJ") {
-    val graph = TestGraph.builder
+    val graph = InMemoryGraph.builder
     val a = graph.node()
     val b = graph.node()
     val ab = graph.rel(a, b)
@@ -1913,7 +1914,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(n1)-->(n2)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     val n1 = g.node()
     val n2 = g.node()
     val r1_2 = g.rel(n1, n2)
@@ -1922,7 +1923,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(a)<--(b)-->(c)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     val a = g.node()
     val b = g.node()
     val c = g.node()
@@ -1933,7 +1934,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(n1)-->(n2)-->(n3)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     val n1 = g.node()
     val n2 = g.node()
     val n3 = g.node()
@@ -1944,7 +1945,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(a)-->(b)<--(c)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     val a = g.node()
     val b = g.node()
     val c = g.node()
@@ -1955,7 +1956,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(n1)-->(n2)<--(n3)-->(n4)<--(n5)-->(n6)<--(n7)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     private val n1 = g.node()
     private val n2 = g.node()
     val n3 = g.node()
@@ -1975,7 +1976,7 @@ object PGPathPropagatingBFSTest {
 
   // noinspection TypeAnnotation
   private object `(a)<--(b)-->(a)` {
-    private val g = TestGraph.builder
+    private val g = InMemoryGraph.builder
     val a = g.node()
     val b = g.node()
     val ba1 = g.rel(b, a)

@@ -2,22 +2,19 @@
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
  *
- * This file is part of Neo4j.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.neo4j.cypher.internal.runtime.graphtemplate
+package org.neo4j.cypher.internal.util.test_helpers.graphtemplate
 
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -62,7 +59,15 @@ object Directedness {
   case object Undirected extends Directedness
 }
 
-class GraphTemplate() {
+sealed trait RelDirection
+
+object RelDirection {
+  case object Incoming extends RelDirection
+  case object Outgoing extends RelDirection
+  case object Both extends RelDirection
+}
+
+class GraphTemplate {
   private val idGen = TemplateId.Generator.sequential
   private val nodes = ArrayBuffer.empty[NodeTemplate]
   private val rels = ArrayBuffer.empty[RelationshipTemplate]
@@ -159,7 +164,7 @@ class GraphTemplate() {
     this
   }
 
-  def instantiate[Node, Rel](instantiator: TemplateInstantiator[Node, Rel]): InstantiatedGraph[Node, Rel] = {
+  def instantiate[Node, Rel](instantiator: TemplateInstantiator[Node, Rel]): NamedEntites[Node, Rel] = {
     val nodesByNameBuilder = Map.newBuilder[String, Node]
     val nodesById = {
       val builder = Map.newBuilder[TemplateId, Node]
@@ -172,23 +177,29 @@ class GraphTemplate() {
     }
 
     val relsByNameBuilder = Map.newBuilder[String, Rel]
-    val allRels = {
-      val builder = Seq.newBuilder[Rel]
-      for (rel <- rels) {
-        val r = instantiator.createRel(nodesById(rel.from), nodesById(rel.to), rel.relType)
-        builder += r
-        rel.name.foreach(name => relsByNameBuilder += (name -> r))
-      }
-      builder.result()
+    for (rel <- rels) {
+      val r = instantiator.createRel(nodesById(rel.from), nodesById(rel.to), rel.relType)
+      rel.name.foreach(name => relsByNameBuilder += (name -> r))
     }
 
-    InstantiatedGraph(
+    NamedEntites(
       nodesByNameBuilder.result(),
-      nodesById.values.toSeq,
-      relsByNameBuilder.result(),
-      allRels
+      relsByNameBuilder.result()
     )
   }
+}
+
+trait TemplateInstantiator[NODE, REL] {
+  def createNode(labels: Seq[String]): NODE
+  def createRel(from: NODE, to: NODE, relType: Option[String]): REL
+}
+
+case class NamedEntites[NODE, REL](
+  namedNodes: Map[String, NODE],
+  namedRels: Map[String, REL]
+) {
+  def node(name: String): NODE = namedNodes(name)
+  def rel(name: String): REL = namedRels(name)
 }
 
 class GraphTemplateTest extends CypherFunSuite {

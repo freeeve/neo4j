@@ -2,32 +2,29 @@
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
  *
- * This file is part of Neo4j.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.neo4j.cypher.internal.runtime.graphtemplate.parsing
+package org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing
 
-import MultiLineParsedRelFinder.RelData
-import MultiLineParsedRelFinder.RelPath
-import MultiLineParsedRelFinder.chooseOption
-import MultiLineParsedRelFinder.detailRegex
-import MultiLineParsedRelFinder.maybeLineChar
-import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
-import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.RelDirection
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.RelDirection.Incoming
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.RelDirection.Outgoing
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.MultiLineParsedRelFinder.RelData
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.MultiLineParsedRelFinder.RelPath
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.MultiLineParsedRelFinder.chooseOption
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.MultiLineParsedRelFinder.detailRegex
+import org.neo4j.cypher.internal.util.test_helpers.graphtemplate.parsing.MultiLineParsedRelFinder.maybeLineChar
 
 /**
  * Finds relationships written over (possibly) multiple lines of a 2d string diagram
@@ -196,10 +193,10 @@ object MultiLineParsedRelFinder {
       Projection(p, d)
     }
 
-    def semanticDir: SemanticDirection =
+    def semanticDir: RelDirection =
       (isDirectionIndicator(segments.last._1), isDirectionIndicator(segments.head._1)) match {
-        case (true, false)  => SemanticDirection.INCOMING
-        case (false, true)  => SemanticDirection.OUTGOING
+        case (true, false)  => RelDirection.Incoming
+        case (false, true)  => RelDirection.Outgoing
         case (false, false) => throw new IllegalArgumentException("Line did not have direction indicator")
         case (true, true)   => throw new IllegalArgumentException("Line had two direction indicators")
       }
@@ -239,7 +236,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(0, 0, Direction.Left),
         Projection(0, 1, Direction.Right),
-        OUTGOING
+        RelDirection.Outgoing
       )
     )
   }
@@ -258,7 +255,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(0, 1, Direction.Left),
         Projection(0, 2, Direction.Right),
-        INCOMING
+        RelDirection.Incoming
       ),
       ParsedRel(
         Set(Vec2d(1, 3), Vec2d(1, 2), Vec2d(1, 1)),
@@ -266,7 +263,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(1, 1, Direction.Left),
         Projection(1, 3, Direction.Right),
-        OUTGOING
+        RelDirection.Outgoing
       )
     )
   }
@@ -285,7 +282,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(0, 1, Direction.Up),
         Projection(1, 1, Direction.Down),
-        INCOMING
+        RelDirection.Incoming
       )
     )
   }
@@ -304,7 +301,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(0, 1, Direction.Up),
         Projection(1, 1, Direction.Down),
-        INCOMING
+        Incoming
       ),
       ParsedRel(
         Set(Vec2d(1, 3), Vec2d(0, 3)),
@@ -312,7 +309,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(0, 3, Direction.Up),
         Projection(1, 3, Direction.Down),
-        OUTGOING
+        Outgoing
       )
     )
   }
@@ -353,7 +350,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         None,
         Projection(2, 1, Direction.Left),
         Projection(2, 13, Direction.Right),
-        OUTGOING
+        RelDirection.Outgoing
       )
     )
   }
@@ -379,7 +376,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         Some("Rel"),
         Projection(0, 0, Direction.Left),
         Projection(0, 9, Direction.Right),
-        OUTGOING
+        RelDirection.Outgoing
       )
     )
   }
@@ -412,7 +409,7 @@ class MultiLineParsedRelFinderTest extends CypherFunSuite {
         Some("Rel"),
         Projection(1, 3, Direction.Up),
         Projection(4, 3, Direction.Down),
-        OUTGOING
+        RelDirection.Outgoing
       )
     )
 

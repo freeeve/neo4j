@@ -22,9 +22,10 @@ package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
 import org.neo4j.graphdb.Direction
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.InMemoryRelationshipCursor.TraversedRel
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.NfaDsl.DslPart
-import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TestGraph.TraversedRel
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TracedPath.PathEntity
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventPPBFSHooks
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder
@@ -71,7 +72,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
   }
 
   case class FixtureBuilder[A](
-    graph: TestGraph,
+    graph: InMemoryGraph,
     nfa: PGStateBuilder,
     source: Long,
     intoTarget: Long,
@@ -87,7 +88,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     pathMode: TraversalPathMode
   ) {
 
-    def withGraph(graph: TestGraph): FixtureBuilder[A] = copy(graph = graph)
+    def withGraph(graph: InMemoryGraph): FixtureBuilder[A] = copy(graph = graph)
 
     def withNfa(f: PGStateBuilder => Unit): FixtureBuilder[A] = copy(nfa = {
       val builder = new PGStateBuilder
@@ -143,7 +144,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
         intoTarget,
         nfa.getFinal.state,
         searchMode,
-        new MockGraphCursor(graph, hooks),
+        new InMemoryRelationshipCursor(graph, hooks),
         createPathTracer(mt, hooks),
         projection(_),
         predicate(_),
@@ -321,7 +322,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
   }
 
   protected def fixture(): FixtureBuilder[TracedPath] = FixtureBuilder[TracedPath](
-    graph = TestGraph.empty,
+    graph = InMemoryGraph.empty,
     nfa = new PGStateBuilder,
     source = -1L,
     intoTarget = -1L,
