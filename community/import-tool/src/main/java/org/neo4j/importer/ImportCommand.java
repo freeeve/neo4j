@@ -604,8 +604,7 @@ public class ImportCommand {
             try {
                 ctx.fs().mkdirs(logFilePath.toAbsolutePath().getParent());
 
-                try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout);
-                        var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
+                try (var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
                         var logProvider = FileImporter.getLog(logFile, verbose);
                         var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
                     preImportValidation(fileSystem);
@@ -650,18 +649,21 @@ public class ImportCommand {
                         }
                         importer.dryRun(this);
                     } else {
-                        printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
-                        importer.doImport(this);
-                        postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
+                        try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout)) {
+                            printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
+                            importer.doImport(this);
+                            postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
+                        } catch (FileLockException e) {
+                            throw new CommandFailedException(
+                                    "The database is in use. Stop database '%s' and try again."
+                                            .formatted(databaseLayout.getDatabaseName()),
+                                    e,
+                                    ExitCode.FAIL);
+                        } catch (CannotWriteException e) {
+                            throw new CommandFailedException(
+                                    "You do not have permission to import.", e, ExitCode.NOPERM);
+                        }
                     }
-                } catch (FileLockException e) {
-                    throw new CommandFailedException(
-                            "The database is in use. Stop database '%s' and try again."
-                                    .formatted(databaseLayout.getDatabaseName()),
-                            e,
-                            ExitCode.FAIL);
-                } catch (CannotWriteException e) {
-                    throw new CommandFailedException("You do not have permission to import.", e, ExitCode.NOPERM);
                 } catch (CsvImportException e) {
                     throw new CommandFailedException("Error importing csv file.", e, ExitCode.SOFTWARE);
                 } catch (UnsupportedFormatException e) {
