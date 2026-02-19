@@ -303,8 +303,14 @@ class CypherConfiguration private (val config: Config) {
       _customHeapEstimatorCacheConfig = extractCustomHeapEstimatorCacheConfig(config)
   )
 
-  def toggledFeatures(features: (Setting[java.lang.Boolean], String)*): Seq[String] =
-    features.collect { case (setting, name) if config.get(setting) => name }
+  def toggledFeatures(defaultFeatures: Seq[String], features: (Setting[java.lang.Boolean], String)*): Set[String] = {
+    val (toggledOnFeatures, toggledOffFeatures) = features.partitionMap {
+      case (setting, name) if config.get(setting) => Left(name)
+      case (_, name)                              => Right(name)
+    }
+    (defaultFeatures.diff(toggledOffFeatures) ++ toggledOnFeatures).toSet
+
+  }
 
   def obfuscateLiterals: Boolean = _obfuscateLiterals
   def renderPlanDescription: Boolean = _renderPlanDescription

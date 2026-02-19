@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.defaultSemant
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.frontend.phases.FrontEndCompilationPhases.settingToFeatureMapping
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
@@ -118,7 +119,7 @@ class CypherParsing(
 case class CypherParsingConfig(
   extractLiterals: ExtractLiteral = ExtractLiteral.ALWAYS,
   useParameterSizeHint: Boolean = true,
-  semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
+  semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures.map(SemanticFeature.fromString),
   obfuscateLiterals: () => Boolean = () => false,
   queryRouterForCompositeEnabled: Boolean = false,
   resolveSimpleDynamicExpressions: Boolean = false
@@ -154,22 +155,8 @@ object CypherParsingConfig {
       )
       CompilationPhases.enabledSemanticFeatures(
         cypherConfiguration.enableExtraSemanticFeatures ++ cypherConfiguration.toggledFeatures(
-          GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
-          GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
-          GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
-          GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
-          GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
-          GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
-          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
-          GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_variable_checker -> SemanticFeature.VariableChecking.productPrefix,
-          GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> SemanticFeature.DisableReworkedRewriters.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> SemanticFeature.EnableParsingOfObfuscatedLiterals.productPrefix,
-          GraphDatabaseInternalSettings.cypher_disable_type_checking -> SemanticFeature.DisableTypeCheckingInSemanticAnalysis.productPrefix,
-          GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix,
-          GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> SemanticFeature.ShowDatabaseInterpretedRuntime.productPrefix
+          defaultSemanticFeatures,
+          settingToFeatureMapping: _*
         )
       )
     }

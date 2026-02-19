@@ -16,11 +16,27 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AttributeBasedAccessControl
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ComposableCommands
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableTypeCheckingInSemanticAnalysis
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ExperimentalCypherVersions
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GraphTypes
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.OidcCredentialForwarding
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.RelationshipPropertyValueAccessRules
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowDatabaseInterpretedRuntime
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -51,14 +67,45 @@ import org.neo4j.cypher.internal.rewriting.rewriters.Never
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
+import org.neo4j.graphdb.config.Setting
 import org.neo4j.values.virtual.MapValue
 
 trait FrontEndCompilationPhases {
 
-  val defaultSemanticFeatures: Seq[SemanticFeature.MultipleDatabases.type] = Seq(MultipleDatabases)
+  // This needs to be lazy to avoid that TeaVM tries to cross-compile the configuration module to JavaScript
+  lazy val settingToFeatureMapping: Seq[(Setting[java.lang.Boolean], String)] = Seq(
+    GraphDatabaseInternalSettings.show_setting -> ShowSetting.productPrefix,
+    GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> OidcCredentialForwarding.productPrefix,
+    GraphDatabaseInternalSettings.composable_commands -> ComposableCommands.productPrefix,
+    GraphDatabaseInternalSettings.graph_type_enabled -> GraphTypes.productPrefix,
+    GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> ExperimentalCypherVersions.productPrefix,
+    GraphDatabaseInternalSettings.relationship_property_value_access_rules -> RelationshipPropertyValueAccessRules.productPrefix,
+    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> VectorSingleStageFilteringEnabled.productPrefix,
+    GraphDatabaseInternalSettings.cypher_vector_search_enabled -> VectorSearch.productPrefix,
+    GraphDatabaseInternalSettings.cypher_enable_local_callables -> LocalCallables.productPrefix,
+    GraphDatabaseInternalSettings.cypher_enable_scope_queries -> ScopeQueries.productPrefix,
+    GraphDatabaseInternalSettings.cypher_enable_variable_checker -> VariableChecking.productPrefix,
+    GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> DisableReworkedRewriters.productPrefix,
+    GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> EnableParsingOfObfuscatedLiterals.productPrefix,
+    GraphDatabaseInternalSettings.cypher_disable_type_checking -> DisableTypeCheckingInSemanticAnalysis.productPrefix,
+    GraphDatabaseInternalSettings.attribute_based_access_control -> AttributeBasedAccessControl.productPrefix,
+    GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> ShowDatabaseInterpretedRuntime.productPrefix
+  )
 
-  def enabledSemanticFeatures(extra: Set[String]): Seq[SemanticFeature] =
-    defaultSemanticFeatures ++ extra.map(SemanticFeature.fromString)
+  val defaultSemanticFeatures: Seq[String] = Seq(
+    MultipleDatabases.productPrefix,
+    ShowSetting.productPrefix,
+    OidcCredentialForwarding.productPrefix,
+    GraphTypes.productPrefix,
+    RelationshipPropertyValueAccessRules.productPrefix,
+    VectorSearch.productPrefix,
+    VectorSingleStageFilteringEnabled.productPrefix,
+    VariableChecking.productPrefix,
+    ShowDatabaseInterpretedRuntime.productPrefix
+  )
+
+  def enabledSemanticFeatures(features: Set[String]): Seq[SemanticFeature] =
+    features.map(SemanticFeature.fromString).toSeq
 
   case class ParsingConfig(
     extractLiterals: ExtractLiteral = ExtractLiteral.ALWAYS,

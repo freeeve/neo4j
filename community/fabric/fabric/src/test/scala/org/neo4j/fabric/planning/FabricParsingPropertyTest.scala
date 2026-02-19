@@ -146,7 +146,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
           override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
           override def sessionDatabase: DatabaseReference = null
           override def semanticFeatures: Seq[SemanticFeature] =
-            defaultSemanticFeatures ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
+            defaultSemanticFeatures.map(SemanticFeature.fromString) ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
           override def isScopeQuery: Boolean = false
           override def shadowedFunctions: Set[String] = Set.empty
         }

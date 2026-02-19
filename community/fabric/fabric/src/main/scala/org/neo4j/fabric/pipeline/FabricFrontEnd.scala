@@ -19,7 +19,6 @@
  */
 package org.neo4j.fabric.pipeline
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
@@ -39,6 +38,8 @@ import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.frontend.phases.FrontEndCompilationPhases.defaultSemanticFeatures
+import org.neo4j.cypher.internal.frontend.phases.FrontEndCompilationPhases.settingToFeatureMapping
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
@@ -116,25 +117,9 @@ case class FabricFrontEnd(
     def traceStart(): CompilationTracer.QueryCompilationEvent =
       compilationTracer.compileQuery(query.description)
 
-    val semanticFeatures = CompilationPhases.enabledSemanticFeatures(
+    val semanticFeatures: Seq[SemanticFeature] = CompilationPhases.enabledSemanticFeatures(
       cypherConfig.enableExtraSemanticFeatures ++
-        cypherConfig.toggledFeatures(
-          GraphDatabaseInternalSettings.show_setting -> SemanticFeature.ShowSetting.productPrefix,
-          GraphDatabaseInternalSettings.oidc_credential_forwarding_enabled -> SemanticFeature.OidcCredentialForwarding.productPrefix,
-          GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
-          GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
-          GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
-          GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
-          GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> SemanticFeature.VectorSingleStageFilteringEnabled.productPrefix,
-          GraphDatabaseInternalSettings.cypher_vector_search_enabled -> SemanticFeature.VectorSearch.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_local_callables -> SemanticFeature.LocalCallables.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix,
-          GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> SemanticFeature.DisableReworkedRewriters.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> SemanticFeature.EnableParsingOfObfuscatedLiterals.productPrefix,
-          GraphDatabaseInternalSettings.cypher_disable_type_checking -> SemanticFeature.DisableTypeCheckingInSemanticAnalysis.productPrefix,
-          GraphDatabaseInternalSettings.attribute_based_access_control -> SemanticFeature.AttributeBasedAccessControl.productPrefix,
-          GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> SemanticFeature.ShowDatabaseInterpretedRuntime.productPrefix
-        )
+        cypherConfig.toggledFeatures(defaultSemanticFeatures, settingToFeatureMapping: _*)
     ) ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
 
     private val parsingConfig = CompilationPhases.ParsingConfig(
