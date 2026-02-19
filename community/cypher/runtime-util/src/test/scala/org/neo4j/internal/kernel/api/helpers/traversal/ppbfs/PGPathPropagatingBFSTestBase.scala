@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
 import org.neo4j.graphdb.Direction
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.InMemoryRelationshipCursor.TraversedRel
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.NfaDsl.DslPart
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.Nfa
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.nfa
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TracedPath.PathEntity
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventPPBFSHooks
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder
@@ -380,14 +382,6 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
 
   }
 
-  protected class Nfa(name: String, construct: PGStateBuilder => Unit) extends Function[PGStateBuilder, Unit] {
-    override def toString: String = name
-    def apply(v1: PGStateBuilder): Unit = construct(v1)
-  }
-
-  protected def nfa(name: String)(construct: PGStateBuilder => Unit): Nfa = new Nfa(name, construct)
-  protected def nfa(defn: DslPart): Nfa = nfa(defn.toString())(defn.build)
-
   import NfaDsl.Implicits._
   protected val `(s) ((a)-->(b))* (t)`: Nfa = nfa("s" |> ("a" --> "b" *) |> "t")
   protected val `(s) ((a)-->(b))+ (t)`: Nfa = nfa("s" |> ("a" --> "b" +) |> "t")
@@ -433,4 +427,15 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     c.addNodeJuxtaposition(a)
     c.addNodeJuxtaposition(t)
   }
+}
+
+object PGPathPropagatingBFSTestBase {
+
+  class Nfa(name: String, construct: PGStateBuilder => Unit) extends Function[PGStateBuilder, Unit] {
+    override def toString: String = name
+    def apply(v1: PGStateBuilder): Unit = construct(v1)
+  }
+
+  def nfa(name: String)(construct: PGStateBuilder => Unit): Nfa = new Nfa(name, construct)
+  def nfa(defn: DslPart): Nfa = nfa(defn.toString())(defn.build)
 }

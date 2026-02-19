@@ -27,6 +27,8 @@ import org.neo4j.graphdb.Direction
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTest._
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.Nfa
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.nfa
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder.AddTarget
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder.CursorNextRelationship

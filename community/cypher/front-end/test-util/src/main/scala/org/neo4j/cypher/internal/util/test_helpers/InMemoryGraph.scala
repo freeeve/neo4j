@@ -125,6 +125,11 @@ object InMemoryGraph {
         case None        => _ => false
       }
     }
+
+    def nodesWithLabel(name: String): Iterable[Long] = {
+      val labelId = labels(name)
+      graph.nodes.filter { case (_, labels) => labels.contains(labelId) }.keys
+    }
   }
 
   object StringMapped {

@@ -49,6 +49,32 @@ import scala.util.hashing.MurmurHash3
  */
 object NfaDsl {
 
+  private case class StateChain(first: BuilderState, last: BuilderState) {
+
+    def connect(state: BuilderState) = {
+      last.addNodeJuxtaposition(state)
+      StateChain(first, state)
+    }
+
+    def connect(other: StateChain): StateChain = {
+      last.addNodeJuxtaposition(other.first)
+      StateChain(first, other.last)
+    }
+
+    def connectLoop() = {
+      last.addNodeJuxtaposition(first)
+    }
+  }
+
+  private object StateChain {
+
+    def connectAll(chains: Seq[StateChain]): StateChain =
+      chains.reduce(_ connect _)
+
+    def repeat(times: Long)(f: => StateChain): StateChain =
+      connectAll((0L until times).map(_ => f))
+  }
+
   sealed trait DslPart {
 
     /** Create a node juxtaposition between this part and the other */
@@ -61,22 +87,52 @@ object NfaDsl {
         isFirst: Boolean,
         isLast: Boolean,
         prevState: BuilderState
-      ): (BuilderState, BuilderState) =
+      ): StateChain =
         defn match {
-          case RepeatedRelExpansion(defn, rept) =>
-            val (s1, s2) = recurse(defn, isFirst, isLast, prevState)
-            s2.addNodeJuxtaposition(s1)
-            if (rept.min == 0) {
-              assert(!isFirst, "Repeated transition with min-length 0 must have a state preceding it")
-              assert(!isLast, "Repeated transition with min-length 0 must have a state succeeding it")
+          case RepeatedRelExpansion(defn, Repetition(0, Unlimited)) =>
+            val chain = recurse(defn, isFirst, isLast, prevState)
+            chain.connectLoop()
 
-              val anonEndState = sb.newState("anon")
-              s2.addNodeJuxtaposition(anonEndState)
-              prevState.addNodeJuxtaposition(anonEndState)
-              (s1, anonEndState)
-            } else {
-              (s1, s2)
+            val anonEndState = sb.newState("anon")
+            prevState.addNodeJuxtaposition(anonEndState)
+            chain.connect(anonEndState)
+
+          case RepeatedRelExpansion(defn, Repetition(0, Limited(max))) =>
+            val skippable = (0L until max).map { _ => recurse(defn, isFirst, isLast, prevState) }.toArray
+
+            val anonEndState = sb.newState("anon")
+            prevState.addNodeJuxtaposition(anonEndState)
+            for (chain <- skippable.init) {
+              chain.last.addNodeJuxtaposition(anonEndState)
             }
+
+            StateChain.connectAll(skippable).connect(anonEndState)
+
+          case RepeatedRelExpansion(defn, Repetition(min, Unlimited)) =>
+            val prefix =
+              (0L until min)
+                .map { _ => recurse(defn, isFirst, isLast, prevState) }
+                .toArray
+
+            val last = prefix.last
+            last.connectLoop()
+            StateChain.connectAll(prefix)
+
+          case RepeatedRelExpansion(defn, Repetition(min, Limited(max))) if min == max =>
+            StateChain.repeat(min) { recurse(defn, isFirst, isLast, prevState) }
+
+          case RepeatedRelExpansion(defn, Repetition(min, Limited(max))) =>
+            val prefix = StateChain.repeat(min) { recurse(defn, isFirst, isLast, prevState) }
+
+            val skippable = (min until max).map { _ => recurse(defn, isFirst, isLast, prevState) }.toArray
+
+            val anonEndState = sb.newState("anon")
+            prefix.last.addNodeJuxtaposition(anonEndState)
+            for (chain <- skippable.init) {
+              chain.last.addNodeJuxtaposition(anonEndState)
+            }
+
+            prefix.connect(StateChain.connectAll(skippable)).connect(anonEndState)
 
           case State(name, predicate) =>
             val state = sb.newState(
@@ -85,18 +141,18 @@ object NfaDsl {
               isFinalState = isLast,
               predicate = predicate.getOrElse(Predicates.ALWAYS_TRUE_LONG)
             )
-            (state, state)
+            StateChain(state, state)
 
           case Juxtaposition(first, second) =>
-            val (s1, s2) = recurse(first, isFirst, isLast = false, prevState)
-            val (s3, s4) = recurse(second, isFirst = false, isLast = isLast, s2)
+            val StateChain(s1, s2) = recurse(first, isFirst, isLast = false, prevState)
+            val StateChain(s3, s4) = recurse(second, isFirst = false, isLast = isLast, s2)
             s2.addNodeJuxtaposition(s3)
 
-            (s1, s4)
+            StateChain(s1, s4)
 
           case RelExpansion(from, direction, predicate, to) =>
-            val (s1, s2) = recurse(from, isFirst, isLast = false, prevState)
-            val (s3, s4) = recurse(to, isFirst = false, isLast = isLast, s2)
+            val StateChain(s1, s2) = recurse(from, isFirst, isLast = false, prevState)
+            val StateChain(s3, s4) = recurse(to, isFirst = false, isLast = isLast, s2)
             val name = predicate.name match {
               case Some(value) => SlotOrName.VarName(value, isGroup = false)
               case None        => SlotOrName.None
@@ -108,7 +164,7 @@ object NfaDsl {
               relPredicate = predicate.pred.getOrElse(Predicates.alwaysTrue()),
               direction = direction
             )
-            (s1, s4)
+            StateChain(s1, s4)
         }
 
       recurse(this, isFirst = true, isLast = true, null)
@@ -292,6 +348,8 @@ class NfaDslTests extends CypherFunSuite {
     ("a"-->"b"<--"c")                -> "(a)-->(b)<--(c)",
     ("a"-->"b"<--"c"*)               -> "((a)-->(b)<--(c))*",
     ("a"-->"b"<--"c"+)               -> "((a)-->(b)<--(c))+",
+    ("a"-->"b" rep (1, 5))           -> "((a)-->(b)){1, 5}",
+    ("a"--"b"--"c" rep (1, 5))       -> "((a)--(b)--(c)){1, 5}",
     // format: on
   ).foreach { case (nfa, expected) =>
     test(s"$expected toString") {
@@ -376,6 +434,58 @@ class NfaDslTests extends CypherFunSuite {
     b.addNodeJuxtaposition(t)
   }
 
+  testEqual("s" |> ("a" -- "b" rep (1, 2)) |> "t") { sb =>
+    val s = sb.newState("s", isStartState = true)
+    val a1 = sb.newState("a")
+    val b1 = sb.newState("b")
+    val a2 = sb.newState("a")
+    val b2 = sb.newState("b")
+    val anon = sb.newState("anon")
+    val t = sb.newState("t", isFinalState = true)
+
+    s.addNodeJuxtaposition(a1)
+    a1.addRelationshipExpansion(b1)
+    b1.addNodeJuxtaposition(a2)
+    a2.addRelationshipExpansion(b2)
+    b2.addNodeJuxtaposition(anon)
+    anon.addNodeJuxtaposition(t)
+    b1.addNodeJuxtaposition(anon)
+  }
+
+  testEqual("s" |> ("a" -- "b" rep (2, 2)) |> "t") { sb =>
+    val s = sb.newState("s", isStartState = true)
+    val a1 = sb.newState("a")
+    val b1 = sb.newState("b")
+    val a2 = sb.newState("a")
+    val b2 = sb.newState("b")
+    val t = sb.newState("t", isFinalState = true)
+
+    s.addNodeJuxtaposition(a1)
+    a1.addRelationshipExpansion(b1)
+    b1.addNodeJuxtaposition(a2)
+    a2.addRelationshipExpansion(b2)
+    b2.addNodeJuxtaposition(t)
+  }
+
+  testEqual("s" |> ("a" -- "b" -- "c" rep (2, 2)) |> "t") { sb =>
+    val s = sb.newState("s", isStartState = true)
+    val a1 = sb.newState("a")
+    val b1 = sb.newState("b")
+    val c1 = sb.newState("c")
+    val a2 = sb.newState("a")
+    val b2 = sb.newState("b")
+    val c2 = sb.newState("c")
+    val t = sb.newState("t", isFinalState = true)
+
+    s.addNodeJuxtaposition(a1)
+    a1.addRelationshipExpansion(b1)
+    b1.addRelationshipExpansion(c1)
+    c1.addNodeJuxtaposition(a2)
+    a2.addRelationshipExpansion(b2)
+    b2.addRelationshipExpansion(c2)
+    c2.addNodeJuxtaposition(t)
+  }
+
   private def testEqual(dsl: DslPart)(f: PGStateBuilder => Unit) = {
     test(dsl.toString + " builds the expected nfa") {
       val actual = new MockStateBuilder()
@@ -388,29 +498,49 @@ class NfaDslTests extends CypherFunSuite {
     }
   }
 
-  sealed trait MockTransition
-  case class MockJuxtaposition(from: BuilderState, to: BuilderState) extends MockTransition
+  sealed trait MockTransition {
+    def from: MockBuilderState
+    def to: MockBuilderState
+  }
+
+  case class MockJuxtaposition(from: MockBuilderState, to: MockBuilderState) extends MockTransition {
+    override def toString: String = s"(${from.id} ${from.name}) (${to.id} ${to.name})"
+  }
 
   case class MockExpansion(
-    from: BuilderState,
-    to: BuilderState,
+    from: MockBuilderState,
+    to: MockBuilderState,
     relPredicate: Predicate[RelationshipTraversalEntities],
     types: Option[Set[Int]],
     direction: Direction,
     name: SlotOrName
-  ) extends MockTransition
+  ) extends MockTransition {
+
+    override def toString: String = {
+      val strPred = if (relPredicate == Predicates.alwaysTrue()) "" else " WHERE ..."
+      val strTypes = types.getOrElse(Set.empty).mkString(":", "|", "")
+      val strName = name.toString
+      val strRel = s"[$strName$strTypes$strPred]"
+      val strDir = direction match {
+        case Direction.OUTGOING => s"-$strRel->"
+        case Direction.INCOMING => s"<-$strRel-"
+        case Direction.BOTH     => s"-$strRel-"
+      }
+      s"(${from.id} ${from.name})$strDir(${to.id} ${to.name})"
+    }
+  }
 
   class MockBuilderState(
-    val transitions: mutable.Set[MockTransition],
+    parent: MockStateBuilder,
+    val id: Int,
     val name: String,
     val isStartState: Boolean,
     val isFinalState: Boolean,
     val predicate: LongPredicate
   ) extends PGStateBuilder.BuilderState(null) {
 
-    override def addNodeJuxtaposition(target: BuilderState): Unit = {
-      transitions += MockJuxtaposition(this, target)
-    }
+    override def addNodeJuxtaposition(target: BuilderState): Unit =
+      parent.addTransition(MockJuxtaposition(this, target.asInstanceOf[MockBuilderState]))
 
     override def addRelationshipExpansion(
       target: BuilderState,
@@ -418,15 +548,19 @@ class NfaDslTests extends CypherFunSuite {
       types: Array[Int],
       direction: Direction,
       name: SlotOrName
-    ): Unit = {
-      transitions += MockExpansion(this, target, relPredicate, Option(types).map(_.toSet), direction, name)
-    }
-
-    private def canEqual(other: Any): Boolean = other.isInstanceOf[MockBuilderState]
+    ): Unit =
+      parent.addTransition(MockExpansion(
+        this,
+        target.asInstanceOf[MockBuilderState],
+        relPredicate,
+        Option(types).map(_.toSet),
+        direction,
+        name
+      ))
 
     override def equals(other: Any): Boolean = other match {
       case that: MockBuilderState =>
-        that.canEqual(this) &&
+        id == that.id &&
         name == that.name &&
         isStartState == that.isStartState &&
         isFinalState == that.isFinalState &&
@@ -439,7 +573,7 @@ class NfaDslTests extends CypherFunSuite {
     }
 
     override def toString: String =
-      s"($name, $isStartState, $isFinalState, $predicate)"
+      s"($id, $name, $isStartState, $isFinalState, $predicate)"
   }
 
   class MockStateBuilder extends PGStateBuilder {
@@ -452,16 +586,16 @@ class NfaDslTests extends CypherFunSuite {
       isFinalState: Boolean,
       predicate: LongPredicate
     ): BuilderState = {
-      val state = new MockBuilderState(transitions, name, isStartState, isFinalState, predicate)
+      val state = new MockBuilderState(this, states.size, name, isStartState, isFinalState, predicate)
       states += state
       state
     }
 
-    private def canEqual(other: Any): Boolean = other.isInstanceOf[MockStateBuilder]
+    def addTransition(transition: MockTransition): Unit =
+      transitions += transition
 
     override def equals(other: Any): Boolean = other match {
       case that: MockStateBuilder =>
-        that.canEqual(this) &&
         transitions == that.transitions &&
         states == that.states
       case _ => false
@@ -474,10 +608,10 @@ class NfaDslTests extends CypherFunSuite {
     override def toString: String = {
       s"""
          |States:
-         |${states.mkString("- ", "\n- ", "")}
+         |${states.toSeq.sortBy(_.id).mkString("- ", "\n- ", "")}
          |
          |Transitions:
-         |${transitions.mkString("- ", "\n- ", "")}
+         |${transitions.toSeq.sortBy(x => (x.from.id, x.to.id)).mkString("- ", "\n- ", "")}
          |""".stripMargin
     }
   }

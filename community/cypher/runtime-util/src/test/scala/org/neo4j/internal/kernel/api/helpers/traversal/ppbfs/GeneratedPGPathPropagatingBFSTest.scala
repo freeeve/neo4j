@@ -22,8 +22,18 @@ package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GraphOperations
 import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
+import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph.StringMapped.GraphOps
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.CobwebGraph
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.DewyCobwebGraph
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.HierarchicalCluster
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.testGraphs
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.Nfa
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBFSTestBase.nfa
+
+import scala.language.postfixOps
+import scala.util.Random
 
 class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFSTestBase {
 
@@ -71,6 +81,35 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
       }
     }
   }
+
+  for {
+    template <- Seq(CobwebGraph, DewyCobwebGraph, HierarchicalCluster)
+  } {
+    val seed = Random.nextLong()
+    val localRandom = new Random(seed)
+
+    val builder = new InMemoryGraph.StringMapped.Builder
+    template.createGraph(localRandom, new GraphOps(builder))
+    val graph = builder.build()
+    val sources = graph.nodesWithLabel("S")
+
+    for {
+      query <- template.queries(graph)
+    } {
+      test(s"graph: ${template.name}, pattern: ${query.nfa}, k: ${query.k}, seed: $seed") {
+        for { source <- sources } {
+          fixture()
+            .withGraph(graph.graph)
+            .withNfa(query.nfa)
+            .from(source)
+            .withK(query.k)
+            .assertExpected()
+        }
+      }
+
+    }
+  }
+
 }
 
 object GeneratedPGPathPropagatingBFSTest {
@@ -103,5 +142,326 @@ object GeneratedPGPathPropagatingBFSTest {
         end
       )
     }
+  }
+
+  case class Query(nfa: Nfa, k: Int)
+
+  import NfaDsl.Implicits._
+
+  sealed trait FuzzyGraphWithQueries {
+    def createGraph(random: Random, graph: GraphOperations): Unit
+    def queries(graph: InMemoryGraph.StringMapped): Seq[Query]
+    val name: String
+  }
+
+  /**
+   * Creates a cobweb graph consisting of spokes (line graphs) originating from the same central node,
+   * where nodes at the same depth in neighboring spokes are related, forming a cobweb like graph.
+   *
+   * The length of the spokes is randomized, and we also relate some completely random nodes
+   * as well.
+   */
+  object CobwebGraph extends FuzzyGraphWithQueries {
+
+    val nSpokes = 4
+    val minSpokeLength = 3
+    val maxSpokeLength = 5
+    val nRandomRels = 2
+
+    override def createGraph(random: Random, graph: GraphOperations): Unit = {
+      val OUT = "OUT"
+      val SIDEWAYS = "SIDEWAYS"
+      val RANDOM = "RANDOM"
+
+      val targetLabel = "T"
+
+      val centerNode = graph.createNode("0,0", "S")
+
+      // Create spokes
+      val spokeBuilder = Seq.newBuilder[Seq[graph.Node]]
+      for (spokeNumber <- 0 until nSpokes) {
+        val spokeLength = random.between(minSpokeLength, maxSpokeLength + 1)
+        val spoke = (0 until spokeLength).map(depth => graph.createNode(s"$spokeNumber,$depth"))
+        var prevNode = centerNode
+        for (node <- spoke) {
+          prevNode.createRelationshipTo(node, OUT)
+          prevNode = node
+        }
+        spoke.last.addLabel(targetLabel)
+        spokeBuilder.addOne(spoke)
+      }
+      val spokes = spokeBuilder.result()
+
+      // Relate nodes at same depth in neighbouring spokes
+      for (depth <- 0 until maxSpokeLength) {
+        var prevSpoke = spokes.last
+        for (spokeNumber <- 0 until nSpokes) {
+          val currSpoke = spokes(spokeNumber)
+
+          if (currSpoke.size > depth && prevSpoke.size > depth) {
+            prevSpoke(depth).createRelationshipTo(currSpoke(depth), SIDEWAYS)
+          }
+
+          prevSpoke = currSpoke
+        }
+      }
+
+      // Relate random nodes
+      val nodes = centerNode +: spokes.flatten
+      for (_ <- 0 until nRandomRels) {
+        val i1 = random.between(0, nodes.size)
+        val i2 = random.between(0, nodes.size)
+        nodes(i1).createRelationshipTo(nodes(i2), RANDOM)
+      }
+    }
+
+    override def queries(graph: InMemoryGraph.StringMapped): Seq[Query] = {
+      val OUT = graph relTypes "OUT"
+      val SIDEWAYS = graph relTypes "SIDEWAYS"
+      val RANDOM = graph relTypes "RANDOM"
+
+      val `(s:S)` = "s" where graph.hasLabel("S")
+      val `(t:T)` = "t" where graph.hasLabel("T")
+
+      Seq(
+        Query(
+          nfa(`(s:S)` |> (() - OUT -> () - SIDEWAYS - () - OUT - () +) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - OUT - () +) |> () - RANDOM - () |> (() - OUT - () +) |> `(t:T)`),
+          3
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - (OUT :| RANDOM) -> () - (SIDEWAYS :| RANDOM) - () - (OUT :| RANDOM) - () +) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() -- () rep (0, 8)) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - (OUT :| RANDOM) -> () +) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(
+            `(s:S)` |> (() - OUT -> () - SIDEWAYS - () - (SIDEWAYS :| RANDOM) - () - SIDEWAYS - () - OUT -> () +) |> `(t:T)`
+          ),
+          2
+        )
+      )
+    }
+    override val name: String = "Cobweb Graph"
+  }
+
+  /**
+   * Like the cobweb graph but with one length loops on ~half of nodes
+   */
+  object DewyCobwebGraph extends FuzzyGraphWithQueries {
+
+    val nSpokes = 4
+    val minSpokeLength = 3
+    val maxSpokeLength = 5
+    val nRandomRels = 2
+
+    override def createGraph(random: Random, graph: GraphOperations): Unit = {
+      val OUT = "OUT"
+      val SIDEWAYS = "SIDEWAYS"
+      val RANDOM = "RANDOM"
+      val DEW_DROP = "DEW_DROP"
+
+      val targetLabel = "T"
+
+      val centerNode = graph.createNode("0,0", "S")
+
+      // Create spokes
+      val spokeBuilder = Seq.newBuilder[Seq[graph.Node]]
+      for (spokeNumber <- 0 until nSpokes) {
+        val spokeLength = random.between(minSpokeLength, maxSpokeLength + 1)
+        val spoke = (0 until spokeLength).map(depth => graph.createNode(s"$spokeNumber,$depth"))
+        var prevNode = centerNode
+        for (node <- spoke) {
+          prevNode.createRelationshipTo(node, OUT)
+          prevNode = node
+        }
+        spoke.last.addLabel(targetLabel)
+        spokeBuilder.addOne(spoke)
+      }
+      val spokes = spokeBuilder.result()
+
+      // Relate nodes at same depth in neighbouring spokes
+      for (depth <- 0 until maxSpokeLength) {
+        var prevSpoke = spokes.last
+        for (spokeNumber <- 0 until nSpokes) {
+          val currSpoke = spokes(spokeNumber)
+
+          if (currSpoke.size > depth && prevSpoke.size > depth) {
+            prevSpoke(depth).createRelationshipTo(currSpoke(depth), SIDEWAYS)
+          }
+
+          prevSpoke = currSpoke
+        }
+      }
+
+      val nodes = centerNode +: spokes.flatten
+      // Create dew-drop loops
+      for (node <- nodes) {
+        if (random.between(0, 2) == 0) {
+          node.createRelationshipTo(node, DEW_DROP)
+        }
+      }
+
+      // Relate random nodes
+      for (_ <- 0 until nRandomRels) {
+        val i1 = random.between(0, nodes.size)
+        val i2 = random.between(0, nodes.size)
+        nodes(i1).createRelationshipTo(nodes(i2), RANDOM)
+      }
+    }
+
+    override def queries(graph: InMemoryGraph.StringMapped): Seq[Query] = {
+      val OUT = graph relTypes "OUT"
+      val SIDEWAYS = graph relTypes "SIDEWAYS"
+      val RANDOM = graph relTypes "RANDOM"
+      val DEW_DROP = graph relTypes "DEW_DROP"
+      val `(s:S)` = "s" where graph.hasLabel("S")
+      val `(t:T)` = "t" where graph.hasLabel("T")
+
+      Seq(
+        Query(
+          nfa(`(s:S)` |> (() - OUT -> () - SIDEWAYS - () - OUT - () - DEW_DROP - () +) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - OUT - () +) |> () - RANDOM - () |> (() - OUT - () +) |> ("mid" where graph.hasLabel(
+            "T"
+          )) |> (() - DEW_DROP - () *) |> "t"),
+          3
+        ),
+        Query(
+          nfa(
+            `(s:S)` |> (() - OUT - () +) |> () - RANDOM - () |> (() - OUT - () +) |> (() - DEW_DROP - () *) |> `(t:T)`
+          ),
+          3
+        ),
+        Query(
+          nfa(
+            `(s:S)` |> (() - (OUT :| RANDOM :| DEW_DROP) -> () - (SIDEWAYS :| RANDOM) - () - (OUT :| RANDOM) -> () +) |> `(t:T)`
+          ),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() -- () rep (0, 8)) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - (OUT :| RANDOM :| DEW_DROP) -> () +) |> `(t:T)`),
+          2
+        )
+      )
+    }
+    override val name: String = "Dewy Cobweb Graph"
+  }
+
+  object HierarchicalCluster extends FuzzyGraphWithQueries {
+
+    val nodesInClusterLowerBound = 2
+    val nodesInClusterUpperBound = 4
+    val nClustersLowerBound = 2
+    val nClustersUpperBound = 3
+    val relsBetweenClusters = 2
+    val nSourceNodes = 3
+    val nTargetNodes = 2
+
+    override def createGraph(random: Random, graph: GraphOperations): Unit = {
+      val INTER = "INTER"
+      val INTRA = "INTRA"
+
+      val sourceLabel = "S"
+      val targetLabel = "T"
+
+      val nClusters = random.between(nClustersLowerBound, nClustersUpperBound + 1)
+
+      def createCluster(size: Int): Seq[graph.Node] = {
+        val numberOfPossibleRels = (size * (size - 1)) / 2
+        val nRels = random.nextInt(numberOfPossibleRels + 1)
+        val nodes = (0 until size).map(_ => graph.createNode())
+
+        for (_ <- 0 until nRels) {
+          val i1 = random.nextInt(nodes.size)
+          val i2 = random.nextInt(nodes.size)
+          nodes(i1).createRelationshipTo(nodes(i2), INTRA)
+        }
+        nodes
+      }
+
+      val clusters = (0 until nClusters).map(_ => {
+        val size = random.between(nodesInClusterLowerBound, nodesInClusterUpperBound + 1)
+        createCluster(size)
+      })
+
+      for {
+        i <- 0 until nClusters
+        c1 = clusters(i)
+        j <- i + 1 until nClusters
+        c2 = clusters(j)
+        _ <- 0 until relsBetweenClusters
+      } {
+
+        val n1 = c1(random.nextInt(c1.size))
+        val n2 = c2(random.nextInt(c2.size))
+
+        if (random.nextInt(2) == 0) {
+          n1.createRelationshipTo(n2, INTER)
+        } else {
+          n2.createRelationshipTo(n1, INTER)
+        }
+      }
+
+      val nodes = clusters.flatten
+      for (_ <- 0 until nSourceNodes) {
+        nodes(random.nextInt(nodes.size)).addLabel(sourceLabel)
+      }
+      for (_ <- 0 until nTargetNodes) {
+        nodes(random.nextInt(nodes.size)).addLabel(targetLabel)
+      }
+    }
+
+    override def queries(graph: InMemoryGraph.StringMapped): Seq[Query] = {
+      val INTER = graph relTypes "INTER"
+      val INTRA = graph relTypes "INTRA"
+      val `(s:S)` = "s" where graph.hasLabel("S")
+      val `(t:T)` = "t" where graph.hasLabel("T")
+      Seq(
+        Query(
+          nfa(`(s:S)` |> (() - INTRA - () - INTER - () - INTRA - () rep (0, 5)) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - INTRA -> () - INTER - () -<- INTRA - () *) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - INTER -> () - INTRA - () -<- INTER - () *) |> `(t:T)`),
+          2
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - INTRA -> () rep (0, 4)) |> () - INTER - () |> (() - INTRA -> () rep (
+            0,
+            2
+          )) |> () - INTER - () |> (() - INTRA -> () rep (0, 4)) |> `(t:T)`),
+          3
+        ),
+        Query(
+          nfa(`(s:S)` |> (() - INTRA - () rep (0, 1)) |> (() - INTER - () *) |> (() - INTRA - () rep (
+            0,
+            1
+          )) |> `(t:T)`),
+          1
+        )
+      )
+    }
+    override val name: String = "Hierarchical Cluster Graph"
   }
 }
