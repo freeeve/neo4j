@@ -32,4 +32,11 @@ public interface CsvStream {
      * @return the number of indexes inserted into the {@code destionation} array.
      */
     int indexSeparators(ByteBuffer buffer, long baseOffset, long[] destination);
+
+    /**
+     * Called at end of stream to verify all state is correct.
+     *
+     * @throws IllegalStateException if there are unclosed quotes and unmatched escape.
+     */
+    void validateEnd();
 }

@@ -33,17 +33,17 @@ import java.nio.ByteOrder;
  * Escaped bitmask. A bitmask of escaped characters, e.g. '"'
  */
 public class SWARCsvStream implements CsvStream {
-    private static final byte ESCAPE_CHARACTER = '\\';
-    private static final byte NEW_LINE_CHARACTER = '\n';
+    protected static final byte ESCAPE_CHARACTER = '\\';
+    protected static final byte NEW_LINE_CHARACTER = '\n';
     private static final long ESCAPE_NEEDLE = broadcast(ESCAPE_CHARACTER);
     private static final long NEW_LINE_NEEDLE = broadcast(NEW_LINE_CHARACTER);
     private static final long ODD_BITS = 0xAAAAAAAAAAAAAAAAL;
 
-    private final byte separatorCharacter;
+    protected final byte separatorCharacter;
     private final long separatorCharacterNeedle;
-    private final byte quoteCharacter;
+    protected final byte quoteCharacter;
     private final long quoteCharacterNeedle;
-    private final boolean legacyStyleEscape;
+    protected final boolean legacyStyleEscape;
 
     /**
      * Carry over quote state.
@@ -72,7 +72,7 @@ public class SWARCsvStream implements CsvStream {
 
         int indexCursor = 0; // Current append index to the "offsets" array
 
-        // Align to 8 byte iterations
+        // Align to 64 byte iterations
         int tail = buffer.limit() & (Long.SIZE - 1);
         int limit = buffer.limit() - tail;
         int offset = 0;
@@ -86,13 +86,13 @@ public class SWARCsvStream implements CsvStream {
             long l6 = buffer.getLong(offset + 48);
             long l7 = buffer.getLong(offset + 56);
 
-            long separator = mask(separatorCharacterNeedle, l0, l1, l2, l3, l4, l5, l6, l7);
-            long end = mask(NEW_LINE_NEEDLE, l0, l1, l2, l3, l4, l5, l6, l7);
-            long quote = mask(quoteCharacterNeedle, l0, l1, l2, l3, l4, l5, l6, l7);
+            long separator = eqMask(separatorCharacterNeedle, l0, l1, l2, l3, l4, l5, l6, l7);
+            long end = eqMask(NEW_LINE_NEEDLE, l0, l1, l2, l3, l4, l5, l6, l7);
+            long quote = eqMask(quoteCharacterNeedle, l0, l1, l2, l3, l4, l5, l6, l7);
 
             long escapedCharacters = 0;
             if (legacyStyleEscape) {
-                long escape = mask(ESCAPE_NEEDLE, l0, l1, l2, l3, l4, l5, l6, l7);
+                long escape = eqMask(ESCAPE_NEEDLE, l0, l1, l2, l3, l4, l5, l6, l7);
                 escapedCharacters = nextEscapedBitmask(escape);
             }
 
@@ -108,6 +108,7 @@ public class SWARCsvStream implements CsvStream {
         return indexCursor;
     }
 
+    @Override
     public void validateEnd() {
         if (nextIsEscaped != 0) {
             throw new IllegalStateException("CSV ended with an escape character.");
@@ -117,7 +118,7 @@ public class SWARCsvStream implements CsvStream {
         }
     }
 
-    private int processTail(ByteBuffer buffer, long baseOffset, int indexCursor, long[] destination) {
+    protected int processTail(ByteBuffer buffer, long baseOffset, int indexCursor, long[] destination) {
         while (buffer.hasRemaining()) {
             byte b = buffer.get();
             if (nextIsEscaped != 0) {
@@ -140,35 +141,10 @@ public class SWARCsvStream implements CsvStream {
     }
 
     /**
-     * Take 64 bytes and return a bitmask of all occurrences of the {@code needle}.
-     *
-     * @param needle pattern to search for.
-     * @param l0 byte 1 to 8.
-     * @param l1 byte 9 to 16.
-     * @param l2 byte 17 to 24.
-     * @param l3 byte 25 to 32.
-     * @param l4 byte 33 to 40.
-     * @param l5 byte 41 to 48.
-     * @param l6 byte 49 to 56.
-     * @param l7 byte 57 to 64.
-     * @return a bitmask of all occurrences of the {@code needle}.
-     */
-    private static long mask(long needle, long l0, long l1, long l2, long l3, long l4, long l5, long l6, long l7) {
-        return eqMask(l0, needle)
-                | eqMask(l1, needle) << 8
-                | eqMask(l2, needle) << 16
-                | eqMask(l3, needle) << 24
-                | eqMask(l4, needle) << 32
-                | eqMask(l5, needle) << 40
-                | eqMask(l6, needle) << 48
-                | eqMask(l7, needle) << 56;
-    }
-
-    /**
      * @param escapedCharacters a bitmask where a 1 represents an escaped character.
      * @return a bitmask where a 1 represents that the character is inside a string.
      */
-    private long inStringBitmask(long quote, long escapedCharacters) {
+    protected long inStringBitmask(long quote, long escapedCharacters) {
         long mask = quote & ~escapedCharacters;
         long quotedMask = prefixXor(mask);
 
@@ -182,7 +158,7 @@ public class SWARCsvStream implements CsvStream {
      * @param escapeBitmask bitmask of escape characters
      * @return bitmask of escaped characters
      */
-    private long nextEscapedBitmask(long escapeBitmask) {
+    protected long nextEscapedBitmask(long escapeBitmask) {
         long previousIsEscaped = nextIsEscaped;
         if (escapeBitmask == 0) {
             // No new escape characters
@@ -215,7 +191,7 @@ public class SWARCsvStream implements CsvStream {
      * @param bitmask bitmask with all separators.
      * @return the next {@code indexesCursor} to use.
      */
-    private static int extractIndexes(long[] indexes, int indexesCursor, long offset, long bitmask) {
+    protected static int extractIndexes(long[] indexes, int indexesCursor, long offset, long bitmask) {
         int cnt = Long.bitCount(bitmask);
         int nextBase = indexesCursor + cnt;
         // Unrolled loop to avoid miss predicted branches

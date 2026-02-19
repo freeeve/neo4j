@@ -93,4 +93,29 @@ public final class SWARUtil {
         bitmask ^= bitmask << 32;
         return bitmask;
     }
+
+    /**
+     * Take 64 bytes and return a bitmask of all occurrences of the {@code needle}.
+     *
+     * @param needle pattern to search for.
+     * @param l0 byte 1 to 8.
+     * @param l1 byte 9 to 16.
+     * @param l2 byte 17 to 24.
+     * @param l3 byte 25 to 32.
+     * @param l4 byte 33 to 40.
+     * @param l5 byte 41 to 48.
+     * @param l6 byte 49 to 56.
+     * @param l7 byte 57 to 64.
+     * @return a bitmask of all occurrences of the {@code needle}.
+     */
+    static long eqMask(long needle, long l0, long l1, long l2, long l3, long l4, long l5, long l6, long l7) {
+        return eqMask(l0, needle)
+                | eqMask(l1, needle) << 8
+                | eqMask(l2, needle) << 16
+                | eqMask(l3, needle) << 24
+                | eqMask(l4, needle) << 32
+                | eqMask(l5, needle) << 40
+                | eqMask(l6, needle) << 48
+                | eqMask(l7, needle) << 56;
+    }
 }

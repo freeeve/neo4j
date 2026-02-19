@@ -19,10 +19,56 @@
  */
 package org.neo4j.importing.sleipnir.csv;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.Optional;
+
 public final class CsvStreamFactory {
+    private static final CsvStreamProvider SWAR_CONSTRUCTOR = SWARCsvStream::new;
+    private static final CsvStreamProvider PROVIDER = loadBestProvider();
+
     private CsvStreamFactory() {}
 
     public static CsvStream create(int separatorCodePoint, int quoteCodePoint, boolean legacyStyleEscape) {
-        return new SWARCsvStream(separatorCodePoint, quoteCodePoint, legacyStyleEscape);
+        if ((separatorCodePoint & 0xff) != separatorCodePoint || (quoteCodePoint & 0xff) != quoteCodePoint) {
+            // TODO: add fallback for multi-byte separator support
+            throw new UnsupportedOperationException("Multi-byte separators not supported yet");
+        }
+        return PROVIDER.create(separatorCodePoint, quoteCodePoint, legacyStyleEscape);
+    }
+
+    private static CsvStreamProvider loadBestProvider() {
+        int runtimeVersion = Runtime.version().feature();
+        if (runtimeVersion < 25) {
+            // SIMD provider requires the FFM API
+            return SWAR_CONSTRUCTOR;
+        }
+
+        ModuleLayer layer = CsvStreamFactory.class.getModule().getLayer();
+        if (layer == null) {
+            layer = ModuleLayer.boot();
+        }
+        Optional<Module> vectorModule = layer.findModule("jdk.incubator.vector");
+        if (vectorModule.isEmpty()) {
+            // Vector incubator not enabled
+            return SWAR_CONSTRUCTOR;
+        }
+        vectorModule.ifPresent(CsvStreamFactory.class.getModule()::addReads);
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            Class<?> clazz = lookup.findClass("org.neo4j.importing.sleipnir.csv.simd.SIMDCsvStreamProvider");
+            MethodHandle constructor = lookup.findConstructor(clazz, MethodType.methodType(void.class));
+            try {
+                return (CsvStreamProvider) constructor.invoke();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        } catch (ClassNotFoundException e) {
+            // Vector jar is not present
+            return SWAR_CONSTRUCTOR;
+        } catch (IllegalAccessException | NoSuchMethodException e) {
+            throw new LinkageError("SIMD provider is missing a public default constructor", e);
+        }
     }
 }

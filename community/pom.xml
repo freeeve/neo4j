@@ -22,7 +22,6 @@
     <module>zstd-proxy</module>
     <module>token-api</module>
     <module>schema</module>
-    <module>import-util</module>
     <module>id-generator</module>
     <module>lock</module>
     <module>monitoring</module>
@@ -58,6 +57,7 @@
     <module>neo4j-community</module>
     <module>import-api</module>
     <module>import-tool</module>
+    <module>import-util</module>
     <module>server-api</module>
     <module>bolt</module>
     <module>server</module>
@@ -90,4 +90,16 @@
     <module>cypher-shell</module>
     <module>fleet-management</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>jdk-25</id>
+      <activation>
+        <jdk>25</jdk>
+      </activation>
+      <modules>
+        <module>import-vector-util</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
