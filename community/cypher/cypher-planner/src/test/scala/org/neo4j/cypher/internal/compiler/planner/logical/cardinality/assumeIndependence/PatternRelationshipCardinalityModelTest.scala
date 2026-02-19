@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.test_helpers.TestGraphStatistics
@@ -120,7 +121,7 @@ class PatternRelationshipCardinalityModelTest extends CypherFunSuite with Patter
       graphStatistics = graphStatistics,
       selectivityCalculator = null,
       combiner = IndependenceCombiner,
-      relTypeInfo = null,
+      relTypeInfo = RelTypeInfo.empty,
       semanticTable = semanticTable,
       indexPredicateProviderContext = null,
       cardinalityModel = null,

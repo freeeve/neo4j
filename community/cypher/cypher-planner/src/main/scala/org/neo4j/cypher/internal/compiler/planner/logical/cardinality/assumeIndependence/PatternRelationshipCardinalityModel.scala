@@ -20,13 +20,18 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence
 
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantLabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantRelTypeInfo
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.ir.NodeConnection
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.planner.spi.MinimumGraphStatistics
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
@@ -40,6 +45,22 @@ import scala.annotation.tailrec
 trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
 
   def getRelationshipCardinality(
+    context: QueryGraphCardinalityContext,
+    labelInfo: LabelInfo,
+    relationship: PatternRelationship,
+    isUnique: Boolean
+  ): Cardinality = {
+    cachedDoGetRelationshipCardinality(
+      context.copy(relTypeInfo = extractRelevantRelTypeInfo(context.relTypeInfo, relationship)),
+      extractRelevantLabelInfo(labelInfo, relationship),
+      relationship,
+      isUnique
+    )
+  }
+
+  private val cachedDoGetRelationshipCardinality = CachedFunction(doGetRelationshipCardinality _)
+
+  private def doGetRelationshipCardinality(
     context: QueryGraphCardinalityContext,
     labelInfo: LabelInfo,
     relationship: PatternRelationship,
@@ -350,4 +371,15 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
             context.graphStatistics.patternStepCardinality(labelOnLeft, Some(relationshipTypeId), labelOnRight)
         }
     }
+}
+
+object PatternRelationshipCardinalityModel {
+
+  def extractRelevantLabelInfo(labelInfo: LabelInfo, nodeConnection: NodeConnection): LabelInfo = {
+    labelInfo.view.filterKeys(nodeConnection.nodes.contains).toMap
+  }
+
+  def extractRelevantRelTypeInfo(relTypeInfo: RelTypeInfo, nodeConnection: NodeConnection): RelTypeInfo = {
+    relTypeInfo.view.filterKeys(nodeConnection.relationships.contains).toMap
+  }
 }

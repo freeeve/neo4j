@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInd
 
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_REL_UNIQUENESS_SELECTIVITY
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantLabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantRelTypeInfo
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -31,6 +33,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
+import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.Multiplier
@@ -46,6 +49,24 @@ import scala.util.chaining.scalaUtilChainingOps
 trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with PatternRelationshipCardinalityModel {
 
   def getQuantifiedPathPatternCardinality(
+    context: QueryGraphCardinalityContext,
+    labelInfo: LabelInfo,
+    quantifiedPathPattern: QuantifiedPathPattern,
+    uniqueRelationships: Set[LogicalVariable],
+    boundaryNodePredicates: Set[Predicate]
+  ): Cardinality = {
+    cachedDoGetQuantifiedPathPatternCardinality(
+      context.copy(relTypeInfo = extractRelevantRelTypeInfo(context.relTypeInfo, quantifiedPathPattern)),
+      extractRelevantLabelInfo(labelInfo, quantifiedPathPattern),
+      quantifiedPathPattern,
+      uniqueRelationships,
+      boundaryNodePredicates
+    )
+  }
+
+  private val cachedDoGetQuantifiedPathPatternCardinality = CachedFunction(doGetQuantifiedPathPatternCardinality _)
+
+  private def doGetQuantifiedPathPatternCardinality(
     context: QueryGraphCardinalityContext,
     labelInfo: LabelInfo,
     quantifiedPathPattern: QuantifiedPathPattern,
