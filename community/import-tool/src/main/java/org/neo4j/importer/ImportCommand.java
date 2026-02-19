@@ -344,8 +344,8 @@ public class ImportCommand {
                 paramLabel = "<char>",
                 converter = EscapedCharacterConverter.class,
                 description =
-                        "Character to treat as quotation character for values in CSV data. Quotes can be escaped as per RFC 4180 by doubling them, "
-                                + "for example \"\" would be interpreted as a literal \". You cannot escape using \\.")
+                        "Character to treat as a quotation mark for values in CSV data. For example, quotes can be escaped as per RFC 4180 by doubling them. "
+                                + "Thus \"\" would be interpreted as a literal \". You cannot escape using \\.")
         private char quote = DEFAULT_CSV_CONFIG.quotationCharacter();
 
         @Option(
