@@ -37,13 +37,14 @@ case class DynamicUndirectedRelationshipTypeLookupSlottedPipe(
   typeExpr: Expression,
   toOffset: Option[Int],
   operator: DynamicElement.SetOperator,
-  propertyExpressions: Map[PropertyKeyToken, Expression]
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  readOnly: Boolean
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
     val propertyQueries = mapPropertyLookups(propertyExpressions, _.apply(ctx, state))
-    val relIterator = new DynamicRelationshipTypeLookupIterator(state)
+    val relIterator = new DynamicRelationshipTypeLookupIterator(state, readOnly = readOnly)
       .getRows(typeExpr(ctx, state), propertyQueries, operator)
     new UndirectedIterator(relIterator, relOffset, fromOffset, toOffset, rowFactory, state)
   }

@@ -58,7 +58,8 @@ case class DynamicDirectedRelationshipTypeLookupPipe(
   typeExpr: Expression,
   toNode: Option[String],
   operator: DynamicElement.SetOperator,
-  propertyExpressions: Map[PropertyKeyToken, Expression]
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  readOnly: Boolean
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   private val relationshipWriter =
@@ -68,7 +69,10 @@ case class DynamicDirectedRelationshipTypeLookupPipe(
     val ctx = state.newRowWithArgument(rowFactory)
     val propertyQueries = mapPropertyLookups(propertyExpressions, _(ctx, state))
     val relIterator =
-      new DynamicRelationshipTypeLookupIterator(state).getRows(typeExpr(ctx, state), propertyQueries, operator)
+      new DynamicRelationshipTypeLookupIterator(
+        state,
+        readOnly = readOnly
+      ).getRows(typeExpr(ctx, state), propertyQueries, operator)
     PrimitiveLongHelper.map(
       relIterator,
       relationshipId => {
@@ -85,8 +89,9 @@ case class DynamicDirectedRelationshipTypeLookupPipe(
 }
 
 class DynamicRelationshipTypeLookupIterator(
-  state: QueryState
-) extends DynamicRelationshipTypeLookupBase[ClosingRelationshipIterator](state) {
+  state: QueryState,
+  readOnly: Boolean
+) extends DynamicRelationshipTypeLookupBase[ClosingRelationshipIterator](state, readOnly = readOnly) {
   override protected def empty: ClosingRelationshipIterator = BaseRelationshipCursorIterator.EMPTY
   override protected def allRels: ClosingRelationshipIterator = allRelationshipsIterator(state.query)
 
@@ -117,6 +122,17 @@ class DynamicRelationshipTypeLookupIterator(
     new RelationshipIndexCursorIterator(cursor)
   }
 
+  override def lockingSeek(
+    index: IndexDescriptor,
+    predicates: Array[PropertyIndexQuery.ExactPredicate]
+  ): ClosingRelationshipIterator = {
+    val cursor = state.query.relationshipLockingUniqueIndexSeek(
+      state.query.dataRead.indexReadSession(index),
+      predicates
+    )
+    new RelationshipIndexCursorIterator(cursor)
+  }
+
   override def propertyFilter(
     scan: ClosingRelationshipIterator,
     predicates: Array[PropertyIndexQuery.ExactPredicate]
@@ -131,20 +147,32 @@ class DynamicRelationshipTypeLookupIterator(
   }
 }
 
-abstract class DynamicRelationshipTypeLookupBase[A](state: QueryState) {
+abstract class DynamicRelationshipTypeLookupBase[A](state: QueryState, readOnly: Boolean) {
   protected def empty: A
   protected def allRels: A
   protected def getSingleType(relType: Int): A
   protected def anyTypes(relTypes: Array[Int]): A
   protected def seek(descriptor: IndexDescriptor, predicates: Array[PropertyIndexQuery.ExactPredicate]): A
+  protected def lockingSeek(descriptor: IndexDescriptor, predicates: Array[PropertyIndexQuery.ExactPredicate]): A
   protected def propertyFilter(scan: A, predicates: Array[PropertyIndexQuery.ExactPredicate]): A
 
-  private def orderedSeek(descriptor: IndexDescriptor, predicates: Array[PropertyIndexQuery.ExactPredicate]): A =
-    seek(
-      descriptor,
-      descriptor.schema().getPropertyIds
-        .map(id => predicates.find(id == _.propertyKeyId()).get)
-    )
+  private def orderedSeek(descriptor: IndexDescriptor, predicates: Array[PropertyIndexQuery.ExactPredicate]): A = {
+    val orderedProperties = descriptor.schema().getPropertyIds
+      .map(id => predicates.find(id == _.propertyKeyId()).get)
+
+    IndexSeekMode(descriptor.isUnique, readOnly) match {
+      case NonLockingSeek =>
+        seek(
+          descriptor,
+          orderedProperties
+        )
+      case LockingUniqueIndexSeek =>
+        lockingSeek(
+          descriptor,
+          orderedProperties
+        )
+    }
+  }
 
   private def typeScan(relTypes: Option[Array[Option[Int]]], operator: SetOperator): A = {
     (relTypes, operator) match {

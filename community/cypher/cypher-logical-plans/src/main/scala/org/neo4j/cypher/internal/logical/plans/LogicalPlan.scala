@@ -2412,7 +2412,7 @@ case class DirectedRelationshipUniqueIndexSeek(
     valueExpr match {
       case _: SingleQueryExpression[_] =>
         AtMostOneRow
-      case comp: CompositeQueryExpression[_] if comp.exactOnly =>
+      case comp: CompositeQueryExpression[_] if comp.exact =>
         AtMostOneRow
       case _ =>
         /** see [[RelationshipIndexLeafPlan.distinctness]] */
@@ -3999,7 +3999,7 @@ case class NodeUniqueIndexSeek(
     valueExpr match {
       case _: SingleQueryExpression[_] =>
         AtMostOneRow
-      case comp: CompositeQueryExpression[_] if comp.exactOnly =>
+      case comp: CompositeQueryExpression[_] if comp.exact =>
         AtMostOneRow
       case _ =>
         /** see [[NodeIndexLeafPlan.distinctness]] */
@@ -6135,7 +6135,7 @@ object UndirectedRelationshipUniqueIndexSeek {
 }
 
 /**
- * Produce one row for every relationship in the graph that has at least one of the provided types. 
+ * Produce one row for every relationship in the graph that has at least one of the provided types.
  * This row contains the relationship (assigned to 'idName') and the contents of argument.
  */
 case class UndirectedUnionRelationshipTypesScan(

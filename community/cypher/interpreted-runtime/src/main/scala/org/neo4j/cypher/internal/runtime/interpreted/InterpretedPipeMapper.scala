@@ -289,7 +289,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.FilterPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ForeachApplyPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ForeachPipe
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.IndexSeekModeFactory
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.IndexSeekMode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.InputPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.IntersectionNodeByLabelsScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
@@ -476,7 +476,8 @@ case class InterpretedPipeMapper(
           operator,
           propertyConstraints.map { case (property, expr) =>
             property -> expressionConverters.toCommandExpression(id, expr)
-          }
+          },
+          readOnly = readOnly
         )(id = id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
@@ -595,7 +596,8 @@ case class InterpretedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),
               operator,
-              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v)),
+              readOnly = true
             )(id = id)
         }
 
@@ -619,7 +621,8 @@ case class InterpretedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),
               operator,
-              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v)),
+              readOnly = true
             )(id = id)
         }
 
@@ -694,7 +697,7 @@ case class InterpretedPipeMapper(
           indexOrder,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -719,7 +722,7 @@ case class InterpretedPipeMapper(
           indexType,
           _
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -742,7 +745,7 @@ case class InterpretedPipeMapper(
           _,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -766,7 +769,7 @@ case class InterpretedPipeMapper(
           indexOrder,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -791,7 +794,7 @@ case class InterpretedPipeMapper(
           indexType,
           _
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -814,7 +817,7 @@ case class InterpretedPipeMapper(
           _,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.map(_.name),
           startNode.map(_.name),
@@ -987,7 +990,7 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case NodeIndexSeek(ident, label, properties, valueExpr, _, indexOrder, indexType, _) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         NodeIndexSeekPipe(
           ident.name,
           label,
@@ -999,7 +1002,7 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case PartitionedNodeIndexSeek(ident, label, properties, valueExpr, _, indexType) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         NodeIndexSeekPipe(
           ident.name,
           label,
@@ -1011,7 +1014,7 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case NodeUniqueIndexSeek(ident, label, properties, valueExpr, _, indexOrder, indexType, _) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         NodeIndexSeekPipe(
           ident.name,
           label,

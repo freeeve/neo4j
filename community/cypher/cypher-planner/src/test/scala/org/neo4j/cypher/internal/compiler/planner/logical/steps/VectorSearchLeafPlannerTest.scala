@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VectorSearchClause
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -430,7 +431,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       maybeWhere = Some(where(equals(prop(varFor("m"), property2), expr1))),
       additionalProperties = Seq(property1, property2),
       indexName = ""
-    ) should equal(Some(composite(all(), single(expr1))))
+    ) should equal(Some(composite(AllQueryExpression, single(expr1))))
   }
 
   test("queryExpressionFromFilterExpressions should handle predicate without property") {

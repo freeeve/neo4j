@@ -139,9 +139,9 @@ object relationshipSingleUniqueIndexSeekPlanProvider extends RelationshipIndexPl
         case ManyQueryExpression(_)          => false
         case RangeQueryExpression(_)         => false
         case CompositeQueryExpression(inner) => allSingleQueryExpressions(inner ++ queryExpressions.tail)
-        case ExistenceQueryExpression()      => false
-        case NonExistenceQueryExpression()   => false
-        case AllQueryExpression()            => false
+        case ExistenceQueryExpression        => false
+        case NonExistenceQueryExpression     => false
+        case AllQueryExpression              => false
       })
 
   private def createPlan(

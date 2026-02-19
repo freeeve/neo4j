@@ -21,14 +21,11 @@ package org.neo4j.cypher.internal.compiler.helpers
 
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ToExpression
-import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
-import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
-import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
@@ -59,7 +56,6 @@ trait QueryExpressionConstructionTestSupport {
   }
   def composite(es: QueryExpression[Expression]*): CompositeQueryExpression[Expression] = CompositeQueryExpression(es)
   def single(e: ToExpression): SingleQueryExpression[Expression] = SingleQueryExpression(toExpression(e))
-  def all(): AllQueryExpression[Expression] = AllQueryExpression()
 
   def gt(e: ToExpression): RangeGreaterThan[Expression] =
     RangeGreaterThan(NonEmptyList(ExclusiveBound(toExpression(e))))
@@ -68,9 +64,6 @@ trait QueryExpressionConstructionTestSupport {
     RangeGreaterThan(NonEmptyList(InclusiveBound(toExpression(e))))
   def lt(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(ExclusiveBound(toExpression(e))))
   def lte(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(InclusiveBound(toExpression(e))))
-
-  def existsExpression: ExistenceQueryExpression[Expression] = ExistenceQueryExpression()
-  def notExistsExpression: NonExistenceQueryExpression[Expression] = NonExistenceQueryExpression()
 
   private def toExpression(expr: ToExpression): Expression =
     expr match {

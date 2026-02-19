@@ -37,7 +37,8 @@ case class DynamicDirectedRelationshipTypeLookupSlottedPipe(
   typeExpr: Expression,
   toOffset: Option[Int],
   operator: DynamicElement.SetOperator,
-  propertyExpressions: Map[PropertyKeyToken, Expression]
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  readOnly: Boolean
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
@@ -45,7 +46,7 @@ case class DynamicDirectedRelationshipTypeLookupSlottedPipe(
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
     val propertyQueries = mapPropertyLookups(propertyExpressions, _(ctx, state))
-    val relIterator = new DynamicRelationshipTypeLookupIterator(state)
+    val relIterator = new DynamicRelationshipTypeLookupIterator(state, readOnly = readOnly)
       .getRows(typeExpr(ctx, state), propertyQueries, operator)
     PrimitiveLongHelper.map(
       relIterator,

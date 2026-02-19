@@ -104,7 +104,7 @@ object EntityIndexLeafPlanner {
       variable,
       property,
       predicate,
-      ExistenceQueryExpression(),
+      ExistenceQueryExpression,
       predicateExactness = NotExactPredicate,
       solvedPredicate = None,
       dependencies = Set.empty,
@@ -232,8 +232,8 @@ object EntityIndexLeafPlanner {
     def propertyKeyName: PropertyKeyName = property.propertyKey
 
     def isExists: Boolean = queryExpression match {
-      case _: ExistenceQueryExpression[Expression] => true
-      case _                                       => false
+      case ExistenceQueryExpression => true
+      case _                        => false
     }
 
     def convertToRangeScannable: IndexCompatiblePredicate = queryExpression match {
@@ -241,7 +241,7 @@ object EntityIndexLeafPlanner {
         throw new IllegalStateException("A CompositeQueryExpression can't be nested in a CompositeQueryExpression")
 
       case _ => copy(
-          queryExpression = ExistenceQueryExpression(),
+          queryExpression = ExistenceQueryExpression,
           predicateExactness = NotExactPredicate,
           solvedPredicate = solvedPredicate.map(convertToRangeScannablePredicate),
           indexRequirements = Set(IndexRequirement.SupportsIndexQuery(IndexQueryType.EXISTS)),
@@ -262,7 +262,7 @@ object EntityIndexLeafPlanner {
 
     def convertToTextScannable: IndexCompatiblePredicate = {
       copy(
-        queryExpression = ExistenceQueryExpression(),
+        queryExpression = ExistenceQueryExpression,
         predicateExactness = NotExactPredicate,
         solvedPredicate = solvedPredicate.map(convertToTextScannablePredicate),
         indexRequirements = Set(
@@ -284,7 +284,7 @@ object EntityIndexLeafPlanner {
 
     def convertToPointScannable: IndexCompatiblePredicate = {
       copy(
-        queryExpression = ExistenceQueryExpression(),
+        queryExpression = ExistenceQueryExpression,
         predicateExactness = NotExactPredicate,
         solvedPredicate = solvedPredicate.map(convertToPointScannablePredicate),
         indexRequirements = Set(

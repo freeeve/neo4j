@@ -3801,13 +3801,13 @@ case class LogicalPlan2PlanDescription(
         indexSeekNames.PLAN_DESCRIPTION_INDEX_SEEK_NAME
       }
     valueExpr match {
-      case _: ExistenceQueryExpression[expressions.Expression] =>
+      case ExistenceQueryExpression =>
         indexSeekNames.PLAN_DESCRIPTION_INDEX_SCAN_NAME
       case _: RangeQueryExpression[expressions.Expression] =>
         if (unique) indexSeekNames.PLAN_DESCRIPTION_UNIQUE_INDEX_SEEK_RANGE_NAME
         else indexSeekNames.PLAN_DESCRIPTION_INDEX_SEEK_RANGE_NAME
       case e: CompositeQueryExpression[expressions.Expression] =>
-        findName(e.exactOnly)
+        findName(e.exact)
       case _ =>
         findName()
     }
@@ -3817,13 +3817,13 @@ case class LogicalPlan2PlanDescription(
     propertyKeys: Seq[PropertyKeyToken],
     valueExpr: QueryExpression[expressions.Expression]
   ): PrettyString = valueExpr match {
-    case _: AllQueryExpression[expressions.Expression] =>
+    case AllQueryExpression =>
       pretty"all(${asPrettyString(propertyKeys.head.name)})"
 
-    case _: ExistenceQueryExpression[expressions.Expression] =>
+    case ExistenceQueryExpression =>
       pretty"${asPrettyString(propertyKeys.head.name)} IS NOT NULL"
 
-    case _: NonExistenceQueryExpression[expressions.Expression] =>
+    case NonExistenceQueryExpression =>
       pretty"${asPrettyString(propertyKeys.head.name)} IS NULL"
 
     case e: RangeQueryExpression[expressions.Expression] =>

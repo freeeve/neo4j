@@ -390,7 +390,7 @@ object VectorSearchLeafPlanner {
   private def queryExpressionForOneProperty(expressionsByProperty: Seq[VectorFilterExpression]) =
     expressionsByProperty match {
       case Seq() =>
-        AllQueryExpression()
+        AllQueryExpression
       case Seq(singleton) =>
         queryExpressionFromFilterExpression(singleton)
       case VectorFilterExpressionRange(lowerBound, upperBound) =>
@@ -447,8 +447,8 @@ object VectorSearchLeafPlanner {
     filterExpression: VectorFilterExpression
   ): QueryExpression[Expression] = filterExpression match {
     case VectorFilterExpression.Equality(_, expression) => SingleQueryExpression(expression)
-    case VectorFilterExpression.Exists(_)               => ExistenceQueryExpression()
-    case VectorFilterExpression.NotExists(_)            => NonExistenceQueryExpression()
+    case VectorFilterExpression.Exists(_)               => ExistenceQueryExpression
+    case VectorFilterExpression.NotExists(_)            => NonExistenceQueryExpression
     case expr: SeekRangeVectorFilterExpression =>
       RangeQueryExpression(InequalitySeekRangeWrapper(
         seekRangeFromFilterExpression(expr)

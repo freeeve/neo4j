@@ -318,7 +318,7 @@ class NodeIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
           CompositeQueryExpression(Seq(
             SingleQueryExpression(lit42),
             RangeQueryExpression(InequalitySeekRangeWrapper(RangeLessThan(NonEmptyList(ExclusiveBound(lit6))))(pos)),
-            ExistenceQueryExpression()
+            ExistenceQueryExpression
           )),
           Set(v"x"),
           IndexOrderNone,

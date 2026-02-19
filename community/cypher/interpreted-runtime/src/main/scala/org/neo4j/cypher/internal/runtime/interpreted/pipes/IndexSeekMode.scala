@@ -19,36 +19,23 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
-import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
-import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
-import org.neo4j.exceptions.InternalException
-import org.neo4j.values.virtual.VirtualNodeValue
-
-case class IndexSeekModeFactory(unique: Boolean, readOnly: Boolean) {
-
-  def fromQueryExpression[T](qexpr: QueryExpression[T]): IndexSeekMode = qexpr match {
-    case _: RangeQueryExpression[_]                                             => NonLockingSeek
-    case qe: CompositeQueryExpression[_] if unique && !readOnly && qe.exactOnly => LockingUniqueIndexSeek
-    case _: CompositeQueryExpression[_] if unique                               => NonLockingSeek
-    case _ if unique && !readOnly                                               => LockingUniqueIndexSeek
-    case _ if unique                                                            => NonLockingSeek
-    case _                                                                      => NonLockingSeek
-  }
-}
-
-object IndexSeekMode {
-  type MultipleValueQuery = QueryState => Seq[Any] => Iterator[VirtualNodeValue]
-
-  def assertSingleValue(values: Seq[Any]): Any = {
-    if (values.size != 1)
-      throw InternalException.internalError(this.getClass.getSimpleName, "Composite lookups not yet supported")
-    values.head
-  }
-}
 
 sealed trait IndexSeekMode
 
 case object NonLockingSeek extends IndexSeekMode
 
 case object LockingUniqueIndexSeek extends IndexSeekMode
+
+object IndexSeekMode {
+
+  def apply(unique: Boolean, readOnly: Boolean): IndexSeekMode = (unique, readOnly) match {
+    case (true, false) => LockingUniqueIndexSeek
+    case _             => NonLockingSeek
+  }
+
+  def apply[T](unique: Boolean, readOnly: Boolean, qExpr: QueryExpression[T]): IndexSeekMode = qExpr match {
+    case qe: QueryExpression[T] if qe.exact => IndexSeekMode(unique, readOnly)
+    case _                                  => NonLockingSeek
+  }
+}

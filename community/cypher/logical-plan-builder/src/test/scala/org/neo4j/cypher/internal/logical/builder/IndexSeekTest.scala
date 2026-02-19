@@ -326,7 +326,7 @@ class IndexSeekTest extends CypherFunSuite {
         "b",
         label("Y"),
         Seq(prop("dogs", getValue("dogs"), NODE_TYPE, 0), prop("cats", getValue("cats"), NODE_TYPE, 1)),
-        CompositeQueryExpression(Seq(lt(intLiteral(3)), exists())),
+        CompositeQueryExpression(Seq(lt(intLiteral(3)), ExistenceQueryExpression)),
         args,
         indexOrder,
         indexType
@@ -356,7 +356,7 @@ class IndexSeekTest extends CypherFunSuite {
         "b",
         label("Y"),
         Seq(prop("name", getValue("name"), NODE_TYPE, 0), prop("cats", getValue("cats"), NODE_TYPE, 1)),
-        CompositeQueryExpression(Seq(startsWith("hi"), exists())),
+        CompositeQueryExpression(Seq(startsWith("hi"), ExistenceQueryExpression)),
         args,
         indexOrder,
         indexType
@@ -378,7 +378,7 @@ class IndexSeekTest extends CypherFunSuite {
         "b",
         label("Y"),
         Seq(prop("dogs", getValue("dogs"), NODE_TYPE, 0), prop("name", getValue("name"), NODE_TYPE, 1)),
-        CompositeQueryExpression(Seq(exactInt(1), exists())),
+        CompositeQueryExpression(Seq(exactInt(1), ExistenceQueryExpression)),
         args,
         indexOrder,
         indexType
@@ -412,7 +412,7 @@ class IndexSeekTest extends CypherFunSuite {
         "b",
         label("Y"),
         Seq(prop("dogs", getValue("dogs"), NODE_TYPE, 0), prop("name", getValue("name"), NODE_TYPE, 1)),
-        CompositeQueryExpression(Seq(exactInt(1), exists())),
+        CompositeQueryExpression(Seq(exactInt(1), ExistenceQueryExpression)),
         args,
         indexOrder,
         indexType
@@ -651,7 +651,4 @@ class IndexSeekTest extends CypherFunSuite {
   ))(pos))
 
   private def startsWith(x: String) = RangeQueryExpression(PrefixSeekRangeWrapper(PrefixRange(string(x)))(pos))
-
-  private def exists() = ExistenceQueryExpression()
-
 }

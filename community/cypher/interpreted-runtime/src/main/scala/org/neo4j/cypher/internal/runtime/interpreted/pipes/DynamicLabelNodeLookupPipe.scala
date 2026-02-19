@@ -53,20 +53,22 @@ case class DynamicLabelNodeLookupPipe(
   ident: String,
   labelExpr: Expression,
   operator: DynamicElement.SetOperator,
-  propertyExpressions: Map[PropertyKeyToken, Expression]
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  readOnly: Boolean
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val context = state.newRowWithArgument(rowFactory)
     val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, _.apply(context, state))
-    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
+    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator, readOnly)
       .toIterator(n => rowFactory.copyWith(context, ident, VirtualValues.node(n)))
   }
 }
 
-abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
+abstract class DynamicLabelNodeLookupBase[A](state: QueryState, readOnly: Boolean) {
   protected def propertyFilter(iterator: A, propertyExprs: Array[PropertyIndexQuery]): A
   protected def labelFilter(iterator: A, labels: Array[Int]): A
+  protected def lockingSeek(index: IndexDescriptor, properties: Seq[PropertyIndexQuery.ExactPredicate]): A
   protected def seek(index: IndexDescriptor, properties: Seq[PropertyIndexQuery.ExactPredicate]): A
   protected def allNodes: A
   protected def empty: A
@@ -77,12 +79,13 @@ abstract class DynamicLabelNodeLookupBase[A](state: QueryState) {
   private def orderedSeek(
     index: IndexDescriptor,
     properties: Seq[PropertyIndexQuery.ExactPredicate]
-  ): A =
-    seek(
-      index,
-      index.schema().getPropertyIds
-        .map(id => properties.find(id == _.propertyKeyId()).get)
-    )
+  ): A = {
+    val orderedProperties = index.schema().getPropertyIds.map(id => properties.find(id == _.propertyKeyId()).get)
+    IndexSeekMode(index.isUnique, readOnly) match {
+      case LockingUniqueIndexSeek => lockingSeek(index, orderedProperties)
+      case NonLockingSeek         => seek(index, orderedProperties)
+    }
+  }
 
   private def getIndexComparator: Comparator[IndexDescriptor] =
     state.indexComparatorFactory.createComparator(state.query.dataRead, state.query.transactionalContext.schemaRead)
@@ -209,10 +212,11 @@ case class DynamicLabelNodeLookupIterator(
   state: QueryState,
   labelExpression: AnyValue,
   propertyConstraints: Array[PropertyIndexQuery.ExactPredicate],
-  operator: DynamicElement.SetOperator
-) extends DynamicLabelNodeLookupBase[ClosingLongIterator](state) {
+  operator: DynamicElement.SetOperator,
+  readOnly: Boolean
+) extends DynamicLabelNodeLookupBase[ClosingLongIterator](state, readOnly) {
 
-  private lazy val nodeIterator = getNodes(labelExpression, operator, propertyConstraints)
+  private val nodeIterator = getNodes(labelExpression, operator, propertyConstraints)
 
   override protected def propertyFilter(
     iterator: ClosingLongIterator,
@@ -235,17 +239,26 @@ case class DynamicLabelNodeLookupIterator(
       labels
     )
 
+  override protected def lockingSeek(
+    index: IndexDescriptor,
+    properties: Seq[PropertyIndexQuery.ExactPredicate]
+  ): ReferenceCursorIterator = {
+    new ReferenceCursorIterator(state.query.nodeLockingUniqueIndexSeek(
+      state.query.dataRead.indexReadSession(index),
+      properties
+    ))
+  }
+
   override protected def seek(
     index: IndexDescriptor,
     properties: Seq[PropertyIndexQuery.ExactPredicate]
   ): ReferenceCursorIterator = {
-    val cursor = state.query.nodeIndexSeek(
+    new ReferenceCursorIterator(state.query.nodeIndexSeek(
       state.query.dataRead.indexReadSession(index),
       needsValues = false, // we already know the values because we only support ExactPredicate
       IndexOrderNone,
       properties
-    )
-    new ReferenceCursorIterator(cursor)
+    ))
   }
 
   override protected def allNodes: ClosingLongIterator = state.query.nodeReadOps.all

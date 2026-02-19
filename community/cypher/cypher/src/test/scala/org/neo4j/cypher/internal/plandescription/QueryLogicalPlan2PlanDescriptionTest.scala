@@ -1036,8 +1036,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           limit = literalInt(5),
           maybeFilter = Some(CompositeQueryExpression(
             Seq(
-              ExistenceQueryExpression(),
-              NonExistenceQueryExpression()
+              ExistenceQueryExpression,
+              NonExistenceQueryExpression
             )
           )),
           argumentIds = Set.empty
@@ -1145,8 +1145,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           literalInt(5),
           Some(CompositeQueryExpression(
             Seq(
-              NonExistenceQueryExpression(),
-              ExistenceQueryExpression()
+              NonExistenceQueryExpression,
+              ExistenceQueryExpression
             )
           )),
           Set.empty
@@ -1255,8 +1255,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           literalInt(5),
           Some(CompositeQueryExpression(
             Seq(
-              ExistenceQueryExpression(),
-              NonExistenceQueryExpression()
+              ExistenceQueryExpression,
+              NonExistenceQueryExpression
             )
           )),
           Set.empty

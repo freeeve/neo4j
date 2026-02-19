@@ -236,11 +236,11 @@ object NodeVectorIndexSearchPipe {
             )
         }
 
-      case Some(ExistenceQueryExpression()) =>
+      case Some(ExistenceQueryExpression) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         Array(nearestPredicate, PropertyIndexQuery.exists(properties(1)))
 
-      case Some(NonExistenceQueryExpression()) =>
+      case Some(NonExistenceQueryExpression) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         Array(nearestPredicate, PropertyIndexQuery.notExists(properties(1)))
 
@@ -304,13 +304,13 @@ object NodeVectorIndexSearchPipe {
               )
           }
 
-        case AllQueryExpression() =>
+        case AllQueryExpression =>
           predicates(i) = PropertyIndexQuery.all(properties(i))
 
-        case ExistenceQueryExpression() =>
+        case ExistenceQueryExpression =>
           predicates(i) = PropertyIndexQuery.exists(properties(i))
 
-        case NonExistenceQueryExpression() =>
+        case NonExistenceQueryExpression =>
           predicates(i) = PropertyIndexQuery.notExists(properties(i))
 
         case notSupported =>

@@ -335,7 +335,7 @@ object RemoteBatchingStrategy {
     // Therefore, for such predicates we will need to use the index to fetch properties, otherwise we will end-up with a redundant remoteBatchProperties call.
     private def isExistenceQueryExpressionExecutedLater(propertyPredicate: IndexCompatiblePredicate): Boolean =
       propertyPredicate.queryExpression match {
-        case ExistenceQueryExpression() => propertyPredicate.predicate match {
+        case ExistenceQueryExpression => propertyPredicate.predicate match {
             case _: ExistsExpression =>
               false // the original query was an existence query, so no other predicate to execute later
             case _: IsNotNull =>

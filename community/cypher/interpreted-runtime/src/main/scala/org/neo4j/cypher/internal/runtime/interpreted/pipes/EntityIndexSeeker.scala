@@ -203,13 +203,13 @@ trait EntityIndexSeeker {
         // ]
         combine(indexQueries)
 
-      case ExistenceQueryExpression() =>
+      case ExistenceQueryExpression =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
           "An ExistenceQueryExpression shouldn't be found outside of a CompositeQueryExpression"
         )
 
-      case NonExistenceQueryExpression() =>
+      case NonExistenceQueryExpression =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
           "A NonExistenceQueryExpression shouldn't be found outside of a Search Predicate"
@@ -380,13 +380,13 @@ trait EntityIndexSeeker {
       case RangeQueryExpression(rangeWrapper) =>
         computeRangeQueries(state, row, rangeWrapper, propertyId)
 
-      case ExistenceQueryExpression() =>
+      case ExistenceQueryExpression =>
         Seq(PropertyIndexQuery.exists(propertyId))
 
-      case NonExistenceQueryExpression() =>
+      case NonExistenceQueryExpression =>
         Seq(PropertyIndexQuery.notExists(propertyId))
 
-      case AllQueryExpression() =>
+      case AllQueryExpression =>
         Seq(PropertyIndexQuery.all(propertyId))
     }
 }

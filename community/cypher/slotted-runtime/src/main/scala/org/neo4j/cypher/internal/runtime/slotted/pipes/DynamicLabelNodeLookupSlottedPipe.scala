@@ -36,13 +36,14 @@ case class DynamicLabelNodeLookupSlottedPipe(
   nodeOffset: Int,
   labelExpr: Expression,
   operator: DynamicElement.SetOperator,
-  propertyExpressions: Map[PropertyKeyToken, Expression]
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  readOnly: Boolean
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val context = state.newRowWithArgument(rowFactory)
     val propertyLookups = DynamicLabelNodeLookupBase.mapPropertyLookups(propertyExpressions, _.apply(context, state))
-    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator)
+    DynamicLabelNodeLookupIterator(state, labelExpr.apply(context, state), propertyLookups, operator, readOnly)
       .toIterator(n => state.newRowWithArgument(rowFactory).tap(_.setLongAt(nodeOffset, n)))
   }
 }

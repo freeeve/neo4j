@@ -1722,7 +1722,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(single(param("p1")), single(param("p2")), AllQueryExpression()))
+        filter = Some(composite(single(param("p1")), single(param("p2")), AllQueryExpression))
       )
       .build()
 
@@ -1806,7 +1806,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), single(param("p"))))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, single(param("p"))))
       )
       .build()
 
@@ -1868,7 +1868,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), AllQueryExpression()))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, AllQueryExpression))
       )
       .build()
 
@@ -2115,7 +2115,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         filter = Some(composite(
           between(gte(param("from1")), lte(param("to1"))),
           between(gte(param("from2")), lte(param("to2"))),
-          AllQueryExpression()
+          AllQueryExpression
         ))
       )
       .build()
@@ -2182,7 +2182,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(ExistenceQueryExpression())
+        filter = Some(ExistenceQueryExpression)
       )
       .build()
 
@@ -2230,7 +2230,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+        filter = Some(composite(ExistenceQueryExpression, ExistenceQueryExpression))
       )
       .build()
 
@@ -2273,7 +2273,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(NonExistenceQueryExpression())
+        filter = Some(NonExistenceQueryExpression)
       )
       .build()
 
@@ -2320,7 +2320,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
+        filter = Some(composite(NonExistenceQueryExpression, NonExistenceQueryExpression))
       )
       .build()
 

@@ -212,7 +212,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SideEf
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerAggregationPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EmptyResultPipe
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.IndexSeekModeFactory
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.IndexSeekMode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
@@ -449,7 +449,7 @@ class SlottedPipeMapper(
         )(id)
 
       case NodeIndexSeek(column, label, properties, valueExpr, _, indexOrder, indexType, _) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         NodeIndexSeekSlottedPipe(
           column.name,
           label,
@@ -462,7 +462,7 @@ class SlottedPipeMapper(
         )(id)
 
       case PartitionedNodeIndexSeek(column, label, properties, valueExpr, _, indexType) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         NodeIndexSeekSlottedPipe(
           column.name,
           label,
@@ -475,7 +475,7 @@ class SlottedPipeMapper(
         )(id)
 
       case NodeUniqueIndexSeek(column, label, properties, valueExpr, _, indexOrder, indexType, _) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         NodeIndexSeekSlottedPipe(
           column.name,
           label,
@@ -521,7 +521,8 @@ class SlottedPipeMapper(
           operator,
           propertyConstraints.map { case (property, expr) =>
             property -> expressionConverters.toCommandExpression(id, expr)
-          }
+          },
+          readOnly = readOnly
         )(id = id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
@@ -591,7 +592,7 @@ class SlottedPipeMapper(
           indexOrder,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -616,7 +617,7 @@ class SlottedPipeMapper(
           indexType,
           _
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -639,7 +640,7 @@ class SlottedPipeMapper(
           _,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -663,7 +664,7 @@ class SlottedPipeMapper(
           indexOrder,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = true, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -688,7 +689,7 @@ class SlottedPipeMapper(
           indexType,
           _
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -711,7 +712,7 @@ class SlottedPipeMapper(
           _,
           indexType
         ) =>
-        val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
+        val indexSeekMode = IndexSeekMode(unique = false, readOnly = readOnly, valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
           column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
@@ -853,7 +854,8 @@ class SlottedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),
               operator,
-              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v)),
+              readOnly = readOnly
             )(id)
         }
 
@@ -878,7 +880,8 @@ class SlottedPipeMapper(
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),
               operator,
-              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v))
+              propertyPredicates.transform((_, v) => expressionConverters.toCommandExpression(id, v)),
+              readOnly = readOnly
             )(id)
         }
 

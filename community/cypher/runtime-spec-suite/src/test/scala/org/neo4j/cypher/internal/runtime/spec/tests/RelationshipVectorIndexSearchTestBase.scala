@@ -2808,7 +2808,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression()))
+        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression))
       )
       .build()
 
@@ -2891,7 +2891,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression()))
+        filter = Some(composite(equal(param("p1")), equal(param("p2")), AllQueryExpression))
       )
       .build()
 
@@ -2974,7 +2974,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), equal(param("p"))))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, equal(param("p"))))
       )
       .build()
 
@@ -3035,7 +3035,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), equal(param("p"))))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, equal(param("p"))))
       )
       .build()
 
@@ -3100,7 +3100,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), AllQueryExpression()))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, AllQueryExpression))
       )
       .build()
 
@@ -3146,7 +3146,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression(), AllQueryExpression(), AllQueryExpression()))
+        filter = Some(composite(AllQueryExpression, AllQueryExpression, AllQueryExpression))
       )
       .build()
 
@@ -3575,7 +3575,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         filter = Some(composite(
           between(gte(param("from1")), lte(param("to1"))),
           between(gte(param("from2")), lte(param("to2"))),
-          AllQueryExpression()
+          AllQueryExpression
         ))
       )
       .build()
@@ -3659,7 +3659,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         filter = Some(composite(
           between(gte(param("from1")), lte(param("to1"))),
           between(gte(param("from2")), lte(param("to2"))),
-          AllQueryExpression()
+          AllQueryExpression
         ))
       )
       .build()
@@ -3733,7 +3733,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(ExistenceQueryExpression())
+        filter = Some(ExistenceQueryExpression)
       )
       .build()
 
@@ -3774,7 +3774,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(ExistenceQueryExpression())
+        filter = Some(ExistenceQueryExpression)
       )
       .build()
 
@@ -3822,7 +3822,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+        filter = Some(composite(ExistenceQueryExpression, ExistenceQueryExpression))
       )
       .build()
 
@@ -3870,7 +3870,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(ExistenceQueryExpression(), ExistenceQueryExpression()))
+        filter = Some(composite(ExistenceQueryExpression, ExistenceQueryExpression))
       )
       .build()
 
@@ -3912,7 +3912,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(NonExistenceQueryExpression())
+        filter = Some(NonExistenceQueryExpression)
       )
       .build()
 
@@ -3954,7 +3954,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(NonExistenceQueryExpression())
+        filter = Some(NonExistenceQueryExpression)
       )
       .build()
 
@@ -4001,7 +4001,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
+        filter = Some(composite(NonExistenceQueryExpression, NonExistenceQueryExpression))
       )
       .build()
 
@@ -4048,7 +4048,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(NonExistenceQueryExpression(), NonExistenceQueryExpression()))
+        filter = Some(composite(NonExistenceQueryExpression, NonExistenceQueryExpression))
       )
       .build()
 

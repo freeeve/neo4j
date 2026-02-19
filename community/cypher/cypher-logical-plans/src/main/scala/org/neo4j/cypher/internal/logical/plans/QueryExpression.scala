@@ -19,55 +19,58 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
+/* Interface */
+
 sealed trait QueryExpression[+T] {
-
-  def expressions: Seq[T]
-
-  def map[R](f: T => R): QueryExpression[R]
-}
-
-sealed trait SingleExpression[+T] {
-
   def expression: T
 
   def expressions: Seq[T] = Seq(expression)
+
+  def map[R](f: T => R): QueryExpression[R]
+
+  def exact: Boolean = false
 }
 
-case class SingleQueryExpression[T](expression: T) extends QueryExpression[T] with SingleExpression[T] {
-  def map[R](f: T => R) = SingleQueryExpression(f(expression))
+sealed trait NoArgumentQueryExpression extends QueryExpression[Nothing] {
+  def expression: Nothing = throw new NotImplementedError("expression not supplied for NoArgumentQueryExpression")
+
+  override def expressions: Seq[Nothing] = Seq.empty
+
+  def map[R](f: Nothing => R): NoArgumentQueryExpression = this
 }
 
-case class ManyQueryExpression[T](expression: T) extends QueryExpression[T] with SingleExpression[T] {
-  def map[R](f: T => R) = ManyQueryExpression(f(expression))
+/* Implementations */
+
+case class SingleQueryExpression[T](expression: T) extends QueryExpression[T] {
+  def map[R](f: T => R): SingleQueryExpression[R] = SingleQueryExpression(f(expression))
+
+  override def exact: Boolean = true
 }
 
-case class RangeQueryExpression[T](expression: T) extends QueryExpression[T] with SingleExpression[T] {
-  def map[R](f: T => R) = RangeQueryExpression(f(expression))
+case class ManyQueryExpression[T](expression: T) extends QueryExpression[T] {
+  def map[R](f: T => R): ManyQueryExpression[R] = ManyQueryExpression(f(expression))
+
+  override def exact: Boolean = true
+}
+
+case class RangeQueryExpression[T](expression: T) extends QueryExpression[T] {
+  def map[R](f: T => R): RangeQueryExpression[R] = RangeQueryExpression(f(expression))
 }
 
 case class CompositeQueryExpression[T](inner: Seq[QueryExpression[T]]) extends QueryExpression[T] {
-  def map[R](f: T => R) = CompositeQueryExpression(inner.map(_.map(f)))
+  def expression: T = throw new NotImplementedError("expression not supplied for CompositeQueryExpression")
 
-  def expressions: Seq[T] = inner.flatMap(_.expressions)
+  override def expressions: Seq[T] = inner.flatMap(_.expressions)
 
-  def exactOnly: Boolean =
-    inner.forall(p => p.isInstanceOf[SingleQueryExpression[T]] || p.isInstanceOf[ManyQueryExpression[T]])
+  def map[R](f: T => R): CompositeQueryExpression[R] = CompositeQueryExpression(inner.map(_.map(f)))
+
+  override def exact: Boolean = inner.forall(_.exact)
 }
 
-case class ExistenceQueryExpression[T]() extends QueryExpression[T] {
-  def map[R](f: T => R) = ExistenceQueryExpression()
+/* Marker implementations */
 
-  def expressions: Seq[T] = Seq.empty
-}
+case object ExistenceQueryExpression extends NoArgumentQueryExpression
 
-case class NonExistenceQueryExpression[T]() extends QueryExpression[T] {
-  def map[R](f: T => R) = NonExistenceQueryExpression()
+case object NonExistenceQueryExpression extends NoArgumentQueryExpression
 
-  def expressions: Seq[T] = Seq.empty
-}
-
-case class AllQueryExpression[T]() extends QueryExpression[T] {
-  def map[R](f: T => R) = AllQueryExpression()
-
-  def expressions: Seq[T] = Seq.empty
-}
+case object AllQueryExpression extends NoArgumentQueryExpression

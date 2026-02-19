@@ -2105,7 +2105,7 @@ object LogicalPlanToPlanBuilderString {
         s"${propNames.head} = ${expressions.map(stringifyValueInIndexOperator).mkString(" OR ")}"
       case ManyQueryExpression(expr) =>
         s"${propNames.head} IN ${stringifyValueInIndexOperator(expr)}"
-      case ExistenceQueryExpression() => propNames.head
+      case ExistenceQueryExpression => propNames.head
       case RangeQueryExpression(PrefixSeekRangeWrapper(PrefixRange(expression))) =>
         s"${propNames.head} STARTS WITH ${stringifyValueInIndexOperator(expression)}"
       case RangeQueryExpression(InequalitySeekRangeWrapper(range)) => rangeStr(range, propNames.head).toString

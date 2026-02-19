@@ -31,8 +31,11 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
+import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -1382,18 +1385,19 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
     ("$parameter", parameter("parameter", CTAny))
   )
 
-  private val comparisons = valuesToCompare.flatMap { case (cypher, expression) =>
-    Seq(
-      (s"IN [ $cypher ]", QueryExpressionConstructionTestSupport.single(expression)),
-      (s"= $cypher", QueryExpressionConstructionTestSupport.single(expression)),
-      (s"< $cypher", rangeExpression(lt(expression))),
-      (s"<= $cypher", rangeExpression(lte(expression))),
-      (s"> $cypher", rangeExpression(gt(expression))),
-      (s">= $cypher", rangeExpression(gte(expression)))
-    )
+  private val comparisons: Seq[(String, QueryExpression[Expression])] = valuesToCompare.flatMap {
+    case (cypher, expression) =>
+      Seq(
+        (s"IN [ $cypher ]", QueryExpressionConstructionTestSupport.single(expression)),
+        (s"= $cypher", QueryExpressionConstructionTestSupport.single(expression)),
+        (s"< $cypher", rangeExpression(lt(expression))),
+        (s"<= $cypher", rangeExpression(lte(expression))),
+        (s"> $cypher", rangeExpression(gt(expression))),
+        (s">= $cypher", rangeExpression(gte(expression)))
+      )
   } ++ Seq(
-    ("IS NOT NULL", existsExpression),
-    ("IS NULL", notExistsExpression)
+    ("IS NOT NULL", ExistenceQueryExpression),
+    ("IS NULL", NonExistenceQueryExpression)
   )
 
   test("plan node vector search with inlined predicate") {
@@ -1429,7 +1433,7 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
               vector = "$embedding",
               limit = "5",
               getValueFromIndex = moviePlotsProperties.map(_ -> GetValue).toMap,
-              filter = Some(composite(comparisonExpression, all()))
+              filter = Some(composite(comparisonExpression, AllQueryExpression))
             )
             .build()
         )
@@ -1623,8 +1627,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       val whereClause = "WHERE " + queryExpression
 
       val searchFilter = composite(
-        imdbRatingPred.map(_.searchQuery).getOrElse(all()),
-        releaseYearPred.map(_.searchQuery).getOrElse(all())
+        imdbRatingPred.map(_.searchQuery).getOrElse(AllQueryExpression),
+        releaseYearPred.map(_.searchQuery).getOrElse(AllQueryExpression)
       )
 
       val query =
