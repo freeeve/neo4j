@@ -280,6 +280,9 @@ public class DatabaseShutdownTransactionCloseIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "Shutdown can kill the property shards before all active graph shard transactions are done, then spd fails with a different error")
     void transactionTerminationOnShutdown() {
         int executors = 20;
         try (var executor = Executors.newFixedThreadPool(executors)) {
