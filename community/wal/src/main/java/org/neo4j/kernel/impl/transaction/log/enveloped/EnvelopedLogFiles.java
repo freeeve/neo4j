@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
@@ -127,12 +128,16 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     public long initialise() throws IOException {
         logsRepository.initialise();
+        return recoverLogTail(0);
+    }
+
+    private long recoverLogTail(long fromVersion) throws IOException {
         var tailChecker = new EnvelopedLogTailChecker(
                 logsRepository,
                 (long logFileVersion) -> envelopedReadChannel(logsRepository.openReadChannel(logFileVersion), false),
                 memoryTracker,
                 logProvider);
-        var tailInfo = tailChecker.checkEnvelopedLogTail();
+        var tailInfo = tailChecker.checkEnvelopedLogTail(fromVersion);
         if (tailInfo.createInitial()) {
             log.info("No previous enveloped raft log files found. Creating new log file. " + tailInfo);
             long startVersion = tailInfo.lastValidatedPosition().getLogVersion();
@@ -187,6 +192,18 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
                     tailInfo.lastValidTerm());
         }
         return tailInfo.lastValidAppendIndex();
+    }
+
+    private void closeCurrentWriteChannel() throws IOException {
+        if (appendingChannel != null) {
+            appendingChannel.prepareForFlush().flush();
+            appendingChannel.close();
+            appendingChannel = null;
+        }
+        if (currentWriteChannel != null) {
+            currentWriteChannel.channel().close();
+            currentWriteChannel = null;
+        }
     }
 
     /**
@@ -351,11 +368,78 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
     }
 
-    public long currentLogFileVersion() {
-        if (currentWriteChannel == null) {
-            return -1L;
+    /**
+     * Recalibrates the write channel state after directPutAll operations have detached it from its state.
+     * This method reads through the entries from the last segment boundary to validate the checksum chain.
+     * If the last entry is incomplete, this method will fail.
+     *
+     * @throws InvalidLogEnvelopeReadException if incomplete entries are found at the end of the log
+     * @throws IOException if an I/O error occurs during recovery
+     */
+    public void recalibrateWriteChannel() throws IOException {
+        if (appendingChannel == null) {
+            throw new IllegalStateException("Writer channel has not been initialised");
         }
-        return currentWriteChannel.version();
+
+        long currentPosition = appendingChannel.position();
+
+        // If we're at the start (just the header), no recovery needed
+        if (currentPosition <= segmentBlockSize) {
+            return;
+        }
+
+        // Calculate the segment boundary to start reading from
+        // If we're precisely aligned with a segment boundary, we need to start from the previous segment
+        // to ensure we have entries to read for state recovery
+        long segmentBoundary = (currentPosition / segmentBlockSize) * segmentBlockSize;
+        if (segmentBoundary == currentPosition) {
+            // We're aligned with a segment boundary, go back one segment
+            segmentBoundary -= segmentBlockSize;
+        }
+
+        // Open a read channel on the current log file version directly
+        long currentVersion = currentWriteChannel.version();
+        try (var readChannel = envelopedReadChannel(logsRepository.openReadChannel(currentVersion), false)) {
+            // Position the read channel at the segment boundary
+            readChannel.position(segmentBoundary);
+
+            // Read through all entries to validate the checksum chain and recover state
+            while (true) {
+                // Try to read the next entry (complete entry, not just envelope)
+                try {
+                    readChannel.goToNextEntry();
+                } catch (ReadPastEndException ignored) {
+                    break;
+                }
+            }
+            long lastValidPosition = readChannel.position();
+            long recoveredIndex = readChannel.entryIndex();
+            int recoveredChecksum = readChannel.getChecksum();
+            long recoveredTerm = readChannel.currentTerm();
+
+            // Check if there's incomplete data after the last valid position
+            if (lastValidPosition < currentPosition) {
+                // We have data written beyond the last valid entry - this is incomplete
+                throw new InvalidLogEnvelopeReadException(
+                        "Incomplete entry found at the end of the log. Last valid position: " + lastValidPosition
+                                + ", current write position: " + currentPosition);
+            }
+            // Update the write channel's state with the recovered values
+            appendingChannel.recoverState(recoveredChecksum, recoveredIndex, recoveredTerm);
+        }
+    }
+
+    /**
+     * Truncates to the last safe entry position when log pulling fails unexpectedly.
+     * Finds the last complete entry that ends at or before the last segment boundary
+     * and truncates to that entry.
+     *
+     * @param knownSafeIndex the position to start searching from, 0 if there is none
+     * @throws IOException if an I/O error occurs during truncation
+     */
+    public void truncateToLastSafeEntry(long knownSafeIndex) throws IOException {
+        closeCurrentWriteChannel();
+        recoverLogTail(getFileVersion(knownSafeIndex));
     }
 
     private void updateState(

@@ -1124,6 +1124,16 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return buffer;
     }
 
+    public int getPadAdjustedSegmentOffset(long position) {
+        var actualOffset = getSegmentOffset(position);
+        var remainingBytesInSegment = segmentBlockSize - actualOffset;
+        if (remainingBytesInSegment <= HEADER_SIZE) {
+            // entry will be written to the next segment
+            return 0;
+        }
+        return actualOffset;
+    }
+
     public int getSegmentOffset(long position) {
         return segmentOffset(segmentBlockSize, position);
     }

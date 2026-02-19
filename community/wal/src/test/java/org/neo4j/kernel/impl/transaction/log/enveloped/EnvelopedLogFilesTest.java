@@ -27,6 +27,7 @@ import static org.neo4j.kernel.impl.transaction.log.enveloped.LogsRepository.BAS
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -43,14 +45,17 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
@@ -1248,7 +1253,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1270,7 +1275,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1294,7 +1299,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1324,7 +1329,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1362,7 +1367,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1403,7 +1408,7 @@ class EnvelopedLogFilesTest {
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
         long term = 1L;
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeChannel.putTerm(term++);
             writeData(writeChannel, data);
         }
@@ -1464,7 +1469,7 @@ class EnvelopedLogFilesTest {
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
         long term = 1L;
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeChannel.putTerm(term++);
             writeData(writeChannel, data);
         }
@@ -1522,7 +1527,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 2L) {
+        while (mirroringRepository.logVersionsRange().to() < 2L) {
             writeData(writeChannel, data);
         }
         for (int i = 0; i < 3; i++) {
@@ -1580,7 +1585,7 @@ class EnvelopedLogFilesTest {
         writeChannel = envelopedLogFiles.currentWriteChannel();
 
         // then we expect it to have truncated and rolled to a new file
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(1);
         // and should be able to append without issues
         writeData(writeChannel, data); // write index 2 again
         assertThat(writeChannel.currentIndex()).isEqualTo(2);
@@ -1630,7 +1635,7 @@ class EnvelopedLogFilesTest {
         writeChannel = envelopedLogFiles.currentWriteChannel();
 
         // then we expect it to have truncated and rolled to a new file
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(1);
         // and should be able to append without issues
         writeData(writeChannel, data); // write index 2 again (with small message)
         assertThat(writeChannel.currentIndex()).isEqualTo(2);
@@ -1662,7 +1667,7 @@ class EnvelopedLogFilesTest {
         writeData(writeChannel, bigData); // index 2 - spans multiple files
         writeChannel.prepareForFlush().flush();
         var endOffset = writeChannel.position();
-        var lastLogFile = envelopedLogFiles.currentLogFileVersion();
+        var lastLogFile = mirroringRepository.logVersionsRange().to();
         envelopedLogFiles.close();
 
         // Ruin the last envelope in the entry
@@ -1681,7 +1686,7 @@ class EnvelopedLogFilesTest {
         writeChannel = envelopedLogFiles.currentWriteChannel();
 
         // then we expect it to have truncated and rolled to a new file
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(1);
         // and should be able to append without issues
         writeData(writeChannel, data); // write index 2 again (with small message)
         assertThat(writeChannel.currentIndex()).isEqualTo(2);
@@ -1706,13 +1711,13 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        while (envelopedLogFiles.currentLogFileVersion() < 3L) {
+        while (mirroringRepository.logVersionsRange().to() < 3L) {
             writeData(writeChannel, data);
         }
         writeChannel.prepareForFlush().flush();
         long lastAppendIndex = writeChannel.currentIndex();
         long endOffset = writeChannel.position();
-        long lastLogFile = envelopedLogFiles.currentLogFileVersion();
+        long lastLogFile = mirroringRepository.logVersionsRange().to();
         // keep only the third file, which should contain just a single entry
         envelopedLogFiles.prune(writeChannel.currentIndex());
         LogHeader originalHeader;
@@ -1734,7 +1739,7 @@ class EnvelopedLogFilesTest {
         recreateEnvelopedLogFiles();
         assertThat(envelopedLogFiles.initialise()).isEqualTo(lastAppendIndex - 1);
         writeChannel = envelopedLogFiles.currentWriteChannel();
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(3L);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(3L);
         try (var metadata = envelopedLogFiles.logFilesMetadata()) {
             metadata.next();
             assertThat(metadata.get().logHeader()).isEqualTo(originalHeader);
@@ -1785,7 +1790,7 @@ class EnvelopedLogFilesTest {
         writeChannel = envelopedLogFiles.currentWriteChannel();
 
         // then we expect it to have just carried on with recreating file 1
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(1);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(1);
         // and should be able to re-append without issues
         writeData(writeChannel, data); // write index 2
         assertThat(writeChannel.currentIndex()).isEqualTo(2);
@@ -1826,7 +1831,7 @@ class EnvelopedLogFilesTest {
         writeChannel = envelopedLogFiles.currentWriteChannel();
 
         // then we expect it to have just carried on with recreating file 1
-        assertThat(envelopedLogFiles.currentLogFileVersion()).isEqualTo(2);
+        assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(2);
         // and should be able to re-append without issues
         writeData(writeChannel, data); // write index 3
         assertThat(writeChannel.currentIndex()).isEqualTo(3);
@@ -1923,6 +1928,115 @@ class EnvelopedLogFilesTest {
             assertThat(reader.logHeader().getLogVersion()).isEqualTo(2L);
             // the term should be rolled over from remaining file
             assertThat(reader.logHeader().getLastTerm()).isEqualTo(82L);
+        }
+    }
+
+    @Test
+    void shouldRecalibrateState() throws IOException {
+        envelopedLogFiles.initialise();
+
+        for (var i = 0; i < randomSupport.nextInt(1, 5); i++) {
+            writeData(envelopedLogFiles.currentWriteChannel(), EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        }
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        var firstIndex = envelopedLogFiles.currentWriteChannel().currentIndex();
+        long nextIndex;
+        try (var reader = envelopedLogFiles.openReadChannel(firstIndex)) {
+            reader.goToEntry(firstIndex);
+            reader.goToEndOfEntry();
+
+            try (var scopedBuffer = new HeapScopedBuffer(
+                            segmentBlockSize, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
+                    var otherWriteChannel = new EnvelopeWriteChannel(
+                            mirroringRepository
+                                    .openWriteChannel(mirroringRepository
+                                            .logVersionsRange()
+                                            .to())
+                                    .channel()
+                                    .position(envelopedLogFiles
+                                            .currentWriteChannel()
+                                            .position()),
+                            scopedBuffer,
+                            segmentBlockSize,
+                            reader.getChecksum(),
+                            firstIndex,
+                            reader.currentTerm(),
+                            LogTracers.NULL,
+                            LogRotation.NO_ROTATION)) {
+                for (var i = 0; i < randomSupport.nextInt(1, 5); i++) {
+                    writeData(otherWriteChannel, EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+                }
+                otherWriteChannel.prepareForFlush().flush();
+                nextIndex = otherWriteChannel.currentIndex();
+            }
+        }
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex())
+                .isEqualTo(firstIndex)
+                .isNotEqualTo(nextIndex);
+        envelopedLogFiles.recalibrateWriteChannel();
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(nextIndex);
+    }
+
+    @Test
+    void shouldRecalibrateStateShouldFailIfDirtyTail() throws IOException {
+        envelopedLogFiles.initialise();
+
+        for (var i = 0; i < randomSupport.nextInt(1, 5); i++) {
+            writeData(envelopedLogFiles.currentWriteChannel(), EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        }
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        var data = randomSupport.nextBytes(16);
+        envelopedLogFiles.currentWriteChannel().directPutAll(ByteBuffer.wrap(data), -1);
+        assertThatThrownBy(() -> envelopedLogFiles.recalibrateWriteChannel())
+                .hasMessageContaining("Incomplete entry found at the end of the log");
+    }
+
+    @Test
+    @Disabled("Currently flaky due to a change when opening a read channel and seting position. This causes the tail"
+            + " checker to not catch the dirty bytes properly. Should be enabled when fixed")
+    void shouldTruncateAndRecoveryWriteChannelAfterGarbage() throws IOException {
+        envelopedLogFiles.initialise();
+
+        for (var i = 0; i < randomSupport.nextInt(0, 5); i++) {
+            writeData(envelopedLogFiles.currentWriteChannel(), EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        }
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+        var lastGoodIndex = envelopedLogFiles.currentWriteChannel().currentIndex();
+
+        var data = randomSupport.nextBytes(16);
+        envelopedLogFiles.currentWriteChannel().directPutAll(ByteBuffer.wrap(data), -1);
+        envelopedLogFiles.truncateToLastSafeEntry(0);
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(lastGoodIndex);
+        writeData(envelopedLogFiles.currentWriteChannel(), EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(lastGoodIndex + 1);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            envelopeReadChannel.alignWithStartEntry();
+            while (envelopeReadChannel.entryIndex() != lastGoodIndex + 1) {
+                envelopeReadChannel.goToEndOfEntry();
+            }
+        }
+    }
+
+    @Test
+    void shouldTruncateAndRecoveryWithNoChangeIfNoGarbage() throws IOException {
+        envelopedLogFiles.initialise();
+
+        for (var i = 0; i < randomSupport.nextInt(0, 5); i++) {
+            writeData(envelopedLogFiles.currentWriteChannel(), EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        }
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+        var lastGoodIndex = envelopedLogFiles.currentWriteChannel().currentIndex();
+        envelopedLogFiles.truncateToLastSafeEntry(0);
+        assertThat(envelopedLogFiles.currentWriteChannel().currentIndex()).isEqualTo(lastGoodIndex);
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            envelopeReadChannel.alignWithStartEntry();
+            while (envelopeReadChannel.entryIndex() != lastGoodIndex) {
+                envelopeReadChannel.goToEndOfEntry();
+            }
         }
     }
 

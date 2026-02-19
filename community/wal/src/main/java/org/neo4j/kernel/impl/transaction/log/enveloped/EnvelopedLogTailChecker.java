@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import static java.lang.Math.max;
 import static org.neo4j.internal.helpers.Numbers.safeCastLongToInt;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_INDEX;
@@ -27,6 +28,8 @@ import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -69,12 +72,28 @@ public class EnvelopedLogTailChecker {
             int lastValidChecksum,
             int segmentOffset,
             boolean createInitial,
-            boolean brokenLastEntry) {}
+            boolean brokenLastEntry) {
 
-    public EnvelopedLogTailInfo checkEnvelopedLogTail() throws IOException {
-        checkEnvelopedLogVersionSequence();
-        long[] versions = logsRepository.logVersions(true);
-        for (long version : versions) {
+        public static EnvelopedLogTailInfo empty() {
+            return new EnvelopedLogTailInfo(
+                    new LogPosition(0L, 0L), UNSPECIFIED_INDEX, UNSPECIFIED_TERM, BASE_TX_CHECKSUM, 0, true, false);
+        }
+    }
+
+    public EnvelopedLogTailInfo checkEnvelopedLogTail(long fromVersion) throws IOException {
+        var versionsRange = logsRepository.logVersionsRange();
+        if (versionsRange.isEmpty()) {
+            return EnvelopedLogTailInfo.empty();
+        }
+        versionsRange = LongRange.range(max(fromVersion, versionsRange.from()), versionsRange.to());
+        checkEnvelopedLogVersionSequence(versionsRange);
+        // update log range again, previous check may have deleted the last file
+        versionsRange = logsRepository.logVersionsRange();
+        if (versionsRange.isEmpty()) {
+            return EnvelopedLogTailInfo.empty();
+        }
+        // reversed iteration
+        for (long version = versionsRange.to(); version >= versionsRange.from(); version--) {
             try (EnvelopeReadChannel readChannel = readChannelAllocator.envelopedReadChannel(version)) {
                 LogHeader logHeader = readChannel.logHeader();
                 long lastValidAppendIndex = logHeader.getLastAppendIndex();
@@ -104,7 +123,7 @@ public class EnvelopedLogTailChecker {
                 }
 
                 if (lastGoodPosition == null) { // haven't read a valid entry
-                    if (version > versions[versions.length - 1]) {
+                    if (version > versionsRange.from()) {
                         // can go back further
                         continue;
                     }
@@ -125,32 +144,21 @@ public class EnvelopedLogTailChecker {
                         lastValidAppendIndex,
                         lastValidTerm,
                         lastValidChecksum,
-                        readChannel.getSegmentOffset(lastGoodPosition.getByteOffset()),
+                        readChannel.getPadAdjustedSegmentOffset(lastGoodPosition.getByteOffset()),
                         false,
                         brokenLastEntry);
             }
         }
-        return new EnvelopedLogTailInfo(
-                new LogPosition(0L, 0L), UNSPECIFIED_INDEX, UNSPECIFIED_TERM, BASE_TX_CHECKSUM, 0, true, false);
+        return EnvelopedLogTailInfo.empty();
     }
 
-    private void checkEnvelopedLogVersionSequence() throws IOException {
-        long[] versions = logsRepository.logVersions(false);
-        if (versions.length == 0) {
-            return;
-        }
-
-        long expectedLogVersion = versions[0];
+    private void checkEnvelopedLogVersionSequence(LongRange versionRange) throws IOException {
+        long expectedLogVersion = versionRange.from();
         long lastHeaderTerm = -1L;
         long lastHeaderAppendIndex = -1L;
         LogFormat lastLogFormat = LogFormat.V10;
 
-        for (int index = 0; index < versions.length; index++) {
-            long version = versions[index];
-            if (version != expectedLogVersion) { // file name sequence must be complete
-                throw new InconsistentLogFilesException("Missing log file: "
-                        + logsRepository.pathFor(expectedLogVersion) + " expected for version " + expectedLogVersion);
-            }
+        for (long version = versionRange.from(); version <= versionRange.to(); version++) {
             try (LogChannelContext<StoreChannel> channel = logsRepository.openReadChannel(version)) {
                 LogHeader logHeader;
                 try {
@@ -163,6 +171,7 @@ public class EnvelopedLogTailChecker {
                 }
                 if (logHeader == null) {
                     // preallocated file, or corrupt?
+                    long thisVersion = version;
                     TailUtils.checkNonZerosAfterOffset(
                             LogFormat.BIGGEST_HEADER,
                             channel.channel(),
@@ -170,15 +179,16 @@ public class EnvelopedLogTailChecker {
                             safeCastLongToInt(kibiBytes(64)),
                             true,
                             (offset, data) -> {
-                                throw new IllegalStateException(
-                                        "Log File: " + logsRepository.pathFor(version)
-                                                + " doesn't have a valid LogHeader, but also contains non-zero data and may be corrupted");
+                                throw new IllegalStateException("Log File: " + logsRepository.pathFor(thisVersion)
+                                        + " doesn't have a valid LogHeader, but also contains non-zero data"
+                                        + " and may be corrupted");
                             });
-                    if (index != versions.length - 1) {
+                    if (version != versionRange.to()) {
                         // only last file can have a partial header
                         throw new InconsistentLogFilesException("Log File: " + logsRepository.pathFor(version)
-                                + " has incomplete header, or is preallocated, but is not last in the log file sequence ending with version "
-                                + versions[versions.length - 1]);
+                                + " has incomplete header, or is preallocated, but is not last in the log file"
+                                + " sequence ending with version "
+                                + versionRange.to());
                     }
 
                     log.info("Removing last partial header/preallocated log file: " + logsRepository.pathFor(version));
@@ -229,6 +239,9 @@ public class EnvelopedLogTailChecker {
                             + " than previous file with header previousTerm: " + lastHeaderTerm);
                 }
                 lastHeaderTerm = logHeader.getLastTerm();
+            } catch (NoSuchFileException e) {
+                throw new InconsistentLogFilesException("Missing log file: "
+                        + logsRepository.pathFor(expectedLogVersion) + " expected for version " + expectedLogVersion);
             }
             ++expectedLogVersion;
         }

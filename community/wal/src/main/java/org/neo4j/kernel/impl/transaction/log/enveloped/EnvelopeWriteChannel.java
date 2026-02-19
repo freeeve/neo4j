@@ -491,6 +491,20 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         rotateLogFile();
     }
 
+    /**
+     * Updates the internal state (checksum, index, term) of the write channel without truncating.
+     * This is used for recovery after directPutAll operations.
+     *
+     * @param previousChecksum the checksum of the last written envelope
+     * @param index the index of the last written entry
+     * @param term the term of the last written entry
+     */
+    public void recoverState(int previousChecksum, long index, long term) {
+        this.previousChecksum = previousChecksum;
+        this.currentIndex = index;
+        this.currentTerm = term;
+    }
+
     @Override
     public void close() throws IOException {
         if (!closed) {
