@@ -298,7 +298,8 @@ object LogicalPlanStringTest {
       classOf[plans.AssertNotGraphShard],
       classOf[plans.AssertNotPropertyShard],
       classOf[InputPosition],
-      classOf[ast.DummyExpression]
+      classOf[ast.DummyExpression],
+      classOf[Seq[_]]
     )
 
     val whiteListedMethodNames: Set[String] = Set(
