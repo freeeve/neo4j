@@ -24,13 +24,12 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
 case class OrderBy(sortItems: Seq[SortItem])(val position: InputPosition) extends ASTNode with SemanticCheckable {
-  def semanticCheck: SemanticCheck = sortItems.semanticCheck
+  override def semanticCheck: SemanticCheck = sortItems.semanticCheck
 
   def checkIllegalOrdering(returnItems: ReturnItems): Option[SemanticError] = {
     val aggregationItems = returnItems.items
@@ -57,17 +56,16 @@ case class OrderBy(sortItems: Seq[SortItem])(val position: InputPosition) extend
     }
   }
 
-  def dependencies: Set[LogicalVariable] =
-    sortItems.foldLeft(Set.empty[LogicalVariable]) { case (acc, item) => acc ++ item.expression.dependencies }
 }
 
 sealed trait SortItem extends ASTNode with SemanticCheckable {
   def expression: Expression
 
-  def semanticCheck: SemanticCheck = SemanticExpressionCheck.check(Expression.SemanticContext.Results, expression) chain
-    SemanticPatternCheck.checkValidPropertyKeyNames(
-      expression.folder.findAllByClass[Property].map(prop => prop.propertyKey)
-    )
+  override def semanticCheck: SemanticCheck =
+    SemanticExpressionCheck.check(Expression.SemanticContext.Results, expression) chain
+      SemanticPatternCheck.checkValidPropertyKeyNames(
+        expression.folder.findAllByClass[Property].map(prop => prop.propertyKey)
+      )
   def stringify(expressionStringifier: ExpressionStringifier): String
   def mapExpression(f: Expression => Expression): SortItem
 }
