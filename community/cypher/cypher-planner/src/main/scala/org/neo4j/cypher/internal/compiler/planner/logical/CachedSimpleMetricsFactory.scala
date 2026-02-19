@@ -62,6 +62,8 @@ object CachedSimpleMetricsFactory extends MetricsFactory {
     cancellationChecker: CancellationChecker,
     databaseMode: DatabaseMode
   ): CostModel = {
+    val wrapped: CostModel = SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker, databaseMode)
+
     val cached = CachedFunction(
       (
         plan: LogicalPlan,
@@ -73,7 +75,7 @@ object CachedSimpleMetricsFactory extends MetricsFactory {
         statistics: Ref[GraphStatistics],
         monitor: CostModelMonitor
       ) => {
-        SimpleMetricsFactory.newCostModel(executionModel, cancellationChecker, databaseMode).costFor(
+        wrapped.costFor(
           plan,
           input,
           semanticTable,
