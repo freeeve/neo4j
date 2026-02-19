@@ -491,10 +491,11 @@ public class BoltServer extends LifecycleAdapter {
             var bossGroup = eventLoopGroups[i];
             if (bossGroup != null) {
                 shutdownFutures[i] = bossGroup.shutdownGracefully(
-                        config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
+                        config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period)
+                                .toMillis(),
                         config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
-                                .toSeconds(),
-                        TimeUnit.SECONDS);
+                                .toMillis(),
+                        TimeUnit.MILLISECONDS);
             }
         }
 

@@ -76,10 +76,11 @@ public final class LocalChannelDriverFactory extends DriverFactory implements Au
     @Override
     public void close() throws Exception {
         var workerTerminationFuture = localGroup.shutdownGracefully(
-                config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
+                config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period)
+                        .toMillis(),
                 config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
-                        .toSeconds(),
-                TimeUnit.SECONDS);
+                        .toMillis(),
+                TimeUnit.MILLISECONDS);
 
         var workerTerminationCompleted = workerTerminationFuture.awaitUninterruptibly(
                 config.get(BoltConnectorInternalSettings.thread_pool_shutdown_wait_time)

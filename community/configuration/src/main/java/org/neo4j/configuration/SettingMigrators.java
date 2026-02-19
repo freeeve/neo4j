@@ -111,6 +111,7 @@ import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.u
 import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.unsupported_bolt_unauth_connection_timeout;
 import static org.neo4j.configuration.connectors.BoltConnectorInternalSettings.unsupported_thread_pool_queue_size;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -390,9 +391,6 @@ public final class SettingMigrators {
                         "unsupported.dbms.bolt.netty_message_merge_cumulator",
                         "internal.dbms.bolt.netty_message_merge_cumulator"),
                 new Mapping(
-                        "unsupported.dbms.bolt.netty_server_shutdown_quiet_period",
-                        "internal.dbms.bolt.netty_server_shutdown_quiet_period"),
-                new Mapping(
                         "unsupported.dbms.bolt.netty_server_shutdown_timeout",
                         "internal.dbms.bolt.netty_server_shutdown_timeout"),
                 new Mapping(
@@ -636,6 +634,45 @@ public final class SettingMigrators {
             migratePageCacheAndMemorySettings(values, defaultValues, log);
             migrateAutoUpgrade(values, defaultValues, log);
             migrateAnnotationDataAsJson(values, defaultValues, log);
+            migrateQuietPeriod(values, defaultValues, log);
+        }
+
+        private void migrateQuietPeriod(
+                Map<String, String> values, Map<String, String> defaultValues, InternalLog log) {
+            String unsupportedSetting = "unsupported.dbms.bolt.netty_server_shutdown_quiet_period";
+            String internalSetting = "internal.dbms.bolt.netty_server_shutdown_quiet_period";
+            String newSetting = "internal.dbms.bolt.netty_server_shutdown_quiet_period_duration";
+
+            if (values.containsKey(unsupportedSetting)) {
+                log.warn("Use of deprecated setting '%s'. It is replaced by '%s'.", unsupportedSetting, newSetting);
+                var seconds = values.get(unsupportedSetting);
+                if (isNotBlank(seconds)) {
+                    try {
+                        var timeParse = SettingValueParsers.INT.parse(seconds);
+                        var duration = Duration.ofSeconds(timeParse);
+                        values.remove(unsupportedSetting);
+                        values.computeIfAbsent(
+                                newSetting, (ignored) -> SettingValueParsers.DURATION.valueToString(duration));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                return;
+            }
+
+            if (values.containsKey(internalSetting)) {
+                log.warn("Use of deprecated setting '%s'. It is replaced by '%s'.", internalSetting, newSetting);
+                var seconds = values.get(internalSetting);
+                if (isNotBlank(seconds)) {
+                    try {
+                        var timeParse = SettingValueParsers.INT.parse(seconds);
+                        var duration = Duration.ofSeconds(timeParse);
+                        values.remove(internalSetting);
+                        values.computeIfAbsent(
+                                newSetting, (ignored) -> SettingValueParsers.DURATION.valueToString(duration));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
         }
 
         private void migratePageCacheAndMemorySettings(

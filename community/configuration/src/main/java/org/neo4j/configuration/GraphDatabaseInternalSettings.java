@@ -952,9 +952,9 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Quiet period for netty shutdown")
-    public static final Setting<Integer> netty_server_shutdown_quiet_period = newBuilder(
-                    "internal.dbms.bolt.netty_server_shutdown_quiet_period", INT, 5)
+    @Description("Quiet period for netty shutdown as a duration.")
+    public static final Setting<Duration> netty_server_shutdown_quiet_period = newBuilder(
+                    "internal.dbms.bolt.netty_server_shutdown_quiet_period_duration", DURATION, Duration.ofSeconds(5))
             .build();
 
     @Internal
