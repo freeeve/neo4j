@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
+import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.util.NonEmptyList
 
 import scala.util.chaining.scalaUtilChainingOps
@@ -85,9 +86,19 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       orderConfig: InterestingOrderConfig
     ) = {
       context.staticComponents.planningStepsLogger.log(s"    $description")
+
+      // if somehow we have unsolved predicates left, let's plan them here so as not to fail planning in production
+      val planWithSelections =
+        context.plannerState.config.applySelections(basePlan, plannerQuery.queryGraph, orderConfig, context)
+
+      checkOnlyWhenAssertionsAreEnabled(
+        basePlan eq planWithSelections,
+        s"Selections should've been applied earlier.\nbasePlan:\n$basePlan\n\nplanWithSelections:\n$planWithSelections"
+      )
+
       val plan = planHorizonForPlan(
         plannerQuery,
-        basePlan,
+        planWithSelections,
         prevInterestingOrder,
         context,
         orderConfig
@@ -221,8 +232,6 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         context.staticComponents.planningStepsLogger
       )
 
-    val selectedPlan =
-      context.plannerState.config.applySelections(plan, query.queryGraph, interestingOrderConfig, context)
     // We only want to mark a planned Sort (or a projection for a Sort) as solved if the ORDER BY comes from the current horizon.
     val updateSolvedOrdering = query.interestingOrder.requiredOrderCandidate.nonEmpty
 
@@ -325,7 +334,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           aggregatingProjection.groupingExpressions.values ++
             aggregatingProjection.aggregationExpressions.values ++
             aggregatingProjection.optionalPreprocessing.expressions,
-          selectedPlan
+          plan
         )
 
         solveSubqueryExpressions(
@@ -436,8 +445,8 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           combine(NonEmptyList(
             planShardOperators(regularProjection),
             sortFirstWithFallback
-          ))(selectedPlan)
-        } else projectNonOrderPreservingExpressionsFirst(selectedPlan)
+          ))(plan)
+        } else projectNonOrderPreservingExpressionsFirst(plan)
 
       case distinctProjection: DistinctQueryProjection =>
         def planDistinct(rewrittenExpressions: RewrittenExpressions) = step("planDistinct")(
@@ -453,7 +462,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
         val (rewrittenExprsAfterRemoteBatching, remoteBatchPropertiesPlan) = planRemoteBatchProperties(
           distinctProjection.groupingExpressions.values,
-          selectedPlan
+          plan
         )
 
         val (rewrittenExpressions, rewrittenPlan) = solveSubqueryExpressions(
@@ -473,7 +482,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
 
       case UnwindProjection(variable, expression) =>
         val projected =
-          context.staticComponents.logicalPlanProducer.planUnwind(selectedPlan, variable, expression, context)
+          context.staticComponents.logicalPlanProducer.planUnwind(plan, variable, expression, context)
         SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
 
       case callProjection: AbstractProcedureCallProjection =>
