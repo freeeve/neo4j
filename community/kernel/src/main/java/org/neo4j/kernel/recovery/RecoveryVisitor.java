@@ -27,6 +27,7 @@ import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.chunk.ChunkedTransaction;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.EmptyBatchRepresentation;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -51,6 +52,11 @@ final class RecoveryVisitor implements RecoveryApplier {
 
     @Override
     public boolean visit(CommittedCommandBatchRepresentation batch) throws Exception {
+        if (batch instanceof EmptyBatchRepresentation empty) {
+            // merge log project will do something here eventually, but for now just skip
+            return false;
+        }
+
         StorageEngineTransaction storageEngineTransaction = commandToApply(batch);
         storageEngine.apply(storageEngineTransaction, mode);
         return false;

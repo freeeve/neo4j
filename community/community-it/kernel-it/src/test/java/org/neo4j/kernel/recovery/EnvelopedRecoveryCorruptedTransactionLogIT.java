@@ -36,11 +36,14 @@ import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.LogAssertions;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionIdStore;
 
 class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransactionLogIT {
@@ -112,5 +115,47 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
         LogAssertions.assertThat(logProvider)
                 .containsMessages("Recovery required from position LogPosition{logVersion=0, byteOffset="
                         + logOffsetBeforeTestTransactions.getByteOffset() + "}");
+    }
+
+    @Test
+    void recoveryCanSkipOverNonTxContent() throws IOException {
+        // This test is not testing a corrupted tx, just that it can read over entries in the
+        // log that are not kernel transactions.
+        DatabaseManagementService managementService = databaseFactory.build();
+        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+        logFiles = buildDefaultLogFiles(getStoreId(database));
+
+        TransactionIdStore transactionIdStore = getTransactionIdStore(database);
+        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
+        generateTransaction(database);
+
+        // Write a non kernel entry
+        FlushableLogPositionAwareChannel channel = database.getDependencyResolver()
+                .resolveDependency(LogFiles.class)
+                .getLogFile()
+                .getTransactionLogWriter()
+                .getChannel();
+        channel.beginChecksumForWriting();
+        channel.putVersion(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED.version());
+        channel.putContentType((byte) 5); // Non-kernel type
+        channel.put(new byte[] {1, 2, 3, 4, 5}, 5);
+        channel.putChecksum();
+
+        // Fudge append index - move one forward to not make channel sad on next tx.
+        LogMetadataProvider logMetadataProvider =
+                database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
+        logMetadataProvider.nextAppendIndex();
+
+        generateTransaction(database);
+        long numberOfClosedTransactions = getTransactionIdStore(database).getHighestGapFreeClosedTransactionId()
+                - lastClosedTransactionBeforeStart;
+
+        managementService.shutdown();
+        removeLastCheckpointRecordFromLastLogFile();
+
+        startStopDatabase();
+
+        // The non kernel content should have been seen as a tx
+        assertEquals(numberOfClosedTransactions + 1, recoveryMonitor.getNumberOfRecoveredTransactions());
     }
 }

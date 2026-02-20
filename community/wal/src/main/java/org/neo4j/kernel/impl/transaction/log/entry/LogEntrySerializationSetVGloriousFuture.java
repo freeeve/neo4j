@@ -24,5 +24,7 @@ import org.neo4j.kernel.KernelVersion;
 public class LogEntrySerializationSetVGloriousFuture extends LogEntrySerializationSetV2025_05 {
     LogEntrySerializationSetVGloriousFuture() {
         super(KernelVersion.GLORIOUS_FUTURE);
+
+        register(new EmptyLogEntrySerializerGloriousFuture());
     }
 }

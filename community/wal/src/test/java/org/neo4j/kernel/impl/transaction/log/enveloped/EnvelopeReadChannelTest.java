@@ -87,7 +87,7 @@ import org.neo4j.test.utils.TestDirectory;
 @RandomSupportExtension
 class EnvelopeReadChannelTest {
     private static final long START_INDEX = 0;
-    private static final byte CONTENT_TYPE = (byte) 1;
+    private static final byte CONTENT_TYPE = REPLICATED_TX_CONTENT_TYPE;
     private static final long TERM = 1L;
     private static final int TEST_DATA_SIZE = 32;
     private static final int TEST_ENTRY_SIZE = TEST_DATA_SIZE + HEADER_SIZE;
@@ -1278,6 +1278,7 @@ class EnvelopeReadChannelTest {
         int segmentSize = 256;
         final var bytes = bytes(random, TEST_DATA_SIZE);
         final byte version = LatestVersions.LATEST_KERNEL_VERSION.version();
+        byte nonKernelContentType = (byte) 1;
 
         writeSomeData(buffer -> {
             writeZeroSegment(buffer, segmentSize);
@@ -1288,17 +1289,17 @@ class EnvelopeReadChannelTest {
             checksum = writeHeaderAndPayload(
                     buffer, EnvelopeType.END, checksum, version, bytes, START_INDEX + 1, UNSPECIFIED_CONTENT_TYPE);
             checksum = writeHeaderAndPayload(
-                    buffer, EnvelopeType.BEGIN, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+                    buffer, EnvelopeType.BEGIN, checksum, version, bytes, START_INDEX + 2, nonKernelContentType);
 
             buffer.put(new byte[4]); // padding
             assertThat(buffer.position()).isEqualTo(segmentSize * 2);
 
             checksum = writeHeaderAndPayload(
-                    buffer, EnvelopeType.MIDDLE, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+                    buffer, EnvelopeType.MIDDLE, checksum, version, bytes, START_INDEX + 2, nonKernelContentType);
             checksum = writeHeaderAndPayload(
-                    buffer, EnvelopeType.END, checksum, version, bytes, START_INDEX + 2, CONTENT_TYPE);
+                    buffer, EnvelopeType.END, checksum, version, bytes, START_INDEX + 2, nonKernelContentType);
             checksum = writeHeaderAndPayload(
-                    buffer, EnvelopeType.FULL, checksum, version, bytes, START_INDEX + 3, CONTENT_TYPE);
+                    buffer, EnvelopeType.FULL, checksum, version, bytes, START_INDEX + 3, nonKernelContentType);
             writeHeaderAndPayload(
                     buffer, EnvelopeType.FULL, checksum, version, bytes, START_INDEX + 4, REPLICATED_TX_CONTENT_TYPE);
         });
@@ -1833,6 +1834,7 @@ class EnvelopeReadChannelTest {
 
     @Test
     void readFileWithZeroChecksumEnvelope() throws IOException {
+        byte contentType = (byte) 1;
         var segmentSize = 256;
         var fit = (segmentSize / 3) - HEADER_SIZE;
         final var bytes1 = new byte[fit];
@@ -1880,7 +1882,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes1,
                     START_INDEX,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             checksum = writeHeaderAndPayload(
                     buffer,
@@ -1889,7 +1891,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes2,
                     START_INDEX + 1,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             checksum = writeHeaderAndPayload(
                     buffer,
@@ -1898,7 +1900,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes3,
                     START_INDEX + 2,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             // zero pad
             while (buffer.position() % segmentSize != 0) {
@@ -1912,7 +1914,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes4,
                     START_INDEX + 3,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             checksum = writeHeaderAndPayload(
                     buffer,
@@ -1921,7 +1923,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes5,
                     START_INDEX + 3,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             checksum = writeHeaderAndPayload(
                     buffer,
@@ -1930,7 +1932,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes6,
                     START_INDEX + 3,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
         });
 
@@ -1945,7 +1947,7 @@ class EnvelopeReadChannelTest {
                     KernelVersion.V5_25.version(),
                     bytes7,
                     START_INDEX + 4,
-                    CONTENT_TYPE);
+                    contentType);
             assertThat(checksum).isEqualTo(0);
             // 'preallocate' some trailing zeros
             while (buffer.position() % segmentSize != 0) {

@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -382,6 +383,11 @@ public class DetachedLogTailScanner {
                                     new PostCheckpointInfo(
                                             rollback.getAppendIndex(),
                                             rollback.kernelVersion().version(),
+                                            false);
+                                case LogEntryEmpty empty ->
+                                    new PostCheckpointInfo(
+                                            empty.getAppendIndex(),
+                                            empty.kernelVersion().version(),
                                             false);
                                 default ->
                                     new PostCheckpointInfo(

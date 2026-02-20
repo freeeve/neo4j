@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log;
 
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_START;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.EMPTY_TX;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_ROLLBACK;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
@@ -28,6 +29,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_S
 import java.io.IOException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
@@ -89,6 +91,11 @@ public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {
                             position = lastStartPosition;
                             return false;
                         }
+                    }
+                }
+                case EMPTY_TX -> {
+                    if (logEntry instanceof LogEntryEmpty empty && empty.getAppendIndex() == appendIndex) {
+                        return false;
                     }
                 }
                 default -> {} // just skip commands

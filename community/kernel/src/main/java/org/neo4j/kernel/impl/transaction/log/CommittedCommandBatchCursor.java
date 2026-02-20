@@ -26,9 +26,11 @@ import org.neo4j.kernel.impl.transaction.ChunkedBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.ChunkedRollbackBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.EmptyBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
@@ -110,6 +112,8 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
                 current = ChunkedBatchRepresentation.createChunkRepresentation(
                         startEntry, entries, endEntry, previousChecksum, -1);
             }
+        } else if (entry instanceof LogEntryEmpty empty) {
+            current = new EmptyBatchRepresentation(empty.kernelVersion(), empty.getAppendIndex());
         } else {
             throw new IllegalStateException("Was expecting transaction or chunk start but got: " + entry);
         }

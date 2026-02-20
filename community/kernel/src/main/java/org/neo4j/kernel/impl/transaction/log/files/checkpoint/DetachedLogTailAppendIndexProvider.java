@@ -31,6 +31,7 @@ import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
@@ -118,6 +119,10 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                                     appendIndex = currentAppendIndex;
                                     postLogPosition = reader.getCurrentLogPosition();
                                     currentAppendIndex = UNKNOWN_APPEND_INDEX;
+                                    infoFound = true;
+                                } else if (entry instanceof LogEntryEmpty empty) {
+                                    appendIndex = empty.getAppendIndex();
+                                    postLogPosition = reader.getCurrentLogPosition();
                                     infoFound = true;
                                 }
                             }

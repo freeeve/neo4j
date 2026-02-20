@@ -34,6 +34,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LO
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_CHECKSUM;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -56,6 +57,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.EmptyBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
@@ -463,6 +465,52 @@ class ReversedEnvelopedCommandBatchCursorTest {
         assertThatThrownBy(() -> readAllFromReversedCursorFailOnCorrupted(new LogPosition(0, Integer.MAX_VALUE)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("before requested maxOffset " + Integer.MAX_VALUE);
+    }
+
+    @Test
+    void treatsNonKernelContentAsEmptyTx() throws IOException {
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+
+        FlushableLogPositionAwareChannel channel =
+                logFile.getTransactionLogWriter().getChannel();
+
+        // Add tx content
+        txId++;
+        writer.append(
+                tx(5),
+                txId,
+                UNKNOWN_CHUNK_ID,
+                txId,
+                UNKNOWN_TX_CHECKSUM,
+                LogVersionRepository.UNKNOWN_LOG_OFFSET,
+                LogAppendEvent.NULL);
+
+        // Add non-tx content
+        txId++;
+        channel.beginChecksumForWriting();
+        channel.putVersion(kernelVersion.version());
+        channel.putContentType((byte) 5); // Non-kernel type
+        channel.put(new byte[] {1, 1, 1, 1, 1, 1, 1, 1}, 8); // Put some data
+        channel.putChecksum();
+
+        // Add tx content
+        txId++;
+        writer.append(
+                tx(5),
+                txId,
+                UNKNOWN_CHUNK_ID,
+                txId,
+                UNKNOWN_TX_CHECKSUM,
+                LogVersionRepository.UNKNOWN_LOG_OFFSET,
+                LogAppendEvent.NULL);
+
+        channel.prepareForFlush().flush();
+
+        // See that all three were processed and the middle one was considered an empty tx
+        CommittedCommandBatchRepresentation[] committedCommandBatchRepresentations = readAllFromReversedCursor();
+        validateState(3, true, committedCommandBatchRepresentations);
+
+        assertThat(committedCommandBatchRepresentations[1]).isInstanceOf(EmptyBatchRepresentation.class);
     }
 
     private LogRangeInfo validateRolled() {

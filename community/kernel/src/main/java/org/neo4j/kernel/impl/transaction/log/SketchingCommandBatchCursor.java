@@ -25,6 +25,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_C
 import java.io.IOException;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
@@ -51,7 +52,7 @@ public class SketchingCommandBatchCursor implements CommandBatchCursor {
     public boolean next() throws IOException {
         while (hasEntries()) {
             LogEntry entry = logEntryCursor.get();
-            if (entry instanceof LogEntryRollback) {
+            if (entry instanceof LogEntryRollback || entry instanceof LogEntryEmpty) {
                 channel.getCurrentLogPosition(lastGoodPositionMarker);
                 return true;
             }

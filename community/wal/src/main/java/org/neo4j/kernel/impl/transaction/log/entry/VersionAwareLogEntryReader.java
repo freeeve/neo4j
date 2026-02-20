@@ -19,11 +19,13 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.EMPTY_TX;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkSmallChunkOfTail;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 
 import java.io.IOException;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -72,7 +74,16 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 }
                 updateParserSet(channel, versionCode);
 
-                byte typeCode = channel.get();
+                byte typeCode;
+                byte contentType = channel.getContentType();
+                if (contentType != ReadableChannel.UNSPECIFIED_CONTENT_TYPE
+                        && contentType != LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE
+                        && contentType != LogEnvelopeHeader.KERNEL_CONTENT_TYPE) {
+                    typeCode = EMPTY_TX;
+                } else {
+                    typeCode = channel.get();
+                }
+
                 LogEntry logEntry = readEntry(channel, versionCode, typeCode, memoryTracker);
                 if (logEntry != LogEntry.SKIP) {
                     return logEntry;

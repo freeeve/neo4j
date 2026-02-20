@@ -41,4 +41,8 @@ public class LogEntryTypeCodes {
 
     // transaction roll back entry code
     public static final byte TX_ROLLBACK = 12;
+
+    // An entry representing a full transaction without any data of interest.
+    // Can be used to represent non-kernel entries in the log as transactions
+    public static final byte EMPTY_TX = 13;
 }
