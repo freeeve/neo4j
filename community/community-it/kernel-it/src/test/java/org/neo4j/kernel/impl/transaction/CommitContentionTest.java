@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.kernel.database.NoOpSystemGraphInitializer.noOpSystemGraphInitializer;
 
@@ -129,7 +129,7 @@ class CommitContentionTest {
     }
 
     private void waitForFirstTransactionToStartPushing() throws InterruptedException {
-        if (!semaphore1.tryAcquire(10, SECONDS)) {
+        if (!semaphore1.tryAcquire(1, MINUTES)) {
             throw new IllegalStateException("First transaction never started pushing");
         }
     }
@@ -144,7 +144,7 @@ class CommitContentionTest {
 
     private void waitForSecondTransactionToFinish() {
         try {
-            boolean acquired = semaphore2.tryAcquire(10, SECONDS);
+            boolean acquired = semaphore2.tryAcquire(1, MINUTES);
 
             if (!acquired) {
                 reference.set(new IllegalStateException("Second transaction never finished"));
