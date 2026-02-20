@@ -735,6 +735,20 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
                     "db.memory.pagecache.warmup.preload.allowlist", STRING, ".*")
             .build();
 
+    @Description("Order in which page cache files will be warmed up in accordance with profiles.")
+    public static final Setting<WarmupOrder> pagecache_warmup_order = newBuilder(
+                    "db.memory.pagecache.warmup.order", ofEnum(WarmupOrder.class), WarmupOrder.NONE)
+            .build();
+
+    public enum WarmupOrder {
+        // no defined order
+        NONE,
+        // alphabetic order
+        ALPHABETIC,
+        // x1 store first (if present), id files, indexes and after that all the rest in alphabetic order
+        PRIORITY,
+    }
+
     @Description(
             "Use direct I/O for page cache. "
                     + "Setting is supported only on Linux and only for a subset of record formats that use platform aligned page size.")
