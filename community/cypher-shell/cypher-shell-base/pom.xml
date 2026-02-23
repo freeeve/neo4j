@@ -16,6 +16,7 @@
     <properties>
         <moduleName>org.neo4j.shell.base</moduleName>
         <maven.compiler.release>8</maven.compiler.release>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
     <scm>
         <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
