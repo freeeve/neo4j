@@ -21,6 +21,8 @@ package org.neo4j.io.pagecache.impl.muninn;
 
 import static java.lang.String.format;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.lang.invoke.VarHandle;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.mem.MemoryAllocator;
@@ -369,5 +371,14 @@ class PageMetadata implements PageReferenceTranslator {
                 + Long.toHexString(UnsafeUtil.getLong(offsetAddress(pageRef))) + "\nPrevious/Last TxId: "
                 + Long.toHexString(UnsafeUtil.getLong(offsetPageHorizon(pageRef))) + "\nBinding: "
                 + Long.toHexString(UnsafeUtil.getLong(offsetPageBinding(pageRef)));
+    }
+
+    public void dump(BufferedWriter writer) throws IOException {
+        for (int i = 0; i < pageCount; i++) {
+            writer.write("Page : " + i);
+            writer.newLine();
+            writer.write(pageMetadata(deref(i)));
+            writer.newLine();
+        }
     }
 }

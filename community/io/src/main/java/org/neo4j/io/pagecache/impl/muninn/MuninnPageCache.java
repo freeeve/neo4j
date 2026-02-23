@@ -35,6 +35,7 @@ import static org.neo4j.util.FeatureToggles.flag;
 import static org.neo4j.util.FeatureToggles.getInteger;
 import static org.neo4j.util.Preconditions.requireNonNegative;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.invoke.VarHandle;
@@ -1239,5 +1240,10 @@ public class MuninnPageCache implements PageCache {
         long allocated = memoryAllocator.allocateAligned(cachePageSize, bufferAlignment);
         PageMetadata.setAddress(pageRef, allocated);
         return allocated;
+    }
+
+    @VisibleForTesting
+    public void dumpPageMetaData(BufferedWriter writer) throws IOException {
+        pageMetadata.dump(writer);
     }
 }

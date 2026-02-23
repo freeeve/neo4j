@@ -55,7 +55,9 @@ import static org.neo4j.io.pagecache.tracing.recording.RecordingPageCacheTracer.
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
@@ -3426,6 +3428,21 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                             + (exceptionRef.get() != null ? Exceptions.stringify(exceptionRef.get()) : "none") + "\n"
                             + localPageCache.describePages());
         }
+    }
+
+    @Test
+    void dumpsPageMetadata() throws IOException {
+        getPageCache(fs, 100, NULL);
+        var stringWriter = new StringWriter();
+        try (var writer = new BufferedWriter(stringWriter)) {
+            pageCache.dumpPageMetaData(writer);
+        }
+
+        assertThat(stringWriter.toString()).contains("""
+                        Lock word: 4000000000000000
+                        Address: 0
+                        Previous/Last TxId: 0
+                        Binding: ffffffffff000000""");
     }
 
     private void assertAllPagesEvicted(MuninnPageCache pageCache) {
