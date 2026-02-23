@@ -31,5 +31,5 @@ sealed interface BlockSwapper permits UnsafeBlockSwapper, FallbackBlockSwapper {
     /**
      * Writes to channel from specified location in memory
      */
-    void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength) throws IOException;
+    void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException;
 }

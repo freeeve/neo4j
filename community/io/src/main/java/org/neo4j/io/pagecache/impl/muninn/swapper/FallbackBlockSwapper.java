@@ -81,20 +81,19 @@ final class FallbackBlockSwapper implements BlockSwapper {
     }
 
     @Override
-    public void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength)
-            throws IOException {
-        try (var scopedBuffer = new HeapScopedBuffer(bufferLength, ByteOrder.nativeOrder(), memoryTracker)) {
+    public void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException {
+        try (var scopedBuffer = new HeapScopedBuffer(bufferSize, ByteOrder.nativeOrder(), memoryTracker)) {
             var buffer = scopedBuffer.getBuffer();
             int i = 0;
 
             // Copy as many longs as we can
-            for (; i < bufferLength - 8; i += 8) {
+            for (; i < bufferSize - 8; i += 8) {
                 long l = UnsafeUtil.getLong(bufferAddress + i);
                 buffer.putLong(l);
             }
 
             // Copy any remaining bytes
-            for (; i < bufferLength; i++) {
+            for (; i < bufferSize; i++) {
                 byte b = UnsafeUtil.getByte(bufferAddress + i);
                 buffer.put(b);
             }

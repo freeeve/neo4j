@@ -54,11 +54,10 @@ final class UnsafeBlockSwapper implements BlockSwapper {
     }
 
     @Override
-    public void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength)
-            throws IOException {
+    public void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException {
         try {
             // direct write from memory to channel using proxy
-            var buffer = buffer(bufferAddress, bufferLength);
+            var buffer = buffer(bufferAddress, bufferSize);
             channel.writeAll(buffer, fileOffset);
         } catch (IOException e) {
             throw e;
