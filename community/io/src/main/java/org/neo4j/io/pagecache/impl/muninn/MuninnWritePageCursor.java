@@ -68,24 +68,7 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
     }
 
     private void eagerlyFlushAndUnlockPage(long pageRef) {
-        long flushStamp = 0;
-        if (multiVersioned) {
-            // in multiversion case check if we last of the linked cursors who pin that page
-            if (!isPinnedByLinkedFriends(pageRef)) {
-                if (LOCKED_PAGES != null) {
-                    // remove before unlock to avoid clearing others lock
-                    var locker = LOCKED_PAGES.removeKeyIfAbsent(pageRef, -1);
-                    var currentThread = Thread.currentThread().threadId();
-                    if (locker != currentThread) {
-                        throw new IllegalStateException("Recorded locker of the page is " + locker
-                                + " doesn't match current thread id " + currentThread);
-                    }
-                }
-                flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
-            }
-        } else {
-            flushStamp = PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
-        }
+        long flushStamp = unlockWriteAndGetFlushStamp(pageRef);
         if (flushStamp != 0) {
             boolean success = false;
             try {
@@ -94,6 +77,30 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
                 PageMetadata.unlockFlush(pageRef, flushStamp, success);
             }
         }
+    }
+
+    private long unlockWriteAndGetFlushStamp(long pageRef) {
+        if (!multiVersioned) {
+            return PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        }
+        // in multiversion case check if we last of the linked cursors who pin that page
+        if (!isPinnedByLinkedFriends(pageRef)) {
+            if (LOCKED_PAGES != null && singleWriter) {
+                validateMultiVersionSingleWriterLock(pageRef);
+            }
+            return PageMetadata.unlockWriteAndTryTakeFlushLock(pageRef);
+        }
+        return 0;
+    }
+
+    private static void validateMultiVersionSingleWriterLock(long pageRef) {
+        long locker = LOCKED_PAGES.getIfAbsent(pageRef, -1);
+        long currentThread = Thread.currentThread().threadId();
+        if (locker != currentThread) {
+            throw new IllegalStateException(
+                    "Recorded locker of the page is " + locker + " doesn't match current thread id " + currentThread);
+        }
+        LOCKED_PAGES.removeKey(pageRef);
     }
 
     @Override
@@ -127,24 +134,38 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             if (isPinnedByLinkedFriends(pageRef)) {
                 return true;
             }
-            if (singleWriter && LOCKED_PAGES != null) {
+            if (LOCKED_PAGES != null && singleWriter) {
                 // you see we are not atomic or synchronized here, this is ok, because we care about *current* thread
                 // already being successful in taking write lock on this page
-                var locker = LOCKED_PAGES.getIfAbsent(pageRef, -1);
-                var threadId = Thread.currentThread().threadId();
+                long locker = LOCKED_PAGES.getIfAbsent(pageRef, -1);
+                long threadId = Thread.currentThread().threadId();
                 if (locker == threadId) {
                     throw new IllegalStateException(
                             "Multiversioned page locks are not reentrant unless it's from linked cursors. Other thread "
                                     + threadId + " already holds write lock on page " + pageRef);
                 }
             }
-            var writeLock = PageMetadata.tryWriteLock(pageRef, singleWriter);
-            if (LOCKED_PAGES != null && writeLock) {
-                LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
+            boolean writeLock = PageMetadata.tryWriteLock(pageRef, singleWriter);
+            if (writeLock) {
+                if (LOCKED_PAGES != null && singleWriter) {
+                    trackMultiVersionedSingleWriterLock(pageRef);
+                }
             }
             return writeLock;
         }
         return PageMetadata.tryWriteLock(pageRef, false);
+    }
+
+    private static void trackMultiVersionedSingleWriterLock(long pageRef) {
+        long threadId = Thread.currentThread().threadId();
+        long oldValue = LOCKED_PAGES.getIfAbsentPut(pageRef, threadId);
+        if (oldValue != threadId) {
+            throw new IllegalStateException("SINGLE WRITER DOUBLE LOCK? Page " + pageRef
+                    + " was recorded as locked by thread " + oldValue
+                    + ". Current thread "
+                    + threadId
+                    + ". Page metadata: " + PageMetadata.pageMetadata(pageRef));
+        }
     }
 
     private boolean isPinnedByLinkedFriends(long pageRef) {
@@ -170,14 +191,8 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
         if (multiVersioned) {
             // in multiversion case check if we last of the linked cursors who pin that page
             if (!isPinnedByLinkedFriends(pageRef)) {
-                if (singleWriter && LOCKED_PAGES != null) {
-                    // remove before unlock to avoid clearing others lock
-                    var locker = LOCKED_PAGES.removeKeyIfAbsent(pageRef, -1);
-                    var currentThread = Thread.currentThread().threadId();
-                    if (locker != currentThread) {
-                        throw new IllegalStateException("Recorded locker of the page is " + locker
-                                + " doesn't match current thread id " + currentThread);
-                    }
+                if (LOCKED_PAGES != null && singleWriter) {
+                    validateMultiVersionSingleWriterLock(pageRef);
                 }
                 PageMetadata.unlockWrite(pageRef);
             }
@@ -203,7 +218,8 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
             long pagePointer = pointer;
             long headVersion = getLongAt(pagePointer, littleEndian);
             assert cursorContext.includeCurrentTransaction()
-                    : "write cursor always must see current transaction, if you got this assert, you are doing something wrong";
+                    : "write cursor always must see current transaction, if you got this assert, you are doing"
+                            + " something wrong";
             if (isOldHead(versionContext, headVersion)) {
                 long copyPageReference = versionStorage.createPageSnapshot(this, versionContext, headVersion, pinEvent);
 
@@ -228,8 +244,10 @@ final class MuninnWritePageCursor extends MuninnPageCursor {
     @Override
     protected void convertPageFaultLock(long pageRef) {
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
-        if (LOCKED_PAGES != null && multiVersioned) {
-            LOCKED_PAGES.put(pageRef, Thread.currentThread().threadId());
+        if (multiVersioned) {
+            if (LOCKED_PAGES != null && singleWriter) {
+                trackMultiVersionedSingleWriterLock(pageRef);
+            }
         }
     }
 

@@ -173,14 +173,17 @@ public final class OffHeapPageLock {
     public static boolean tryWriteLock(long address, boolean singleWriter) {
         for (; ; ) {
             long state = getState(address);
-            if (singleWriter && ((state & CNT_MASK) != 0)) {
+            long currentWriteCount = state & CNT_MASK;
+            if (singleWriter && currentWriteCount != 0) {
                 return false;
             }
+            boolean writeCountOverflow = currentWriteCount == CNT_MASK;
+            if (writeCountOverflow) {
+                throw new IllegalMonitorStateException("Write lock counter overflow: " + describeState(state));
+            }
             boolean unwritablyLocked = (state & EXL_MASK) != 0;
-            boolean writeCountOverflow = (state & CNT_MASK) == CNT_MASK;
-
-            if (unwritablyLocked || writeCountOverflow) {
-                return failWriteLock(state, writeCountOverflow);
+            if (unwritablyLocked) {
+                return false;
             }
 
             long newState = state + CNT_UNIT | MOD_MASK;
@@ -188,18 +191,6 @@ public final class OffHeapPageLock {
                 return true;
             }
         }
-    }
-
-    private static boolean failWriteLock(long s, boolean throwOverflowException) {
-        if (throwOverflowException) {
-            throwWriteLockOverflow(s);
-        }
-        // Otherwise it was exclusively locked
-        return false;
-    }
-
-    private static void throwWriteLockOverflow(long s) {
-        throw new IllegalMonitorStateException("Write lock counter overflow: " + describeState(s));
     }
 
     /**
