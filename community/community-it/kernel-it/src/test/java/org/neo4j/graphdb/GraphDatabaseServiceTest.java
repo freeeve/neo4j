@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.availability.AvailabilityListener;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
+import org.neo4j.kernel.impl.locking.LockClientStoppedException;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -102,10 +103,12 @@ public class GraphDatabaseServiceTest {
         });
         shutdownFuture.get();
         try {
-            // future can complete normally or fail with DatabaseShutdownException
+            // future can complete normally or fail with DatabaseShutdownException or LockClientStoppedException
             txFuture.get();
         } catch (Exception e) {
-            assertThat(e).rootCause().isInstanceOf(DatabaseShutdownException.class);
+            assertThat(e)
+                    .rootCause()
+                    .isInstanceOfAny(DatabaseShutdownException.class, LockClientStoppedException.class);
         }
     }
 
