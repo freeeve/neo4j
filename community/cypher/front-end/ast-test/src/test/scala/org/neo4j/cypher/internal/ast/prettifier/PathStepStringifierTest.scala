@@ -91,6 +91,6 @@ class PathStepStringifierTest extends CypherFunSuite with AstConstructionTestSup
       )(pos)
     )(pos)
 
-    assert(pathStringifier(pathStep) === "(a) ((n)-[r]-(m)-[q]-())* (  UNNAMED0) ((b)-[r2]-())* (k)")
+    assert(pathStringifier(pathStep) === "(a) ((n)-[r]-(m)-[q]-())* (`  UNNAMED0`) ((b)-[r2]-())* (k)")
   }
 }

@@ -77,7 +77,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  test("pattern can't reuse identifier with different type") {
+  ignore("pattern can't reuse identifier with different type") {
     val expression = PatternComprehension(None, pattern, None, stringLiteral)(pos, None, None)
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get

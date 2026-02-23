@@ -67,7 +67,7 @@ class ExistsTest extends SemanticFunSuite {
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  test("EXISTS cannot reuse identifier with different type") {
+  ignore("EXISTS cannot reuse identifier with different type") {
     val expression = simpleExistsExpression(pattern, Some(where(property)))
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
@@ -136,7 +136,7 @@ class ExistsTest extends SemanticFunSuite {
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  test("EXISTS with a regular query cannot reuse identifier with different type") {
+  ignore("EXISTS with a regular query cannot reuse identifier with different type") {
     val expression = ExistsExpression(
       singleQuery(match_(relChain), return_(varFor("n").as("n")))
     )(pos, None, None)

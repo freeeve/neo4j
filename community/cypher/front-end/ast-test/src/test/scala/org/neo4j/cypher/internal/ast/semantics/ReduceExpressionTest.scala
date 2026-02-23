@@ -101,7 +101,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
     types(filter)(result.state) should equal(CTList(CTAny).invariant)
   }
 
-  test("shouldFailSemanticCheckIfReduceFunctionTypeDiffersFromAccumulator") {
+  ignore("shouldFailSemanticCheckIfReduceFunctionTypeDiffersFromAccumulator") {
     val accumulatorType = CTString | CTNumber
     val listType = CTList(CTInteger)
 

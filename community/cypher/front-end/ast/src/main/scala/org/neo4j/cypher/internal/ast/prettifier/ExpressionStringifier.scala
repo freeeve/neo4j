@@ -746,11 +746,19 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(s"COUNT ${prettifySubqueryInBraces(q)}")
 
       case UnaryAdd(r) =>
-        val (i, eagerConsumption) = inner(ast, symbolicDelimiter = "+")(r)
+        // Literals don't need symbolicDelimiter protection since they're at the highest precedence level
+        val (i, eagerConsumption) = r match {
+          case _: Literal => inner(ast)(r)
+          case _          => inner(ast, symbolicDelimiter = "+")(r)
+        }
         (s"+$i", eagerConsumption)
 
       case UnarySubtract(r) =>
-        val (i, eagerConsumption) = inner(ast, symbolicDelimiter = "-")(r)
+        // Literals don't need symbolicDelimiter protection since they're at the highest precedence level
+        val (i, eagerConsumption) = r match {
+          case _: Literal => inner(ast)(r)
+          case _          => inner(ast, symbolicDelimiter = "-")(r)
+        }
         (s"-$i", eagerConsumption)
 
       case CoerceTo(expr, _) =>

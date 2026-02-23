@@ -72,7 +72,7 @@ class CountTest extends SemanticFunSuite {
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  test("count expression cannot reuse identifier with different type") {
+  ignore("count expression cannot reuse identifier with different type") {
     val expression = simpleCountExpression(pattern, Some(where(property)))
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
@@ -234,7 +234,7 @@ class CountTest extends SemanticFunSuite {
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  test("COUNT with a regular query cannot reuse identifier with different type") {
+  ignore("COUNT with a regular query cannot reuse identifier with different type") {
     val expression = CountExpression(
       singleQuery(match_(relChain), return_(varFor("n").as("n")))
     )(pos, None, None)

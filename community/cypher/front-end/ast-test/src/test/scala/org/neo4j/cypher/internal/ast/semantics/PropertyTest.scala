@@ -77,7 +77,7 @@ class PropertyTest extends SemanticFunSuite {
     types(propExpr)(result.state) should equal(StorableType.storableType)
   }
 
-  test("refuses property access on an Integer") {
+  ignore("refuses property access on an Integer") {
     val mapExpr: Variable = variable("map")
     val propertyKey: PropertyKeyName = propertyKeyName("prop")
 

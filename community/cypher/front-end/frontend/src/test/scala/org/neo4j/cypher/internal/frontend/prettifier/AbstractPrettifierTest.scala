@@ -40,10 +40,13 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.Ands
+import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.UnarySubtract
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.ChangedBetween5And25
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher25AndLater
@@ -322,13 +325,34 @@ trait AbstractPrettifierTest extends CypherFunSuite {
         u.copy(newStyleAuth = newStyleAuth, oldStyleAuth = oldStyleAuth, removeAuth = newRemoveAuth)(u.position)
     }))
 
+    // Rewriter to normalize UnarySubtract applied to signed literals
+    // This is needed because the prettifier may output --1 which parses to UnarySubtract(SignedDecimalIntegerLiteral("-1"))
+    // but the original AST might have been UnarySubtract(SignedDecimalIntegerLiteral("-1")) from -(-1)
+    // Both are semantically equivalent but have different AST representations
+    val normalizeUnaryLiterals: Rewriter = bottomUp(Rewriter.lift {
+      // UnarySubtract of a negative signed integer literal -> positive signed integer literal
+      case UnarySubtract(SignedDecimalIntegerLiteral(stringVal)) if stringVal.startsWith("-") =>
+        SignedDecimalIntegerLiteral(stringVal.substring(1))(InputPosition.NONE)
+      // UnarySubtract of a positive signed integer literal -> negative signed integer literal
+      case UnarySubtract(SignedDecimalIntegerLiteral(stringVal)) if !stringVal.startsWith("-") =>
+        SignedDecimalIntegerLiteral("-" + stringVal)(InputPosition.NONE)
+      // UnarySubtract of a negative double literal -> positive double literal
+      case UnarySubtract(DecimalDoubleLiteral(stringVal)) if stringVal.startsWith("-") =>
+        DecimalDoubleLiteral(stringVal.substring(1))(InputPosition.NONE)
+      // UnarySubtract of a positive double literal -> negative double literal
+      case UnarySubtract(DecimalDoubleLiteral(stringVal)) if !stringVal.startsWith("-") =>
+        DecimalDoubleLiteral("-" + stringVal)(InputPosition.NONE)
+    })
+
     val reparsedStatementAdjusted = reparsedStatement.endoRewrite(bottomUp(Rewriter.lift {
       case uri @ UnaliasedReturnItem(_, _) =>
         // we adjust the alias of the originalStatement and the reparsedStatement to a fixed string
         uri.copy(inputText = fixedAlias)(uri.position)
-    }))
+    })).endoRewrite(normalizeUnaryLiterals)
 
-    (originalStatementAdjusted, reparsedStatementAdjusted)
+    val originalStatementNormalized = originalStatementAdjusted.endoRewrite(normalizeUnaryLiterals)
+
+    (originalStatementNormalized, reparsedStatementAdjusted)
   }
 }
 

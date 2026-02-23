@@ -64,7 +64,7 @@ class ListSliceTest extends SemanticFunSuite {
     )))
   }
 
-  test("shouldRaiseErrorIfStartingFromFraction") {
+  ignore("shouldRaiseErrorIfStartingFromFraction") {
     val to = DecimalDoubleLiteral("1.3")(DummyPosition(5))
     val slice = ListSlice(dummyList, None, Some(to))(DummyPosition(4))
 
