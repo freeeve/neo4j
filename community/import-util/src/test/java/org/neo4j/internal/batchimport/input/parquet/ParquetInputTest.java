@@ -571,6 +571,33 @@ class ParquetInputTest {
         }
     }
 
+    @Test
+    void shouldStoreIdAsPropertyInSpecificValueTypeWithHeaderConverted() throws Exception {
+        // Given a node file with an int column
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("notid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notprop")),
+                List.<Object[]>of(new Object[] {123, "val"}));
+        // And a header file that maps the int column to an ID property with string type
+        Path headerFile = createHeaderFile(List.of("id:ID(new-group){id-type:string}", "prop"), List.of());
+
+        // When processing the parquet file
+        try (var input = createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(headerFile, nodeFile))),
+                        Map.of(),
+                        STRING,
+                        groups,
+                        new ParquetMonitor(System.out));
+                var nodes = input.nodes(EMPTY).iterator()) {
+            // Then the id field is converted to String and stored as a property
+            assertNextNode(nodes, groups.get("new-group"), "123", properties("id", "123", "prop", "val"), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
     @ParameterizedTest
     @MethodSource("listTypes")
     void shouldReadListTypes(String fileName, List<?> expectedList) throws Exception {

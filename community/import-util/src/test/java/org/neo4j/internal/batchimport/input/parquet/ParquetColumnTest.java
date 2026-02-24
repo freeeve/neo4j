@@ -24,10 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.stream.Stream;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.batchimport.api.input.IdType;
 
 /**
  * @author Gerrit Meier
@@ -84,6 +86,40 @@ class ParquetColumnTest {
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
 
         assertThat(column.columnType()).isEqualTo(expectedType);
+    }
+
+    @Test
+    void supportsIdTypeConversion() {
+        // Given an id property with an id space type setting, with a different logical type
+        String header = "id:ID(uniq_id){id-type: string}";
+
+        // When parsing the column definition
+        var column = ParquetColumn.from(
+                ParquetColumn.HeaderDefinition.from(header),
+                EntityType.NODE,
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+
+        // Then the column type is still ID, as the id space type sets the column type
+        assertThat(column.columnType()).isEqualTo(ParquetColumnType.STRING);
+        assertThat(column.columnIdType()).isEqualTo(IdType.STRING);
+        assertThat(column.isIdColumn()).isTrue();
+    }
+
+    @Test
+    void doesNotConvertActualIdTypes() {
+        // Given an id property with an id space type setting, with a different logical type
+        String header = "id:ID(uniq_id){id-type: actual}";
+
+        // When parsing the column definition
+        var column = ParquetColumn.from(
+                ParquetColumn.HeaderDefinition.from(header),
+                EntityType.NODE,
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+
+        // Then the column type is still ID, as the id space type sets the column type
+        assertThat(column.columnType()).isEqualTo(ParquetColumnType.RAW);
+        assertThat(column.columnIdType()).isEqualTo(IdType.ACTUAL);
+        assertThat(column.isIdColumn()).isTrue();
     }
 
     private static Stream<Arguments> neo4jTypes() {

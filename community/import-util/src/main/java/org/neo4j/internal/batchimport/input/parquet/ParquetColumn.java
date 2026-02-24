@@ -47,6 +47,8 @@ record ParquetColumn(
         String rawConfiguration,
         Map<String, String> configuration) {
 
+    private static final String ID_TYPE_KEY = "id-type";
+
     interface HeaderDefinition {
 
         String targetColumnName();
@@ -95,11 +97,12 @@ record ParquetColumn(
         columnName = configurationMatch.adjustAfterRemovalOf(groupNameMatch).removeFrom(columnName);
         var propertyName = extractPropertyName(columnName);
 
-        var logicalColumnType = ParquetLogicalColumnType.resolve(extractLogicalColumnType(columnName), knownEntityType);
-        var columnType = ParquetColumnType.resolve(extractColumnType(logicalColumnType, columnName));
-
         String rawConfiguration = configurationMatch.getMatch();
         Map<String, String> configuration = parseConfiguration(rawConfiguration);
+
+        var logicalColumnType = ParquetLogicalColumnType.resolve(extractLogicalColumnType(columnName), knownEntityType);
+        var columnType = ParquetColumnType.resolve(extractColumnType(logicalColumnType, columnName, configuration));
+
         return new ParquetColumn(
                 columnName,
                 headerDefinition,
@@ -132,20 +135,6 @@ record ParquetColumn(
         return configuration.get("label");
     }
 
-    IdType columnIdType() {
-        String idTypeValue = configuration.get("id-type");
-        if (idTypeValue == null || idTypeValue.isBlank()) {
-            return null;
-        }
-        return switch (idTypeValue.toUpperCase(Locale.ROOT)) {
-            case "INT" -> IdType.INTEGER;
-            case "LONG" -> IdType.INTEGER;
-            case "STRING" -> IdType.STRING;
-            case "ACTUAL" -> IdType.ACTUAL;
-            default -> IdType.ACTUAL;
-        };
-    }
-
     IdType relationshipColumnIdType(Groups groups) {
         IdType columnIdType = columnIdType();
         if (columnIdType != null) {
@@ -165,9 +154,22 @@ record ParquetColumn(
         return columnNameValue.substring(typeSplitPosition + 1).trim();
     }
 
-    private static String extractColumnType(ParquetLogicalColumnType logicalColumnType, String columnNameValue) {
+    private static String extractColumnType(
+            ParquetLogicalColumnType logicalColumnType, String columnNameValue, Map<String, String> configuration) {
         // skip column type detection if there is no type definition to see or the logical type
         // is not a property (this includes also ignored fields)
+
+        // ensure that if there is an id-type defined in the configuration, it is used for conversion
+        if (logicalColumnType == ParquetLogicalColumnType.ID) {
+            // if there is an id-type defined in the configuration, use that for column type detection
+            String idTypeValue = configuration.get(ID_TYPE_KEY);
+            if (idTypeValue != null
+                    && !idTypeValue.isBlank()
+                    && !columnIdType(idTypeValue).equals(IdType.ACTUAL)) {
+                return idTypeValue;
+            }
+        }
+
         if (!columnNameValue.contains(":")
                 || logicalColumnType
                         != org.neo4j.internal.batchimport.input.parquet.ParquetLogicalColumnType.PROPERTY) {
@@ -175,6 +177,23 @@ record ParquetColumn(
         }
         var typeSplitPosition = columnNameValue.lastIndexOf(":");
         return columnNameValue.substring(typeSplitPosition + 1).trim();
+    }
+
+    IdType columnIdType() {
+        String idTypeValue = configuration.get(ID_TYPE_KEY);
+        if (idTypeValue == null || idTypeValue.isBlank()) {
+            return null;
+        }
+        return columnIdType(idTypeValue);
+    }
+
+    static IdType columnIdType(String rawValue) {
+        return switch (rawValue.toUpperCase(Locale.ROOT)) {
+            case "INT", "LONG" -> IdType.INTEGER;
+            case "STRING" -> IdType.STRING;
+            case "ACTUAL" -> IdType.ACTUAL;
+            default -> IdType.ACTUAL;
+        };
     }
 
     private static String extractPropertyName(String columnNameValue) {
