@@ -180,7 +180,7 @@ public class TransactionIdTracker {
 
     private static AbstractDatabase lookupDatabase(GraphDatabaseAPI dbApi) {
         var dependencyResolver = dbApi.getDependencyResolver();
-        if (dependencyResolver == null) {
+        if (dependencyResolver == null || !dependencyResolver.containsDependency(AbstractDatabase.class)) {
             throw databaseUnavailable(dbApi.databaseId());
         }
         var db = dependencyResolver.resolveDependency(AbstractDatabase.class);

@@ -85,6 +85,7 @@ class TransactionIdTrackerTest {
         when(db.getDatabaseAvailabilityGuard()).thenReturn(databaseAvailabilityGuard);
 
         when(resolver.resolveDependency(AbstractDatabase.class)).thenReturn(db);
+        when(resolver.containsDependency(AbstractDatabase.class)).thenReturn(true);
         when(resolver.resolveDependency(TransactionIdStore.class)).thenReturn(transactionIdStore);
 
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(true);
