@@ -127,7 +127,6 @@ class PropertyCreatorTest {
                 logProvider,
                 dense_node_threshold.defaultValue(),
                 Config.defaults(),
-                false,
                 "db-format-2000");
         context.initialize(
                 KernelVersionProvider.THROWING_PROVIDER,

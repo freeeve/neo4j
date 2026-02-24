@@ -29,8 +29,6 @@ public enum StoreVersion {
     ALIGNED_V4_3(FormatFamily.ALIGNED, 0, 1, "4.3.0", true),
     ALIGNED_V5_0(FormatFamily.ALIGNED, 1, 1, "5.0.0", false),
 
-    MULTIVERSION(FormatFamily.MULTIVERSION, 1, 1, "5.0.0", false),
-
     HIGH_LIMIT_V4_3(FormatFamily.HIGH_LIMIT, 0, 1, "4.3.0", true),
     HIGH_LIMIT_V5_0(FormatFamily.HIGH_LIMIT, 1, 1, "5.0.0", false);
 

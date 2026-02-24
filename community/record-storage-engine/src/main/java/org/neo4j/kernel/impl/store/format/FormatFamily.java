@@ -28,7 +28,6 @@ public record FormatFamily(String name, int rank, boolean isDeprecated) {
     public static final FormatFamily STANDARD = new FormatFamily("standard", 0, true);
     public static final FormatFamily ALIGNED = new FormatFamily("aligned", 1, false);
     public static final FormatFamily HIGH_LIMIT = new FormatFamily("high_limit", 2, true);
-    public static final FormatFamily MULTIVERSION = new FormatFamily("multiversion", 3, false);
 
     /**
      * Check if this format family is higher ranked than another format family.

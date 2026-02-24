@@ -33,14 +33,12 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.constraints.KeyConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
-import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
-import org.neo4j.storageengine.api.txstate.validation.TransactionConflictException;
 
 class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     private boolean clearSchemaState;
@@ -49,9 +47,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     private final SchemaRuleAccess schemaStorage;
     private final SchemaRecordChangeTranslator schemaStateChanger;
     private final ConstraintRuleAccessor constraintSemantics;
-    private final CursorContext cursorContext;
     private final StoreCursors storeCursors;
-    private final boolean transientMissingSchema;
     private final MemoryTracker memoryTracker;
     private final TokenNameLookup tokenNameLookup;
     private final String storeFormat;
@@ -61,9 +57,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             SchemaState schemaState,
             SchemaRuleAccess schemaRuleAccess,
             ConstraintRuleAccessor constraintSemantics,
-            CursorContext cursorContext,
             StoreCursors storeCursors,
-            boolean transientMissingSchema,
             MemoryTracker memoryTracker,
             TokenNameLookup tokenNameLookup,
             String storeFormat) {
@@ -72,9 +66,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
         this.schemaStorage = schemaRuleAccess;
         this.schemaStateChanger = schemaRuleAccess.getSchemaRecordChangeTranslator();
         this.constraintSemantics = constraintSemantics;
-        this.cursorContext = cursorContext;
         this.storeCursors = storeCursors;
-        this.transientMissingSchema = transientMissingSchema;
         this.memoryTracker = memoryTracker;
         this.tokenNameLookup = tokenNameLookup;
         this.storeFormat = storeFormat;
@@ -222,11 +214,6 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
                 }
             }
         } catch (SchemaRuleNotFoundException e) {
-            if (transientMissingSchema) {
-                throw TransactionConflictException.transactionConflict(
-                        "Concurrent modification exception. Constraint to be removed already removed by another transaction.",
-                        e);
-            }
             throw new IllegalStateException(
                     "Constraint to be removed should exist, since its existence should have been validated earlier "
                             + "and the schema should have been locked.",

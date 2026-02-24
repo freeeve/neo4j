@@ -27,7 +27,6 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.IdSequenceProvider;
 import org.neo4j.internal.recordstorage.RecordAccess.LoadMonitor;
-import org.neo4j.internal.recordstorage.id.BatchedTransactionIdSequenceProvider;
 import org.neo4j.internal.recordstorage.id.TransactionIdSequenceProvider;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.KernelVersion;
@@ -50,7 +49,6 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 class RecordStorageCommandCreationContext implements CommandCreationContext {
     private final NeoStores neoStores;
     private final Config config;
-    private final boolean multiVersioned;
     private final String format;
     private final TokenNameLookup tokenNameLookup;
     private final InternalLogProvider logProvider;
@@ -73,16 +71,14 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
             InternalLogProvider logProvider,
             int denseNodeThreshold,
             Config config,
-            boolean multiVersioned,
             String format) {
         this.tokenNameLookup = tokenNameLookup;
         this.logProvider = logProvider;
         this.denseNodeThreshold = denseNodeThreshold;
         this.neoStores = neoStores;
         this.config = config;
-        this.multiVersioned = multiVersioned;
         this.format = format;
-        this.idSequenceProvider = createIdSequenceProvider(neoStores, multiVersioned);
+        this.idSequenceProvider = createIdSequenceProvider(neoStores);
         this.dynamicAllocatorProvider = new TransactionDynamicAllocatorProvider(neoStores, idSequenceProvider);
     }
 
@@ -115,7 +111,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
 
     @Override
     public boolean resetIds() {
-        return multiVersioned && idSequenceProvider.reset();
+        return false;
     }
 
     private long nextId(StoreType storeType) {
@@ -173,17 +169,14 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
             MemoryTracker memoryTracker,
             LoadMonitor monitor) {
         RecordChangeSet recordChangeSet = new RecordChangeSet(loaders, memoryTracker, monitor, storeCursors);
-        var relationshipLocker =
-                multiVersioned ? new MultiversionResourceLocker(locks, neoStores.getRelationshipStore()) : locks;
         RelationshipModifier relationshipModifier = new RelationshipModifier(
                 relationshipGroupGetter,
                 propertyDeleter,
                 denseNodeThreshold,
-                relationshipLocker,
+                locks,
                 lockTracer,
                 cursorContext,
-                memoryTracker,
-                multiVersioned);
+                memoryTracker);
         return new TransactionRecordState(
                 kernelVersionProvider,
                 recordChangeSet,
@@ -232,9 +225,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
         }
     }
 
-    private static IdSequenceProvider createIdSequenceProvider(NeoStores neoStores, boolean multiVersioned) {
-        return multiVersioned
-                ? new BatchedTransactionIdSequenceProvider(neoStores)
-                : new TransactionIdSequenceProvider(neoStores);
+    private static IdSequenceProvider createIdSequenceProvider(NeoStores neoStores) {
+        return new TransactionIdSequenceProvider(neoStores);
     }
 }

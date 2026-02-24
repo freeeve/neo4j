@@ -30,9 +30,8 @@ import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 
 public interface LockVerificationFactory {
 
-    static LockVerificationFactory select(Config config, boolean multiVersion) {
-        boolean enabled = config.get(additional_lock_verification) && !multiVersion;
-        return enabled ? STRICT : NONE;
+    static LockVerificationFactory select(Config config) {
+        return config.get(additional_lock_verification) ? STRICT : NONE;
     }
 
     LockVerificationFactory STRICT = new StrictLockVerificationFactory();
