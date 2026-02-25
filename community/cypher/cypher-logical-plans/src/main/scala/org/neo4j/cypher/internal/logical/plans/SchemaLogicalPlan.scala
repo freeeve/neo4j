@@ -145,7 +145,3 @@ case class DoNothingIfExistsForConstraint(
   name: Option[Expression],
   options: Options
 )(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
-
-// Graph types
-
-case class AlterCurrentGraphType(graphType: GraphType)(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
