@@ -621,7 +621,7 @@ class SchemaCommandTest {
         final var labels = Sets.mutable.<String>empty();
         final var relationships = Sets.mutable.<String>empty();
         final var properties = Sets.mutable.<String>empty();
-        final var commands = List.<SchemaCommand>of(
+        List<IndexCommand.Create> indexes = List.of(
                 new NodeLookup("command" + id++, IF_NOT_EXISTS),
                 new RelationshipLookup("command" + id++, IF_NOT_EXISTS),
                 new NodeRange(
@@ -679,7 +679,8 @@ class SchemaCommandTest {
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         IF_NOT_EXISTS,
-                        random.among(VECTOR_CONFIGS)),
+                        random.among(VECTOR_CONFIGS)));
+        List<ConstraintCommand.Create> constraints = List.of(
                 new NodeKey(
                         "command" + id++,
                         track(LABELS, labels, random),
@@ -721,10 +722,8 @@ class SchemaCommandTest {
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         random.among(PROPERTY_TYPES),
-                        IF_NOT_EXISTS),
-                new IndexCommand.Drop("command" + id, IF_NOT_EXISTS),
-                new ConstraintCommand.Drop("command" + id, IF_NOT_EXISTS));
-        final var tokens = SchemaTokens.collect(commands);
+                        IF_NOT_EXISTS));
+        final var tokens = SchemaTokens.collect(indexes, constraints);
         assertThat(tokens.labels()).containsAll(labels);
         assertThat(tokens.relationships()).containsAll(relationships);
         assertThat(tokens.properties()).containsAll(properties);

@@ -22,6 +22,7 @@ package org.neo4j.internal.schema;
 import java.util.Collection;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.MutableSet;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey;
@@ -48,76 +49,118 @@ import org.neo4j.internal.schema.SchemaCommand.IndexCommand.Create.RelationshipV
 public record SchemaTokens(
         ImmutableSet<String> labels, ImmutableSet<String> relationships, ImmutableSet<String> properties) {
     /**
-     * @param commands the schema commands whose tokens should be collected
+     * @param indexes the index commands whose tokens should be collected
+     * @param constraints the constraint commands whose tokens should be collected
      * @return all the various tokens required by the provided schema commands
      */
-    public static SchemaTokens collect(Collection<SchemaCommand> commands) {
+    public static SchemaTokens collect(
+            Collection<IndexCommand.Create> indexes, Collection<ConstraintCommand.Create> constraints) {
         final var labels = Sets.mutable.<String>empty();
         final var relationships = Sets.mutable.<String>empty();
         final var properties = Sets.mutable.<String>empty();
-        for (var command : commands) {
-            // oh for java 21 and switch on types
-            if (command instanceof NodeRange indexCommand) {
-                labels.add(indexCommand.label());
-                properties.addAll(indexCommand.properties());
-            } else if (command instanceof RelationshipRange indexCommand) {
-                relationships.add(indexCommand.type());
-                properties.addAll(indexCommand.properties());
-            } else if (command instanceof NodeText indexCommand) {
-                labels.add(indexCommand.label());
-                properties.add(indexCommand.property());
-            } else if (command instanceof RelationshipText indexCommand) {
-                relationships.add(indexCommand.type());
-                properties.add(indexCommand.property());
-            } else if (command instanceof NodePoint indexCommand) {
-                labels.add(indexCommand.label());
-                properties.add(indexCommand.property());
-            } else if (command instanceof RelationshipPoint indexCommand) {
-                relationships.add(indexCommand.type());
-                properties.add(indexCommand.property());
-            } else if (command instanceof NodeFulltext indexCommand) {
-                labels.addAll(indexCommand.labels());
-                properties.addAll(indexCommand.properties());
-            } else if (command instanceof RelationshipFulltext indexCommand) {
-                relationships.addAll(indexCommand.types());
-                properties.addAll(indexCommand.properties());
-            } else if (command instanceof NodeVector indexCommand) {
-                labels.add(indexCommand.label());
-                properties.add(indexCommand.property());
-            } else if (command instanceof RelationshipVector indexCommand) {
-                relationships.add(indexCommand.type());
-                properties.add(indexCommand.property());
-            } else if (command instanceof NodeKey constraintCommand) {
-                labels.add(constraintCommand.label());
-                properties.addAll(constraintCommand.properties());
-            } else if (command instanceof RelationshipKey constraintCommand) {
-                relationships.add(constraintCommand.type());
-                properties.addAll(constraintCommand.properties());
-            } else if (command instanceof NodeUniqueness constraintCommand) {
-                labels.add(constraintCommand.label());
-                properties.addAll(constraintCommand.properties());
-            } else if (command instanceof RelationshipUniqueness constraintCommand) {
-                relationships.add(constraintCommand.type());
-                properties.addAll(constraintCommand.properties());
-            } else if (command instanceof NodeExistence constraintCommand) {
-                labels.add(constraintCommand.label());
-                properties.add(constraintCommand.property());
-            } else if (command instanceof RelationshipExistence constraintCommand) {
-                relationships.add(constraintCommand.type());
-                properties.add(constraintCommand.property());
-            } else if (command instanceof NodePropertyType constraintCommand) {
-                labels.add(constraintCommand.label());
-                properties.add(constraintCommand.property());
-            } else if (command instanceof RelationshipPropertyType constraintCommand) {
-                relationships.add(constraintCommand.type());
-                properties.add(constraintCommand.property());
-            } else if (!canIgnoreCommand(command)) {
-                throw new IllegalStateException(
-                        "Unrecognised command - unable to collect schema tokens for: " + command);
+        collectIndexes(labels, relationships, properties, indexes);
+        collectConstraints(labels, relationships, properties, constraints);
+        return new SchemaTokens(labels.toImmutable(), relationships.toImmutable(), properties.toImmutable());
+    }
+
+    static void collectIndexes(
+            MutableSet<String> labels,
+            MutableSet<String> relationships,
+            MutableSet<String> properties,
+            Collection<IndexCommand.Create> indexes) {
+        for (var index : indexes) {
+            switch (index) {
+                case NodeRange nodeRange -> {
+                    labels.add(nodeRange.label());
+                    properties.addAll(nodeRange.properties());
+                }
+                case RelationshipRange relationshipRange -> {
+                    relationships.add(relationshipRange.type());
+                    properties.addAll(relationshipRange.properties());
+                }
+                case NodeText nodeText -> {
+                    labels.add(nodeText.label());
+                    properties.add(nodeText.property());
+                }
+                case RelationshipText relationshipText -> {
+                    relationships.add(relationshipText.type());
+                    properties.add(relationshipText.property());
+                }
+                case NodePoint nodePoint -> {
+                    labels.add(nodePoint.label());
+                    properties.add(nodePoint.property());
+                }
+                case RelationshipPoint relationshipPoint -> {
+                    relationships.add(relationshipPoint.type());
+                    properties.add(relationshipPoint.property());
+                }
+                case NodeFulltext nodeFulltext -> {
+                    labels.addAll(nodeFulltext.labels());
+                    properties.addAll(nodeFulltext.properties());
+                }
+                case RelationshipFulltext relationshipFulltext -> {
+                    relationships.addAll(relationshipFulltext.types());
+                    properties.addAll(relationshipFulltext.properties());
+                }
+                case NodeVector nodeVector -> {
+                    labels.add(nodeVector.label());
+                    properties.add(nodeVector.property());
+                }
+                case RelationshipVector relationshipVector -> {
+                    relationships.add(relationshipVector.type());
+                    properties.add(relationshipVector.property());
+                }
+                case RelationshipLookup relationshipLookup -> {
+                    // No tokens associated with a relationship lookup index.
+                }
+                case NodeLookup nodeLookup -> {
+                    // No tokens associated with a node lookup index.
+                }
             }
         }
+    }
 
-        return new SchemaTokens(labels.toImmutable(), relationships.toImmutable(), properties.toImmutable());
+    static void collectConstraints(
+            MutableSet<String> labels,
+            MutableSet<String> relationships,
+            MutableSet<String> properties,
+            Collection<ConstraintCommand.Create> constraints) {
+        for (var constraint : constraints) {
+            switch (constraint) {
+                case NodeKey constraintCommand -> {
+                    labels.add(constraintCommand.label());
+                    properties.addAll(constraintCommand.properties());
+                }
+                case RelationshipKey constraintCommand -> {
+                    relationships.add(constraintCommand.type());
+                    properties.addAll(constraintCommand.properties());
+                }
+                case NodeUniqueness constraintCommand -> {
+                    labels.add(constraintCommand.label());
+                    properties.addAll(constraintCommand.properties());
+                }
+                case RelationshipUniqueness constraintCommand -> {
+                    relationships.add(constraintCommand.type());
+                    properties.addAll(constraintCommand.properties());
+                }
+                case NodeExistence constraintCommand -> {
+                    labels.add(constraintCommand.label());
+                    properties.add(constraintCommand.property());
+                }
+                case RelationshipExistence constraintCommand -> {
+                    relationships.add(constraintCommand.type());
+                    properties.add(constraintCommand.property());
+                }
+                case NodePropertyType constraintCommand -> {
+                    labels.add(constraintCommand.label());
+                    properties.add(constraintCommand.property());
+                }
+                case RelationshipPropertyType constraintCommand -> {
+                    relationships.add(constraintCommand.type());
+                    properties.add(constraintCommand.property());
+                }
+            }
+        }
     }
 
     /**
@@ -125,13 +168,5 @@ public record SchemaTokens(
      */
     public boolean isEmpty() {
         return labels.isEmpty() && relationships().isEmpty() && properties.isEmpty();
-    }
-
-    private static boolean canIgnoreCommand(SchemaCommand command) {
-        // these have no tokens to collect as they just have a name
-        return command instanceof NodeLookup
-                || command instanceof RelationshipLookup
-                || command instanceof IndexCommand.Drop
-                || command instanceof ConstraintCommand.Drop;
     }
 }
