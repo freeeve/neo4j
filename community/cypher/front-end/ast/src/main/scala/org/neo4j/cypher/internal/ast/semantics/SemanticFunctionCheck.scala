@@ -292,8 +292,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
 
         case Reverse =>
           checkArgs(invocation, 1, Reverse.signatures) ifOkChain {
-            expectType(CTList(CTAny).covariant | CTString, invocation.arguments.head) chain
-              specifyType(types(invocation.arguments.head), invocation)
+            specifyType(types(invocation.arguments.head), invocation)
           }
 
         case Replace =>
