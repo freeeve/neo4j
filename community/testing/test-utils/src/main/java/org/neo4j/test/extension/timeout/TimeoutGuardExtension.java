@@ -39,6 +39,15 @@ import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.memory.HeapDumper;
 
 public class TimeoutGuardExtension implements PreInterruptCallback {
+    /**
+     * Namespace for storing timeout specific auxiliary data
+     */
+    public static final ExtensionContext.Namespace TIMEOUT_NAMESPACE = ExtensionContext.Namespace.create("timeout");
+    /**
+     * The key used for storing an auxiliary {@link String} message
+     */
+    public static final String TIMEOUT_MESSAGE = "timeoutMessage";
+
     private static final String DBMS_KEY = "service";
     private static final ExtensionContext.Namespace DBMS_NAMESPACE =
             ExtensionContext.Namespace.create("org", "neo4j", "dbms");
@@ -74,11 +83,14 @@ public class TimeoutGuardExtension implements PreInterruptCallback {
             for (StackTraceElement stackTraceElement : testThread.getStackTrace()) {
                 if (clazz.equals(stackTraceElement.getClassName())
                         && methodName.equals(stackTraceElement.getMethodName())) {
-                    String message = """
+                    var auxMessage =
+                            extensionContext.getStore(TIMEOUT_NAMESPACE).get(TIMEOUT_MESSAGE, String.class);
+
+                    var message = """
                                                   ***WARNING***
-                        Test monitor terminating hanging execution for test %s.%s
+                        Test monitor terminating hanging execution for test %s.%s %s
                         After the test timeout was reached, an interruption attempt was made; however, the test did not progress within the allocated grace period. Terminating the VM.\
-                        """.formatted(clazz, methodName);
+                        """.formatted(clazz, methodName, auxMessage == null ? "" : "[ " + auxMessage + " ]");
 
                     printWarning(System.out, message);
                     printWarning(System.err, message);
@@ -113,8 +125,9 @@ public class TimeoutGuardExtension implements PreInterruptCallback {
         }
     }
 
+    @SuppressWarnings("resource")
     private static void dumpPageMetadata(ExtensionContext extensionContext, Path pageMetadataFile)
-            throws NoSuchMethodException, NoSuchFieldException, ClassNotFoundException, IllegalAccessException {
+            throws NoSuchMethodException, NoSuchFieldException, IllegalAccessException {
         MuninnPageCache pageCache = findPageCache(extensionContext);
         if (pageCache == null) {
             return;
@@ -157,7 +170,7 @@ public class TimeoutGuardExtension implements PreInterruptCallback {
     }
 
     private static MuninnPageCache findPageCache(ExtensionContext context)
-            throws NoSuchMethodException, NoSuchFieldException, ClassNotFoundException, IllegalAccessException {
+            throws NoSuchMethodException, NoSuchFieldException, IllegalAccessException {
         var store = context.getStore(DBMS_NAMESPACE);
         var dbms = store.get(DBMS_KEY, DatabaseManagementService.class);
         if (dbms == null) {
