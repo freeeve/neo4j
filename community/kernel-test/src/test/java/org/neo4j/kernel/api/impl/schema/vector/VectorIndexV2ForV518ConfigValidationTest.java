@@ -72,7 +72,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
         final var ref = new MutableObject<VectorIndexConfig>();
         assertThatCode(() -> ref.setValue(VALIDATOR.validateToVectorIndexConfig(settings)))
                 .doesNotThrowAnyException();
-        final var vectorIndexConfig = ref.getValue();
+        final var vectorIndexConfig = ref.get();
 
         assertThat(vectorIndexConfig)
                 .extracting(

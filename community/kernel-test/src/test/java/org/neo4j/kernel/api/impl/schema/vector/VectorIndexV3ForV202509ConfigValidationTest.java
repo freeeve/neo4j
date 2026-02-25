@@ -54,10 +54,9 @@ import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
-class VectorIndexV3ForV523ConfigValidationTest {
+class VectorIndexV3ForV202509ConfigValidationTest {
     private static final VectorIndexVersion VERSION = VectorIndexVersion.V3_0;
-    private static final VectorIndexSettingsValidator VALIDATOR =
-            VERSION.indexSettingValidator(KernelVersion.VERSION_LUCENE_10_INTRODUCED);
+    private static final VectorIndexSettingsValidator VALIDATOR = VERSION.indexSettingValidator(KernelVersion.V2025_09);
 
     @Test
     void validIndexConfig() {
@@ -75,7 +74,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
         final var ref = new MutableObject<VectorIndexConfig>();
         assertThatCode(() -> ref.setValue(VALIDATOR.validateToVectorIndexConfig(settings)))
                 .doesNotThrowAnyException();
-        final var vectorIndexConfig = ref.getValue();
+        final var vectorIndexConfig = ref.get();
 
         assertThat(vectorIndexConfig)
                 .extracting(
@@ -108,7 +107,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
         final var ref = new MutableObject<VectorIndexConfig>();
         assertThatCode(() -> ref.setValue(VALIDATOR.validateToVectorIndexConfig(settings)))
                 .doesNotThrowAnyException();
-        final var vectorIndexConfig = ref.getValue();
+        final var vectorIndexConfig = ref.get();
 
         assertThat(vectorIndexConfig)
                 .extracting(

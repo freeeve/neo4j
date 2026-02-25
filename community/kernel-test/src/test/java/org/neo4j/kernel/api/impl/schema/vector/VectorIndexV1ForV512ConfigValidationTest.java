@@ -89,7 +89,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
         final var ref = new MutableObject<VectorIndexConfig>();
         assertThatCode(() -> ref.setValue(VALIDATOR.validateToVectorIndexConfig(settings)))
                 .doesNotThrowAnyException();
-        final var vectorIndexConfig = ref.getValue();
+        final var vectorIndexConfig = ref.get();
 
         assertThat(vectorIndexConfig)
                 .extracting(
@@ -229,7 +229,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
         final var ref = new MutableObject<VectorIndexConfig>();
         assertThatCode(() -> ref.setValue(VALIDATOR.trustIsValidToVectorIndexConfig(settings)))
                 .doesNotThrowAnyException();
-        final var vectorIndexConfig = ref.getValue();
+        final var vectorIndexConfig = ref.get();
 
         assertThat(vectorIndexConfig)
                 .extracting(VectorIndexConfig::dimensions, VectorIndexConfig::similarityFunction)
