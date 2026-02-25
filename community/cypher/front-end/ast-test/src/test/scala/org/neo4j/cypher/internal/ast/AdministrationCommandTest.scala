@@ -3482,7 +3482,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           .build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin.replace("\r\n", "\n"),
         p
       ).errors
   }
@@ -3505,7 +3505,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           .build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin.replace("\r\n", "\n"),
         p
       ).errors
   }
@@ -3688,7 +3688,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin,
+          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin.replace(
+          "\r\n",
+          "\n"
+        ),
         pos1
       ).errors
   }
@@ -3721,7 +3724,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin,
+          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin.replace(
+          "\r\n",
+          "\n"
+        ),
         pos1
       ).errors
   }
@@ -3778,7 +3784,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         """Function call does not provide the required number of arguments: expected 1 got 2.
           |
           |Function abac.oidc.user_attribute has signature: abac.oidc.user_attribute(attributeKey :: STRING) :: ANY
-          |meaning that it expects 1 [country, city]""".stripMargin,
+          |meaning that it expects 1 [country, city]""".stripMargin.replace("\r\n", "\n"),
         pos1
       ).errors
   }
@@ -3869,7 +3875,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ).build(),
           initialStateWithFeatureFlags,
           s"""42001
-             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
+             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin.replace(
+            "\r\n",
+            "\n"
+          ),
           pos1
         ).errors
     }
@@ -4128,7 +4137,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin,
+          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin.replace(
+          "\r\n",
+          "\n"
+        ),
         pos1
       ).errors
   }
@@ -4161,7 +4173,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin,
+          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin.replace(
+          "\r\n",
+          "\n"
+        ),
         pos1
       ).errors
   }
@@ -4218,7 +4233,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         """Function call does not provide the required number of arguments: expected 1 got 2.
           |
           |Function abac.oidc.user_attribute has signature: abac.oidc.user_attribute(attributeKey :: STRING) :: ANY
-          |meaning that it expects 1 [country, city]""".stripMargin,
+          |meaning that it expects 1 [country, city]""".stripMargin.replace("\r\n", "\n"),
         pos1
       ).errors
   }
@@ -4309,7 +4324,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ).build(),
           initialStateWithFeatureFlags,
           s"""42001
-             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
+             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin.replace(
+            "\r\n",
+            "\n"
+          ),
           pos1
         ).errors
     }
