@@ -166,10 +166,10 @@ class SchemaCommandReaderTest {
         assertThatThrownBy(() -> reader.parse(cypher))
                 .hasMessageContainingAll(
                         "Unable to parse the Cypher in import change commands.",
-                        "Problem on line 6, column 5:",
                         "Variable `n1` not defined",
-                        "Problem on line 12, column 8:",
-                        "Variable `n2` not defined");
+                        "line 6, column 5 (offset: 110)",
+                        "Variable `n2` not defined",
+                        "line 12, column 8 (offset: 247)");
     }
 
     @ParameterizedTest

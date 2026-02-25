@@ -862,6 +862,8 @@ public class ImportCommand {
                 return reader.parse(schemaPath);
             } catch (SchemaCommandReaderException ex) {
                 throw new CommandFailedException("Error parsing schema commands", ex);
+            } catch (IOException ex) {
+                throw new CommandFailedException("Unable to read schema commands", ex);
             }
         }
 

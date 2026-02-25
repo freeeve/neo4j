@@ -24,22 +24,9 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.list.MutableList;
 import org.neo4j.configuration.Config;
-import org.neo4j.cypher.internal.PreParser;
-import org.neo4j.cypher.internal.ast.Statement;
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext;
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature;
-import org.neo4j.cypher.internal.ast.semantics.SemanticState;
-import org.neo4j.cypher.internal.compiler.CypherParsingConfig;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
-import org.neo4j.cypher.internal.notification.InternalNotificationLogger;
-import org.neo4j.cypher.internal.notification.devNullLogger$;
-import org.neo4j.cypher.internal.parser.AstParserFactory$;
-import org.neo4j.cypher.internal.util.InputPosition;
-import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
-import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider$;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -48,31 +35,20 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.Preconditions;
-import scala.Option;
-import scala.collection.immutable.Seq;
 
 /**
  * Reads a file that contains Cypher schema commands and converts them into the appropriate {@link SchemaCommand}s.
  */
 public class SchemaCommandReader {
-
-    private static final InternalNotificationLogger NOTIFICATION_LOGGER = devNullLogger$.MODULE$;
-
     private final FileSystemAbstraction fileSystem;
-
     private final ReaderConfig readerConfig;
-
-    private final PreParser preParser;
-
-    private final Seq<SemanticFeature> semanticFeatures;
+    private final SchemaCommandParser parser;
 
     private SchemaCommandReader(
             FileSystemAbstraction fileSystem, CypherConfiguration config, ReaderConfig readerConfig) {
         this.fileSystem = fileSystem;
         this.readerConfig = readerConfig;
-        this.preParser = new PreParser(config);
-        this.semanticFeatures =
-                CypherParsingConfig.fromCypherConfiguration(config).semanticFeatures();
+        this.parser = SchemaCommandParser.create(config);
     }
 
     public SchemaCommandReader(FileSystemAbstraction fileSystem, Config config, ReaderConfig readerConfig) {
@@ -87,105 +63,36 @@ public class SchemaCommandReader {
      * @return the {@link SchemaCommand} objects representing the Cypher statements at the provided path.
      * @throws SchemaCommandReaderException if unable to parse the Cypher content
      */
-    public List<SchemaCommand> parse(Path cypherPath) throws SchemaCommandReaderException {
-        final var cypherText = parseFile(cypherPath);
-        if (cypherText.isEmpty()) {
+    public List<SchemaCommand> parse(Path cypherPath) throws SchemaCommandReaderException, IOException {
+        Preconditions.checkState(
+                cypherPath != null && fileSystem.fileExists(cypherPath),
+                "The path to the Cypher schema commands must exist");
+
+        String cypherText = FileSystemUtils.readString(fileSystem, cypherPath, EmptyMemoryTracker.INSTANCE);
+        if (cypherText == null || cypherText.isEmpty()) {
             return List.of();
         }
-
         return parse(cypherText);
     }
 
     public List<SchemaCommand> parse(String cypherText) {
-        final var preParsedQuery = preParser.preParse(cypherText);
-        final var cypherVersion = preParsedQuery.resolvedLanguage();
-
-        final var exceptionFactory = new Neo4jCypherExceptionFactory(
-                cypherText, Option.apply(preParsedQuery.options().offset()));
-
-        final var statements = AstParserFactory$.MODULE$
-                .apply(cypherVersion)
-                .apply(
-                        preParsedQuery.statement(),
-                        exceptionFactory,
-                        Option.apply(NOTIFICATION_LOGGER),
-                        semanticFeatures)
-                .statements();
-
-        final var changesBuilder = new SchemaCommandsBuilder(readerConfig, cypherVersion);
-
-        final var errors = Lists.mutable.<String>empty();
-        final var checkContext = SemanticCheckContext.apply(cypherVersion, NotImplementedErrorMessageProvider$.MODULE$);
-
-        for (int i = 0, length = statements.size(); i < length; i++) {
-            transform(changesBuilder, statements.get(i), errors, checkContext);
-        }
-
-        if (errors.isEmpty()) {
-            return changesBuilder.build();
-        }
-
-        errors.addFirst("Unable to parse the Cypher in import change commands.");
-        throw new SchemaCommandReaderException(String.join(System.lineSeparator(), errors));
-    }
-
-    private String parseFile(Path cypherPath) throws SchemaCommandReaderException {
-        Preconditions.checkState(
-                cypherPath != null && fileSystem.fileExists(cypherPath),
-                "The path to the Cypher schema commands must exist");
-        try {
-            return FileSystemUtils.readString(fileSystem, cypherPath, EmptyMemoryTracker.INSTANCE);
-        } catch (IOException ex) {
-            throw new SchemaCommandReaderException("Unable to read Cypher statement(s) in " + cypherPath, ex);
-        }
-    }
-
-    private void transform(
-            SchemaCommandsBuilder changesBuilder,
-            Statement statement,
-            MutableList<String> errors,
-            SemanticCheckContext checkContext)
-            throws SchemaCommandReaderException {
-        if (statement instanceof org.neo4j.cypher.internal.ast.SchemaCommand command) {
-            if (command.useGraph().isEmpty()) {
-                if (checkStatement(statement, errors, checkContext, semanticState())) {
-                    changesBuilder.withCommand(command);
+        switch (parser.parse(cypherText)) {
+            case ParseResult.Success(
+                    CypherVersion version,
+                    List<org.neo4j.cypher.internal.ast.SchemaCommand> statements) -> {
+                final var changesBuilder = new SchemaCommandsBuilder(readerConfig, version);
+                for (var statement : statements) {
+                    changesBuilder.withCommand(statement);
                 }
-            } else {
-                errors.add(errorMessage(
-                        statement.position(),
-                        "Schema commands are only applied to the database to be imported into so graph names are not allowed: "
-                                + command.useGraph().get().graphReference().print()));
+                return changesBuilder.build();
             }
-        } else {
-            errors.add(errorMessage(
-                    statement.position(),
-                    "Only schema change clauses are allowed here but found: "
-                            + statement.getClass().getSimpleName()));
+            case ParseResult.Failure(List<String> errors) -> {
+                var sb = new StringBuilder();
+                sb.append("Unable to parse the Cypher in import change commands.");
+                errors.forEach(e -> sb.append(System.lineSeparator()).append(e));
+                throw new SchemaCommandReaderException(sb.toString());
+            }
         }
-    }
-
-    private SemanticState semanticState() {
-        return SemanticState.clean().withFeatures(semanticFeatures);
-    }
-
-    private static boolean checkStatement(
-            Statement statement,
-            MutableList<String> errors,
-            SemanticCheckContext checkContext,
-            SemanticState semanticState)
-            throws SchemaCommandReaderException {
-        final var checkResult = statement.semanticCheck().run(semanticState, checkContext);
-        if (!checkResult.errors().isEmpty()) {
-            checkResult.errors().foreach(error -> errors.add(errorMessage(error.position(), error.msg())));
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    private static String errorMessage(InputPosition position, String message) {
-        return "Problem on line %d, column %d: %s".formatted(position.line(), position.column(), message);
     }
 
     public record ReaderConfig(
