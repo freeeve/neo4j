@@ -36,6 +36,15 @@ public interface CountsStore extends AutoCloseable, ConsistencyCheckable {
     CountsUpdater updater(long txId, boolean isLast, CursorContext cursorContext);
 
     /**
+     * For transactions that don't have any updates, this shortcut that notifies the store about the transaction
+     * having been processed can be used instead of getting an Updater.
+     *
+     * @param txId id of the transaction that had no changes but should still be seen.
+     * @param cursorContext underlying page cursor context
+     */
+    void noCountUpdate(long txId, CursorContext cursorContext);
+
+    /**
      * @param txId id of the transaction that produces the changes that are being applied.
      * @param cursorContext underlying page cursor context
      * @return an updater to process count deltas for transaction rollback

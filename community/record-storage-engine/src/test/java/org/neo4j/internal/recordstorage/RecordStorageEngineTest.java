@@ -110,7 +110,9 @@ class RecordStorageEngineTest {
                 .transactionApplierTransformer(facade -> transactionApplierFacadeTransformer(facade, failure))
                 .build();
         StorageEngineTransaction storageEngineTransaction = mock(StorageEngineTransaction.class);
-        when(storageEngineTransaction.commandBatch()).thenReturn(mock(CommandBatch.class));
+        CommandBatch commandBatch = mock(CommandBatch.class);
+        when(commandBatch.commandCount()).thenReturn(1);
+        when(storageEngineTransaction.commandBatch()).thenReturn(commandBatch);
 
         assertThatThrownBy(() -> engine.apply(storageEngineTransaction, TransactionApplicationMode.INTERNAL))
                 .rootCause()
@@ -180,6 +182,7 @@ class RecordStorageEngineTest {
             when(storageEngineTransaction.cursorContext()).thenReturn(NULL_CONTEXT);
             when(storageEngineTransaction.storeCursors()).thenReturn(storageCursors);
             var commandBatch = mock(CommandBatch.class);
+            when(commandBatch.commandCount()).thenReturn(1);
             when(storageEngineTransaction.commandBatch()).thenReturn(commandBatch);
             when(commandBatch.accept(any())).thenAnswer(invocationOnMock -> {
                 // Visit one node command
@@ -225,6 +228,7 @@ class RecordStorageEngineTest {
         var transaction = mock(StorageEngineTransaction.class);
         var commandBatch = mock(CommandBatch.class);
         when(transaction.commandBatch()).thenReturn(commandBatch);
+        when(commandBatch.commandCount()).thenReturn(1);
         doThrow(error).when(commandBatch).accept(any());
         long txId = ThreadLocalRandom.current().nextLong(0, 1000);
         when(transaction.transactionId()).thenReturn(txId);

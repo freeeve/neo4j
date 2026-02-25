@@ -497,8 +497,12 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         StorageEngineTransaction initialBatch = batch;
         try (BatchContext context = createBatchContext(batchApplier, batch)) {
             while (batch != null) {
-                try (var txApplier = batchApplier.startTx(batch, context)) {
-                    batch.commandBatch().accept(txApplier);
+                if (batch.commandBatch().isEmptyTransaction()) {
+                    applyEmptyTransaction(batch, mode);
+                } else {
+                    try (var txApplier = batchApplier.startTx(batch, context)) {
+                        batch.commandBatch().accept(txApplier);
+                    }
                 }
                 batch = batch.next();
             }
@@ -510,6 +514,13 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                     batch == null ? initialBatch : batch);
             databaseHealth.panic(kernelException);
             throw kernelException;
+        }
+    }
+
+    private void applyEmptyTransaction(StorageEngineTransaction batch, TransactionApplicationMode mode) {
+        if (!mode.isReverseStep()) {
+            countsStore.noCountUpdate(batch.transactionId(), batch.cursorContext());
+            groupDegreesStore.noCountUpdate(batch.transactionId(), batch.cursorContext());
         }
     }
 

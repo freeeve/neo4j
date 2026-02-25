@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction;
 
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_CHECKSUM;
 
 import java.io.IOException;
@@ -108,7 +109,7 @@ public record EmptyBatchRepresentation(KernelVersion kernelVersion, long appendI
 
         @Override
         public long chunkId() {
-            return 0;
+            return UNKNOWN_CHUNK_ID;
         }
 
         @Override

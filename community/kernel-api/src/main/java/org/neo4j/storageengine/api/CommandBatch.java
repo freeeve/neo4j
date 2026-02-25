@@ -109,4 +109,8 @@ public interface CommandBatch extends CommandStream, KernelVersionProvider {
      * @param appendIndex provided batch append index
      */
     void setAppendIndex(long appendIndex);
+
+    default boolean isEmptyTransaction() {
+        return commandCount() == 0 && isFirst() && isLast();
+    }
 }

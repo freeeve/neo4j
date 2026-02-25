@@ -277,14 +277,35 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
     // === Writes ===
 
     protected CountUpdater updaterImpl(long txId, boolean isLast, CursorContext cursorContext) {
-        // In order to keep the cache limited then check if we need to flush to the tree
-        if (txId % 10 == 0) {
-            // Although it's somewhat costly to check map size so only do it every N transaction.
-            checkCacheSizeAndPotentiallyFlush(cursorContext);
-        }
+        maybeCheckCacheSizeAndPotentiallyFlush(txId, cursorContext);
 
         Lock lock = lock(this.lock.readLock());
 
+        if (txShouldBeIgnored(txId)) {
+            lock.unlock();
+            return null;
+        }
+        return new CountUpdater(
+                new MapWriter(key -> readCountFromTree(key, cursorContext), changes, idSequence, txId, isLast), lock);
+    }
+
+    public void noCountUpdate(long txId, CursorContext cursorContext) {
+        // In order to keep the cache limited then check if we need to flush to the tree
+        maybeCheckCacheSizeAndPotentiallyFlush(txId, cursorContext);
+
+        Lock lock = lock(this.lock.readLock());
+        try {
+            if (txShouldBeIgnored(txId)) {
+                return;
+            }
+
+            idSequence.offer(txId, OutOfOrderSequence.EMPTY_META);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private boolean txShouldBeIgnored(long txId) {
         boolean alreadyApplied = txIdInformation.txIdIsAlreadyApplied(txId);
         // Why have this check below? Why should we not apply transactions before started when we have an initial counts
         // builder?
@@ -305,12 +326,18 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
         // so ignore these transactions.
         boolean inRecoveryOnEmptyCountsStore = needsRebuild && !started;
         if (alreadyApplied || inRecoveryOnEmptyCountsStore) {
-            lock.unlock();
             monitor.ignoredTransaction(txId);
-            return null;
+            return true;
         }
-        return new CountUpdater(
-                new MapWriter(key -> readCountFromTree(key, cursorContext), changes, idSequence, txId, isLast), lock);
+        return false;
+    }
+
+    private void maybeCheckCacheSizeAndPotentiallyFlush(long txId, CursorContext cursorContext) {
+        // In order to keep the cache limited then check if we need to flush to the tree
+        if (txId % 10 == 0) {
+            // Although it's somewhat costly to check map size so only do it every N transaction.
+            checkCacheSizeAndPotentiallyFlush(cursorContext);
+        }
     }
 
     /**

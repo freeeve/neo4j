@@ -52,18 +52,13 @@ final class RecoveryVisitor implements RecoveryApplier {
 
     @Override
     public boolean visit(CommittedCommandBatchRepresentation batch) throws Exception {
-        if (batch instanceof EmptyBatchRepresentation empty) {
-            // merge log project will do something here eventually, but for now just skip
-            return false;
-        }
-
         StorageEngineTransaction storageEngineTransaction = commandToApply(batch);
         storageEngine.apply(storageEngineTransaction, mode);
         return false;
     }
 
     private StorageEngineTransaction commandToApply(CommittedCommandBatchRepresentation batch) {
-        var commandsToApply = batch instanceof CompleteBatchRepresentation
+        var commandsToApply = batch instanceof CompleteBatchRepresentation || batch instanceof EmptyBatchRepresentation
                 ? new CompleteTransaction(batch, cursorContext, storeCursors)
                 : new ChunkedTransaction(batch, cursorContext, storeCursors);
         cursorContext.getVersionContext().initWrite(commandsToApply.transactionId());
