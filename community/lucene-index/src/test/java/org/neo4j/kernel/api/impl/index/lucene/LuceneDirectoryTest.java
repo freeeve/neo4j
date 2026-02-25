@@ -109,7 +109,7 @@ public class LuceneDirectoryTest {
         var indexWriterConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer());
         indexWriterConfig
                 .setLogProvider(logProvider)
-                .setMergingParameters(1.0, 32, 32, 1024); // parameters to avoid merge during indexing
+                .setMergingParameters(1.0, 1.0, 32, 32, 1024); // parameters to avoid merge during indexing
 
         try (var indexWriter = directory.newWriter(indexWriterConfig)) {
 

@@ -180,6 +180,7 @@ public class Lucene10Directory implements LuceneDirectory {
 
         LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
         mergePolicy.setNoCFSRatio(config.noCFSRatio);
+        mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
         mergePolicy.setMinMergeMB(config.minMergeMB);
         mergePolicy.setMaxMergeMB(config.maxMergeMB);
         mergePolicy.setMergeFactor(config.mergeFactor);

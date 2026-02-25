@@ -90,6 +90,14 @@ public class LuceneSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.index.lucene.nocfs.ratio", DOUBLE, 1.0).build();
 
     @Internal
+    @Description("If a merged segment will be more than this size in mb, "
+            + "leave the segment as non-compound file even if compound file is enabled. "
+            + "By default no upper limit is specified.")
+    public static final Setting<Double> lucene_max_cfs_segment_size_mb = newBuilder(
+                    "internal.dbms.index.lucene.max_cfs_segment_size_mb", DOUBLE, Double.POSITIVE_INFINITY)
+            .build();
+
+    @Internal
     @Description("Sets the minimum size for the lowest level segments. Any segments below this size are "
             + "candidates for full-flush merges and be merged more aggressively in order to avoid having "
             + "a long tail of small segments. Large values of this parameter increase the merging cost during "

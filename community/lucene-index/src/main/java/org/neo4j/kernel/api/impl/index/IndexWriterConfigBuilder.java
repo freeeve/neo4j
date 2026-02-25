@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index;
 
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_max_cfs_segment_size_mb;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_max_merge;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_min_merge;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_nocfs_ratio;
@@ -72,6 +73,7 @@ public final class IndexWriterConfigBuilder {
 
         writerConfig.setMergingParameters(
                 config.get(lucene_nocfs_ratio),
+                config.get(lucene_max_cfs_segment_size_mb),
                 config.get(lucene_min_merge),
                 config.get(lucene_max_merge),
                 mode.getMergeFactor(config));

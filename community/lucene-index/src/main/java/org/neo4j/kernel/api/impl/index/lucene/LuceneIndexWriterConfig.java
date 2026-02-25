@@ -37,6 +37,7 @@ public class LuceneIndexWriterConfig {
     public boolean commitOnClose = true;
     public LuceneCodec codec;
     public double noCFSRatio;
+    public double maxCFSSegmentSizeMB;
     public double minMergeMB;
     public double maxMergeMB;
     public int mergeFactor;
@@ -87,8 +88,10 @@ public class LuceneIndexWriterConfig {
         return this;
     }
 
-    public void setMergingParameters(double noCFSRatio, double minMergeMB, double maxMergeMB, int mergeFactor) {
+    public void setMergingParameters(
+            double noCFSRatio, double maxCFSSegmentSizeMB, double minMergeMB, double maxMergeMB, int mergeFactor) {
         this.noCFSRatio = noCFSRatio;
+        this.maxCFSSegmentSizeMB = maxCFSSegmentSizeMB;
         this.minMergeMB = minMergeMB;
         this.maxMergeMB = maxMergeMB;
         this.mergeFactor = mergeFactor;
