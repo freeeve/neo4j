@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -37,6 +36,7 @@ import org.eclipse.collections.api.PrimitiveIterable;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
@@ -45,7 +45,6 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 
 public class VectorIndexConfigUtils {
@@ -72,29 +71,6 @@ public class VectorIndexConfigUtils {
         indexSettingIntroducedVersions.put(
                 HNSW_EF_CONSTRUCTION, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
         INDEX_SETTING_INTRODUCED_VERSIONS = Collections.unmodifiableSortedMap(indexSettingIntroducedVersions);
-    }
-
-    public record Range<T extends Comparable<T>>(T min, T max) {
-        public Range {
-            Preconditions.checkArgument(
-                    Objects.requireNonNull(min).compareTo(Objects.requireNonNull(max)) <= 0,
-                    "min must be less than or equal to max");
-        }
-
-        public boolean contains(T value) {
-            Objects.requireNonNull(value);
-            return min.compareTo(value) <= 0 && max.compareTo(value) >= 0;
-        }
-
-        public boolean isBefore(T value) {
-            Objects.requireNonNull(value);
-            return value.compareTo(max) > 0;
-        }
-
-        public boolean isAfter(T value) {
-            Objects.requireNonNull(value);
-            return value.compareTo(min) < 0;
-        }
     }
 
     static SortedMap<IndexSetting, Object> toValidSettings(Iterable<Valid> validRecords) {
@@ -176,7 +152,7 @@ public class VectorIndexConfigUtils {
             case INVALID_VALUE -> {
                 final var invalidValue = (InvalidValue) invalidRecord;
                 final var valid = invalidValue.valid();
-                if (valid instanceof final Range<?> range) {
+                if (valid instanceof final InclusiveRange<?> range) {
                     var actualRawValue = invalidValue.rawValue() != null ? invalidValue.rawValue() : NO_VALUE;
                     yield InvalidArgumentException.outOfRange(
                             settingName,

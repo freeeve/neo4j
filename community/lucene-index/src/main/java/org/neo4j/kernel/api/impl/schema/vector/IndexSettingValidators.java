@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue;
@@ -33,7 +34,6 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.Pending;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.Range;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -155,9 +155,9 @@ class IndexSettingValidators {
     }
 
     static final class IntegerValidator extends IndexSettingValidator<IntegralValue, Integer> {
-        private final Range<Integer> supportedRange;
+        private final InclusiveRange<Integer> supportedRange;
 
-        IntegerValidator(IndexSetting setting, Range<Integer> supportedRange, Integer defaultValue) {
+        IntegerValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange, Integer defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null || this.supportedRange.contains(defaultValue);
@@ -196,9 +196,9 @@ class IndexSettingValidators {
     }
 
     static final class OptionalIntValidator extends IndexSettingValidator<IntegralValue, OptionalInt> {
-        private final Range<Integer> supportedRange;
+        private final InclusiveRange<Integer> supportedRange;
 
-        OptionalIntValidator(IndexSetting setting, Range<Integer> supportedRange, OptionalInt defaultValue) {
+        OptionalIntValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange, OptionalInt defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null

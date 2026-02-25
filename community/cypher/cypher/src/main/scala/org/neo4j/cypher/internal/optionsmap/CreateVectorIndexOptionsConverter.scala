@@ -24,6 +24,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.exceptions.InternalException
+import org.neo4j.internal.helpers.InclusiveRange
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexConfigValidationRecords
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType
@@ -36,7 +37,6 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SettingsAccessor.MapValueAccessor
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
@@ -147,7 +147,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         invalidValue =>
           val valid = invalidValue.valid
           valid match {
-            case range: VectorIndexConfigUtils.Range[_] => throw InvalidArgumentsException.indexSettingOutOfRange(
+            case range: InclusiveRange[_] => throw InvalidArgumentsException.indexSettingOutOfRange(
                 invalidValue.settingName,
                 // In practice all vector setting ranges are INTEGER,
                 //  if that changes we need to update this

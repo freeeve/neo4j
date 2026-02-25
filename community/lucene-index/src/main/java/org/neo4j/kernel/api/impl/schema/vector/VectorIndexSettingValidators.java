@@ -23,23 +23,23 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.BooleanValidator;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IntegerValidator;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.OptionalIntValidator;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.ReadDefaultOnly;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.StringLookupValidator;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.Range;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 
 class VectorIndexSettingValidators {
     private VectorIndexSettingValidators() {}
 
     static OptionalIntValidator dimensionsValidator(int min, int max) {
-        return new OptionalIntValidator(IndexSetting.vector_Dimensions(), new Range<>(min, max), null);
+        return new OptionalIntValidator(IndexSetting.vector_Dimensions(), new InclusiveRange<>(min, max), null);
     }
 
     static OptionalIntValidator dimensionsValidator(int min, int max, OptionalInt defaultValue) {
-        return new OptionalIntValidator(IndexSetting.vector_Dimensions(), new Range<>(min, max), defaultValue);
+        return new OptionalIntValidator(IndexSetting.vector_Dimensions(), new InclusiveRange<>(min, max), defaultValue);
     }
 
     static SimilarityFunctionValidator similarityFunctionValidator(Map<String, VectorSimilarityFunction> supported) {
@@ -77,7 +77,7 @@ class VectorIndexSettingValidators {
     }
 
     static IntegerValidator hnswMValidator(int min, int max, int defaultValue) {
-        return new IntegerValidator(IndexSetting.vector_Hnsw_M(), new Range<>(min, max), defaultValue);
+        return new IntegerValidator(IndexSetting.vector_Hnsw_M(), new InclusiveRange<>(min, max), defaultValue);
     }
 
     static ReadDefaultOnly<Integer> hnswEfConstructionValidator(int readDefault) {
@@ -85,6 +85,7 @@ class VectorIndexSettingValidators {
     }
 
     static IntegerValidator hnswEfConstructionValidator(int min, int max, int defaultValue) {
-        return new IntegerValidator(IndexSetting.vector_Hnsw_Ef_Construction(), new Range<>(min, max), defaultValue);
+        return new IntegerValidator(
+                IndexSetting.vector_Hnsw_Ef_Construction(), new InclusiveRange<>(min, max), defaultValue);
     }
 }
