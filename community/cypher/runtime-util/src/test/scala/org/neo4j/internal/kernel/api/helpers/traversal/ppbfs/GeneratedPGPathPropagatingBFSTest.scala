@@ -385,7 +385,7 @@ object GeneratedPGPathPropagatingBFSTest {
 
       def createCluster(size: Int): Seq[graph.Node] = {
         val numberOfPossibleRels = (size * (size - 1)) / 2
-        val nRels = random.nextInt(numberOfPossibleRels + 1)
+        val nRels = random.nextInt(numberOfPossibleRels) + 1 // we always want to create at least one rel
         val nodes = (0 until size).map(_ => graph.createNode())
 
         for (_ <- 0 until nRels) {
