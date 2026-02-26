@@ -424,7 +424,6 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
     }
 
     @Test
-    @SkipOnSpd(reason = "awaitEventuallyConsistentIndexRefresh` is not supported in a sharded database")
     void updatesToEventuallyConsistentIndexMustBecomeVisibleAfterAwaitRefresh() {
         try (Transaction tx = db.beginTx()) {
             tx.execute(format(
@@ -500,7 +499,6 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
     }
 
     @Test
-    @SkipOnSpd(reason = "awaitEventuallyConsistentIndexRefresh` is not supported in a sharded database")
     void concurrentPopulationAndUpdatesToAnEventuallyConsistentIndexMustEventuallyResultInCorrectIndexState()
             throws Exception {
         String oldValue = "red";
@@ -1304,7 +1302,6 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
     @MethodSource("entityTypeProvider")
     @ParameterizedTest
-    @SkipOnSpd(reason = "awaitEventuallyConsistentIndexRefresh` is not supported in a sharded database")
     void eventuallyConsistentIndexMustNotIncludeEntitiesAddedInTransaction() {
         try (Transaction tx = db.beginTx()) {
             tx.execute(format(

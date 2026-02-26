@@ -38,7 +38,6 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
-import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
 
 class EventuallyConsistentFulltextProceduresTest extends FulltextProceduresTestSupport {
@@ -50,7 +49,6 @@ class EventuallyConsistentFulltextProceduresTest extends FulltextProceduresTestS
     }
 
     @Test
-    @SkipOnSpd(reason = "awaitEventuallyConsistentIndexRefresh` is not supported in a sharded database")
     void fulltextIndexesMustBeEventuallyConsistentByDefaultWhenThisIsConfigured() throws InterruptedException {
         try (Transaction tx = db.beginTx()) {
             tx.execute(format(

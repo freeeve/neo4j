@@ -49,13 +49,11 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.Futures;
 
 @PageCacheExtension
-@SkipOnSpd(reason = "awaitEventuallyConsistentIndexRefresh` is not supported in a sharded database")
 class EventuallyConsistentFulltextIT {
     private static final String INDEX_NAME_1 = "my_ft_index_1";
     private static final String INDEX_NAME_2 = "my_ft_index_2";
