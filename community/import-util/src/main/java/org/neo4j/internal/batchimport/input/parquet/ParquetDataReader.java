@@ -290,12 +290,86 @@ class ParquetDataReader implements Closeable {
         private Object readValue(ColumnReader columnReader) {
             ColumnDescriptor column = columnReader.getDescriptor();
             PrimitiveType primitiveType = column.getPrimitiveType();
-            int maxDefinitionLevel = column.getMaxDefinitionLevel();
             String fieldName = column.getPath()[0];
             Type type = schema.getType(fieldName);
             LogicalTypeAnnotation logicalType = type.getLogicalTypeAnnotation();
             // reference:
             // https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#parquet-logical-type-definitions
+
+            if (isValueNull(columnReader)) {
+                columnReader.consume();
+                if (logicalType != null) {
+                    if (logicalType.equals(LogicalTypeAnnotation.listType())) {
+                        return List.of();
+                    }
+                    if (logicalType.equals(LogicalTypeAnnotation.mapType())) {
+                        return Map.of();
+                    }
+                }
+                return null;
+            }
+
+            var object = readTemporalValues(columnReader, logicalType, primitiveType);
+            if (object != null) return object;
+
+            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
+                var readValues = new ArrayList<>();
+                for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                    readValues.add(readPrimitiveType(columnReader, primitiveType));
+                    columnReader.consume();
+                }
+                return readValues;
+            }
+
+            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.mapType())) {
+                // Initialize data structure for a map by fieldName
+                // the data will come in as "all keys" and then "all values".
+                // As a consequence, we need to return them separately and merge them
+                // later into a Java map.
+                if (column.getPath()[2].equals("key")) {
+                    var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+                    for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                        String key = (String) readPrimitiveType(columnReader, primitiveType);
+                        mapKeys.keys().add(fieldName + "." + key);
+                        columnReader.consume();
+                    }
+                    return mapKeys;
+                }
+
+                var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+                for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
+                    Object value = readPrimitiveType(columnReader, primitiveType);
+                    mapValues.values().add(value);
+                    columnReader.consume();
+                }
+                return mapValues;
+            }
+
+            if (type instanceof GroupType) {
+                // The only groupType supported right now is a struct.
+                // This could also represent _any_ complex type.
+                var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+                String propertyName = fieldName + "." + column.getPath()[1];
+                mapKeys.keys().add(propertyName);
+                var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+                mapValues.values().add(readPrimitiveType(columnReader, primitiveType));
+                return new MapLikeRecord(fieldName, mapKeys, mapValues);
+            }
+
+            // Primitives
+            Object readValue = readPrimitiveType(columnReader, primitiveType);
+            columnReader.consume();
+            return readValue;
+        }
+
+        private static boolean isValueNull(ColumnReader columnReader) {
+            ColumnDescriptor column = columnReader.getDescriptor();
+
+            return columnReader.getCurrentDefinitionLevel() != column.getMaxDefinitionLevel();
+        }
+
+        private Object readTemporalValues(
+                ColumnReader columnReader, LogicalTypeAnnotation logicalType, PrimitiveType primitiveType) {
             // Dates
             if (LogicalTypeAnnotation.dateType().equals(logicalType)) {
                 var object = readPrimitiveType(columnReader, primitiveType);
@@ -407,65 +481,7 @@ class ParquetDataReader implements Closeable {
                 return LocalDateTimeValue.localDateTime(
                         LocalDateTime.ofEpochSecond(seconds, (int) nanos, ZoneOffset.UTC));
             }
-
-            if (columnReader.getCurrentDefinitionLevel() == maxDefinitionLevel) {
-                if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
-                    var readValues = new ArrayList<>();
-                    for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                        readValues.add(readPrimitiveType(columnReader, primitiveType));
-                        columnReader.consume();
-                    }
-                    return readValues;
-                }
-                if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.mapType())) {
-                    // Initialize data structure for a map by fieldName
-                    // the data will come in as "all keys" and then "all values".
-                    // As a consequence, we need to return them separately and merge them
-                    // later into a Java map.
-                    if (column.getPath()[2].equals("key")) {
-                        var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
-                        for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                            String key = (String) readPrimitiveType(columnReader, primitiveType);
-                            mapKeys.keys().add(fieldName + "." + key);
-                            columnReader.consume();
-                        }
-                        return mapKeys;
-                    } else {
-                        var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
-                        for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                            Object value = readPrimitiveType(columnReader, primitiveType);
-                            mapValues.values().add(value);
-                            columnReader.consume();
-                        }
-                        return mapValues;
-                    }
-                }
-                if (type instanceof GroupType) {
-                    // The only groupType supported right now is a struct.
-                    // This could also represent _any_ complex type.
-                    var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
-                    String propertyName = fieldName + "." + column.getPath()[1];
-                    mapKeys.keys().add(propertyName);
-                    var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
-                    mapValues.values().add(readPrimitiveType(columnReader, primitiveType));
-                    return new MapLikeRecord(fieldName, mapKeys, mapValues);
-                } else {
-                    Object readValue = readPrimitiveType(columnReader, primitiveType);
-                    columnReader.consume();
-                    return readValue;
-                }
-            } else {
-                columnReader.consume();
-                if (logicalType != null) {
-                    if (logicalType.equals(LogicalTypeAnnotation.listType())) {
-                        return List.of();
-                    }
-                    if (logicalType.equals(LogicalTypeAnnotation.mapType())) {
-                        return Map.of();
-                    }
-                }
-                return null;
-            }
+            return null;
         }
 
         private static Object readPrimitiveType(ColumnReader columnReader, PrimitiveType primitiveType) {

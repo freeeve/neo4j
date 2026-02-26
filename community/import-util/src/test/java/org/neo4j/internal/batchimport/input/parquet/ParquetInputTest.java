@@ -2116,6 +2116,48 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldParseNullTemporalTypes() throws Exception {
+
+        // Given a parquet file which contains null value column c_timestamp_millis, c_timestamp_micros and c_date
+        var nodePath = Path.of(getClass()
+                .getResource("/parquet/temporal_nullable_types.parquet")
+                .toURI());
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.of(new FileGroup(nodePath))), Map.of(), INTEGER, groups, MONITOR);
+
+        // When processing the file, should not fail and should ignore the null value columns
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "c_time_millis_utc",
+                            TimeValue.time(23, 59, 59, 999_000_000, ZoneOffset.UTC),
+                            "c_time_micros",
+                            LocalTimeValue.localTime(23, 59, 59, 999_999_000),
+                            "c_time_micros_utc",
+                            TimeValue.time(23, 59, 59, 999_999_000, ZoneOffset.UTC),
+                            "c_timestamp_millis_utc",
+                            DateTimeValue.datetime(
+                                    1999, 1, 5, 23, 59, 59, 999_000_000, ZoneId.of(ZoneOffset.UTC.getId())),
+                            "c_timestamp_micros",
+                            LocalDateTimeValue.localDateTime(1999, 1, 5, 22, 59, 59, 999_999_000),
+                            "c_timestamp_micros_utc",
+                            DateTimeValue.datetime(
+                                    1999, 1, 5, 23, 59, 59, 999_999_000, ZoneId.of(ZoneOffset.UTC.getId()))),
+                    labels());
+
+            assertThat(visitor.properties.stream()
+                            .map(InputEntity.Property::keyName)
+                            .toList())
+                    .doesNotContain("c_time_millis")
+                    .doesNotContain("c_timestamp_millis")
+                    .doesNotContain("c_date");
+
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldParseNumbersLikeDataImporter() throws Exception {
 
         var nodePath =
