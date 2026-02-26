@@ -3075,6 +3075,45 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .build())
   }
 
+  test("should not plan sort after RollUpApply with Union on RHS") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Person", 90)
+      .addNodeIndex("Person", Seq("name"), 0.8, 0.4)
+      .setRelationshipCardinality("()-[:KNOWS]->()", 50)
+      .setRelationshipCardinality("()-[:LIKES]->()", 70)
+      .setRelationshipCardinality("(:Person)-[:KNOWS]->()", 50)
+      .setRelationshipCardinality("(:Person)-[:LIKES]->()", 70)
+      .build()
+
+    val query =
+      """MATCH (p:Person) WHERE p.name IS NOT NULL
+        |RETURN
+        |  p,
+        |  COLLECT {
+        |    MATCH (p)-[knows:KNOWS]->(k) RETURN k AS x
+        |    UNION ALL
+        |    MATCH (p)-[likes:LIKES]->(l) RETURN l AS x
+        |  } AS list
+        |ORDER BY p.name
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .rollUpApply("list", "x")
+      .|.union()
+      .|.|.projection("x AS x")
+      .|.|.projection("l AS x")
+      .|.|.expandAll("(p)-[:LIKES]->(l)")
+      .|.|.argument("p")
+      .|.projection("x AS x")
+      .|.projection("k AS x")
+      .|.expandAll("(p)-[:KNOWS]->(k)")
+      .|.argument("p")
+      .nodeIndexOperator("p:Person(name)", indexOrder = IndexOrderAscending, getValue = Map("name" -> GetValue))
+      .build()
+  }
+
   test("Should plan Sort before projection - if projection is order preserving (parallel runtime)") {
     val query =
       """MATCH (a:A)

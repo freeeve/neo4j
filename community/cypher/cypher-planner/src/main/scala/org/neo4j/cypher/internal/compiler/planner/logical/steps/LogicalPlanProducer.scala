@@ -216,6 +216,7 @@ import org.neo4j.cypher.internal.logical.plans.LetSelectOrSemiApply
 import org.neo4j.cypher.internal.logical.plans.LetSemiApply
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
+import org.neo4j.cypher.internal.logical.plans.LogicalBinaryPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.Merge
@@ -4824,11 +4825,17 @@ case class LogicalPlanProducer(
     executionModel: ExecutionModel
   ): Unit = {
     if (AssertionRunner.ASSERTIONS_ENABLED) {
-      (plan.lhs, plan.rhs, providedOrder.orderOrigin) match {
-        case (Some(left), Some(right), Some(ProvidedOrder.Left))
-          if invalidatesProvidedOrderRecursive(right, executionModel) =>
+      (plan, providedOrder.orderOrigin) match {
+        case (rollUpApply: RollUpApply, _) if rollUpApply.right.readOnly =>
+          // special case for RollUpApply as it is assumed to not invalidate LHS order regardless of RHS plans
+          ()
+        case (plan: LogicalBinaryPlan, Some(ProvidedOrder.Left))
+          if invalidatesProvidedOrderRecursive(plan.right, executionModel) =>
           val msg =
-            s"LHS claims to provide an order, but RHS contains clauses that invalidates this order.\nProvided order: $providedOrder\nLHS: $left\nRHS: $right"
+            s"""LHS claims to provide an order, but RHS contains clauses that invalidates this order.
+               |Provided order: $providedOrder
+               |Plan:
+               |$plan""".stripMargin
           throw new AssertionError(msg)
         case _ =>
       }

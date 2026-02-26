@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -30,6 +31,7 @@ import org.neo4j.graphdb.Node
 import java.util.Collections
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Random
 
 object RollupApplyTestBase
 
@@ -224,5 +226,71 @@ abstract class RollupApplyTestBase[CONTEXT <: RuntimeContext](
     // then
     val runtimeResult = execute(logicalQuery, runtime)
     runtimeResult should beColumns("x", "list", "extra").withRows(rowCount(nodes.size))
+  }
+
+  test("should preserve LHS provided order with union on RHS") {
+    assume(!isParallel)
+
+    val inputRows = Random.shuffle {
+      (0 until sizeHint).map { i => Array[Any](i) }
+    }
+
+    // when
+    val providedOrder = DefaultProvidedOrderFactory.asc(varFor("i"))
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("i", "list").withProvidedOrder(providedOrder).withLeveragedOrder()
+      .rollUpApply("list", "res").withProvidedOrder(providedOrder).withLeveragedOrder()
+      .|.sort("res ASC") // to get consistent order in the produced lists
+      .|.union()
+      .|.|.projection("i*2 AS res")
+      .|.|.argument("i")
+      .|.projection("i+1 AS res")
+      .|.argument("i")
+      .sort("i ASC").withProvidedOrder(providedOrder).withLeveragedOrder()
+      .input(variables = Seq("i"))
+      .build()
+
+    // then
+    val expectedRows = (0 until sizeHint).map { i =>
+      Array[Any](i, Seq(i * 2, i + 1).sorted.asJava)
+    }
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(inputRows: _*))
+    runtimeResult should beColumns("i", "list").withRows(inOrder(expectedRows))
+  }
+
+  test("should preserve LHS provided order with filtered-out arguments on RHS") {
+    assume(!isParallel)
+
+    val inputRows = Random.shuffle {
+      (0 until sizeHint).map { i => Array[Any](i) }
+    }
+
+    // when
+    val providedOrder = DefaultProvidedOrderFactory.asc(varFor("i"))
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("i", "list")
+      .rollUpApply("list", "n").withProvidedOrder(providedOrder).withLeveragedOrder()
+      .|.unwind("range(1, i) AS n") // large cardinality increase to force continuations
+      .|.filter("i%2=0") // filter arguments
+      .|.argument("i")
+      .sort("i ASC").withProvidedOrder(providedOrder).withLeveragedOrder()
+      .input(variables = Seq("i"))
+      .build()
+
+    // then
+    val expectedRows = (0 until sizeHint).map { i =>
+      val list = if (i % 2 != 0)
+        Seq.empty
+      else
+        Range.inclusive(1, i)
+
+      Array[Any](i, list.asJava)
+    }
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(inputRows: _*))
+    runtimeResult should beColumns("i", "list").withRows(inOrder(expectedRows))
   }
 }
