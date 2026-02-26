@@ -52,25 +52,37 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
 
     test(s"SHOW $procKeyword EXECUTABLE BY user") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("user")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(Some(User("user")(pos)), None, List.empty, yieldAll = false, None)(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY CURRENT") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("CURRENT")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("CURRENT")(pos)),
+          None,
+          List.empty,
+          yieldAll = false,
+          None
+        )(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY SHOW") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("SHOW")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(Some(User("SHOW")(pos)), None, List.empty, yieldAll = false, None)(defaultPos))
       )
     }
 
     test(s"SHOW $procKeyword EXECUTABLE BY TERMINATE") {
       assertAst(
-        singleQuery(ShowProceduresClause(Some(User("TERMINATE")), None, List.empty, yieldAll = false, None)(defaultPos))
+        singleQuery(ShowProceduresClause(
+          Some(User("TERMINATE")(pos)),
+          None,
+          List.empty,
+          yieldAll = false,
+          None
+        )(defaultPos))
       )
     }
 
@@ -122,7 +134,7 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
     assertAst(
       singleQuery(
         ShowProceduresClause(
-          Some(User("user")),
+          Some(User("user")(pos)),
           None,
           List.empty,
           yieldAll = true,

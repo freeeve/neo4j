@@ -84,7 +84,7 @@ case class anonymizeQuery(anonymizer: Anonymizer) extends Rewriter {
     case x: GraphTypeConstraintDefinition =>
       x.copy(name = x.name.map(name => anonymizer.constraintName(name)))(x.position)
     case x: CommandClauseWithNames => x.withNames(anonymizeCommandClauseNames(x.names, anonymizer.literal))
-    case x: User                   => x.copy(anonymizer.identifierAsString(x.name))
+    case x: User                   => x.copy(anonymizer.identifierAsString(x.name))(x.position)
   })
 
   private def anonymizeSchemaName(

@@ -2976,6 +2976,9 @@ case class ShowProceduresClause(
 
   override def getClauseWithoutSubclauses: CommandClause =
     copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
+
+  override def clauseSpecificSemanticCheck: SemanticCheck =
+    executable.semanticCheck chain super.clauseSpecificSemanticCheck
 }
 
 object ShowProceduresClause {
@@ -3058,6 +3061,9 @@ case class ShowFunctionsClause(
 
   override def getClauseWithoutSubclauses: CommandClause =
     copy(where = None, yieldItems = List.empty, yieldWith = None)(InputPosition.NONE)
+
+  override def clauseSpecificSemanticCheck: SemanticCheck =
+    executable.semanticCheck chain super.clauseSpecificSemanticCheck
 }
 
 object ShowFunctionsClause {

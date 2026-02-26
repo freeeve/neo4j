@@ -4931,7 +4931,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
     assertGood(
       attach(
         ShowProcedures(
-          Some(User("foo")),
+          Some(User("foo")(pos)),
           List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
             CommandYieldColumn("xxx", "xxx"),
@@ -4992,7 +4992,7 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       attach(
         ShowFunctions(
           UserDefinedFunctions,
-          Some(User("foo")),
+          Some(User("foo")(pos)),
           List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
           List(
             CommandYieldColumn("xxx", "xxx"),

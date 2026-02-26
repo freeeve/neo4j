@@ -2316,7 +2316,7 @@ class AstGenerator(
 
   def _showProcedures: Gen[Query] = for {
     name <- _identifier
-    exec <- option(oneOf(CurrentUser, User(name)))
+    exec <- option(oneOf(CurrentUser, User(name)(pos)))
     yields <- _eitherYieldOrWhere
     yieldAll <- boolean
     use <- option(_use)
@@ -2339,7 +2339,7 @@ class AstGenerator(
   def _showFunctions: Gen[Query] = for {
     name <- _identifier
     funcType <- oneOf(AllFunctions, BuiltInFunctions, UserDefinedFunctions)
-    exec <- option(oneOf(CurrentUser, User(name)))
+    exec <- option(oneOf(CurrentUser, User(name)(pos)))
     yields <- _eitherYieldOrWhere
     yieldAll <- boolean
     use <- option(_use)
@@ -2470,7 +2470,7 @@ class AstGenerator(
     indexType <- _indexType
     funcType <- oneOf(AllFunctions, BuiltInFunctions, UserDefinedFunctions)
     name <- _identifier
-    exec <- option(oneOf(CurrentUser, User(name)))
+    exec <- option(oneOf(CurrentUser, User(name)(pos)))
     yields <- _yield
     yieldAll <- boolean
     clauseCypher5 <- const((item: List[CommandResultItem], all: Boolean, w: With) =>

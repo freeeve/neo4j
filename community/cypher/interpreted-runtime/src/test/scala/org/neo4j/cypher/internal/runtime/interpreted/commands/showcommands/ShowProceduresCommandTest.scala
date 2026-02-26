@@ -779,7 +779,13 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
     // When: EXECUTABLE BY <current user>
     val showProceduresSame =
-      ShowProceduresCommand(Some(User(username)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
+      ShowProceduresCommand(
+        Some(User(username)(InputPosition.NONE)),
+        defaultColumns,
+        List.empty,
+        isCommunity = false,
+        CYPHER_5
+      )
     val resultSame = showProceduresSame.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -798,7 +804,13 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
     // When
     val showProceduresCurrent =
-      ShowProceduresCommand(Some(User(otherUser)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
+      ShowProceduresCommand(
+        Some(User(otherUser)(InputPosition.NONE)),
+        defaultColumns,
+        List.empty,
+        isCommunity = false,
+        CYPHER_5
+      )
     val resultCurrent = showProceduresCurrent.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -829,7 +841,13 @@ class ShowProceduresCommandTest extends ShowCommandTestBase {
 
     // When
     val showProceduresCurrent =
-      ShowProceduresCommand(Some(User(missingUser)), defaultColumns, List.empty, isCommunity = false, CYPHER_5)
+      ShowProceduresCommand(
+        Some(User(missingUser)(InputPosition.NONE)),
+        defaultColumns,
+        List.empty,
+        isCommunity = false,
+        CYPHER_5
+      )
     val resultCurrent = showProceduresCurrent.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

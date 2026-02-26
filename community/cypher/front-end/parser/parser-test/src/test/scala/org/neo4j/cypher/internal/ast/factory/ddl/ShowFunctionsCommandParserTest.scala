@@ -64,7 +64,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
           singleQuery(
             ShowFunctionsClause(
               functionType,
-              Some(User("user")),
+              Some(User("user")(pos)),
               None,
               List.empty,
               yieldAll = false,
@@ -79,7 +79,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
           singleQuery(
             ShowFunctionsClause(
               functionType,
-              Some(User("CURRENT")),
+              Some(User("CURRENT")(pos)),
               None,
               List.empty,
               yieldAll = false,
@@ -94,7 +94,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
           singleQuery(
             ShowFunctionsClause(
               functionType,
-              Some(User("SHOW")),
+              Some(User("SHOW")(pos)),
               None,
               List.empty,
               yieldAll = false,
@@ -109,7 +109,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
           singleQuery(
             ShowFunctionsClause(
               functionType,
-              Some(User("TERMINATE")),
+              Some(User("TERMINATE")(pos)),
               None,
               List.empty,
               yieldAll = false,
@@ -169,7 +169,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
       singleQuery(
         ShowFunctionsClause(
           UserDefinedFunctions,
-          Some(User("user")),
+          Some(User("user")(pos)),
           None,
           List.empty,
           yieldAll = true,

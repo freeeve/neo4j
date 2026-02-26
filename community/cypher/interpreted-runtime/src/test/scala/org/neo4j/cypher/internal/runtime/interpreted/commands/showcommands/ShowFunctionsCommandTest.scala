@@ -1013,7 +1013,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     val showFunctionsSame =
       ShowFunctionsCommand(
         AllFunctions,
-        Some(User(username)),
+        Some(User(username)(InputPosition.NONE)),
         defaultColumns,
         List.empty,
         isCommunity = false,
@@ -1043,7 +1043,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     val showFunctionsCurrent =
       ShowFunctionsCommand(
         AllFunctions,
-        Some(User(otherUser)),
+        Some(User(otherUser)(InputPosition.NONE)),
         defaultColumns,
         List.empty,
         isCommunity = false,
@@ -1085,7 +1085,7 @@ class ShowFunctionsCommandTest extends ShowCommandTestBase {
     val showFunctionsCurrent =
       ShowFunctionsCommand(
         AllFunctions,
-        Some(User(missingUser)),
+        Some(User(missingUser)(InputPosition.NONE)),
         defaultColumns,
         List.empty,
         isCommunity = false,

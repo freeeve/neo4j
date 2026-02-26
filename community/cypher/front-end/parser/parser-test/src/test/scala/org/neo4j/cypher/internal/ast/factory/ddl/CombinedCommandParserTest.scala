@@ -235,11 +235,11 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW USER DEFINED FUNCTIONS",
         showFunction(ast.UserDefinedFunctions, None, _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE BY user",
-        showFunction(ast.UserDefinedFunctions, Some(ast.User("user")), _, _, _, _)
+        showFunction(ast.UserDefinedFunctions, Some(ast.User("user")(pos)), _, _, _, _)
       ),
       CommandCombinationsNoNames(
         "SHOW FUNCTIONS EXECUTABLE BY user",
-        showFunction(ast.AllFunctions, Some(ast.User("user")), _, _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("user")(pos)), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
         showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
@@ -279,13 +279,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY user",
-        showProcedure(Some(ast.User("user")), _, _, _, _)
+        showProcedure(Some(ast.User("user")(pos)), _, _, _, _)
       ),
       CommandCombinationsNoNames(
         "SHOW PROCEDURES EXECUTABLE",
         showProcedure(Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
-        showProcedure(Some(ast.User("SHOW")), _, _, _, _)
+        showProcedure(Some(ast.User("SHOW")(pos)), _, _, _, _)
       )
     ) ++ Seq(
       // show constraints only combinations
@@ -397,7 +397,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       ),
       CommandCombinationsNoNames(
         "SHOW ALL FUNCTIONS EXECUTABLE BY SHOW",
-        showFunction(ast.AllFunctions, Some(ast.User("SHOW")), _, _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("SHOW")(pos)), _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
@@ -405,7 +405,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
-        showProcedure(Some(ast.User("SHOW")), _, _, _, _)
+        showProcedure(Some(ast.User("SHOW")(pos)), _, _, _, _)
       ),
       CommandCombinationsNoNames(
         "SHOW PROCEDURES",
@@ -458,7 +458,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       ),
       CommandCombinationsNoNames(
         "SHOW FUNCTIONS EXECUTABLE BY TERMINATE",
-        showFunction(ast.AllFunctions, Some(ast.User("TERMINATE")), _, _, _, _),
+        showFunction(ast.AllFunctions, Some(ast.User("TERMINATE")(pos)), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
@@ -470,7 +470,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       ),
       CommandCombinationsNoNames(
         "SHOW PROCEDURES EXECUTABLE BY TERMINATE",
-        showProcedure(Some(ast.User("TERMINATE")), _, _, _, _),
+        showProcedure(Some(ast.User("TERMINATE")(pos)), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),

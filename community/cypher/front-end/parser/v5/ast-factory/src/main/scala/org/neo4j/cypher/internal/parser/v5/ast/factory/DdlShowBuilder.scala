@@ -415,7 +415,7 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     val name = ctx.symbolicNameString()
     ctx.ast =
       if (name != null) {
-        User(ctx.symbolicNameString().ast())
+        User(name.ast())(pos(name))
       } else CurrentUser
   }
 

@@ -23,6 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.User
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.Result
 import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.internal.kernel.api.procs.DefaultParameterValue
@@ -524,7 +525,7 @@ class ShowProcFuncCommandHelperTest extends ShowCommandTestBase {
         securityContext,
         securityHandler,
         systemGraph,
-        Some(User("otherUser")),
+        Some(User("otherUser")(InputPosition.NONE)),
         "SHOW FUNCTIONS"
       )
     } should have message "Permission not granted for SHOW FUNCTIONS, requires SHOW USER privilege. " +
@@ -548,7 +549,7 @@ class ShowProcFuncCommandHelperTest extends ShowCommandTestBase {
         securityContext,
         securityHandler,
         systemGraph,
-        Some(User("otherUser")),
+        Some(User("otherUser")(InputPosition.NONE)),
         "SHOW PROCEDURES"
       )
     } should have message "Permission denied for SHOW PROCEDURES, requires SHOW USER privilege. " +
@@ -632,7 +633,7 @@ class ShowProcFuncCommandHelperTest extends ShowCommandTestBase {
       securityContext,
       securityHandler,
       systemGraph,
-      Some(User(missingUser)),
+      Some(User(missingUser)(InputPosition.NONE)),
       "command"
     )
 
@@ -663,7 +664,7 @@ class ShowProcFuncCommandHelperTest extends ShowCommandTestBase {
       securityContext,
       securityHandler,
       systemGraph,
-      Some(User(otherUser)),
+      Some(User(otherUser)(InputPosition.NONE)),
       "command"
     )
 
