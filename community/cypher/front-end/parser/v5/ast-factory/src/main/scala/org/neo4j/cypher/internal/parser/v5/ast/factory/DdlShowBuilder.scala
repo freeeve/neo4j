@@ -271,14 +271,12 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.ShowIndexesAllowBriefContext
   ): Unit = {
     ctx.ast = astOpt[ShowWrapper](ctx.showBriefAndYield(), ShowWrapper())
-      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
   }
 
   final override def exitShowIndexesNoBrief(
     ctx: Cypher5Parser.ShowIndexesNoBriefContext
   ): Unit = {
     ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
-      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
   }
 
   override def exitShowConstraintCommand(ctx: Cypher5Parser.ShowConstraintCommandContext): Unit = {
@@ -371,7 +369,6 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   ): Unit = {
     ctx.ast =
       astOpt[ShowWrapper](ctx.showBriefAndYield(), ShowWrapper())
-        .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
   }
 
   final override def exitShowConstraintsAllowBrief(
@@ -384,14 +381,12 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.ShowConstraintsAllowYieldContext
   ): Unit = {
     ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
-      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
   }
 
   final override def exitShowProcedures(
     ctx: Cypher5Parser.ShowProceduresContext
   ): Unit = {
     ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
-      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
       .buildProcedureClauses(astOpt[ExecutableBy](ctx.executableBy), pos(ctx.getParent))
   }
 
@@ -399,7 +394,6 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.ShowFunctionsContext
   ): Unit = {
     ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
-      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
       .buildFunctionClauses(
         astOpt[ShowFunctionType](ctx.showFunctionsType, AllFunctions),
         astOpt[ExecutableBy](ctx.executableBy),
@@ -428,7 +422,9 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   final override def exitShowTransactions(
     ctx: Cypher5Parser.ShowTransactionsContext
   ): Unit = {
-    ctx.ast = ctx.namesAndClauses().ast[ShowWrapper]().buildShowTransactions(pos(ctx.getParent))
+    ctx.ast = astOpt[ShowWrapper](ctx.namesAndClauses(), ShowWrapper())
+      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
+      .buildShowTransactions(pos(ctx.getParent))
   }
 
   final override def exitTerminateTransactions(
@@ -445,17 +441,14 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   final override def exitShowSettings(
     ctx: Cypher5Parser.ShowSettingsContext
   ): Unit = {
-    ctx.ast = ctx.namesAndClauses().ast[ShowWrapper]().buildSettingsClauses(pos(ctx.getParent))
+    ctx.ast = astOpt[ShowWrapper](ctx.namesAndClauses(), ShowWrapper()).buildSettingsClauses(pos(ctx.getParent))
   }
 
   override def exitNamesAndClauses(
     ctx: Cypher5Parser.NamesAndClausesContext
   ): Unit = {
     ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
-      .copy(
-        composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()),
-        names = astOpt[Either[List[String], Expression]](ctx.stringsOrExpression(), Left(List.empty))
-      )
+      .copy(names = astOpt[Either[List[String], Expression]](ctx.stringsOrExpression(), Left(List.empty)))
   }
 
   final override def exitStringsOrExpression(

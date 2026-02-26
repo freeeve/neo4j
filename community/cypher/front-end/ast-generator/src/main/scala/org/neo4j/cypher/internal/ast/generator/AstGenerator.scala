@@ -2473,29 +2473,19 @@ class AstGenerator(
     exec <- option(oneOf(CurrentUser, User(name)))
     yields <- _yield
     yieldAll <- boolean
-    clauseCypher5 <- oneOf(
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowProceduresClause(exec, None, item, all, Some(w))(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
-      (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowIndexesClause(indexType, None, item, all, Some(w))(pos)
+    clauseCypher5 <- const((item: List[CommandResultItem], all: Boolean, w: With) =>
+      ShowTransactionsClause(ids, None, item, all, Some(w), returnCypher5Types = true)(pos)
     )
     clauseCypher25orAbove <- oneOf(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
+        ShowTransactionsClause(ids, None, item, all, Some(w), returnCypher5Types = false)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowProceduresClause(exec, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
+        ShowConstraintsClause(constraintType, None, item, all, Some(w), returnCypher5Columns = false)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowIndexesClause(indexType, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>

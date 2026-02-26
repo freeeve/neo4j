@@ -53,7 +53,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     firstCommand: String,
     firstClause: CommandClauseWithNames,
     secondCommand: String,
-    secondClause: CommandClauseWithNames
+    secondClause: CommandClauseWithNames,
+    supportedInCypher5: Boolean = false
   )
 
   private case class CommandCombinationsNoNames(
@@ -61,7 +62,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     firstClause: CommandClauseNoNames,
     secondCommand: String,
     secondClause: CommandClauseNoNames,
-    supportedInCypher5: Boolean = true
+    supportedInCypher5: Boolean = false
   )
 
   private def showTx(
@@ -153,25 +154,29 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       "SHOW TRANSACTION",
       showTx: CommandClauseWithNames,
       "SHOW TRANSACTION",
-      showTx: CommandClauseWithNames
+      showTx: CommandClauseWithNames,
+      supportedInCypher5 = true
     ),
     CommandCombinationsWithNames(
       "SHOW TRANSACTION",
       showTx: CommandClauseWithNames,
       "TERMINATE TRANSACTION",
-      terminateTx: CommandClauseWithNames
+      terminateTx: CommandClauseWithNames,
+      supportedInCypher5 = true
     ),
     CommandCombinationsWithNames(
       "TERMINATE TRANSACTION",
       terminateTx: CommandClauseWithNames,
       "SHOW TRANSACTION",
-      showTx: CommandClauseWithNames
+      showTx: CommandClauseWithNames,
+      supportedInCypher5 = true
     ),
     CommandCombinationsWithNames(
       "TERMINATE TRANSACTION",
       terminateTx: CommandClauseWithNames,
       "TERMINATE TRANSACTION",
-      terminateTx: CommandClauseWithNames
+      terminateTx: CommandClauseWithNames,
+      supportedInCypher5 = true
     ),
     CommandCombinationsWithNames(
       "SHOW SETTING",
@@ -370,8 +375,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       )
     ) ++ Seq(
       // mixed show and terminate commands
@@ -437,15 +441,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW TRANSACTIONS 'db1-transaction-123'",
-        showTx(Right(literalString("db1-transaction-123")), _, _, _, _),
-        supportedInCypher5 = false
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // terminate transaction combined with remaining commands
       CommandCombinationsNoNames(
@@ -500,15 +502,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
-        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
-        supportedInCypher5 = false
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // show settings combined with remaining commands
       CommandCombinationsNoNames(
@@ -563,15 +563,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW SETTINGS $setting",
-        showSetting(Right(parameter("setting", CTAny)), _, _, _, _),
-        supportedInCypher5 = false
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       // show functions combined with remaining commands
       CommandCombinationsNoNames(
@@ -614,15 +612,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
         showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW FUNCTIONS",
-        showFunction(ast.AllFunctions, None, _, _, _, _),
-        supportedInCypher5 = false
+        showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       // show procedures combined with remaining commands
       CommandCombinationsNoNames(
@@ -653,15 +649,13 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW PROCEDURES",
-        showProcedure(None, _, _, _, _),
-        supportedInCypher5 = false
+        showProcedure(None, _, _, _, _)
       ),
       CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       // show constraints combined with remaining commands
       CommandCombinationsNoNames(
@@ -680,41 +674,38 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW ALL CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       ),
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW CONSTRAINTS",
-        showConstraint(ast.AllConstraints, _, _, _, _),
-        supportedInCypher5 = false
+        showConstraint(ast.AllConstraints, _, _, _, _)
       ),
       // show indexes combined with remaining commands
       CommandCombinationsNoNames(
         "SHOW CURRENT GRAPH TYPE",
         showCurrentGraphType,
         "SHOW INDEXES",
-        showIndex(ast.AllIndexes, _, _, _, _),
-        supportedInCypher5 = false
+        showIndex(ast.AllIndexes, _, _, _, _)
       ),
       CommandCombinationsNoNames(
         "SHOW FULLTEXT INDEXES",
         showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW CURRENT GRAPH TYPE",
-        showCurrentGraphType,
-        supportedInCypher5 = false
+        showCurrentGraphType
       )
     )
 
   private val commandCombinationsAll: Seq[CommandCombinationsNoNames] =
     commandCombinationsAllowingStringExpressions.map {
-      case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause) =>
+      case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause, supportedInCypher5) =>
         CommandCombinationsNoNames(
           s"$firstCommand 'txId1'",
           firstClause(Right(literalString("txId1")), _, _, _, _),
           s"$secondCommand 'txId2'",
-          secondClause(Right(literalString("txId2")), _, _, _, _)
+          secondClause(Right(literalString("txId2")), _, _, _, _),
+          supportedInCypher5
         )
     } ++ commandCombinationsWithoutExpressions
 
@@ -1153,9 +1144,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   commandCombinationsAllowingStringExpressions.foreach {
-    case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause) =>
+    case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause, supportedInCypher5) =>
       test(s"$firstCommand 'db1-transaction-123' $secondCommand 'db1-transaction-123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(defaultPos),
           secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos)
         )
@@ -1164,7 +1156,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand 'db1-transaction-123', 'db1-transaction-123' $secondCommand 'db1-transaction-123', 'db1-transaction-123'"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Left(List("db1-transaction-123", "db1-transaction-123")),
             None,
@@ -1177,14 +1170,16 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand $$txId $secondCommand $$txId") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(defaultPos),
           secondClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos)
         )
       }
 
       test(s"$firstCommand 'id' WHERE transactionId = '123' $secondCommand 'db1-transaction-123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
@@ -1197,7 +1192,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand 'id' $secondCommand 'db1-transaction-123' WHERE transactionId = '123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(Right(literalString("id")), None, false, List.empty, None)(defaultPos),
           secondClause(
             Right(literalString("db1-transaction-123")),
@@ -1214,7 +1210,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       ) {
         val where1Pos = getWherePosition()
         val where2Pos = getWherePosition(where1Pos.offset + 1)
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             Some((where(equals(varFor("transactionId"), literalString("123"))), where1Pos)),
@@ -1233,7 +1230,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand 'id' YIELD transactionId AS txId $secondCommand 'db1-transaction-123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1246,7 +1244,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand 'id' $secondCommand 'db1-transaction-123' YIELD transactionId AS txId") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(Right(literalString("id")), None, false, List.empty, None)(defaultPos),
           secondClause(
             Right(literalString("db1-transaction-123")),
@@ -1261,7 +1260,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand 'id' YIELD transactionId AS txId $secondCommand 'db1-transaction-123' YIELD username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1282,7 +1282,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand 'id' YIELD transactionId AS txId RETURN txId $secondCommand 'db1-transaction-123' YIELD username RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1305,7 +1306,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand 'id' YIELD transactionId AS txId $secondCommand 'db1-transaction-123' YIELD username RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1331,7 +1333,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
            |YIELD username, message
            |RETURN *""".stripMargin
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("db1-transaction-123")),
             None,
@@ -1360,14 +1363,21 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // more commands per query
 
       commandCombinationsAllowingStringExpressions.foreach {
-        case CommandCombinationsWithNames(thirdCommand, thirdClause, fourthCommand, fourthClause) =>
+        case CommandCombinationsWithNames(
+            thirdCommand,
+            thirdClause,
+            fourthCommand,
+            fourthClause,
+            secondSupportedInCypher5
+          ) =>
           test(
             s"""$firstCommand 'db1-transaction-123'
                |${secondCommand}S 'db1-transaction-123'
                |$thirdCommand 'db1-transaction-123'
                |${fourthCommand}S 'db1-transaction-123'""".stripMargin
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(defaultPos),
               secondClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos),
               thirdClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(pos),
@@ -1378,7 +1388,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           test(
             s"${firstCommand}S $$txId $secondCommand $$txId ${thirdCommand}S $$txId $fourthCommand $$txId"
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(defaultPos),
               secondClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos),
               thirdClause(Right(parameter("txId", CTAny)), None, false, List.empty, None)(pos),
@@ -1396,7 +1407,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |$fourthCommand 'db1-transaction-123'
                |YIELD *""".stripMargin
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(
                 Right(literalString("db1-transaction-123")),
                 None,
@@ -1439,7 +1451,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |YIELD transactionId AS txId, message AS status
                |RETURN *""".stripMargin
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(
                 Right(literalString("db1-transaction-123")),
                 None,
@@ -1489,7 +1502,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             val where2Pos = getWherePosition(where1Pos.offset + 1)
             val where3Pos = getWherePosition(where2Pos.offset + 1)
             val where4Pos = getWherePosition(where3Pos.offset + 1)
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(
                 Right(literalString("db1-transaction-123")),
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
@@ -1525,7 +1539,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // general expression and not just string/param
 
       test(s"${firstCommand}S 'id' YIELD transactionId AS txId $secondCommand txId") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1538,7 +1553,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"${firstCommand}S foo YIELD transactionId AS show $secondCommand show") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(varFor("foo")),
             None,
@@ -1553,7 +1569,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"${firstCommand}S ['db1-transaction-123', 'db2-transaction-456'] YIELD transactionId AS show $secondCommand show"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(listOfString("db1-transaction-123", "db2-transaction-456")),
             None,
@@ -1566,7 +1583,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"${firstCommand}S 'id' YIELD transactionId AS txId $secondCommand txId + '123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(literalString("id")),
             None,
@@ -1579,7 +1597,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"${firstCommand}S yield YIELD transactionId AS show $secondCommand show") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Right(varFor("yield")),
             None,
@@ -1674,7 +1693,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       "SHOW CONSTRAINTS YIELD a7, b7 AS c7, d7 AS d7, e7 AS f7, g7 AS e7 ORDER BY a7, b7, d7, e7 WHERE a7 AND b7 AND d7 AND e7 " +
       "RETURN *"
   ) {
-    assertAst(
+    assertAstVersionAware(
+      supportedInCypher5 = false,
       showTx(
         Left(List.empty),
         None,
@@ -2223,7 +2243,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       "SHOW CONSTRAINTS YIELD a " +
       "RETURN *"
   ) {
-    assertAst(
+    assertAstVersionAware(
+      supportedInCypher5 = false,
       showTx(
         Left(List.empty),
         None,
@@ -2735,9 +2756,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -2746,9 +2766,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW CONSTRAINTS SHOW CONSTRAINTS VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
@@ -2792,9 +2811,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW FUNCTIONS SHOW CONSTRAINTS BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -2803,9 +2821,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW PROCEDURES SHOW CONSTRAINTS VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
@@ -2862,9 +2879,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES SHOW INDEXES BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -2873,9 +2889,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW INDEXES SHOW INDEXES VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
@@ -2922,9 +2937,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW FUNCTIONS SHOW INDEXES BRIEF") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -2933,9 +2947,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
   test("SHOW PROCEDURES SHOW INDEXES VERBOSE") {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withOldSyntax(
-          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
-            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'SHOW': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> ("
         )
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
@@ -3089,14 +3102,22 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   test("SHOW FUNCTIONS TERMINATE TRANSACTION") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input '': expected a string or an expression (line 1, column 37 (offset: 36))
-        |"SHOW FUNCTIONS TERMINATE TRANSACTION"
-        |                                     ^""".stripMargin
-    )
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'TERMINATE': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
+            |"SHOW FUNCTIONS TERMINATE TRANSACTION"
+            |                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected a string or an expression (line 1, column 37 (offset: 36))
+            |"SHOW FUNCTIONS TERMINATE TRANSACTION"
+            |                                     ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW TRANSACTIONS TERMINATE TRANSACTION") {
+    // missing id for terminate transaction
     failsParsing[ast.Statements].withSyntaxError(
       """Invalid input '': expected a string or an expression (line 1, column 40 (offset: 39))
         |"SHOW TRANSACTIONS TERMINATE TRANSACTION"

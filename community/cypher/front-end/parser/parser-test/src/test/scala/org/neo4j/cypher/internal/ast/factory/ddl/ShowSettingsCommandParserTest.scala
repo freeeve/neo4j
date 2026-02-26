@@ -608,19 +608,33 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
   }
 
   test("SHOW SETTING $foo, $bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
-        |"SHOW SETTING $foo, $bar"
-        |                  ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input ',': expected an expression, 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+            |"SHOW SETTING $foo, $bar"
+            |                  ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+            |"SHOW SETTING $foo, $bar"
+            |                  ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW SETTING $foo $bar") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '$': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
-        |"SHOW SETTING $foo $bar"
-        |                   ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '$': expected an expression, 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
+            |"SHOW SETTING $foo $bar"
+            |                   ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '$': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
+            |"SHOW SETTING $foo $bar"
+            |                   ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW SETTING 'bar', $foo") {
@@ -632,19 +646,33 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
   }
 
   test("SHOW SETTING $foo, 'bar'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
-        |"SHOW SETTING $foo, 'bar'"
-        |                  ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input ',': expected an expression, 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+            |"SHOW SETTING $foo, 'bar'"
+            |                  ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+            |"SHOW SETTING $foo, 'bar'"
+            |                  ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW SETTING 'foo' 'bar'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input ''bar'': expected an expression, ',', 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 20 (offset: 19))
-        |"SHOW SETTING 'foo' 'bar'"
-        |                    ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input ''bar'': expected an expression, ',', 'WHERE', 'YIELD' or <EOF> (line 1, column 20 (offset: 19))
+            |"SHOW SETTING 'foo' 'bar'"
+            |                    ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input ''bar'': expected an expression, ',', 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 20 (offset: 19))
+            |"SHOW SETTING 'foo' 'bar'"
+            |                    ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW SETTINGS YIELD (123 + xyz) AS foo") {

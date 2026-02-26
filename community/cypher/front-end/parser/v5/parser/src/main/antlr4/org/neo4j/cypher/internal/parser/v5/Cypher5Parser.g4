@@ -890,14 +890,7 @@ composableCommandClauses
    ;
 
 composableShowCommandClauses
-   : SHOW (
-      showIndexCommand
-      | showConstraintCommand
-      | showFunctions
-      | showProcedures
-      | showSettings
-      | showTransactions
-   )
+   : SHOW showTransactions
    ;
 
 showBriefAndYield
@@ -919,11 +912,11 @@ showIndexCommand
    ;
 
 showIndexesAllowBrief
-   : indexToken showBriefAndYield? composableCommandClauses?
+   : indexToken showBriefAndYield?
    ;
 
 showIndexesNoBrief
-   : indexToken showCommandYield? composableCommandClauses?
+   : indexToken showCommandYield?
    ;
 
 showConstraintCommand
@@ -957,23 +950,23 @@ constraintBriefAndYieldType
    ;
 
 showConstraintsAllowBriefAndYield
-   : constraintToken showBriefAndYield? composableCommandClauses?
+   : constraintToken showBriefAndYield?
    ;
 
 showConstraintsAllowBrief
-   : constraintToken ((BRIEF | VERBOSE) OUTPUT?)? composableCommandClauses?
+   : constraintToken ((BRIEF | VERBOSE) OUTPUT?)?
    ;
 
 showConstraintsAllowYield
-   : constraintToken showCommandYield? composableCommandClauses?
+   : constraintToken showCommandYield?
    ;
 
 showProcedures
-   : (PROCEDURE | PROCEDURES) executableBy? showCommandYield? composableCommandClauses?
+   : (PROCEDURE | PROCEDURES) executableBy? showCommandYield?
    ;
 
 showFunctions
-   : showFunctionsType? functionToken executableBy? showCommandYield? composableCommandClauses?
+   : showFunctionsType? functionToken executableBy? showCommandYield?
    ;
 
 functionToken
@@ -991,7 +984,7 @@ showFunctionsType
    ;
 
 showTransactions
-   : transactionToken namesAndClauses
+   : transactionToken namesAndClauses? composableCommandClauses?
    ;
 
 terminateTransactions
@@ -999,7 +992,7 @@ terminateTransactions
    ;
 
 showSettings
-   : settingToken namesAndClauses
+   : settingToken namesAndClauses?
    ;
 
 settingToken
@@ -1007,7 +1000,8 @@ settingToken
    ;
 
 namesAndClauses
-   : (showCommandYield? | stringsOrExpression showCommandYield?) composableCommandClauses?
+   : showCommandYield
+   | stringsOrExpression showCommandYield?
    ;
 
 stringsOrExpression

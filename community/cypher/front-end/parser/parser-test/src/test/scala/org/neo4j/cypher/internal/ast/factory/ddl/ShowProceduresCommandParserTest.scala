@@ -512,11 +512,18 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
   }
 
   test("SHOW PROCEDURE EXEC") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'EXEC': expected 'EXECUTABLE', 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
-        |"SHOW PROCEDURE EXEC"
-        |                ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'EXEC': expected 'EXECUTABLE', 'WHERE', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
+            |"SHOW PROCEDURE EXEC"
+            |                ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'EXEC': expected 'EXECUTABLE', 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
+            |"SHOW PROCEDURE EXEC"
+            |                ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW PROCEDURE EXECUTABLE BY") {
@@ -647,16 +654,26 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
     }
 
     test(s"$prefix SHOW PROCEDURES YIELD a WITH a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+          )
+      }
 
     }
 
     test(s"$prefix SHOW PROCEDURES YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+          )
+      }
 
     }
 
@@ -715,10 +732,17 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
   }
 
   test("SHOW PROCEDURE YIELD name ORDER BY name AST RETURN *") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'AST': expected an expression, ',', 'ASC', 'ASCENDING', 'DESC', 'DESCENDING', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (line 1, column 41 (offset: 40))
-        |"SHOW PROCEDURE YIELD name ORDER BY name AST RETURN *"
-        |                                         ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'AST': expected an expression, ',', 'ASC', 'ASCENDING', 'DESC', 'DESCENDING', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF> (line 1, column 41 (offset: 40))
+            |"SHOW PROCEDURE YIELD name ORDER BY name AST RETURN *"
+            |                                         ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'AST': expected an expression, ',', 'ASC', 'ASCENDING', 'DESC', 'DESCENDING', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (line 1, column 41 (offset: 40))
+            |"SHOW PROCEDURE YIELD name ORDER BY name AST RETURN *"
+            |                                         ^""".stripMargin
+        )
+    }
   }
 }

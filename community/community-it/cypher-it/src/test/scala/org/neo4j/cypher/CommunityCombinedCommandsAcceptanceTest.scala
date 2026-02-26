@@ -20,12 +20,16 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.CommunityShowFuncProcAcceptanceTest.readAll
-import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparsesable_42I67
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.RuntimeUnsupportedException
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.kernel.api.procedure.GlobalProcedures
@@ -39,7 +43,8 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
 
   override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.composable_commands -> TRUE,
-    GraphDatabaseInternalSettings.graph_type_enabled -> TRUE
+    GraphDatabaseInternalSettings.graph_type_enabled -> TRUE,
+    GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25
   )
 
   override protected def onNewGraphDatabase(): Unit = {
@@ -52,13 +57,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   private val funcResourceUrl = getClass.getResource("/builtInFunctions.json")
   if (funcResourceUrl == null) throw new NoSuchFileException(s"File not found: builtInFunctions.json")
 
-  private val builtInFunctionsNamesCypher5 =
-    readAll(funcResourceUrl)
-      .filterNot(m => m.getOrElse("enterpriseOnly", false).asInstanceOf[Boolean])
-      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
-      .map(m => m("name").asInstanceOf[String])
-
-  private val builtInFunctionsNamesCypher25 =
+  private val builtInFunctionsNames =
     readAll(funcResourceUrl)
       .filterNot(m => m.getOrElse("enterpriseOnly", false).asInstanceOf[Boolean])
       .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
@@ -66,29 +65,16 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
 
   private val userDefinedFunctionsNames = List("test.function", "test.functionWithInput", "test.return.latest")
 
-  private val allFunctionsNamesCypher5 = (builtInFunctionsNamesCypher5 ++ userDefinedFunctionsNames).sorted
-  private val allFunctionsNamesCypher25 = (builtInFunctionsNamesCypher25 ++ userDefinedFunctionsNames).sorted
+  private val allFunctionsNames = (builtInFunctionsNames ++ userDefinedFunctionsNames).sorted
 
   private val procResourceUrl = getClass.getResource("/procedures.json")
   if (procResourceUrl == null) throw new NoSuchFileException(s"File not found: procedures.json")
 
-  private val allProceduresNamesCypher5 =
-    readAll(procResourceUrl)
-      .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
-      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
-      .map(m => m("name").asInstanceOf[String])
-
-  private val allProceduresNamesCypher25 =
+  private val allProceduresNames =
     readAll(procResourceUrl)
       .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
       .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
       .map(m => m("name").asInstanceOf[String])
-
-  private val defaultUsesCypher5 = dbmsDefaultQueryLanguage == CypherVersion.Cypher5
-
-  private val builtInFunctionsNames =
-    if (defaultUsesCypher5) builtInFunctionsNamesCypher5 else builtInFunctionsNamesCypher25
-  private val allFunctionsNames = if (defaultUsesCypher5) allFunctionsNamesCypher5 else allFunctionsNamesCypher25
 
   // Tests
 
@@ -395,7 +381,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       ).toList
 
       // THEN
-      val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
+      val expected = allProceduresNames.map(pName =>
         Map(
           "txId" -> unwindTransactionId,
           "name" -> pName
@@ -424,7 +410,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       ).toList
 
       // THEN
-      val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
+      val expected = allProceduresNames.map(pName =>
         Map(
           "name" -> pName,
           "txId" -> unwindTransactionId,
@@ -450,7 +436,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
     ).toList
 
     // THEN
-    val expected = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).map(pName =>
+    val expected = allProceduresNames.map(pName =>
       Map(
         "procedure" -> pName,
         "setting" -> expectedSetting("name"),
@@ -462,7 +448,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
 
   test("Should show functions and show procedures") {
     // GIVEN
-    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
+    val expectedProcedure = allProceduresNames.head
 
     val result = execute(
       s"""SHOW FUNCTIONS
@@ -579,7 +565,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should show constraints and show procedures") {
     // GIVEN
     graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
-    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
+    val expectedProcedure = allProceduresNames.head
 
     val result = execute(
       s"""SHOW CONSTRAINTS
@@ -696,7 +682,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should show indexes and show procedures") {
     // GIVEN
     graph.createNodeIndexWithName("my_index", "L", "p")
-    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
+    val expectedProcedure = allProceduresNames.head
 
     val result = execute(
       s"""SHOW RANGE INDEXES
@@ -747,7 +733,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   test("Should combine all show and terminate commands") {
     // GIVEN
     val expectedSetting = allSettings(graph).head
-    val expectedProcedure = (if (defaultUsesCypher5) allProceduresNamesCypher5 else allProceduresNamesCypher25).head
+    val expectedProcedure = allProceduresNames.head
     graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
     graph.createRelationshipIndexWithName("my_index", "L", "p")
     val (unwindQuery, latch) = setupUserWithOneTransaction(Map("setting" -> expectedSetting("name")))
@@ -788,124 +774,57 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
         "message" -> "Transaction terminated.",
         "function" -> "test.return.latest",
         "constraint" -> "my_constraint",
-        "constraintType" -> (if (defaultUsesCypher5) "UNIQUENESS" else "NODE_PROPERTY_UNIQUENESS")
+        "constraintType" -> "NODE_PROPERTY_UNIQUENESS"
       )))
     } finally {
       latch.finishAndWaitForAllToFinish()
     }
   }
 
-  test("Combine commands with Cypher versions") {
-    // GIVEN
-    val cypherVersions =
-      (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName}", cv.equals(CypherVersion.Cypher5)))
-        :+ ("", defaultUsesCypher5))
-    val expectedSetting = allSettings(graph).head
-    // Cypher 5 has three procedures with 'status' in the name, Cypher 25 only has two
-    val expectedProceduresCypher5 = allProceduresNamesCypher5.filter(_.toLowerCase.contains("status"))
-    expectedProceduresCypher5 should have size 3
-    val expectedProcedureCypher25 = allProceduresNamesCypher25.filter(_.toLowerCase.contains("status"))
-    expectedProcedureCypher25 should have size 2
-    graph.createNodeUniquenessConstraintWithName("my_constraint", "L", "p")
-    graph.createRelationshipIndexWithName("my_index", "L", "p")
-    createUser()
+  test("Should fail to combine commands other than show and terminate transaction in Cypher 5") {
+    // THEN
+    List(
+      (s"SHOW TRANSACTIONS YIELD database AS db1 WHERE db1 <> '$SYSTEM_DATABASE_NAME'", true),
+      ("TERMINATE TRANSACTION 'foo-transaction-123' YIELD message AS message1", true),
+      ("SHOW PROCEDURES YIELD name AS procedure1", false),
+      ("SHOW FUNCTIONS YIELD name AS function1", false),
+      ("SHOW SETTINGS YIELD name AS setting1", false),
+      ("SHOW INDEXES YIELD name AS index1", false),
+      ("SHOW CONSTRAINTS YIELD name AS constraint1", false)
+    ).foreach { case (firstCommand, firstAllowedComposed) =>
+      List(
+        (s"SHOW TRANSACTIONS YIELD database AS db2 WHERE db2 <> '$SYSTEM_DATABASE_NAME'", true),
+        ("TERMINATE TRANSACTION 'foo-transaction-123' YIELD message AS message2", true),
+        ("SHOW PROCEDURES YIELD name AS procedure2", false),
+        ("SHOW FUNCTIONS YIELD name AS function2", false),
+        ("SHOW SETTINGS YIELD name AS setting2", false),
+        ("SHOW INDEXES YIELD name AS index2", false),
+        ("SHOW CONSTRAINTS YIELD name AS constraint2", false)
+      ).foreach { case (secondCommand, secondAllowedComposed) =>
+        val query = s"CYPHER 5 $firstCommand $secondCommand RETURN *"
+        withClue(query) {
+          if (firstAllowedComposed && secondAllowedComposed) {
+            // Only show and terminate transactions are allowed regardless of Cypher version
+            // Should see the current transaction in show and `Transaction not found.` for terminate
+            execute(query).toList should not be empty
+          } else {
+            // Commands including anything else should fail
+            // WHEN
+            val exception = the[SyntaxException] thrownBy {
+              execute(query)
+            }
 
-    cypherVersions.foreach { case (cypherVersionString, usesCypher5) =>
-      withClue(if (cypherVersionString.isEmpty) "default" else cypherVersionString) {
-        // GIVEN
-        val expectedProcedures = if (usesCypher5) expectedProceduresCypher5 else expectedProcedureCypher25
-        val expectedConstraintType = if (usesCypher5) "UNIQUENESS" else "NODE_PROPERTY_UNIQUENESS"
-        val (unwindQuery, latch) = setupUserWithOneTransaction(
-          Map("setting" -> expectedSetting("name")),
-          usePreExistingUser = true
-        )
-
-        execute(
-          s"""$cypherVersionString
-             |SHOW PROCEDURES
-             |YIELD name AS procedure
-             |ORDER BY procedure
-             |WHERE toLower(procedure) CONTAINS 'status'""".stripMargin
-        ).toList should be(expectedProcedures.sorted.map(p => Map("procedure" -> p)))
-        execute(
-          s"""$cypherVersionString
-             |SHOW RANGE INDEXES
-             |YIELD name AS index, entityType, owningConstraint
-             |WHERE owningConstraint IS NULL
-             |RETURN index, entityType""".stripMargin
-        ).toList should be(List(Map("index" -> "my_index", "entityType" -> "RELATIONSHIP")))
-        execute(
-          s"""$cypherVersionString
-             |SHOW SETTING '${expectedSetting("name")}'
-             |YIELD name AS setting, value""".stripMargin
-        ).toList should be(List(Map("setting" -> expectedSetting("name"), "value" -> expectedSetting("value"))))
-        execute(
-          s"""$cypherVersionString
-             |SHOW USER DEFINED FUNCTIONS EXECUTABLE
-             |YIELD name AS function
-             |WHERE function CONTAINS 'return'""".stripMargin
-        ).toList should be(List(Map("function" -> "test.return.latest")))
-        execute(
-          s"""$cypherVersionString
-             |SHOW CONSTRAINTS
-             |YIELD name AS constraint, type
-             |RETURN constraint, type AS constraintType""".stripMargin
-        ).toList should be(List(Map("constraint" -> "my_constraint", "constraintType" -> expectedConstraintType)))
-
-        try {
-          val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
-
-          val expectedValuesMap: Map[String, Object] = Map(
-            "txId" -> unwindTransactionId,
-            "parameters" -> Map("setting" -> expectedSetting("name"))
-          )
-          execute(
-            s"""$cypherVersionString
-               |SHOW TRANSACTION '$unwindTransactionId'
-               |YIELD transactionId AS txId, parameters""".stripMargin
-          ).toList should be(List(expectedValuesMap))
-
-          // WHEN
-          val result = execute(
-            s"""$cypherVersionString
-               |SHOW TRANSACTION '$unwindTransactionId'
-               |YIELD transactionId AS txId, parameters
-               |SHOW PROCEDURES
-               |YIELD name AS procedure
-               |WHERE toLower(procedure) CONTAINS 'status'
-               |SHOW RANGE INDEXES
-               |YIELD name AS index, entityType, owningConstraint
-               |WHERE owningConstraint IS NULL
-               |SHOW SETTING parameters.setting
-               |YIELD name AS setting, value
-               |TERMINATE TRANSACTION txId
-               |YIELD message
-               |SHOW USER DEFINED FUNCTIONS EXECUTABLE
-               |YIELD name AS function
-               |WHERE function CONTAINS 'return'
-               |SHOW CONSTRAINTS
-               |YIELD name AS constraint, type
-               |RETURN txId, procedure, setting, value, message, function, constraint, type AS constraintType, index, entityType
-               |ORDER BY procedure""".stripMargin
-          ).toList
-
-          // THEN
-          result should be(expectedProcedures.map(expectedProcedure =>
-            Map(
-              "txId" -> unwindTransactionId,
-              "procedure" -> expectedProcedure,
-              "index" -> "my_index",
-              "entityType" -> "RELATIONSHIP",
-              "setting" -> expectedSetting("name"),
-              "value" -> expectedSetting("value"),
-              "message" -> "Transaction terminated.",
-              "function" -> "test.return.latest",
-              "constraint" -> "my_constraint",
-              "constraintType" -> expectedConstraintType
-            )
-          ).sortBy(m => m("procedure").asInstanceOf[String]))
-        } finally {
-          latch.finishAndWaitForAllToFinish()
+            // THEN
+            exception should be(gqlException(
+              "Invalid input '",
+              InvalidSyntaxStatus.withCause(gqlStatus(
+                GqlStatusInfoCodes.STATUS_42I06,
+                "error: syntax error or access rule violation - invalid input. Invalid input '",
+                fuzzyStatusDescr = true
+              ).withCause(Reparsesable_42I67)),
+              fuzzyMsg = true
+            ))
+          }
         }
       }
     }

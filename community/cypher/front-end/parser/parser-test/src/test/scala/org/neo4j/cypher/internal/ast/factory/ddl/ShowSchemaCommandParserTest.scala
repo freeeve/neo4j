@@ -707,7 +707,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test("SHOW INDEX OUTPUT") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'OUTPUT': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
+          "Invalid input 'OUTPUT': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'OUTPUT': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -1627,7 +1627,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   test("SHOW CONSTRAINTS OUTPUT") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'OUTPUT': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
+          "Invalid input 'OUTPUT': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
         )
       case _ =>
         _.withSyntaxErrorContaining("Invalid input 'OUTPUT': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
@@ -1691,7 +1691,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
       // Can't parse WITH after SHOW
       failsParsing[Statements].in {
         case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
+            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
           )
         case _ => _.withSyntaxErrorContaining(
             """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
@@ -1713,7 +1713,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     test(s"$prefix SHOW $entity RETURN name as numIndexes") {
       failsParsing[Statements].in {
         case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
+            """Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
           )
         case _ => _.withSyntaxErrorContaining(
             """Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
@@ -1724,7 +1724,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     test(s"$prefix SHOW $entity WITH 1 as c RETURN name as numIndexes") {
       failsParsing[Statements].in {
         case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
+            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
           )
         case _ => _.withSyntaxErrorContaining(
             """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
@@ -1735,7 +1735,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     test(s"$prefix SHOW $entity WITH 1 as c") {
       failsParsing[Statements].in {
         case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
+            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
           )
         case _ => _.withSyntaxErrorContaining(
             """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
@@ -1744,21 +1744,31 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     }
 
     test(s"$prefix SHOW $entity YIELD a WITH a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>"""
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
+          )
+      }
     }
 
     test(s"$prefix SHOW $entity YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>"""
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
+          )
+      }
     }
 
     test(s"$prefix SHOW $entity RETURN name2 YIELD name2") {
       failsParsing[Statements].in {
         case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'BRIEF', 'SHOW', 'TERMINATE', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
+            """Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
           )
         case _ => _.withSyntaxErrorContaining(
             """Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
@@ -1793,10 +1803,16 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   private def assertFailsOnBriefVerboseNeverAllowed(keyword: String) = {
-    failsParsing[Statements]
-      .withSyntaxErrorContaining(
-        s"Invalid input '$keyword': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
-      )
+    failsParsing[Statements].in {
+      case Cypher5 =>
+        _.withSyntaxErrorContaining(
+          s"Invalid input '$keyword': expected 'WHERE', 'YIELD' or <EOF>"
+        )
+      case _ =>
+        _.withSyntaxErrorContaining(
+          s"Invalid input '$keyword': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
   }
 
   private def assertFailsOnBriefVerboseWhenIntroducedInCypher25(keyword: String, constraintTypeKeyword: String) = {

@@ -2228,21 +2228,27 @@ class PrettifierIT extends AbstractPrettifierTest {
         |  SKIP 1
         |  LIMIT 1
         |RETURN *""".stripMargin,
-    "show indexes show constraints" ->
+    FailsInCypher5(
+      "show indexes show constraints",
       """SHOW ALL INDEXES
-        |SHOW ALL CONSTRAINTS""".stripMargin,
-    "show procedures yield name as proc show functions yield name as func return proc, func" ->
+        |SHOW ALL CONSTRAINTS""".stripMargin
+    ),
+    FailsInCypher5(
+      "show procedures yield name as proc show functions yield name as func return proc, func",
       """SHOW PROCEDURES
         |YIELD name AS proc
         |SHOW ALL FUNCTIONS
         |YIELD name AS func
-        |RETURN proc, func""".stripMargin,
-    "show settings where name = 'setting' show transactions txId yield * return name" ->
+        |RETURN proc, func""".stripMargin
+    ),
+    FailsInCypher5(
+      "show settings where name = 'setting' show transactions txId yield * return name",
       """SHOW SETTINGS
         |  WHERE name = "setting"
         |SHOW TRANSACTIONS txId
         |YIELD *
         |RETURN name""".stripMargin
+    )
   )
 
   def userCommandTests(): Seq[Test] = Seq[Test](

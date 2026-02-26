@@ -745,15 +745,25 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
     }
 
     test(s"$prefix SHOW FUNCTIONS YIELD a WITH a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+          )
+      }
     }
 
     test(s"$prefix SHOW FUNCTIONS YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
+          )
+      }
     }
 
     test(s"$prefix SHOW FUNCTIONS RETURN name2 YIELD name2") {
