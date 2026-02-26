@@ -31,10 +31,10 @@ public class DataAfterQuoteException extends GqlRuntimeException
         implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
     private static final String messageTemplate =
             "Characters after an ending quote in a CSV field are not supported. See '%s' at position %s. This is read as `%s`.";
-    private static SourceTraceability source;
-    private static String sourceDescription;
-    private static long position;
-    private static String readValue;
+    private final SourceTraceability source;
+    private final String sourceDescription;
+    private final long position;
+    private final String readValue;
 
     public DataAfterQuoteException(SourceTraceability source, String readValue) {
         super(

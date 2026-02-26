@@ -31,9 +31,9 @@ public class IllegalMultilineFieldException extends GqlRuntimeException
         implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
     private static final String messageTemplate =
             "Multi-line fields are illegal in this context. Verify that there is not a missing end quote in '%s' at position %s.";
-    private static SourceTraceability source;
-    private static String sourceDescription;
-    private static long position;
+    private final SourceTraceability source;
+    private final String sourceDescription;
+    private final long position;
 
     public IllegalMultilineFieldException(SourceTraceability source) {
         super(
