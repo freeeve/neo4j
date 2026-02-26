@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import static java.util.Collections.emptyList;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.counts_store_max_cached_entries;
 import static org.neo4j.function.ThrowingAction.executeAll;
 import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.handleRecordStorageCommands;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.ID;
@@ -50,13 +51,15 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.counts.CountsStore;
 import org.neo4j.counts.CountsUpdater;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.CountsStoreProvider;
-import org.neo4j.internal.counts.DegreeStoreProvider;
 import org.neo4j.internal.counts.DegreesRebuildFromStore;
+import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
+import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
 import org.neo4j.internal.counts.RelationshipGroupDegreesStore;
 import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.diagnostics.DiagnosticsManager;
@@ -268,8 +271,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                     recoveryCleanupWorkCollector,
                     config,
                     contextFactory,
-                    pageCacheTracer,
-                    versionStorage);
+                    pageCacheTracer);
 
             consistencyCheckApply = config.get(GraphDatabaseInternalSettings.consistency_check_on_apply);
             storeEntityCounters = new RecordDatabaseEntityCounters(idGeneratorFactory, countsStore);
@@ -342,28 +344,31 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             Config config,
             CursorContextFactory contextFactory,
-            PageCacheTracer pageCacheTracer,
-            VersionStorage versionStorage) {
-        return DegreeStoreProvider.getInstance()
-                .openDegreesStore(
-                        pageCache,
-                        fs,
-                        layout,
-                        userLogProvider,
-                        recoveryCleanupWorkCollector,
-                        config,
-                        contextFactory,
-                        pageCacheTracer,
-                        new DegreesRebuildFromStore(
-                                neoStores,
-                                databaseLayout,
-                                logMetadataProvider,
-                                contextFactory,
-                                internalLogProvider,
-                                Configuration.DEFAULT),
-                        getOpenOptions(),
-                        false,
-                        versionStorage);
+            PageCacheTracer pageCacheTracer) {
+        try {
+            return new GBPTreeRelationshipGroupDegreesStore(
+                    pageCache,
+                    layout.relationshipGroupDegreesStore(),
+                    fs,
+                    recoveryCleanupWorkCollector,
+                    new DegreesRebuildFromStore(
+                            neoStores,
+                            databaseLayout,
+                            logMetadataProvider,
+                            contextFactory,
+                            internalLogProvider,
+                            Configuration.DEFAULT),
+                    false,
+                    GBPTreeGenericCountsStore.NO_MONITOR,
+                    layout.getDatabaseName(),
+                    config.get(counts_store_max_cached_entries),
+                    userLogProvider,
+                    contextFactory,
+                    pageCacheTracer,
+                    getOpenOptions());
+        } catch (IOException e) {
+            throw new UnderlyingStorageException(e);
+        }
     }
 
     @Override

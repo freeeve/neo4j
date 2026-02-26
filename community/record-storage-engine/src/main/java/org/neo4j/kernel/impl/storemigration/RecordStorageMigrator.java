@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.storemigration;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.neo4j.batchimport.api.Configuration.defaultConfiguration;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.counts_store_max_cached_entries;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.createMigrationTargetSchemaRuleAccess;
@@ -67,9 +68,11 @@ import org.neo4j.internal.batchimport.staging.CoarseBoundedProgressExecutionMoni
 import org.neo4j.internal.batchimport.staging.ExecutionMonitor;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.CountsStoreProvider;
-import org.neo4j.internal.counts.DegreeStoreProvider;
 import org.neo4j.internal.counts.DegreeUpdater;
 import org.neo4j.internal.counts.DegreesRebuilder;
+import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
+import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
+import org.neo4j.internal.counts.RelationshipGroupDegreesStore;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -821,20 +824,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 return txIdBeforeMigration;
             }
         };
-        try (var degreesStore = DegreeStoreProvider.getInstance()
-                        .openDegreesStore(
-                                pageCache,
-                                fileSystem,
-                                recordLayout,
-                                logService.getInternalLogProvider(),
-                                immediate(),
-                                Config.defaults(),
-                                contextFactory,
-                                pageCacheTracer,
-                                degreesBuilder,
-                                openOptions,
-                                false,
-                                VersionStorage.EMPTY_STORAGE);
+        try (var degreesStore = openDegreeStore(recordLayout, degreesBuilder, openOptions);
                 var context = contextFactory.create("update group degrees store");
                 var flushEvent = pageCacheTracer.beginFileFlush()) {
             degreesStore.start(context, EmptyMemoryTracker.INSTANCE);
@@ -849,6 +839,25 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
         if (formatsHaveDifferentStoreCapabilities) {
             fileSystem.delete(recordLayout.indexStatisticsStore());
         }
+    }
+
+    private RelationshipGroupDegreesStore openDegreeStore(
+            RecordDatabaseLayout recordLayout, DegreesRebuilder degreesBuilder, ImmutableSet<OpenOption> openOptions)
+            throws IOException {
+        return new GBPTreeRelationshipGroupDegreesStore(
+                pageCache,
+                recordLayout.relationshipGroupDegreesStore(),
+                fileSystem,
+                immediate(),
+                degreesBuilder,
+                false,
+                GBPTreeGenericCountsStore.NO_MONITOR,
+                recordLayout.getDatabaseName(),
+                Config.defaults().get(counts_store_max_cached_entries),
+                logService.getInternalLogProvider(),
+                contextFactory,
+                pageCacheTracer,
+                openOptions);
     }
 
     private CountsStore openCountsStore(

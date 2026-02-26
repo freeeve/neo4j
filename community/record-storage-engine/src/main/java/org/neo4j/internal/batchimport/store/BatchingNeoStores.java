@@ -22,6 +22,7 @@ package org.neo4j.internal.batchimport.store;
 import static java.lang.Math.min;
 import static java.nio.file.StandardOpenOption.READ;
 import static org.eclipse.collections.impl.factory.Sets.immutable;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.counts_store_max_cached_entries;
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_iops_limit;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
@@ -55,8 +56,9 @@ import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
 import org.neo4j.internal.batchimport.store.io.IoTracer;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.CountsStoreProvider;
-import org.neo4j.internal.counts.DegreeStoreProvider;
+import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
 import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
+import org.neo4j.internal.counts.RelationshipGroupDegreesStore;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdGeneratorFactory;
@@ -482,21 +484,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
         // Also build an empty relationship group degrees store since the importer will not make any group degrees
         // external.
         // This will prevent an unnecessary rebuild on the first startup.
-        try (var groupDegreesStore = DegreeStoreProvider.getInstance()
-                        .openDegreesStore(
-                                pageCache,
-                                fileSystem,
-                                databaseLayout,
-                                userLogProvider,
-                                immediate(),
-                                neo4jConfig,
-                                contextFactory,
-                                pageCacheTracer,
-                                new GBPTreeRelationshipGroupDegreesStore.EmptyDegreesRebuilder(
-                                        logMetadataProvider.getLastCommittedTransactionId()),
-                                openOptions,
-                                false,
-                                VersionStorage.EMPTY_STORAGE);
+        try (var groupDegreesStore = openGroupDegreeStore(logMetadataProvider, contextFactory);
                 var cursorContext = contextFactory.create("buildRelationshipDegreesStore")) {
             groupDegreesStore.start(cursorContext, memoryTracker);
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
@@ -505,6 +493,25 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private RelationshipGroupDegreesStore openGroupDegreeStore(
+            LogMetadataProvider logMetadataProvider, CursorContextFactory contextFactory) throws IOException {
+        return new GBPTreeRelationshipGroupDegreesStore(
+                pageCache,
+                databaseLayout.relationshipGroupDegreesStore(),
+                fileSystem,
+                immediate(),
+                new GBPTreeRelationshipGroupDegreesStore.EmptyDegreesRebuilder(
+                        logMetadataProvider.getLastCommittedTransactionId()),
+                false,
+                GBPTreeGenericCountsStore.NO_MONITOR,
+                databaseLayout.getDatabaseName(),
+                neo4jConfig.get(counts_store_max_cached_entries),
+                userLogProvider,
+                contextFactory,
+                pageCacheTracer,
+                openOptions);
     }
 
     private CountsStore openCountsStore(
@@ -598,7 +605,8 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
         Path tempDbDirectory = temporaryDatabaseLayout.databaseDirectory();
         if (!tempDbDirectory.getParent().equals(databaseLayout.databaseDirectory())) {
             throw new IllegalStateException(
-                    "Temporary store is dislocated. It should be located under current database directory but instead located in: "
+                    "Temporary store is dislocated. It should be located under current database directory but instead"
+                            + " located in: "
                             + tempDbDirectory.getParent());
         }
         fileSystem.deleteRecursively(tempDbDirectory);

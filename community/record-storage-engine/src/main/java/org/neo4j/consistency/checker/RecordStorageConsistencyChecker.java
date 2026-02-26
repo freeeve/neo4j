@@ -25,6 +25,7 @@ import static org.neo4j.consistency.checker.ParallelExecution.DEFAULT_IDS_PER_CH
 import static org.neo4j.consistency.checker.SchemaChecker.moreDescriptiveRecordToStrings;
 import static org.neo4j.internal.helpers.collection.Iterators.resourceIterator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,9 +52,11 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.batchimport.cache.ByteArray;
 import org.neo4j.internal.counts.CountsBuilder;
 import org.neo4j.internal.counts.CountsStoreProvider;
-import org.neo4j.internal.counts.DegreeStoreProvider;
 import org.neo4j.internal.counts.DegreeUpdater;
 import org.neo4j.internal.counts.DegreesRebuilder;
+import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
+import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
+import org.neo4j.internal.counts.RelationshipGroupDegreesStore;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -427,7 +430,8 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
                                             CursorContext cursorContext,
                                             MemoryTracker memoryTracker) {
                                         throw new UnsupportedOperationException(
-                                                "Counts store needed rebuild, consistency checker will instead report broken or missing store");
+                                                "Counts store needed rebuild, consistency checker will instead report"
+                                                        + " broken or missing store");
                                     }
 
                                     @Override
@@ -455,42 +459,49 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
             return;
         }
 
-        try (var relationshipGroupDegrees = DegreeStoreProvider.getInstance()
-                .openDegreesStore(
-                        pageCache,
-                        fileSystem,
-                        databaseLayout,
-                        NullLogProvider.getInstance(),
-                        RecoveryCleanupWorkCollector.ignore(),
-                        Config.defaults(counts_store_max_cached_entries, 100),
-                        contextFactory,
-                        cacheTracer,
-                        new DegreesRebuilder() {
-                            @Override
-                            public void rebuild(
-                                    DegreeUpdater updater, CursorContext cursorContext, MemoryTracker memoryTracker) {
-                                throw new UnsupportedOperationException(
-                                        "Counts store needed rebuild, consistency checker will instead report broken or missing store");
-                            }
-
-                            @Override
-                            public long lastCommittedTxId() {
-                                return lastCommittedTxId;
-                            }
-                        },
-                        neoStores.getOpenOptions(),
-                        true,
-                        VersionStorage.EMPTY_STORAGE)) {
+        try (var relationshipGroupDegrees = openRelationshipDegreesStore()) {
             consistencyCheckSingleCheckable(
                     report, ProgressListener.NONE, relationshipGroupDegrees, RecordType.RELATIONSHIP_GROUP);
         } catch (Exception e) {
             report.error(
-                    "Relationship group degrees is missing, broken or of an older format and will not be consistency checked");
+                    "Relationship group degrees is missing, broken or of an older format and will not be consistency"
+                            + " checked");
             summary.genericError("Relationship group degrees store is missing, broken or of an older format");
             context.error(
-                    "Relationship group degrees is missing, broken or of an older format and will not be consistency checked",
+                    "Relationship group degrees is missing, broken or of an older format and will not be consistency"
+                            + " checked",
                     e);
         }
+    }
+
+    private RelationshipGroupDegreesStore openRelationshipDegreesStore() throws IOException {
+        return new GBPTreeRelationshipGroupDegreesStore(
+                pageCache,
+                databaseLayout.relationshipGroupDegreesStore(),
+                fileSystem,
+                RecoveryCleanupWorkCollector.ignore(),
+                new DegreesRebuilder() {
+                    @Override
+                    public void rebuild(
+                            DegreeUpdater updater, CursorContext cursorContext, MemoryTracker memoryTracker) {
+                        throw new UnsupportedOperationException(
+                                "Counts store needed rebuild, consistency checker will instead report broken or"
+                                        + " missing store");
+                    }
+
+                    @Override
+                    public long lastCommittedTxId() {
+                        return lastCommittedTxId;
+                    }
+                },
+                true,
+                GBPTreeGenericCountsStore.NO_MONITOR,
+                databaseLayout.getDatabaseName(),
+                Config.defaults(counts_store_max_cached_entries, 100).get(counts_store_max_cached_entries),
+                NullLogProvider.getInstance(),
+                contextFactory,
+                cacheTracer,
+                neoStores.getOpenOptions());
     }
 
     private static TokenHolders safeLoadTokens(
