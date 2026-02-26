@@ -33,6 +33,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,7 @@ import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.kernel.api.database.DatabaseSizeService;
 import org.neo4j.kernel.diagnostics.providers.PackagingDiagnostics;
+import org.neo4j.kernel.impl.api.TransactionIdSequence;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.store.stats.StoreEntityCounters;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -65,6 +67,7 @@ import org.neo4j.service.Services;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.storageengine.util.StoreIdDecodeUtils;
+import org.neo4j.time.SystemNanoClock;
 
 public class UserDataCollector extends LifecycleAdapter {
     private static final URI UDC_URI = URI.create("https://udc.neo4j.com/server");
@@ -82,9 +85,12 @@ public class UserDataCollector extends LifecycleAdapter {
     private final Log userLog;
     private final InternalLog log;
     private final boolean networkEnabled;
+    private final SystemNanoClock clock;
 
     private long counter;
     private JobHandle<?> jobHandle;
+    private long lastReportTime;
+    private long lastTransactionCount;
 
     public UserDataCollector(
             Config config,
@@ -93,7 +99,8 @@ public class UserDataCollector extends LifecycleAdapter {
             JobScheduler jobScheduler,
             LogProvider logProvider,
             InternalLogProvider internalLogProvider,
-            FileSystemAbstraction fs) {
+            FileSystemAbstraction fs,
+            SystemNanoClock clock) {
         this.config = config;
         this.databaseManagementService = databaseManagementService;
         this.jobScheduler = jobScheduler;
@@ -102,6 +109,8 @@ public class UserDataCollector extends LifecycleAdapter {
         this.edition = dbmsInfo.edition;
         this.fs = fs;
         this.networkEnabled = config.get(udc_network_enabled);
+        this.clock = clock;
+        this.lastReportTime = clock.nanos();
 
         data.put("edition", dbmsInfo.edition.toString().toLowerCase(Locale.ROOT));
         data.put("numberOfProcessors", valueOf(Runtime.getRuntime().availableProcessors()));
@@ -122,6 +131,10 @@ public class UserDataCollector extends LifecycleAdapter {
                 (GraphDatabaseAPI) databaseManagementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME);
         var storeIdProvider = systemDatabase.getDependencyResolver().resolveDependency(StoreIdProvider.class);
         data.put("uuid", StoreIdDecodeUtils.decodeId(storeIdProvider.getExternalStoreId()));
+        data.put(
+                "serverCreated",
+                Instant.ofEpochMilli(storeIdProvider.getStoreId().getCreationTime())
+                        .toString());
         data.putAll(getDatabaseEntityCount());
 
         // Merge with additional sources
@@ -190,14 +203,20 @@ public class UserDataCollector extends LifecycleAdapter {
         DatabaseSizeService databaseSizeService =
                 systemDatabase.getDependencyResolver().resolveDependency(DatabaseSizeService.class);
         List<String> databases = databaseManagementService.listDatabases();
+        long newReportTime = clock.nanos();
         long nodes = 0;
         long relationships = 0;
         long labels = 0;
         long dataSize = 0;
         int databaseCount = 0;
+        int indexes = 0;
+        int constraints = 0;
+        long newTransactions = 0;
         for (String database : databases) {
             try {
                 GraphDatabaseAPI db = (GraphDatabaseAPI) databaseManagementService.database(database);
+                TransactionIdSequence txSequence =
+                        db.getDependencyResolver().resolveDependency(TransactionIdSequence.class);
                 StorageEngine storageEngine = db.getDependencyResolver().resolveDependency(StorageEngine.class);
                 StoreEntityCounters storeEntityCounters = storageEngine.storeEntityCounters();
                 nodes += storeEntityCounters.estimateNodes();
@@ -205,18 +224,34 @@ public class UserDataCollector extends LifecycleAdapter {
                 labels += storeEntityCounters.estimateLabels();
                 dataSize += databaseSizeService.getDatabaseDataSize(db.databaseId());
                 if (!db.databaseId().isSystemDatabase()) {
+                    newTransactions += txSequence.currentValue();
+                    indexes += storeEntityCounters.indexCountWithoutLookup();
+                    constraints += storeEntityCounters.constraintCount();
                     databaseCount++;
                 }
             } catch (Exception e) {
                 log.debug("Failed to collect data from database " + database, e);
             }
         }
+        long txPerMin = 0;
+        try {
+            long txCount = newTransactions - lastTransactionCount;
+            double minutes = (newReportTime - lastReportTime) / (double) TimeUnit.MINUTES.toNanos(1);
+            txPerMin = (long) (txCount / minutes);
+            lastReportTime = newReportTime;
+            lastTransactionCount = newTransactions;
+        } catch (Exception e) {
+            log.debug("Failed to calculate queries per minute", e);
+        }
         return Map.of(
                 "nodes", String.valueOf(nodes),
                 "relationships", String.valueOf(relationships),
                 "labels", String.valueOf(labels),
+                "indexes", String.valueOf(indexes),
+                "constraints", String.valueOf(constraints),
                 "storeSize", String.valueOf(dataSize),
-                "databaseCount", String.valueOf(databaseCount));
+                "databaseCount", String.valueOf(databaseCount),
+                "queriesPerMinute", String.valueOf(txPerMin));
     }
 
     private static String getPackagingInformation(Config config, FileSystemAbstraction fs) {

@@ -75,9 +75,9 @@ public class CustomPluginUDC implements UserDataCollectorSource {
                 }
                 // Filter out Aura supported plugins
                 if (!(APOC_CORE_JAR_PATTERN.test(jarName)
-                                || GDS_JAR_PATTERN.test(jarName)
-                                || GEN_AI_PATTERN.test(jarName))
-                        || BLOOM_PATTERN.test(jarName)) {
+                        || GDS_JAR_PATTERN.test(jarName)
+                        || GEN_AI_PATTERN.test(jarName)
+                        || BLOOM_PATTERN.test(jarName))) {
                     externalPluginPresent = true;
                 }
             }

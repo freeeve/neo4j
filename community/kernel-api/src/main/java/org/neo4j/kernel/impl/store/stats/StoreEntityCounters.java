@@ -34,6 +34,10 @@ public interface StoreEntityCounters {
 
     long allRelationshipsCountStore(CursorContext cursorContext);
 
+    int indexCountWithoutLookup();
+
+    int constraintCount();
+
     /**
      * A cheaper version of {@link #nodes(CursorContext)}.
      */

@@ -84,8 +84,22 @@ public class SchemaCache {
         return schemaCacheState.indexes();
     }
 
+    public int numberOfIndexesWithoutLookup() {
+        int count = 0;
+        for (IndexDescriptor index : schemaCacheState.indexes()) {
+            if (!index.getIndexType().isLookup()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public Iterable<ConstraintDescriptor> constraints() {
         return schemaCacheState.constraints();
+    }
+
+    public int numberOfConstraints() {
+        return schemaCacheState.numberOfConstraints();
     }
 
     public boolean hasConstraintRule(Long constraintRuleId) {
@@ -342,6 +356,10 @@ public class SchemaCache {
 
         Iterable<ConstraintDescriptor> constraints() {
             return constraints;
+        }
+
+        int numberOfConstraints() {
+            return constraints.size();
         }
 
         IndexDescriptor getIndex(long id) {

@@ -29,6 +29,7 @@ import org.neo4j.kernel.extension.context.ExtensionContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.time.SystemNanoClock;
 
 @ServiceProvider
 public class UserDataCollectorExtensionFactory
@@ -46,7 +47,8 @@ public class UserDataCollectorExtensionFactory
                 dependencies.jobScheduler(),
                 dependencies.logService().getUserLogProvider(),
                 dependencies.logService().getInternalLogProvider(),
-                dependencies.fileSystem());
+                dependencies.fileSystem(),
+                dependencies.clock());
     }
 
     public interface Dependencies {
@@ -59,5 +61,7 @@ public class UserDataCollectorExtensionFactory
         LogService logService();
 
         FileSystemAbstraction fileSystem();
+
+        SystemNanoClock clock();
     }
 }
