@@ -69,6 +69,7 @@ import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
+import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
 import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.logical.plans.CreateConstraint
@@ -5390,6 +5391,62 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         Set("xxx", "yyy")
       )
     )
+  }
+
+  // Combining commands
+
+  test("Multiple show/terminate commands") {
+
+    assertGood(
+      attach(
+        Apply(
+          ShowTransactions(
+            Left(List("db1-transaction-123", "db2-transaction-456")),
+            List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
+            List(
+              CommandYieldColumn("xxx", "xxx"),
+              CommandYieldColumn("yyy", "zzz"),
+              CommandYieldColumn("vvv", "vvv")
+            ),
+            yieldAll = false,
+            Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
+            Set.empty
+          ),
+          TerminateTransactions(
+            Right(parameter("foo", CTAny)),
+            List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy")),
+            List.empty,
+            yieldAll = true,
+            Set(varFor("xxx"), varFor("yyy")),
+            Set.empty
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "Apply",
+        Seq(
+          planDescription(
+            id,
+            "ShowTransactions",
+            Seq.empty,
+            Seq(details("columns(xxx, yyy AS zzz, vvv), transactions(db1-transaction-123, db2-transaction-456)")),
+            Set("xxx", "zzz", "vvv")
+          ),
+          planDescription(
+            id,
+            "TerminateTransactions",
+            Seq.empty,
+            Seq(details("allColumns, transactions($foo)")),
+            Set("xxx", "yyy")
+          )
+        ),
+        Seq.empty,
+        Set("xxx", "zzz", "vvv", "yyy")
+      )
+    )
+
   }
 
   // Help methods

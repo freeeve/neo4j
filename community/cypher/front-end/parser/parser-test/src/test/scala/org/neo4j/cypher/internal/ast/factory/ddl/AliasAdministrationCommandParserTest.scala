@@ -631,11 +631,12 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     """CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'
       |OIDC CREDENTIAL FORWARDING""".stripMargin
   ) {
+    val offset = if (testName.contains("\r")) 95 else 94
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 94))
-            |"OIDC CREDENTIAL FORWARDING"
-            | ^""".stripMargin
+          s"""Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: $offset))
+             |"OIDC CREDENTIAL FORWARDING"
+             | ^""".stripMargin
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
@@ -644,9 +645,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             )
           )
       case _ => _.withSyntaxError(
-          """Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 94))
-            |"OIDC CREDENTIAL FORWARDING"
-            | ^""".stripMargin
+          s"""Invalid input 'OIDC': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: $offset))
+             |"OIDC CREDENTIAL FORWARDING"
+             | ^""".stripMargin
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
@@ -661,6 +662,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     """CREATE ALIAS name FOR DATABASE target AT "neo4j://serverA:7687" OIDC CREDENTIAL FORWARDING
       |USER user PASSWORD 'password'""".stripMargin
   ) {
+    val offsetForLine2 = if (testName.contains("\r")) 92 else 91
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxError(
           """Invalid input 'OIDC': expected 'USER' (line 1, column 65 (offset: 64))
@@ -674,9 +676,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
             )
           )
       case _ => _.withSyntaxError(
-          """Invalid input 'USER': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: 91))
-            |"USER user PASSWORD 'password'"
-            | ^""".stripMargin
+          s"""Invalid input 'USER': expected 'DEFAULT LANGUAGE CYPHER', 'DRIVER', 'PROPERTIES' or <EOF> (line 2, column 1 (offset: $offsetForLine2))
+             |"USER user PASSWORD 'password'"
+             | ^""".stripMargin
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
