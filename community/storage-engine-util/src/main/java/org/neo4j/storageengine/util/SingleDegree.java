@@ -26,7 +26,7 @@ public class SingleDegree implements Degrees.Mutator {
     private final long maxDegree;
 
     public SingleDegree() {
-        this(Integer.MAX_VALUE);
+        this(Long.MAX_VALUE);
     }
 
     public SingleDegree(long maxDegree) {

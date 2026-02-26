@@ -85,7 +85,7 @@ public interface Degrees {
      * @return the outgoing degree, including loops (i.e. number of relationships on the specific node) or {@code 0} if no degree of that combination was found.
      */
     default long outgoingDegree() {
-        int degree = 0;
+        long degree = 0;
         for (int type : types()) {
             degree += outgoingDegree(type);
         }
@@ -96,7 +96,7 @@ public interface Degrees {
      * @return the incoming degree, including loops (i.e. number of relationships on the specific node) or {@code 0} if no degree of that combination was found.
      */
     default long incomingDegree() {
-        int degree = 0;
+        long degree = 0;
         for (int type : types()) {
             degree += incomingDegree(type);
         }
@@ -107,7 +107,7 @@ public interface Degrees {
      * @return the degree (i.e. number of relationships on the specific node).
      */
     default long totalDegree() {
-        int degree = 0;
+        long degree = 0;
         for (int type : types()) {
             degree += totalDegree(type);
         }
