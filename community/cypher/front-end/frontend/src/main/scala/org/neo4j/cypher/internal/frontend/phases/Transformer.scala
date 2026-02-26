@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogWorkingSco
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScopeStringRenderer
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.util.AssertionRunner
+import org.neo4j.cypher.internal.util.AstString
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.StepSequencer
 
@@ -128,7 +129,7 @@ object Transformer {
           if to.maybeStatement.isDefined && from.maybeStatement != to.maybeStatement =>
           println(s"######## DEBUG $transformerName, statement changed:")
           if (LogStatementsAsQueries) println(Prettifier(ExpressionStringifier()).asString(to.statement()))
-          if (LogStatements) println(to.statement())
+          if (LogStatements) println(AstString.render(to.statement()))
           println("\n")
         case _ =>
       }
