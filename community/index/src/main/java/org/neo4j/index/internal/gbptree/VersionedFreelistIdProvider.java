@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.io.pagecache.PageCursor;
+import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 
 class VersionedFreelistIdProvider implements FreeListIdProvider {
@@ -37,18 +38,20 @@ class VersionedFreelistIdProvider implements FreeListIdProvider {
     private final ConcurrentLinkedDeque<CachedId> versionReleaseCache = new ConcurrentLinkedDeque<>();
 
     private final AtomicLong lastId = new AtomicLong();
+    private final PagedFile pagedFile;
     private final Monitor monitor;
 
-    VersionedFreelistIdProvider(int payloadSize, Monitor monitor) {
+    VersionedFreelistIdProvider(PagedFile pagedFile, Monitor monitor) {
+        this.pagedFile = pagedFile;
         this.monitor = monitor;
-        this.generationFreelist =
-                new VersionSupportingFreelist(payloadSize, false, this::acquireFreelistId, this::releaseFreelistId);
-        this.versionFreelist =
-                new VersionSupportingFreelist(payloadSize, true, this::acquireFreelistId, this::releaseFreelistId);
+        this.generationFreelist = new VersionSupportingFreelist(
+                pagedFile.payloadSize(), false, this::acquireFreelistId, this::releaseFreelistId);
+        this.versionFreelist = new VersionSupportingFreelist(
+                pagedFile.payloadSize(), true, this::acquireFreelistId, this::releaseFreelistId);
     }
 
-    VersionedFreelistIdProvider(int payloadSize) {
-        this(payloadSize, Monitor.NO_MONITOR);
+    VersionedFreelistIdProvider(PagedFile pagedFile) {
+        this(pagedFile, Monitor.NO_MONITOR);
     }
 
     @Override
@@ -71,11 +74,12 @@ class VersionedFreelistIdProvider implements FreeListIdProvider {
     public long acquireNewId(long stableGeneration, CursorCreator cursorCreator, CursorContext cursorContext)
             throws IOException {
         long oldestVisibleVersion = cursorContext.getVersionContext().oldestVisibilityHorizon();
-        try (var cursor = cursorCreator.create()) {
-            long acquiredId = acquireNewIdFromFreelistsOrEnd(stableGeneration, oldestVisibleVersion, cursor);
+        long acquiredId = acquireNewIdFromFreelistsOrEnd(stableGeneration, oldestVisibleVersion, cursorCreator);
+        try (var cursor =
+                pagedFile.io(acquiredId, PagedFile.PF_SHARED_WRITE_LOCK | PagedFile.PF_NO_LOAD, cursorContext)) {
             zapPage(acquiredId, cursor);
-            return acquiredId;
         }
+        return acquiredId;
     }
 
     @Override
@@ -136,23 +140,25 @@ class VersionedFreelistIdProvider implements FreeListIdProvider {
         return FreelistMetaData.versioned(lastId.get(), generationFreelist.positions(), versionFreelist.positions());
     }
 
-    private long acquireNewIdFromFreelistsOrEnd(long stableGeneration, long oldestVisibleVersion, PageCursor cursor)
-            throws IOException {
+    private long acquireNewIdFromFreelistsOrEnd(
+            long stableGeneration, long oldestVisibleVersion, CursorCreator cursorCreator) throws IOException {
         do {
             var entry = acquireCache.poll();
             if (entry != null) {
                 return entry;
             }
-            fillAcquireCache(stableGeneration, oldestVisibleVersion, cursor);
+            fillAcquireCache(stableGeneration, oldestVisibleVersion, cursorCreator);
         } while (!acquireCache.isEmpty());
         return nextId();
     }
 
-    private synchronized void fillAcquireCache(long stableGeneration, long oldestVisibleVersion, PageCursor cursor)
-            throws IOException {
-        loadFromFreelist(versionFreelist, stableGeneration, oldestVisibleVersion, cursor);
-        if (acquireCache.size() < CACHE_SIZE) {
-            loadFromFreelist(generationFreelist, stableGeneration, oldestVisibleVersion, cursor);
+    private synchronized void fillAcquireCache(
+            long stableGeneration, long oldestVisibleVersion, CursorCreator cursorCreator) throws IOException {
+        try (var cursor = cursorCreator.create()) {
+            loadFromFreelist(versionFreelist, stableGeneration, oldestVisibleVersion, cursor);
+            if (acquireCache.size() < CACHE_SIZE) {
+                loadFromFreelist(generationFreelist, stableGeneration, oldestVisibleVersion, cursor);
+            }
         }
     }
 

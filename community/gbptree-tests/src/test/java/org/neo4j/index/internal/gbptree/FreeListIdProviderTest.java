@@ -87,7 +87,7 @@ class FreeListIdProviderTest {
     void setUpPagedFile() throws IOException {
         pagedFile = pageCache.map(
                 directory.file("freelist"), PAYLOAD_SIZE, "db", Sets.immutable.of(StandardOpenOption.CREATE));
-        freelist = new DefaultFreelistIdProvider(PAYLOAD_SIZE, monitor);
+        freelist = new DefaultFreelistIdProvider(pagedFile, monitor);
         freelist.initialize(FREELIST_META_DATA);
     }
 

@@ -620,8 +620,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             this.multiVersionMultiRoot = multiVersioned && multiRoot;
             this.payloadSize = pagedFile.payloadSize();
             this.freeList = multiVersionMultiRoot
-                    ? new VersionedFreelistIdProvider(payloadSize)
-                    : new DefaultFreelistIdProvider(payloadSize);
+                    ? new VersionedFreelistIdProvider(pagedFile)
+                    : new DefaultFreelistIdProvider(pagedFile);
             TreeNodeLatchService latchService = new TreeNodeLatchService();
             var treeNodeSelector = treeNodeLayoutFactory.createSelector(engineOpenOptions);
             this.rootLayerSupport = new RootLayerSupport(

@@ -56,6 +56,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.VersionContext;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -91,7 +92,7 @@ class VersionedFreelistIdProviderTest {
     @BeforeEach
     void setUp() throws IOException {
         pagedFile = pageCache.map(directory.file("freelist"), PAYLOAD_SIZE, "db", Sets.immutable.of(CREATE));
-        freelist = new VersionedFreelistIdProvider(PAYLOAD_SIZE, monitor);
+        freelist = new VersionedFreelistIdProvider(pagedFile, monitor);
         freelist.initializeAfterCreation(writeCursor(pagedFile), BASE_ID);
         oldestVisibleVersion = 1;
         releaseId = 2;
@@ -518,6 +519,7 @@ class VersionedFreelistIdProviderTest {
         CursorContext cursorContext = mock(CursorContext.class);
         VersionContext versionContext = mock(VersionContext.class);
         when(cursorContext.getVersionContext()).thenReturn(versionContext);
+        when(cursorContext.getCursorTracer()).thenReturn(PageCursorTracer.NULL);
         when(versionContext.oldestVisibilityHorizon()).thenReturn(oldestVisibleVersion);
         when(versionContext.committingTransactionId()).thenReturn(releaseId);
         return cursorContext;
