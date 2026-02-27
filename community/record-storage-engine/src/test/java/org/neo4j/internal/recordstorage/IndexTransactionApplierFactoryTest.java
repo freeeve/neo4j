@@ -119,7 +119,7 @@ class IndexTransactionApplierFactoryTest {
         IndexTransactionApplierFactory applier = new IndexTransactionApplierFactory(INTERNAL, indexUpdateListener);
         var batchContext = mock(BatchContext.class);
         when(batchContext.getLockGroup()).thenReturn(new LockGroup());
-        when(batchContext.indexUpdates()).thenReturn(mock(IndexUpdates.class));
+        when(batchContext.indexUpdates()).thenReturn(mock(OnlineIndexUpdates.class));
         when(batchContext.getIndexActivator()).thenReturn(indexActivator);
         try (var txApplier = applier.startTx(new GroupOfCommands(StoreCursors.NULL), batchContext)) {
             // activate index 1

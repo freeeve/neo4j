@@ -99,6 +99,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
@@ -463,6 +464,7 @@ class NeoStoresTest {
         life.add(storageEngine);
         life.add(storageEngine.schemaAndTokensLifecycle(false));
         life.start();
+        storageEngine.addIndexUpdateListener(new IndexUpdateListener.Adapter());
 
         NeoStores neoStores = storageEngine.testAccessNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, NULL_CONTEXT);

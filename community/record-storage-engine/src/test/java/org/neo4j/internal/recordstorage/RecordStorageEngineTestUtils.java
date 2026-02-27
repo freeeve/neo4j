@@ -55,6 +55,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -75,7 +76,7 @@ public class RecordStorageEngineTestUtils {
                 createReadOnlyTokenHolder(TokenHolder.TYPE_RELATIONSHIP_TYPE));
         PageCacheTracer cacheTracer = PageCacheTracer.NULL;
         LogTailMetadata emptyLogTailMetadata = new EmptyLogTailMetadata(config);
-        return new RecordStorageEngine(
+        RecordStorageEngine storageEngine = new RecordStorageEngine(
                 layout,
                 config,
                 pageCache,
@@ -97,6 +98,8 @@ public class RecordStorageEngineTestUtils {
                 VersionStorage.EMPTY_STORAGE,
                 PagePrefetcher.DISABLED,
                 StoreIdGenerator.UNIQUE_ID);
+        storageEngine.addIndexUpdateListener(new IndexUpdateListener.Adapter());
+        return storageEngine;
     }
 
     public static void applyLogicalChanges(

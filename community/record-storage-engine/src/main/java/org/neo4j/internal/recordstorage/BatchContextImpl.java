@@ -32,7 +32,6 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.storageengine.util.IndexUpdatesWorkSync;
-import org.neo4j.util.VisibleForTesting;
 
 /**
  * A batch context implementation that does not do anything with scan stores.
@@ -40,13 +39,10 @@ import org.neo4j.util.VisibleForTesting;
  * This will be the only implementation when migration to token indexes is done!
  */
 public class BatchContextImpl implements BatchContext {
-    private final IndexUpdatesWorkSync indexUpdatesSync;
-    private final CursorContext cursorContext;
     private final IdUpdateListener idUpdateListener;
-
     private final IndexActivator indexActivator;
     private final LockGroup lockGroup;
-    private final IndexUpdates indexUpdates;
+    private final OnlineIndexUpdates indexUpdates;
     private final MemoryTracker memoryTracker;
 
     public BatchContextImpl(
@@ -61,8 +57,6 @@ public class BatchContextImpl implements BatchContext {
             IdUpdateListener idUpdateListener,
             StoreCursors storeCursors) {
         this.indexActivator = new IndexActivator(indexUpdateListener);
-        this.indexUpdatesSync = indexUpdatesSync;
-        this.cursorContext = cursorContext;
         this.idUpdateListener = idUpdateListener;
         this.lockGroup = new LockGroup();
         this.indexUpdates = new OnlineIndexUpdates(
@@ -72,7 +66,8 @@ public class BatchContextImpl implements BatchContext {
                 recordStorageEngine.newReader(),
                 cursorContext,
                 memoryTracker,
-                storeCursors);
+                storeCursors,
+                indexUpdatesSync);
         this.memoryTracker = memoryTracker;
     }
 
@@ -95,20 +90,11 @@ public class BatchContextImpl implements BatchContext {
 
     @Override
     public void applyPendingIndexUpdates() throws IOException {
-        if (hasUpdates()) {
-            try (IndexUpdatesWorkSync.Batch indexUpdatesBatch = indexUpdatesSync.newBatch(cursorContext)) {
-                indexUpdatesBatch.indexUpdates(indexUpdates.updates());
-            }
-        }
-    }
-
-    @VisibleForTesting
-    boolean hasUpdates() {
-        return indexUpdates.hasUpdates();
+        indexUpdates.apply();
     }
 
     @Override
-    public IndexUpdates indexUpdates() {
+    public OnlineIndexUpdates indexUpdates() {
         return indexUpdates;
     }
 

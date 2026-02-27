@@ -19,8 +19,6 @@
  */
 package org.neo4j.storageengine.util;
 
-import static java.util.Collections.emptyIterator;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.UnderlyingStorageException;
-import org.neo4j.internal.helpers.collection.NestingIterator;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
@@ -58,9 +55,8 @@ public class IndexUpdatesWorkSync {
     }
 
     public class Batch implements IndexUpdatesListener {
-        private final List<List<IndexEntryUpdate>> updates = new ArrayList<>();
+        private final List<IndexEntryUpdate> updates = new ArrayList<>();
         private final CursorContext cursorContext;
-        private List<IndexEntryUpdate> singleUpdates;
         private AsyncApply apply;
 
         public Batch(CursorContext cursorContext) {
@@ -75,22 +71,8 @@ public class IndexUpdatesWorkSync {
          * This is to reduce memory retention.
          */
         @Override
-        public void indexUpdates(List<IndexEntryUpdate> indexUpdates) {
-            updates.add(indexUpdates);
-        }
-
-        @Override
         public void indexUpdate(IndexEntryUpdate indexUpdate) {
-            if (singleUpdates == null) {
-                singleUpdates = new ArrayList<>();
-            }
-            singleUpdates.add(indexUpdate);
-        }
-
-        private void addSingleUpdates() {
-            if (singleUpdates != null) {
-                updates.add(singleUpdates);
-            }
+            updates.add(indexUpdate);
         }
 
         @Override
@@ -110,17 +92,17 @@ public class IndexUpdatesWorkSync {
         }
 
         private void apply() throws IOException, ExecutionException {
-            addSingleUpdates();
             if (!updates.isEmpty()) {
                 if (parallelApply) {
                     // Just skip the work-sync if this is parallel apply and instead update straight in
                     try {
-                        listener.applyUpdates(combinedUpdates(updates), cursorContext, true);
+                        sortUpdatesByIndex();
+                        listener.applyUpdates(listNullingIterator(updates), cursorContext, true);
                     } catch (KernelException e) {
                         throw new IOException(e);
                     }
                 } else {
-                    workSync.apply(new IndexUpdatesWork(combinedUpdates(updates), cursorContext));
+                    workSync.apply(new IndexUpdatesWork(listNullingIterator(updates), cursorContext));
                 }
             }
             apply = AsyncApply.EMPTY;
@@ -140,10 +122,19 @@ public class IndexUpdatesWorkSync {
                 }
                 return;
             }
-            addSingleUpdates();
             apply = updates.isEmpty()
                     ? AsyncApply.EMPTY
-                    : workSync.applyAsync(new IndexUpdatesWork(combinedUpdates(updates), cursorContext));
+                    : workSync.applyAsync(new IndexUpdatesWork(listNullingIterator(updates), cursorContext));
+        }
+
+        private void sortUpdatesByIndex() {
+            updates.sort((o1, o2) -> {
+                // It doesn't matter which individual order the updates are in, as long as they are sorted by index key.
+                // In fact they can't be sorted on their values because they aren't materialized yet.
+                long id1 = o1.indexKey().getId();
+                long id2 = o2.indexKey().getId();
+                return Long.compare(id1, id2);
+            });
         }
     }
 
@@ -177,15 +168,13 @@ public class IndexUpdatesWorkSync {
         }
     }
 
-    private static <T> Iterator<T> combinedUpdates(List<List<T>> updates) {
-        return new NestingIterator<>(listNullingIterator(updates)) {
-            @Override
-            protected Iterator<T> createNestedIterator(List<T> list) {
-                return list == null ? emptyIterator() : listNullingIterator(list);
-            }
-        };
-    }
-
+    /**
+     * The IndexEntryUpdate instances are lazy in that they contain suppliers for the actual values.
+     * Those values are cached though (because one "value" can be used in multiple index updates) and so they build
+     * up over time when applying index updates. To keep memory retention low this index update iterator
+     * nulls out the items it has seen. This allows the actual {@link org.neo4j.storageengine.api.ValueIndexEntryUpdate}
+     * instances to be garbage collected, and eventually the value suppliers (at some point containing actual values).
+     */
     private static <T> Iterator<T> listNullingIterator(List<T> list) {
         return new Iterator<>() {
             private final Iterator<T> delegate = list.iterator();

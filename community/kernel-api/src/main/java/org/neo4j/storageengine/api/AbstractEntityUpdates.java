@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
@@ -199,7 +200,17 @@ public abstract class AbstractEntityUpdates<T extends AbstractEntityUpdates.Prop
         Iterable<IndexDescriptor> potentiallyRelevant =
                 Iterables.filter(indexKeys, indexKey -> atLeastOneRelevantChange(indexKey.schema()));
 
-        return gatherUpdatesForPotentials(potentiallyRelevant, true);
+        List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
+        gatherUpdatesForPotentials(indexUpdates::add, potentiallyRelevant, true);
+        return indexUpdates;
+    }
+
+    public final void consumeValueUpdatesForIndexKeys(
+            Consumer<IndexEntryUpdate> indexUpdates, Iterable<IndexDescriptor> indexKeys) {
+        Iterable<IndexDescriptor> potentiallyRelevant =
+                Iterables.filter(indexKeys, indexKey -> atLeastOneRelevantChange(indexKey.schema()));
+
+        gatherUpdatesForPotentials(indexUpdates, potentiallyRelevant, true);
     }
 
     /**
@@ -240,7 +251,9 @@ public abstract class AbstractEntityUpdates<T extends AbstractEntityUpdates.Prop
             loadProperties(reader, additionalPropertiesToLoad, type, cursorContext, storeCursors, memoryTracker);
         }
 
-        return gatherUpdatesForPotentials(potentiallyRelevant, false);
+        List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
+        gatherUpdatesForPotentials(indexUpdates::add, potentiallyRelevant, false);
+        return indexUpdates;
     }
 
     private void loadProperties(
@@ -299,25 +312,25 @@ public abstract class AbstractEntityUpdates<T extends AbstractEntityUpdates.Prop
     }
 
     @SuppressWarnings("ConstantConditions")
-    private List<IndexEntryUpdate> gatherUpdatesForPotentials(
-            Iterable<IndexDescriptor> potentiallyRelevant, boolean defaultToNoValue) {
-        List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
+    private void gatherUpdatesForPotentials(
+            Consumer<IndexEntryUpdate> indexUpdates,
+            Iterable<IndexDescriptor> potentiallyRelevant,
+            boolean defaultToNoValue) {
         for (var indexKey : potentiallyRelevant) {
             SchemaDescriptor schema = indexKey.schema();
             boolean relevantBefore = relevantBefore(schema);
             boolean relevantAfter = relevantAfter(schema);
             int[] propertyIds = schema.getPropertyIds();
             if (relevantBefore && !relevantAfter) {
-                indexUpdates.add(remove(indexKey, propertyIds, defaultToNoValue));
+                indexUpdates.accept(remove(indexKey, propertyIds, defaultToNoValue));
             } else if (!relevantBefore && relevantAfter) {
-                indexUpdates.add(add(indexKey, propertyIds));
+                indexUpdates.accept(add(indexKey, propertyIds));
             } else if (relevantBefore && relevantAfter) {
                 if (valuesChanged(propertyIds, schema.schemaPatternMatchingType(), defaultToNoValue)) {
-                    indexUpdates.add(change(indexKey, propertyIds, defaultToNoValue));
+                    indexUpdates.accept(change(indexKey, propertyIds, defaultToNoValue));
                 }
             }
         }
-        return indexUpdates;
     }
 
     /**

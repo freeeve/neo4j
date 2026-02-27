@@ -115,6 +115,7 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -629,6 +630,7 @@ class BatchingNeoStoresTest {
                     VersionStorage.EMPTY_STORAGE,
                     PagePrefetcher.DISABLED,
                     StoreIdGenerator.UNIQUE_ID));
+            storageEngine.addIndexUpdateListener(new IndexUpdateListener.Adapter());
             // Create the relationship type token
             TxState txState = new TxState();
             var transactionIdGenerator = new IdStoreTransactionIdGenerator(logMetadataProvider);

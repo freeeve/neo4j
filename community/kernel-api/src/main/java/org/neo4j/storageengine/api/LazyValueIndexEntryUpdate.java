@@ -32,7 +32,6 @@ import org.neo4j.values.storable.Value;
  * other threads, but only in a way that ensures safe publication.
  */
 public final class LazyValueIndexEntryUpdate extends IndexEntryUpdate implements ValueIndexEntryUpdate {
-
     /**
      * A {@link Supplier} that caches the value returned from the delegate supplier
      * upon the first call to {@link #get()}.
@@ -65,14 +64,13 @@ public final class LazyValueIndexEntryUpdate extends IndexEntryUpdate implements
      * Moreover, caches the value returned from the delegate supplier upon the first call to {@link #get()}.
      */
     public static final class ValueSupplier implements Supplier<Value> {
-
         public static final ValueSupplier NULL_SUPPLIER = constant(null);
 
         public static ValueSupplier constant(Value value) {
             return new ValueSupplier(() -> value);
         }
 
-        private Supplier<Value> supplier;
+        private final Supplier<Value> supplier;
 
         public ValueSupplier(Supplier<Value> supplier) {
             this.supplier = new CachingSupplier<>(supplier);
@@ -120,8 +118,8 @@ public final class LazyValueIndexEntryUpdate extends IndexEntryUpdate implements
         }
     }
 
-    private ValueSupplier[] before;
-    private ValueSupplier[] values;
+    private final ValueSupplier[] before;
+    private final ValueSupplier[] values;
 
     private LazyValueIndexEntryUpdate(
             long entityId, IndexDescriptor indexKey, UpdateMode updateMode, ValueSupplier[] values) {

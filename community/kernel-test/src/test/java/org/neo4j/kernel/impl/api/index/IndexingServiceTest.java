@@ -1812,15 +1812,19 @@ class IndexingServiceTest {
         var index2Update1 = EagerValueIndexEntryUpdate.add(11, index2, Values.intValue(11));
         var index1Update2 = EagerValueIndexEntryUpdate.add(12, index1, Values.intValue(12));
         var index2Update2 = EagerValueIndexEntryUpdate.add(13, index2, Values.intValue(13));
-        Iterator<IndexEntryUpdate> mixedUpdates = iterator(index1Update1, index2Update1, index1Update2, index2Update2);
-        indexingService.applyUpdates(mixedUpdates, NULL_CONTEXT, true);
+        Iterator<IndexEntryUpdate> updates = iterator(index1Update1, index1Update2, index2Update1, index2Update2);
+        indexingService.applyUpdates(updates, NULL_CONTEXT, true);
 
         // then the order in which those updates arrive to the updaters should be ordered by index
-        InOrder order = inOrder(updater);
+        InOrder order = inOrder(updater, accessor);
+        order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(true));
         order.verify(updater).process(index1Update1);
         order.verify(updater).process(index1Update2);
+        order.verify(updater).close();
+        order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(true));
         order.verify(updater).process(index2Update1);
         order.verify(updater).process(index2Update2);
+        order.verify(updater).close();
     }
 
     private AtomicReference<BinaryLatch> latchedIndexPopulation() {

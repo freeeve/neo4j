@@ -21,7 +21,6 @@ package org.neo4j.storageengine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Listener of {@link IndexEntryUpdate index updates}. When part of a transaction applier, upon closing
@@ -33,11 +32,6 @@ public interface IndexUpdatesListener extends Closeable {
      * Notification about an index update due to a data change.
      */
     void indexUpdate(IndexEntryUpdate update);
-
-    /**
-     * Notification about a list of index updates due to a data change.
-     */
-    void indexUpdates(List<IndexEntryUpdate> updates);
 
     /**
      * Request to start applying these updates asynchronously. When later calling {@link #close()}

@@ -31,7 +31,7 @@ public interface BatchContext extends AutoCloseable {
 
     void applyPendingIndexUpdates() throws IOException;
 
-    IndexUpdates indexUpdates();
+    OnlineIndexUpdates indexUpdates();
 
     IdUpdateListener getIdUpdateListener();
 

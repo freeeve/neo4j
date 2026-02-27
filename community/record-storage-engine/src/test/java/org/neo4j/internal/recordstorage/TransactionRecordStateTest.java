@@ -107,6 +107,7 @@ import org.neo4j.io.fs.FlushableChannel;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
@@ -143,6 +144,7 @@ import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
@@ -151,6 +153,7 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
+import org.neo4j.storageengine.util.IndexUpdatesWorkSync;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -464,7 +467,7 @@ class TransactionRecordStateTest {
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
-        assertEquals(asSet(add(nodeId, rule1, value1), add(nodeId, rule2, value2)), asSet(single(indexUpdates)));
+        assertEquals(asSet(add(nodeId, rule1, value1), add(nodeId, rule2, value2)), asSet(indexUpdates));
     }
 
     @Test
@@ -487,8 +490,7 @@ class TransactionRecordStateTest {
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
-        assertEquals(
-                asSet(add(nodeId, rule1, value2), add(nodeId, rule2, value1, value2)), asSet(single(indexUpdates)));
+        assertEquals(asSet(add(nodeId, rule1, value2), add(nodeId, rule2, value1, value2)), asSet(indexUpdates));
     }
 
     @Test
@@ -510,7 +512,7 @@ class TransactionRecordStateTest {
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
-        assertEquals(asSet(remove(nodeId, rule, value1)), asSet(single(indexUpdates)));
+        assertEquals(asSet(remove(nodeId, rule, value1)), asSet(indexUpdates));
     }
 
     @Test
@@ -533,7 +535,7 @@ class TransactionRecordStateTest {
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
-        assertEquals(asSet(remove(nodeId, rule1, value1), remove(nodeId, rule2, value1)), asSet(single(indexUpdates)));
+        assertEquals(asSet(remove(nodeId, rule1, value1), remove(nodeId, rule2, value1)), asSet(indexUpdates));
     }
 
     @Test
@@ -556,7 +558,7 @@ class TransactionRecordStateTest {
         var indexUpdates = indexUpdatesOf(neoStores, recordState);
 
         // THEN
-        assertEquals(asSet(add(nodeId, rule2, value2), remove(nodeId, rule3, value1)), asSet(single(indexUpdates)));
+        assertEquals(asSet(add(nodeId, rule2, value2), remove(nodeId, rule3, value1)), asSet(indexUpdates));
     }
 
     @Test
@@ -589,7 +591,7 @@ class TransactionRecordStateTest {
                         EagerValueIndexEntryUpdate.change(nodeId, rule2, value2, newValue2),
                         EagerValueIndexEntryUpdate.change(
                                 nodeId, rule3, array(value1, value2), array(newValue1, newValue2))),
-                asSet(single(indexUpdates)));
+                asSet(indexUpdates));
     }
 
     @Test
@@ -619,7 +621,7 @@ class TransactionRecordStateTest {
                         remove(nodeId, rule1, value1),
                         remove(nodeId, rule2, value2),
                         remove(nodeId, rule3, value1, value2)),
-                asSet(single(indexUpdates)));
+                asSet(indexUpdates));
     }
 
     @Test
@@ -885,7 +887,7 @@ class TransactionRecordStateTest {
         // THEN
         assertEquals(
                 asSet(add(nodeId, rule1, value1), add(nodeId, rule2, value2), add(nodeId, rule3, value1, value2)),
-                asSet(single(updates)));
+                asSet(updates));
     }
 
     @Test
@@ -1762,18 +1764,27 @@ class TransactionRecordStateTest {
         assertEquals(types.length, cursor, "Not enough relationship group records found in chain for " + node);
     }
 
-    private Iterable<Iterable<IndexEntryUpdate>> indexUpdatesOf(NeoStores neoStores, TransactionRecordState state)
+    private Iterable<IndexEntryUpdate> indexUpdatesOf(NeoStores neoStores, TransactionRecordState state)
             throws IOException, TransactionFailureException {
         return indexUpdatesOf(neoStores, transaction(storeCursors, state));
     }
 
-    private Iterable<Iterable<IndexEntryUpdate>> indexUpdatesOf(
-            NeoStores neoStores, StorageEngineTransaction transaction) throws IOException {
+    private Iterable<IndexEntryUpdate> indexUpdatesOf(NeoStores neoStores, StorageEngineTransaction transaction)
+            throws IOException {
         IndexUpdatesExtractor extractor = new IndexUpdatesExtractor(CommandSelector.NORMAL);
         transaction.commandBatch().accept(new SingleApplierDispatcher(extractor));
 
         StorageReader reader = new RecordStorageReader(neoStores);
-        List<Iterable<IndexEntryUpdate>> updates = new ArrayList<>();
+        List<IndexEntryUpdate> updates = new ArrayList<>();
+        IndexUpdatesWorkSync indexUpdatesWorkSync = new IndexUpdatesWorkSync(
+                new IndexUpdateListener.Adapter() {
+                    @Override
+                    public void applyUpdates(
+                            Iterator<IndexEntryUpdate> indexUpdates, CursorContext cursorContext, boolean parallel) {
+                        indexUpdates.forEachRemaining(updates::add);
+                    }
+                },
+                false);
         OnlineIndexUpdates onlineIndexUpdates = new OnlineIndexUpdates(
                 neoStores.getNodeStore(),
                 schemaCache,
@@ -1782,10 +1793,11 @@ class TransactionRecordStateTest {
                 reader,
                 NULL_CONTEXT,
                 INSTANCE,
-                storeCursors);
+                storeCursors,
+                indexUpdatesWorkSync);
         onlineIndexUpdates.feed(
                 extractor.getNodeCommands(), extractor.getRelationshipCommands(), CommandSelector.NORMAL);
-        updates.add(onlineIndexUpdates.updates());
+        onlineIndexUpdates.apply();
         reader.close();
         return updates;
     }

@@ -24,7 +24,6 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -81,7 +80,6 @@ import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
-import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
@@ -709,65 +707,6 @@ class LockGuardedNeoStoreTransactionApplierTest {
         verify(schemaStore).updateRecord(eq(after), any(), any(), any(), any());
         verify(indexingService).activateIndex(rule);
         verify(cacheAccess).addSchemaRule(rule);
-    }
-
-    @Test
-    void shouldCloseReaderAndNasNoUpdatesOnContextClose() throws Exception {
-        RecordStorageEngine storageEngine = mock(RecordStorageEngine.class);
-        RecordStorageReader storageReader = mock(RecordStorageReader.class);
-        when(storageEngine.newReader()).thenReturn(storageReader);
-        var batchContext = new BatchContextImpl(
-                indexingService,
-                indexUpdatesSync,
-                nodeStore,
-                propertyStore,
-                storageEngine,
-                mock(SchemaCache.class),
-                NULL_CONTEXT,
-                INSTANCE,
-                IdUpdateListener.IGNORE,
-                StoreCursors.NULL);
-
-        IndexUpdates indexEntryUpdates = batchContext.indexUpdates();
-        ((OnlineIndexUpdates) indexEntryUpdates)
-                .getUpdates()
-                .add(EagerValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
-
-        assertTrue(batchContext.hasUpdates());
-
-        batchContext.close();
-
-        assertFalse(batchContext.hasUpdates());
-        verify(storageReader).close();
-    }
-
-    @Test
-    void shouldNasNoUpdatesAfterPendingUpdatesApplied() throws Exception {
-        RecordStorageEngine storageEngine = mock(RecordStorageEngine.class);
-        RecordStorageReader storageReader = mock(RecordStorageReader.class);
-        when(storageEngine.newReader()).thenReturn(storageReader);
-        var batchContext = new BatchContextImpl(
-                indexingService,
-                indexUpdatesSync,
-                nodeStore,
-                propertyStore,
-                storageEngine,
-                mock(SchemaCache.class),
-                NULL_CONTEXT,
-                INSTANCE,
-                IdUpdateListener.IGNORE,
-                StoreCursors.NULL);
-
-        IndexUpdates indexEntryUpdates = batchContext.indexUpdates();
-        ((OnlineIndexUpdates) indexEntryUpdates)
-                .getUpdates()
-                .add(EagerValueIndexEntryUpdate.add(1, IndexDescriptor.NO_INDEX));
-
-        assertTrue(batchContext.hasUpdates());
-
-        batchContext.applyPendingIndexUpdates();
-
-        assertFalse(batchContext.hasUpdates());
     }
 
     @Test
