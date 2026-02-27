@@ -437,7 +437,8 @@ public sealed interface SchemaCommand extends Serializable {
                 }
             }
 
-            record NodeExistence(String name, String label, String property, boolean ifNotExists) implements Create {
+            record NodeExistence(String name, String label, String property, boolean isDependent, boolean ifNotExists)
+                    implements Create {
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -457,8 +458,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forLabel(
                             tokenHolders.labelForName(label), tokenHolders.propertyForName(property));
-                    final var constraintDescriptor =
-                            withName(name, ConstraintDescriptorFactory.existsForSchema(schema, false), tokenHolders);
+                    final var constraintDescriptor = withName(
+                            name, ConstraintDescriptorFactory.existsForSchema(schema, isDependent), tokenHolders);
                     return new ConstraintPrototype(constraintDescriptor);
                 }
             }
@@ -494,7 +495,12 @@ public sealed interface SchemaCommand extends Serializable {
             }
 
             record NodePropertyType(
-                    String name, String label, String property, PropertyTypeSet propertyTypes, boolean ifNotExists)
+                    String name,
+                    String label,
+                    String property,
+                    PropertyTypeSet propertyTypes,
+                    boolean isDependent,
+                    boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -517,7 +523,7 @@ public sealed interface SchemaCommand extends Serializable {
                             tokenHolders.labelForName(label), tokenHolders.propertyForName(property));
                     final var constraintDescriptor = withName(
                             name,
-                            ConstraintDescriptorFactory.typeForSchema(schema, propertyTypes, false),
+                            ConstraintDescriptorFactory.typeForSchema(schema, propertyTypes, isDependent),
                             tokenHolders);
                     return new ConstraintPrototype(constraintDescriptor);
                 }
@@ -554,7 +560,8 @@ public sealed interface SchemaCommand extends Serializable {
                 }
             }
 
-            record RelationshipExistence(String name, String type, String property, boolean ifNotExists)
+            record RelationshipExistence(
+                    String name, String type, String property, boolean isDependent, boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -575,8 +582,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forRelType(
                             tokenHolders.relationshipForName(type), tokenHolders.propertyForName(property));
-                    final var constraintDescriptor =
-                            withName(name, ConstraintDescriptorFactory.existsForSchema(schema, false), tokenHolders);
+                    final var constraintDescriptor = withName(
+                            name, ConstraintDescriptorFactory.existsForSchema(schema, isDependent), tokenHolders);
                     return new ConstraintPrototype(constraintDescriptor);
                 }
             }
@@ -613,7 +620,12 @@ public sealed interface SchemaCommand extends Serializable {
             }
 
             record RelationshipPropertyType(
-                    String name, String type, String property, PropertyTypeSet propertyTypes, boolean ifNotExists)
+                    String name,
+                    String type,
+                    String property,
+                    PropertyTypeSet propertyTypes,
+                    boolean isDependent,
+                    boolean ifNotExists)
                     implements Create {
                 @Override
                 public EntityType entityType() {
@@ -636,7 +648,7 @@ public sealed interface SchemaCommand extends Serializable {
                             tokenHolders.relationshipForName(type), tokenHolders.propertyForName(property));
                     final var constraintDescriptor = withName(
                             name,
-                            ConstraintDescriptorFactory.typeForSchema(schema, propertyTypes, false),
+                            ConstraintDescriptorFactory.typeForSchema(schema, propertyTypes, isDependent),
                             tokenHolders);
                     return new ConstraintPrototype(constraintDescriptor);
                 }

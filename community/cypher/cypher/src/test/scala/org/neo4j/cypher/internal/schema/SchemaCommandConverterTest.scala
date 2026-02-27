@@ -2232,6 +2232,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               "name",
+              false,
               false
             )
           case ConstraintType.NODE_PROPERTY_TYPE => new NodePropertyType(
@@ -2239,6 +2240,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               label.name,
               "name",
               PropertyTypeSet.of(SchemaValueType.STRING),
+              false,
               false
             )
           case ConstraintType.NODE_KEY => new NodeKey(
@@ -2257,6 +2259,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               relType.name,
               "name",
+              false,
               false
             )
           case ConstraintType.RELATIONSHIP_PROPERTY_TYPE => new RelationshipPropertyType(
@@ -2264,6 +2267,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               relType.name,
               "name",
               PropertyTypeSet.of(SchemaValueType.STRING),
+              false,
               false
             )
           case ConstraintType.RELATIONSHIP_KEY => new RelationshipKey(
@@ -2295,6 +2299,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               label.name,
               "name",
+              false,
               true
             )
           case ConstraintType.NODE_PROPERTY_TYPE => new NodePropertyType(
@@ -2302,6 +2307,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               label.name,
               "name",
               PropertyTypeSet.of(SchemaValueType.STRING),
+              false,
               true
             )
           case ConstraintType.NODE_KEY => new NodeKey(
@@ -2320,6 +2326,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               commandName(ixName),
               relType.name,
               "name",
+              false,
               true
             )
           case ConstraintType.RELATIONSHIP_PROPERTY_TYPE => new RelationshipPropertyType(
@@ -2327,6 +2334,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               relType.name,
               "name",
               PropertyTypeSet.of(SchemaValueType.STRING),
+              false,
               true
             )
           case ConstraintType.RELATIONSHIP_KEY => new RelationshipKey(

@@ -892,17 +892,17 @@ class SchemaCommandReaderTest {
                     CREATE CONSTRAINT
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NOT NULL
-                    """, new NodeExistence(null, "LabelName", "prop", false)),
+                    """, new NodeExistence(null, "LabelName", "prop", false, false)),
                 arguments("""
                     CREATE CONSTRAINT testing
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NOT NULL
-                    """, new NodeExistence("testing", "LabelName", "prop", false)),
+                    """, new NodeExistence("testing", "LabelName", "prop", false, false)),
                 arguments("""
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR (c:LabelName)
                     REQUIRE c.prop IS NOT NULL
-                    """, new NodeExistence("testing", "LabelName", "prop", true)),
+                    """, new NodeExistence("testing", "LabelName", "prop", false, true)),
                 arguments(
                         """
                     CREATE CONSTRAINT
@@ -910,7 +910,7 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: STRING
                     """,
                         new NodePropertyType(
-                                null, "LabelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false)),
+                                null, "LabelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false, false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
@@ -918,7 +918,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: STRING
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(SchemaValueType.STRING),
+                                false,
+                                false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -926,7 +931,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: INTEGER
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(SchemaValueType.INTEGER), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(SchemaValueType.INTEGER),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -934,7 +944,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: VECTOR<INT8>(128)
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int8Vector(128)), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.int8Vector(128)),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -942,7 +957,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: VECTOR<INT8 NOT NULL>(128)
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int8Vector(128)), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.int8Vector(128)),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -950,7 +970,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: VECTOR<INT16>(128)
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int16Vector(128)), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.int16Vector(128)),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -958,7 +983,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: VECTOR<INT32>(128)
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int32Vector(128)), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.int32Vector(128)),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -966,7 +996,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: VECTOR<INT64>(128)
                     """,
                         new NodePropertyType(
-                                "testing", "LabelName", "prop", PropertyTypeSet.of(VectorType.int64Vector(128)), true)),
+                                "testing",
+                                "LabelName",
+                                "prop",
+                                PropertyTypeSet.of(VectorType.int64Vector(128)),
+                                false,
+                                true)),
                 arguments(
                         """
                     CYPHER 25 CREATE CONSTRAINT testing IF NOT EXISTS
@@ -978,6 +1013,7 @@ class SchemaCommandReaderTest {
                                 "LabelName",
                                 "prop",
                                 PropertyTypeSet.of(VectorType.float32Vector(128)),
+                                false,
                                 true)),
                 arguments(
                         """
@@ -990,6 +1026,7 @@ class SchemaCommandReaderTest {
                                 "LabelName",
                                 "prop",
                                 PropertyTypeSet.of(VectorType.float64Vector(128)),
+                                false,
                                 true)),
                 arguments("""
                     CREATE CONSTRAINT
@@ -1059,17 +1096,17 @@ class SchemaCommandReaderTest {
                     CREATE CONSTRAINT
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS NOT NULL
-                    """, new RelationshipExistence(null, "RelName", "prop", false)),
+                    """, new RelationshipExistence(null, "RelName", "prop", false, false)),
                 arguments("""
                     CREATE CONSTRAINT testing
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS NOT NULL
-                    """, new RelationshipExistence("testing", "RelName", "prop", false)),
+                    """, new RelationshipExistence("testing", "RelName", "prop", false, false)),
                 arguments("""
                     CREATE CONSTRAINT testing IF NOT EXISTS
                     FOR ()-[c:RelName]-()
                     REQUIRE c.prop IS NOT NULL
-                    """, new RelationshipExistence("testing", "RelName", "prop", true)),
+                    """, new RelationshipExistence("testing", "RelName", "prop", false, true)),
                 arguments(
                         """
                     CREATE CONSTRAINT
@@ -1077,7 +1114,7 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: STRING
                     """,
                         new RelationshipPropertyType(
-                                null, "RelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false)),
+                                null, "RelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false, false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing
@@ -1085,7 +1122,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: STRING
                     """,
                         new RelationshipPropertyType(
-                                "testing", "RelName", "prop", PropertyTypeSet.of(SchemaValueType.STRING), false)),
+                                "testing",
+                                "RelName",
+                                "prop",
+                                PropertyTypeSet.of(SchemaValueType.STRING),
+                                false,
+                                false)),
                 arguments(
                         """
                     CREATE CONSTRAINT testing IF NOT EXISTS
@@ -1093,7 +1135,12 @@ class SchemaCommandReaderTest {
                     REQUIRE c.prop IS :: INTEGER
                     """,
                         new RelationshipPropertyType(
-                                "testing", "RelName", "prop", PropertyTypeSet.of(SchemaValueType.INTEGER), true)),
+                                "testing",
+                                "RelName",
+                                "prop",
+                                PropertyTypeSet.of(SchemaValueType.INTEGER),
+                                false,
+                                true)),
                 arguments("""
                     CREATE CONSTRAINT
                     FOR ()-[c:RelName]-()

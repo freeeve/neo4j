@@ -534,12 +534,24 @@ class SchemaCommandTest {
         final var label = random.among(LABELS);
         final var property = random.among(PROPERTIES);
 
-        assertThat(new NodeExistence(name, label, property, IF_NOT_EXISTS).toPrototype(tokenHolders))
+        assertThat(new NodeExistence(name, label, property, false, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(ExistenceConstraintDescriptor.class);
                     assertConstraintName(constraint.getName(), name);
                     assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.INDEPENDENT);
+                    assertSchema(constraint.schema(), EntityType.NODE, List.of(label), List.of(property));
+
+                    assertThat(prototype.backingIndex())
+                            .as("should have no backing index")
+                            .isNull();
+                });
+        assertThat(new NodeExistence(name, label, property, true, IF_NOT_EXISTS).toPrototype(tokenHolders))
+                .satisfies(prototype -> {
+                    final var constraint = prototype.descriptor();
+                    assertThat(constraint).isInstanceOf(ExistenceConstraintDescriptor.class);
+                    assertConstraintName(constraint.getName(), name);
+                    assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.DEPENDENT);
                     assertSchema(constraint.schema(), EntityType.NODE, List.of(label), List.of(property));
 
                     assertThat(prototype.backingIndex())
@@ -554,12 +566,24 @@ class SchemaCommandTest {
         final var type = random.among(TYPES);
         final var property = random.among(PROPERTIES);
 
-        assertThat(new RelationshipExistence(name, type, property, IF_NOT_EXISTS).toPrototype(tokenHolders))
+        assertThat(new RelationshipExistence(name, type, property, false, IF_NOT_EXISTS).toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(ExistenceConstraintDescriptor.class);
                     assertConstraintName(constraint.getName(), name);
                     assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.INDEPENDENT);
+                    assertSchema(constraint.schema(), EntityType.RELATIONSHIP, List.of(type), List.of(property));
+
+                    assertThat(prototype.backingIndex())
+                            .as("should have no backing index")
+                            .isNull();
+                });
+        assertThat(new RelationshipExistence(name, type, property, true, IF_NOT_EXISTS).toPrototype(tokenHolders))
+                .satisfies(prototype -> {
+                    final var constraint = prototype.descriptor();
+                    assertThat(constraint).isInstanceOf(ExistenceConstraintDescriptor.class);
+                    assertConstraintName(constraint.getName(), name);
+                    assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.DEPENDENT);
                     assertSchema(constraint.schema(), EntityType.RELATIONSHIP, List.of(type), List.of(property));
 
                     assertThat(prototype.backingIndex())
@@ -575,12 +599,28 @@ class SchemaCommandTest {
         final var property = random.among(PROPERTIES);
         final var propertyTypes = random.among(PROPERTY_TYPES);
 
-        assertThat(new NodePropertyType(name, label, property, propertyTypes, IF_NOT_EXISTS).toPrototype(tokenHolders))
+        assertThat(new NodePropertyType(name, label, property, propertyTypes, false, IF_NOT_EXISTS)
+                        .toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(TypeConstraintDescriptor.class);
                     assertConstraintName(constraint.getName(), name);
                     assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.INDEPENDENT);
+                    assertThat(((TypeConstraintDescriptor) constraint).propertyType())
+                            .isEqualTo(propertyTypes);
+                    assertSchema(constraint.schema(), EntityType.NODE, List.of(label), List.of(property));
+
+                    assertThat(prototype.backingIndex())
+                            .as("should have no backing index")
+                            .isNull();
+                });
+        assertThat(new NodePropertyType(name, label, property, propertyTypes, true, IF_NOT_EXISTS)
+                        .toPrototype(tokenHolders))
+                .satisfies(prototype -> {
+                    final var constraint = prototype.descriptor();
+                    assertThat(constraint).isInstanceOf(TypeConstraintDescriptor.class);
+                    assertConstraintName(constraint.getName(), name);
+                    assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.DEPENDENT);
                     assertThat(((TypeConstraintDescriptor) constraint).propertyType())
                             .isEqualTo(propertyTypes);
                     assertSchema(constraint.schema(), EntityType.NODE, List.of(label), List.of(property));
@@ -598,13 +638,28 @@ class SchemaCommandTest {
         final var property = random.among(PROPERTIES);
         final var propertyTypes = random.among(PROPERTY_TYPES);
 
-        assertThat(new RelationshipPropertyType(name, type, property, propertyTypes, IF_NOT_EXISTS)
+        assertThat(new RelationshipPropertyType(name, type, property, propertyTypes, false, IF_NOT_EXISTS)
                         .toPrototype(tokenHolders))
                 .satisfies(prototype -> {
                     final var constraint = prototype.descriptor();
                     assertThat(constraint).isInstanceOf(TypeConstraintDescriptor.class);
                     assertConstraintName(constraint.getName(), name);
                     assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.INDEPENDENT);
+                    assertThat(((TypeConstraintDescriptor) constraint).propertyType())
+                            .isEqualTo(propertyTypes);
+                    assertSchema(constraint.schema(), EntityType.RELATIONSHIP, List.of(type), List.of(property));
+
+                    assertThat(prototype.backingIndex())
+                            .as("should have no backing index")
+                            .isNull();
+                });
+        assertThat(new RelationshipPropertyType(name, type, property, propertyTypes, true, IF_NOT_EXISTS)
+                        .toPrototype(tokenHolders))
+                .satisfies(prototype -> {
+                    final var constraint = prototype.descriptor();
+                    assertThat(constraint).isInstanceOf(TypeConstraintDescriptor.class);
+                    assertConstraintName(constraint.getName(), name);
+                    assertThat(constraint.graphTypeDependence()).isEqualTo(GraphTypeDependence.DEPENDENT);
                     assertThat(((TypeConstraintDescriptor) constraint).propertyType())
                             .isEqualTo(propertyTypes);
                     assertSchema(constraint.schema(), EntityType.RELATIONSHIP, List.of(type), List.of(property));
@@ -705,23 +760,27 @@ class SchemaCommandTest {
                         "command" + id++,
                         track(LABELS, labels, random),
                         track(PROPERTIES, properties, random),
+                        false,
                         IF_NOT_EXISTS),
                 new RelationshipExistence(
                         "command" + id++,
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
+                        false,
                         IF_NOT_EXISTS),
                 new NodePropertyType(
                         "command" + id++,
                         track(LABELS, labels, random),
                         track(PROPERTIES, properties, random),
                         random.among(PROPERTY_TYPES),
+                        false,
                         IF_NOT_EXISTS),
                 new RelationshipPropertyType(
                         "command" + id,
                         track(TYPES, relationships, random),
                         track(PROPERTIES, properties, random),
                         random.among(PROPERTY_TYPES),
+                        false,
                         IF_NOT_EXISTS));
         final var tokens = SchemaTokens.collect(indexes, constraints);
         assertThat(tokens.labels()).containsAll(labels);

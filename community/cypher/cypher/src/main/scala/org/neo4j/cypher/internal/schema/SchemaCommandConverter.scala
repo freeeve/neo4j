@@ -287,13 +287,13 @@ class SchemaCommandConverter(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("node", "existence", providerContext)
           )
-          new NodeExistence(name, entityName, singleProperty(properties), ifNotExists(ifExistsDo))
+          new NodeExistence(name, entityName, singleProperty(properties), false, ifNotExists(ifExistsDo))
         case RelationshipPropertyExistence =>
           validateOptions(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "existence", providerContext)
           )
-          new RelationshipExistence(name, entityName, singleProperty(properties), ifNotExists(ifExistsDo))
+          new RelationshipExistence(name, entityName, singleProperty(properties), false, ifNotExists(ifExistsDo))
         case org.neo4j.cypher.internal.ast.NodePropertyType(propType) =>
           validateOptions(options, PropertyExistenceOrTypeConstraintOptionsConverter("node", "type", providerContext))
           new NodePropertyType(
@@ -301,6 +301,7 @@ class SchemaCommandConverter(
             entityName,
             singleProperty(properties),
             PropertyTypeMapper.asPropertyTypeSet(propType),
+            false,
             ifNotExists(ifExistsDo)
           )
         case org.neo4j.cypher.internal.ast.RelationshipPropertyType(propType) =>
@@ -313,6 +314,7 @@ class SchemaCommandConverter(
             entityName,
             singleProperty(properties),
             PropertyTypeMapper.asPropertyTypeSet(propType),
+            false,
             ifNotExists(ifExistsDo)
           )
       }
