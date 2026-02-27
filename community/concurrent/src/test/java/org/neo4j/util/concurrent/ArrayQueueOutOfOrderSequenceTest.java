@@ -287,7 +287,7 @@ class ArrayQueueOutOfOrderSequenceTest {
     @Test
     void shouldSnapshotUnderStress() throws Throwable {
         // given
-        OutOfOrderSequence sequence = new ArrayQueueOutOfOrderSequence(0, 8, EMPTY_META);
+        OutOfOrderSequence sequence = new ArrayQueueOutOfOrderSequence(0, 8, simpleMeta(0));
         int threads = max(2, Runtime.getRuntime().availableProcessors() - 1);
         try (ExecutorService executorService = Executors.newFixedThreadPool(threads + 1)) {
             AtomicLong nextNumber = new AtomicLong(1);
@@ -300,10 +300,10 @@ class ArrayQueueOutOfOrderSequenceTest {
                     }
                 });
             }
-            AtomicReference<Throwable> throwed = new AtomicReference<>();
+            AtomicReference<Throwable> thrown = new AtomicReference<>();
             executorService.submit(new Callable<Void>() {
                 @Override
-                public Void call() throws InterruptedException {
+                public Void call() {
                     try {
                         while (snapshots.get() > 0) {
                             verifyInternallyConsistent(sequence.get());
@@ -311,7 +311,7 @@ class ArrayQueueOutOfOrderSequenceTest {
                             snapshots.decrementAndGet();
                         }
                     } catch (Throwable t) {
-                        throwed.set(t);
+                        thrown.set(t);
                     } finally {
                         snapshots.set(0);
                     }
@@ -327,8 +327,8 @@ class ArrayQueueOutOfOrderSequenceTest {
             // when/then verifications are made inside the race
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.MINUTES);
-            if (throwed.get() != null) {
-                throw throwed.get();
+            if (thrown.get() != null) {
+                throw thrown.get();
             }
         }
     }
