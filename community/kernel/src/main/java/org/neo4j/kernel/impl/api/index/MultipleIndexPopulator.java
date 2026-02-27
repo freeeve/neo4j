@@ -271,7 +271,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
      */
     void queueConcurrentUpdate(IndexEntryUpdate update, CursorContext cursorContext) {
         var entryUpdate = new VersionedEntryUpdate(
-                update, cursorContext.getVersionContext().committingTransactionId());
+                update.eagerly(), cursorContext.getVersionContext().committingTransactionId());
         concurrentUpdateQueue.add(entryUpdate);
         concurrentUpdateQueueByteSize.addAndGet(entryUpdate.heapSize());
     }
