@@ -126,13 +126,19 @@ object LogicalPlanToPlanBuilderString {
 
   private val expressionStringifier =
     ExpressionStringifier(
-      Extension.simple(expressionStringifierExtension),
+      new Extension {
+        override def apply(ctx: ExpressionStringifier)(expression: Expression): String =
+          expressionStringifierExtension(expression)
+      },
       alwaysParens = false,
       alwaysBacktick = false,
       preferSingleQuotes = true,
       sensitiveParamsAsParams = false,
       javaCompatible = true
     )
+
+  private val queryExpressionStringifier =
+    new QueryExpressionStringifier(expressionStringifier, Some(stringifyValueInIndexOperator))
 
   /**
    * Generates a string that plays nicely together with `AbstractLogicalPlanBuilder`.
@@ -165,6 +171,11 @@ object LogicalPlanToPlanBuilderString {
       case p @ CachedProperty(_, _, _, RELATIONSHIP_TYPE, true, _)  => s"cacheRFromStore[${p.propertyAccessString}]"
       case e                                                        => e.asCanonicalStringVal
     }
+  }
+
+  private def stringifyValueInIndexOperator(expression: Expression): String = expression match {
+    case _: ExplicitParameter => "???"
+    case other                => expressionStringifier(other)
   }
 
   private def render(
@@ -2097,79 +2108,8 @@ object LogicalPlanToPlanBuilderString {
       }
     )
 
-  private def queryExpressionStr(valueExpr: QueryExpression[Expression], propNames: Seq[String]): String = {
-    valueExpr match {
-      case SingleQueryExpression(expression) =>
-        s"${propNames.head} = ${stringifyValueInIndexOperator(expression)}"
-      case ManyQueryExpression(ListLiteral(expressions)) =>
-        s"${propNames.head} = ${expressions.map(stringifyValueInIndexOperator).mkString(" OR ")}"
-      case ManyQueryExpression(expr) =>
-        s"${propNames.head} IN ${stringifyValueInIndexOperator(expr)}"
-      case ExistenceQueryExpression => propNames.head
-      case RangeQueryExpression(PrefixSeekRangeWrapper(PrefixRange(expression))) =>
-        s"${propNames.head} STARTS WITH ${stringifyValueInIndexOperator(expression)}"
-      case RangeQueryExpression(InequalitySeekRangeWrapper(range)) => rangeStr(range, propNames.head).toString
-      case CompositeQueryExpression(inner) => inner.zip(propNames).map { case (qe, propName) =>
-          queryExpressionStr(qe, Seq(propName))
-        }.mkString(", ")
-      case _ => ""
-    }
-  }
-
-  private case class RangeStr(pre: Option[(String, String)], expr: String, post: (String, String)) {
-
-    override def toString: String = {
-      val preStr = pre match {
-        case Some((vl, sign)) => s"$vl $sign "
-        case None             => ""
-      }
-      val postStr = s" ${post._1} ${post._2}"
-      s"$preStr$expr$postStr"
-    }
-  }
-
-  private def rangeStr(range: InequalitySeekRange[Expression], propName: String): RangeStr = {
-    range match {
-      case RangeGreaterThan(NonEmptyList(ExclusiveBound(expression))) =>
-        RangeStr(None, propName, (">", stringifyValueInIndexOperator(expression)))
-      case RangeGreaterThan(NonEmptyList(InclusiveBound(expression))) =>
-        RangeStr(None, propName, (">=", stringifyValueInIndexOperator(expression)))
-      case RangeGreaterThan(NonEmptyList(preBound, postBound)) =>
-        val pre = boundStringifier(preBound, "<")
-        val post = boundStringifier(postBound, ">")
-        RangeStr(Some(pre.swap), propName, post)
-      case RangeLessThan(NonEmptyList(ExclusiveBound(expression))) =>
-        RangeStr(None, propName, ("<", stringifyValueInIndexOperator(expression)))
-      case RangeLessThan(NonEmptyList(preBound, postBound)) =>
-        val pre = boundStringifier(preBound, ">")
-        val post = boundStringifier(postBound, "<")
-        RangeStr(Some(pre.swap), propName, post)
-      case RangeLessThan(NonEmptyList(InclusiveBound(expression))) =>
-        RangeStr(None, propName, ("<=", stringifyValueInIndexOperator(expression)))
-      case RangeBetween(greaterThan, lessThan) =>
-        val gt = rangeStr(greaterThan, propName)
-        val lt = rangeStr(lessThan, propName)
-        val pre = (gt.post._2, switchInequalitySign(gt.post._1))
-        RangeStr(Some(pre), propName, lt.post)
-      case _ =>
-        // Should never come here
-        throw new IllegalStateException(s"Unknown range expression: $range")
-    }
-  }
-
-  private def boundStringifier(expression: Bound[Expression], exclusiveSign: String) = {
-    expression match {
-      case InclusiveBound(endPoint) => (exclusiveSign + "=", stringifyValueInIndexOperator(endPoint))
-      case ExclusiveBound(endPoint) => (exclusiveSign, stringifyValueInIndexOperator(endPoint))
-    }
-  }
-
-  // we support parameters in index operators, if they are top-level values.
-  // That is, something like "n.prop = $param" is supported, whereas "n.prop = $param + 1" is not.
-  private def stringifyValueInIndexOperator(expression: Expression): String = expression match {
-    case _: ExplicitParameter => "???"
-    case other                => expressionStringifier(other)
-  }
+  private def queryExpressionStr(valueExpr: QueryExpression[Expression], propNames: Seq[String]): String =
+    queryExpressionStringifier(valueExpr, propNames)
 
   private def getParamExpr(valueExpr: QueryExpression[Expression]): Seq[String] = {
     valueExpr.folder.treeCollect {
@@ -2213,13 +2153,6 @@ object LogicalPlanToPlanBuilderString {
 
   private def name(variable: Option[LogicalVariable]): String =
     variable.map(v => escapeIdentifier(v.name)).getOrElse("")
-
-  private def switchInequalitySign(s: String): String = switchInequalitySign(s.head) +: s.tail
-
-  private def switchInequalitySign(c: Char): Char = c match {
-    case '>' => '<'
-    case '<' => '>'
-  }
 
   private def nodeIndexOperator(
     idName: LogicalVariable,
