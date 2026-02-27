@@ -48,6 +48,7 @@ class EphemeralFileChannel extends FileChannel implements EphemeralPositionable 
     final EphemeralFileStillOpenException openedAt;
     private final EphemeralFileData data;
     private long position;
+    private volatile Exception closedBy;
 
     EphemeralFileChannel(EphemeralFileData data, Supplier<EphemeralFileStillOpenException> opened) {
         this.data = data;
@@ -62,7 +63,11 @@ class EphemeralFileChannel extends FileChannel implements EphemeralPositionable 
 
     private void checkIfClosedOrInterruptedOrMapped() throws IOException {
         if (!isOpen()) {
-            throw new ClosedChannelException();
+            ClosedChannelException closedException = new ClosedChannelException();
+            if (closedBy != null) {
+                closedException.addSuppressed(closedBy);
+            }
+            throw closedException;
         }
         if (Thread.currentThread().isInterrupted()) {
             close();
@@ -200,6 +205,7 @@ class EphemeralFileChannel extends FileChannel implements EphemeralPositionable 
 
     @Override
     protected void implCloseChannel() {
+        closedBy = new Exception("Closed by thread " + Thread.currentThread().getName());
         data.close(this);
     }
 
