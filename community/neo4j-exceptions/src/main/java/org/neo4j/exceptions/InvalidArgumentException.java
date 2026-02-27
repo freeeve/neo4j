@@ -1060,6 +1060,14 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "System database cannot be set as default.");
     }
 
+    public static InvalidArgumentException nullArgumentNotAllowed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22004)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "Null argument not allowed.");
+    }
+
     public static InvalidArgumentException cannotDeallocateServers(
             Collection<String> servers, boolean withCauseMessage, Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
