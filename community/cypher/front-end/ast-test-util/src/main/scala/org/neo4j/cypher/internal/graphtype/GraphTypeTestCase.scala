@@ -36,7 +36,13 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 
 import scala.collection.immutable.ArraySeq
 
-case class GraphTypeTestCase(name: String, cypher: String, ast: GraphType, prettifiedCypher: String) {
+case class GraphTypeTestCase(
+  name: String,
+  cypher: String,
+  ast: GraphType,
+  prettifiedCypher: String,
+  canonicalPrettifiedCypher: String = "{}"
+) {
   override def toString: String = name
 }
 
@@ -99,7 +105,20 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       | CONSTRAINT `mySiteConstraint` FOR (`st`:`Site` =>) REQUIRE (`st`.`name`) IS KEY,
       | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`age`) IS :: INTEGER,
       | CONSTRAINT FOR ()-[`x`:`LegacyRel`]->() REQUIRE (`x`.`foo`) IS UNIQUE
-}""".stripMargin
+      |}""".stripMargin,
+    """{
+      | (:`City` => :`Location` {`name` :: STRING}),
+      | (:`Site` => :`Location` {`name` :: STRING}),
+      | (:`Student` => :`Person` {`birthday` :: DATE, `name` :: STRING NOT NULL, `studId` :: INTEGER}),
+      | (:`Student` =>)-[:`LIVES_IN` =>]->(:`City` =>),
+      | (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
+      | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+      | CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
+      | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
+      | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
+      | CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
+      | CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
+      |}""".stripMargin
   ))
 
   private def snt(): Seq[GraphTypeTestCase] = Seq(
@@ -107,6 +126,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       "SNT-PE-PI-1-1",
       """ALTER CURRENT GRAPH TYPE SET { ( :Person => { name  :: STRING}) }""",
       graphType(nodeType("Person", propertyType("name", StringType(isNullable = true)))),
+      """{
+        | (:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
@@ -117,6 +139,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", propertyType("name", StringType(isNullable = true)))),
       """{
         | (:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -125,6 +150,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", "p", propertyType("name", StringType(isNullable = true)))),
       """{
         | (`p`:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -133,6 +161,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", "p", propertyType("name", StringType(isNullable = true)))),
       """{
         | (`p`:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -141,6 +172,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", "p", propertyType("name", StringType(isNullable = true)))),
       """{
         | (`p`:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -149,6 +183,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", "p", propertyType("name", StringType(isNullable = true)))),
       """{
         | (`p`:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -159,6 +196,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         propertyType("name", StringType(isNullable = false)),
         propertyType("age", IntegerType(isNullable = true))
       )),
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
@@ -173,6 +213,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -183,6 +226,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         propertyType("name", StringType(isNullable = false)),
         propertyType("age", IntegerType(isNullable = true))
       )),
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
@@ -197,6 +243,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -209,12 +258,18 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-LI-1-1",
       """ALTER CURRENT GRAPH TYPE SET { (:Person => :Student             ) }""",
       graphType(nodeType("Person", Set("Student"))),
+      """{
+        | (:`Person` => :`Student`)
+        |}""".stripMargin,
       """{
         | (:`Person` => :`Student`)
         |}""".stripMargin
@@ -225,12 +280,18 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", Set("Student"))),
       """{
         | (:`Person` => :`Student`)
+        |}""".stripMargin,
+      """{
+        | (:`Person` => :`Student`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-LI-1-3",
       """ALTER CURRENT GRAPH TYPE SET { (:Person => :Student&Student {  }) }""",
       graphType(nodeType("Person", Set("Student"))),
+      """{
+        | (:`Person` => :`Student`)
+        |}""".stripMargin,
       """{
         | (:`Person` => :`Student`)
         |}""".stripMargin
@@ -241,12 +302,18 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", Set("Student", "Happy"))),
       """{
         | (:`Person` => :`Happy`&`Student`)
+        |}""".stripMargin,
+      """{
+        | (:`Person` => :`Happy`&`Student`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-LI-2-2",
       """ALTER CURRENT GRAPH TYPE SET { (:Person => :Happy&Student) }""",
       graphType(nodeType("Person", Set("Student", "Happy"))),
+      """{
+        | (:`Person` => :`Happy`&`Student`)
+        |}""".stripMargin,
       """{
         | (:`Person` => :`Happy`&`Student`)
         |}""".stripMargin
@@ -257,12 +324,18 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", Set("Student", "Happy"))),
       """{
         | (:`Person` => :`Happy`&`Student`)
+        |}""".stripMargin,
+      """{
+        | (:`Person` => :`Happy`&`Student`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-LI-2-4",
       """ALTER CURRENT GRAPH TYPE SET { (:Person => :Student&Student&Happy) }""",
       graphType(nodeType("Person", Set("Student", "Happy"))),
+      """{
+        | (:`Person` => :`Happy`&`Student`)
+        |}""".stripMargin,
       """{
         | (:`Person` => :`Happy`&`Student`)
         |}""".stripMargin
@@ -273,12 +346,18 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(nodeType("Person", Set("Student", "Happy"))),
       """{
         | (:`Person` => :`Happy`&`Student`)
+        |}""".stripMargin,
+      """{
+        | (:`Person` => :`Happy`&`Student`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-LPI-1-1",
       """ALTER CURRENT GRAPH TYPE SET { (:Person => :Student {name :: STRING}) }""",
       graphType(nodeType("Person", Set("Student"), propertyType("name", StringType(isNullable = true)))),
+      """{
+        | (:`Person` => :`Student` {`name` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`Person` => :`Student` {`name` :: STRING})
         |}""".stripMargin
@@ -296,6 +375,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => :`Happy`&`Student` {`age` :: INTEGER, `name` :: STRING NOT NULL, `studentID` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => :`Happy`&`Student` {`age` :: INTEGER, `name` :: STRING NOT NULL, `studentID` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -305,6 +387,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         "Person",
         propertyType("data", AnyType(isNullable = false))
       )),
+      """{
+        | (:`Person` => {`data` :: ANY NOT NULL})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`data` :: ANY NOT NULL})
         |}""".stripMargin
@@ -325,6 +410,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -341,6 +429,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ))
         )
       )),
+      """{
+        | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
@@ -361,6 +452,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: STRING | INTEGER, `name` :: STRING NOT NULL})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -373,6 +467,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ListType(StringType(isNullable = false)(defaultPos), isNullable = true)
         )
       )),
+      """{
+        | (:`Person` => {`names` :: LIST<STRING NOT NULL>})
+        |}""".stripMargin,
       """{
         | (:`Person` => {`names` :: LIST<STRING NOT NULL>})
         |}""".stripMargin
@@ -390,6 +487,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`name` :: STRING IS KEY})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -408,6 +509,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -429,6 +534,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -450,6 +559,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -471,6 +584,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -493,6 +610,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -515,6 +636,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -532,6 +657,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (:`Person` => {`name` :: STRING NOT NULL IS KEY})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -550,6 +679,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -571,6 +704,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -592,6 +729,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -613,6 +754,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -635,6 +780,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -657,6 +806,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -684,6 +837,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -713,6 +870,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -742,6 +903,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -771,6 +936,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -804,6 +973,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -837,6 +1010,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -852,6 +1029,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       )),
       """{
         | (:`Person` => {`name` :: STRING IS UNIQUE})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -871,6 +1052,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -893,6 +1078,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -914,6 +1103,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -935,6 +1128,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -957,6 +1154,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -979,6 +1180,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -996,6 +1201,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (:`Person` => {`name` :: STRING NOT NULL IS UNIQUE})
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1014,6 +1223,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1035,6 +1248,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1056,6 +1273,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1077,6 +1298,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1098,6 +1323,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1119,6 +1348,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`name` :: STRING NOT NULL}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1146,6 +1379,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1175,6 +1412,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1207,6 +1448,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`, `p`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1239,6 +1484,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`, `p`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1272,6 +1521,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1305,6 +1558,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1337,6 +1594,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY REQUIRE (`p`.`socialNo`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1369,6 +1631,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS UNIQUE REQUIRE (`p`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1401,6 +1668,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY REQUIRE (`p`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1433,6 +1705,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY REQUIRE (`p`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1472,6 +1749,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY,
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1510,6 +1792,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`p`:`Person`) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY,
         | CONSTRAINT FOR (`x`:`Person`) REQUIRE (`x`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1549,6 +1836,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS KEY,
         | CONSTRAINT FOR (`x`:`Person`) REQUIRE (`x`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1588,6 +1880,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person`) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS KEY,
         | CONSTRAINT FOR (`x`:`Person`) REQUIRE (`x`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1627,6 +1924,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
         | CONSTRAINT FOR (`bar`:`Person` =>) REQUIRE (`bar`.`name`, `bar`.`birthday`) IS KEY,
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`socialNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     )
   )
@@ -1645,6 +1947,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("name", StringType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => :`Named`)
+        |}""".stripMargin,
       """{
         | (:`City` => {`name` :: STRING}),
         | (:`Person` => :`Named`)
@@ -1669,6 +1975,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("length", IntegerType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => :`Named`),
+        | (:`River` => {`length` :: INTEGER})
+        |}""".stripMargin,
       """{
         | (:`City` => {`name` :: STRING}),
         | (:`Person` => :`Named`),
@@ -1712,6 +2023,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`Mountain` => {`height` :: INTEGER, `weight` :: INTEGER}),
         | (:`Person` => :`Named`),
         | (:`River` => {`length` :: INTEGER})
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Country` => {`grossProduct` :: FLOAT, `population` :: INTEGER}),
+        | (:`Mountain` => {`height` :: INTEGER, `weight` :: INTEGER}),
+        | (:`Person` => :`Named`),
+        | (:`River` => {`length` :: INTEGER})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1727,6 +2045,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           Set("Named")
         )
       ),
+      """{
+        | (:`City` => :`Named`),
+        | (:`Person` => :`Named`)
+        |}""".stripMargin,
       """{
         | (:`City` => :`Named`),
         | (:`Person` => :`Named`)
@@ -1748,6 +2070,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named`&`Tagged`),
         | (:`Person` => :`Named`&`Tagged`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named`&`Tagged`),
+        | (:`Person` => :`Named`&`Tagged`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1766,6 +2092,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named`&`Tagged`),
         | (:`Person` => :`Named`&`Tagged`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named`&`Tagged`),
+        | (:`Person` => :`Named`&`Tagged`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1781,6 +2111,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           Set("Named", "Tagged")
         )
       ),
+      """{
+        | (:`City` => :`Named`&`Tagged`),
+        | (:`Person` => :`Named`&`Tagged`)
+        |}""".stripMargin,
       """{
         | (:`City` => :`Named`&`Tagged`),
         | (:`Person` => :`Named`&`Tagged`)
@@ -1804,6 +2138,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named` {`population` :: INTEGER}),
         | (:`Person` => :`Named` {`age` :: INTEGER})
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named` {`population` :: INTEGER}),
+        | (:`Person` => :`Named` {`age` :: INTEGER})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1819,6 +2157,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("name", StringType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`City` => {`name` :: STRING}),
         | (:`Person` => {`name` :: STRING})
@@ -1842,6 +2184,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => {`name` :: STRING, `tag` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1859,6 +2205,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("tag", StringType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`City` => {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => {`name` :: STRING, `tag` :: STRING})
@@ -1882,6 +2232,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => {`name` :: STRING, `tag` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1899,6 +2253,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("name", StringType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => :`Named` {`name` :: STRING}),
+        | (:`Person` => :`Named` {`name` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`City` => :`Named` {`name` :: STRING}),
         | (:`Person` => :`Named` {`name` :: STRING})
@@ -1924,6 +2282,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1946,6 +2308,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -1965,6 +2331,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("tag", StringType(isNullable = true))
         )
       ),
+      """{
+        | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
+        | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
       """{
         | (:`City` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING}),
         | (:`Person` => :`Named`&`Tagged` {`name` :: STRING, `tag` :: STRING})
@@ -1993,6 +2363,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => :`Named`&`Populated`&`Tagged` {`name` :: STRING, `population` :: INTEGER, `tag` :: STRING}),
         | (:`Person` => :`Named`&`Tagged` {`age` :: INTEGER, `name` :: STRING, `tag` :: STRING})
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Named`&`Populated`&`Tagged` {`name` :: STRING, `population` :: INTEGER, `tag` :: STRING}),
+        | (:`Person` => :`Named`&`Tagged` {`age` :: INTEGER, `name` :: STRING, `tag` :: STRING})
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2013,6 +2387,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`City` => {`name` :: STRING IS KEY, `population` :: INTEGER}),
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY})
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2040,6 +2420,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}) REQUIRE (`c`.`name`, `c`.`population`) IS UNIQUE,
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`, `n`.`population`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2077,6 +2463,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`x`:`City` =>) REQUIRE (`x`.`name`, `x`.`population`) IS UNIQUE,
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`, `x`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`, `n`.`population`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2123,6 +2515,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`, `x`.`age`) IS UNIQUE,
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`ssn`) IS KEY,
         | CONSTRAINT FOR (`c`) REQUIRE (`c`.`zip`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER, `zip` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING, `ssn` :: STRING}),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`, `n`.`population`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`zip`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`ssn`) IS KEY
         |}""".stripMargin
     )
   )
@@ -2152,6 +2552,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2176,6 +2581,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (:`Person`)-[:`LIVES_IN` =>]->(:`City`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2201,6 +2611,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (:`Person` =>)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2232,6 +2647,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2264,6 +2684,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`address` :: STRING NOT NULL, `since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING NOT NULL, `since` :: DATE}]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2287,6 +2712,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(`p`)
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`Person` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2309,6 +2738,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`KNOWS` => {`since` :: DATE}]->()
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->()
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2326,6 +2759,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
         | ()-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | ()-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2339,6 +2776,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->()
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->()
         |}""".stripMargin
@@ -2357,6 +2797,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2371,6 +2814,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
         |}""".stripMargin
@@ -2410,6 +2856,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (:`Village` => :`Location` {`name` :: STRING}),
         | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(:`Location`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`Location`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2434,6 +2886,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByLabel("Location")
         )
       ),
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | (:`Location`)-[:`NEAR_BY` =>]->(:`Location`)
+        |}""".stripMargin,
       """{
         | (:`City` => :`Location` {`name` :: STRING}),
         | (:`Village` => :`Location` {`name` :: STRING}),
@@ -2465,6 +2922,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`City` => :`Location` {`name` :: STRING}),
         | (:`Village` => :`Location` {`name` :: STRING}),
         | ()-[:`NEAR_BY` =>]->(:`Location`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | ()-[:`NEAR_BY` =>]->(:`Location`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2478,6 +2940,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("data", AnyType(isNullable = false))
         )
       ),
+      """{
+        | ()-[:`LIVES_IN` => {`data` :: ANY NOT NULL}]->()
+        |}""".stripMargin,
       """{
         | ()-[:`LIVES_IN` => {`data` :: ANY NOT NULL}]->()
         |}""".stripMargin
@@ -2502,6 +2967,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2522,6 +2990,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         )
       ),
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin,
       """{
         | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
         |}""".stripMargin
@@ -2546,6 +3017,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2567,6 +3041,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`LIVES_IN` => {`addresses` :: LIST<STRING NOT NULL>}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`LIVES_IN` => {`addresses` :: LIST<STRING NOT NULL>}]->()
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2582,6 +3059,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`RELATED` => {`reason` :: STRING IS KEY}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2599,6 +3080,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING}]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2618,6 +3103,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2635,6 +3124,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2649,6 +3142,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
@@ -2669,6 +3166,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2686,6 +3187,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2702,6 +3207,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL IS KEY}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2720,6 +3229,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2738,6 +3251,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2755,6 +3272,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2769,6 +3290,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
@@ -2789,6 +3314,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2806,6 +3335,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2825,6 +3358,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2844,6 +3381,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2862,6 +3403,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2881,6 +3426,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ArraySeq(prop("r", "reason"), prop("r", "since"))
         ))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
@@ -2906,6 +3455,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2928,6 +3481,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2944,6 +3501,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`RELATED` => {`reason` :: STRING IS UNIQUE}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2962,6 +3523,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING}]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2981,6 +3546,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2999,6 +3568,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3014,6 +3587,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
@@ -3035,6 +3612,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3053,6 +3634,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3069,6 +3654,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL IS UNIQUE}]->()
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3087,6 +3676,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3106,6 +3699,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3124,6 +3721,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3139,6 +3740,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
@@ -3160,6 +3765,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3178,6 +3787,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3197,6 +3810,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3216,6 +3833,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3238,6 +3859,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3257,6 +3882,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ArraySeq(prop("r", "reason"), prop("r", "since"))
         ))
       ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin,
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
@@ -3282,6 +3911,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3304,6 +3937,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3328,6 +3965,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS KEY REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3352,6 +3994,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3376,6 +4023,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3400,6 +4052,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3431,6 +4088,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`rating`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3461,6 +4123,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3492,6 +4159,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3523,6 +4195,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3554,6 +4231,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
         | CONSTRAINT FOR ()-[`x`:`RELATED` =>]->() REQUIRE (`x`.`rating`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
         |}""".stripMargin
     )
   )
@@ -3607,6 +4289,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`a`)-[:`EATS` =>]->(`n`),
         | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`Animal` => {`family` :: STRING}),
+        | (:`City` => {`population` :: INTEGER}),
+        | (:`Nutriment` => {`energy` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Animal` =>)-[:`EATS` =>]->(:`Nutriment` =>),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3659,6 +4349,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`DINES` => {`frequency` :: FLOAT}]->(`m`),
         | (`a`)-[:`EATS` => {`frequency` :: FLOAT}]->(`n`)
+        |}""".stripMargin,
+      """{
+        | (:`Animal` => {`family` :: STRING}),
+        | (:`Dish` => {`name` :: STRING}),
+        | (:`Nutriment` => {`energy` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`DINES` => {`frequency` :: FLOAT}]->(:`Dish` =>),
+        | (:`Animal` =>)-[:`EATS` => {`frequency` :: FLOAT}]->(:`Nutriment` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3696,6 +4394,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`KNOWS` =>]->(`p`),
         | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` =>]->(:`Person` =>),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3740,6 +4444,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`)-[:`HAS_MAJOR` =>]->(`p`),
         | (`p`)-[:`KNOWS` =>]->(`p`),
         | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`City` =>)-[:`HAS_MAJOR` =>]->(:`Person` =>),
+        | (:`Person` =>)-[:`KNOWS` =>]->(:`Person` =>),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3776,6 +4487,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`)-[:`HAS_MAJOR` =>]->(:`Person`),
         | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
         | (:`Person`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`City` =>)-[:`HAS_MAJOR` =>]->(:`Person`),
+        | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3800,6 +4517,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByLabel("Person")
         )
       ),
+      """{
+        | (:`City`)-[:`HAS_MAJOR` =>]->(:`Person`),
+        | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`)
+        |}""".stripMargin,
       """{
         | (:`City`)-[:`HAS_MAJOR` =>]->(:`Person`),
         | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
@@ -3843,6 +4565,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(`p`),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`Person` =>),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3887,6 +4615,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[:`BORN_IN` =>]->(`c`),
         | (`p`)-[:`KNOWS` =>]->(`p`),
         | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`BORN_IN` =>]->(:`City` =>),
+        | (:`Person` =>)-[:`KNOWS` =>]->(:`Person` =>),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(:`City` =>)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3965,6 +4700,17 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[:`IN_LOVE_WITH` =>]->(`p`),
         | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(),
         | (:`Creature`)-[:`LIVES_IN` =>]->(:`Habitat`)
+        |}""".stripMargin,
+      """{
+        | (:`Animal` => :`Creature` {`name` :: STRING}),
+        | (:`City` => :`Habitat` {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => :`Creature` {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Wood` => :`Habitat` {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Wood` =>)-[:`BELONGS_TO` =>]->(:`City` =>),
+        | (:`Person` =>)-[:`BORN_IN` =>]->(:`City` =>),
+        | (:`Person` =>)-[:`IN_LOVE_WITH` =>]->(:`Person` =>),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(),
+        | (:`Creature`)-[:`LIVES_IN` =>]->(:`Habitat`)
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -3988,6 +4734,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person`)-[:`KNOWS` => {`since` :: DATE IS KEY}]->(:`Person`),
         | (:`Person`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(:`City`)
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`KNOWS` => {`since` :: DATE}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS` =>]->() REQUIRE (`r`.`since`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4019,6 +4771,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person`)-[`k`:`KNOWS` => {`sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`) REQUIRE (`k`.`sinceMonth`, `k`.`sinceYear`) IS UNIQUE,
         | (:`Person`)-[`l`:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`) REQUIRE (`l`.`street`, `l`.`streetNumber`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`KNOWS` => {`sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS` =>]->() REQUIRE (`r`.`sinceMonth`, `r`.`sinceYear`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`street`, `r`.`streetNumber`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4060,6 +4818,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (:`Person`)-[:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
         | CONSTRAINT FOR ()-[`x`:`KNOWS` =>]->() REQUIRE (`x`.`sinceMonth`, `x`.`sinceYear`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`street`, `x`.`streetNumber`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`KNOWS` => {`sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS` =>]->() REQUIRE (`r`.`sinceMonth`, `r`.`sinceYear`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`street`, `r`.`streetNumber`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4116,6 +4880,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR ()-[`x`:`KNOWS` =>]->() REQUIRE (`x`.`sinceMonth`, `x`.`sinceYear`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`street`, `x`.`streetNumber`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`KNOWS` => {`since` :: DATE, `sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`since` :: DATE, `street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS` =>]->() REQUIRE (`r`.`since`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`KNOWS` =>]->() REQUIRE (`r`.`sinceMonth`, `r`.`sinceYear`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`street`, `r`.`streetNumber`) IS UNIQUE
         |}""".stripMargin
     )
   )
@@ -4135,6 +4907,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4160,6 +4935,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4176,6 +4955,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4201,6 +4983,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4217,6 +5003,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4241,6 +5030,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4257,6 +5050,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4281,6 +5077,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4310,6 +5110,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4342,6 +5148,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4378,6 +5190,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4414,6 +5232,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4450,6 +5274,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4484,6 +5314,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4513,6 +5349,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4544,6 +5386,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4578,6 +5426,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4612,6 +5466,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4646,6 +5506,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4680,6 +5546,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4708,6 +5580,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4740,6 +5618,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4773,6 +5657,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4806,6 +5696,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4842,6 +5738,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4878,6 +5780,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4906,6 +5814,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4938,6 +5852,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS UNIQUE,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -4972,6 +5892,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5006,6 +5932,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5040,6 +5972,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5074,6 +6012,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5107,6 +6051,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`address`) IS KEY,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5141,6 +6091,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5174,6 +6130,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`address`) IS UNIQUE,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5208,6 +6170,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5237,6 +6205,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5269,6 +6243,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5305,6 +6285,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5339,6 +6325,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5375,6 +6367,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5411,6 +6409,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5439,6 +6443,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE NOT NULL IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5472,6 +6482,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5506,6 +6522,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5540,6 +6562,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5574,6 +6602,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5610,6 +6644,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5640,6 +6680,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5672,6 +6718,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5708,6 +6760,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5744,6 +6802,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5780,6 +6844,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5816,6 +6886,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5846,6 +6922,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE NOT NULL IS UNIQUE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5881,6 +6963,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5917,6 +7005,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5953,6 +7047,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -5989,6 +7089,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6025,6 +7131,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6058,6 +7170,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6094,6 +7212,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`reason`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`reason`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6129,6 +7253,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6165,6 +7295,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`reason`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6196,6 +7332,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6231,6 +7373,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6264,6 +7412,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6302,6 +7456,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6330,6 +7490,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6366,6 +7532,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6396,6 +7568,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6433,6 +7611,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6461,6 +7645,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`address`, `p`.`age`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6498,6 +7688,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`, `p`.`age`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`, `n`.`age`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6526,6 +7722,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`address`, `p`.`age`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6563,6 +7765,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`name` :: STRING}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`address`, `n`.`age`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6595,6 +7803,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6636,6 +7850,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6668,6 +7888,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6709,6 +7935,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6741,6 +7973,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6781,6 +8019,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6814,6 +8058,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6854,6 +8104,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6886,6 +8142,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`taxNo`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`taxNo`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6926,6 +8188,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`taxNo`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`taxNo`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6958,6 +8226,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`taxNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`taxNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -6997,6 +8271,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`taxNo`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`, `r`.`taxNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7035,6 +8315,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myConstraint` FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myConstraint` FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7075,6 +8361,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myConstraint` FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myConstraint` FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7115,6 +8407,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myConstraint` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myConstraint` FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7155,6 +8453,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myConstraint` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myConstraint` FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7183,6 +8487,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER IS KEY, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7212,6 +8523,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER IS KEY, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7244,6 +8562,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`age`) IS KEY REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7283,6 +8608,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7328,6 +8660,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY,
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7365,6 +8704,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7395,6 +8741,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER IS UNIQUE, `name` :: STRING IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7426,6 +8779,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER IS UNIQUE, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7462,6 +8822,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`age`) IS UNIQUE REQUIRE (`p`.`name`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7501,6 +8868,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7547,6 +8921,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE,
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7585,6 +8966,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7615,6 +9003,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS KEY, `since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7646,6 +9041,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS KEY, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7681,6 +9083,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`) IS KEY REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7723,6 +9132,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7770,6 +9186,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7810,6 +9233,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE IS KEY}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7840,6 +9270,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS UNIQUE, `since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7871,6 +9308,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS UNIQUE, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7909,6 +9353,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`) IS UNIQUE REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7951,6 +9402,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -7998,6 +9456,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8038,6 +9503,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE IS UNIQUE}]->(`c`),
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8066,6 +9538,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8094,6 +9573,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8122,6 +9608,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8150,6 +9643,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8178,6 +9678,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING IS KEY}),
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8209,6 +9717,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}) REQUIRE (`c`.`name`) IS KEY,
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8243,6 +9759,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`City` => {`name` :: STRING}) REQUIRE (`c`.`name`) IS KEY,
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8286,6 +9810,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`c`) REQUIRE (`c`.`name`) IS KEY,
         | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY,
         | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8329,6 +9861,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`c`:`City` =>) REQUIRE (`c`.`name`) IS KEY,
         | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY,
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8372,6 +9912,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`x`:`City` =>) REQUIRE (`x`.`name`) IS KEY,
         | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY,
         | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8412,6 +9960,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myAgeConstraint` FOR (`p`) REQUIRE (`p`.`age`) IS KEY,
         | CONSTRAINT `myNameConstraint` FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myAgeConstraint` FOR (`n`:`Person` =>) REQUIRE (`n`.`age`) IS KEY,
+        | CONSTRAINT `myNameConstraint` FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8456,6 +10011,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT `myConstraint2` FOR (`c`) REQUIRE (`c`.`name`) IS KEY,
         | CONSTRAINT `myConstraint1` FOR (`p`) REQUIRE (`p`.`name`) IS KEY,
         | CONSTRAINT `myConstraint3` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myConstraint2` FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT `myConstraint1` FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY,
+        | CONSTRAINT `myConstraint3` FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8493,6 +10056,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`c`:`Person` =>) REQUIRE (`c`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8530,6 +10099,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`c`:`Person` =>) REQUIRE (`c`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8567,6 +10142,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`l`:`Person` =>) REQUIRE (`l`.`name`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8602,6 +10183,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR (`l`:`Person` =>) REQUIRE (`l`.`name`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR (`n`:`Person` =>) REQUIRE (`n`.`name`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8647,6 +10234,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`LIVES_IN` =>]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`City` =>),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8695,6 +10289,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`LIVES_IN` =>]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`City` =>),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8743,6 +10344,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`p`:`LIVES_IN` =>]->() REQUIRE (`p`.`since`) IS KEY
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`City` =>),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8791,6 +10399,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`p`:`LIVES_IN` =>]->() REQUIRE (`p`.`since`) IS UNIQUE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`KNOWS` => {`since` :: DATE}]->(:`City` =>),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN` =>]->() REQUIRE (`r`.`since`) IS UNIQUE
         |}""".stripMargin
     )
   )
@@ -8805,6 +10420,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8820,6 +10438,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8840,6 +10461,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8864,6 +10489,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       """{
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8875,6 +10504,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN`]->() REQUIRE (`l`.`since`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN`]->() REQUIRE (`r`.`since`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8890,6 +10522,9 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       ),
       """{
         | CONSTRAINT FOR ()-[`l`:`LIVES_IN`]->() REQUIRE (`l`.`since`) IS :: DATE
+        |}""".stripMargin,
+      """{
+        | CONSTRAINT FOR ()-[`r`:`LIVES_IN`]->() REQUIRE (`r`.`since`) IS :: DATE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8928,6 +10563,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -8970,6 +10611,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS :: DATE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9000,6 +10647,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`c`:`Company` => :`Taxpayer`),
         | (`p`:`Person` => :`Taxpayer`),
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS :: STRING
+        |}""".stripMargin,
+      """{
+        | (:`Company` => :`Taxpayer`),
+        | (:`Person` => :`Taxpayer`),
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS :: STRING
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9032,6 +10684,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9077,6 +10734,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS :: STRING,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`name`) IS :: STRING,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9124,6 +10788,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL,
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS :: DATE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9164,6 +10835,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => :`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS :: FLOAT
+        |}""".stripMargin,
+      """{
+        | (:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (:`Person` => :`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxRate`) IS :: FLOAT
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9217,6 +10894,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS :: STRING,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS :: FLOAT
+        |}""".stripMargin,
+      """{
+        | (:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (:`Person` => :`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS :: STRING,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxRate`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxRate`) IS :: FLOAT
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9247,6 +10932,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT FOR (`s`:`Happy`) REQUIRE (`s`.`degree`) IS :: FLOAT,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Happy`) REQUIRE (`n`.`degree`) IS :: FLOAT,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9290,6 +10980,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`s`:`Happy`) REQUIRE (`s`.`degree`) IS :: FLOAT,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Happy`) REQUIRE (`n`.`degree`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Happy`) REQUIRE (`n`.`degree`) IS :: FLOAT,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9335,6 +11032,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS NOT NULL,
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
         |}""".stripMargin
     ),
@@ -9393,6 +11097,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE,
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS NOT NULL,
         | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS :: DATE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9442,6 +11155,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`t`:`Town` => :`Named` {`isin` :: STRING, `name` :: STRING}),
         | CONSTRAINT FOR (`n`:`Named`) REQUIRE (`n`.`name`) IS :: STRING,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS NOT NULL
+        |}""".stripMargin,
+      """{
+        | (:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (:`Person` => :`Named`&`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Town` => :`Named` {`isin` :: STRING, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Named`) REQUIRE (`n`.`name`) IS :: STRING,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS NOT NULL
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9503,6 +11223,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | CONSTRAINT FOR (`n`:`Named`) REQUIRE (`n`.`name`) IS :: STRING,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS NOT NULL,
         | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS :: STRING
+        |}""".stripMargin,
+      """{
+        | (:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (:`Person` => :`Named`&`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Town` => :`Named` {`isin` :: STRING, `name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Named`) REQUIRE (`n`.`name`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Named`) REQUIRE (`n`.`name`) IS :: STRING,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`Taxpayer`) REQUIRE (`n`.`taxId`) IS :: STRING
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9535,6 +11264,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
         | CONSTRAINT `myExistConstraint` FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
         | CONSTRAINT `myTypeConstraint` FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin,
+      """{
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT `myExistConstraint` FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS NOT NULL,
+        | CONSTRAINT `myTypeConstraint` FOR (`n`:`Student`) REQUIRE (`n`.`studId`) IS :: INTEGER
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -9583,6 +11317,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
         | CONSTRAINT `myExistConstraint` FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL,
         | CONSTRAINT `myTypeConstraint` FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE
+        |}""".stripMargin,
+      """{
+        | (:`City` => {`name` :: STRING}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` => {`since` :: DATE}]->(:`City` =>),
+        | CONSTRAINT `myExistConstraint` FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS NOT NULL,
+        | CONSTRAINT `myTypeConstraint` FOR ()-[`r`:`KNOWS`]->() REQUIRE (`r`.`since`) IS :: DATE
         |}""".stripMargin
     )
   )

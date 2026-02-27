@@ -734,7 +734,7 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
   }
 
   // Generated testcases from examples, see org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
-  GraphTypeTestCase.testcases.foreach { case GraphTypeTestCase(name, cypher, ast, _) =>
+  GraphTypeTestCase.testcases.foreach { case GraphTypeTestCase(name, cypher, ast, _, _) =>
     test(name) {
       Parses(parseAst[Statements](cypher)).in {
         case Cypher5 => cypher5Error

@@ -17,6 +17,11 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
 import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.GraphTypeCanonicalizer
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteGraphTypeReferences
@@ -35,18 +40,29 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
       None
     )).andThen(GraphTypeCanonicalizer.instance)
 
-  override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit =
-    super.assertRewrite(CypherVersion.Cypher25, originalQuery, expectedQuery)
+  override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
+    val (expected, result) = getRewrite(CypherVersion.Cypher25, originalQuery, expectedQuery)
+    assert(
+      result === expected,
+      s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+    Prettifier(ExpressionStringifier()).asString(result.asInstanceOf[AlterCurrentGraphType]) shouldBe expectedQuery
+  }
 
   test("ALTER CURRENT GRAPH TYPE SET { (n: Node => :Another) }") {
-    assertRewrite(testName, "ALTER CURRENT GRAPH TYPE SET { (:`Node` => :`Another`) }")
+    assertRewrite(
+      testName,
+      """ALTER CURRENT GRAPH TYPE SET {
+        | (:`Node` => :`Another`)
+        |}""".stripMargin
+    )
   }
 
   test("ALTER CURRENT GRAPH TYPE SET { ()-[rel:REL => { since :: DATE } ]->() }") {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | ()-[:`REL` => { `since` :: DATE }]->()
+        | ()-[:`REL` => {`since` :: DATE}]->()
         |}""".stripMargin
     )
   }
@@ -75,24 +91,24 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => { name :: STRING } ),
-        | CONSTRAINT FOR (n:`Node` =>) REQUIRE (`n`.`name`) IS KEY
+        | (:`Node` => {`name` :: STRING}),
+        | CONSTRAINT FOR (`n`:`Node` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | (n:`Node` => { name :: STRING } ),
-      | (n)-[:REL IMPLIES { since :: DATE} ]->(:Node),
+      | (n:`Node` => { name :: STRING}),
+      | (n)-[:REL IMPLIES { since :: DATE}]->(:Node),
       | CONSTRAINT FOR ()-[rel:REL]->() REQUIRE p.since IS KEY
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => { name :: STRING } ),
-        | (:`Node` =>)-[:`REL` => { `since` :: DATE} ]->(:Node =>),
+        | (:`Node` => {`name` :: STRING}),
+        | (:`Node` =>)-[:`REL` => {`since` :: DATE}]->(:`Node` =>),
         | CONSTRAINT FOR ()-[`r`:`REL` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     )
@@ -107,7 +123,7 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | CONSTRAINT FOR (`n`:City) REQUIRE (`n`.`name`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
         | CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     )
@@ -122,7 +138,7 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | CONSTRAINT FOR (`n`:City) REQUIRE (`n`.`name`) IS NOT NULL,
+        | CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS NOT NULL,
         | CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS :: LIST<INTEGER>
         |}""".stripMargin
     )
@@ -147,11 +163,17 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
         | (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
         | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
         | CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
-        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS { `indexProvider`: "range-1.0" },
+        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
         | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
         | CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
         | CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
         |}""".stripMargin
     )
+  }
+
+  GraphTypeTestCase.testcases.foreach { testcase =>
+    test(testcase.name) {
+      assertRewrite(testcase.cypher, "ALTER CURRENT GRAPH TYPE SET " + testcase.canonicalPrettifiedCypher)
+    }
   }
 }
