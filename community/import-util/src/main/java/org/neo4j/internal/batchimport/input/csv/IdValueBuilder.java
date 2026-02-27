@@ -32,6 +32,7 @@ class IdValueBuilder {
     public static final char DELIMITER = '\u0007'; // BEL char
     private final boolean delimitIDs;
     private final List<Part> parts = new ArrayList<>();
+    private final StringBuilder builder = new StringBuilder();
     private Group group;
 
     public IdValueBuilder(boolean delimitIds) {
@@ -57,14 +58,14 @@ class IdValueBuilder {
             case 0 -> null;
             case 1 -> parts.get(0).value;
             default -> {
-                var result = new StringBuilder();
+                builder.setLength(0);
                 for (int i = 0; i < parts.size(); i++) {
                     if (i > 0 && delimitIDs) {
-                        result.append(DELIMITER);
+                        builder.append(DELIMITER);
                     }
-                    result.append(parts.get(i).value);
+                    builder.append(parts.get(i).value);
                 }
-                yield result.toString();
+                yield builder.toString();
             }
         };
     }
