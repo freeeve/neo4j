@@ -30,10 +30,14 @@ import org.neo4j.values.virtual.VirtualValues.EMPTY_LIST
 abstract class TraversalContainer extends AutoCloseable {
   def append(node: VirtualNodeValue, relationship: VirtualRelationshipValue): TraversalContainer
 
-  final def canAdd(node: VirtualNodeValue, relationship: VirtualRelationshipValue): Boolean =
-    canAdd(node.id(), relationship.id())
+  final def canAddNode(node: VirtualNodeValue): Boolean =
+    canAddNode(node.id())
 
-  def canAdd(nodeId: Long, relationshipId: Long): Boolean = true
+  final def canAddRel(relationship: VirtualRelationshipValue): Boolean =
+    canAddRel(relationship.id())
+
+  def canAddNode(nodeId: Long): Boolean = true
+  def canAddRel(relId: Long): Boolean = true
 
   def size: Int
   def relationshipsAsList: ListValue
@@ -54,7 +58,7 @@ object TraversalContainer {
     override def append(node: VirtualNodeValue, rel: VirtualRelationshipValue): TrailModeTraversalContainer =
       new TrailModeTraversalContainer(maybeList.map(_.append(rel)), size + 1, set + rel.id())
 
-    override def canAdd(nodeId: Long, relationshipId: Long): Boolean = !set.contains(relationshipId)
+    override def canAddRel(relId: Long): Boolean = !set.contains(relId)
 
     override def relationshipsAsList: ListValue = maybeList.get
 
@@ -99,8 +103,11 @@ object TraversalContainer {
       )
     }
 
-    override def canAdd(nodeId: Long, relationshipId: Long): Boolean =
-      !nodes.contains(nodeId) && !relationships.contains(relationshipId)
+    override def canAddNode(nodeId: Long): Boolean =
+      !nodes.contains(nodeId)
+
+    override def canAddRel(relId: Long): Boolean =
+      !relationships.contains(relId)
 
     override def close(): Unit = {
       nodes.close()

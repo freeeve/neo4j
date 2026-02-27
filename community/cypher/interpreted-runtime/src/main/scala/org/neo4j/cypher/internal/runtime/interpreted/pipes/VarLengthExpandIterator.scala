@@ -66,20 +66,24 @@ case class VarLengthExpandIterator(
 
           // relationships get immediately exhausted. Therefore we do not need a ClosingIterator here.
           while (relationships.hasNext) {
-            val rel = VirtualValues.relationship(
-              relationships.next(),
-              relationships.startNodeId(),
-              relationships.endNodeId(),
-              relationships.typeId()
-            )
-            val otherNode = VirtualValues.node(relationships.otherNodeId(node.id()))
+            val relId = relationships.next()
 
-            if (
-              filteringStep.filterRelationship(row, state, rel, node, otherNode) &&
-              traversalContainer.canAdd(otherNode, rel) &&
-              filteringStep.filterNode(row, state, otherNode)
-            ) {
-              stack.push((otherNode, traversalContainer.append(otherNode, rel)))
+            if (traversalContainer.canAddRel(relId)) {
+              val rel = VirtualValues.relationship(
+                relId,
+                relationships.startNodeId(),
+                relationships.endNodeId(),
+                relationships.typeId()
+              )
+              val otherNode = VirtualValues.node(relationships.otherNodeId(node.id()))
+
+              if (
+                filteringStep.filterRelationship(row, state, rel, node, otherNode) &&
+                traversalContainer.canAddNode(otherNode) &&
+                filteringStep.filterNode(row, state, otherNode)
+              ) {
+                stack.push((otherNode, traversalContainer.append(otherNode, rel)))
+              }
             }
           }
         }
