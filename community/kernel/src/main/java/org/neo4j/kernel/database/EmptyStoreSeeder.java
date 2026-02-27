@@ -217,7 +217,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
         var logTailMetadata =
                 new LogTailMetadataFactoryImpl(fs).getLogTailMetadata(config, databaseLayout, storageEngineFactory);
         var existingStoreId = logTailMetadata.getStoreId().orElseThrow();
-        if (!existingStoreId.equals(storeId)) {
+        if (!(existingStoreId.equals(storeId)
+                || (config.get(GraphDatabaseInternalSettings.merged_log) && existingStoreId.equals(StoreId.UNKNOWN)))) {
             throw new IllegalStateException(
                     "Existing " + existingStoreId + " of " + databaseLayout + " doesn't match expected " + storeId);
         }

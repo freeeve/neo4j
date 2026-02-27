@@ -732,7 +732,7 @@ public final class Recovery {
                 fs,
                 EMPTY_VISIBILITY_PROVIDER);
 
-        validateStoreId(logTailMetadata, storageEngine.metadataProvider().getStoreId());
+        validateStoreId(logTailMetadata, storageEngine.metadataProvider().getStoreId(), config);
 
         TransactionMetadataCache metadataCache = new TransactionMetadataCache();
         PhysicalLogicalTransactionStore transactionStore = new PhysicalLogicalTransactionStore(
@@ -886,11 +886,13 @@ public final class Recovery {
         return DatabaseIdFactory.from(databaseLayout.getDatabaseName(), uuid);
     }
 
-    public static void validateStoreId(LogTailMetadata tailMetadata, StoreId storeId) {
+    public static void validateStoreId(LogTailMetadata tailMetadata, StoreId storeId, Config config) {
         var optionalTxStoreId = tailMetadata.getStoreId();
         if (optionalTxStoreId.isPresent()) {
             var txStoreId = optionalTxStoreId.get();
-            if (!storeId.isSameOrUpgradeSuccessor(txStoreId) && !txStoreId.isSameOrUpgradeSuccessor(storeId)) {
+            if (!(storeId.isSameOrUpgradeSuccessor(txStoreId)
+                    || txStoreId.isSameOrUpgradeSuccessor(storeId)
+                    || (config.get(GraphDatabaseInternalSettings.merged_log) && txStoreId.equals(StoreId.UNKNOWN)))) {
                 throw new RuntimeException(
                         "Mismatching store id. Store StoreId: " + storeId + ". Transaction log StoreId: " + txStoreId);
             }

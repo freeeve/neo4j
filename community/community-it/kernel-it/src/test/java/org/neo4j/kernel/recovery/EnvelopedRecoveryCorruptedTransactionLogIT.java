@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.recovery;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
@@ -27,9 +28,17 @@ import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.config.Setting;
@@ -39,11 +48,16 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
+import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 
 class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransactionLogIT {
@@ -157,5 +171,75 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
 
         // The non kernel content should have been seen as a tx
         assertEquals(numberOfClosedTransactions + 1, recoveryMonitor.getNumberOfRecoveredTransactions());
+    }
+
+    private static Stream<Arguments> provideStoreIdAndMode() {
+        StoreId badStoreId = StoreId.generateNew("block", "block", 1, 2);
+        return Stream.of(
+                Arguments.of(StoreId.UNKNOWN, false, false),
+                Arguments.of(StoreId.UNKNOWN, true, true),
+                Arguments.of(badStoreId, false, false),
+                Arguments.of(badStoreId, true, false));
+    }
+
+    @ParameterizedTest()
+    @MethodSource("provideStoreIdAndMode")
+    void checkStoreIdValidationLogic(StoreId storeId, boolean mergeLog, boolean shouldStart) throws IOException {
+        Map<Setting<?>, Object> extraConfig = Map.of(
+                GraphDatabaseInternalSettings.latest_kernel_version,
+                KernelVersion.GLORIOUS_FUTURE.version(),
+                GraphDatabaseInternalSettings.latest_runtime_version,
+                DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion(),
+                GraphDatabaseInternalSettings.merged_log,
+                mergeLog,
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
+                true);
+        DatabaseManagementService managementService =
+                databaseFactory.setConfig(extraConfig).build();
+        Path currentLogPath;
+        try {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+            generateTransaction(database);
+            DependencyResolver dependencyResolver = database.getDependencyResolver();
+            LogFiles logFiles = dependencyResolver.resolveDependency(LogFiles.class);
+            LogFile logFile = logFiles.getLogFile();
+            currentLogPath = logFile.getLogFileForVersion(logFile.getCurrentLogVersion());
+        } finally {
+            managementService.shutdown();
+        }
+        setLogHeaderToStoreId(currentLogPath, storeId);
+
+        managementService = databaseFactory.setConfig(extraConfig).build();
+        try {
+            GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+            DatabaseStateService<?> dbStateService =
+                    db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
+            Optional<Throwable> possibleFailure = dbStateService.causeOfFailure(db.databaseId());
+            assertEquals(shouldStart, possibleFailure.isEmpty());
+            possibleFailure.ifPresent(
+                    throwable -> assertThat(throwable.getCause())
+                            .hasMessageContaining(
+                                    "Error reading transaction logs, recovery not possible. To force the database to start anyway, you can specify 'internal.dbms.tx_log.fail_on_corrupted_log_files=false'"));
+        } finally {
+            managementService.shutdown();
+        }
+    }
+
+    private void setLogHeaderToStoreId(Path currentLogPath, StoreId storeId) throws IOException {
+        try (var storeChannel = fileSystem.write(currentLogPath)) {
+            LogHeader currentHeader = LogHeaderReader.readLogHeader(storeChannel, true, currentLogPath, INSTANCE);
+            LogHeader newHeader = currentHeader
+                    .getLogFormatVersion()
+                    .newHeader(
+                            currentHeader.getLogVersion(),
+                            currentHeader.getLastAppendIndex(),
+                            currentHeader.getLastTerm(),
+                            storeId,
+                            currentHeader.getSegmentBlockSize(),
+                            currentHeader.getPreviousLogFileChecksum(),
+                            currentHeader.getKernelVersion());
+            storeChannel.position(0L);
+            LogFormat.writeLogHeader(storeChannel, newHeader, INSTANCE);
+        }
     }
 }

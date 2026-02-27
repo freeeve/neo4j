@@ -93,6 +93,7 @@ public class DetachedLogTailScanner {
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final LogPosition maxPosition;
     private final LogFormatVersionProvider fallbackLogFormatVersionProvider;
+    private final boolean mergeLogsEnabled;
 
     private LogTailMetadata logTail;
 
@@ -115,6 +116,7 @@ public class DetachedLogTailScanner {
         this.monitor = monitor;
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
         this.maxPosition = tailReadingMaxPosition;
+        this.mergeLogsEnabled = context.config().get(GraphDatabaseInternalSettings.merged_log);
     }
 
     public LogTailInformation findLogTail() {
@@ -282,7 +284,8 @@ public class DetachedLogTailScanner {
         StoreId headerStoreId = logHeader.getStoreId();
         return headerStoreId == null
                 || headerStoreId.isSameOrUpgradeSuccessor(checkpointInfo.storeId())
-                || checkpointInfo.storeId().isSameOrUpgradeSuccessor(headerStoreId);
+                || checkpointInfo.storeId().isSameOrUpgradeSuccessor(headerStoreId)
+                || (mergeLogsEnabled && headerStoreId.equals(StoreId.UNKNOWN));
     }
 
     private LegacyPostCheckpointInfo getLegacyPostCheckPointInfo(LogFile logFile, LogPosition logPosition)
