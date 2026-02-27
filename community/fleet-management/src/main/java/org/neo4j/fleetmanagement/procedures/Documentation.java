@@ -24,9 +24,11 @@ import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -35,6 +37,7 @@ import org.neo4j.fleetmanagement.communication.model.ConnectMessage;
 import org.neo4j.fleetmanagement.communication.model.MetricsMessage;
 import org.neo4j.fleetmanagement.communication.model.Neo4jConfigMessage;
 import org.neo4j.fleetmanagement.communication.model.PingMessage;
+import org.neo4j.fleetmanagement.communication.model.QueryReportMessage;
 import org.neo4j.fleetmanagement.communication.model.ReportingMessage;
 import org.neo4j.kernel.api.procedure.SystemProcedure;
 import org.neo4j.procedure.Description;
@@ -76,6 +79,7 @@ public class Documentation {
         documentClass(Neo4jConfigMessage.class, "Neo4jConfigMessage", "", results);
         documentClass(ReportingMessage.class, "ReportingMessage", "", results);
         documentClass(PingMessage.class, "PingMessage", "", results);
+        documentClass(QueryReportMessage.class, "QueryReportMessage", "", results);
         return results.stream();
     }
 
@@ -88,13 +92,30 @@ public class Documentation {
         }
 
         for (Field field : clazz.getDeclaredFields()) {
-            documentField(messageType, prefix, results, field);
+            documentField(messageType, prefix, results, field, clazz);
+        }
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            JsonProperty methodPropertyKey = method.getAnnotation(JsonProperty.class);
+            JsonPropertyDescription methodDescription = method.getAnnotation(JsonPropertyDescription.class);
+            if (methodPropertyKey != null && methodDescription != null) {
+                results.add(new DocumentationResult(
+                        messageType,
+                        prefix + "." + methodPropertyKey.value(),
+                        methodDescription.value(),
+                        method.getReturnType().getSimpleName(),
+                        null));
+            }
         }
     }
 
-    private void documentField(String messageType, String prefix, List<DocumentationResult> results, Field field)
+    private void documentField(
+            String messageType, String prefix, List<DocumentationResult> results, Field field, Class<?> parent)
             throws Exception {
         String fieldPath = getFieldPath(prefix, field);
+
+        Class<?> fieldType = field.getType();
+        var isRecursive = fieldType.equals(parent);
 
         JsonPropertyDescription fieldDescription = field.getAnnotation(JsonPropertyDescription.class);
         if (fieldDescription != null) {
@@ -102,11 +123,13 @@ public class Documentation {
                     messageType,
                     fieldPath,
                     fieldDescription.value(),
-                    getTypeString(field.getGenericType()),
+                    getTypeString(field.getGenericType()) + (isRecursive ? " (recursive)" : ""),
                     getValues(field)));
         }
+        if (isRecursive) {
+            return;
+        }
 
-        Class<?> fieldType = field.getType();
         if (fieldType.isAssignableFrom(List.class)) {
             Type firstTypeArgument = getGenericArgument(field.getGenericType(), 0);
             documentList(messageType, results, firstTypeArgument, fieldPath);
@@ -190,8 +213,8 @@ public class Documentation {
     private static String getTypeString(Type type) {
         if (type instanceof ParameterizedType) {
             Type rawValueType = ((ParameterizedType) type).getRawType();
-            if (List.class.isAssignableFrom((Class<?>) rawValueType)) {
-                return String.format("List<%s>", getTypeString(getGenericArgument(type, 0)));
+            if (Collection.class.isAssignableFrom((Class<?>) rawValueType)) {
+                return String.format("Collection<%s>", getTypeString(getGenericArgument(type, 0)));
             } else if (Map.class.isAssignableFrom((Class<?>) rawValueType)) {
                 return String.format(
                         "Map<%s, %s>",

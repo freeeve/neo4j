@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.monitoring.Monitors;
 
 @ServiceProvider
 public class FleetManagementFactory extends ExtensionFactory<FleetManagementFactory.Dependencies> {
@@ -48,6 +49,7 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
                 dependencies.dbmsInfo(),
                 dependencies.fs(),
                 dependencies.serverIdentity(),
+                dependencies.monitoring(),
                 dependencies.state());
     }
 
@@ -67,6 +69,8 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
         FileSystemAbstraction fs();
 
         ServerIdentity serverIdentity();
+
+        Monitors monitoring();
 
         State state();
     }

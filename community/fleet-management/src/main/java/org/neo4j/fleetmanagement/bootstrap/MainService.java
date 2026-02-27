@@ -31,61 +31,76 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.neo4j.configuration.Config;
 import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
 import org.neo4j.fleetmanagement.communication.PingService;
+import org.neo4j.fleetmanagement.communication.QueryService;
 import org.neo4j.fleetmanagement.communication.TopologyService;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
 import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
+import org.neo4j.fleetmanagement.queries.QueryInterceptor;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
 import org.neo4j.logging.Log;
+import org.neo4j.monitoring.Monitors;
 
 public class MainService implements PropertyChangeListener {
     private final Log userLog;
     private final Logger fleetManagerLog;
     private final TopologyService topologyService;
     private final MetricsService metricsService;
+    private final QueryService queryService;
     private final PingService pingService;
     private final ClusterSync clusterSync;
     private final ScheduledExecutorService scheduler;
     private final ConnectService connectService;
     private final State state;
+    private final Configuration configuration;
+    private final Monitors monitoring;
+
     private ScheduledFuture<?> connectServiceTaskHandle;
     private ConnectService.ConnectServiceTask connectServiceTask;
 
     private Boolean lastActiveState = null;
     private Boolean lastConnectedState = null;
     private Boolean lastTokenRotatingState = null;
+    private boolean queryMonitorAdded = false;
+    private QueryInterceptor queryInterceptor;
 
     private final CopyOnWriteArrayList<ScheduledFuture<?>> jobHandles;
-    private final Configuration configuration;
 
     public MainService(
             ITransactor transactor,
             Upstream upstream,
             TopologyService topologyService,
             MetricsService metricsService,
+            QueryService queryService,
             ClusterSync clusterSync,
             ScheduledExecutorService scheduler,
             ConnectService connectService,
             PingService pingService,
             State state,
-            Configuration configuration) {
+            Configuration configuration,
+            Monitors monitoring,
+            Config config) {
         this.userLog = Logger.getNeo4jLogger();
         this.fleetManagerLog = Logger.getFleetManagerLogger();
         this.topologyService = topologyService;
         this.metricsService = metricsService;
+        this.queryService = queryService;
         this.pingService = pingService;
         this.clusterSync = clusterSync;
         this.scheduler = scheduler;
         this.connectService = connectService;
         this.configuration = configuration;
+        this.monitoring = monitoring;
 
         this.state = state;
         this.jobHandles = new CopyOnWriteArrayList<>();
+        this.queryInterceptor = new QueryInterceptor(queryService, config);
     }
 
     public void start() {
@@ -105,6 +120,13 @@ public class MainService implements PropertyChangeListener {
         if (this.connectServiceTaskHandle != null) {
             this.connectServiceTaskHandle.cancel(false);
             this.connectServiceTaskHandle = null;
+        }
+        try {
+            if (queryMonitorAdded) {
+                this.queryService.report(); // Flush any remaining logs
+            }
+        } catch (Exception e) {
+            // Ignore errors while flushing logs
         }
         stopReportingTasks();
         this.configuration.removePropertyChangeListeners();
@@ -202,6 +224,18 @@ public class MainService implements PropertyChangeListener {
                             interval,
                             TimeUnit.SECONDS));
                     break;
+                case QUERIES:
+                    if (!queryMonitorAdded) {
+                        // Start intercecpting queries only when query task is activated
+                        monitoring.addMonitorListener(this.queryInterceptor);
+                        queryMonitorAdded = true;
+                    }
+                    jobHandles.add(scheduler.scheduleAtFixedRate(
+                            new QueryService.QueryReportingTask(state, clusterSync, queryService),
+                            1,
+                            interval,
+                            TimeUnit.SECONDS));
+                    break;
                 case PING:
                     jobHandles.add(scheduler.scheduleAtFixedRate(
                             new PingService.PingTask(state, clusterSync, pingService),
@@ -221,6 +255,10 @@ public class MainService implements PropertyChangeListener {
         if (!jobHandles.isEmpty()) {
             jobHandles.forEach(jobHandle -> jobHandle.cancel(false));
             jobHandles.clear();
+        }
+        if (queryMonitorAdded) {
+            monitoring.removeMonitorListener(this.queryInterceptor);
+            queryMonitorAdded = false;
         }
     }
 

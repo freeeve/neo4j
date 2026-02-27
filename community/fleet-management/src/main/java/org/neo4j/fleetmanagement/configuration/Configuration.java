@@ -87,6 +87,7 @@ public class Configuration {
         TOPOLOGY,
         METRICS,
         PING,
+        QUERIES,
         UNKNOWN;
 
         public static TaskType fromString(String type) {

@@ -31,6 +31,7 @@ import org.neo4j.fleetmanagement.communication.ConfigService;
 import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
 import org.neo4j.fleetmanagement.communication.PingService;
+import org.neo4j.fleetmanagement.communication.QueryService;
 import org.neo4j.fleetmanagement.communication.TopologyService;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
@@ -45,6 +46,7 @@ import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.monitoring.Monitors;
 
 public class FleetManagement extends LifecycleAdapter {
     private ITransactor transactor;
@@ -62,6 +64,7 @@ public class FleetManagement extends LifecycleAdapter {
             DbmsInfo dbmsInfo,
             FileSystemAbstraction fs,
             ServerIdentity serverIdentity,
+            Monitors monitoring,
             State state) {
 
         if (!config.get(FleetManagementSettings.fleet_manager_enabled)) {
@@ -105,6 +108,7 @@ public class FleetManagement extends LifecycleAdapter {
                 new ConfigService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
         var pingService =
                 new PingService(config, fs, this.transactor, upstream, serverIdentity, this.state, this.configuration);
+        var queryService = new QueryService(this.transactor, serverIdentity, upstream, this.state, config);
 
         var clusterSync = new ClusterSync(this.transactor, upstream, this.state);
 
@@ -113,12 +117,15 @@ public class FleetManagement extends LifecycleAdapter {
                 upstream,
                 reportingService,
                 metricsService,
+                queryService,
                 clusterSync,
                 scheduler,
                 connectService,
                 pingService,
                 this.state,
-                this.configuration);
+                this.configuration,
+                monitoring,
+                config);
     }
 
     @Override

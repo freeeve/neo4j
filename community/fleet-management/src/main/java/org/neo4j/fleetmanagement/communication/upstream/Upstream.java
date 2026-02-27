@@ -44,6 +44,7 @@ import org.neo4j.logging.Log;
 public class Upstream {
     public enum Endpoint {
         REPORTING,
+        QUERIES,
         METRICS,
         CONNECT,
         CONFIG,
@@ -116,6 +117,8 @@ public class Upstream {
                 return postTo("plugin/connect");
             case REPORTING:
                 return postTo("plugin/report");
+            case QUERIES:
+                return postTo("plugin/queries");
             case METRICS:
                 return postTo("plugin/metrics");
             case CONFIG:
