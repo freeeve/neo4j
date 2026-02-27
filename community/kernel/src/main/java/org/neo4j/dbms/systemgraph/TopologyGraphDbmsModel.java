@@ -45,9 +45,7 @@ public interface TopologyGraphDbmsModel {
         RAFT(1, "raft"),
         REPLICA(2, "replica"),
         SINGLE(0, "single"),
-        VIRTUAL(3, "virtual"),
-        PRIMARY_MIRROR(4, "primary-mirror"),
-        SECONDARY_MIRROR(5, "secondary-mirror");
+        VIRTUAL(3, "virtual");
 
         private final String modeName;
         private final byte code;
