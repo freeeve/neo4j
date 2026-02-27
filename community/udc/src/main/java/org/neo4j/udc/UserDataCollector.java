@@ -73,6 +73,7 @@ public class UserDataCollector extends LifecycleAdapter {
     private static final URI UDC_URI = URI.create("https://udc.neo4j.com/server");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     public static final String CLUSTER_SIZE_KEY = "clusterSize";
+    private static final String PACKAGING_VARIABLE = "NEO4J_UDC_PACKAGING";
 
     private final Config config;
     private final Edition edition;
@@ -254,7 +255,16 @@ public class UserDataCollector extends LifecycleAdapter {
                 "queriesPerMinute", String.valueOf(txPerMin));
     }
 
-    private static String getPackagingInformation(Config config, FileSystemAbstraction fs) {
+    private String getPackagingInformation(Config config, FileSystemAbstraction fs) {
+        try {
+            String k8Packaging = System.getenv(PACKAGING_VARIABLE);
+            if (k8Packaging != null) {
+                return k8Packaging;
+            }
+        } catch (Exception e) {
+            // Don't fail if we can't access environment variables, fallback to checking files
+            log.debug("Failed to collect packaging information from environment variable " + PACKAGING_VARIABLE, e);
+        }
         Path packagingInfoFile = config.get(neo4j_home).resolve(PackagingDiagnostics.PACKAGING_INFO_FILENAME);
         try {
             List<String> lines = FileSystemUtils.readLines(fs, packagingInfoFile, EmptyMemoryTracker.INSTANCE);
@@ -264,6 +274,7 @@ public class UserDataCollector extends LifecycleAdapter {
                 }
             }
         } catch (Exception e) {
+            log.debug("Failed while collecting packaging information", e);
             return "error";
         }
         return "unknown";
