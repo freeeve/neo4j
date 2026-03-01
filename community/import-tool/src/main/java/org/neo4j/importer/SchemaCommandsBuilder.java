@@ -38,8 +38,10 @@ import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeLabelExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodePropertyType;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeUniqueness;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipEndpointLabel;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipPropertyType;
@@ -304,6 +306,15 @@ class SchemaCommandsBuilder {
             case NodePropertyType command -> schemaKey(EntityType.NODE, command.label(), command.property());
             case RelationshipPropertyType command ->
                 schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
+            case NodeLabelExistence command ->
+                schemaKey(EntityType.RELATIONSHIP, command.label(), List.of(":" + command.requiredLabel()));
+            case RelationshipEndpointLabel command ->
+                schemaKey(
+                        EntityType.NODE,
+                        command.type(),
+                        List.of(
+                                ":" + command.requiredLabel(),
+                                "@" + command.endpointType().name()));
         };
     }
 

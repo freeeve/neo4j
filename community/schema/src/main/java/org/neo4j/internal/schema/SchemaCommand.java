@@ -653,6 +653,67 @@ public sealed interface SchemaCommand extends Serializable {
                     return new ConstraintPrototype(constraintDescriptor);
                 }
             }
+
+            record NodeLabelExistence(String name, String label, String requiredLabel, boolean ifNotExists)
+                    implements Create {
+                @Override
+                public EntityType entityType() {
+                    return EntityType.NODE;
+                }
+
+                @Override
+                public ConstraintType constraintType() {
+                    return ConstraintType.NODE_LABEL_EXISTENCE;
+                }
+
+                @Override
+                public boolean hasBackingIndex() {
+                    return false;
+                }
+
+                @Override
+                public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
+                    int labelId = tokenHolders.labelForName(label);
+                    int requiredLabelId = tokenHolders.labelForName(requiredLabel);
+                    NodeLabelExistenceSchemaDescriptor schema = SchemaDescriptors.forNodeLabelExistence(labelId);
+                    return new ConstraintPrototype(withName(
+                            name,
+                            ConstraintDescriptorFactory.nodeLabelExistenceForSchema(schema, requiredLabelId),
+                            tokenHolders));
+                }
+            }
+
+            record RelationshipEndpointLabel(
+                    String name, String type, String requiredLabel, EndpointType endpointType, boolean ifNotExists)
+                    implements Create {
+                @Override
+                public EntityType entityType() {
+                    return EntityType.RELATIONSHIP;
+                }
+
+                @Override
+                public ConstraintType constraintType() {
+                    return ConstraintType.RELATIONSHIP_ENDPOINT_LABEL;
+                }
+
+                @Override
+                public boolean hasBackingIndex() {
+                    return false;
+                }
+
+                @Override
+                public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
+                    int relationshipId = tokenHolders.relationshipForName(type);
+                    int requiredLabelId = tokenHolders.labelForName(requiredLabel);
+                    final var schema = SchemaDescriptors.forRelationshipEndpointLabel(relationshipId);
+                    final var constraintDescriptor = withName(
+                            name,
+                            ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
+                                    schema, requiredLabelId, endpointType),
+                            tokenHolders);
+                    return new ConstraintPrototype(constraintDescriptor);
+                }
+            }
         }
     }
 

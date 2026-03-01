@@ -26,8 +26,10 @@ import org.eclipse.collections.api.set.MutableSet;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeKey;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeLabelExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodePropertyType;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeUniqueness;
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipEndpointLabel;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipExistence;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipKey;
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.RelationshipPropertyType;
@@ -158,6 +160,14 @@ public record SchemaTokens(
                 case RelationshipPropertyType constraintCommand -> {
                     relationships.add(constraintCommand.type());
                     properties.add(constraintCommand.property());
+                }
+                case NodeLabelExistence nodeLabelExistence -> {
+                    labels.add(nodeLabelExistence.label());
+                    labels.add(nodeLabelExistence.requiredLabel());
+                }
+                case RelationshipEndpointLabel relationshipEndpointLabel -> {
+                    relationships.add(relationshipEndpointLabel.type());
+                    labels.add(relationshipEndpointLabel.requiredLabel());
                 }
             }
         }
