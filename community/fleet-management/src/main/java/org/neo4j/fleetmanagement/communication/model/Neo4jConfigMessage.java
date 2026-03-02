@@ -26,8 +26,7 @@ import java.util.Map;
 import org.neo4j.fleetmanagement.common.ValuesDocumentation;
 import org.neo4j.fleetmanagement.procedures.Neo4jConfigNamesSupplier;
 
-@JsonClassDescription(
-        "Message sent from the server to the Fleet Management service containing neo4j configuration data.")
+@JsonClassDescription("Message sent from the server to the Fleet Manager service containing neo4j configuration data.")
 public class Neo4jConfigMessage {
     @JsonPropertyDescription("Unix timestamp in milliseconds when the message was created")
     public long timestamp;

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
-@JsonClassDescription("Message sent from the server to the Fleet Management service to establish a connection.")
+@JsonClassDescription("Message sent from the server to the Fleet Manager service to establish a connection.")
 public class ConnectMessage {
     @JsonProperty("server_id")
     @JsonPropertyDescription("Unique identifier for the server")

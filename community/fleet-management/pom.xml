@@ -137,6 +137,13 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>org.neo4j.fleetmanagement.docs.AsciiDocGenerator</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

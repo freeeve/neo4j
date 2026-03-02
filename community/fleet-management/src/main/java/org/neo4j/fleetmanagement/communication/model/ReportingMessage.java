@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.time.Instant;
 import org.neo4j.fleetmanagement.topology.model.Dbms;
 
-@JsonClassDescription("Message sent from the server to the Fleet Management service containing reporting data.")
+@JsonClassDescription("Message sent from the server to the Fleet Manager service containing reporting data.")
 public class ReportingMessage {
     @JsonPropertyDescription("Unix timestamp in milliseconds when the message was created")
     public long timestamp;

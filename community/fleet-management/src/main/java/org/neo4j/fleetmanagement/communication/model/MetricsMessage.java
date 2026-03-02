@@ -28,7 +28,7 @@ import java.util.Map;
 import org.neo4j.fleetmanagement.common.ValuesDocumentation;
 import org.neo4j.fleetmanagement.procedures.MetricNamesSupplier;
 
-@JsonClassDescription("Message sent from the server to the Fleet Management service containing metrics data.")
+@JsonClassDescription("Message sent from the server to the Fleet Manager service containing metrics data.")
 public class MetricsMessage {
     @JsonPropertyDescription("Unix timestamp in milliseconds when the message was created")
     public long timestamp;

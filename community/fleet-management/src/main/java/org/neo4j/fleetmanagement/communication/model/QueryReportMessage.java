@@ -28,7 +28,8 @@ import org.neo4j.fleetmanagement.queries.model.QueryAggregationMeta;
 import org.neo4j.fleetmanagement.queries.model.SimplifiedGqlError;
 import org.neo4j.fleetmanagement.queries.model.UniqueKey;
 
-@JsonClassDescription("Message sent from the server to the Fleet Management service containing aggregated query data.")
+@JsonClassDescription(
+        "Message sent from the server to the Fleet Manager service containing aggregated query data. Only sent if query logging is enabled explicitly through Aura Console.")
 public class QueryReportMessage {
     @JsonPropertyDescription("Unix timestamp in milliseconds from the first query in the set")
     public long fromTimestamp;
