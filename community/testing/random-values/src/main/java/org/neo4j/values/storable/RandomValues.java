@@ -57,6 +57,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.SplittableRandom;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -68,12 +69,14 @@ import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.block.predicate.Predicate;
 import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.SortedSets;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.list.ListIterable;
 import org.eclipse.collections.api.list.primitive.ImmutableIntList;
 import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.list.primitive.LongList;
+import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.SetIterable;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
 import org.eclipse.collections.impl.list.fixed.ArrayAdapter;
@@ -221,7 +224,10 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValueOfTypes(ValueType... types) {
+        assert types.length > 0 : "No value types provided";
         final ListIterable<ValueType> allowedTypes = ArrayAdapter.adapt(types).select(this::allowedType);
+        assert !allowedTypes.isEmpty()
+                : "No allowed types provided " + Arrays.toString(types) + " " + configuration.allowedTypes();
         return nextValueOfType(among(allowedTypes));
     }
 
@@ -354,6 +360,8 @@ public class RandomValues {
             case INT64_VECTOR -> nextInt64Vector();
             case FLOAT32_VECTOR -> nextFloat32Vector();
             case FLOAT64_VECTOR -> nextFloat64Vector();
+            case UUID -> nextUUIDValue();
+            case UUID_ARRAY -> nextUUIDArray();
         };
     }
 
@@ -421,6 +429,32 @@ public class RandomValues {
     public Float64Vector nextFloat64Vector() {
         final int dimension = chooseDimension(Double.BYTES);
         return nextFloat64Vector(dimension, dimension);
+    }
+
+    public UUID nextUUID() {
+        long msb = generator.nextLong();
+        long lsb = generator.nextLong();
+
+        // See javadoc for java.util.UUID. We need to set some parts of these bytes to recognizable values.
+        // Basically the version and the variant.
+        msb &= 0xffffffffffff0fffL;
+        msb |= 0x0000000000004000L;
+        lsb &= 0x3fffffffffffffffL;
+        lsb |= 0x8000000000000000L;
+
+        return new UUID(msb, lsb);
+    }
+
+    public UUIDValue nextUUIDValue() {
+        return Values.uuidValue(nextUUID());
+    }
+
+    public UUIDArray nextUUIDArray() {
+        return new UUIDArray(nextUUIDArrayRaw(minArray(), maxArray()));
+    }
+
+    public UUID[] nextUUIDArrayRaw(int minLength, int maxLength) {
+        return nextArray(UUID[]::new, this::nextUUID, minLength, maxLength);
     }
 
     /**
@@ -1990,35 +2024,11 @@ public class RandomValues {
             final var allowedTypes = includeVectorTypes
                     ? this.allowedTypes.newWithAll(LazyIterate.select(Arrays.asList(ALL_TYPES), IS_VECTOR_TYPE))
                     : this.allowedTypes.reject(IS_VECTOR_TYPE);
-
-            return new ConfigurationBuilder(
-                    this.stringMinLength,
-                    this.stringMaxLength,
-                    this.arrayMinLength,
-                    this.arrayMaxLength,
-                    this.minCodePoint,
-                    this.maxCodePoint,
-                    this.minVectorDimensions,
-                    this.maxVectorDimensions,
-                    this.vectorDimensionChoices,
-                    this.maxVectorNumBytes,
-                    allowedTypes);
+            return allowedTypes(allowedTypes);
         }
 
         public ConfigurationBuilder allowedTypes(ValueType... allowedTypes) {
-            assert allowedTypes != null && allowedTypes.length > 0 : "must provide at least one type";
-            return new ConfigurationBuilder(
-                    this.stringMinLength,
-                    this.stringMaxLength,
-                    this.arrayMinLength,
-                    this.arrayMaxLength,
-                    this.minCodePoint,
-                    this.maxCodePoint,
-                    this.minVectorDimensions,
-                    this.maxVectorDimensions,
-                    this.vectorDimensionChoices,
-                    this.maxVectorNumBytes,
-                    SortedSets.immutable.of(allowedTypes));
+            return allowedTypes(SortedSets.immutable.of(allowedTypes));
         }
 
         public ConfigurationBuilder allowedTypes(Iterable<ValueType> allowedTypes) {
@@ -2035,6 +2045,16 @@ public class RandomValues {
                     this.vectorDimensionChoices,
                     this.maxVectorNumBytes,
                     SortedSets.immutable.ofAll(allowedTypes));
+        }
+
+        public ConfigurationBuilder disallowedTypes(ValueType... disallowedTypes) {
+            assert disallowedTypes != null && disallowedTypes.length > 0 : "must provide at least one type";
+            ImmutableSet<ValueType> set = Sets.immutable.of(disallowedTypes);
+            return disallowedTypes(set::contains);
+        }
+
+        public ConfigurationBuilder disallowedTypes(Predicate<ValueType> predicate) {
+            return allowedTypes(this.allowedTypes.reject(predicate));
         }
     }
 

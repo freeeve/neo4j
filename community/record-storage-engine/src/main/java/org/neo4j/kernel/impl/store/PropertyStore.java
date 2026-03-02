@@ -64,6 +64,7 @@ import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.TextValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.utils.TemporalValueWriterAdapter;
@@ -606,38 +607,44 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
 
         @Override
         public void writeInt8Vector(byte[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt16Vector(short[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt32Vector(int[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt64Vector(long[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeFloat32Vector(float[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeFloat64Vector(double[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(
                     storeFormatForFeatureUnsupportedException);
+        }
+
+        @Override
+        public void writeUUID(long msb, long lsb) throws IllegalArgumentException {
+            throw FeatureUnsupportedOnStoreFormatException.unsupportedInStoreFormat(
+                    storeFormatForFeatureUnsupportedException, UUIDValue.TYPE_NAME);
         }
     }
 

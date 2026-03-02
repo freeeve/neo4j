@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZonedDateTime;
+import java.util.UUID;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.values.AnyValue;
@@ -61,6 +62,7 @@ public enum ValueRepresentation {
     INT8_ARRAY(ValueGroup.NUMBER_ARRAY, false),
     FLOAT64_ARRAY(ValueGroup.NUMBER_ARRAY, false),
     FLOAT32_ARRAY(ValueGroup.NUMBER_ARRAY, false),
+    UUID_ARRAY(ValueGroup.UUID_ARRAY, false),
     GEOMETRY(ValueGroup.GEOMETRY, true) {
         @Override
         public ArrayValue arrayOf(SequenceValue values) {
@@ -340,6 +342,18 @@ public enum ValueRepresentation {
     INT64_VECTOR(ValueGroup.INT64_VECTOR, false),
     FLOAT32_VECTOR(ValueGroup.FLOAT32_VECTOR, false),
     FLOAT64_VECTOR(ValueGroup.FLOAT64_VECTOR, false),
+    UUID(ValueGroup.UUID, true) {
+        @Override
+        public ArrayValue arrayOf(SequenceValue values) {
+            UUID[] uuids = new UUID[values.intSize()];
+            int i = 0;
+            for (AnyValue value : values) {
+                UUIDValue asUidValue = getOrFail(value, UUIDValue.class, values, i);
+                uuids[i++] = asUidValue.asObjectCopy();
+            }
+            return Values.uuidArray(uuids);
+        }
+    },
     NO_VALUE(ValueGroup.NO_VALUE, false);
 
     private final ValueGroup group;

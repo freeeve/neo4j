@@ -174,4 +174,9 @@ public abstract class ThrowingValueWriter<E extends Exception> implements ValueW
     public void writeFloat64Vector(double[] values) throws E {
         throw exception("writeFloat64Vector");
     }
+
+    @Override
+    public void writeUUID(long msb, long lsb) throws E {
+        throw exception("writeUID");
+    }
 }

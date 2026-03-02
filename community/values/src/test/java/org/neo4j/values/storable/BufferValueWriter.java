@@ -213,6 +213,11 @@ public class BufferValueWriter implements ValueWriter<RuntimeException> {
         buffer.add(Values.float64Vector(values));
     }
 
+    @Override
+    public void writeUUID(long msb, long lsb) throws RuntimeException {
+        buffer.add(Values.uuidValue(msb, lsb));
+    }
+
     public static class Specials {
         public static Special byteArray(byte[] value) {
             return new Special(WriteByteArray, Arrays.hashCode(value));

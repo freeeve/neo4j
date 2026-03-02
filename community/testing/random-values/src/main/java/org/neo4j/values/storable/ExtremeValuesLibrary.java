@@ -36,6 +36,7 @@ import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.UUID;
 import org.neo4j.internal.helpers.ArrayUtil;
 
 class ExtremeValuesLibrary {
@@ -146,6 +147,11 @@ class ExtremeValuesLibrary {
         Values.float64Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, -Double.MAX_VALUE)),
         Values.float64Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, -Double.MIN_VALUE)),
     };
+    static final Value[] EXTREME_UUID = new Value[] {
+        Values.uuidValue(0, 0),
+        Values.uuidValue(Long.MAX_VALUE, Long.MAX_VALUE),
+        Values.uuidValue(Long.MIN_VALUE, Long.MIN_VALUE)
+    };
 
     static final Value[] EXTREME_BOOLEAN_ARRAY =
             new Value[] {Values.of(EMPTY_BOOLEAN_ARRAY), Values.of(new boolean[] {true})};
@@ -195,4 +201,8 @@ class ExtremeValuesLibrary {
             new Value[] {Values.of(new PointValue[0]), Values.of(new PointValue[] {PointValue.MAX_VALUE_WGS_84})};
     static final Value[] EXTREME_GEOGRAPHIC_POINT_3D_ARRAY =
             new Value[] {Values.of(new PointValue[0]), Values.of(new PointValue[] {PointValue.MAX_VALUE_WGS_84_3D})};
+    static final Value[] EXTREME_UUID_ARRAY = new Value[] {
+        Values.uuidArray(new UUID[] {new UUID(Long.MIN_VALUE, Long.MIN_VALUE)}),
+        Values.uuidArray(new UUID[] {new UUID(Long.MAX_VALUE, Long.MAX_VALUE)})
+    };
 }

@@ -138,4 +138,9 @@ public class PipelineAnyValueWriter extends PackstreamValueWriter {
     public void writeFloat64Vector(double[] values) {
         this.context.writeVector(values);
     }
+
+    @Override
+    public void writeUUID(long msb, long lsb) throws RuntimeException {
+        this.context.writeUID(msb, lsb);
+    }
 }

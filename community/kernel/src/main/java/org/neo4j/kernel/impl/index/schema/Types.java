@@ -65,6 +65,8 @@ class Types {
     static final Int64VectorKey VECTOR_INT64 = new Int64VectorKey((byte) 23);
     static final Float32VectorKey VECTOR_FLOAT32 = new Float32VectorKey((byte) 24);
     static final Float64VectorKey VECTOR_FLOAT64 = new Float64VectorKey((byte) 25);
+    static final UUIDType UUID = new UUIDType((byte) 26);
+    static final UUIDArrayType UUID_ARRAY = new UUIDArrayType((byte) 27);
 
     /* Geometry constants are located in PointKeyUtil */
     public static final int SIZE_ZONED_DATE_TIME =
@@ -88,6 +90,7 @@ class Types {
     public static final int SIZE_NUMBER_FLOAT = Integer.BYTES; /* raw value bits */
     public static final int SIZE_NUMBER_DOUBLE = Long.BYTES; /* raw value bits */
     public static final int SIZE_ARRAY_LENGTH = Short.BYTES;
+    public static final int SIZE_UUID = Long.BYTES * 2;
 
     private static AbstractArrayType<?> typeOf(
             ValueWriter.ArrayType arrayType, AbstractArrayType<?> geometryArrayType) {
@@ -102,6 +105,7 @@ class Types {
             case LOCAL_TIME -> LOCAL_TIME_ARRAY;
             case ZONED_DATE_TIME -> ZONED_DATE_TIME_ARRAY;
             case ZONED_TIME -> ZONED_TIME_ARRAY;
+            case UUID -> UUID_ARRAY;
         };
     }
 
@@ -135,6 +139,8 @@ class Types {
         types.add(VECTOR_INT64);
         types.add(VECTOR_FLOAT32);
         types.add(VECTOR_FLOAT64);
+        types.add(UUID);
+        types.add(UUID_ARRAY);
 
         // Assert order of typeId
         byte expectedTypeId = 0;

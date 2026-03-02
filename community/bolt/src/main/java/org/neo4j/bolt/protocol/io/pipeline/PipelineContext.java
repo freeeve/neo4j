@@ -87,4 +87,6 @@ public interface PipelineContext {
     void writeVector(float[] values);
 
     void writeVector(double[] values);
+
+    void writeUID(long msb, long lsb);
 }

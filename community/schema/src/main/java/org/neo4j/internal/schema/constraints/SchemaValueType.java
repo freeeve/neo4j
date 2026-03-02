@@ -36,6 +36,7 @@ public enum SchemaValueType implements ConstrainableType {
     ZONED_DATETIME("ZONED DATETIME", Ordering.ZONED_DATETIME_ORDER),
     DURATION("DURATION", Ordering.DURATION_ORDER),
     POINT("POINT", Ordering.POINT_ORDER),
+    UUID("UUID", Ordering.UUID_ORDER),
 
     LIST_BOOLEAN("LIST<BOOLEAN NOT NULL>", Ordering.LIST_BOOLEAN_ORDER),
     LIST_STRING("LIST<STRING NOT NULL>", Ordering.LIST_STRING_ORDER),
@@ -47,7 +48,8 @@ public enum SchemaValueType implements ConstrainableType {
     LIST_LOCAL_DATETIME("LIST<LOCAL DATETIME NOT NULL>", Ordering.LIST_LOCAL_DATETIME_ORDER),
     LIST_ZONED_DATETIME("LIST<ZONED DATETIME NOT NULL>", Ordering.LIST_ZONED_DATETIME_ORDER),
     LIST_DURATION("LIST<DURATION NOT NULL>", Ordering.LIST_DURATION_ORDER),
-    LIST_POINT("LIST<POINT NOT NULL>", Ordering.LIST_POINT_ORDER);
+    LIST_POINT("LIST<POINT NOT NULL>", Ordering.LIST_POINT_ORDER),
+    LIST_UUID("LIST<UUID NOT NULL>", Ordering.LIST_UUID_ORDER);
 
     private final String userDescription;
     private final Ordering order;
@@ -94,6 +96,7 @@ public enum SchemaValueType implements ConstrainableType {
             case ZONED_TIME -> SchemaValueType.ZONED_TIME;
             case LOCAL_TIME -> SchemaValueType.LOCAL_TIME;
             case POINT -> SchemaValueType.POINT;
+            case UUID -> SchemaValueType.UUID;
             case LIST_BOOLEAN_NOT_NULL -> SchemaValueType.LIST_BOOLEAN;
             case LIST_STRING_NOT_NULL -> SchemaValueType.LIST_STRING;
             case LIST_INTEGER_NOT_NULL -> SchemaValueType.LIST_INTEGER;
@@ -105,6 +108,7 @@ public enum SchemaValueType implements ConstrainableType {
             case LIST_ZONED_DATETIME_NOT_NULL -> SchemaValueType.LIST_ZONED_DATETIME;
             case LIST_DURATION_NOT_NULL -> SchemaValueType.LIST_DURATION;
             case LIST_POINT_NOT_NULL -> SchemaValueType.LIST_POINT;
+            case LIST_UUID_NOT_NULL -> SchemaValueType.LIST_UUID;
             case VECTOR ->
                 throw new IllegalArgumentException("Using PropertyType.VECTOR is not supported via the API."
                         + " Please use a Cypher statement instead.");
@@ -136,6 +140,8 @@ public enum SchemaValueType implements ConstrainableType {
             case LIST_DURATION -> PropertyType.LIST_DURATION_NOT_NULL;
             case LIST_POINT -> PropertyType.LIST_POINT_NOT_NULL;
             case POINT -> PropertyType.POINT;
+            case UUID -> PropertyType.UUID;
+            case LIST_UUID -> PropertyType.LIST_UUID_NOT_NULL;
         };
     }
 }

@@ -518,6 +518,16 @@ public abstract class GenericKey<KEY extends GenericKey<KEY>> extends NativeInde
         Types.VECTOR_FLOAT64.write(this, values);
     }
 
+    @Override
+    public void writeUUID(long msb, long lsb) throws RuntimeException {
+        if (!isArray) {
+            setType(Types.UUID);
+            UUIDType.write(this, msb, lsb);
+        } else {
+            UUIDArrayType.write(this, currentArrayOffset++, msb, lsb);
+        }
+    }
+
     // Write byte array is a special case,
     // instead of calling beginArray and writing the bytes one-by-one
     // writeByteArray is called so that the bytes can be written in batches.

@@ -395,6 +395,12 @@ public record ValuesWriter(WriteEnrichmentChannel channel) implements AnyValueWr
         writeInteger(relId);
     }
 
+    @Override
+    public void writeUUID(long msb, long lsb) throws RuntimeException {
+        channel.putLong(msb);
+        channel.putLong(lsb);
+    }
+
     private void writeList(ListValue list) {
         beginList(list.intSize());
         switch (list.iterationPreference()) {

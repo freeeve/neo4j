@@ -20,6 +20,7 @@
 package org.neo4j.values.storable;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import org.neo4j.hashing.HashFunction;
 
 public abstract class NonPrimitiveArray<T extends Comparable<? super T>> extends ArrayValue {
@@ -71,10 +72,14 @@ public abstract class NonPrimitiveArray<T extends Comparable<? super T>> extends
     }
 
     final int compareToNonPrimitiveArray(NonPrimitiveArray<T> other) {
+        return compareToNonPrimitiveArray(other, Comparator.naturalOrder());
+    }
+
+    final int compareToNonPrimitiveArray(NonPrimitiveArray<T> other, Comparator<T> valueComparator) {
         int compare = 0;
         int length = Math.min(this.intSize(), other.intSize());
         for (int index = 0; compare == 0 && index < length; index++) {
-            compare = this.value()[index].compareTo(other.value()[index]);
+            compare = valueComparator.compare(this.value()[index], other.value()[index]);
         }
         return compare == 0 ? Integer.compare(this.intSize(), other.intSize()) : compare;
     }

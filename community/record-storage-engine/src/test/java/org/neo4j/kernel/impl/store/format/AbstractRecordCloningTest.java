@@ -28,6 +28,7 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.id.BatchingIdSequence;
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.kernel.impl.store.IntStoreHeader;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -40,7 +41,7 @@ import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
-import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @RandomSupportExtension
 public abstract class AbstractRecordCloningTest {
@@ -82,9 +83,8 @@ public abstract class AbstractRecordCloningTest {
 
     @BeforeEach
     void setUp() {
-        random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .includeVectorTypes(false)
-                        .build() /* Record format does not support vectors. */)
+        random.withConfiguration(
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME))
                 .reset();
         RecordFormats formats = formats();
         RecordGenerators generators =

@@ -26,7 +26,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class FeatureUnsupportedOnStoreFormatException extends Neo4jException {
-
     private FeatureUnsupportedOnStoreFormatException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
@@ -36,12 +35,19 @@ public class FeatureUnsupportedOnStoreFormatException extends Neo4jException {
         return Status.Data.DataUnsupportedByStoreFormat;
     }
 
-    public static FeatureUnsupportedOnStoreFormatException vectorsUnsupportedInRecordFormat(String storeFormat) {
+    public static FeatureUnsupportedOnStoreFormatException vectorsUnsupportedInStoreFormat(String storeFormat) {
+        return unsupportedInStoreFormat(storeFormat, "vector");
+    }
+
+    public static FeatureUnsupportedOnStoreFormatException unsupportedInStoreFormat(
+            String storeFormat, String valueTypeName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N77)
-                .withParam(GqlParams.StringParam.feat, "storing properties of type vector")
+                .withParam(GqlParams.StringParam.feat, "storing properties of type " + valueTypeName)
                 .withParam(GqlParams.StringParam.storeFormat, storeFormat)
                 .build();
         return new FeatureUnsupportedOnStoreFormatException(
-                gql, "storing properties of type vector is not supported in %s store format".formatted(storeFormat));
+                gql,
+                "storing properties of type %s is not supported in %s store format"
+                        .formatted(valueTypeName, storeFormat));
     }
 }

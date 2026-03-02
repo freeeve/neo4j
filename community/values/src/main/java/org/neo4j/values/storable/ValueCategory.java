@@ -31,6 +31,8 @@ public enum ValueCategory {
     BOOLEAN,
     BOOLEAN_ARRAY,
     VECTOR,
+    UUID,
+    UUID_ARRAY,
     UNKNOWN,
     NO_CATEGORY,
     ANYTHING

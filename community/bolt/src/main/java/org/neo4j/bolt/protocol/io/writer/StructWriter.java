@@ -132,4 +132,8 @@ public interface StructWriter {
     default void writeVector(WriterContext ctx, double[] values) {
         ctx.fireVector(values);
     }
+
+    default void writeUID(WriterContext ctx, long msb, long lsb) {
+        ctx.fireUUID(msb, lsb);
+    }
 }

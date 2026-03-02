@@ -71,6 +71,8 @@ import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_STRING_BMP;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_STRING_BMP_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_TIME;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_TIME_ARRAY;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_UUID;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_UUID_ARRAY;
 
 import java.util.Arrays;
 
@@ -130,7 +132,9 @@ public enum ValueType {
     INT32_VECTOR(ValueRepresentation.INT32_VECTOR, Int32Vector.class, EXTREME_INT32_VECTOR),
     INT64_VECTOR(ValueRepresentation.INT64_VECTOR, Int64Vector.class, EXTREME_INT64_VECTOR),
     FLOAT32_VECTOR(ValueRepresentation.FLOAT32_VECTOR, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
-    FLOAT64_VECTOR(ValueRepresentation.FLOAT64_VECTOR, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
+    FLOAT64_VECTOR(ValueRepresentation.FLOAT64_VECTOR, Float64Vector.class, EXTREME_FLOAT64_VECTOR),
+    UUID(ValueRepresentation.UUID, UUIDValue.class, EXTREME_UUID),
+    UUID_ARRAY(ValueRepresentation.UUID_ARRAY, UUIDArray.class, true, EXTREME_UUID_ARRAY);
 
     public final ValueRepresentation valueRepresentation;
     public final ValueGroup valueGroup;

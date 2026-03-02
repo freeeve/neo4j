@@ -76,7 +76,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
-import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -148,9 +148,8 @@ class PropertyDeleterTest {
 
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .includeVectorTypes(false)
-                        .build())
+        random.withConfiguration(
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME))
                 .reset();
     }
 

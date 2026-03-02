@@ -51,6 +51,8 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDArray;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -64,6 +66,7 @@ public sealed interface TypeRepresentation permits ConstrainableType, SpecialTyp
         NULL_ORDER,
         BOOLEAN_ORDER,
         STRING_ORDER,
+        UUID_ORDER,
         INTEGER_ORDER,
         FLOAT_ORDER,
         DATE_ORDER,
@@ -82,6 +85,7 @@ public sealed interface TypeRepresentation permits ConstrainableType, SpecialTyp
         LIST_NOTHING_ORDER,
         LIST_BOOLEAN_ORDER,
         LIST_STRING_ORDER,
+        LIST_UUID_ORDER,
         LIST_INTEGER_ORDER,
         LIST_FLOAT_ORDER,
         LIST_DATE_ORDER,
@@ -99,6 +103,7 @@ public sealed interface TypeRepresentation permits ConstrainableType, SpecialTyp
     Set<TypeRepresentation> CONSTRAINABLE_LIST_TYPES = Set.of(
             SchemaValueType.LIST_BOOLEAN,
             SchemaValueType.LIST_STRING,
+            SchemaValueType.LIST_UUID,
             SchemaValueType.LIST_INTEGER,
             SchemaValueType.LIST_FLOAT,
             SchemaValueType.LIST_DATE,
@@ -134,6 +139,8 @@ public sealed interface TypeRepresentation permits ConstrainableType, SpecialTyp
                 return SchemaValueType.STRING;
             } else if (value instanceof IntegralValue) {
                 return SchemaValueType.INTEGER;
+            } else if (value instanceof UUIDValue) {
+                return SchemaValueType.UUID;
             } else if (value instanceof FloatingPointValue) {
                 return SchemaValueType.FLOAT;
             } else if (value instanceof DateValue) {
@@ -170,6 +177,8 @@ public sealed interface TypeRepresentation permits ConstrainableType, SpecialTyp
                 return SchemaValueType.LIST_BOOLEAN;
             } else if (value instanceof TextArray) {
                 return SchemaValueType.LIST_STRING;
+            } else if (value instanceof UUIDArray) {
+                return SchemaValueType.LIST_UUID;
             } else if (value instanceof IntegralArray) {
                 return SchemaValueType.LIST_INTEGER;
             } else if (value instanceof FloatingPointArray) {

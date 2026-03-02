@@ -36,6 +36,7 @@ import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
@@ -150,6 +151,11 @@ public class ParameterValueMapper implements ValueMapper<Object> {
 
     @Override
     public Object mapVector(VectorValue value) {
+        return value.asObjectCopy();
+    }
+
+    @Override
+    public Object mapUUID(UUIDValue value) {
         return value.asObjectCopy();
     }
 }

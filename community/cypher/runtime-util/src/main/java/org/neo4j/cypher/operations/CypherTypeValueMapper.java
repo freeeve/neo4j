@@ -83,6 +83,7 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
@@ -352,5 +353,10 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     @Override
     public CypherType mapFloat64Vector(Float64Vector value) {
         return FLOAT64_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
+    }
+
+    @Override
+    public CypherType mapUUID(UUIDValue value) {
+        throw new UnsupportedOperationException("UIDs are not supported in Cypher for the time being");
     }
 }

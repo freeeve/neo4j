@@ -512,12 +512,14 @@ org.neo4j.graphdb.schema.PropertyType::LIST_LOCAL_DATETIME_NOT_NULL org.neo4j.gr
 org.neo4j.graphdb.schema.PropertyType::LIST_LOCAL_TIME_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LIST_POINT_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LIST_STRING_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
+org.neo4j.graphdb.schema.PropertyType::LIST_UUID_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LIST_ZONED_DATETIME_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LIST_ZONED_TIME_NOT_NULL org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LOCAL_DATETIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::LOCAL_TIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::POINT org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::STRING org.neo4j.graphdb.schema.PropertyType public static final
+org.neo4j.graphdb.schema.PropertyType::UUID org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::VECTOR org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::ZONED_DATETIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::ZONED_TIME org.neo4j.graphdb.schema.PropertyType public static final

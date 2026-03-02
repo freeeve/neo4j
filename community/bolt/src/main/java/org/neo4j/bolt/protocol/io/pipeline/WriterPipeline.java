@@ -349,6 +349,11 @@ public class WriterPipeline {
         }
 
         @Override
+        public void writeUID(long msb, long lsb) {
+            this.write(writer -> writer.writeUID(this, msb, lsb));
+        }
+
+        @Override
         public void firePoint(CoordinateReferenceSystem crs, double[] coords) {
             this.fire("point", writer -> writer.writePoint(this, crs, coords));
         }
@@ -459,6 +464,11 @@ public class WriterPipeline {
         @Override
         public void fireVector(double[] values) {
             this.fire("double_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireUUID(long msb, long lsb) {
+            this.fire("uid", writer -> writer.writeUID(this, msb, lsb));
         }
     }
 }

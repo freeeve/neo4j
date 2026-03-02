@@ -28,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
+import java.util.UUID;
 import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Float32Vector;
@@ -393,6 +394,13 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
     @Override
     public void writeFloat64Vector(double[] values) throws RuntimeException {
         writeVector(Arrays.toString(values), values.length, Float64Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeUUID(long msb, long lsb) throws RuntimeException {
+        append("{uid: ");
+        append(new UUID(msb, lsb).toString());
+        append("}");
     }
 
     @Override

@@ -42,12 +42,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.kernel.impl.store.PropertyType;
 import org.neo4j.kernel.impl.store.StandaloneDynamicRecordAllocator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
-import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @RandomSupportExtension
 class AbstractBaseRecordCopyTest {
@@ -61,9 +62,8 @@ class AbstractBaseRecordCopyTest {
 
     @BeforeEach
     void setUp() {
-        random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .includeVectorTypes(false)
-                        .build() /* Record engine does not support vectors. */)
+        random.withConfiguration(
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME))
                 .reset();
         dataProviders.put(int.class, () -> random.nextInt());
         dataProviders.put(long.class, () -> random.nextLong());

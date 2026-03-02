@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.values.storable.BooleanArray;
@@ -79,6 +80,7 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
@@ -276,6 +278,8 @@ public interface ValueMapper<Base> {
         return mapFloatingPointVector(value);
     }
 
+    Base mapUUID(UUIDValue value);
+
     abstract class JavaMapper implements ValueMapper<Object> {
         @Override
         public Object mapNoValue() {
@@ -413,6 +417,11 @@ public interface ValueMapper<Base> {
 
         @Override
         public Vector mapVector(VectorValue value) {
+            return value.asObjectCopy();
+        }
+
+        @Override
+        public UUID mapUUID(UUIDValue value) {
             return value.asObjectCopy();
         }
     }

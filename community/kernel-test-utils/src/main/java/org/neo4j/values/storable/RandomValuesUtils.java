@@ -19,7 +19,10 @@
  */
 package org.neo4j.values.storable;
 
+import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 
@@ -41,18 +44,37 @@ public class RandomValuesUtils {
 
     public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(
             GraphDatabaseService db) {
-        var storageEngine = ((GraphDatabaseAPI) db)
-                .getDependencyResolver()
+        var dependencyResolver = ((GraphDatabaseAPI) db).getDependencyResolver();
+        var storageEngine = dependencyResolver
                 .resolveOptionalDependency(StorageEngineFactory.class)
                 .orElseThrow();
-        return selectStorageEngineDependentConfigurationBuilder(storageEngine.name());
+        var kernelVersion = dependencyResolver
+                .resolveDependency(KernelVersionProvider.class)
+                .kernelVersion();
+        return selectStorageEngineDependentConfigurationBuilder(storageEngine, kernelVersion);
+    }
+
+    public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(Config config) {
+        StorageEngineFactory storageEngineFactory = StorageEngineFactory.selectStorageEngine(config);
+        KernelVersion kernelVersion = KernelVersion.getLatestVersion(config);
+        return selectStorageEngineDependentConfigurationBuilder(storageEngineFactory, kernelVersion);
+    }
+
+    public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(
+            StorageEngineFactory storageEngineFactory, KernelVersion kernelVersion) {
+        var builder = selectStorageEngineDependentConfigurationBuilder(storageEngineFactory.name());
+        if (kernelVersion.isLessThan(KernelVersion.VERSION_UUID_VALUE_INTRODUCED)) {
+            builder = builder.disallowedTypes(ValueType.UUID, ValueType.UUID_ARRAY);
+        }
+        return builder;
     }
 
     public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(
             String storageEngineName) {
+        var builder = RandomValues.newConfigurationBuilder();
         return switch (storageEngineName) {
-            case "block" -> RandomValues.newConfigurationBuilder();
-            default -> RandomValues.newConfigurationBuilder().includeVectorTypes(false);
+            case "block" -> builder;
+            default -> builder.includeVectorTypes(false).disallowedTypes(ValueType.UUID, ValueType.UUID_ARRAY);
         };
     }
 }

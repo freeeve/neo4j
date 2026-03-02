@@ -465,6 +465,11 @@ class LogCommandSerializationV5_0 extends LogCommandSerializationV4_3_D3 {
             public void writeFloat64Vector(double[] values) throws IOException {
                 throw new IOException("Vector is not a supported schema map value type.");
             }
+
+            @Override
+            public void writeUUID(long msb, long lsb) throws IOException {
+                throw new IOException("UID is not a supported schema map value type.");
+            }
         });
     }
 

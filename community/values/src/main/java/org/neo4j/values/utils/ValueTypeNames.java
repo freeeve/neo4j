@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.utils;
 
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.VectorValue;
@@ -49,6 +50,7 @@ public class ValueTypeNames {
             case INT8_ARRAY -> listOf(ValueRepresentation.INT8);
             case FLOAT64_ARRAY -> listOf(ValueRepresentation.FLOAT64);
             case FLOAT32_ARRAY -> listOf(ValueRepresentation.FLOAT32);
+            case UUID_ARRAY -> listOf(ValueRepresentation.UUID);
             case GEOMETRY -> "POINT";
             case ZONED_DATE_TIME -> "ZONED DATETIME";
             case LOCAL_DATE_TIME -> "LOCAL DATETIME";
@@ -71,6 +73,7 @@ public class ValueTypeNames {
             case INT64_VECTOR -> vectorOf("INTEGER", value);
             case FLOAT32_VECTOR -> vectorOf("FLOAT32", value);
             case FLOAT64_VECTOR -> vectorOf("FLOAT", value);
+            case UUID -> UUIDValue.TYPE_NAME;
             case NO_VALUE -> "NULL";
         };
     }

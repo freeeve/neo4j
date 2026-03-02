@@ -50,7 +50,8 @@ public interface ValueWriter<E extends Exception> {
         DATE,
         ZONED_TIME,
         LOCAL_TIME,
-        DURATION
+        DURATION,
+        UUID
     }
 
     void writeNull() throws E;
@@ -109,109 +110,88 @@ public interface ValueWriter<E extends Exception> {
 
     void writeFloat64Vector(double[] values) throws E;
 
+    void writeUUID(long msb, long lsb) throws E;
+
     class Adapter<E extends Exception> implements ValueWriter<E> {
         @Override
-        public void writeNull() throws E { // no-op
-        }
+        public void writeNull() throws E {}
 
         @Override
-        public void writeBoolean(boolean value) throws E { // no-op
-        }
+        public void writeBoolean(boolean value) throws E {}
 
         @Override
-        public void writeInteger(byte value) throws E { // no-op
-        }
+        public void writeInteger(byte value) throws E {}
 
         @Override
-        public void writeInteger(short value) throws E { // no-op
-        }
+        public void writeInteger(short value) throws E {}
 
         @Override
-        public void writeInteger(int value) throws E { // no-op
-        }
+        public void writeInteger(int value) throws E {}
 
         @Override
-        public void writeInteger(long value) throws E { // no-op
-        }
+        public void writeInteger(long value) throws E {}
 
         @Override
-        public void writeFloatingPoint(float value) throws E { // no-op
-        }
+        public void writeFloatingPoint(float value) throws E {}
 
         @Override
-        public void writeFloatingPoint(double value) throws E { // no-op
-        }
+        public void writeFloatingPoint(double value) throws E {}
 
         @Override
-        public void writeString(String value) throws E { // no-op
-        }
+        public void writeString(String value) throws E {}
 
         @Override
-        public void writeString(char value) throws E { // no-op
-        }
+        public void writeString(char value) throws E {}
 
         @Override
-        public void beginArray(int size, ArrayType arrayType) throws E { // no-op
-        }
+        public void beginArray(int size, ArrayType arrayType) throws E {}
 
         @Override
-        public void endArray() throws E { // no-opa
-        }
+        public void endArray() throws E {}
 
         @Override
-        public void writeByteArray(byte[] value) throws E { // no-op
-        }
+        public void writeByteArray(byte[] value) throws E {}
 
         @Override
-        public void writePoint(CoordinateReferenceSystem crs, double[] coordinate) throws E { // no-op
-        }
+        public void writePoint(CoordinateReferenceSystem crs, double[] coordinate) throws E {}
 
         @Override
-        public void writeDuration(long months, long days, long seconds, int nanos) { // no-op
-        }
+        public void writeDuration(long months, long days, long seconds, int nanos) {}
 
         @Override
-        public void writeDate(LocalDate localDate) throws E { // no-op
-        }
+        public void writeDate(LocalDate localDate) throws E {}
 
         @Override
-        public void writeLocalTime(LocalTime localTime) throws E { // no-op
-        }
+        public void writeLocalTime(LocalTime localTime) throws E {}
 
         @Override
-        public void writeTime(OffsetTime offsetTime) throws E { // no-op
-        }
+        public void writeTime(OffsetTime offsetTime) throws E {}
 
         @Override
-        public void writeLocalDateTime(LocalDateTime localDateTime) throws E { // no-op
-        }
+        public void writeLocalDateTime(LocalDateTime localDateTime) throws E {}
 
         @Override
-        public void writeDateTime(ZonedDateTime zonedDateTime) throws E { // no-op
-        }
+        public void writeDateTime(ZonedDateTime zonedDateTime) throws E {}
 
         @Override
-        public void writeFloat32Vector(float[] values) throws E { // no-op
-        }
+        public void writeFloat32Vector(float[] values) throws E {}
 
         @Override
-        public void writeInt8Vector(byte[] values) throws E { // no-op
-        }
+        public void writeInt8Vector(byte[] values) throws E {}
 
         @Override
-        public void writeInt16Vector(short[] values) throws E { // no-op
-        }
+        public void writeInt16Vector(short[] values) throws E {}
 
         @Override
-        public void writeInt32Vector(int[] values) throws E { // no-op
-        }
+        public void writeInt32Vector(int[] values) throws E {}
 
         @Override
-        public void writeInt64Vector(long[] values) throws E { // no-op
-        }
+        public void writeInt64Vector(long[] values) throws E {}
 
         @Override
-        public void writeFloat64Vector(double[] values) throws E { // no-op
-        }
+        public void writeFloat64Vector(double[] values) throws E {}
+
+        @Override
+        public void writeUUID(long msb, long lsb) throws E {}
     }
 }

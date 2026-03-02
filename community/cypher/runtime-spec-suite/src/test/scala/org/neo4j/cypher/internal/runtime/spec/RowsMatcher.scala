@@ -35,6 +35,7 @@ import org.neo4j.values.storable.NumberValue
 import org.neo4j.values.storable.PointValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable.TimeValue
+import org.neo4j.values.storable.UUIDValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.VectorValue
 import org.neo4j.values.virtual.ListValue
@@ -616,4 +617,5 @@ object SortListValueMapper extends ValueMapper[AnyValue] {
   override def mapDuration(value: DurationValue): AnyValue = value
   override def mapPoint(value: PointValue): AnyValue = value
   override def mapVector(value: VectorValue): AnyValue = value
+  override def mapUUID(value: UUIDValue): AnyValue = value
 }

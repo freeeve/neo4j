@@ -78,4 +78,6 @@ public interface WriterContext extends PipelineContext {
     void fireVector(float[] values);
 
     void fireVector(double[] values);
+
+    void fireUUID(long msb, long lsb);
 }

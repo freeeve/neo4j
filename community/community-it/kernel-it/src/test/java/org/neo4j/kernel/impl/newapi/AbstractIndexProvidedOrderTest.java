@@ -82,6 +82,7 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
 
     private TreeSet<EntityValueTuple> singlePropValues = new TreeSet<>(COMPARATOR);
     private ValueType[] targetedTypes;
+    private RandomValues.Configuration rngConfiguration;
 
     @Override
     public ReadTestSupport newTestSupport() {
@@ -101,16 +102,14 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             tx.commit();
         }
 
-        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(graphDb)
+        rngConfiguration = RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(graphDb)
                 .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
                 .build();
-        randomRule.withConfiguration(configuration).reset();
+        randomRule.withConfiguration(rngConfiguration).reset();
 
-        if (!configuration.includeVectorTypes()) {
-            targetedTypes = RandomValues.excluding(ALL_ORDERABLE, RandomValues.IS_VECTOR_TYPE);
-        } else {
-            targetedTypes = ALL_ORDERABLE;
-        }
+        var allowedTypes = rngConfiguration.allowedTypes();
+        targetedTypes =
+                Arrays.stream(ALL_ORDERABLE).filter(allowedTypes::contains).toArray(ValueType[]::new);
 
         RandomValues randomValues = randomRule.randomValues();
 
@@ -136,7 +135,8 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
     @Test
     void shouldProvideResultInOrderIfCapable() throws KernelException {
         int prop = token.propertyKey(PROPERTY_KEY);
-        RandomValues randomValues = randomRule.randomValues();
+        RandomValues randomValues =
+                randomRule.withConfiguration(rngConfiguration).randomValues();
         IndexReadSession index = read.indexReadSession(tx.schemaRead().indexGetForName(INDEX_NAME));
         for (int i = 0; i < N_ITERATIONS; i++) {
             ValueType type = randomValues.among(targetedTypes);

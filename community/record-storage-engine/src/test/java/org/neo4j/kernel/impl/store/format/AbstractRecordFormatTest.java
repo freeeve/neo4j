@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.id.BatchingIdSequence;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.pagecache.ByteArrayPageCursor;
 import org.neo4j.io.pagecache.PageCursor;
@@ -43,7 +44,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
-import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @SuppressWarnings("AbstractClassWithoutAbstractMethods")
 @RandomSupportExtension
@@ -72,9 +73,8 @@ public abstract class AbstractRecordFormatTest {
 
     @BeforeEach
     public void before() {
-        random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .includeVectorTypes(false)
-                        .build() /* Record engine does not support vectors. */)
+        random.withConfiguration(
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME))
                 .reset();
         generators = new LimitedRecordGenerators(random.randomValues(), entityBits, propertyBits, 40, 16, -1, formats);
     }

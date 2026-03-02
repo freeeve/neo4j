@@ -240,6 +240,6 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
 
     @Override
     public void visitCreateVectorStore(VectorStoreIdType vectorStoreToCreate) {
-        throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+        throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInStoreFormat(storeFormat);
     }
 }

@@ -89,6 +89,7 @@ import org.neo4j.internal.batchimport.staging.ProcessorAssignmentStrategies;
 import org.neo4j.internal.batchimport.staging.StageExecution;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -107,6 +108,7 @@ import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.RequireAlignedFormat;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Values;
 
 @Neo4jLayoutExtension
@@ -184,8 +186,7 @@ public class ParallelBatchImporterTest {
         augmentConfig(dbConfig);
 
         // This is a record storage engine importer, thus it does not support vectors
-        var randomConfig =
-                RandomValues.newConfigurationBuilder().includeVectorTypes(false).build();
+        var randomConfig = RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME);
         random.withConfiguration(randomConfig).reset();
         var nodeRandomsState = new RandomsStates(random.nextLong(), randomConfig);
         var relationshipRandomsStates = new RandomsStates(random.nextLong(), randomConfig);

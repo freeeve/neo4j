@@ -35,6 +35,7 @@ import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.UUID;
 import org.eclipse.collections.api.map.primitive.ImmutableByteObjectMap;
 import org.eclipse.collections.impl.factory.primitive.ByteObjectMaps;
 import org.neo4j.values.AnyValue;
@@ -81,6 +82,8 @@ import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.TimeZones;
+import org.neo4j.values.storable.UUIDArray;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
@@ -143,7 +146,9 @@ public enum ValuesReader {
     VECTOR_INT32((byte) 41, Int32Vector.class, ValuesReader::readInt32Vector),
     VECTOR_INT64((byte) 42, Int64Vector.class, ValuesReader::readInt64Vector),
     VECTOR_FLOAT32((byte) 43, Float32Vector.class, ValuesReader::readFloat32Vector),
-    VECTOR_FLOAT64((byte) 44, Float64Vector.class, ValuesReader::readFloat64Vector);
+    VECTOR_FLOAT64((byte) 44, Float64Vector.class, ValuesReader::readFloat64Vector),
+    UID((byte) 45, UUIDValue.class, ValuesReader::readUUID),
+    UID_ARRAY((byte) 46, UUIDArray.class, ValuesReader::readUUIDArray);
 
     public static final ImmutableByteObjectMap<ValuesReader> BY_ID =
             ByteObjectMaps.immutable.from(List.of(ValuesReader.values()), ValuesReader::id, v -> v);
@@ -582,6 +587,19 @@ public enum ValuesReader {
         buffer.asDoubleBuffer().get(coordinates);
         buffer.position(buffer.position() + dimensions * Double.BYTES);
         return Values.float64Vector(coordinates);
+    }
+
+    private static UUIDValue readUUID(ByteBuffer buffer) {
+        return Values.uuidValue(buffer.getLong(), buffer.getLong());
+    }
+
+    private static UUIDArray readUUIDArray(ByteBuffer buffer) {
+        int length = buffer.getInt();
+        UUID[] uuids = new UUID[length];
+        for (int i = 0; i < length; i++) {
+            uuids[i] = new UUID(buffer.getLong(), buffer.getLong());
+        }
+        return Values.uuidArray(uuids);
     }
 
     public byte id() {

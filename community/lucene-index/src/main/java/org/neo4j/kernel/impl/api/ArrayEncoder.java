@@ -206,6 +206,11 @@ public final class ArrayEncoder {
         }
 
         @Override
+        public void writeUUID(long msb, long lsb) throws RuntimeException {
+            builder.append(Values.uuidValue(msb, lsb).prettyPrint());
+        }
+
+        @Override
         public void beginArray(int size, ArrayType arrayType) {
             if (size > 0) {
                 builder.append(typeChar(arrayType));

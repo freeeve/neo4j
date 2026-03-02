@@ -312,7 +312,6 @@ abstract class RandomValuesTest {
 }
 
 class RandomRandomValuesTest extends RandomValuesTest {
-
     @Override
     RandomValues randomValues() {
         return RandomValues.create(ThreadLocalRandom.current());
@@ -320,7 +319,6 @@ class RandomRandomValuesTest extends RandomValuesTest {
 }
 
 class SplittableRandomValuesTest extends RandomValuesTest {
-
     @Override
     RandomValues randomValues() {
         return RandomValues.create(new SplittableRandom());

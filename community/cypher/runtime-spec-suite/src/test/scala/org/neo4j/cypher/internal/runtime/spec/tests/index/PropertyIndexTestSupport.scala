@@ -43,7 +43,10 @@ trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
       ValueType.CHAR,
       ValueType.CHAR_ARRAY,
       ValueType.BYTE,
-      ValueType.BYTE_ARRAY
+      ValueType.BYTE_ARRAY,
+      // TODO UID disabled due to not finding a way to figure it out correctly for db/version
+      ValueType.UUID,
+      ValueType.UUID_ARRAY
     )
     // graphDb can be null for some tests
     val unsupportedVectorTypes: Set[ValueType] =

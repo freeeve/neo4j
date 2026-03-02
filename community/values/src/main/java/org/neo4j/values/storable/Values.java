@@ -41,6 +41,7 @@ import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.UUID;
 import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.graphdb.spatial.CRS;
@@ -396,6 +397,22 @@ public final class Values {
         return new Float32Vector(coordinates);
     }
 
+    public static UUIDValue uuidValue(long msb, long lsb) {
+        return new UUIDValue(new UUID(msb, lsb));
+    }
+
+    public static UUIDValue uuidValue(UUID uuid) {
+        return new UUIDValue(uuid);
+    }
+
+    public static UUIDValue uuidValue(String uuid) {
+        return new UUIDValue(UUID.fromString(uuid));
+    }
+
+    public static UUIDArray uuidArray(UUID[] values) {
+        return new UUIDArray(values);
+    }
+
     // BOXED FACTORY METHODS
 
     /**
@@ -450,6 +467,7 @@ public final class Values {
             case short[] shortArray -> shortArray(Arrays.copyOf(shortArray, shortArray.length));
             case Point point -> point(point);
             case Vector vector -> vectorValue(vector);
+            case UUID uuid -> uuidValue(uuid);
             case Value ignored ->
                 throw new UnsupportedOperationException(
                         "Converting a Value to a Value using Values.of() is not supported.");
@@ -510,6 +528,7 @@ public final class Values {
                 localTimeArray(copyDefensively ? copy(array, new LocalTime[array.length]) : array);
             case LocalDate[] array -> dateArray(copyDefensively ? copy(array, new LocalDate[array.length]) : array);
             case TemporalAmount[] array -> durationArray(array); // no need to copy here, durationArray will copy
+            case UUID[] array -> uuidArray(array);
             default -> null;
         };
     }

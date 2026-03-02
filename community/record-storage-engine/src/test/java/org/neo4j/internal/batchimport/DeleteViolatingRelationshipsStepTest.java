@@ -44,6 +44,7 @@ import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.batchimport.staging.SimpleStageControl;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
@@ -70,7 +71,7 @@ import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
-import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @EphemeralPageCacheExtension
 @EphemeralNeo4jLayoutExtension
@@ -95,9 +96,8 @@ class DeleteViolatingRelationshipsStepTest {
 
     @BeforeEach
     void before() {
-        random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .includeVectorTypes(false)
-                        .build() /* Record engine does not support vectors. */)
+        random.withConfiguration(
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(RecordStorageEngineFactory.NAME))
                 .reset();
 
         contextFactory = new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);

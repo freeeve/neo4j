@@ -224,9 +224,7 @@ class MultipleIndexPopulationStressIT {
                 executor.submit(() -> {
                     ChangeRandomEntities changeRandomEntities = new ChangeRandomEntities(
                             db,
-                            RandomValues.create(RandomValues.newConfigurationBuilder()
-                                    .includeVectorTypes(false)
-                                    .build() /* Record engine does not support vectors. */),
+                            RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db)),
                             nodeCount,
                             relCount);
                     while (!end.get()) {

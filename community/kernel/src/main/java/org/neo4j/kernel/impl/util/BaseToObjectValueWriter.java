@@ -367,6 +367,11 @@ public abstract class BaseToObjectValueWriter<E extends Exception> implements An
         writeValue(Values.float64Vector(values));
     }
 
+    @Override
+    public void writeUUID(long msb, long lsb) throws E {
+        writeValue(Values.uuidValue(msb, lsb));
+    }
+
     private static class PathProxy implements Path {
         private final Node[] nodes;
         private final Relationship[] relationships;

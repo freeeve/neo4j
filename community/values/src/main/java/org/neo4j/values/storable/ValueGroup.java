@@ -41,6 +41,7 @@ public enum ValueGroup {
     DURATION_ARRAY(ValueCategory.TEMPORAL_ARRAY),
     TEXT_ARRAY(ValueCategory.TEXT_ARRAY),
     BOOLEAN_ARRAY(ValueCategory.BOOLEAN_ARRAY),
+    UUID_ARRAY(ValueCategory.UUID_ARRAY),
     NUMBER_ARRAY(ValueCategory.NUMBER_ARRAY),
     INT8_VECTOR(ValueCategory.VECTOR),
     INT16_VECTOR(ValueCategory.VECTOR),
@@ -57,6 +58,7 @@ public enum ValueGroup {
     DURATION(ValueCategory.TEMPORAL),
     TEXT(ValueCategory.TEXT),
     BOOLEAN(ValueCategory.BOOLEAN),
+    UUID(ValueCategory.UUID),
     NUMBER(ValueCategory.NUMBER),
     NO_VALUE(ValueCategory.NO_CATEGORY);
 
