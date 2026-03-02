@@ -138,8 +138,9 @@ final object ResultValueMapper extends ValueMapper {
 
     def convertEmbeddedValue(value: AnyRef): AnyRef = value match {
       case string: java.lang.String       => string
-      case long: java.lang.Long           => long
-      case int: java.lang.Integer         => java.lang.Long.valueOf(int.longValue())
+      case v: java.lang.Short             => java.lang.Long.valueOf(v.shortValue())
+      case v: java.lang.Integer           => java.lang.Long.valueOf(v.longValue())
+      case v: java.lang.Long              => v
       case double: java.lang.Double       => java.lang.Double.valueOf(double.doubleValue() + 0.0) // + 0.0 to avoid -0.0
       case list: util.List[_]             => convertList(list)
       case map: util.Map[_, _]            => convertMap(map)
