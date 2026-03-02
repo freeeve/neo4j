@@ -168,10 +168,8 @@
                     <execution>
                         <id>list-all-licenses</id>
                         <configuration>
-                            <thirdPartyLicensingFilename>${project.artifactId}-${neo4j.version}-NOTICE.txt</thirdPartyLicensingFilename>
-                            <checkExistingNoticeFile>${project.build.directory}/../src/main/distribution/text/community/NOTICE.txt</checkExistingNoticeFile>
-                            <listReport>${project.artifactId}-${neo4j.version}-LICENSES.txt</listReport>
-                            <checkExistingLicensesFile>${project.build.directory}/../src/main/distribution/text/community/LICENSES.txt
+                            <listReport>${project.artifactId}-${neo4j.version}-ThirdPartyLicenses.txt</listReport>
+                            <checkExistingLicensesFile>${project.build.directory}/../src/main/distribution/text/community/ThirdPartyLicenses.txt
                             </checkExistingLicensesFile>
                         </configuration>
                     </execution>

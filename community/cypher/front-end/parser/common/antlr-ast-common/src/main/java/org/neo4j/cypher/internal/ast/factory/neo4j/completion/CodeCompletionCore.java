@@ -50,7 +50,7 @@ import org.neo4j.cypher.internal.parser.v5.Cypher5Parser;
  *
  * MIT License
  * Copyright (c) 2017 VMware, Inc. All Rights Reserved.
- * See LICENSES.txt file for more info.
+ * See ThirdPartyLicenses.txt file for more info.
  */
 
 /**

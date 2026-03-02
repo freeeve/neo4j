@@ -39,12 +39,7 @@
             <outputDirectory/>
         </file>
         <file>
-            <source>${project.basedir}/NOTICE.txt</source>
-            <destName>NOTICE</destName>
-            <outputDirectory/>
-        </file>
-        <file>
-            <source>${project.basedir}/LICENSES.txt</source>
+            <source>${project.basedir}/ThirdPartyLicenses.txt</source>
             <destName>LICENSES</destName>
             <outputDirectory/>
         </file>
