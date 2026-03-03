@@ -89,20 +89,31 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     "Invalid option provided, valid options are `indexProvider` and `indexConfig`"
   private val cypher25InvalidOptionMessage = "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"
 
+  class WrappedSchemaCommandConverter(cypherVersion: CypherVersion, latestVectorIndexVersion: VectorIndexVersion) {
+    private val converter = new SchemaCommandConverter
+    def apply(command: ast.SchemaCommand) = converter.apply(command, cypherVersion, latestVectorIndexVersion)
+  }
+
   private val v1VectorConverterForDefaultCypherVersion =
-    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V1_0)
-  private val v1VectorConverterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V1_0)
-  private val v1VectorConverterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V1_0)
+    new WrappedSchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V1_0)
+
+  private val v1VectorConverterForCypher5 =
+    new WrappedSchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V1_0)
+
+  private val v1VectorConverterForCypher25 =
+    new WrappedSchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V1_0)
 
   private val converterForDefaultCypherVersion =
-    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V2_0)
-  private val converterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V2_0)
-  private val converterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V2_0)
+    new WrappedSchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V2_0)
+  private val converterForCypher5 = new WrappedSchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V2_0)
+  private val converterForCypher25 = new WrappedSchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V2_0)
 
   private val converterForDefaultCypherVersionV3 =
-    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V3_0)
-  private val converterForCypher5V3 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V3_0)
-  private val converterForCypher25V3 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V3_0)
+    new WrappedSchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V3_0)
+  private val converterForCypher5V3 = new WrappedSchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V3_0)
+
+  private val converterForCypher25V3 =
+    new WrappedSchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V3_0)
 
   private val VECTOR_CONFIG_V1 = IndexConfig.`with`(util.Map.of(
     "vector.dimensions",

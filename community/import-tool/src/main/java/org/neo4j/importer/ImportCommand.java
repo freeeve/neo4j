@@ -80,6 +80,7 @@ import org.neo4j.commandline.dbms.LockChecker;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.importer.FileImporter.FileInputType;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
@@ -853,7 +854,7 @@ public class ImportCommand {
 
             final var schemaPath = schemaCommandsPath(fileSystem);
 
-            final var reader = new SchemaCommandReader(
+            final var reader = schemaCommandReader(
                     fileSystem,
                     config,
                     schemaCommandsReaderConfig(
@@ -866,6 +867,9 @@ public class ImportCommand {
                 throw new CommandFailedException("Unable to read schema commands", ex);
             }
         }
+
+        protected abstract SchemaCommandReader schemaCommandReader(
+                SchemeFileSystemAbstraction fileSystem, Config config, SchemaCommandReader.ReaderConfig readerConfig);
 
         private Path schemaCommandsPath(SchemeFileSystemAbstraction fileSystem) throws IOException {
             assert schemaCommands != null;
@@ -1243,6 +1247,13 @@ public class ImportCommand {
                             shardingArguments == null ? 0 : shardingArguments.numShards,
                             shardingArguments == null ? null : shardingArguments.additionalArguments)
                     .doImport(input);
+        }
+
+        @Override
+        protected SchemaCommandReader schemaCommandReader(
+                SchemeFileSystemAbstraction fileSystem, Config config, ReaderConfig readerConfig) {
+            return new SchemaCommandReader(
+                    fileSystem, SchemaCommandParser.create(CypherConfiguration.fromConfig(config)), readerConfig);
         }
 
         protected FileImporter.Builder withStorageEngineFactory(FileImporter.Builder builder) {

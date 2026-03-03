@@ -24,9 +24,8 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import org.neo4j.configuration.Config;
 import org.neo4j.cypher.internal.CypherVersion;
-import org.neo4j.cypher.internal.config.CypherConfiguration;
+import org.neo4j.cypher.internal.schema.SchemaCommandConverter;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -42,19 +41,22 @@ public class SchemaCommandReader {
     private final FileSystemAbstraction fileSystem;
     private final ReaderConfig readerConfig;
     private final SchemaCommandParser parser;
+    private final SchemaCommandConverter converter;
 
-    private SchemaCommandReader(
-            FileSystemAbstraction fileSystem, CypherConfiguration config, ReaderConfig readerConfig) {
-        this.fileSystem = fileSystem;
-        this.readerConfig = readerConfig;
-        this.parser = SchemaCommandParser.create(config);
+    public SchemaCommandReader(
+            FileSystemAbstraction fileSystem,
+            SchemaCommandParser parser,
+            SchemaCommandConverter converter,
+            ReaderConfig readerConfig) {
+        this.fileSystem = requireNonNull(fileSystem);
+        this.readerConfig = requireNonNull(readerConfig);
+        this.parser = requireNonNull(parser);
+        this.converter = requireNonNull(converter);
     }
 
-    public SchemaCommandReader(FileSystemAbstraction fileSystem, Config config, ReaderConfig readerConfig) {
-        this(
-                requireNonNull(fileSystem),
-                CypherConfiguration.fromConfig(requireNonNull(config)),
-                requireNonNull(readerConfig));
+    public SchemaCommandReader(
+            FileSystemAbstraction fileSystem, SchemaCommandParser parser, ReaderConfig readerConfig) {
+        this(fileSystem, parser, new SchemaCommandConverter(), readerConfig);
     }
 
     /**
@@ -79,9 +81,9 @@ public class SchemaCommandReader {
             case ParseResult.Success(
                     CypherVersion version,
                     List<org.neo4j.cypher.internal.ast.SchemaCommand> statements) -> {
-                final var changesBuilder = new SchemaCommandsBuilder(readerConfig, version);
+                final var changesBuilder = new SchemaCommandsBuilder(readerConfig, converter);
                 for (var statement : statements) {
-                    changesBuilder.withCommand(statement);
+                    changesBuilder.withCommand(statement, version);
                 }
                 return changesBuilder.build();
             }

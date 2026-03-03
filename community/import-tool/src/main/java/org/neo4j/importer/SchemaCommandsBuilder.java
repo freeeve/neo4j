@@ -73,10 +73,9 @@ class SchemaCommandsBuilder {
 
     private final SchemaCommandConverter schemaCommandConverter;
 
-    SchemaCommandsBuilder(ReaderConfig readerConfig, CypherVersion cypherVersion) {
+    SchemaCommandsBuilder(ReaderConfig readerConfig, SchemaCommandConverter commandConverter) {
         this.readerConfig = Objects.requireNonNull(readerConfig);
-        this.schemaCommandConverter =
-                new SchemaCommandConverter(cypherVersion, readerConfig.latestVectorIndexVersion());
+        this.schemaCommandConverter = Objects.requireNonNull(commandConverter);
     }
 
     List<SchemaCommand> build() {
@@ -84,9 +83,9 @@ class SchemaCommandsBuilder {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    SchemaCommandsBuilder withCommand(org.neo4j.cypher.internal.ast.SchemaCommand ast)
+    SchemaCommandsBuilder withCommand(org.neo4j.cypher.internal.ast.SchemaCommand ast, CypherVersion cypherVersion)
             throws SchemaCommandReaderException {
-        final var command = schemaCommandConverter.apply(ast);
+        final var command = schemaCommandConverter.apply(ast, cypherVersion, readerConfig.latestVectorIndexVersion());
         if (!readerConfig.allowEnterpriseFeatures()) {
             if (isEnterpriseOnly(command)) {
                 throw new SchemaCommandReaderException("Enterprise features are not currently supported");
