@@ -41,19 +41,19 @@ import org.neo4j.graphdb.Direction;
  */
 public enum RelationshipDirection {
     // These IDs mustn't change, they are used for serializing/deserializing directions
-    OUTGOING(0) {
+    OUTGOING((byte) 0) {
         @Override
         public boolean matches(Direction direction) {
             return direction != Direction.INCOMING;
         }
     },
-    INCOMING(1) {
+    INCOMING((byte) 1) {
         @Override
         public boolean matches(Direction direction) {
             return direction != Direction.OUTGOING;
         }
     },
-    LOOP(2) {
+    LOOP((byte) 2) {
         @Override
         public boolean matches(Direction direction) {
             return true;
@@ -83,13 +83,13 @@ public enum RelationshipDirection {
                 + targetNodeReference);
     }
 
-    private final int id;
+    private final byte id;
 
-    RelationshipDirection(int id) {
+    RelationshipDirection(byte id) {
         this.id = id;
     }
 
-    public int id() {
+    public byte id() {
         return id;
     }
 
