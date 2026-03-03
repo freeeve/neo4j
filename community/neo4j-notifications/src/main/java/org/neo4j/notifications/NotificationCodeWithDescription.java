@@ -254,12 +254,6 @@ public enum NotificationCodeWithDescription {
             Status.Database.HomeDatabaseNotFound,
             GqlStatusInfoCodes.STATUS_00N50,
             "The home database provided does not currently exist in the DBMS. This command will not take effect until this database is created. (%s)"),
-    @Deprecated // This deprecation message is incorrect and should not be used.
-    DEPRECATED_DATABASE_NAME(
-            Status.Statement.FeatureDeprecationWarning,
-            GqlStatusInfoCodes.STATUS_01N00,
-            "Databases and aliases with unescaped `.` are deprecated unless to indicate that they belong to a composite database. "
-                    + "Names containing `.` should be escaped. (%s)"),
     DEPRECATED_QUOTED_GRAPH_REFERENCE(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
@@ -796,15 +790,6 @@ public enum NotificationCodeWithDescription {
             InputPosition position, String oldDetail, String missingDb) {
         return HOME_DATABASE_NOT_PRESENT.notificationWithParameters(
                 position, new String[] {oldDetail}, new String[] {missingDb});
-    }
-
-    @Deprecated
-    public static NotificationImplementation deprecatedDatabaseName(InputPosition position, String param) {
-        return DEPRECATED_DATABASE_NAME.notificationWithParameters(position, new String[] {param}, new String[] {
-            String.format(
-                    "Databases and aliases with unescaped `.` are deprecated unless they belong to a composite database. Names containing `.` should be escaped. (%s)",
-                    param)
-        });
     }
 
     public static NotificationImplementation deprecatedGraphReferenceNotification(
