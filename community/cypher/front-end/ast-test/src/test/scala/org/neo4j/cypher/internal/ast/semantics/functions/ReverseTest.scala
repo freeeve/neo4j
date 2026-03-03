@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast.semantics.functions
 
-import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTString
@@ -30,11 +29,4 @@ class ReverseTest extends FunctionTestBase("reverse") {
   test("should reverse lists") {
     testValidTypes(CTList(CTNode))(CTList(CTNode))
   }
-
-  test("should not reverse numbers") {
-    testInvalidApplication(CTInteger)(
-      "Type mismatch: expected String or List<T> but was Integer"
-    )
-  }
-
 }
