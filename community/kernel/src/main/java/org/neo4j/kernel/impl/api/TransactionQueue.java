@@ -34,13 +34,21 @@ public class TransactionQueue {
     }
 
     private final int maxSize;
-    private final Applier applier;
+    private volatile Applier applier;
     private StorageEngineTransaction tail;
     private StorageEngineTransaction head;
     private int size;
 
     public TransactionQueue(int maxSize, Applier applier) {
         this.maxSize = maxSize;
+        this.applier = applier;
+    }
+
+    public TransactionQueue(int maxSize) {
+        this.maxSize = maxSize;
+    }
+
+    public void installApplier(Applier applier) {
         this.applier = applier;
     }
 
@@ -52,6 +60,8 @@ public class TransactionQueue {
     }
 
     public void queue(StorageEngineTransaction transaction) throws Exception {
+        assert applier != null;
+
         if (isNotEmpty()) {
             if (transaction.commandBatch().kernelVersion()
                     != tail.commandBatch().kernelVersion()) {
@@ -68,6 +78,21 @@ public class TransactionQueue {
         if (++size == maxSize) {
             applyTransactions();
         }
+    }
+
+    /**
+     * @return true if not ignored
+     */
+    public boolean queueNonTx(StorageEngineTransaction transaction) throws Exception {
+        // Only interested in non-tx things that happen after kernel store has been created.
+        // For first start up SeedStoreEntry block until kernel is up to guarantee we don't miss non tx of interest
+        // For subsequent starts kernel should be up before processing begins
+        if (applier == null) {
+            return false;
+        }
+
+        queue(transaction);
+        return true;
     }
 
     public void applyTransactions() throws Exception {
