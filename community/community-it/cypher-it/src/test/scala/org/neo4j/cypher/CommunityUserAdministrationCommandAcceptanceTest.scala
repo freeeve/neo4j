@@ -1867,7 +1867,6 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."
     ))
     assert42NFFLogWithMessage(
-      classOf[InvalidArgumentException],
       s"User '$username' failed to alter their own password: Invalid principal or credentials.",
       community = true
     )

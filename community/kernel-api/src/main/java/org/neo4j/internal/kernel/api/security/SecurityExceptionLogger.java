@@ -21,6 +21,7 @@ package org.neo4j.internal.kernel.api.security;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog.ContextInfo;
 
 /**
  * Helper for logging errors with GQL code 42NFF ("Access denied, see the security logs for details.")
@@ -35,47 +36,40 @@ public class SecurityExceptionLogger {
     }
 
     public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(T exception) {
-        securityLog.error(exception.legacyMessage(), exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
+        return logAndGet(exception.legacyMessage(), exception);
+    }
+
+    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(String message, T exception) {
+        securityLog.error(message, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
         return exception;
     }
 
-    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(SecurityContext context, T exception) {
-        securityLog.error(
-                context, exception.legacyMessage(), exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
-        return exception;
-    }
-
-    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(
-            SecurityContext context, String message, T exception) {
-        securityLog.error(context, message, exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
-        return exception;
-    }
+    // with loginContext
 
     public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(LoginContext context, T exception) {
-        securityLog.error(
-                context, exception.legacyMessage(), exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
-        return exception;
-    }
-
-    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(
-            LoginContext context, String database, String message, T exception) {
-        securityLog.error(context, database, message, exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
-        return exception;
+        return logAndGet(context, null, exception.legacyMessage(), exception);
     }
 
     public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(
             LoginContext context, String database, T exception) {
-        securityLog.error(
-                context,
-                database,
-                exception.legacyMessage(),
-                exception,
-                GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
+        return logAndGet(context, database, exception.legacyMessage(), exception);
+    }
+
+    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(
+            LoginContext context, String database, String message, T exception) {
+        securityLog.error(ContextInfo.from(context, database), message, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
         return exception;
     }
 
-    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(String message, T exception) {
-        securityLog.error(message, exception, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
+    // with securityContext
+
+    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(SecurityContext context, T exception) {
+        return logAndGet(context, exception.legacyMessage(), exception);
+    }
+
+    public <T extends Throwable & ErrorGqlStatusObject> T logAndGet(
+            SecurityContext context, String message, T exception) {
+        securityLog.error(ContextInfo.from(context), message, GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
         return exception;
     }
 }

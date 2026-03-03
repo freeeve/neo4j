@@ -66,7 +66,6 @@ trait LoggingTestSupport extends GraphDatabaseTestSupport {
   )
 
   protected def assert42NFFLogWithMessage(
-    exception: Class[_],
     message: String,
     loginContext: Option[String] = None,
     community: Boolean = false
@@ -74,12 +73,11 @@ trait LoggingTestSupport extends GraphDatabaseTestSupport {
     val logger = if (community) classOf[CommunitySecurityModule].getCanonicalName else "SecurityLogger"
     val context = loginContext.map(c => s"[$c]: ").getOrElse("")
     securityLogProvider.logLines().asScala.toSeq should contain(
-      s"ERROR @ $logger: ${context}Exception thrown, 42NFF: $message cause ${exception.getCanonicalName}: $message"
+      s"ERROR @ $logger: ${context}Exception thrown, 42NFF: $message"
     )
   }
 
   protected def assert42NFFLogWithMessageContains(
-    exception: Class[_],
     message: String,
     loginContext: Option[String] = None,
     community: Boolean = false
@@ -88,16 +86,13 @@ trait LoggingTestSupport extends GraphDatabaseTestSupport {
     val context = loginContext.map(c => s"[$c]: ").getOrElse("")
     val logLines = securityLogProvider.logLines().asScala.toSeq
     val start = s"ERROR @ $logger: ${context}Exception thrown, 42NFF: $message"
-    val middle = s"cause ${exception.getCanonicalName}"
     withClue(
       s"""Did not find line containing
          |$start
-         |and
-         |$middle
          in
          |${logLines.mkString("\n")}""".stripMargin
     ) {
-      logLines.exists(line => line.startsWith(start) && line.contains(middle)) shouldBe true
+      logLines.exists(line => line.startsWith(start)) shouldBe true
     }
   }
 }

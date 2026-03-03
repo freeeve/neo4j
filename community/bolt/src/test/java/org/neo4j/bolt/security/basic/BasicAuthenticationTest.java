@@ -41,7 +41,6 @@ import static org.neo4j.server.security.auth.SecurityTestUtils.password;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.security.AuthenticationResult;
 import org.neo4j.bolt.security.error.AuthenticationException;
@@ -90,7 +89,6 @@ class BasicAuthenticationTest {
         verify(securityLog)
                 .error(
                         eq("The client is unauthorized due to authentication failure."),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
@@ -123,7 +121,6 @@ class BasicAuthenticationTest {
         verify(securityLog, times(maxFailedAttempts))
                 .error(
                         eq("The client is unauthorized due to authentication failure."),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
         reset(securityLog);
         var e = assertThrows(
@@ -144,7 +141,6 @@ class BasicAuthenticationTest {
         verify(securityLog)
                 .error(
                         eq("The client has provided incorrect authentication details too many times in a row."),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
@@ -171,7 +167,6 @@ class BasicAuthenticationTest {
         verify(securityLog)
                 .error(
                         eq("Unsupported authentication token, missing key `scheme`"),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
@@ -185,7 +180,6 @@ class BasicAuthenticationTest {
         verify(securityLog)
                 .error(
                         eq("Unsupported authentication token, missing key `scheme`"),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 
@@ -207,7 +201,6 @@ class BasicAuthenticationTest {
                 .error(
                         eq(
                                 "Unsupported authentication token, the value associated with the key `principal` must be a String but was: SingletonList"),
-                        ArgumentMatchers.assertArg(arg -> assertThat(arg).isInstanceOf(AuthenticationException.class)),
                         eq(GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus()));
     }
 

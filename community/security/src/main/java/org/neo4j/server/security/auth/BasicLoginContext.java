@@ -27,6 +27,7 @@ import static org.neo4j.internal.kernel.api.security.AuthenticationResult.TOO_MA
 import org.neo4j.graphdb.security.AuthorizationViolationException;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog.ContextInfo;
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.AuthenticationResult;
@@ -103,7 +104,7 @@ public class BasicLoginContext extends LoginContext {
                 && subject().getAuthenticationResult().equals(PASSWORD_CHANGE_REQUIRED)) {
             String message = AuthorizationViolationException.generateCredentialsExpiredMessage(
                     String.format("ACCESS on database '%s' is not allowed.", dbName));
-            securityLog.error(securityContext, message);
+            securityLog.error(ContextInfo.from(securityContext), message);
             throw new SecurityExceptionLogger(securityLog)
                     .logAndGet(securityContext, AuthorizationViolationException.credentialsExpired(message));
         }

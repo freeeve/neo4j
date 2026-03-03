@@ -24,18 +24,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
+import org.neo4j.internal.kernel.api.security.AbstractSecurityLog.ContextInfo;
 
 public class AbstractSecurityLogTest {
+
+    @Test
+    public void testOnlyMessage() {
+        AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine("message");
+
+        StringBuilder sb = new StringBuilder();
+        ll.formatAsString(sb);
+        assertEquals("message", sb.toString());
+    }
 
     @Test
     public void testSecurityLogLineAsString() {
 
         AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
-                ClientConnectionInfo.EMBEDDED_CONNECTION,
-                "database",
-                "executingUser",
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", "authUser", "executingUser"),
                 "message",
-                "authUser",
                 GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
 
         StringBuilder sb = new StringBuilder();
@@ -44,10 +51,23 @@ public class AbstractSecurityLogTest {
     }
 
     @Test
+    public void testSecurityLogLineSameUserAsString() {
+
+        AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", "user", "user"),
+                "message",
+                GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
+
+        StringBuilder sb = new StringBuilder();
+        ll.formatAsString(sb);
+        assertEquals("[user]: Exception thrown, 42NFF: message", sb.toString());
+    }
+
+    @Test
     public void testSecurityLogLineAsStringWithoutOptionalValues() {
 
         AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
-                ClientConnectionInfo.EMBEDDED_CONNECTION, "database", null, "message", null, null);
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", null, null), "message", null);
 
         StringBuilder sb = new StringBuilder();
         ll.formatAsString(sb);
@@ -58,11 +78,8 @@ public class AbstractSecurityLogTest {
     public void testSecurityLogLineAsStringWithoutConnectionInfo() {
 
         AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
-                ClientConnectionInfo.EMBEDDED_CONNECTION,
-                "database",
-                null,
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", null, null),
                 "message",
-                null,
                 GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
 
         StringBuilder sb = new StringBuilder();
@@ -74,7 +91,9 @@ public class AbstractSecurityLogTest {
     public void testSecurityLogLineAsStringWithoutExceptionThrown() {
 
         AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
-                ClientConnectionInfo.EMBEDDED_CONNECTION, "database", "executingUser", "message", "authUser", null);
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", "authUser", "executingUser"),
+                "message",
+                null);
 
         StringBuilder sb = new StringBuilder();
         ll.formatAsString(sb);
@@ -85,11 +104,8 @@ public class AbstractSecurityLogTest {
     public void testSecurityLogLineAsStringHandlesNewlines() {
 
         AbstractSecurityLog.SecurityLogLine ll = new AbstractSecurityLog.SecurityLogLine(
-                ClientConnectionInfo.EMBEDDED_CONNECTION,
-                "database",
-                "executingUser",
+                new ContextInfo(ClientConnectionInfo.EMBEDDED_CONNECTION, "database", "authUser", "executingUser"),
                 "message1\nmessage2\r\nmessage3",
-                "authUser",
                 GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus());
 
         StringBuilder sb = new StringBuilder();
