@@ -91,10 +91,6 @@ class SchemaCommandsBuilder {
             if (isEnterpriseOnly(command)) {
                 throw new SchemaCommandReaderException("Enterprise features are not currently supported");
             }
-        } else if (!readerConfig.allowConstraints()) {
-            if (command instanceof ConstraintCommand) {
-                throw new SchemaCommandReaderException("Constraint commands are not currently supported");
-            }
         } else if (!readerConfig.allowDropOperations()) {
             if (isDropCommand(command)) {
                 throw new SchemaCommandReaderException("Dropping indexes or constraints is not currently supported");

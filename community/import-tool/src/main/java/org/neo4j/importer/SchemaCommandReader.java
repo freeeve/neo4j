@@ -31,7 +31,6 @@ import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.Preconditions;
@@ -97,16 +96,6 @@ public class SchemaCommandReader {
 
     public record ReaderConfig(
             boolean allowEnterpriseFeatures,
-            boolean allowConstraints,
             boolean allowDropOperations,
-            VectorIndexVersion latestVectorIndexVersion) {
-        public static ReaderConfig defaults() {
-            // initial implementation will be just for CREATE INDEX commands
-            return new ReaderConfig(
-                    false,
-                    false,
-                    false,
-                    VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(Config.defaults())));
-        }
-    }
+            VectorIndexVersion latestVectorIndexVersion) {}
 }

@@ -1137,7 +1137,7 @@ public class ImportCommand {
 
         @Override
         protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
-            return new ReaderConfig(false, true, false, latestVectorIndexVersion);
+            return new ReaderConfig(false, false, latestVectorIndexVersion);
         }
 
         @Override
