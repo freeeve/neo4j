@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.DummyExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.Add
@@ -39,7 +40,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       (s: SemanticState) => {
         s.symbolTypes("x") should equal(CTString.invariant)
         s.symbolTypes("y") should equal(CTInteger.invariant)
-        (specifyType(CTString, self) chain error).run(s)
+        (specifyType(CTString, self) chain error).run(s, Cypher25)
       }
     )
 
@@ -51,7 +52,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       expression = reduceExpression
     )(DummyPosition(0))
 
-    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(error))
     result.state.symbol("x") shouldBe empty
     result.state.symbol("y") shouldBe empty
@@ -65,7 +66,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       (s: SemanticState) => {
         s.symbolTypes("x") should equal(CTString | CTFloat)
         s.symbolTypes("y") should equal(listType.innerType.invariant)
-        (specifyType(CTFloat, self) chain SemanticCheck.success).run(s)
+        (specifyType(CTFloat, self) chain SemanticCheck.success).run(s, Cypher25)
       }
     )
 
@@ -77,7 +78,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       expression = reduceExpression
     )(DummyPosition(0))
 
-    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     types(filter)(result.state) should equal(CTAny | CTFloat)
   }
@@ -96,12 +97,12 @@ class ReduceExpressionTest extends SemanticFunSuite {
       expression = reduceExpression
     )(DummyPosition(0))
 
-    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     types(filter)(result.state) should equal(CTList(CTAny).invariant)
   }
 
-  ignore("shouldFailSemanticCheckIfReduceFunctionTypeDiffersFromAccumulator") {
+  test("shouldFailSemanticCheckIfReduceFunctionTypeDiffersFromAccumulator") {
     val accumulatorType = CTString | CTNumber
     val listType = CTList(CTInteger)
 
@@ -109,7 +110,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       (s: SemanticState) => {
         s.symbolTypes("x") should equal(accumulatorType)
         s.symbolTypes("y") should equal(listType.innerType.invariant)
-        (specifyType(CTNode, self) chain SemanticCheck.success).run(s)
+        (specifyType(CTNode, self) chain SemanticCheck.success).run(s, Cypher25)
       }
     )
 
@@ -121,7 +122,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
       expression = reduceExpression
     )(DummyPosition(0))
 
-    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(filter).run(SemanticState.clean, Cypher25)
     result.errors should have size 1
     result.errors.head.msg should equal("Type mismatch: accumulator is Number or String but expression has type Node")
     result.errors.head.position should equal(reduceExpression.position)
@@ -132,7 +133,7 @@ class ReduceExpressionTest extends SemanticFunSuite {
         assert(e.gqlStatusObject.cause.isPresent)
         assert(e.gqlStatusObject.cause.get().gqlStatus() == "22N27")
         assert(
-          e.gqlStatusObject.cause.get().statusDescription() == "error: data exception - invalid entity type. Invalid input 'Node' for accumulator. Expected to be Number or String."
+          e.gqlStatusObject.cause.get().statusDescription() == "error: data exception - invalid entity type. Invalid input 'NODE' for accumulator. Expected to be INTEGER | FLOAT or STRING."
         )
       case _ => fail("Wrong error thrown")
     }

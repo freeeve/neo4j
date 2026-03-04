@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.Equals
@@ -59,7 +60,7 @@ class CountTest extends SemanticFunSuite {
   test("valid count expression passes semantic check") {
     val expression = simpleCountExpression(pattern, Some(where(property)))
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -67,23 +68,23 @@ class CountTest extends SemanticFunSuite {
   test("inner where using missing identifier reports error") {
     val expression = simpleCountExpression(pattern, Some(where(failingProperty)))
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  ignore("count expression cannot reuse identifier with different type") {
+  test("count expression cannot reuse identifier with different type") {
     val expression = simpleCountExpression(pattern, Some(where(property)))
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEntityType(
-        "Boolean",
+        "BOOLEAN",
         "n",
-        List("Node"),
+        List("NODE"),
         "Type mismatch: n defined with conflicting type Boolean (expected Node)",
         pos
       )
@@ -97,7 +98,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -109,7 +110,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("x"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -120,7 +121,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("x"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -131,7 +132,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("x"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -143,7 +144,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -155,7 +156,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -167,7 +168,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -179,7 +180,7 @@ class CountTest extends SemanticFunSuite {
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTNode).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -190,7 +191,7 @@ class CountTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -201,7 +202,7 @@ class CountTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEndOfQuery("A Count Expression", pos)
@@ -214,7 +215,7 @@ class CountTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     val gql = getGql42001_42N57("Count", pos.offset, pos.line, pos.column)
 
@@ -229,25 +230,25 @@ class CountTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  ignore("COUNT with a regular query cannot reuse identifier with different type") {
+  test("COUNT with a regular query cannot reuse identifier with different type") {
     val expression = CountExpression(
       singleQuery(match_(relChain), return_(varFor("n").as("n")))
     )(pos, None, None)
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEntityType(
-        "Boolean",
+        "BOOLEAN",
         "n",
-        List("Node"),
+        List("NODE"),
         "Type mismatch: n defined with conflicting type Boolean (expected Node)",
         pos
       )

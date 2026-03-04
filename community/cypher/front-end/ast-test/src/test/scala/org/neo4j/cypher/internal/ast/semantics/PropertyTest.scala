@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
@@ -44,7 +45,7 @@ class PropertyTest extends SemanticFunSuite {
       val beforeState = SemanticState.clean.newChildScope.declareVariable(mapExpr, cypherType).right.get
 
       val propExpr = property(mapExpr, propertyKey)
-      val result = SemanticExpressionCheck.simple(propExpr).run(beforeState)
+      val result = SemanticExpressionCheck.simple(propExpr).run(beforeState, Cypher25)
 
       result.errors shouldBe empty
       types(propExpr)(result.state) should equal(CTAny.covariant)
@@ -58,7 +59,7 @@ class PropertyTest extends SemanticFunSuite {
     val beforeState = SemanticState.clean.newChildScope.declareVariable(mapExpr, CTNode).right.get
 
     val propExpr = property(mapExpr, propertyKey)
-    val result = SemanticExpressionCheck.simple(property(mapExpr, propertyKey)).run(beforeState)
+    val result = SemanticExpressionCheck.simple(property(mapExpr, propertyKey)).run(beforeState, Cypher25)
 
     result.errors shouldBe empty
     types(propExpr)(result.state) should equal(StorableType.storableType)
@@ -71,34 +72,34 @@ class PropertyTest extends SemanticFunSuite {
     val beforeState = SemanticState.clean.newChildScope.declareVariable(mapExpr, CTRelationship).right.get
 
     val propExpr = property(mapExpr, propertyKey)
-    val result = SemanticExpressionCheck.simple(propExpr).run(beforeState)
+    val result = SemanticExpressionCheck.simple(propExpr).run(beforeState, Cypher25)
 
     result.errors shouldBe empty
     types(propExpr)(result.state) should equal(StorableType.storableType)
   }
 
-  ignore("refuses property access on an Integer") {
+  test("refuses property access on an Integer") {
     val mapExpr: Variable = variable("map")
     val propertyKey: PropertyKeyName = propertyKeyName("prop")
 
     val beforeState = SemanticState.clean.newChildScope.declareVariable(mapExpr, CTInteger).right.get
 
-    val result = SemanticExpressionCheck.simple(property(mapExpr, propertyKey)).run(beforeState)
+    val result = SemanticExpressionCheck.simple(property(mapExpr, propertyKey)).run(beforeState, Cypher25)
 
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       GqlParams.StringParam.ident.process("map"),
       List(
-        "Map",
-        "Node",
-        "Relationship",
-        "Point",
-        "Duration",
-        "Date",
-        "Time",
-        "LocalTime",
-        "LocalDateTime",
-        "DateTime"
+        "MAP",
+        "NODE",
+        "RELATIONSHIP",
+        "POINT",
+        "DURATION",
+        "DATE",
+        "ZONED TIME",
+        "LOCAL TIME",
+        "LOCAL DATETIME",
+        "ZONED DATETIME"
       ),
       "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was Integer",
       pos

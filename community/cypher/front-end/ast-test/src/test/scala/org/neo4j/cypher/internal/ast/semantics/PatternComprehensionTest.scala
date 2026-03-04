@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -45,7 +46,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
   test("pattern comprehension on a property returns the expected type") {
     val expression = PatternComprehension(None, pattern, None, property)(pos, None, None)
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
     types(expression)(result.state) should equal(StorableType.storableType.wrapInList)
@@ -54,7 +55,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
   test("pattern comprehension with literal string projection has correct type") {
     val expression = PatternComprehension(None, pattern, None, stringLiteral)(pos, None, None)
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
     types(expression)(result.state) should equal(CTList(CTString).invariant)
@@ -63,7 +64,7 @@ class PatternComprehensionTest extends SemanticFunSuite {
   test("inner projection using missing identifier reports error") {
     val expression = PatternComprehension(None, pattern, None, failingProperty)(pos, None, None)
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
@@ -72,22 +73,22 @@ class PatternComprehensionTest extends SemanticFunSuite {
     val expression =
       PatternComprehension(None, pattern, Some(failingProperty), stringLiteral)(pos, None, None)
 
-    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  ignore("pattern can't reuse identifier with different type") {
+  test("pattern can't reuse identifier with different type") {
     val expression = PatternComprehension(None, pattern, None, stringLiteral)(pos, None, None)
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEntityType(
-        "Boolean",
+        "BOOLEAN",
         "n",
-        List("Node"),
+        List("NODE"),
         "Type mismatch: n defined with conflicting type Boolean (expected Node)",
         pos
       )

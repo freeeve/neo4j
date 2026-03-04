@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.DummyExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.ContainerIndex
@@ -49,7 +50,7 @@ class ContainerIndexTest extends SemanticFunSuite {
     val rhs = dummyInteger
     val index = ContainerIndex(lhs, rhs)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     assertIsList(types(lhs)(result.state))
     types(rhs)(result.state) should equal(CTInteger.covariant)
@@ -61,7 +62,7 @@ class ContainerIndexTest extends SemanticFunSuite {
     val rhs = dummyString
     val index = ContainerIndex(lhs, rhs)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     assertIsMap(types(lhs)(result.state))
     types(rhs)(result.state) should equal(CTString.covariant)
@@ -73,7 +74,7 @@ class ContainerIndexTest extends SemanticFunSuite {
     val rhs = dummyAny
     val index = ContainerIndex(lhs, rhs)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     types(lhs)(result.state) should equal(CTAny.contravariant)
     types(rhs)(result.state) should equal(CTAny.contravariant)
@@ -83,107 +84,107 @@ class ContainerIndexTest extends SemanticFunSuite {
   test("should return list inner types of expression") {
     val index = ContainerIndex(dummyList, SignedDecimalIntegerLiteral("1")(DummyPosition(5)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors shouldBe empty
     types(index)(result.state) should equal(CTNode | CTString)
   }
 
-  ignore("should raise error if indexing by fraction") {
+  test("should raise error if indexing by fraction") {
     val index = ContainerIndex(dummyList, DecimalDoubleLiteral("1.3")(DummyPosition(5)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Float",
+      "FLOAT",
       "list index",
-      List("Integer"),
+      List("INTEGER"),
       "Type mismatch: list index must be given as Integer, but was Float",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if indexing list by string") {
+  test("should raise error if indexing list by string") {
     val index = ContainerIndex(dummyList, StringLiteral("1.3")(DummyPosition(5).withInputLength(2)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "String",
+      "STRING",
       "list index",
-      List("Integer"),
+      List("INTEGER"),
       "Type mismatch: list index must be given as Integer, but was String",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if indexing map by int") {
+  test("should raise error if indexing map by int") {
     val index = ContainerIndex(dummyMap, SignedDecimalIntegerLiteral("1")(DummyPosition(5)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "map key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: map key must be given as String, but was Integer",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if indexing node by int") {
+  test("should raise error if indexing node by int") {
     val index = ContainerIndex(dummyNode, SignedDecimalIntegerLiteral("1")(DummyPosition(5)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "node or relationship property key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: node or relationship property key must be given as String, but was Integer",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if indexing relationship by int") {
+  test("should raise error if indexing relationship by int") {
     val index = ContainerIndex(dummyRelationship, SignedDecimalIntegerLiteral("1")(DummyPosition(5)))(DummyPosition(4))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.invalidEntityType(
-      "Integer",
+      "INTEGER",
       "node or relationship property key",
-      List("String"),
+      List("STRING"),
       "Type mismatch: node or relationship property key must be given as String, but was Integer",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if looking up not from a container, with int") {
+  test("should raise error if looking up not from a container, with int") {
     val index = ContainerIndex(dummyInteger, dummyInteger)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.typeMismatch(
-      List("List<T>"),
-      "Integer",
+      List("LIST"),
+      "INTEGER",
       "Type mismatch: expected List<T> but was Integer",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if looking up not from a container, with string") {
+  test("should raise error if looking up not from a container, with string") {
     val index = ContainerIndex(dummyInteger, dummyString)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.typeMismatch(
-      List("Map", "Node", "Relationship"),
-      "Integer",
+      List("MAP", "NODE", "RELATIONSHIP"),
+      "INTEGER",
       "Type mismatch: expected Map, Node or Relationship but was Integer",
       index.idx.position
     )))
   }
 
-  ignore("should raise error if looking up not from container, with invalid type") {
+  test("should raise error if looking up not from container, with invalid type") {
     val index = ContainerIndex(dummyInteger, dummyFloat)(DummyPosition(10))
 
-    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean)
+    val result = SemanticExpressionCheck.simple(index).run(SemanticState.clean, Cypher25)
     result.errors should equal(Seq(SemanticError.typeMismatch(
-      List("Map", "Node", "Relationship", "List<T>"),
-      "Integer",
+      List("MAP", "NODE", "RELATIONSHIP", "LIST"),
+      "INTEGER",
       "Type mismatch: expected Map, Node, Relationship or List<T> but was Integer",
       index.idx.position
     )))

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions
@@ -43,7 +44,7 @@ class ExistsTest extends SemanticFunSuite {
     val expression = simpleExistsExpression(pattern, Some(where(property)))
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -53,7 +54,7 @@ class ExistsTest extends SemanticFunSuite {
     val expression = simpleExistsExpression(multiPattern, Some(where(property)))
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -62,24 +63,24 @@ class ExistsTest extends SemanticFunSuite {
     val expression = simpleExistsExpression(pattern, Some(where(failingProperty)))
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  ignore("EXISTS cannot reuse identifier with different type") {
+  test("EXISTS cannot reuse identifier with different type") {
     val expression = simpleExistsExpression(pattern, Some(where(property)))
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(semanticState)
+      SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEntityType(
-        "Boolean",
+        "BOOLEAN",
         "n",
-        List("Node"),
+        List("NODE"),
         "Type mismatch: n defined with conflicting type Boolean (expected Node)",
         pos
       )
@@ -92,7 +93,7 @@ class ExistsTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe empty
   }
@@ -103,7 +104,7 @@ class ExistsTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEndOfQuery("An Exists Expression", pos)
@@ -116,7 +117,7 @@ class ExistsTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     val gql = getGql42001_42N57("Exists", pos.offset, pos.line, pos.column)
 
@@ -131,25 +132,25 @@ class ExistsTest extends SemanticFunSuite {
     )(pos, None, None)
 
     val result =
-      SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
+      SemanticExpressionCheck.simple(expression).run(SemanticState.clean, Cypher25)
 
     result.errors shouldBe Seq(SemanticError.variableNotDefined("missing", pos))
   }
 
-  ignore("EXISTS with a regular query cannot reuse identifier with different type") {
+  test("EXISTS with a regular query cannot reuse identifier with different type") {
     val expression = ExistsExpression(
       singleQuery(match_(relChain), return_(varFor("n").as("n")))
     )(pos, None, None)
 
     val semanticState = SemanticState.clean.declareVariable(variable("n"), CTBoolean).right.get
 
-    val result = SemanticExpressionCheck.simple(expression).run(semanticState)
+    val result = SemanticExpressionCheck.simple(expression).run(semanticState, Cypher25)
 
     result.errors shouldBe Seq(
       SemanticError.invalidEntityType(
-        "Boolean",
+        "BOOLEAN",
         "n",
-        List("Node"),
+        List("NODE"),
         "Type mismatch: n defined with conflicting type Boolean (expected Node)",
         pos
       )
