@@ -1891,4 +1891,29 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
       .nodeByLabelScan("a", "A")
       .build()
   }
+
+  test("should plan nested index join with indexed property on either side of an inequality predicate") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 10)
+      .addNodeIndex("B", Seq("prop"), 1.0, 0.5)
+      .build()
+
+    for {
+      pred <- Seq("a.prop > b.prop", "b.prop < a.prop")
+    } withClue(s"predicate: $pred") {
+      val query =
+        s"""MATCH (a:A), (b:B)
+           |WHERE $pred
+           |RETURN a, b""".stripMargin
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .apply()
+        .|.nodeIndexOperator("b:B(prop < a.prop)", argumentIds = Set("a"), getValue = Map("prop" -> GetValue))
+        .nodeByLabelScan("a", "A")
+        .build()
+
+    }
+  }
 }
