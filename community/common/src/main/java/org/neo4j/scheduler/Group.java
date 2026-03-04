@@ -164,7 +164,12 @@ public enum Group {
     GDS_ASYNC_PROCEDURE("GdsAsyncProcedure"),
 
     // TESTING
-    TESTING("TestingGroup", ExecutorServiceFactory.callingThread());
+    TESTING("TestingGroup", ExecutorServiceFactory.callingThread()),
+
+    // Graph Engine
+    GRAPH_ENGINE_DATA_SOURCE_POOL(
+            "GraphEngineDataSourcePool",
+            ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::newVirtualThreadPerTask));
 
     private final String name;
     private final ExecutorServiceFactory executorServiceFactory;
