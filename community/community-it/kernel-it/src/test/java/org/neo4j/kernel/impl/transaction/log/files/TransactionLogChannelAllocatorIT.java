@@ -54,7 +54,7 @@ import org.neo4j.internal.nativeimpl.NativeCallResult;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
@@ -83,7 +83,7 @@ class TransactionLogChannelAllocatorIT {
     @Inject
     private FileSystemAbstraction fileSystem;
 
-    private SequentialFilesHelper fileHelper;
+    private SequentialFileNameHelper fileHelper;
     private TransactionLogChannelAllocator fileAllocator;
     private final AssertableLogProvider logProvider = new AssertableLogProvider();
     private final Config config = Config.defaults();
@@ -91,7 +91,7 @@ class TransactionLogChannelAllocatorIT {
 
     @BeforeEach
     void setUp() {
-        fileHelper = TransactionLogFilesHelper.forTransactions(fileSystem, testDirectory.homePath());
+        fileHelper = TransactionLogFilesHelper.forTransactions(testDirectory.homePath());
         fileAllocator = createLogFileAllocator();
     }
 

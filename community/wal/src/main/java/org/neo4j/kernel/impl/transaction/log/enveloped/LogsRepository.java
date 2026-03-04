@@ -29,21 +29,20 @@ import java.util.Set;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 
 public class LogsRepository {
     static final long BASE_VERSION = 0;
     private final FileSystemAbstraction fs;
-    private final Path directory;
-    private final SequentialFilesHelper sequentialFilesHelper;
+    private final SequentialFileNameHelper sequentialFilesHelper;
 
-    public LogsRepository(FileSystemAbstraction fs, Path directory, String baseName) {
+    public LogsRepository(FileSystemAbstraction fs, SequentialFileNameHelper sequentialFilesHelper) {
+        Path directory = sequentialFilesHelper.directory();
         if (fs.fileExists(directory) && !fs.isDirectory(directory)) {
             throw new IllegalArgumentException("Not a directory: " + directory);
         }
         this.fs = fs;
-        this.directory = directory;
-        sequentialFilesHelper = new SequentialFilesHelper(fs, directory, baseName);
+        this.sequentialFilesHelper = sequentialFilesHelper;
     }
 
     public LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {
@@ -76,7 +75,7 @@ public class LogsRepository {
         var listLogFiles = listLogFiles(reverse);
         // delete files in order; from the desired end or to the desired beginning.
         for (Path path : listLogFiles) {
-            long version = SequentialFilesHelper.getVersion(path);
+            long version = SequentialFileNameHelper.getVersion(path);
             if (range.isWithinRange(version)) {
                 fs.deleteFile(path);
             } else {
@@ -88,7 +87,7 @@ public class LogsRepository {
 
     long[] logVersions(boolean reversed) throws IOException {
         return Arrays.stream(listLogFiles(reversed))
-                .mapToLong(SequentialFilesHelper::getVersion)
+                .mapToLong(SequentialFileNameHelper::getVersion)
                 .toArray();
     }
 
@@ -109,11 +108,11 @@ public class LogsRepository {
     }
 
     private Path[] listLogFiles(boolean reverse) throws IOException {
-        Comparator<Path> comparator = Comparator.comparingLong(SequentialFilesHelper::getVersion);
+        Comparator<Path> comparator = Comparator.comparingLong(SequentialFileNameHelper::getVersion);
         if (reverse) {
             comparator = comparator.reversed();
         }
-        Path[] paths = sequentialFilesHelper.getFiles();
+        Path[] paths = sequentialFilesHelper.getFiles(fs);
         Arrays.sort(paths, comparator);
         return paths;
     }
@@ -123,8 +122,8 @@ public class LogsRepository {
     }
 
     void initialise() throws IOException {
-        if (!fs.fileExists(directory)) {
-            fs.mkdir(directory);
+        if (!fs.fileExists(sequentialFilesHelper.directory())) {
+            fs.mkdir(sequentialFilesHelper.directory());
         }
     }
 }

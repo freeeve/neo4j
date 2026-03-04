@@ -41,25 +41,27 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 ///   - ...
 ///
 /// where the suffix represents the version, which is a strictly monotonic sequence.
-public class SequentialFilesHelper {
+public class SequentialFileNameHelper {
     private static final String VERSION_SUFFIX = ".";
     private static final String REGEX_VERSION_SUFFIX = "\\.";
     private static final Path[] EMPTY_FILES_ARRAY = {};
 
     private final Path baseName;
-    private final FileSystemAbstraction fileSystem;
     private final Path directory;
     private final DirectoryStream.Filter<Path> filenameFilter;
 
-    public SequentialFilesHelper(FileSystemAbstraction fileSystem, Path directory, String baseName) {
-        this.fileSystem = fileSystem;
+    public SequentialFileNameHelper(Path directory, String baseName) {
         this.directory = directory;
         this.baseName = directory.resolve(baseName);
-        this.filenameFilter = new SequencialFilenameFilter(quote(baseName));
+        this.filenameFilter = new SequentialFileNameFilter(quote(baseName));
     }
 
     public Path getFileForVersion(long version) {
         return Path.of(baseName.toAbsolutePath() + VERSION_SUFFIX + version);
+    }
+
+    public Path directory() {
+        return this.directory;
     }
 
     public static long getVersion(Path path) {
@@ -79,12 +81,12 @@ public class SequentialFilesHelper {
         }
     }
 
-    public Path[] getFiles() throws IOException {
-        Path[] files = fileSystem.listFiles(directory, filenameFilter);
+    public Path[] getFiles(FileSystemAbstraction fs) throws IOException {
+        Path[] files = fs.listFiles(directory, filenameFilter);
         if (files.length == 0) {
             return EMPTY_FILES_ARRAY;
         }
-        Arrays.sort(files, Comparator.comparingLong(SequentialFilesHelper::getVersion));
+        Arrays.sort(files, Comparator.comparingLong(SequentialFileNameHelper::getVersion));
         return files;
     }
 
@@ -96,10 +98,10 @@ public class SequentialFilesHelper {
         }
     }
 
-    public static final class SequencialFilenameFilter implements DirectoryStream.Filter<Path> {
+    public static final class SequentialFileNameFilter implements DirectoryStream.Filter<Path> {
         private final Pattern[] patterns;
 
-        public SequencialFilenameFilter(String... logFileNameBase) {
+        public SequentialFileNameFilter(String... logFileNameBase) {
             requireNonNull(logFileNameBase);
             patterns = Arrays.stream(logFileNameBase)
                     .map(name -> compile("^" + name + REGEX_VERSION_SUFFIX + "(0|[1-9]\\d*)$"))

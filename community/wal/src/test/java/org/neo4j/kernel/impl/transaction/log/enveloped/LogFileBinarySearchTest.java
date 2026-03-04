@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -83,13 +84,10 @@ class LogFileBinarySearchTest {
     }
 
     private void recreateEnvelopedLogFiles() {
-
         var baseFileName = "raft-log";
         var baseFolder = testDirectory.directory("logsFolder");
         envelopedLogFiles = new EnvelopedLogFiles(
-                fs,
-                baseFolder,
-                baseFileName,
+                new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, baseFileName)),
                 (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
                                 DatabaseVersion.V1.getLogFormatHeader())
                         .newRaftHeader(

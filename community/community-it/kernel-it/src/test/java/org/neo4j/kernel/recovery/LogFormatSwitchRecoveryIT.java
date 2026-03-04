@@ -46,7 +46,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.StoreFileChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.KernelVersion;
@@ -217,8 +217,8 @@ public class LogFormatSwitchRecoveryIT {
         fileSystem.deleteRecursively(databaseAndSnapshot.layout.databaseDirectory());
         fileSystem.copyRecursively(databaseAndSnapshot.snapshot, databaseAndSnapshot.layout.databaseDirectory());
         // kill all checkpoints
-        SequentialFilesHelper checkpointMatcher = TransactionLogFilesHelper.forCheckpoints(
-                fileSystem, databaseAndSnapshot.layout.getTransactionLogsDirectory());
+        SequentialFileNameHelper checkpointMatcher =
+                TransactionLogFilesHelper.forCheckpoints(databaseAndSnapshot.layout.getTransactionLogsDirectory());
         fileSystem.deleteRecursively(
                 databaseAndSnapshot.layout.getTransactionLogsDirectory(), checkpointMatcher::isSequentialFile);
     }

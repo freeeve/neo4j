@@ -51,7 +51,7 @@ import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.KernelVersion;
@@ -155,8 +155,8 @@ class RecoveryToFutureOverUpgradedVersionsIT {
 
         // the above processing artificially leaves an empty checkpoint file with a higher kernel version
         // after the first one, which isn't valid and hits an assert during DB startup
-        SequentialFilesHelper checkpointMatcher =
-                TransactionLogFilesHelper.forCheckpoints(fileSystem, dbLayout.getTransactionLogsDirectory());
+        SequentialFileNameHelper checkpointMatcher =
+                TransactionLogFilesHelper.forCheckpoints(dbLayout.getTransactionLogsDirectory());
         fileSystem.deleteFile(checkpointMatcher.getFileForVersion(1));
 
         startDbms(this::configureGloriousFutureAsLatest, true);

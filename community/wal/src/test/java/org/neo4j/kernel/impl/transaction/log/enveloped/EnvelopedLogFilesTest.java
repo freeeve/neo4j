@@ -45,6 +45,7 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
@@ -110,14 +111,12 @@ class EnvelopedLogFilesTest {
     }
 
     private void recreateEnvelopedLogFiles() {
-
         var baseFileName = "raft-log";
         var baseFolder = testDirectory.directory("logsFolder");
-        mirroringRepository = new LogsRepository(fs, baseFolder, baseFileName);
+        var filesHelper = new SequentialFileNameHelper(baseFolder, baseFileName);
+        mirroringRepository = new LogsRepository(fs, filesHelper);
         envelopedLogFiles = new EnvelopedLogFiles(
-                fs,
-                baseFolder,
-                baseFileName,
+                mirroringRepository,
                 (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
                                 DatabaseVersion.V1.getLogFormatHeader())
                         .newRaftHeader(

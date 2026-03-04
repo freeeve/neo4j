@@ -34,6 +34,7 @@ import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
@@ -208,9 +209,7 @@ public class EnvelopeLogRangeFuzzerIT {
         var baseFileName = "raft-log";
         var baseFolder = testDirectory.directory("logsFolder");
         return new EnvelopedLogFiles(
-                fs,
-                baseFolder,
-                baseFileName,
+                new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, baseFileName)),
                 (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
                                 DatabaseVersion.V2.getLogFormatHeader())
                         .newRaftHeader(

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -54,13 +55,14 @@ class LogsRepositoryTest {
     @BeforeEach
     void setUp() {
         directory = testDirectory.directory("repository");
-        logRepository = new LogsRepository(fs, directory, BASE_NAME);
+        logRepository = new LogsRepository(fs, new SequentialFileNameHelper(directory, BASE_NAME));
     }
 
     @Test
     void shouldCreateDirOnInitilaiseIfDoesNotExist() throws IOException {
         var someDir = testDirectory.homePath().resolve("someDir");
-        var logsRepository = new LogsRepository(testDirectory.getFileSystem(), someDir, BASE_NAME);
+        var logsRepository =
+                new LogsRepository(testDirectory.getFileSystem(), new SequentialFileNameHelper(someDir, BASE_NAME));
 
         assertThat(fs.fileExists(someDir)).isFalse();
 
@@ -73,7 +75,9 @@ class LogsRepositoryTest {
     void shouldFailIfBaseDirIsAFile() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new LogsRepository(testDirectory.getFileSystem(), testDirectory.createFile("file"), BASE_NAME));
+                () -> new LogsRepository(
+                        testDirectory.getFileSystem(),
+                        new SequentialFileNameHelper(testDirectory.createFile("file"), BASE_NAME)));
     }
 
     @Test

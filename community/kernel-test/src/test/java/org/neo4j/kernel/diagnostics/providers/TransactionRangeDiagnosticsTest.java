@@ -37,7 +37,7 @@ import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
@@ -258,7 +258,7 @@ class TransactionRangeDiagnosticsTest {
             long lowVersion, long highVersion, long headerAppendIndex) {
         return transactionLogs -> {
             when(transactionLogs.getLogRangeInfo()).thenReturn(new LogRangeInfo(lowVersion, null, highVersion, null));
-            SequentialFilesHelper helper = TransactionLogFilesHelper.forTransactions(fs, directory.homePath());
+            SequentialFileNameHelper helper = TransactionLogFilesHelper.forTransactions(directory.homePath());
             for (long version = lowVersion; version <= highVersion; version++) {
                 when(transactionLogs.hasAnyEntries(version)).thenReturn(true);
                 when(transactionLogs.versionExists(version)).thenReturn(true);
@@ -277,7 +277,7 @@ class TransactionRangeDiagnosticsTest {
                                 LATEST_KERNEL_VERSION));
             }
 
-            when(transactionLogs.getMatchedFiles()).thenReturn(helper.getFiles());
+            when(transactionLogs.getMatchedFiles()).thenReturn(helper.getFiles(fs));
         };
     }
 

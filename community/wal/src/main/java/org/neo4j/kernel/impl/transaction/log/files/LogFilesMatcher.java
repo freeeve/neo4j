@@ -22,23 +22,25 @@ package org.neo4j.kernel.impl.transaction.log.files;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 
 public class LogFilesMatcher {
-    private final SequentialFilesHelper checkpointFilesHelper;
-    private final SequentialFilesHelper transactionLogFilesHelper;
+    private final SequentialFileNameHelper checkpointFilesHelper;
+    private final FileSystemAbstraction fileSystem;
+    private final SequentialFileNameHelper transactionLogFilesHelper;
 
     public LogFilesMatcher(FileSystemAbstraction fileSystem, Path logFilesDirectory) {
-        this.transactionLogFilesHelper = TransactionLogFilesHelper.forTransactions(fileSystem, logFilesDirectory);
-        this.checkpointFilesHelper = TransactionLogFilesHelper.forCheckpoints(fileSystem, logFilesDirectory);
+        this.fileSystem = fileSystem;
+        this.transactionLogFilesHelper = TransactionLogFilesHelper.forTransactions(logFilesDirectory);
+        this.checkpointFilesHelper = TransactionLogFilesHelper.forCheckpoints(logFilesDirectory);
     }
 
     public Path[] getCheckpointLogFiles() throws IOException {
-        return checkpointFilesHelper.getFiles();
+        return checkpointFilesHelper.getFiles(fileSystem);
     }
 
     public Path[] getTransactionLogFiles() throws IOException {
-        return transactionLogFilesHelper.getFiles();
+        return transactionLogFilesHelper.getFiles(fileSystem);
     }
 
     public boolean hasAnyLogFiles() {

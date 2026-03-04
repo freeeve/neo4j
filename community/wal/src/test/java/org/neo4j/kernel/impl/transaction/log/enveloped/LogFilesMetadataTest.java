@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -48,9 +49,8 @@ class LogFilesMetadataTest {
 
     @BeforeEach
     void setUp() {
-        var baseFile = testDirectory.directory("logsFolder").resolve("raftLog");
-        logsRepository = new LogsRepository(
-                fs, baseFile.getParent(), baseFile.getFileName().toString());
+        var baseFile = testDirectory.directory("logsFolder");
+        logsRepository = new LogsRepository(fs, new SequentialFileNameHelper(baseFile.getParent(), "raftLog"));
     }
 
     @Test

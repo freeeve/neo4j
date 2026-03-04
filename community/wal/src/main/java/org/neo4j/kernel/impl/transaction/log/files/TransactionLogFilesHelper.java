@@ -24,24 +24,23 @@ import static java.util.regex.Pattern.quote;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.util.function.Predicate;
-import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 
 public final class TransactionLogFilesHelper {
     public static final String DEFAULT_NAME = "neostore.transaction.db";
     public static final String CHECKPOINT_FILE_PREFIX = "checkpoint";
     public static final DirectoryStream.Filter<Path> DEFAULT_FILENAME_FILTER =
-            new SequentialFilesHelper.SequencialFilenameFilter(quote(DEFAULT_NAME), quote(CHECKPOINT_FILE_PREFIX));
+            new SequentialFileNameHelper.SequentialFileNameFilter(quote(DEFAULT_NAME), quote(CHECKPOINT_FILE_PREFIX));
     public static final Predicate<String> DEFAULT_FILENAME_PREDICATE =
             file -> file.startsWith(DEFAULT_NAME) || file.startsWith(CHECKPOINT_FILE_PREFIX);
 
     private TransactionLogFilesHelper() {}
 
-    public static SequentialFilesHelper forTransactions(FileSystemAbstraction fs, Path dir) {
-        return new SequentialFilesHelper(fs, dir, DEFAULT_NAME);
+    public static SequentialFileNameHelper forTransactions(Path dir) {
+        return new SequentialFileNameHelper(dir, DEFAULT_NAME);
     }
 
-    public static SequentialFilesHelper forCheckpoints(FileSystemAbstraction fs, Path dir) {
-        return new SequentialFilesHelper(fs, dir, CHECKPOINT_FILE_PREFIX);
+    public static SequentialFileNameHelper forCheckpoints(Path dir) {
+        return new SequentialFileNameHelper(dir, CHECKPOINT_FILE_PREFIX);
     }
 }

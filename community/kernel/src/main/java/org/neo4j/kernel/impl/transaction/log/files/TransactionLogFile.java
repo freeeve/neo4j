@@ -59,7 +59,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
@@ -112,7 +112,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private final AtomicReference<ThreadLink> threadLinkHead = new AtomicReference<>(ThreadLink.END);
     private final Lock forceLock = new ReentrantLock();
     private final AtomicLong rotateAtSize;
-    private final SequentialFilesHelper fileHelper;
+    private final SequentialFileNameHelper fileHelper;
     private final TransactionLogFilesContext context;
     private final LogVersionBridge readerLogVersionBridge;
     private final MemoryTracker memoryTracker;
@@ -138,7 +138,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         this.fileSystem = context.getFileSystem();
         this.databaseHealth = context.getDatabaseHealth();
         this.versionTracker = context.getLogFileVersionTracker();
-        this.fileHelper = TransactionLogFilesHelper.forTransactions(fileSystem, logFiles.logFilesDirectory());
+        this.fileHelper = TransactionLogFilesHelper.forTransactions(logFiles.logFilesDirectory());
         this.logHeaderCache = new LogHeaderCache(1000);
         this.channelAllocator = new TransactionLogChannelAllocator(context, fileHelper, logHeaderCache, rotateAtSize);
         this.readerLogVersionBridge = ReaderLogVersionBridge.forFile(this);
@@ -508,7 +508,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public long getLogVersion(Path file) {
-        return SequentialFilesHelper.getVersion(file);
+        return SequentialFileNameHelper.getVersion(file);
     }
 
     @Override
@@ -571,7 +571,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     @Override
     public void accept(LogVersionVisitor visitor) {
         try {
-            for (Path file : fileHelper.getFiles()) {
+            for (Path file : fileHelper.getFiles(fileSystem)) {
                 visitor.visit(file, getLogVersion(file));
             }
         } catch (IOException e) {
@@ -604,7 +604,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public Path[] getMatchedFiles() throws IOException {
-        return fileHelper.getFiles();
+        return fileHelper.getFiles(fileSystem);
     }
 
     @Override
@@ -614,8 +614,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         }
 
         long highestLogVersion = getLogRangeInfo().highestVersion();
-        var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
-        for (Path matchedFile : logHelper.getFiles()) {
+        var logHelper = TransactionLogFilesHelper.forTransactions(additionalLogFilesDirectory);
+        for (Path matchedFile : logHelper.getFiles(fileSystem)) {
             long newFileVersion = ++highestLogVersion;
             Path newFileName = fileHelper.getFileForVersion(newFileVersion);
             fileSystem.renameFile(matchedFile, newFileName);
@@ -643,8 +643,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         var entryReader = new VersionAwareLogEntryReader(
                 context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
 
-        var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
-        var transactionLogFiles = logHelper.getFiles();
+        var logHelper = TransactionLogFilesHelper.forTransactions(additionalLogFilesDirectory);
+        var transactionLogFiles = logHelper.getFiles(fileSystem);
 
         Path matchedFile = null;
         LogHeader matchedFileHeader = null;

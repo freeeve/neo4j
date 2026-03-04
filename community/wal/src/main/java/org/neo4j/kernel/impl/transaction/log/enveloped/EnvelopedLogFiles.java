@@ -21,11 +21,9 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.ChannelNativeAccessor;
-import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
@@ -63,9 +61,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private EnvelopeWriteChannel appendingChannel;
 
     public EnvelopedLogFiles(
-            FileSystemAbstraction fs,
-            Path directory,
-            String baseFileName,
+            LogsRepository logsRepository,
             LogHeaderFactory logHeaderFactory,
             int segmentBlockSize,
             int writerBufferedBlocks,
@@ -80,7 +76,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
         this.channelNativeAccessor = channelNativeAccessor;
         this.logHeaderFactory = logHeaderFactory;
-        this.logsRepository = new LogsRepository(fs, directory, baseFileName);
+        this.logsRepository = logsRepository;
         this.segmentBlockSize = segmentBlockSize;
         this.writerBufferedBlocks = writerBufferedBlocks;
         this.memoryTracker = memoryTracker;

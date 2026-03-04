@@ -35,7 +35,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.ChannelNativeAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogFileCreateEvent;
@@ -51,7 +51,7 @@ import org.neo4j.logging.InternalLog;
 public class TransactionLogChannelAllocator {
     private final TransactionLogFilesContext logFilesContext;
     private final FileSystemAbstraction fileSystem;
-    private final SequentialFilesHelper fileHelper;
+    private final SequentialFileNameHelper fileHelper;
     private final LogHeaderCache logHeaderCache;
     private final ChannelNativeAccessor nativeChannelAccessor;
     private final DatabaseTracer databaseTracer;
@@ -59,7 +59,7 @@ public class TransactionLogChannelAllocator {
 
     public TransactionLogChannelAllocator(
             TransactionLogFilesContext logFilesContext,
-            SequentialFilesHelper fileHelper,
+            SequentialFileNameHelper fileHelper,
             LogHeaderCache logHeaderCache,
             AtomicLong rotationThreshold) {
         this.logFilesContext = logFilesContext;

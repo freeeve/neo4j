@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import java.util.concurrent.atomic.AtomicLong;
-import org.neo4j.io.fs.filename.SequentialFilesHelper;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
@@ -30,7 +30,8 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
  * log header as other files
  */
 public class CheckpointLogChannelAllocator extends TransactionLogChannelAllocator {
-    public CheckpointLogChannelAllocator(TransactionLogFilesContext logFilesContext, SequentialFilesHelper fileHelper) {
+    public CheckpointLogChannelAllocator(
+            TransactionLogFilesContext logFilesContext, SequentialFileNameHelper fileHelper) {
         super(
                 logFilesContext,
                 fileHelper,

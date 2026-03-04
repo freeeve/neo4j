@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.enveloped.PruneStrategy.PruneConstraint;
@@ -48,7 +49,7 @@ class LogPruningByEntryStrategyTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        logsRepository = new LogsRepository(fs, testDirectory.homePath(), "test");
+        logsRepository = new LogsRepository(fs, new SequentialFileNameHelper(testDirectory.homePath(), "test"));
         logsRepository.initialise();
     }
 
