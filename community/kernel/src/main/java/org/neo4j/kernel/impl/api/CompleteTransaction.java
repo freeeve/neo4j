@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.api;
 import static org.neo4j.internal.helpers.Format.date;
 import static org.neo4j.kernel.impl.api.txid.TransactionIdGenerator.EXTERNAL_ID;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.LogPositionMetadata.NO_METADATA;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 
 import java.util.function.LongConsumer;
@@ -32,6 +33,7 @@ import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Commitment;
+import org.neo4j.storageengine.api.LogPositionMetadata;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
@@ -52,6 +54,7 @@ public class CompleteTransaction implements StorageEngineTransaction {
     private final CursorContext cursorContext;
     private final StoreCursors storeCursors;
     private final TransactionIdGenerator transactionIdGenerator;
+    private final LogPositionMetadata logPositionMetadata;
     private StorageEngineTransaction next;
 
     // These fields are provided by commit process, storage engine, or recovery process
@@ -86,11 +89,22 @@ public class CompleteTransaction implements StorageEngineTransaction {
             StoreCursors storeCursors,
             Commitment commitment,
             TransactionIdGenerator transactionIdGenerator) {
+        this(commandBatch, cursorContext, storeCursors, commitment, transactionIdGenerator, NO_METADATA);
+    }
+
+    public CompleteTransaction(
+            CommandBatch commandBatch,
+            CursorContext cursorContext,
+            StoreCursors storeCursors,
+            Commitment commitment,
+            TransactionIdGenerator transactionIdGenerator,
+            LogPositionMetadata logPositionMetadata) {
         this.commandBatch = commandBatch;
         this.cursorContext = cursorContext;
         this.storeCursors = storeCursors;
         this.commitment = commitment;
         this.transactionIdGenerator = transactionIdGenerator;
+        this.logPositionMetadata = logPositionMetadata;
     }
 
     // These methods are called by the user when building a batch
@@ -143,6 +157,11 @@ public class CompleteTransaction implements StorageEngineTransaction {
     @Override
     public CommandBatch commandBatch() {
         return commandBatch;
+    }
+
+    @Override
+    public LogPositionMetadata logPositionMetadata() {
+        return logPositionMetadata;
     }
 
     @Override

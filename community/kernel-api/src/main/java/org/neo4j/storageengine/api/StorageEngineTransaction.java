@@ -87,6 +87,8 @@ public interface StorageEngineTransaction extends AutoCloseable {
      */
     CommandBatch commandBatch();
 
+    LogPositionMetadata logPositionMetadata();
+
     /**
      * Invoked by commit process after this batch of commands was applied to transaction log
      *

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.api.chunk;
 
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.LogPositionMetadata.NO_METADATA;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
@@ -31,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Commitment;
+import org.neo4j.storageengine.api.LogPositionMetadata;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
@@ -45,6 +47,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     private boolean idGenerated;
     private long lastBatchAppendIndex = UNKNOWN_APPEND_INDEX;
     private long transactionId = UNKNOWN_TX_ID;
+    private LogPositionMetadata logPositionMetadata = NO_METADATA;
     private StorageEngineTransaction next;
     private long firstAppendIndex;
     private LongConsumer closedCallback;
@@ -55,8 +58,19 @@ public class ChunkedTransaction implements StorageEngineTransaction {
             StoreCursors storeCursors,
             Commitment commitment,
             TransactionIdGenerator transactionIdGenerator) {
+        this(cursorContext, transactionSequenceNumber, NO_METADATA, storeCursors, commitment, transactionIdGenerator);
+    }
+
+    public ChunkedTransaction(
+            CursorContext cursorContext,
+            long transactionSequenceNumber,
+            LogPositionMetadata logPositionMetadata,
+            StoreCursors storeCursors,
+            Commitment commitment,
+            TransactionIdGenerator transactionIdGenerator) {
         this.cursorContext = cursorContext;
         this.transactionSequenceNumber = transactionSequenceNumber;
+        this.logPositionMetadata = logPositionMetadata;
         this.storeCursors = storeCursors;
         this.commitment = commitment;
         this.transactionIdGenerator = transactionIdGenerator;
@@ -89,12 +103,14 @@ public class ChunkedTransaction implements StorageEngineTransaction {
             long transactionId,
             long appendIndex,
             long transactionSequenceNumber,
+            LogPositionMetadata logPositionMetadata,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             Commitment commitment) {
         this(cursorContext, transactionSequenceNumber, storeCursors, commitment, TransactionIdGenerator.EXTERNAL_ID);
         this.transactionId = transactionId;
         this.lastBatchAppendIndex = appendIndex;
+        this.logPositionMetadata = logPositionMetadata;
         this.idGenerated = true;
     }
 
@@ -167,6 +183,11 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     @Override
     public CommandBatch commandBatch() {
         return chunk;
+    }
+
+    @Override
+    public LogPositionMetadata logPositionMetadata() {
+        return logPositionMetadata;
     }
 
     @Override

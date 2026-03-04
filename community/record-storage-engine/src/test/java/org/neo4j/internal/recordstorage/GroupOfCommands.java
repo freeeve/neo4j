@@ -21,6 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.LogPositionMetadata.NO_METADATA;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 
 import java.util.List;
@@ -31,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
+import org.neo4j.storageengine.api.LogPositionMetadata;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -109,6 +111,11 @@ public class GroupOfCommands implements StorageEngineTransaction {
                 Leases.NO_LEASES,
                 LatestVersions.LATEST_KERNEL_VERSION,
                 Subject.SYSTEM);
+    }
+
+    @Override
+    public LogPositionMetadata logPositionMetadata() {
+        return NO_METADATA;
     }
 
     @Override
