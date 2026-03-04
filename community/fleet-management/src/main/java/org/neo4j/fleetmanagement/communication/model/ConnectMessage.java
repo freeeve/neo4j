@@ -45,11 +45,11 @@ public class ConnectMessage {
     public String projectId;
 
     @JsonProperty("plugin_version")
-    @JsonPropertyDescription("Version of the fleet manager module")
+    @JsonPropertyDescription("Version of the Fleet Manager module")
     public String pluginVersion;
 
     @JsonProperty("build_profile")
-    @JsonPropertyDescription("Build profile of the fleet manager module")
+    @JsonPropertyDescription("Build profile of the Fleet Manager module")
     public String buildProfile;
 
     public ConnectMessage(

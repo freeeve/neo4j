@@ -63,13 +63,13 @@ public class Configuration {
     }
 
     public static class StatusResult {
-        @Description("Is fleet management active?")
+        @Description("Is Fleet Manager active?")
         public boolean active;
 
-        @Description("Is fleet management connected?")
+        @Description("Is Fleet Manager connected?")
         public boolean connected;
 
-        @Description("Error message if fleet management is not connected")
+        @Description("Error message if Fleet Manager is not connected")
         public String statusMessage;
 
         public StatusResult(boolean active, boolean connected, String message) {
@@ -115,7 +115,7 @@ public class Configuration {
     @Procedure(name = "fleetManagement.registerToken", mode = Mode.DBMS)
     @SystemProcedure
     @Admin
-    @Description("Add a token for authenticating to Neo4j Fleet Management")
+    @Description("Add a token for authenticating to Fleet Manager")
     public Stream<Result> registerToken(@Name(value = "token") String token) {
         var active = getTokenStatus();
         var connected = state.isConnected();
@@ -157,7 +157,7 @@ public class Configuration {
     @Procedure(name = "fleetManagement.inspectToken", mode = Mode.DBMS)
     @SystemProcedure
     @Admin
-    @Description("Inspect the Neo4j Fleet Management token to validate")
+    @Description("Inspect a Fleet Manager access token")
     public Stream<TokenInspectResult> inspectToken(@Name(value = "token", defaultValue = "") String token) {
         if (token == null || token.isEmpty()) {
             ensureSystemDb();
@@ -198,7 +198,7 @@ public class Configuration {
     @Procedure(name = "fleetManagement.disable", mode = Mode.DBMS)
     @SystemProcedure
     @Admin
-    @Description("Disable fleet management")
+    @Description("Disable Fleet Manager")
     public Stream<Result> disable() {
         ensureSystemDb();
         return withTransactionAndErrorHandling(
@@ -210,10 +210,10 @@ public class Configuration {
                     tx.commit();
 
                     this.state.setActive(false);
-                    return Stream.of(new Result("Fleet management has been disabled"));
+                    return Stream.of(new Result("Fleet Manager has been disabled"));
                 },
                 e -> {
-                    String message = "An error occurred while disabling fleet management: " + e.getMessage();
+                    String message = "An error occurred while disabling Fleet Manager: " + e.getMessage();
                     log.error(message, e);
                     return Stream.of(new Result(message));
                 });
@@ -222,14 +222,13 @@ public class Configuration {
     @Procedure(name = "fleetManagement.status", mode = Mode.READ)
     @SystemProcedure
     @Admin
-    @Description("Check the status of fleet management")
+    @Description("Check the status of Fleet Manager")
     public Stream<StatusResult> status() {
         var active = getTokenStatus();
         var connected = state.isConnected();
         String errorMessage;
         if (!active && !connected && state.getConnectionMessage() == null) {
-            errorMessage =
-                    "Fleet management is disabled. Use the procedure fleetManagement.registerToken to get started.";
+            errorMessage = "Fleet Manager is disabled. Use the procedure fleetManagement.registerToken to get started.";
         } else {
             errorMessage = state.getConnectionMessage();
         }
@@ -239,7 +238,7 @@ public class Configuration {
     @Procedure(name = "fleetManagement.restart", mode = Mode.DBMS)
     @SystemProcedure
     @Admin
-    @Description("Restart fleet management")
+    @Description("Restart Fleet Manager")
     public Stream<Result> restart() {
         var hasToken = getTokenStatus();
         var connected = state.isConnected();
@@ -247,13 +246,13 @@ public class Configuration {
         state.setActive(false);
         if (hasToken) {
             if (connected) {
-                state.setDisconnected("Disconnecting before restarting fleet management");
+                state.setDisconnected("Disconnecting before restarting Fleet Manager");
             }
 
             state.setActive(true);
-            return Stream.of(new Result("Fleet management is restarting"));
+            return Stream.of(new Result("Fleet Manager is restarting"));
         } else {
-            return Stream.of(new Result("Register a token to enable Fleet Management"));
+            return Stream.of(new Result("Register a token to enable Fleet Manager"));
         }
     }
 
@@ -269,8 +268,7 @@ public class Configuration {
                     return status;
                 },
                 e -> {
-                    String message =
-                            "An error occurred while fetching fleet management token status: " + e.getMessage();
+                    String message = "An error occurred while fetching Fleet Manager token status: " + e.getMessage();
                     log.error(message, e);
                     return false;
                 });

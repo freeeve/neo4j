@@ -42,7 +42,7 @@ public class DebugLogging {
     @Procedure(name = "fleetManagement.debugLogging", mode = Mode.DBMS)
     @SystemProcedure
     @Admin
-    @Description("Enable debug or payload logging for fleet manager.")
+    @Description("Enable debug or payload logging for Fleet Manager.")
     public Stream<Result> debugLogging(
             @Name("debugLoggingEnabled") Boolean enabled, @Name("payloadLoggingEnabled") Boolean payloadLogging) {
         Logger.setDebugEnabled(enabled);

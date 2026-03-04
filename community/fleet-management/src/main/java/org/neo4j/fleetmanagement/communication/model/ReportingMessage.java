@@ -35,7 +35,7 @@ public class ReportingMessage {
     @JsonPropertyDescription("DBMS information object")
     public Dbms dbms;
 
-    @JsonPropertyDescription("Version of the fleet manager")
+    @JsonPropertyDescription("Version of the Fleet Manager module")
     public String pluginVersion;
 
     @JsonPropertyDescription("Operating system name")

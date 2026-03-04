@@ -4094,7 +4094,7 @@
   },
   {
     "name": "fleetManagement.debugLogging",
-    "description": "Enable debug or payload logging for fleet manager.",
+    "description": "Enable debug or payload logging for Fleet Manager.",
     "mode": "DBMS",
     "worksOnSystem": true,
     "signature": "fleetManagement.debugLogging(debugLoggingEnabled :: BOOLEAN, payloadLoggingEnabled :: BOOLEAN) :: (result :: STRING)",
@@ -4137,7 +4137,7 @@
   },
   {
     "name": "fleetManagement.disable",
-    "description": "Disable fleet management",
+    "description": "Disable Fleet Manager",
     "mode": "DBMS",
     "worksOnSystem": true,
     "signature": "fleetManagement.disable() :: (result :: STRING)",
@@ -4167,7 +4167,7 @@
   },
   {
     "name": "fleetManagement.inspectToken",
-    "description": "Inspect the Neo4j Fleet Management token to validate",
+    "description": "Inspect a Fleet Manager access token",
     "mode": "DBMS",
     "worksOnSystem": true,
     "signature": "fleetManagement.inspectToken(token =  :: STRING) :: (projectId :: STRING, tokenExpires :: STRING, errorMessage :: STRING)",
@@ -4217,7 +4217,7 @@
   },
   {
     "name": "fleetManagement.registerToken",
-    "description": "Add a token for authenticating to Neo4j Fleet Management",
+    "description": "Add a token for authenticating to Fleet Manager",
     "mode": "DBMS",
     "worksOnSystem": true,
     "signature": "fleetManagement.registerToken(token :: STRING) :: (result :: STRING)",
@@ -4254,7 +4254,7 @@
   },
   {
     "name": "fleetManagement.reportedData",
-    "description": "Generate documentation for the data structures used in fleet management messages",
+    "description": "Generate documentation for the data structures used in Fleet Manager messages",
     "mode": "READ",
     "worksOnSystem": true,
     "signature": "fleetManagement.reportedData() :: (messageType :: STRING, fieldPath :: STRING, description :: STRING, fieldType :: STRING, values :: LIST<STRING>)",
@@ -4309,7 +4309,7 @@
   },
   {
     "name": "fleetManagement.restart",
-    "description": "Restart fleet management",
+    "description": "Restart Fleet Manager",
     "mode": "DBMS",
     "worksOnSystem": true,
     "signature": "fleetManagement.restart() :: (result :: STRING)",
@@ -4339,7 +4339,7 @@
   },
   {
     "name": "fleetManagement.status",
-    "description": "Check the status of fleet management",
+    "description": "Check the status of Fleet Manager",
     "mode": "READ",
     "worksOnSystem": true,
     "signature": "fleetManagement.status() :: (active :: BOOLEAN, connected :: BOOLEAN, statusMessage :: STRING)",
@@ -4347,19 +4347,19 @@
     "returnDescription": [
       {
         "name": "active",
-        "description": "Is fleet management active?",
+        "description": "Is Fleet Manager active?",
         "type": "BOOLEAN",
         "isDeprecated": false
       },
       {
         "name": "connected",
-        "description": "Is fleet management connected?",
+        "description": "Is Fleet Manager connected?",
         "type": "BOOLEAN",
         "isDeprecated": false
       },
       {
         "name": "statusMessage",
-        "description": "Error message if fleet management is not connected",
+        "description": "Error message if Fleet Manager is not connected",
         "type": "STRING",
         "isDeprecated": false
       }

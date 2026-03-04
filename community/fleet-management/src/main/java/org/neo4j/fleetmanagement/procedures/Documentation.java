@@ -71,7 +71,7 @@ public class Documentation {
 
     @Procedure(name = "fleetManagement.reportedData", mode = Mode.READ)
     @SystemProcedure
-    @Description("Generate documentation for the data structures used in fleet management messages")
+    @Description("Generate documentation for the data structures used in Fleet Manager messages")
     public Stream<DocumentationResult> generateDocumentation() throws Exception {
         List<DocumentationResult> results = new ArrayList<>();
         documentClass(ConnectMessage.class, "ConnectMessage", "", results);
