@@ -545,7 +545,8 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
       )
 
     val result = normalizedWithAndReturnClauses.rewrite(rewriter)
-    println(Prettifier(ExpressionStringifier()).asString(result.asInstanceOf[Statement]))
-    assert(result === expected)
+    withClue(Prettifier(ExpressionStringifier()).asString(result.asInstanceOf[Statement])) {
+      assert(result === expected)
+    }
   }
 }
