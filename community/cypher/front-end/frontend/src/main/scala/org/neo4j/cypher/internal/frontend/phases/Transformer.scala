@@ -16,17 +16,36 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
+import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.GraphReference
+import org.neo4j.cypher.internal.ast.Search
+import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.Scope
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.Pattern
+import org.neo4j.cypher.internal.expressions.PatternElement
+import org.neo4j.cypher.internal.expressions.PatternPart
+import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFields
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogLegacyScopeTree
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatements
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogWorkingScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScopeStringRenderer
+import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.AstString
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
 
 trait Transformer[-C <: BaseContext, -FROM, +TO] {
@@ -62,6 +81,7 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
 }
 
 object Transformer {
+  val prettifier = Prettifier(ExpressionStringifier())
 
   object Debug {
     // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
@@ -70,7 +90,10 @@ object Transformer {
     final val LogStatementsAsQueries = false
     final val LogChangedFields = false
     final val LogWorkingScope = false
-    final val Enabled = LogStatements || LogStatementsAsQueries || LogChangedFields || LogWorkingScope
+    final val LogLegacyScopeTree = false
+
+    final val Enabled =
+      LogStatements || LogStatementsAsQueries || LogChangedFields || LogWorkingScope || LogLegacyScopeTree
   }
 
   /**
@@ -128,7 +151,7 @@ object Transformer {
         case (from: BaseState, to: BaseState)
           if to.maybeStatement.isDefined && from.maybeStatement != to.maybeStatement =>
           println(s"######## DEBUG $transformerName, statement changed:")
-          if (LogStatementsAsQueries) println(Prettifier(ExpressionStringifier()).asString(to.statement()))
+          if (LogStatementsAsQueries) println(prettifier.asString(to.statement()))
           if (LogStatements) println(AstString.render(to.statement()))
           println("\n")
         case _ =>
@@ -145,6 +168,101 @@ object Transformer {
         case _ =>
       }
     }
+
+    if (LogLegacyScopeTree) {
+      (fromState, toState) match {
+        case (from: BaseState, to: BaseState)
+          if to.maybeSemantics.isDefined &&
+            from.maybeSemantics != to.maybeSemantics =>
+
+          println(s"######## DEBUG $transformerName, legacy scope tree changed:")
+          println(renderLegacyScopeTree(to.semantics()))
+          println("\n")
+
+        case _ =>
+      }
+    }
+  }
+
+  private def renderLegacyScopeTree(sem: SemanticState): String = {
+    def scopePathOf(loc: SemanticState.ScopeZipper.Location): Vector[Int] = {
+      @annotation.tailrec
+      def loop(l: SemanticState.ScopeZipper.Location, acc: Vector[Int]): Vector[Int] =
+        l.context match {
+          case SemanticState.ScopeZipper.Top => acc
+          case SemanticState.ScopeZipper.TreeContext(left, parent, _right) =>
+            loop(parent, (left.size +: acc))
+        }
+      loop(loc, Vector.empty)
+    }
+
+    // ASTNode -> exact zipper location at time of recordCurrentScope
+    val nodesByPath: Map[Vector[Int], Vector[ASTNode]] =
+      sem.recordedScopes.iterator.foldLeft(Map.empty[Vector[Int], Vector[ASTNode]]) {
+        case (acc, (PositionedNode(ast), scopeLoc)) =>
+          val p = scopePathOf(scopeLoc.location)
+          acc.updated(p, acc.getOrElse(p, Vector.empty) :+ ast)
+      }
+
+    val currentPath = scopePathOf(sem.currentScope.location)
+    val rootScope: Scope = sem.scopeTree
+
+    def whitespaceNormalization(cypher: String): String =
+      cypher.trim.replaceAll("\\s+", " ")
+
+    def renderAstString(astNode: ASTNode): String = whitespaceNormalization(astNode match {
+      case s: Statement           => prettifier.asString(s)
+      case c: Clause              => prettifier.asString(SingleQuery(Seq(c))(InputPosition.NONE))
+      case gr: GraphReference     => prettifier.expr(gr)
+      case s: Search              => prettifier.asString(s)
+      case ex: Expression         => prettifier.expr(ex)
+      case p: Pattern             => prettifier.expr.patterns(p)
+      case p: PatternPart         => prettifier.expr.patterns(p)
+      case p: PatternElement      => prettifier.expr.patterns(p)
+      case p: RelationshipPattern => prettifier.expr.patterns(p)
+      case lex: LabelExpression   => prettifier.expr.stringifyLabelExpression(lex)
+      case cqb @ ConditionalQueryBranch(Some(_), _) =>
+        prettifier.asString(ConditionalQueryWhen(Seq(cqb), None)(InputPosition.NONE))
+      case cqb @ ConditionalQueryBranch(None, _) =>
+        prettifier.asString(ConditionalQueryWhen(Seq(), Some(cqb))(InputPosition.NONE))
+      case x => x.toString
+    })
+
+    val out = new StringBuilder
+
+    def render(scope: Scope, path: Vector[Int], prefix: String, isLast: Boolean): Unit = {
+      val branch = if (isLast) "└─" else "├─"
+      val nextPrefix = prefix + (if (isLast) "  " else "│ ")
+
+      val symbols =
+        if (scope.symbolNames.isEmpty) ""
+        else scope.symbolNames.toSeq.sorted.mkString(" [", ", ", "]")
+
+      val currentMark = if (path == currentPath) "  <== current" else ""
+      val pathStr = if (path.isEmpty) "root" else path.mkString(".")
+
+      out.append(s"$prefix$branch($pathStr)$symbols$currentMark\n")
+
+      nodesByPath.get(path).foreach { nodes =>
+        nodes.sortBy(_.position.offset).foreach { n =>
+          out.append(s"$nextPrefix   @${n.position.offset} ${n.getClass.getSimpleName}: ${renderAstString(n)}\n")
+        }
+      }
+
+      val kids = scope.children.toVector
+      kids.zipWithIndex.foreach { case (ch, i) =>
+        val last = i == kids.size - 1
+        render(ch, path :+ i, nextPrefix, last)
+      }
+    }
+
+    // Print root plainly, then children with proper prefix
+    out.append("(root)\n")
+    rootScope.children.toVector.zipWithIndex.foreach { case (ch, i) =>
+      render(ch, Vector(i), prefix = "", isLast = i == rootScope.children.size - 1)
+    }
+
+    out.toString()
   }
 }
 
