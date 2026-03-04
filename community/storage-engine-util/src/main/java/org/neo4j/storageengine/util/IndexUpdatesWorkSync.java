@@ -92,6 +92,7 @@ public class IndexUpdatesWorkSync {
         }
 
         private void apply() throws IOException, ExecutionException {
+            apply = AsyncApply.EMPTY;
             if (!updates.isEmpty()) {
                 if (parallelApply) {
                     // Just skip the work-sync if this is parallel apply and instead update straight in
@@ -105,7 +106,6 @@ public class IndexUpdatesWorkSync {
                     workSync.apply(new IndexUpdatesWork(listNullingIterator(updates), cursorContext));
                 }
             }
-            apply = AsyncApply.EMPTY;
         }
 
         @Override

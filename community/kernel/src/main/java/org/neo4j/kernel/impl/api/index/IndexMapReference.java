@@ -57,6 +57,10 @@ public class IndexMapReference implements IndexMapSnapshotProvider {
         return proxy;
     }
 
+    public IndexProxy getIndexProxyOrNull(IndexDescriptor index) {
+        return indexMap.getIndexProxy(index);
+    }
+
     Iterable<IndexProxy> getAllIndexProxies() {
         return indexMap.getAllIndexProxies();
     }

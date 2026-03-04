@@ -1827,6 +1827,58 @@ class IndexingServiceTest {
         order.verify(updater).close();
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSilentlyIgnoreApplyIndexUpdatesForMissingIndex(boolean parallelApply)
+            throws IOException, KernelException {
+        // given
+        var index1 = forSchema(forLabel(0, 1))
+                .withName("i1")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(PROVIDER_DESCRIPTOR)
+                .materialise(0);
+        var index2 = forSchema(forLabel(0, 2))
+                .withName("i2")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(PROVIDER_DESCRIPTOR)
+                .materialise(1);
+        var index3 = forSchema(forLabel(0, 3))
+                .withName("i3")
+                .withIndexType(IndexType.RANGE)
+                .withIndexProvider(PROVIDER_DESCRIPTOR)
+                .materialise(2);
+        // intentionally not creating the index2
+        var indexingService = newIndexingServiceWithMockedDependencies(populator, accessor, withData(), index1, index3);
+        when(accessor.newUpdater(any(IndexUpdateMode.class), any(CursorContext.class), anyBoolean()))
+                .thenReturn(updater);
+        life.start();
+
+        // when feeding the indexingService index updates including (the missing) index2
+        var index1Update = EagerValueIndexEntryUpdate.add(10, index1, Values.intValue(10));
+        var index2Update = EagerValueIndexEntryUpdate.add(11, index2, Values.intValue(11));
+        var index3Update = EagerValueIndexEntryUpdate.add(12, index3, Values.intValue(12));
+        Iterator<IndexEntryUpdate> updates = iterator(index1Update, index2Update, index3Update);
+        indexingService.applyUpdates(updates, NULL_CONTEXT, parallelApply);
+
+        // then index updates for the other indexes should still be applied
+        InOrder order = inOrder(updater, accessor);
+        if (parallelApply) {
+            order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(parallelApply));
+            order.verify(updater).process(index1Update);
+            order.verify(updater).close();
+            order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(parallelApply));
+            order.verify(updater).process(index3Update);
+            order.verify(updater).close();
+        } else {
+            order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(parallelApply));
+            order.verify(updater).process(index1Update);
+            order.verify(accessor).newUpdater(eq(IndexUpdateMode.ONLINE), any(CursorContext.class), eq(parallelApply));
+            order.verify(updater).process(index3Update);
+            // This mock uses the same mocked updater for all indexes
+            order.verify(updater, times(2)).close();
+        }
+    }
+
     private AtomicReference<BinaryLatch> latchedIndexPopulation() {
         AtomicReference<BinaryLatch> populationStartLatch = new AtomicReference<>(new BinaryLatch());
         scheduler.setThreadFactory(

@@ -113,8 +113,9 @@ public class OnlineIndexUpdates implements AutoCloseable {
     }
 
     public void apply() throws IOException {
-        updates.close();
+        IndexUpdatesWorkSync.Batch updatesToApply = updates;
         updates = updatesSync.newBatch(cursorContext);
+        updatesToApply.close();
     }
 
     private void gatherUpdatesFor(

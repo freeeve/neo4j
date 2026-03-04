@@ -685,7 +685,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                             updater.close();
                             updater = null;
                         }
-                        var indexProxy = indexMapRef.getIndexProxy(index);
+                        var indexProxy = indexMapRef.getIndexProxyOrNull(index);
                         if (indexProxy != null) {
                             updater = indexProxy.newUpdater(updateMode, cursorContext, true);
                         }
