@@ -196,12 +196,12 @@ final class RegularCypherSteps @Inject() (
   }
 
   override def resultShouldBe(expected: DataTable, assertions: Assertions): Unit = lastResult match {
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
+    case failure: QueryFailure => unexpectedFailure(failure, conf, describePlan(failure))
     case actual: QueryResults  => assertResult(actual, expected, assertions.configure(conf.runtime))
   }
 
   override def approximateResultShouldBe(expected: DataTable, rowCount: Int): Unit = lastResult match {
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
+    case failure: QueryFailure => unexpectedFailure(failure, conf, describePlan(failure))
     case actual: QueryResults  => assertApproxResult(actual, expected, rowCount)
   }
 
@@ -221,6 +221,7 @@ final class RegularCypherSteps @Inject() (
            >$actual
            >Expected side effects:
            >$expected
+           >
            >Plan:
            >${describePlan(lastResult)}
            >""".stripMargin('>') // | margins messes with the tables
@@ -287,7 +288,7 @@ final class RegularCypherSteps @Inject() (
        >""".stripMargin('>') // | margins messes with the tables
   }
 
-  private def describePlan(actual: QueryExecution): String = Try {
+  protected def describePlan(actual: QueryExecution): String = Try {
     Using.resource(db.database.beginTx()) { tx =>
       tx.execute("EXPLAIN\n" + actual.query).getExecutionPlanDescription.toString
     }
@@ -434,21 +435,25 @@ object RegularCypherSteps {
 
   def describeConf(conf: TestConf): String = conf.neo4jConf.map { case (key, value) => s"$key=$value" }.mkString("\n")
 
-  def unexpectedFailure(failure: QueryFailure, conf: TestConf): Unit = fail(
+  def unexpectedFailure(failure: QueryFailure, conf: TestConf, planDesc: String): Unit = fail(
     s"""
-       |Query failed but was expected to succeed.
-       |Phase: ${failure.phase}
-       |Query:
-       |${failure.query}
-       |
-       |Cause: ${Exceptions.stringify(originalError(failure.cause))}
-       |
-       |Config (excl tag based config, @conf:...):
-       |${describeConf(conf)}
-       |""".stripMargin
+       >Query failed but was expected to succeed.
+       >Phase: ${failure.phase}
+       >Query:
+       >${failure.query}
+       >
+       >Note: Scroll for plan description.
+       >Cause: ${Exceptions.stringify(originalError(failure.cause))}
+       >
+       >Config (excl tag based config, @conf:...):
+       >${describeConf(conf)}
+       >
+       >Plan:
+       >$planDesc
+       >""".stripMargin('>')
   )
 
-  def unexpectedSuccess(results: QueryResults, conf: TestConf): Unit = fail(
+  def unexpectedSuccess(results: QueryResults, conf: TestConf, planDesc: String): Unit = fail(
     s"""
        >Query was expected to fail, but executed successfully.
        >
@@ -459,6 +464,9 @@ object RegularCypherSteps {
        >
        >Config (excl tag based config, @conf:...):
        >${describeConf(conf)}
+       >
+       >Plan:
+       >$planDesc
        |""".stripMargin('>') // | margins messes with the tables
   )
 

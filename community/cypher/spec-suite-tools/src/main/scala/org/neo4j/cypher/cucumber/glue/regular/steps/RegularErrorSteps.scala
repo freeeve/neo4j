@@ -51,10 +51,11 @@ import scala.util.matching.Regex
 
 trait RegularErrorSteps { this: CypherCucumberSteps =>
   def lastExecutionResult: QueryExecution
+  protected def describePlan(actual: QueryExecution): String
   def conf: TestConf
 
   final override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = lastExecutionResult match {
-    case result: QueryResults => unexpectedSuccess(result, conf)
+    case result: QueryResults => unexpectedSuccess(result, conf, describePlan(result))
     case failure: QueryFailure =>
       val actual = errorHierarchy(originalError(failure.cause))
       if (!errorsMatch(actual, expected)) {
@@ -66,6 +67,9 @@ trait RegularErrorSteps { this: CypherCucumberSteps =>
              >${expected.table}
              >
              >${doDescribeFailure(failure)}
+             >
+             >Plan:
+             >${describePlan(failure)}
              >""".stripMargin('>')
         )
       }
@@ -88,7 +92,7 @@ trait RegularErrorSteps { this: CypherCucumberSteps =>
         )
       }
 
-    case failure: QueryFailure => unexpectedFailure(failure, conf)
+    case failure: QueryFailure => unexpectedFailure(failure, conf, describePlan(failure))
   }
 }
 
