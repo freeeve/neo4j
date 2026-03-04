@@ -157,7 +157,7 @@ trait FrontEndCompilationPhases {
     config: ParsingConfig,
     parameters: MapValue
   ): Transformer[BaseContext, BaseState, BaseState] = {
-    Parse andThen
+    Parse andThen ScopeSurveyor andThen
       If((_: BaseState) => config.obfuscateLiterals)(
         // Needs to be done before any other rewrites to not miss literals
         ExtractSensitiveLiterals.andThen(ObfuscationMetadataCollection)

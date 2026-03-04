@@ -72,6 +72,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -80,7 +81,6 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.TableResultWithNotYetKnow
 import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
-import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
@@ -411,8 +411,6 @@ object pegClause {
 
       case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming)
 
-      // TODO other clause, specifically admin clauses
-
       case command: CommandClause => pegCommand(command, incoming)
 
       /**
@@ -420,37 +418,6 @@ object pegClause {
        */
       case _ => UnexpectedAstNodeScopingError(astNode, incoming)
     }
-  }
-
-  private def getExpressionSet(items: Seq[ReturnItem]): Set[Expression] =
-    items.map(ri => ri.expression).toSet
-
-  private def getIncoming(
-    incoming: RegularContext,
-    introducedVariables: Seq[LogicalVariable],
-    visibleIncomingVariables: Set[LogicalVariable],
-    clauseType: ClauseType
-  ): (RegularContext, RegularContext) = clauseType match {
-    case DefaultYield =>
-      (incoming, incoming.replaceWith(introducedVariables.toSet).constantChildContext())
-    case _ =>
-      (incoming, incoming.replaceWith(introducedVariables.toSet union visibleIncomingVariables).constantChildContext())
-  }
-
-  private def getAggregationIncoming(
-    incoming: RegularContext,
-    groupingItems: Seq[ReturnItem],
-    includedIncomingVariables: Set[LogicalVariable],
-    introducedVariables: Seq[LogicalVariable]
-  ): (RegularContext, RegularContext) = {
-    val groupingKeysItems = getExpressionSet(groupingItems) ++ includedIncomingVariables
-
-    (
-      incoming.amendedWithGroupingKeys(groupingKeysItems, inSubclause = false),
-      incoming
-        .replaceWith(Set.empty)
-        .amendedWithGroupingKeys(groupingKeysItems union introducedVariables.toSet, inSubclause = true)
-    )
   }
 
   private def scopeProjectionItems(
@@ -589,14 +556,15 @@ object pegClause {
     val resultingVariables = includedIncomingVariables.toSeq ++ introducedVariables
 
     val (aggregatingItems, groupingItems) = items.partition(_.directlyContainsAggregate)
+    val projectionItems = ProjectionItems(groupingItems, aggregatingItems, includedIncomingVariables, distinct)
     val isAggregating = aggregatingItems.nonEmpty || distinct
     val hasSideEffects = isAggregating || subclauses.hasSubclause
 
-    val (itemIncoming, subclauseIncoming) =
-      if (isAggregating)
-        getAggregationIncoming(incoming, groupingItems, includedIncomingVariables, introducedVariables)
-      else
-        getIncoming(incoming, introducedVariables, visibleIncomingVariables, clauseType)
+    val itemIncoming = incoming.amendedWithProjectionItems(projectionItems, inSubclause = false)
+    val subclauseIncoming = (clauseType match {
+      case DefaultYield => incoming.replaceWith(introducedVariables.toSet)
+      case _            => incoming
+    }).amendedWithProjectionItems(projectionItems, inSubclause = true).projectionChildContext()
 
     val itemScopes = scopeProjectionItems(incoming, itemIncoming, aggregatingItems, groupingItems)
 

@@ -35,9 +35,9 @@ import org.neo4j.cypher.internal.plandescription.Arguments.GlobalMemory
 import org.neo4j.cypher.internal.plandescription.Arguments.IdArg
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingCallables
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingConstants
-import org.neo4j.cypher.internal.plandescription.Arguments.IncomingGroupingKeys
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPath
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPredicate
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingProjectionItems
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingTopology
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.Memory
@@ -100,22 +100,22 @@ object PlanDescriptionArgumentSerializer {
       case IdArg(Id(id))             => Int.box(id)
       case arg: UsedIndexes          => arg.stringify
       // working scope details
-      case IncomingConstants(value)    => value
-      case IncomingVariables(value)    => value
-      case IncomingCallables(value)    => value
-      case IncomingPath(value)         => value
-      case IncomingPredicate(value)    => value
-      case IncomingTopology(value)     => value
-      case IncomingGroupingKeys(value) => value
-      case Referenced(value)           => value
-      case DeclaredConstants(value)    => value
-      case DeclaredVariables(value)    => value
-      case DeclaredCallables(value)    => value
-      case ResultColumns(value)        => value
-      case OutgoingConstants(value)    => value
-      case OutgoingVariables(value)    => value
-      case OutgoingCallables(value)    => value
-      case Comment(value)              => value
+      case IncomingConstants(value)       => value
+      case IncomingVariables(value)       => value
+      case IncomingCallables(value)       => value
+      case IncomingPath(value)            => value
+      case IncomingPredicate(value)       => value
+      case IncomingTopology(value)        => value
+      case IncomingProjectionItems(value) => value
+      case Referenced(value)              => value
+      case DeclaredConstants(value)       => value
+      case DeclaredVariables(value)       => value
+      case DeclaredCallables(value)       => value
+      case ResultColumns(value)           => value
+      case OutgoingConstants(value)       => value
+      case OutgoingVariables(value)       => value
+      case OutgoingCallables(value)       => value
+      case Comment(value)                 => value
 
       // Do not add a fallthrough here - we rely on exhaustive checking to ensure
       // that we don't forget to add new types of arguments here

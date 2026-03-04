@@ -17,10 +17,9 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
-import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
-import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
@@ -100,16 +99,16 @@ object pegExpression {
        * Property
        * Special case when a property is a grouping key
        */
-      case property @ Property(LogicalVariable(_), _) if incoming.isInstanceOf[AggregatingExpressionContext] =>
-        val children = WorkingScope.noChildren
-        val groupingName: String = ExpressionStringifier().apply(property)
-        if (incoming.asInstanceOf[AggregatingExpressionContext].groupingKeys.contains(property)) {
-          val referenced: Option[Set[LogicalVariable]] = {
-            Some(Set(Variable(groupingName)(property.position, isIsolated = false)))
-          }
-          collect(incoming.expressionResultScope(property, children, referenced))
-        } else {
-          collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
+      case property @ Property(LogicalVariable(_), _) =>
+        incoming match {
+          case ProjectionExpressionContext(_, _, _, projectionItems, _) =>
+            val isGroupingKey = projectionItems.getGroupingKeyReference(property)
+            if (isGroupingKey.isDefined)
+              collect(incoming.expressionResultScope(property, WorkingScope.noChildren, Some(isGroupingKey.toSet)))
+            else
+              collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
+          case _ =>
+            collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
         }
 
       /**
@@ -118,11 +117,11 @@ object pegExpression {
       case cntStar: CountStar =>
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
       case fi @ FunctionInvocation(_, _, args, _, false, _) if fi.function.isInstanceOf[AggregatingFunction] =>
-        val argIncoming = incoming.aggregatingConstantChildContext()
+        val argIncoming = incoming.constantChildContext()
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
       case fi @ ResolvedFunctionInvocation(_, _, args) if fi.isAggregate =>
-        val argIncoming = incoming.aggregatingConstantChildContext()
+        val argIncoming = incoming.constantChildContext()
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
 
@@ -130,7 +129,11 @@ object pegExpression {
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming.aggregatingConstantChildContext(), c)
+        val constantIncoming = incoming match {
+          case ctx: ProjectionExpressionContext => ctx.subqueryConstantChildContext
+          case _                                => incoming.constantChildContext()
+        }
+        val child = ScopeSurveyor.scope(fse.query, constantIncoming, c)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 
@@ -154,7 +157,7 @@ object pegExpression {
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
 
       case pe @ PatternExpression(pattern) =>
-        val patternResult = pegPattern(pattern.element, incoming.aggregatingConstantChildContext())
+        val patternResult = pegPattern(pattern.element, incoming.constantChildContext())
         collect(incoming.expressionResultScope(
           pe,
           Seq(patternResult),

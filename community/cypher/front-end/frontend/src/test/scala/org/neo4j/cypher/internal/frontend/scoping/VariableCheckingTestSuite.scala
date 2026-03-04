@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
-import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.AprioriScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
@@ -43,6 +42,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
@@ -113,7 +113,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     constants: Set[String] = Set.empty,
     variables: Set[String] = Set.empty,
     localCallables: Set[Callable] = Set.empty,
-    keys: Set[String] = Set.empty
+    items: Set[String] = Set.empty
   ) extends ExpectedCharacteristic
 
   case class PatternIncoming(
@@ -170,12 +170,12 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         Referenced(Set(name))
       )
 
-    def varAggExp(
+    def varProjExp(
       name: String,
       incomingConstants: Set[String] = Set.empty,
       incomingVariables: Set[String] = Set.empty,
       incomingCallables: Set[Callable] = Set.empty,
-      incomingKeys: Set[String] = Set.empty
+      incomingItems: Set[String] = Set.empty
     ): ExpectedWorkingScope =
       ExpectedWorkingScope(
         Ast(name),
@@ -183,7 +183,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
           constants = incomingConstants,
           variables = incomingVariables,
           localCallables = incomingCallables,
-          keys = incomingKeys
+          items = incomingItems
         ),
         Referenced(Set(name))
       )
@@ -201,6 +201,28 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         ExpectedWorkingScope(
           Ast(ast),
           Incoming(constants = incoming, localCallables = incomingCallables)
+        )
+      }
+    }
+
+    def constProjExp(
+      ast: String,
+      incoming: Set[String] = Set.empty,
+      incomingCallables: Set[Callable] = Set.empty,
+      incomingItems: Set[String] = Set.empty
+    ): ExpectedWorkingScope = {
+      if (incoming.isEmpty && incomingCallables.isEmpty) {
+        ExpectedWorkingScope(
+          Ast(ast)
+        )
+      } else {
+        ExpectedWorkingScope(
+          Ast(ast),
+          AggregationIncoming(
+            constants = incoming,
+            localCallables = incomingCallables,
+            items = incomingItems
+          )
         )
       }
     }
@@ -947,7 +969,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
           }
         case StatementScope(
             _,
-            AggregatingExpressionContext(constants, variables, localCallables, keys, _),
+            ProjectionExpressionContext(constants, variables, localCallables, items, _),
             _,
             _,
             _,
@@ -955,16 +977,21 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             _,
             isInImportingWith
           ) =>
-          withClue("[statement aggregation incoming]") {
+          withClue("[statement projection incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
             }
             withClue("[variables]") {
               variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
             }
-            withClue("[keys]") {
+            withClue("[items]") {
+              aggregationIncoming.items should not be empty
+
               val stringifier = ExpressionStringifier()
-              keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
+
+              items.items.flatMap(i => Set(i.expression) ++ i.alias).map(k =>
+                stringifier(k)
+              ) should contain allElementsOf aggregationIncoming.items
             }
             withClue("[callables]") {
               assertLocalCallableSet(localCallables, incoming.localCallables)
@@ -1010,17 +1037,22 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
           }
-        case ExpressionScope(_, AggregatingExpressionContext(constants, variables, localCallables, keys, _), _, _, _) =>
-          withClue("[expression aggregation incoming]") {
+        case ExpressionScope(_, ProjectionExpressionContext(constants, variables, localCallables, items, _), _, _, _) =>
+          withClue("[expression projection incoming]") {
             withClue("[constants]") {
               constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
             }
             withClue("[variables]") {
               variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
             }
-            withClue("[keys]") {
+            withClue("[items]") {
+              aggregationIncoming.items.size shouldEqual items.size
+
               val stringifier = ExpressionStringifier()
-              keys.map(k => stringifier(k)) should contain theSameElementsAs aggregationIncoming.keys
+
+              items.items.flatMap(i => Set(i.expression) ++ i.alias).map(k =>
+                stringifier(k)
+              ) should contain allElementsOf aggregationIncoming.items
             }
             withClue("[callables]") {
               assertLocalCallableSet(localCallables, incoming.localCallables)

@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
-import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.AprioriScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
@@ -37,6 +36,9 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItem
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -58,9 +60,9 @@ import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredConstants
 import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingCallables
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingConstants
-import org.neo4j.cypher.internal.plandescription.Arguments.IncomingGroupingKeys
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPath
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPredicate
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingProjectionItems
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingTopology
 import org.neo4j.cypher.internal.plandescription.Arguments.IncomingVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingCallables
@@ -184,11 +186,11 @@ object WorkingScope2PlanDescription {
           IncomingPath(renderVariableSet(path)),
           IncomingCallables(renderCallableSet(localCallables))
         )
-      case AggregatingExpressionContext(constants, variables, localCallables, groupingKeys, _) => Seq(
+      case ProjectionExpressionContext(constants, variables, localCallables, projectionItems, _) => Seq(
           IncomingConstants(renderVariableSet(constants)),
           IncomingVariables(renderVariableSet(variables)),
           IncomingCallables(renderCallableSet(localCallables)),
-          IncomingGroupingKeys(renderExpressionSet(groupingKeys))
+          IncomingProjectionItems(renderProjectionItems(projectionItems))
         )
     }
   }
@@ -248,8 +250,16 @@ object WorkingScope2PlanDescription {
     callables.toSeq.sortBy(_.name.fullName).map(renderCallable).mkString(", ")
   }
 
-  private def renderExpressionSet(expressions: Set[Expression]): String = {
-    renderExpressionSeq(expressions.toSeq.sortBy(_.position.offset))
+  private def renderProjectionItems(items: ProjectionItems): String = {
+    if (items.isEmpty) {
+      "—"
+    } else {
+      val stringifier = ExpressionStringifier()
+      items.items.map {
+        case ProjectionItem(expr, alias) => stringifier(expr) + alias.map(a => s" -> ${a.name}").getOrElse("")
+        case _                           => "—"
+      }
+    }.mkString(", ")
   }
 
   private def renderVariableSeq(variables: Seq[LogicalVariable]): String = {
@@ -258,15 +268,6 @@ object WorkingScope2PlanDescription {
 
   private def renderCallableSeq(callables: Seq[LocalCallableScopeSignature]): String = {
     callables.map(renderCallable).mkString(", ")
-  }
-
-  private def renderExpressionSeq(expressions: Seq[Expression]): String = {
-    if (expressions.isEmpty) {
-      "—"
-    } else {
-      val stringifier = ExpressionStringifier()
-      expressions.map(expr => stringifier(expr)).mkString(", ")
-    }
   }
 
   private def renderVariable(variable: LogicalVariable): String =

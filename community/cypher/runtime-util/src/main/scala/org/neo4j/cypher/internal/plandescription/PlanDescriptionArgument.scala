@@ -197,8 +197,8 @@ object Arguments {
     override def name = "incoming local callable"
   }
 
-  case class IncomingGroupingKeys(value: String) extends Argument {
-    override def name = "incoming grouping keys"
+  case class IncomingProjectionItems(value: String) extends Argument {
+    override def name = "incoming projection items"
   }
 
   case class IncomingTopology(value: String) extends Argument {

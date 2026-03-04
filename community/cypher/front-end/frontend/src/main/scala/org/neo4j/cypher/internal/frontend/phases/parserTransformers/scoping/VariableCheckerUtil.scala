@@ -31,10 +31,10 @@ import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -45,7 +45,6 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternElement
-import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -239,25 +238,23 @@ trait VariableCheckerUtil {
 
       object VariableAggregation {
 
-        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Set[Expression])] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Expression => Boolean)] =
           scope match {
-            case ExpressionScope(v: LogicalVariable, AggregatingExpressionContext(const, _, _, keys, _), _, _, _) =>
-              Some((v, const, keys))
+            case ExpressionScope(
+                v: LogicalVariable,
+                ProjectionExpressionContext(const, _, _, items, inSubclause),
+                _,
+                _,
+                _
+              ) =>
+              val recognizable =
+                (x: Expression) => if (inSubclause) items.containsSubclauseRef(x) else items.containsAggregationRef(x)
+              Some((v, const, recognizable))
             case _ => None
           }
 
       }
 
-      object PropertyAggregation {
-
-        def unapply(scope: WorkingScope): Option[(Property, Set[Expression])] =
-          scope match {
-            case ExpressionScope(p: Property, AggregatingExpressionContext(_, _, _, keys, _), _, _, Seq()) =>
-              Some((p, keys))
-            case _ => None
-          }
-
-      }
     }
 
     /**
@@ -468,4 +465,10 @@ trait VariableCheckerUtil {
             ))
         }
       }
+
+  def getVariableNotDefined(acc: Acc, clause: String, incomingToClause: Set[LogicalVariable], v: LogicalVariable): Acc =
+    acc(
+      if (incomingToClause.contains(v)) SemanticError.inaccessibleVariable(v.name, clause, v.position)
+      else SemanticError.variableNotDefined(v.name, v.position)
+    )
 }

@@ -17,13 +17,10 @@
 package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.noLocalCallables
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
-import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
@@ -63,24 +60,21 @@ sealed trait RegularContext extends WorkingContext {
   @inline def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, variables union amendment, localCallables)
 
-  @inline def amendedWithGroupingKeys(
-    groupingKeys: Set[Expression],
+  @inline def amendedWithProjectionItems(
+    projectionItems: ProjectionItems,
     inSubclause: Boolean
-  ): AggregatingExpressionContext =
-    AggregatingExpressionContext(constants, variables, localCallables, groupingKeys, inSubclause)
+  ): ProjectionExpressionContext =
+    ProjectionExpressionContext(constants, variables, localCallables, projectionItems, inSubclause)
 
   @inline def keepOnlyLocalCallable(): RegularContext = RegularContext(unitVariables, unitVariables, localCallables)
 
   @inline def constantChildContext(): RegularContext =
     RegularContext(constants union variables, unitVariables, localCallables)
 
-  @inline def aggregatingConstantChildContext(): RegularContext =
-    RegularContext(constants union variables, unitVariables, localCallables)
-
   @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, replacement, localCallables)
 
-  @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable], inSubExpr: Boolean)
+  @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable])
     : Seq[SemanticError] = {
     checkIfVariablesAreAlreadyDeclaredIn(
       constants,
@@ -224,39 +218,81 @@ case class CommonContext(
   localCallables: Set[LocalCallableScopeSignature]
 ) extends RegularContext
 
-case class AggregatingExpressionContext(
+case class ProjectionExpressionContext(
   constants: Set[LogicalVariable],
   variables: Set[LogicalVariable],
   localCallables: Set[LocalCallableScopeSignature],
-  groupingKeys: Set[Expression],
+  projectionItems: ProjectionItems,
   inSubclause: Boolean
 ) extends RegularContext {
-  private lazy val stringifier = ExpressionStringifier()
 
-  private lazy val groupingVars = groupingKeys.map {
-    case v: LogicalVariable => v
-    case expr: Expression   => Variable(stringifier(expr))(expr.position, isIsolated = false)
+  def projectionChildContext(): RegularContext = {
+    (projectionItems.isAggregating, inSubclause) match {
+      case (false, false) =>
+        ProjectionExpressionContext(
+          constants union variables,
+          unitVariables,
+          localCallables,
+          projectionItems,
+          inSubclause
+        )
+      case (false, true) =>
+        ProjectionExpressionContext(
+          constants union variables union projectionItems.subclauseScopeSymbols,
+          unitVariables,
+          localCallables,
+          projectionItems,
+          inSubclause
+        )
+      case (true, false) =>
+        ProjectionExpressionContext(
+          constants,
+          variables,
+          localCallables,
+          projectionItems,
+          inSubclause
+        )
+      case (true, true) =>
+        ProjectionExpressionContext(
+          constants union projectionItems.subclauseScopeSymbols,
+          unitVariables,
+          localCallables,
+          projectionItems,
+          inSubclause
+        )
+    }
   }
 
-  override lazy val constantSymbols: Set[LogicalVariable] = constants ++ groupingVars
-
-  override def constantChildContext(): RegularContext =
-    RegularContext(constants union groupingVars, unitVariables, localCallables)
-
-  override def aggregatingConstantChildContext(): RegularContext =
-    RegularContext(constants union variables union groupingVars, unitVariables, localCallables)
-
   override def amendedWithConstant(amendment: LogicalVariable): RegularContext =
-    AggregatingExpressionContext(constants + amendment, variables, localCallables, groupingKeys, inSubclause)
+    ProjectionExpressionContext(constants + amendment, variables, localCallables, projectionItems, inSubclause)
 
   override def amendedWithConstant(amendment: Set[LogicalVariable]): RegularContext =
-    AggregatingExpressionContext(constants union amendment, variables, localCallables, groupingKeys, inSubclause)
+    ProjectionExpressionContext(constants union amendment, variables, localCallables, projectionItems, inSubclause)
 
   override def amendedWith(amendment: LogicalVariable): RegularContext =
-    AggregatingExpressionContext(constants, variables + amendment, localCallables, groupingKeys, inSubclause)
+    ProjectionExpressionContext(constants, variables + amendment, localCallables, projectionItems, inSubclause)
 
   override def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
-    AggregatingExpressionContext(constants, variables union amendment, localCallables, groupingKeys, inSubclause)
+    ProjectionExpressionContext(constants, variables union amendment, localCallables, projectionItems, inSubclause)
+
+  def subqueryConstantChildContext: RegularContext = {
+    if (inSubclause)
+      ProjectionExpressionContext(
+        constants union projectionItems.aliases,
+        unitVariables,
+        localCallables,
+        projectionItems,
+        inSubclause
+      )
+    else
+      ProjectionExpressionContext(
+        constants union variables,
+        unitVariables,
+        localCallables,
+        projectionItems,
+        inSubclause
+      )
+  }
 
 }
 
@@ -289,19 +325,6 @@ case class PatternIncomingContext(
       localCallables
     )
 
-  @inline def amendedWithConstantsAccordingToVersion(
-    amendment: LogicalVariable,
-    version: CypherVersion
-  ): PatternIncomingContext =
-    PatternIncomingContext(
-      topologicalConstants + amendment,
-      // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
-      if (version == CypherVersion.Cypher5) predicateConstants + amendment else predicateConstants,
-      pathConstants,
-      groupConstants,
-      localCallables
-    )
-
   @inline def amendedWithConstantAccordingToVersion(
     amendment: Set[LogicalVariable],
     version: CypherVersion
@@ -310,15 +333,6 @@ case class PatternIncomingContext(
       topologicalConstants union amendment,
       // CREATE/MERGE pattern in Cypher5 where predicates of pattern part can refer to variables introduce in earlier pattern parts
       if (version == CypherVersion.Cypher5) predicateConstants union amendment else predicateConstants,
-      pathConstants,
-      groupConstants,
-      localCallables
-    )
-
-  @inline def amendedWithPredicateConstant(amendment: LogicalVariable): PatternIncomingContext =
-    PatternIncomingContext(
-      topologicalConstants + amendment,
-      predicateConstants,
       pathConstants,
       groupConstants,
       localCallables

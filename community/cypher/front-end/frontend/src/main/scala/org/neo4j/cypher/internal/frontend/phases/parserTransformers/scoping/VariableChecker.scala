@@ -35,15 +35,14 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
-import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
-import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
@@ -82,10 +81,7 @@ case class VariableChecker(
       val redeclarationOfConstants = astNode match {
         case _: Foreach => Seq.empty // historically, the FOREACH iteration variable is allowed to shadow
         case _ =>
-          incoming.checkIfVariablesAreAlreadyDeclaredAsConstant(
-            (constants ++ variables).toSet,
-            acc.scopeContext.isInstanceOf[SubqueryExpression]
-          )
+          incoming.checkIfVariablesAreAlreadyDeclaredAsConstant((constants ++ variables).toSet)
       }
       // redeclaration of variables
       val redeclarationOfVariables = astNode match {
@@ -249,39 +245,15 @@ case class VariableChecker(
       } else {
         acc(SemanticError.variableNotDefined(variable.name, variable.position))
       }
-    case (
-        Acc.Aggregation(acc, clause, _),
-        Scope.Expr.PropertyAggregation(property, groupingKeys)
-      ) if !(groupingKeys contains property) =>
-      val stringifier = ExpressionStringifier()
-      acc(SemanticError.inaccessibleVariable(stringifier(property.map), clause, property.position))
-    case (
-        Acc.Aggregation(acc, clause, incomingToClause),
-        Scope.Expr.VariableAggregation(variable, constants, groupingKeys)
-      ) =>
-      if (!(constants contains variable) && !(groupingKeys contains variable)) {
-        if (incomingToClause contains variable)
-          acc(SemanticError.inaccessibleVariable(variable.name, clause, variable.position))
-        else
-          acc(SemanticError.variableNotDefined(variable.name, variable.position))
-      } else acc
+    case (Acc.Aggregation(acc, clause, incomingToClause), Scope.Expr.VariableAggregation(v, constants, recognizable)) =>
+      if (!(constants contains v) && !recognizable(v)) getVariableNotDefined(acc, clause, incomingToClause, v) else acc
     case (Acc.Aggregation(acc, clause, incomingToClause), Scope.Expr.Variable(variable, in))
-      if !(in.constants contains variable) =>
-      if (incomingToClause contains variable)
-        acc(SemanticError.inaccessibleVariable(variable.name, clause, variable.position))
-      else
-        acc(SemanticError.variableNotDefined(variable.name, variable.position))
+      if !(in.constants contains variable) => getVariableNotDefined(acc, clause, incomingToClause, variable)
     case (
         Acc.Aggregation(acc, clause, incomingToClause),
-        ExpressionScope(_: FullSubqueryExpression, aec: AggregatingExpressionContext, refs, _, _)
-      )
-      if !refs.forall(aec.constantSymbols.contains) =>
-      refs.foldLeft(acc) { case (acc, lv) =>
-        if (incomingToClause contains lv)
-          acc(SemanticError.inaccessibleVariable(lv.name, clause, lv.position))
-        else
-          acc(SemanticError.variableNotDefined(lv.name, lv.position))
-      }
+        ExpressionScope(_: FullSubqueryExpression, ctx: ProjectionExpressionContext, refs, _, _)
+      ) if !refs.forall(ctx.projectionItems.containsSubclauseRef) =>
+      refs.foldLeft(acc) { case (acc, lv) => getVariableNotDefined(acc, clause, incomingToClause, lv) }
     case (acc, Scope.Expr.Variable(variable, incoming)) if !(incoming.constants contains variable) =>
       acc(SemanticError.variableNotDefined(variable.name, variable.position))
   }
@@ -443,7 +415,7 @@ case class VariableChecker(
             // Partition children into groupingItems, aggregatingItems and subclauseItems
             val (groupingItems, other) = children.partition(_.incoming.isInstanceOf[CommonContext])
             val (subclauses, aggregatingItems) =
-              other.partition(_.incoming.asInstanceOf[AggregatingExpressionContext].inSubclause)
+              other.partition(_.incoming.asInstanceOf[ProjectionExpressionContext].inSubclause)
 
             val aggregatingExpressions = aggregatingItems.map(_.astNode.asInstanceOf[Expression]).toSet
 
@@ -460,8 +432,8 @@ case class VariableChecker(
                 case _ => true
               }
               .flatMap {
-                case ExpressionScope(_, AggregatingExpressionContext(_, variables, _, keys, true), refs, _, _) =>
-                  refs.filter(r => !keys(r) && variables(r)).map(r =>
+                case ExpressionScope(_, ProjectionExpressionContext(_, variables, _, keys, true), refs, _, _) =>
+                  refs.filter(r => !keys.containsSubclauseRef(r) && variables(r)).map(r =>
                     SemanticError.inaccessibleVariable(r.name, p.name, r.position)
                   ).toSeq
                 case _ => Seq.empty
