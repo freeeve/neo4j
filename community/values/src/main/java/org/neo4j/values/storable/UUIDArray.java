@@ -31,6 +31,16 @@ public class UUIDArray extends NonPrimitiveArray<UUID> {
     }
 
     @Override
+    public boolean equals(Value other) {
+        return other.equals(value);
+    }
+
+    @Override
+    public boolean equals(UUID[] x) {
+        return Arrays.equals(value, x);
+    }
+
+    @Override
     protected UUID[] value() {
         return value;
     }

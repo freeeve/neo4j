@@ -30,6 +30,7 @@ import java.time.OffsetTime;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.exceptions.InvalidArgumentException;
@@ -135,6 +136,10 @@ public abstract class Value extends AnyValue implements Serializable {
     }
 
     public boolean equals(OffsetTime[] x) {
+        return false;
+    }
+
+    public boolean equals(UUID[] x) {
         return false;
     }
 
