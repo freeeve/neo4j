@@ -186,7 +186,7 @@
     <cucumber.scala.version>8.36.0</cucumber.scala.version>
     <caffeine.version>3.2.3</caffeine.version>
     <required.maven.version>3.9.11</required.maven.version>
-    <jackson.version>2.21.0</jackson.version>
+    <jackson.version>2.21.1</jackson.version>
     <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
     <jackson.annotations.version>2.21</jackson.annotations.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
