@@ -25,9 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
@@ -81,39 +79,6 @@ class FreeIdCacheTest {
         // then
         free.forEach(id -> assertThat(freeIdCache.isIdFree(id)).isTrue());
         nonFree.forEach(id -> assertThat(freeIdCache.isIdFree(id)).isFalse());
-    }
-
-    @Test
-    void testBloomFilter() {
-        // Given
-        FreeIdCache.FreeIdsBloomFilter filter = new FreeIdCache.FreeIdsBloomFilter(100, 4);
-        List<Long> values = List.of(1L, 10L, 1000L, 10000000L, 1000000000000L, 1000000000000000L);
-
-        // When
-        values.forEach(filter::add);
-        // Then
-        for (long value : values) {
-            assertThat(filter.idMayBeFree(value - 1)).isFalse();
-            assertThat(filter.idMayBeFree(value)).isTrue();
-            assertThat(filter.idMayBeFree(value + 1)).isFalse();
-        }
-    }
-
-    @Test
-    void testBloomFilterRandomNumbers() {
-        // Given
-        FreeIdCache.FreeIdsBloomFilter filter = new FreeIdCache.FreeIdsBloomFilter(100, 4);
-        List<Long> values = new ArrayList<>();
-        // When
-        for (int i = 0; i < 10; i++) {
-            long value = random.nextLong();
-            values.add(value);
-            filter.add(value);
-        }
-        // Then
-        for (long value : values) {
-            assertThat(filter.idMayBeFree(value)).isTrue();
-        }
     }
 
     private IdGenerator withFreeIds(long... ids) throws IOException {

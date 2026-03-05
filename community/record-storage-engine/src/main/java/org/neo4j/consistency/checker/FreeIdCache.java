@@ -24,6 +24,8 @@ import java.io.UncheckedIOException;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
+import org.neo4j.collection.BloomFilter;
+import org.neo4j.collection.LongBloomFilter;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.util.VisibleForTesting;
@@ -35,7 +37,7 @@ class FreeIdCache {
     private final int maxItemsInCache;
     private final long highId;
     private volatile LongSet cache;
-    private volatile FreeIdsBloomFilter bloomFilter;
+    private volatile BloomFilter bloomFilter;
 
     FreeIdCache(IdGenerator idGenerator) {
         this(idGenerator, MAX_CACHE_SIZE);
@@ -67,7 +69,7 @@ class FreeIdCache {
         if (cache != null) {
             return cache.contains(id);
         }
-        if (bloomFilter.idMayBeFree(id)) {
+        if (bloomFilter.mayContain(id)) {
             // This is either for inconsistencies or false positives (should be rare)
             // It's not optimal to create a seeker for each check, but it works for now
             try (PrimitiveLongResourceIterator freeId = idGenerator.notUsedIdsIterator(id, id)) {
@@ -91,7 +93,7 @@ class FreeIdCache {
                     cache = ids;
                 } else {
                     cache = null;
-                    bloomFilter = new FreeIdsBloomFilter(maxItemsInCache * BLOOM_FILTER_SIZE_FACTOR, 7);
+                    bloomFilter = new LongBloomFilter(maxItemsInCache * BLOOM_FILTER_SIZE_FACTOR, 7);
                     ids.forEach(bloomFilter::add);
                     while (freeIdsIterator.hasNext()) {
                         bloomFilter.add(freeIdsIterator.next());
@@ -100,52 +102,6 @@ class FreeIdCache {
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    static class FreeIdsBloomFilter {
-        private final int filterSize;
-        private final int numHashes;
-
-        private final long[] data;
-
-        FreeIdsBloomFilter(int filterSize, int numHashes) {
-            this.numHashes = numHashes;
-            this.filterSize = filterSize;
-            data = new long[filterSize];
-        }
-
-        private static long hash64(long x) {
-            x += 5653741133630908297L;
-            x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
-            x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
-            x = x ^ (x >>> 33);
-            return x;
-        }
-
-        void add(long id) {
-            long hash = hash64(id);
-            long a = (hash >>> 32) | (hash << 32);
-            for (int i = 0; i < numHashes; i++) {
-                data[reduce((int) (a >>> 32))] |= 1L << a;
-                a += hash;
-            }
-        }
-
-        boolean idMayBeFree(long id) {
-            long hash = hash64(id);
-            long a = (hash >>> 32) | (hash << 32);
-            for (int i = 0; i < numHashes; i++) {
-                if ((data[reduce((int) (a >>> 32))] & 1L << a) == 0) {
-                    return false;
-                }
-                a += hash;
-            }
-            return true;
-        }
-
-        private int reduce(int hash) {
-            return (int) (((hash & 0xffffffffL) * filterSize) >>> 32); // fast mod FILTER_SIZE
         }
     }
 }
