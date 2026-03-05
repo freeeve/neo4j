@@ -20,7 +20,6 @@
 package org.neo4j.cypher.cucumber.value
 
 import org.assertj.core.util.DoubleComparator
-import org.assertj.core.util.FloatComparator
 import org.eclipse.collections.impl.factory.Bags
 import org.eclipse.collections.impl.factory.Maps
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.Connection
@@ -222,7 +221,7 @@ final object ResultValueMapper extends ValueMapper {
           case double: lang.Double =>
             new CloseEnoughDouble(double, epsilon)
           case float: lang.Float =>
-            new CloseEnoughFloat(float, epsilon.toFloat)
+            new CloseEnoughDouble(float.doubleValue(), epsilon)
           case v => v
         }
       )
@@ -233,19 +232,6 @@ final object ResultValueMapper extends ValueMapper {
 
       override def equals(obj: Any): Boolean = obj match {
         case otherNumber: CloseEnoughDouble =>
-          comparator.compare(value, otherNumber.value) == 0
-        case _ => false
-      }
-
-      override def hashCode(): Int = value.hashCode()
-      override def toString: String = value.toString
-    }
-
-    private class CloseEnoughFloat(val value: lang.Float, epsilon: Float) {
-      private val comparator = new FloatComparator(epsilon)
-
-      override def equals(obj: Any): Boolean = obj match {
-        case otherNumber: CloseEnoughFloat =>
           comparator.compare(value, otherNumber.value) == 0
         case _ => false
       }
