@@ -121,7 +121,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
   ): Unit = {
     val catalogName = graphNameWithContext.graphName
     val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.qualifiedNameString)
-    toScala(databaseReferenceRepository.getByAlias(normalizedDatabaseName)) match {
+    toScala(databaseReferenceRepository.getByAlias(normalizeCatalogName(normalizedDatabaseName.name()))) match {
       case None
         if !allowCompositeQueries || !isConstituent(
           databaseReferenceRepository,
@@ -136,6 +136,14 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
       case _ =>
     }
   }
+
+  private def normalizeCatalogName(databaseAlias: String): String =
+    if (databaseAlias.matches("`.*\\..*`")) {
+      val unquoted: String = databaseAlias.substring(1, databaseAlias.length - 1)
+      unquoted.replace("``", "`")
+    } else {
+      databaseAlias
+    }
 
   private def unsupportedQueryRouting(graphNameWithContext: GraphNameWithContext): Unit = {
     if (graphNameWithContext.combinedWithAmbientGraph) {

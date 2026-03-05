@@ -48,7 +48,7 @@ public class ModelBasedDatabaseReferenceRepository implements DatabaseReferenceR
 
     @Override
     public Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias) {
-        return getByAlias(new NormalizedCatalogEntry(normalizeCatalogName(databaseAlias.name())));
+        return getByAlias(new NormalizedCatalogEntry(databaseAlias.name()));
     }
 
     @Override
@@ -67,16 +67,6 @@ public class ModelBasedDatabaseReferenceRepository implements DatabaseReferenceR
 
         return modelProvider.withModel(model -> model.getDatabaseIdByUUID(databaseId)
                 .flatMap(id -> model.getDatabaseRefByAlias(new NormalizedCatalogEntry(id.name()))));
-    }
-
-    private String normalizeCatalogName(String databaseAlias) {
-        // catalog has been quoted due to a .
-        // TODO: quoted composite name literals need to keep quotation
-        if (databaseAlias.matches("`.*\\..*`")) {
-            String unquoted = databaseAlias.substring(1, databaseAlias.length() - 1);
-            return unquoted.replace("``", "`");
-        }
-        return databaseAlias;
     }
 
     @Override
