@@ -19,6 +19,7 @@
  */
 package org.neo4j.procedure.builtin;
 
+import static java.lang.String.format;
 import static org.neo4j.internal.helpers.collection.Iterators.stream;
 import static org.neo4j.kernel.impl.api.TokenAccess.LABELS;
 import static org.neo4j.kernel.impl.api.TokenAccess.PROPERTY_KEYS;
@@ -62,6 +63,7 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.NotThreadSafe;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.storageengine.api.StoreIdProvider;
+import org.neo4j.time.Stopwatch;
 
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class BuiltInProcedures {
@@ -252,13 +254,21 @@ public class BuiltInProcedures {
             return;
         }
 
+        long remainingTimeOutSeconds = timeOutSeconds;
         if (spdBuiltInProcedures.isGraphShard()) {
-            spdBuiltInProcedures.prepareForReplanning();
+            Stopwatch startTime = Stopwatch.start();
+            spdBuiltInProcedures.prepareForReplanning(timeOutSeconds);
+            remainingTimeOutSeconds = Long.max(0, timeOutSeconds - startTime.elapsed(TimeUnit.SECONDS));
         }
 
         // Resample indexes
+        if (timeOutSeconds != 0 && remainingTimeOutSeconds <= 0) {
+            throw new RuntimeException(format(
+                    "Could not finish index sampling within the given time limit, %d milliseconds",
+                    TimeUnit.SECONDS.toMillis(timeOutSeconds)));
+        }
         IndexProcedures indexProcedures = indexProcedures();
-        indexProcedures.resampleOutdatedIndexes(timeOutSeconds);
+        indexProcedures.resampleOutdatedIndexes(remainingTimeOutSeconds);
 
         // now that index-stats are up-to-date, clear caches so that we are ready to re-plan
         graphDatabaseAPI

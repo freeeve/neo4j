@@ -58,7 +58,7 @@ public interface SpdBuiltInProcedures {
         }
 
         @Override
-        public void prepareForReplanning() {
+        public void prepareForReplanning(long timeOutSeconds) {
             throw unsupported();
         }
 
@@ -92,7 +92,7 @@ public interface SpdBuiltInProcedures {
 
     Stream<RelationshipPropertySchemaInfoResult> relationshipPropertySchema(KernelTransaction kernelTransaction);
 
-    void prepareForReplanning();
+    void prepareForReplanning(long timeOutSeconds);
 
     void resampleOutdatedIndexes();
 
