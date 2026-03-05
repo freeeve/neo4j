@@ -108,6 +108,8 @@ public class ConfiguringPageCacheFactory {
     private PageCache createPageCache() {
         checkAccessMode(log);
         long pageCacheMaxMemory = getPageCacheMaxMemory(config);
+        boolean asyncIO = getAsyncSetting();
+
         var memoryPool = memoryPools.pool(PAGE_CACHE, pageCacheMaxMemory, false, null);
         var memoryTracker = memoryPool.getPoolMemoryTracker();
         MemoryAllocator memoryAllocator = buildMemoryAllocator(
@@ -122,10 +124,18 @@ public class ConfiguringPageCacheFactory {
                 .preallocateStoreFiles(config.get(preallocate_store_files))
                 .clock(clock)
                 .pageCacheTracer(pageCacheTracer)
-                .withAsyncIO(config.get(pagecache_async_io))
+                .withAsyncIO(asyncIO)
                 .closeAllocatorOnShutdown(config.get(GraphDatabaseInternalSettings.close_allocator_on_shutdown));
         configuration = pageCacheConfigurator.apply(configuration);
         return new MuninnPageCache(fs, scheduler, configuration);
+    }
+
+    private Boolean getAsyncSetting() {
+        Boolean async = config.get(pagecache_async_io);
+        if (async) {
+            log.info("Page cache is configured to use async IO provider, if available.");
+        }
+        return async;
     }
 
     private static MemoryAllocator buildMemoryAllocator(

@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.pagecache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.pagecache_async_io;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.configuration.GraphDatabaseSettings.preallocate_store_files;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
@@ -65,7 +66,7 @@ class ConfiguringPageCacheFactoryTest {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         jobScheduler.close();
     }
 
@@ -118,7 +119,6 @@ class ConfiguringPageCacheFactoryTest {
 
     @Test
     void shouldDumpConfigurationWithUnspecifiedPageCacheMemorySetting() {
-        // givben
         Config config = Config.defaults();
         AssertableLogProvider logProvider = new AssertableLogProvider();
         ConfiguringPageCacheFactory factory = new ConfiguringPageCacheFactory(
@@ -130,10 +130,28 @@ class ConfiguringPageCacheFactoryTest {
                 Clocks.nanoClock(),
                 new MemoryPools());
 
-        // when
         factory.dumpConfiguration();
 
-        // then
         LogAssertions.assertThat(logProvider).containsMessages("Page cache: <not specified>");
+    }
+
+    @Test
+    void logConfiguredAsyncMode() {
+        Config config = Config.defaults(pagecache_async_io, true);
+
+        AssertableLogProvider logProvider = new AssertableLogProvider();
+        ConfiguringPageCacheFactory factory = new ConfiguringPageCacheFactory(
+                fs,
+                config,
+                PageCacheTracer.NULL,
+                logProvider.getLog(ConfiguringPageCacheFactory.class),
+                jobScheduler,
+                Clocks.nanoClock(),
+                new MemoryPools());
+
+        try (var cache = factory.getOrCreatePageCache()) {
+            LogAssertions.assertThat(logProvider)
+                    .containsMessages("Page cache is configured to use async IO provider, if available.");
+        }
     }
 }
