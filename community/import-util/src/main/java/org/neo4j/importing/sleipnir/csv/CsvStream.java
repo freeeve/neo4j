@@ -20,8 +20,13 @@
 package org.neo4j.importing.sleipnir.csv;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public interface CsvStream {
+
+    Charset TARGET_ENCODING = StandardCharsets.UTF_8;
+
     /**
      * Index all separators in CSV data. Separators includes field and row delimiters.
      *
