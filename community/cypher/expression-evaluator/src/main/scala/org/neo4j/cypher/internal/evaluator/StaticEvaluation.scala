@@ -72,6 +72,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
@@ -440,6 +441,8 @@ object StaticEvaluation {
       id: Int,
       indexOrder: IndexOrder
     ): ClosingLongIterator = notAvailable()
+
+    override def createConstraint(constraint: ConstraintCommand.Create): Unit = notAvailable()
 
     override def createNodeKeyConstraint(
       labelId: Int,

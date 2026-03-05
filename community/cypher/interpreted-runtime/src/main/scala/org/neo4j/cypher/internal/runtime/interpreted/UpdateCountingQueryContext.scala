@@ -38,9 +38,11 @@ import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
 import org.neo4j.internal.schema.ConstraintDescriptor
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.values.storable.Value
@@ -290,6 +292,24 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
 
   override def constraintExists(matchFn: ConstraintDescriptor => Boolean, entityId: Int, properties: Int*): Boolean = {
     inner.constraintExists(matchFn, entityId, properties: _*)
+  }
+
+  override def createConstraint(constraint: ConstraintCommand.Create): Unit = {
+    inner.createConstraint(constraint)
+    constraint match {
+      case _: ConstraintCommand.Create.NodeKey                  => nodeKeyConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.RelationshipKey          => relKeyConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.NodeUniqueness           => nodePropUniquenessConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.RelationshipUniqueness   => relPropUniquenessConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.NodeExistence            => nodePropertyExistenceConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.RelationshipExistence    => relPropertyExistenceConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.NodePropertyType         => nodePropertyTypeConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.RelationshipPropertyType => relPropertyTypeConstraintsAdded.increase()
+      case _: ConstraintCommand.Create.NodeLabelExistence       => nodeLabelExistenceConstraintsAdded.increase()
+      case c: ConstraintCommand.Create.RelationshipEndpointLabel =>
+        if (c.endpointType() == EndpointType.START) relSourceLabelConstraintsAdded.increase()
+        if (c.endpointType() == EndpointType.END) relTargetLabelConstraintsAdded.increase()
+    }
   }
 
   override def createNodeKeyConstraint(

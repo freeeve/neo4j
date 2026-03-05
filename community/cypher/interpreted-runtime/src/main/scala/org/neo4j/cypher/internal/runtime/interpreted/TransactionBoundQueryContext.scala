@@ -110,6 +110,7 @@ import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexPrototype
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.SchemaNameUtil
@@ -435,6 +436,89 @@ sealed class TransactionBoundQueryContext(
 
   override def dropIndexRule(name: String): Unit =
     transactionalContext.schemaWrite.indexDrop(name)
+
+  override def createConstraint(constraint: ConstraintCommand.Create): Unit = {
+
+    def propertyKeyIds(properties: util.List[String]): Seq[Int] = {
+      properties.asScala.map(getOrCreatePropertyKeyId).toSeq
+    }
+
+    constraint match {
+      case c: ConstraintCommand.Create.NodeKey =>
+        val indexPrototype =
+          getNodeUniqueIndexPrototype(
+            getOrCreateLabelId(c.label()),
+            propertyKeyIds(c.properties()),
+            Option(c.name()),
+            None
+          )
+        transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
+      case c: ConstraintCommand.Create.RelationshipKey =>
+        val indexPrototype = getRelationshipUniqueIndexPrototype(
+          getOrCreateRelTypeId(c.`type`()),
+          propertyKeyIds(c.properties()),
+          Option(c.name),
+          None
+        )
+        transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
+      case c: ConstraintCommand.Create.NodeUniqueness =>
+        val indexPrototype =
+          getNodeUniqueIndexPrototype(
+            getOrCreateLabelId(c.label()),
+            propertyKeyIds(c.properties()),
+            Option(c.name()),
+            None
+          )
+        transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
+      case c: ConstraintCommand.Create.RelationshipUniqueness =>
+        val indexPrototype = getRelationshipUniqueIndexPrototype(
+          getOrCreateRelTypeId(c.`type`()),
+          propertyKeyIds(c.properties()),
+          Option(c.name),
+          None
+        )
+        transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
+      case c: ConstraintCommand.Create.NodeExistence =>
+        transactionalContext.schemaWrite.nodePropertyExistenceConstraintCreate(
+          SchemaDescriptors.forLabel(getOrCreateLabelId(c.label()), getOrCreatePropertyKeyId(c.property())),
+          c.name(),
+          c.isDependent()
+        )
+      case c: ConstraintCommand.Create.RelationshipExistence =>
+        transactionalContext.schemaWrite.relationshipPropertyExistenceConstraintCreate(
+          SchemaDescriptors.forRelType(getOrCreateRelTypeId(c.`type`()), getOrCreatePropertyKeyId(c.property())),
+          c.name(),
+          c.isDependent()
+        )
+      case c: ConstraintCommand.Create.NodePropertyType =>
+        transactionalContext.schemaWrite.propertyTypeConstraintCreate(
+          SchemaDescriptors.forLabel(getOrCreateLabelId(c.label()), getOrCreatePropertyKeyId(c.property())),
+          c.name(),
+          c.propertyTypes(),
+          c.isDependent()
+        )
+      case c: ConstraintCommand.Create.RelationshipPropertyType =>
+        transactionalContext.schemaWrite.propertyTypeConstraintCreate(
+          SchemaDescriptors.forRelType(getOrCreateRelTypeId(c.`type`()), getOrCreatePropertyKeyId(c.property())),
+          c.name(),
+          c.propertyTypes(),
+          c.isDependent()
+        )
+      case c: ConstraintCommand.Create.NodeLabelExistence =>
+        transactionalContext.schemaWrite.nodeLabelExistenceConstraintCreate(
+          SchemaDescriptors.forNodeLabelExistence(getOrCreateLabelId(c.label())),
+          null,
+          getOrCreateLabelId(c.requiredLabel())
+        )
+      case c: ConstraintCommand.Create.RelationshipEndpointLabel =>
+        transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
+          SchemaDescriptors.forRelationshipEndpointLabel(getOrCreateRelTypeId(c.`type`())),
+          null,
+          getOrCreateLabelId(c.requiredLabel()),
+          c.endpointType()
+        )
+    }
+  }
 
   override def createNodeKeyConstraint(
     labelId: Int,

@@ -85,6 +85,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.io.pagecache.context.CursorContext
@@ -489,6 +490,9 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     manyDbHits(1 + map.size())
     map
   }
+
+  override def createConstraint(constraint: ConstraintCommand.Create): Unit =
+    singleDbHit(inner.createConstraint(constraint))
 
   override def createNodeKeyConstraint(
     labelId: Int,

@@ -73,6 +73,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.io.pagecache.context.CursorContext
@@ -652,6 +653,8 @@ trait WriteQueryContext extends IndexProviderContext {
   ): IndexDescriptor
 
   def dropIndexRule(name: String): Unit
+
+  def createConstraint(constraint: ConstraintCommand.Create): Unit
 
   /* throws if failed or pre-existing */
   def createNodeKeyConstraint(

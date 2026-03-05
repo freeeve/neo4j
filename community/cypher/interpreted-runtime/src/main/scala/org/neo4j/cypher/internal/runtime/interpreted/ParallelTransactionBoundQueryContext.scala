@@ -46,6 +46,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
@@ -163,6 +164,8 @@ object ParallelTransactionBoundQueryContext {
     ): IndexDescriptor = unsupported()
 
     override def dropIndexRule(name: String): Unit = unsupported()
+
+    override def createConstraint(constraint: ConstraintCommand.Create): Unit = unsupported()
 
     override def createNodeKeyConstraint(
       labelId: Int,

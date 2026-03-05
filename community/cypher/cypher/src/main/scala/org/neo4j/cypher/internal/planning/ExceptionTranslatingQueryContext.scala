@@ -72,6 +72,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
@@ -777,6 +778,9 @@ class ExceptionTranslatingQueryContext(override val inner: QueryContext)
 
   override def dropIndexRule(name: String): Unit =
     translateException(tokenNameLookup, inner.dropIndexRule(name))
+
+  override def createConstraint(constraint: ConstraintCommand.Create): Unit =
+    translateException(tokenNameLookup, inner.createConstraint(constraint))
 
   override def createNodeKeyConstraint(
     labelId: Int,
