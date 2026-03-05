@@ -26,6 +26,8 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.MapAssert;
+import org.neo4j.genai.ai.text.aggregateCompletion.TextAggregateCompletion;
+import org.neo4j.genai.ai.text.aggregateStructuredCompletion.TextAggregateStructuredCompletion;
 import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
@@ -48,6 +50,8 @@ public interface GenAITestExtension {
                 VectorDatabases.class,
                 TextCompletion.class,
                 TextStructuredCompletion.class,
+                TextAggregateCompletion.class,
+                TextAggregateStructuredCompletion.class,
                 TextChat.class,
                 VectorEmbedding.class);
     }

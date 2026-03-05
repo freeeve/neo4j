@@ -22,7 +22,11 @@ package org.neo4j.genai.ai.text.completion;
 import org.neo4j.genai.util.GenAIMonitor;
 
 public interface TextCompletionCallCountersMonitor extends GenAIMonitor {
+    void textAggregationCompletionFunctionCalled(String provider);
+
     void textCompletionFunctionCalled(String provider);
+
+    void textAggregationStructuredCompletionFunctionCalled(String provider);
 
     void textStructuredCompletionFunctionCalled(String provider);
 

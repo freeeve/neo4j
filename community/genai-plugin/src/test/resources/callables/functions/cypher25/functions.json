@@ -1,6 +1,88 @@
 [
   {
     "isDeprecated": false,
+    "aggregating": true,
+    "signature": "ai.text.aggregateCompletion(value :: STRING, prompt :: STRING, provider :: STRING, configuration = {} :: MAP) :: STRING",
+    "name": "ai.text.aggregateCompletion",
+    "description": "Generate text based on the specified prompt.",
+    "returnDescription": "STRING",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "value",
+        "description": "The value to aggregate over.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "prompt",
+        "description": "The prompt to generate text from.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock', 'Bedrock-Nova', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
+    "aggregating": true,
+    "signature": "ai.text.aggregateStructuredCompletion(value :: STRING, prompt :: STRING, schema :: MAP, provider :: STRING, configuration = {} :: MAP) :: MAP",
+    "name": "ai.text.aggregateStructuredCompletion",
+    "description": "Generate text based on the specified prompt.",
+    "returnDescription": "MAP",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "value",
+        "description": "The value to aggregate over.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "prompt",
+        "description": "The prompt to generate text from.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "schema",
+        "description": "A map describing the JSON schema for the desired output.",
+        "isDeprecated": false,
+        "type": "MAP"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock', 'Bedrock-Nova', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.structuredCompletion.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
     "aggregating": false,
     "signature": "ai.text.chat(prompt :: STRING, chatId :: STRING, provider :: STRING, configuration = {} :: MAP) :: MAP",
     "name": "ai.text.chat",

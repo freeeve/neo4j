@@ -1,0 +1,20 @@
+{
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "{{parameters.answer}}"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 4,
+    "outputTokens": 53,
+    "totalTokens": 57,
+    "cacheReadInputTokenCount": 0,
+    "cacheWriteInputTokenCount": 0
+  }
+}

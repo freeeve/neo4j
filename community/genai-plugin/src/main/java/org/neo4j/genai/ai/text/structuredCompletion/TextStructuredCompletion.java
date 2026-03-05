@@ -33,6 +33,7 @@ import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
+import org.neo4j.procedure.NotThreadSafe;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.Sensitive;
 import org.neo4j.procedure.UserFunction;
@@ -53,6 +54,7 @@ public class TextStructuredCompletion {
     @Context
     public GenAIConfig genAIConfig;
 
+    @NotThreadSafe
     @UserFunction(name = "ai.text.structuredCompletion")
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     @Description("Generate structured output as a map based on the specified prompt and JSON schema.")

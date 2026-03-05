@@ -1,0 +1,74 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-vertex-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Hello, can you tell me the issues with my restaurant based on these reviews?\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+                }
+              ]
+            }
+          ],
+          "generation_config": {
+            "responseSchema": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "issues": {
+                  "type": "array",
+                  "items": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "priority": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "priority",
+                      "description"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "issues"
+              ]
+            },
+            "responseMimeType": "application/json"
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "vertexai-v1-generate-content-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "{\\\"issues\\\":[{\\\"priority\\\":\\\"High\\\",\\\"description\\\":\\\"Issue 1.\\\"},{\\\"priority\\\":\\\"Medium\\\",\\\"description\\\":\\\"Issue 2.\\\"}]}"
+    }
+  }
+}

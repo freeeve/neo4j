@@ -162,10 +162,43 @@ public class VertexAi implements TextStructuredCompletion.Provider {
             generationConfig.put("responseMimeType", "application/json");
             generationConfig.put("responseSchema", schema);
             // Merge vendorOptions into generation_config, as used for options like maxOutputTokens
+            // But if a 'system_instruction' is present, it should be pulled out of vendorOptions and
+            // added as a top-level payload field according to Vertex API.
+            Object systemInstruction = null;
             if (params.vendorOptions != null && !params.vendorOptions.isEmpty()) {
-                generationConfig.putAll(Maps.mutable.ofMap(params.vendorOptions));
+                final var vendorCopy = Maps.mutable.ofMap(params.vendorOptions);
+                if (vendorCopy.containsKey("system_instruction")) {
+                    systemInstruction = vendorCopy.remove("system_instruction");
+                }
+                if (!vendorCopy.isEmpty()) {
+                    generationConfig.putAll(vendorCopy);
+                }
             }
             payload.put("generation_config", generationConfig);
+
+            // If we have a system instruction, place it separately in the payload as expected by Vertex
+            if (systemInstruction != null) {
+                if (systemInstruction instanceof String s) {
+                    // Normalize string into Vertex content format
+                    payload.put(
+                            "system_instruction",
+                            Map.of("role", "system", "parts", Lists.immutable.of(Maps.immutable.of("text", s))));
+                } else if (systemInstruction instanceof Map) {
+                    // Assume already in correct structure; pass through
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> si = (Map<String, Object>) systemInstruction;
+                    payload.put("system_instruction", si);
+                } else {
+                    // Fallback: toString and wrap as text
+                    payload.put(
+                            "system_instruction",
+                            Map.of(
+                                    "role",
+                                    "system",
+                                    "parts",
+                                    Lists.immutable.of(Maps.immutable.of("text", systemInstruction.toString()))));
+                }
+            }
 
             // model must be part of the path; nothing to add here beyond vendorOptions
             return payload;

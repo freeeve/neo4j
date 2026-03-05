@@ -1,0 +1,48 @@
+{
+  "request": {
+    "urlPathPattern": "^/model/(\\Qamazon.titan-embed-text-v1\\E|\\Qarn%3Aaws%3Abedrock%3Aus-east-1%3A%3Afoundation-model%2Famazon.titan-embed-text-v2%3A0\\E|\\Qarn%3Aaws%3Abedrock%3Aus-east-1%3A%3Afoundation-model%2Famazon.titan-embed-text-v1\\E)/invoke$",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "matches": "^AWS4-HMAC-SHA256 Credential=bedrock-key/\\d{8}/(\\Qus-east-1\\E|\\Qeu-north-1\\E)/bedrock/aws4_request, SignedHeaders=host;user-agent;x-amz-content-sha256;x-amz-date, Signature=.{64}$"
+      },
+      "X-Amz-Date": {
+        "matches": "^\\d{8}T\\d{6}Z$"
+      },
+      "X-Amz-Content-Sha256": {
+        "matches": "^.{64}$"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "or": [
+          {
+            "equalToJson": {
+              "inputText": "Hello!"
+            }
+          },
+          {
+            "equalToJson": {
+              "inputText": "Hello!",
+              "embeddingTypes": [
+                "float"
+              ],
+              "normalize": true,
+              "dimensions": 1024
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-titan-embedding-model-invoke-response.json"
+  }
+}

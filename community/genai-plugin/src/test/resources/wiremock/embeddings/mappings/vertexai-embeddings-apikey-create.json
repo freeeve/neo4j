@@ -8,7 +8,9 @@
       }
     },
     "queryParameters": {
-      "key": { "equalTo": "dummy-api-key" }
+      "key": {
+        "equalTo": "dummy-api-key"
+      }
     },
     "bodyPatterns": [
       {

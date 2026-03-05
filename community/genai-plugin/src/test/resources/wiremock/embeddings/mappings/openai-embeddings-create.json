@@ -16,14 +16,18 @@
           {
             "equalToJson": {
               "model": "text-embedding-3-small",
-              "input": ["Hello!"],
+              "input": [
+                "Hello!"
+              ],
               "encoding_format": "float"
             }
           },
           {
             "equalToJson": {
               "model": "text-embedding-3-small",
-              "input": ["Hello!"],
+              "input": [
+                "Hello!"
+              ],
               "encoding_format": "float",
               "dimensions": 1536,
               "user": "gem"

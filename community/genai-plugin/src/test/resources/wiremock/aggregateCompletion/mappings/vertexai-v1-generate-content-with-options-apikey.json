@@ -1,0 +1,52 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/tasman/publishers/google/models/gemini-3:generateContent",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      }
+    },
+    "queryParameters": {
+      "key": {
+        "equalTo": "dummy-api-key"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Hello, can you tell me the issues with my restaurant based on these reviews?\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+                }
+              ]
+            }
+          ],
+          "system_instruction": {
+            "parts": [
+              {
+                "text": "You are Kommendoran"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "vertexai-v1-generate-content-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Jag tog korven! (vertexai)"
+    }
+  }
+}

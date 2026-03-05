@@ -1,0 +1,46 @@
+{
+  "request": {
+    "urlPath": "/openai/v1/embeddings",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-azure-token"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "or": [
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": ["Hello!"],
+              "encoding_format": "float"
+            }
+          },
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": ["Hello!"],
+              "encoding_format": "float",
+              "dimensions": 1536,
+              "user": "gem"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "azure-openai-v1-embeddings-create-response.json"
+  }
+}

@@ -72,7 +72,7 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         installPlugin(testDirectory);
         this.wireMock = new WireMockServer(options()
                 .dynamicPort()
-                .usingFilesUnderClasspath("wiremock/completion")
+                .usingFilesUnderClasspath("wiremock/embeddings")
                 // Uncomment for wiremock debug prints:
                 // .notifier(new ConsoleNotifier(true))
                 .http2PlainDisabled(true));

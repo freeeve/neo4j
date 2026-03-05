@@ -1,0 +1,45 @@
+{
+  "request": {
+    "urlPath": "/openai/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-azure-token"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "input": [
+            {
+              "role": "user",
+              "content": "Hello, can you tell me the issues with my restaurant based on these reviews?\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+            }
+          ],
+          "store": false,
+          "max_output_tokens": 1024
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "azure-openai-v1-responses-create-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Jag tog korven! (azure-openai)"
+    }
+  }
+}

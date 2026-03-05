@@ -1,0 +1,75 @@
+{
+  "request": {
+    "urlPath": "/model/some-model/converse",
+    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello, can you tell me the issues with my restaurant based on these reviews?\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+                }
+              ],
+              "role": "user"
+            }
+          ],
+          "temperature": 0.3,
+          "toolConfig": {
+            "toolChoice": {
+              "tool": {
+                "name": "reply_with_defined_schema"
+              }
+            },
+            "tools": [
+              {
+                "toolSpec": {
+                  "description": "Respond to the user's question with the defined input schema",
+                  "inputSchema": {
+                    "json": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "issues": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "priority": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "priority",
+                              "description"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "issues"
+                      ]
+                    }
+                  },
+                  "name": "reply_with_defined_schema"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-nova-text-model-invoke-response.json"
+  }
+}

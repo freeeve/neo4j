@@ -1,0 +1,37 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/astrid/locations/smaland/publishers/google/models/gemini-3:generateContent",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-vertex-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Fail Vertex!\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "vertexai-v1-generate-content-error.json"
+  }
+}

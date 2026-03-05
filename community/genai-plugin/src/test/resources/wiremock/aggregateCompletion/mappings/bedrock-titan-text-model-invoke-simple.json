@@ -1,0 +1,40 @@
+{
+  "request": {
+    "urlPathPattern": "^/model/(\\Qamazon.titan-text-express-v1\\E|\\Qarn%3Aaws%3Abedrock%3Axxx%3A001%3Acustom-model%2Fcustom.titan\\E|\\Qarn%3Aaws%3Abedrock%3Aeu-west-2%3A%3Afoundation-model%2Famazon.titan-text-lite-v1\\E)/invoke$",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "matches": "^AWS4-HMAC-SHA256 Credential=bedrock-key/\\d{8}/eu-west-2/bedrock/aws4_request, SignedHeaders=host;user-agent;x-amz-content-sha256;x-amz-date, Signature=.{64}$"
+      },
+      "X-Amz-Date": {
+        "matches": "^\\d{8}T\\d{6}Z$"
+      },
+      "X-Amz-Content-Sha256": {
+        "matches": "^.{64}$"
+      },
+      "User-Agent": {
+        "equalTo": "Neo4j-GenAIProcedures/1.2.0"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "inputText": "Hello, can you tell me the issues with my restaurant based on these reviews?\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-titan-text-model-invoke-response.json",
+    "transformers": [
+      "response-template"
+    ],
+    "transformerParameters": {
+      "answer": "Bla bla bla... (bedrock-titan)"
+    }
+  }
+}

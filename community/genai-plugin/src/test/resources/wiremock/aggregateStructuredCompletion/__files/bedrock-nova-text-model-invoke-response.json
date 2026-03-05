@@ -1,0 +1,22 @@
+{
+  "output": {
+    "message": {
+      "content": [
+        {
+          "toolUse": {
+            "input": {
+              "issues": [
+                {"priority": "High", "description": "Issue 1."},
+                {"priority": "Medium", "description": "Issue 2."}
+              ]
+            },
+            "name": "tool_name",
+            "type": "string",
+            "toolUseId": 12
+          }
+        }
+      ]
+    }
+  },
+  "stopReason": "tool_use"
+}

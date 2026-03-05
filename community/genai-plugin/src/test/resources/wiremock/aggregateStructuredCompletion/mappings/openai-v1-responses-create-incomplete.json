@@ -1,0 +1,69 @@
+{
+  "request": {
+    "urlPath": "/v1/responses",
+    "method": "POST",
+    "headers": {
+      "Content-Type": {
+        "equalTo": "application/json; charset=UTF-8"
+      },
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "gpt-5",
+          "text": {
+            "format": {
+              "strict": true,
+              "type": "json_schema",
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "issues": {
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "properties": {
+                        "priority": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "priority",
+                        "description"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "issues"
+                ]
+              },
+              "name": "answer_with_structured_ouput"
+            }
+          },
+          "input": [
+            {
+              "content": "Fail!\nThe food was okay, but the service was terrible!\nLove this place!!!\nRude staff and meh food\nBest pancakes, a little slow, but I had time\nAlright\nLovely wee place, recommend for a calm breakfast\nHad to wait ages for the food to come! Almost left\nmmmmm pancakes with syrup\n",
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "openai-v1-responses-create-incomplete.json"
+  }
+}
