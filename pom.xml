@@ -667,7 +667,10 @@
             <secondaryCacheDir>${java.io.tmpdir}</secondaryCacheDir>
           </configuration>
 
-          <!-- This is needed to mix scala and java code in the same module -->
+          <!-- Scala compilation is bound to process-resources (not compile) so
+               that Scala .class files are on the classpath before maven-compiler-plugin
+               runs in the compile phase. This allows Java code to reference Scala types
+               and is the recommended approach for mixed Java/Scala maven modules. -->
           <executions>
             <execution>
               <id>scala-compile</id>
