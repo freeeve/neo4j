@@ -41,6 +41,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.neo4j.configuration.BootloaderSettings;
 import org.neo4j.configuration.BufferingLog;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -347,7 +348,7 @@ public abstract class NeoBootstrapper implements Bootstrapper {
         JULBridge.resetJUL();
         Logger.getLogger("").setLevel(Level.WARNING);
         JULBridge.forwardTo(userLogProvider);
-        setupSLF4JProvider(userLogProvider, List.of("org.eclipse.jetty"));
+        setupSLF4JProvider(userLogProvider, config.get(GraphDatabaseInternalSettings.slf4j_class_prefixes));
         return userLogProvider;
     }
 

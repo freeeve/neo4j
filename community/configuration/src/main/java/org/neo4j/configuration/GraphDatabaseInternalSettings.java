@@ -1970,6 +1970,15 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Allowlist of logging prefixes for libraries that bind to SLF4J")
+    public static final Setting<List<String>> slf4j_class_prefixes = newBuilder(
+                    "internal.server.logs.filter.slf4j_class_prefixes",
+                    SettingValueParsers.listOf(STRING),
+                    List.of("org.eclipse.jetty"))
+            .immutable()
+            .build();
+
+    @Internal
     @Description("Set a custom URL endpoint for reporting fleet management data")
     public static final Setting<String> fleet_management_api_base_url =
             newBuilder("internal.dbms.fleet_manager.base_url", STRING, null).build();
