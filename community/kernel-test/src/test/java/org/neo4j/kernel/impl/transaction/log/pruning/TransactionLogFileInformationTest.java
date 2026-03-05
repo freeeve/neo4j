@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -47,6 +48,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.storageengine.api.CommandReaderFactory;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
 
@@ -140,7 +142,8 @@ class TransactionLogFileInformationTest {
         var logEntryReader = mock(LogEntryReader.class);
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
-                .thenReturn(newStartEntry(LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, new byte[] {}));
+                .thenReturn(newStartEntry(
+                        LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, NO_LEASE, Leases.NO_LEASES, new byte[] {}));
         var fileInfo = new TransactionLogFileInformation(logFiles, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(

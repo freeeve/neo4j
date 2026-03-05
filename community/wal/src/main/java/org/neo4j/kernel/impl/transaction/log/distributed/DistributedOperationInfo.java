@@ -44,8 +44,7 @@ public record DistributedOperationInfo(UUID globalSessionId, UUID ownerId, long 
      * @throws IOException I/O error from channel.
      */
     public void writeMetadata(WritableChannel channel) throws IOException {
-        channel.putLong(globalSessionId.getMostSignificantBits());
-        channel.putLong(globalSessionId.getLeastSignificantBits());
+        UUIDLogSerializer.write(channel, globalSessionId);
         writeRaftMemberId(channel, ownerId);
 
         channel.putLong(localSessionId);
@@ -62,13 +61,7 @@ public record DistributedOperationInfo(UUID globalSessionId, UUID ownerId, long 
      * @throws IOException I/O error from channel.
      */
     public static void writeRaftMemberId(WritableChannel channel, UUID memberUuid) throws IOException {
-        if (memberUuid == null) {
-            channel.put((byte) 0);
-        } else {
-            channel.put((byte) 1);
-            channel.putLong(memberUuid.getMostSignificantBits());
-            channel.putLong(memberUuid.getLeastSignificantBits());
-        }
+        UUIDLogSerializer.writeNullable(channel, memberUuid);
     }
 
     /**
@@ -81,9 +74,7 @@ public record DistributedOperationInfo(UUID globalSessionId, UUID ownerId, long 
      * @throws IOException I/O error from channel.
      */
     public static DistributedOperationInfo parse(ReadableChannel channel) throws IOException {
-        long mostSigBits = channel.getLong();
-        long leastSigBits = channel.getLong();
-        UUID globalSessionId = new UUID(mostSigBits, leastSigBits);
+        UUID globalSessionId = UUIDLogSerializer.parse(channel);
         UUID ownerId = parseOwnerId(channel);
         long localSessionId = channel.getLong();
         long sequenceNumber = channel.getLong();
@@ -100,13 +91,6 @@ public record DistributedOperationInfo(UUID globalSessionId, UUID ownerId, long 
      * @throws IOException I/O error from channel.
      */
     public static UUID parseOwnerId(ReadableChannel channel) throws IOException {
-        byte nullMarker = channel.get();
-        if (nullMarker == 0) {
-            return null;
-        }
-
-        long mostSigBits = channel.getLong();
-        long leastSigBits = channel.getLong();
-        return new UUID(mostSigBits, leastSigBits);
+        return UUIDLogSerializer.parseNullable(channel);
     }
 }

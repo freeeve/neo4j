@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.api.LeaseService;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
@@ -49,7 +48,7 @@ public record CompleteBatchRepresentation(
 
     public CompleteBatchRepresentation(
             LogEntryStart startEntry, List<StorageCommand> commands, LogEntryCommit commitEntry, int previousChecksum) {
-        this(startEntry, commands, commitEntry, previousChecksum, LeaseService.NO_LEASE, Leases.NO_LEASES);
+        this(startEntry, commands, commitEntry, previousChecksum, startEntry.getLeaseId(), startEntry.getLeases());
     }
 
     public CompleteBatchRepresentation(

@@ -26,7 +26,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.string.Mask;
 
 public class LogEntryStartV2025_05 extends LogEntryStart {
-    private final long appendIndex;
+    protected final long appendIndex;
 
     public LogEntryStartV2025_05(
             KernelVersion kernelVersion,

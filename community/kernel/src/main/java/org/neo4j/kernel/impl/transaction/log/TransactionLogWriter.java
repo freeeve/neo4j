@@ -110,7 +110,15 @@ public class TransactionLogWriter {
             return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, batch.getTimeCommitted());
         }
 
-        writer.writeBatchStart(kernelVersion, batch, chunkId, appendIndex, previousChecksum, previousBatchAppendIndex);
+        writer.writeBatchStart(
+                kernelVersion,
+                batch,
+                chunkId,
+                appendIndex,
+                previousChecksum,
+                previousBatchAppendIndex,
+                batch.getLeaseId(),
+                batch.leases());
 
         // Write all the commands to the log channel
         writer.serialize(batch, kernelVersion);

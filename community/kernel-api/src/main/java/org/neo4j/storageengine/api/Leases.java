@@ -19,9 +19,8 @@
  */
 package org.neo4j.storageengine.api;
 
-import java.util.Collections;
-import java.util.Iterator;
 import org.neo4j.dbms.identity.ServerId;
+import org.neo4j.internal.kernel.api.leases.PropertyShardLeases;
 import org.neo4j.kernel.database.DatabaseId;
 
 public interface Leases extends Iterable<Leases.Lease> {
@@ -37,25 +36,5 @@ public interface Leases extends Iterable<Leases.Lease> {
         long id();
     }
 
-    Leases NO_LEASES = new Leases() {
-        @Override
-        public Iterator<Lease> iterator() {
-            return Collections.emptyIterator();
-        }
-
-        @Override
-        public int size() {
-            return 0;
-        }
-
-        @Override
-        public Lease get(DatabaseId databaseId) {
-            return null;
-        }
-
-        @Override
-        public String toString() {
-            return "{}";
-        }
-    };
+    Leases NO_LEASES = PropertyShardLeases.EMPTY;
 }

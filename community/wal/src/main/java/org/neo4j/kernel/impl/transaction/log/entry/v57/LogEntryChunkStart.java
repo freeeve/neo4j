@@ -19,11 +19,13 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry.v57;
 
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_START;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.string.Mask;
 
 public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
@@ -59,6 +61,14 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
 
     public long getPreviousBatchAppendIndex() {
         return previousBatchAppendIndex;
+    }
+
+    public int getLeaseId() {
+        return NO_LEASE;
+    }
+
+    public Leases getLeases() {
+        return Leases.NO_LEASES;
     }
 
     public byte[] getAdditionalHeader() {

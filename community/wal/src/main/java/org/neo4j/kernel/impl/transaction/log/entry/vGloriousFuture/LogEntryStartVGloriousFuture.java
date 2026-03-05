@@ -17,37 +17,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.v520;
+package org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture;
 
 import java.util.Arrays;
+import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v202505.LogEntryStartV2025_05;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.string.Mask;
 
-public class LogEntryChunkStartV5_20 extends LogEntryChunkStart {
-    private final long appendIndex;
+public class LogEntryStartVGloriousFuture extends LogEntryStartV2025_05 {
     private final int leaseId;
     private final Leases leases;
 
-    public LogEntryChunkStartV5_20(
+    public LogEntryStartVGloriousFuture(
             KernelVersion kernelVersion,
             long timeWritten,
-            long chunkId,
+            long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
-            long previousBatchAppendIndex,
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
-        super(kernelVersion, timeWritten, chunkId, previousBatchAppendIndex, additionalHeader);
-        this.appendIndex = appendIndex;
+        super(kernelVersion, timeWritten, lastCommittedTxWhenTransactionStarted, appendIndex, additionalHeader);
         this.leaseId = leaseId;
         this.leases = leases;
-    }
-
-    @Override
-    public long getAppendIndex() {
-        return appendIndex;
     }
 
     @Override
@@ -62,13 +55,27 @@ public class LogEntryChunkStartV5_20 extends LogEntryChunkStart {
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryChunkStartV5_20{" + "previousBatchAppendIndex="
-                + previousBatchAppendIndex + ", chunkId="
-                + chunkId + ", timeWritten="
-                + timeWritten + ", additionalHeader="
-                + Arrays.toString(additionalHeader) + ", appendIndex="
-                + appendIndex
+        return "LogEntryStartVGloriousFuture[" + "kernelVersion=" + kernelVersion() + ",time=" + timestamp(timeWritten)
+                + ",lastCommittedTxWhenTransactionStarted=" + lastCommittedTxWhenTransactionStarted
+                + ",additionalHeaderLength=" + (additionalHeader == null ? -1 : additionalHeader.length) + ","
+                + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
+                + ", appendIndex=" + appendIndex
                 + ", leaseId=" + leaseId
-                + ", leases=" + leases + '}';
+                + ", leases=" + leases + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!super.equals(o)) {
+            return false;
+        }
+        LogEntryStartVGloriousFuture start = (LogEntryStartVGloriousFuture) o;
+        return leaseId == start.leaseId && leases.equals(start.leases);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        return Objects.hash(result, leaseId, leases);
     }
 }

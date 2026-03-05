@@ -421,6 +421,8 @@ class ReversedSingleFileCommandBatchCursorTest {
                 long latestCommittedTxWhenStarted,
                 long appendIndex,
                 int previousChecksum,
+                int leaseId,
+                Leases leases,
                 byte[] additionalHeaderData)
                 throws IOException {
             channel.put(kernelVersion.version()).put(TX_START);

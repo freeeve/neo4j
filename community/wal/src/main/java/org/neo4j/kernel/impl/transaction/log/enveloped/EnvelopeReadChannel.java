@@ -480,6 +480,23 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return buffer.getDouble();
     }
 
+    /**
+     * If the channel is positioned just before a new envelope/at the end of a previous envelope
+     * this will read in the LogEnvelopeHeader information and position the channel at the start
+     * of the data. In contrast to alignToStartEntry it will not seek to the start of a full entry.
+     * Also, it will not move the channel position if the channel is already positioned within the payload
+     * This is particularly useful when operating on a newly opened channel as it allows the properties
+     * of the initial envelope to be read.
+     * @throws IOException when there are errors on the underlying StoreChannel
+     * @throws ReadPastEndException when reading the header takes the channel past the
+     * (possibly bridged) end of the file
+     */
+    public void readEnvelopeHeaderIfRequired() throws IOException {
+        if (checkForEndOfEnvelope()) {
+            readEnvelopeHeader();
+        }
+    }
+
     @Override
     public void get(byte[] bytes, int length) throws IOException {
         assert length <= bytes.length;
@@ -487,9 +504,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         try {
             var bytesRead = 0;
             while (bytesRead < length) {
-                if (checkForEndOfEnvelope()) {
-                    readEnvelopeHeader();
-                }
+                readEnvelopeHeaderIfRequired();
 
                 final var chunkSize = min(payloadEndOffset - buffer.position(), length - bytesRead);
                 ensureDataExists(chunkSize);
@@ -503,17 +518,13 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     @Override
     public byte getVersion() throws IOException {
-        if (checkForEndOfEnvelope()) {
-            readEnvelopeHeader();
-        }
+        readEnvelopeHeaderIfRequired();
         return payloadVersion;
     }
 
     @Override
     public byte getContentType() throws IOException {
-        if (checkForEndOfEnvelope()) {
-            readEnvelopeHeader();
-        }
+        readEnvelopeHeaderIfRequired();
         return currentContentType;
     }
 
@@ -701,9 +712,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     private void ensureDataExists(int requestedNumberOfBytes) throws IOException {
         try {
-            if (checkForEndOfEnvelope()) {
-                readEnvelopeHeader();
-            }
+            readEnvelopeHeaderIfRequired();
 
             bufferCheck(requestedNumberOfBytes);
         } catch (ClosedChannelException e) {
@@ -1069,9 +1078,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         try {
             var bytesRead = 0;
             while (bytesRead < length) {
-                if (checkForEndOfEnvelope()) {
-                    readEnvelopeHeader();
-                }
+                readEnvelopeHeaderIfRequired();
 
                 final var chunkSize = min(payloadEndOffset - buffer.position(), length - bytesRead);
                 dst.put(dst.position(), buffer, buffer.position(), chunkSize);

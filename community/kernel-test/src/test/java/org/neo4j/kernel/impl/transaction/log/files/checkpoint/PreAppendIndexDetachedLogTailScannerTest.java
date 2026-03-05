@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner.NO_TRANSACTION_ID;
 import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
@@ -69,6 +70,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogTailInformation;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
@@ -748,6 +750,8 @@ class PreAppendIndexDetachedLogTailScannerTest {
                                     0,
                                     BASE_APPEND_INDEX,
                                     previousChecksum,
+                                    NO_LEASE,
+                                    Leases.NO_LEASES,
                                     startEntry.additionalHeader());
                         } else if (entry instanceof CommitEntry commitEntry) {
                             previousChecksum = writer.writeCommitEntry(kernelVersion, commitEntry.txId, 0);

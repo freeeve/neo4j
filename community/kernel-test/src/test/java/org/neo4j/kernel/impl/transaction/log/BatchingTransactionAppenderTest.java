@@ -47,6 +47,7 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getReadChannel;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getWriteChannel;
 import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
@@ -243,6 +244,8 @@ class BatchingTransactionAppenderTest {
                 latestCommittedTxWhenStarted,
                 latestCommittedTxWhenStarted + 7,
                 0,
+                NO_LEASE,
+                Leases.NO_LEASES,
                 additionalHeader);
         LogEntryCommit commit = newCommitEntry(LATEST_KERNEL_VERSION, nextTxId, timeCommitted, BASE_TX_CHECKSUM + 1);
         CompleteBatchRepresentation transaction =
@@ -313,6 +316,8 @@ class BatchingTransactionAppenderTest {
                 latestCommittedTxWhenStarted,
                 latestCommittedTxWhenStarted + 8,
                 0,
+                NO_LEASE,
+                Leases.NO_LEASES,
                 additionalHeader);
         LogEntryCommit commit = newCommitEntry(
                 LATEST_KERNEL_VERSION, latestCommittedTxWhenStarted + 2, timeCommitted, BASE_TX_CHECKSUM + 1);
@@ -480,7 +485,7 @@ class BatchingTransactionAppenderTest {
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
         var transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
         var transaction = new CompleteBatchRepresentation(
-                newStartEntry(LATEST_KERNEL_VERSION, 1, 2, 3, 4, EMPTY_BYTE_ARRAY),
+                newStartEntry(LATEST_KERNEL_VERSION, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, EMPTY_BYTE_ARRAY),
                 singleTestCommand(),
                 newCommitEntry(LATEST_KERNEL_VERSION, 11, 1L, BASE_TX_CHECKSUM + 1),
                 BASE_TX_CHECKSUM);

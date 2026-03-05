@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.kernel.recovery.RecoveryStartupChecker.EMPTY_CHECKER;
@@ -46,6 +47,7 @@ import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.time.Clocks;
 
@@ -63,7 +65,15 @@ class RecoveryProgressIndicatorTest {
         int expectedMax = transactionsToRecover * 2;
         int appendIndexAndTxId = 14;
         CompleteBatchRepresentation transactionRepresentation = new CompleteBatchRepresentation(
-                newStartEntry(LATEST_KERNEL_VERSION, 1, 2, appendIndexAndTxId, 4, EMPTY_BYTE_ARRAY),
+                newStartEntry(
+                        LATEST_KERNEL_VERSION,
+                        1,
+                        2,
+                        appendIndexAndTxId,
+                        4,
+                        NO_LEASE,
+                        Leases.NO_LEASES,
+                        EMPTY_BYTE_ARRAY),
                 emptyList(),
                 newCommitEntry(LATEST_KERNEL_VERSION, appendIndexAndTxId, 1L, BASE_TX_CHECKSUM + 1),
                 BASE_TX_CHECKSUM);

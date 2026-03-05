@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.v520;
+package org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture;
 
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_START;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 
 import java.io.IOException;
 import org.neo4j.io.fs.ReadableChannel;
@@ -30,27 +30,26 @@ import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
-import org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture.LeasesSerializerVGloriousFuture;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.Leases;
 
-public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryChunkStartV5_20> {
-    public ChunkStartLogEntrySerializerV5_20() {
-        super(LogEntryTypeCodes.CHUNK_START);
+public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<LogEntryStartVGloriousFuture> {
+    public StartLogEntrySerializerVGloriousFuture() {
+        super(LogEntryTypeCodes.TX_START);
     }
 
     @Override
-    public LogEntryChunkStartV5_20 parse(
+    public LogEntryStartVGloriousFuture parse(
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
             CommandReaderFactory commandReaderFactory,
             MemoryTracker memoryTracker)
             throws IOException {
+
         long timeWritten = channel.getLong();
-        long chunkId = channel.getLong();
-        long previousBatchAppendIndex = channel.getLong();
+        long latestCommittedTxWhenStarted = channel.getLong();
         long appendIndex = channel.getAppendIndex();
         int leaseId = channel.getInt();
         Leases leases = LeasesSerializerVGloriousFuture.parse(channel);
@@ -61,25 +60,17 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         }
         byte[] additionalHeader = new byte[additionalHeaderLength];
         channel.get(additionalHeader, additionalHeaderLength);
-        return new LogEntryChunkStartV5_20(
-                version,
-                timeWritten,
-                chunkId,
-                appendIndex,
-                previousBatchAppendIndex,
-                leaseId,
-                leases,
-                additionalHeader);
+        return new LogEntryStartVGloriousFuture(
+                version, timeWritten, latestCommittedTxWhenStarted, appendIndex, leaseId, leases, additionalHeader);
     }
 
     @Override
-    public int write(WritableChannel channel, LogEntryChunkStartV5_20 logEntry) throws IOException {
+    public int write(WritableChannel channel, LogEntryStartVGloriousFuture logEntry) throws IOException {
         channel.beginChecksumForWriting();
-        writeLogEntryHeader(logEntry.kernelVersion(), CHUNK_START, channel);
+        writeLogEntryHeader(logEntry.kernelVersion(), TX_START, channel);
         byte[] additionalHeaderData = logEntry.getAdditionalHeader();
         channel.putLong(logEntry.getTimeWritten())
-                .putLong(logEntry.getChunkId())
-                .putLong(logEntry.getPreviousBatchAppendIndex())
+                .putLong(logEntry.getLastCommittedTxWhenTransactionStarted())
                 .putAppendIndex(logEntry.getAppendIndex())
                 .putInt(logEntry.getLeaseId());
         LeasesSerializerVGloriousFuture.write(channel, logEntry.getLeases());

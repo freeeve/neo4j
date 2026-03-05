@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
+import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -154,8 +155,18 @@ class TransactionAppenderRotationIT {
             if (logFile.getCurrentLogVersion() != prevLogVersion) {
                 long newLogVersion = logFile.getCurrentLogVersion();
                 LogHeader logHeader = logFile.extractHeader(newLogVersion);
-                // confirm that the file header actually refers to the previous appendIndex not the new one
-                assertEquals(prevAppendIndex, logHeader.getLastAppendIndex());
+                try (EnvelopeReadChannel reader =
+                        (EnvelopeReadChannel) logFile.getReader(logHeader.getStartPosition())) {
+                    // ensure envelope header is read
+                    reader.readEnvelopeHeaderIfRequired();
+                    // confirm that the file header actually refers to the previous appendIndex not the new one
+                    // if envelope is continuation then appendIndex is incremented, otherwise it shouldn't be
+                    if (reader.isStartEnvelope()) {
+                        assertEquals(prevAppendIndex, logHeader.getLastAppendIndex());
+                    } else {
+                        assertEquals(prevAppendIndex + 1, logHeader.getLastAppendIndex());
+                    }
+                }
                 prevLogVersion = newLogVersion;
             }
         }

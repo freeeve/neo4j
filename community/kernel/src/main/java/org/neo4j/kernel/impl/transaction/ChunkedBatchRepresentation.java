@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction;
 
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.decodeLogIndex;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_CHUNK_ID;
@@ -61,7 +62,7 @@ public record ChunkedBatchRepresentation(
                 logEntryChunkStart.getTimeWritten(),
                 (start instanceof LogEntryStart es) ? es.getLastCommittedTxWhenTransactionStarted() : UNKNOWN_TX_ID,
                 logEntryChunkStart.getTimeWritten(),
-                leaseId,
+                (logEntryChunkStart.getLeaseId() != NO_LEASE) ? logEntryChunkStart.getLeaseId() : leaseId,
                 logEntryChunkStart.kernelVersion(),
                 Subject.AUTH_DISABLED);
         return new ChunkedBatchRepresentation(
@@ -80,6 +81,8 @@ public record ChunkedBatchRepresentation(
                 chunkStart.getChunkId(),
                 chunkStart.getAppendIndex(),
                 chunkStart.getPreviousBatchAppendIndex(),
+                chunkStart.getLeaseId(),
+                chunkStart.getLeases(),
                 chunkStart.getAdditionalHeader());
         writer.serialize(commandBatch);
         return writer.writeChunkEndEntry(kernelVersion, chunkEnd.getTransactionId(), chunkEnd.getChunkId());
@@ -125,6 +128,8 @@ public record ChunkedBatchRepresentation(
                     BASE_CHUNK_ID,
                     entryStart.getAppendIndex(),
                     UNKNOWN_APPEND_INDEX,
+                    entryStart.getLeaseId(),
+                    entryStart.getLeases(),
                     entryStart.getAdditionalHeader());
         } else {
             throw new IllegalArgumentException("Was expecting start record. Actual entry: " + start);

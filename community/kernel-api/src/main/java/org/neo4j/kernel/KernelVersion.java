@@ -133,6 +133,8 @@ public enum KernelVersion {
     // All neo4j 5.0-5.6 members defaulted to this version when bootstrapping a rafted database
     public static final KernelVersion DEFAULT_BOOTSTRAP_VERSION = V5_0;
 
+    public static final KernelVersion VERSION_LEASES_IN_START_ENTRIES = GLORIOUS_FUTURE;
+
     public static final List<KernelVersion> VERSIONS = List.of(values());
     private static final ByteToEnum<KernelVersion> VERSION_MAP =
             new ByteToEnum<>(KernelVersion.class, KernelVersion::version);

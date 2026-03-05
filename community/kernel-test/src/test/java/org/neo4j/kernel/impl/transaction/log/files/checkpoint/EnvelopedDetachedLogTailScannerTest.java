@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.common.Subject.ANONYMOUS;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
@@ -128,14 +129,15 @@ public class EnvelopedDetachedLogTailScannerTest {
     private static int writeTxEntries(LogEntryWriter<?> entryWriter, long txId, long appendIndex, int previousChecksum)
             throws IOException {
         byte[] emptyArray = new byte[0];
-        entryWriter.writeStartEntry(kernelVersion, 0, txId, appendIndex, previousChecksum, emptyArray);
+        entryWriter.writeStartEntry(
+                kernelVersion, 0, txId, appendIndex, previousChecksum, NO_LEASE, Leases.NO_LEASES, emptyArray);
         CompleteCommandBatch commands = new CompleteCommandBatch(
                 List.of(new TestCommand(kernelVersion)),
                 UNKNOWN_CONSENSUS_INDEX,
                 0,
                 txId - 1L,
                 0,
-                0,
+                NO_LEASE,
                 Leases.NO_LEASES,
                 kernelVersion,
                 ANONYMOUS);
