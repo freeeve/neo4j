@@ -375,9 +375,11 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitDropCommand(Cypher25Parser.DropCommandContext ctx);
 
-    void exitShowCommand(Cypher25Parser.ShowCommandContext ctx);
+    void exitShowAdminCommand(Cypher25Parser.ShowAdminCommandContext ctx);
 
     void exitShowCommandYield(Cypher25Parser.ShowCommandYieldContext ctx);
+
+    void exitShowCommandYieldWhere(Cypher25Parser.ShowCommandYieldWhereContext ctx);
 
     void exitYieldItem(Cypher25Parser.YieldItemContext ctx);
 

@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.ast.NodeUniqueConstraints
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.PointIndexes
+import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.PropExistsConstraints
 import org.neo4j.cypher.internal.ast.PropTypeConstraints
 import org.neo4j.cypher.internal.ast.RangeIndexes
@@ -68,6 +69,10 @@ import org.neo4j.cypher.internal.ast.VectorIndexes
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapExpression
+import org.neo4j.cypher.internal.frontend.phases.FieldSignature
+import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
+import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
@@ -96,6 +101,9 @@ import org.neo4j.cypher.internal.logical.plans.KeyConstraint
 import org.neo4j.cypher.internal.logical.plans.NodeElementType
 import org.neo4j.cypher.internal.logical.plans.NodeElementTypeReferenceByIdentifyingLabel
 import org.neo4j.cypher.internal.logical.plans.NodeElementTypeReferenceByLabel
+import org.neo4j.cypher.internal.logical.plans.ProcedureCall
+import org.neo4j.cypher.internal.logical.plans.ProduceResult
+import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.PropertyType
 import org.neo4j.cypher.internal.logical.plans.PropertyTypeConstraint
 import org.neo4j.cypher.internal.logical.plans.RelationshipElementType
@@ -110,13 +118,18 @@ import org.neo4j.cypher.internal.logical.plans.ShowProcedures
 import org.neo4j.cypher.internal.logical.plans.ShowSettings
 import org.neo4j.cypher.internal.logical.plans.ShowTransactions
 import org.neo4j.cypher.internal.logical.plans.TerminateTransactions
+import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UniquenessConstraint
+import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.details
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.planDescription
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
+import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.DateType
@@ -5447,6 +5460,150 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       )
     )
 
+  }
+
+  test("Show/terminate commands together with regular Cypher") {
+    val name = procedureName("my", "proc", "foo")
+    val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
+    val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
+    val signature =
+      ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
+    val callResults = IndexedSeq(ProcedureResultItem(varFor("x"))(pos), ProcedureResultItem(varFor("y"))(pos))
+    val call = ResolvedNonLocalCall(signature, Seq(varFor("a1")), callResults)(pos)
+
+    assertGood(
+      attach(
+        ProduceResult.withNoCachedProperties(
+          ProcedureCall(
+            ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty),
+            call
+          ),
+          Seq(varFor("a"), varFor("b"), varFor("c\nd"))
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ProduceResults",
+        Seq(
+          planDescription(
+            id,
+            "ProcedureCall",
+            Seq(
+              planDescription(
+                id,
+                "ShowFunctions",
+                Seq.empty,
+                Seq(details("allFunctions, functionsForUser(all), defaultColumns")),
+                Set.empty
+              )
+            ),
+            Seq(details("my.proc.foo(a1) :: (x :: INTEGER, y :: LIST<NODE>)")),
+            Set("x", "y")
+          )
+        ),
+        Seq(details(Seq("a", "b", "`c d`"))),
+        Set("x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        ProduceResult.withNoCachedProperties(
+          Projection(
+            UnwindCollection(
+              ShowConstraints(
+                constraintType = RelPropTypeConstraints,
+                List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
+                List(
+                  CommandYieldColumn("xxx", "xxx"),
+                  CommandYieldColumn("yyy", "zzz"),
+                  CommandYieldColumn("vvv", "vvv")
+                ),
+                yieldAll = false,
+                Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
+                Set.empty
+              ),
+              varFor("x"),
+              varFor("list")
+            ),
+            Map(varFor("x") -> varFor("y"))
+          ),
+          Seq(varFor("a"), varFor("b"), varFor("c\nd"))
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ProduceResults",
+        Seq(
+          planDescription(
+            id,
+            "Projection",
+            Seq(
+              planDescription(
+                id,
+                "Unwind",
+                Seq(
+                  planDescription(
+                    id,
+                    "ShowConstraints",
+                    Seq.empty,
+                    Seq(details("relationshipPropertyTypeConstraints, columns(xxx, yyy AS zzz, vvv)")),
+                    Set("xxx", "zzz", "vvv")
+                  )
+                ),
+                Seq(details("list AS x")),
+                Set("xxx", "zzz", "vvv", "x")
+              )
+            ),
+            Seq(details("y AS x")),
+            Set("xxx", "zzz", "vvv", "x")
+          )
+        ),
+        Seq(details(Seq("a", "b", "`c d`"))),
+        Set("xxx", "zzz", "vvv", "x")
+      )
+    )
+
+    assertGood(
+      attach(
+        Union(
+          ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty),
+          ShowSettings(
+            Left(List("Foo", "Bar")),
+            List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy")),
+            List.empty,
+            yieldAll = false,
+            Set(varFor("xxx"), varFor("yyy")),
+            Set.empty
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "Union",
+        Seq(
+          planDescription(
+            id,
+            "ShowProcedures",
+            Seq.empty,
+            Seq(details("proceduresForUser(all), defaultColumns")),
+            Set.empty
+          ),
+          planDescription(
+            id,
+            "ShowSettings",
+            Seq.empty,
+            Seq(details("settings(Foo, Bar), defaultColumns")),
+            Set("xxx", "yyy")
+          )
+        ),
+        Seq.empty,
+        Set.empty
+      )
+    )
   }
 
   // Help methods

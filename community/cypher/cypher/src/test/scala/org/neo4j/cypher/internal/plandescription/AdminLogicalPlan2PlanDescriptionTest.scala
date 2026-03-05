@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.plandescription
 
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
+import org.neo4j.cypher.internal.ast.AllFunctions
 import org.neo4j.cypher.internal.ast.AllPropertyResource
 import org.neo4j.cypher.internal.ast.CreateDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateNodeLabelAction
@@ -50,6 +51,7 @@ import org.neo4j.cypher.internal.ast.PasswordChange
 import org.neo4j.cypher.internal.ast.PatternQualifier
 import org.neo4j.cypher.internal.ast.ProcedureAllQualifier
 import org.neo4j.cypher.internal.ast.ProcedureQualifier
+import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.ReadAction
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
@@ -59,6 +61,7 @@ import org.neo4j.cypher.internal.ast.RemoteAliasStoredCredentials
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.ShowDatabasesClause
+import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
 import org.neo4j.cypher.internal.ast.ShowUserAction
 import org.neo4j.cypher.internal.ast.ShowUsersPrivileges
@@ -74,6 +77,11 @@ import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.phases.FieldSignature
+import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
+import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
+import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.logical.plans.AllScope
 import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
 import org.neo4j.cypher.internal.logical.plans.AlterAuthRule
@@ -151,7 +159,11 @@ import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.logical.plans.WaitForCompletion
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.planDescription
+import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.ListType
+import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -167,6 +179,50 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       attach(
         AllowedNonAdministrationCommands(
           SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AllowedNonAdministrationCommands(
+          SingleQuery(Seq(
+            ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(pos),
+            ResolvedNonLocalCall(
+              ProcedureSignature(
+                ProcedureName(Namespace(List("db", "index", "fulltext"))(pos), "listAvailableAnalyzers")(pos),
+                IndexedSeq.empty,
+                Some(Vector(
+                  FieldSignature(
+                    "analyzer",
+                    StringType(isNullable = true)(pos),
+                    description = "The name of the analyzer."
+                  ),
+                  FieldSignature(
+                    "description",
+                    StringType(isNullable = true)(pos),
+                    description = "The  description of the analyzer."
+                  ),
+                  FieldSignature(
+                    "stopWords",
+                    ListType(StringType(isNullable = true)(pos), isNullable = true)(pos),
+                    description = "The stopwords used by the analyzer to tokenize strings."
+                  )
+                )),
+                None,
+                ProcedureReadOnlyAccess,
+                Some("List the available analyzers that the full-text indexes can be configured with."),
+                None,
+                eager = false,
+                109,
+                systemProcedure = true
+              ),
+              Seq.empty,
+              IndexedSeq(ProcedureResultItem(None, Variable("analyzer")(pos, isIsolated = false))(pos))
+            )(pos)
+          ))(pos)
         ),
         1.0
       ),

@@ -494,6 +494,57 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
     )
   }
 
+  test("SHOW FUNCTIONS WHERE name = 'my.func' RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowFunctionsClause(
+            AllFunctions,
+            None,
+            Some(where(equals(varFor("name"), literalString("my.func")))),
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW FUNCTIONS WHERE true RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowFunctionsClause(
+            AllFunctions,
+            None,
+            Some(where(trueLiteral)),
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW FUNCTIONS RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowFunctionsClause(
+            AllFunctions,
+            None,
+            None,
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
   // Negative tests
 
   test("SHOW FUNCTIONS YIELD (123 + xyz)") {
@@ -516,19 +567,7 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
     failsParsing[Statements]
   }
 
-  test("SHOW FUNCTIONS WHERE name = 'my.func' RETURN *") {
-    failsParsing[Statements]
-  }
-
   test("SHOW FUNCTIONS YIELD a b RETURN *") {
-    failsParsing[Statements]
-  }
-
-  test("SHOW FUNCTIONS WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
-  test("SHOW FUNCTIONS RETURN *") {
     failsParsing[Statements]
   }
 
@@ -689,87 +728,15 @@ class ShowFunctionsCommandParserTest extends AdministrationAndSchemaCommandParse
   // Invalid clause order
 
   for (prefix <- Seq("USE neo4j", "")) {
-    test(s"$prefix SHOW FUNCTIONS YIELD * WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected 'ORDER BY'""".stripMargin
-      )
-    }
-
-    test(s"$prefix UNWIND range(1,10) as b SHOW FUNCTIONS YIELD * RETURN *") {
-      // Can't parse SHOW  after UNWIND
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW FUNCTIONS WITH name, type RETURN *") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-      )
-    }
-
-    test(s"$prefix WITH 'n' as n SHOW FUNCTIONS YIELD name RETURN name as numIndexes") {
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW FUNCTIONS RETURN name as numIndexes") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
-      )
-    }
-
-    test(s"$prefix SHOW FUNCTIONS WITH 1 as c RETURN name as numIndexes") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-      )
-    }
-
-    test(s"$prefix SHOW FUNCTIONS WITH 1 as c") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected 'EXECUTABLE'""".stripMargin
-      )
-    }
-
-    test(s"$prefix SHOW FUNCTIONS YIELD a WITH a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW FUNCTIONS YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>""".stripMargin
-          )
-      }
-    }
-
     test(s"$prefix SHOW FUNCTIONS RETURN name2 YIELD name2") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'RETURN': expected 'EXECUTABLE'""".stripMargin
+          )
+        case _ => _.withSyntaxErrorContaining(
+            """Invalid input 'YIELD': expected an expression, ','""".stripMargin
+          )
+      }
     }
   }
 

@@ -52,6 +52,8 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME
 
+import scala.annotation.tailrec
+
 sealed trait QueryUtils {
 
   /**
@@ -273,12 +275,13 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   private def semanticCheckAbstractInScopeSubquery(
     clauses: Seq[Clause],
     clauseCheck: Seq[Clause] => SemanticCheck,
-    canOmitReturnClause: Boolean = false
+    canOmitReturnClause: Boolean = false,
+    context: UnaliasedNotAllowed
   ): SemanticCheck =
     checkStandaloneCall(clauses) chain
       withScopedState(clauseCheck(clauses)) chain
-      checkComposableNonTransactionCommandsAllowed() chain
-      checkOrder(clauses, canOmitReturnClause) chain
+      checkComposableNonTransactionCommandsAllowed(context) chain
+      checkOrder(clauses, canOmitReturnClause, context) chain
       checkNoCallInTransactionsAfterWriteClause(clauses) chain
       checkInputDataStream(clauses) chain
       checkUsePositionInScopeSubquery() chain
@@ -287,12 +290,13 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   private def semanticCheckAbstract(
     clauses: Seq[Clause],
     clauseCheck: Seq[Clause] => SemanticCheck,
-    canOmitReturnClause: Boolean = false
+    canOmitReturnClause: Boolean = false,
+    context: UnaliasedNotAllowed = ImportingWithSubqueryCall
   ): SemanticCheck =
     checkStandaloneCall(clauses) chain
       withScopedState(clauseCheck(clauses)) chain
-      checkComposableNonTransactionCommandsAllowed() chain
-      checkOrder(clauses, canOmitReturnClause) chain
+      checkComposableNonTransactionCommandsAllowed(context) chain
+      checkOrder(clauses, canOmitReturnClause, context) chain
       checkNoCallInTransactionsAfterWriteClause(clauses) chain
       checkInputDataStream(clauses) chain
       checkUsePosition() chain
@@ -303,7 +307,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     semanticCheckAbstract(clauses, checkClauses(_, None))
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None, context))
+    semanticCheckAbstract(clauses, checkClauses(_, None, context), context = context)
 
   /**
    * No outer scope is needed for checkClauses as we don't need to check the naming of any returned variables
@@ -314,7 +318,12 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     outer: SemanticState,
     context: UnaliasedNotAllowed
   ): SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None, context), canOmitReturnClause = canOmitReturn)
+    semanticCheckAbstract(
+      clauses,
+      checkClauses(_, None, context),
+      canOmitReturnClause = canOmitReturn,
+      context = context
+    )
 
   override def checkImportingWith(optional: Boolean): SemanticCheck =
     partitionedClauses.importingWith.foldSemanticCheck(_.semanticCheck)
@@ -356,7 +365,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       checkInitialGraphSelection(outer) chain
       semanticCheckAbstract(
         partitionedClauses.clausesExceptImportingWithAndInitialGraphSelection,
-        importVariables chain checkClauses(_, Some(outer.currentScope.scope), ImportingWithSubqueryCall)
+        importVariables chain checkClauses(_, Some(outer.currentScope.scope), ImportingWithSubqueryCall),
+        context = ImportingWithSubqueryCall
       ) chain
       warnOnPotentiallyShadowVariables(outer, optional) chain
       SemanticCheck.fromState(state =>
@@ -374,7 +384,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     checkInitialGraphSelection(outer) chain
       semanticCheckAbstractInScopeSubquery(
         partitionedClauses.clausesExceptInitialGraphSelection,
-        checkClauses(_, Some(outer.currentScope.scope), ScopeClauseSubqueryCall)
+        checkClauses(_, Some(outer.currentScope.scope), ScopeClauseSubqueryCall),
+        context = ScopeClauseSubqueryCall
       ) chain
       errorOnShadowedImportVariables(outer) chain
       warnOnPotentiallyShadowVariables(current, optional) chain
@@ -466,27 +477,92 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
-  private def checkComposableNonTransactionCommandsAllowed(): SemanticCheck = {
-    // Combining commands other than show and terminate transactions are hidden behind a feature flag
-    if (getCommandClauses.size > 1) {
-      val nonTransactionCommands = getCommandClauses.filter(c => !c.isInstanceOf[TransactionsCommandClause])
+  private def containsNonCommandClause(clauses: Seq[Clause], onlyAllowReturnIfAddedInRewriter: Boolean): Boolean = {
+    clauses.exists(c =>
+      !c.isInstanceOf[CommandClause] &&
+        !c.isInstanceOf[GraphSelection] &&
+        !(c.isInstanceOf[Return] && (
+          !onlyAllowReturnIfAddedInRewriter || c.asInstanceOf[Return].returnType == ReturnAddedInRewrite
+        )) &&
+        !(c.isInstanceOf[With] && (
+          c.asInstanceOf[With].withType == ParsedAsYield ||
+            c.asInstanceOf[With].withType == AddedInRewriteShowCommands ||
+            c.asInstanceOf[With].withType.isInstanceOf[AddedInRewriteGeneral]
+        ))
+    )
+  }
 
-      if (nonTransactionCommands.nonEmpty) {
-        requireFeatureSupport(
-          "Composing commands other than `SHOW TRANSACTIONS` and `TERMINATE TRANSACTIONS`",
-          SemanticFeature.ComposableCommands,
-          position
-        )
-      } else {
-        success
-      }
+  private def checkComposableNonTransactionCommandsAllowed(context: UnaliasedNotAllowed): SemanticCheck = {
+    // Combining commands other than show and terminate transactions are hidden behind a feature flag
+    // Same with combining any command with any regular Cypher clause (except their YIELD and RETURN)
+    val nonTransactionCommands = getCommandClauses.filter(c => !c.isInstanceOf[TransactionsCommandClause])
+    val partOfLargerQuery = context != ImportingWithSubqueryCall
+
+    if (
+      getCommandClauses.nonEmpty && (
+        partOfLargerQuery || containsNonCommandClause(clauses, onlyAllowReturnIfAddedInRewriter = false)
+      )
+    ) {
+      requireFeatureSupport(
+        "Composing `SHOW` and `TERMINATE` commands with regular Cypher",
+        SemanticFeature.ComposableCommands,
+        position
+      )
+    } else if (getCommandClauses.size > 1 && nonTransactionCommands.nonEmpty) {
+      requireFeatureSupport(
+        "Composing commands other than `SHOW TRANSACTIONS` and `TERMINATE TRANSACTIONS`",
+        SemanticFeature.ComposableCommands,
+        position
+      )
     } else {
       success
     }
   }
 
-  private def checkOrderForCommandClauses(clauses: Seq[Clause]) = {
-    if (getCommandClauses.size > 1) {
+  private def checkOrderForCommandClauses(clauses: Seq[Clause], context: UnaliasedNotAllowed) = {
+    val partOfLargerQuery = context != ImportingWithSubqueryCall
+    val containsNonCommand = containsNonCommandClause(clauses, onlyAllowReturnIfAddedInRewriter = true)
+
+    val checkYieldAndReturn = getCommandClauses.size > 1 || {
+      // put as a def to not calculate it if not needed
+      def exceptions = clauses match {
+        // COMMAND CLAUSE [WHERE]
+        case Seq(_: CommandClause, withClause: With, returnClause: Return)
+          if withClause.withType == AddedInRewriteShowCommands =>
+          returnClause.returnType == ReturnAddedInRewrite
+        // USE x COMMAND CLAUSE [WHERE]
+        case Seq(_: GraphSelection, _: CommandClause, withClause: With, returnClause: Return)
+          if withClause.withType == AddedInRewriteShowCommands =>
+          returnClause.returnType == ReturnAddedInRewrite
+        // COMMAND CLAUSE YIELD [RETURN]
+        case Seq(_: CommandClause, withClause: With, returnClause: Return) =>
+          withClause.withType == ParsedAsYield || returnClause.returnType == ReturnAddedInRewrite
+        // USE x COMMAND CLAUSE YIELD [RETURN]
+        case Seq(_: GraphSelection, _: CommandClause, withClause: With, returnClause: Return) =>
+          withClause.withType == ParsedAsYield || returnClause.returnType == ReturnAddedInRewrite
+        // COMMAND CLAUSE YIELD rewriter-WITH RETURN
+        // for when we split out variables from the return to a separate with clause
+        case Seq(_: CommandClause, withAsYieldClause: With, rewriterWith: With, returnClause: Return)
+          if withAsYieldClause.withType == ParsedAsYield && returnClause.returnType != ReturnAddedInRewrite =>
+          rewriterWith.withType.isInstanceOf[AddedInRewriteGeneral]
+        // USE x COMMAND CLAUSE YIELD rewriter-WITH RETURN
+        // for when we split out variables from the return to a separate with clause
+        case Seq(
+            _: GraphSelection,
+            _: CommandClause,
+            withAsYieldClause: With,
+            rewriterWith: With,
+            returnClause: Return
+          )
+          if withAsYieldClause.withType == ParsedAsYield && returnClause.returnType != ReturnAddedInRewrite =>
+          rewriterWith.withType.isInstanceOf[AddedInRewriteGeneral]
+        case _ => false
+      }
+
+      getCommandClauses.nonEmpty && (partOfLargerQuery || (containsNonCommand && !exceptions))
+    }
+
+    if (checkYieldAndReturn) {
       val missingYield = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
         case (semanticErrors, pair) =>
           val optError = pair match {
@@ -506,19 +582,27 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           optError.fold(semanticErrors)(semanticErrors :+ _)
       }
 
-      val missingReturn = clauses.last match {
-        case clause: Return if clause.returnType != ReturnAddedInRewrite => None
-        case clause =>
-          Some(SemanticError.missingReturn(
-            clause.position
-          ))
-      }
+      val missingReturn =
+        if (partOfLargerQuery || containsNonCommand)
+          checkLastClause(clauses, canOmitReturnClause = false, disallowReturnAddedInRewrite = true)
+        else clauses.last match {
+          case clause: Return if clause.returnType != ReturnAddedInRewrite => None
+          case clause =>
+            Some(SemanticError.missingReturn(
+              clause.position
+            ))
+        }
 
       missingYield ++ missingReturn
     } else Vector.empty[SemanticError]
+
   }
 
-  private def checkOrder(clauses: Seq[Clause], canOmitReturnClause: Boolean): SemanticCheck = {
+  private def checkOrder(
+    clauses: Seq[Clause],
+    canOmitReturnClause: Boolean,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck = {
     fromFunctionWithContext { (s: SemanticState, c: SemanticCheckContext) =>
       {
         val sequenceErrors = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
@@ -550,7 +634,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
             optError.fold(semanticErrors)(semanticErrors :+ _)
         }
 
-        val commandErrors = checkOrderForCommandClauses(clauses)
+        val commandErrors = checkOrderForCommandClauses(clauses, context)
 
         val concludeError = clauses match {
           // standalone procedure call
@@ -559,8 +643,16 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
           case Seq() => Some(SemanticError.queryMustConcludeWithClause(this.position))
 
+          // standalone command clause
+          case Seq(_: CommandClause) if context == ImportingWithSubqueryCall                    => None
+          case Seq(_: GraphSelection, _: CommandClause) if context == ImportingWithSubqueryCall => None
+
           // otherwise
-          case seq => checkLastClause(seq, canOmitReturnClause)
+          case seq => checkLastClause(
+              seq,
+              canOmitReturnClause,
+              disallowReturnAddedInRewrite = getCommandClauses.nonEmpty && context != ImportingWithSubqueryCall
+            )
         }
 
         SemanticCheckResult(s, sequenceErrors ++ concludeError ++ commandErrors)
@@ -568,9 +660,18 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
-  private def checkLastClause(clauses: Seq[Clause], canOmitReturnClause: Boolean) = {
+  // Share end of query check between the CommandClause and general cypher query code path
+  @tailrec
+  private def checkLastClause(
+    clauses: Seq[Clause],
+    canOmitReturnClause: Boolean,
+    disallowReturnAddedInRewrite: Boolean
+  ): Option[SemanticError] = {
     clauses.last match {
-      case _: UpdateClause | _: Return | _: Finish | _: CommandClause                                  => None
+      case ret: Return if disallowReturnAddedInRewrite && ret.returnType == ReturnAddedInRewrite =>
+        // Return was added in rewrite so check second to last clause
+        checkLastClause(clauses.init, canOmitReturnClause, disallowReturnAddedInRewrite)
+      case _: UpdateClause | _: Return | _: Finish                                                     => None
       case subquery: SubqueryCall if !subquery.innerQuery.isReturning && subquery.reportParams.isEmpty => None
       case call: CallClause if call.returnVariables.explicitVariables.isEmpty && !call.yieldAll        => None
       case _ if canOmitReturnClause                                                                    => None

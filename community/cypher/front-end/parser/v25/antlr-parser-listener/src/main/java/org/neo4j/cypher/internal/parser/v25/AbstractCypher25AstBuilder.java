@@ -294,9 +294,12 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_createCommand -> exitCreateCommand((Cypher25Parser.CreateCommandContext) ctx);
             case Cypher25Parser.RULE_alterCommand -> exitAlterCommand((Cypher25Parser.AlterCommandContext) ctx);
             case Cypher25Parser.RULE_dropCommand -> exitDropCommand((Cypher25Parser.DropCommandContext) ctx);
-            case Cypher25Parser.RULE_showCommand -> exitShowCommand((Cypher25Parser.ShowCommandContext) ctx);
+            case Cypher25Parser.RULE_showAdminCommand ->
+                exitShowAdminCommand((Cypher25Parser.ShowAdminCommandContext) ctx);
             case Cypher25Parser.RULE_showCommandYield ->
                 exitShowCommandYield((Cypher25Parser.ShowCommandYieldContext) ctx);
+            case Cypher25Parser.RULE_showCommandYieldWhere ->
+                exitShowCommandYieldWhere((Cypher25Parser.ShowCommandYieldWhereContext) ctx);
             case Cypher25Parser.RULE_yieldItem -> exitYieldItem((Cypher25Parser.YieldItemContext) ctx);
             case Cypher25Parser.RULE_yieldSkip -> exitYieldSkip((Cypher25Parser.YieldSkipContext) ctx);
             case Cypher25Parser.RULE_yieldLimit -> exitYieldLimit((Cypher25Parser.YieldLimitContext) ctx);

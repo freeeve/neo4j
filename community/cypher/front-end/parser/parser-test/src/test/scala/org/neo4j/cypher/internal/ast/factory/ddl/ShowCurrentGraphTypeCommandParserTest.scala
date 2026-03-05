@@ -19,18 +19,11 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
-import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 /* Tests for listing the current graph type */
 class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
-
-  private val cypher5Error: Parses[Statements] => Parses[Statements] = _.withSyntaxErrorContaining(
-    "Invalid input ",
-    GqlStatusInfoCodes.STATUS_42I06,
-    "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
-  )
 
   // General tests
 
@@ -342,6 +335,61 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
     )
   }
 
+  test("SHOW CURRENT GRAPH TYPE WHERE type = 'OPEN' RETURN *") {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(
+          Some(where(equals(varFor("type"), literalString("OPEN")))),
+          List.empty,
+          yieldAll = false,
+          None
+        )(defaultPos),
+        returnAll
+      ),
+      supportedInCypher5 = false
+    )
+  }
+
+  test("SHOW CURRENT GRAPH TYPE WHERE true RETURN *") {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(Some(where(literalBoolean(true))), List.empty, yieldAll = false, None)(defaultPos),
+        returnAll
+      ),
+      supportedInCypher5 = false
+    )
+  }
+
+  test("SHOW CURRENT GRAPH TYPE RETURN *") {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(None, List.empty, yieldAll = false, None)(defaultPos),
+        returnAll
+      ),
+      supportedInCypher5 = false
+    )
+  }
+
+  test("SHOW CURRENT GRAPH TYPE RETURN type as something") {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(None, List.empty, yieldAll = false, None)(defaultPos),
+        return_(aliasedReturnItem("type", "something"))
+      ),
+      supportedInCypher5 = false
+    )
+  }
+
+  test("SHOW CURRENT GRAPH TYPE USE db") {
+    assertAst(
+      singleQuery(
+        ShowCurrentGraphTypeClause(None, List.empty, yieldAll = false, None)(defaultPos),
+        use(List("db"), resolveStrictly = true)
+      ),
+      supportedInCypher5 = false
+    )
+  }
+
   // Negative tests
 
   test("SHOW GRAPH TYPE") {
@@ -424,7 +472,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
     // TYPES instead of TYPE,
     // there's only one current graph type so we don't allow the plural form
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'TYPES': expected 'TYPE' (",
           GqlStatusInfoCodes.STATUS_42I06,
@@ -435,7 +483,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
 
   test("SHOW CURRENT GRAPH TYPE YIELD (123 + xyz)") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
           "Invalid input '(': expected a variable name or '*' (",
           GqlStatusInfoCodes.STATUS_42I06,
@@ -446,7 +494,7 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
 
   test("SHOW CURRENT GRAPH TYPE YIELD (123 + xyz) AS foo") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
           "Invalid input '(': expected a variable name or '*' (",
           GqlStatusInfoCodes.STATUS_42I06,
@@ -457,19 +505,23 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
 
   test("SHOW CURRENT GRAPH TYPE YIELD a b RETURN *") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'b': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (",
+          "Invalid input 'b': expected ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', " +
+            "'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+            "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'b', expected: ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>."
+            "Invalid input 'b', expected: ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+            "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', " +
+            "'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>."
         )
     }
   }
 
   test("SHOW CURRENT GRAPH TYPE YIELD") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
           "Invalid input '': expected a variable name or '*' (",
           GqlStatusInfoCodes.STATUS_42I06,
@@ -480,207 +532,51 @@ class ShowCurrentGraphTypeCommandParserTest extends AdministrationAndSchemaComma
 
   test("SHOW CURRENT GRAPH TYPE YIELD * YIELD *") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'YIELD': expected 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (",
+          "Invalid input 'YIELD': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', " +
+            "'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+            "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'YIELD', expected: 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>."
+            "Invalid input 'YIELD', expected: 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', " +
+            "'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+            "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>."
         )
     }
   }
 
   test("SHOW CURRENT GRAPH TYPE WHERE type = 'OPEN' YIELD *") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'YIELD': expected an expression, 'SHOW', 'TERMINATE' or <EOF> (",
+          "Invalid input 'YIELD': expected an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+            "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', " +
+            "'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'YIELD', expected: an expression, 'SHOW', 'TERMINATE' or <EOF>."
-        )
-    }
-  }
-
-  test("SHOW CURRENT GRAPH TYPE WHERE type = 'OPEN' RETURN *") {
-    failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE' or <EOF> (",
-          GqlStatusInfoCodes.STATUS_42I06,
-          "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'RETURN', expected: an expression, 'SHOW', 'TERMINATE' or <EOF>."
-        )
-    }
-  }
-
-  test("SHOW CURRENT GRAPH TYPE WHERE true RETURN *") {
-    failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
-      case _ => _.withSyntaxErrorContaining(
-          // Not sure why we only expect `an expression` and not `an expression, 'SHOW', 'TERMINATE' or <EOF>` here
-          // as those are all valid but parser nonsense I guess
-          "Invalid input 'RETURN': expected an expression (",
-          GqlStatusInfoCodes.STATUS_42I06,
-          "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'RETURN', expected: an expression."
-        )
-    }
-  }
-
-  test("SHOW CURRENT GRAPH TYPE RETURN *") {
-    failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-          GqlStatusInfoCodes.STATUS_42I06,
-          "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'RETURN', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
-        )
-    }
-  }
-
-  test("SHOW CURRENT GRAPH TYPE RETURN type as something") {
-    failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-          GqlStatusInfoCodes.STATUS_42I06,
-          "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'RETURN', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
+            "Invalid input 'YIELD', expected: an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+            "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', " +
+            "'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>."
         )
     }
   }
 
   test("SHOW CURRENT GRAPH TYPE RETURN type2 YIELD type2") {
     failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
+      case Cypher5 => showCurrentGraphTypeCypher5Error
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
+          "Invalid input 'YIELD': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', " +
+            "'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', " +
+            "'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', " +
+            "'WITH' or <EOF> (",
           GqlStatusInfoCodes.STATUS_42I06,
           "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'RETURN', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
+            "Invalid input 'YIELD', expected: an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', " +
+            "'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', " +
+            "'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', " +
+            "'UNWIND', 'USE', 'WITH' or <EOF>."
         )
-    }
-  }
-
-  test("SHOW CURRENT GRAPH TYPE USE db") {
-    failsParsing[Statements].in {
-      case Cypher5 => cypher5Error
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'USE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-          GqlStatusInfoCodes.STATUS_42I06,
-          "error: syntax error or access rule violation - invalid input. " +
-            "Invalid input 'USE', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
-        )
-    }
-  }
-
-  // Invalid clause combinations
-
-  for {
-    prefix <- Seq("USE neo4j", "")
-  } {
-    test(s"$prefix SHOW CURRENT GRAPH TYPE YIELD * WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'WITH': expected 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'WITH', expected: 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>."
-          )
-      }
-    }
-
-    test(s"$prefix UNWIND range(1,10) as b SHOW CURRENT GRAPH TYPE YIELD * RETURN *") {
-      // Can't parse SHOW  after UNWIND
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW CURRENT GRAPH TYPE WITH specification, type RETURN *") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'WITH', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
-          )
-      }
-    }
-
-    test(s"$prefix WITH 'n' as n SHOW CURRENT GRAPH TYPE YIELD type RETURN type as something") {
-      // Can't parse SHOW  after WITH
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW CURRENT GRAPH TYPE WITH 1 as c RETURN type as something") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'WITH', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
-          )
-      }
-    }
-
-    test(s"$prefix SHOW CURRENT GRAPH TYPE WITH 1 as c") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'WITH', expected: 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>."
-          )
-      }
-    }
-
-    test(s"$prefix SHOW CURRENT GRAPH TYPE YIELD a WITH a RETURN a") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'WITH', expected: ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>."
-          )
-      }
-    }
-
-    test(s"$prefix SHOW CURRENT GRAPH TYPE YIELD as UNWIND as as a RETURN a") {
-      // Can't parse UNWIND after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => cypher5Error
-        case _ => _.withSyntaxErrorContaining(
-            "Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF> (",
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. " +
-              "Invalid input 'UNWIND', expected: ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>."
-          )
-      }
     }
   }
 

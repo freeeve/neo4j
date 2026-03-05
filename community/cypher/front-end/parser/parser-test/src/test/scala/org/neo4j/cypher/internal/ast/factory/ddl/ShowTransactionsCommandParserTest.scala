@@ -1004,6 +1004,60 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     )
   }
 
+  test("SHOW TRANSACTIONS WHERE transactionId = 'db1-transaction-123' RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ =>
+        _.toAstPositioned(singleQuery(
+          ShowTransactionsClause(
+            Left(List.empty),
+            Some(where(equals(varFor("transactionId"), literalString("db1-transaction-123")))),
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Types = false
+          )(pos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW TRANSACTIONS WHERE true RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ =>
+        _.toAstPositioned(singleQuery(
+          ShowTransactionsClause(
+            Left(List.empty),
+            Some(where(trueLiteral)),
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Types = false
+          )(pos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW TRANSACTIONS RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input ''")
+      case _ =>
+        _.toAstPositioned(singleQuery(
+          ShowTransactionsClause(
+            Left(List.empty),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Types = false
+          )(pos),
+          returnAll
+        ))
+    }
+  }
+
   // Negative tests
 
   test("SHOW TRANSACTION db-transaction-123, abc") {
@@ -1046,19 +1100,7 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     failsParsing[Statements]
   }
 
-  test("SHOW TRANSACTIONS WHERE transactionId = 'db1-transaction-123' RETURN *") {
-    failsParsing[Statements]
-  }
-
   test("SHOW TRANSACTIONS YIELD a b RETURN *") {
-    failsParsing[Statements]
-  }
-
-  test("SHOW TRANSACTIONS WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
-  test("SHOW TRANSACTIONS RETURN *") {
     failsParsing[Statements]
   }
 
@@ -1085,82 +1127,19 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   // Invalid clause order
 
   for (prefix <- Seq("USE neo4j", "")) {
-    test(s"$prefix SHOW TRANSACTIONS YIELD * WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix UNWIND range(1,10) as b SHOW TRANSACTIONS YIELD * RETURN *") {
-      // Can't parse SHOW  after UNWIND
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS WITH name, type RETURN *") {
-      // Can't parse WITH after SHOW
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix WITH 'n' as n SHOW TRANSACTIONS YIELD name RETURN name as numIndexes") {
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS RETURN name as numIndexes") {
-      // parses varFor("RETURN")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS WITH 1 as c RETURN name as numIndexes") {
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS WITH 1 as c") {
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS YIELD a WITH a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix SHOW TRANSACTIONS YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
-    }
-
     test(s"$prefix SHOW TRANSACTIONS RETURN id2 YIELD id2") {
-      // parses varFor("RETURN")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
+      failsParsing[Statements].in {
+        case Cypher5 =>
+          // parses varFor("RETURN")
+          _.withSyntaxErrorContaining(
+            """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+          )
+        case _ => _.withSyntaxErrorContaining(
+            "Invalid input 'YIELD': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+              "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', " +
+              "'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>"
+          )
+      }
     }
   }
 
@@ -1255,6 +1234,24 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   }
 
   test("SHOW TRANSACTIONS BRIEF RETURN *") {
+    // Parses `BRIEF` as transaction id
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowTransactionsClause(
+            Right(varFor("BRIEF")),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Types = false
+          )(pos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW TRANSACTIONS tx BRIEF RETURN *") {
     failsParsing[Statements]
   }
 
@@ -1263,6 +1260,24 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   }
 
   test("SHOW TRANSACTIONS VERBOSE RETURN *") {
+    // Parses `VERBOSE` as transaction id
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowTransactionsClause(
+            Right(varFor("VERBOSE")),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Types = false
+          )(pos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW TRANSACTIONS tx VERBOSE RETURN *") {
     failsParsing[Statements]
   }
 

@@ -2248,6 +2248,37 @@ class PrettifierIT extends AbstractPrettifierTest {
         |SHOW TRANSACTIONS txId
         |YIELD *
         |RETURN name""".stripMargin
+    ),
+
+    // combine show and terminate commands with regular Cypher
+
+    FailsInCypher5(
+      "match (n) unwind n.list as item show settings item yield value return item, value",
+      """MATCH (n)
+        |UNWIND n.list AS item
+        |SHOW SETTINGS item
+        |YIELD value
+        |RETURN item, value""".stripMargin
+    ),
+    FailsInCypher5(
+      "call () { show procedures yield name return name, 'procedure' as type } union { show functions yield name return name, 'functions' as type }",
+      """CALL () {
+        |  SHOW PROCEDURES
+        |  YIELD name
+        |  RETURN name, "procedure" AS type
+        |}
+        |UNION
+        |{
+        |  SHOW ALL FUNCTIONS
+        |  YIELD name
+        |  RETURN name, "functions" AS type
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "show range indexes yield * create (:Label {prop: name})",
+      """SHOW RANGE INDEXES
+        |YIELD *
+        |CREATE (:Label {prop: name})""".stripMargin
     )
   )
 

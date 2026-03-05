@@ -597,6 +597,61 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
     )
   }
 
+  test("SHOW SETTINGS WHERE name = 'db.setting' RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowSettingsClause(
+            Left(List.empty[String]),
+            Some(where(
+              equals(
+                varFor("name"),
+                literalString("db.setting")
+              )
+            )),
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW SETTINGS WHERE true RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowSettingsClause(
+            Left(List.empty[String]),
+            Some(where(trueLiteral)),
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("SHOW SETTINGS RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 =>
+        // parses `RETURN` as setting name
+        _.withSyntaxErrorContaining("Invalid input '': expected an expression")
+      case _ => _.toAstPositioned(singleQuery(
+          ShowSettingsClause(
+            Left(List.empty[String]),
+            None,
+            List.empty,
+            yieldAll = false,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
   // Negative tests
 
   test("SHOW ALL SETTINGS") {
@@ -615,7 +670,7 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
             |                  ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+          """Invalid input ',': expected an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
             |"SHOW SETTING $foo, $bar"
             |                  ^""".stripMargin
         )
@@ -630,7 +685,7 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
             |                   ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '$': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
+          """Invalid input '$': expected an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 19 (offset: 18))
             |"SHOW SETTING $foo $bar"
             |                   ^""".stripMargin
         )
@@ -653,7 +708,7 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
             |                  ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input ',': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
+          """Invalid input ',': expected an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 18 (offset: 17))
             |"SHOW SETTING $foo, 'bar'"
             |                  ^""".stripMargin
         )
@@ -668,7 +723,7 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
             |                    ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input ''bar'': expected an expression, ',', 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF> (line 1, column 20 (offset: 19))
+          """Invalid input ''bar'': expected an expression, ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 20 (offset: 19))
             |"SHOW SETTING 'foo' 'bar'"
             |                    ^""".stripMargin
         )
@@ -687,19 +742,7 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
     failsParsing[Statements]
   }
 
-  test("SHOW SETTINGS WHERE name = 'db.setting' RETURN *") {
-    failsParsing[Statements]
-  }
-
   test("SHOW SETTINGS YIELD a b RETURN *") {
-    failsParsing[Statements]
-  }
-
-  test("SHOW SETTINGS WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
-  test("SHOW SETTINGS RETURN *") {
     failsParsing[Statements]
   }
 

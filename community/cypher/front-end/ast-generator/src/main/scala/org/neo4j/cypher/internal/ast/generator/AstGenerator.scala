@@ -1952,7 +1952,8 @@ class AstGenerator(
         lzy(_loadCsv),
         lzy(_foreach),
         lzy(_importingWithSubqueryCall),
-        lzy(_scopeClauseSubqueryCall)
+        lzy(_scopeClauseSubqueryCall),
+        lzy(commandClause)
       )
     }
 
@@ -1993,7 +1994,8 @@ class AstGenerator(
         lzy(_delete),
         lzy(_merge),
         lzy(_call),
-        lzy(_loadCsv)
+        lzy(_loadCsv),
+        lzy(commandClause)
       )
     }
 
@@ -2027,6 +2029,10 @@ class AstGenerator(
       case (init :+ (w1: With), w2: With)
         if w1.withType == DefaultWith && w2.withType.isInstanceOf[OrderByOrPaginationWithType] =>
         init :+ w1 :+ w2.copy(withType = DefaultWith)(w2.position)
+      // The With as part of a CommandClause is always ParsedAsYield, so we only need to check if it exists
+      case (init :+ (c: CommandClause), w: With)
+        if c.yieldWith.nonEmpty && w.withType.isInstanceOf[OrderByOrPaginationWithType] =>
+        init :+ c :+ w.copy(withType = DefaultWith)(w.position)
       case (cs, c) => cs :+ c
     }
   }
@@ -2441,22 +2447,20 @@ class AstGenerator(
     val clauses =
       if (additionalShow.isEmpty && additionalTerminate.isEmpty) {
         // no additional clauses so take the two base ones
-        if (showFirst) show ++ terminate else terminate ++ show
+        if (showFirst) Seq(show, terminate) else Seq(terminate, show)
       } else if (additionalTerminate.isEmpty) {
         // Only additional show, make show only command
         // add base show to ensure at least 2 clauses
         // (can be a mix of different show commands)
-        show ++ additionalShow.flatten
+        show +: additionalShow
       } else if (additionalShow.isEmpty) {
         // Only additional terminate, make terminate only command
         // add base terminate to ensure at least 2 clauses
-        terminate ++ additionalTerminate.flatten
+        terminate +: additionalTerminate
       } else {
         // multiple additional clauses, add all together and mix the order they appear in
-        // (keeping the yield/with together with its respective clause)
-        val allPairs = Seq(show, terminate) ++ additionalShow ++ additionalTerminate
-        val scrambled = Random.shuffle(allPairs)
-        scrambled.flatten
+        val all = Seq(show, terminate) ++ additionalShow ++ additionalTerminate
+        Random.shuffle(all)
       }
 
     val clausesWithReturn = clauses :+ returns
@@ -2464,7 +2468,7 @@ class AstGenerator(
     SingleQuery(fullClauses)(pos)
   }
 
-  private def showAsPartOfCombined: Gen[Seq[Clause]] = for {
+  private def showAsPartOfCombined: Gen[Clause] = for {
     ids <- namesOrNameExpression
     constraintType <- _constraintType
     indexType <- _indexType
@@ -2494,20 +2498,26 @@ class AstGenerator(
     clause = if (usesCypher5) clauseCypher5 else clauseCypher25orAbove
   } yield {
     val (withClause, items) = turnYieldToWith(yields)
-    if (yieldAll) Seq(clause(List.empty, true, getFullWithStarFromYield))
-    else Seq(clause(items, false, withClause))
+    if (yieldAll) clause(List.empty, true, getFullWithStarFromYield)
+    else clause(items, false, withClause)
   }
 
-  private def terminateAsPartOfCombined: Gen[Seq[Clause]] = for {
+  private def terminateAsPartOfCombined: Gen[Clause] = for {
     ids <- namesOrNameExpressionNonEmpty
     yields <- _yield
     yieldAll <- boolean
   } yield {
     val (withClause, items) = turnYieldToWith(yields)
     if (yieldAll)
-      Seq(TerminateTransactionsClause(ids, List.empty, yieldAll = true, Some(getFullWithStarFromYield), None)(pos))
-    else Seq(TerminateTransactionsClause(ids, items, yieldAll = false, Some(withClause), None)(pos))
+      TerminateTransactionsClause(ids, List.empty, yieldAll = true, Some(getFullWithStarFromYield), None)(pos)
+    else TerminateTransactionsClause(ids, items, yieldAll = false, Some(withClause), None)(pos)
   }
+
+  private def commandClause: Gen[Clause] = for {
+    show <- showAsPartOfCombined
+    terminate <- terminateAsPartOfCombined
+    clause <- oneOf(show, terminate)
+  } yield clause
 
   /* names for show commands:
    * - can be an expression or a list of strings

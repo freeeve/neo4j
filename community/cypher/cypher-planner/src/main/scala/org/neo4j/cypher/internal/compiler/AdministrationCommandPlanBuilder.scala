@@ -327,11 +327,13 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     }
 
     // Check for non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES YIELD ...
-    // Currently doesn't allow WITH except when it is used instead of YIELD
+    // Currently doesn't allow WITH except when it is used instead of YIELD or added in rewrites
+    // Also allows system procedure calls together with the commands
     def checkClausesAllowedOnSystem(clauses: Seq[Clause]) =
       clauses.exists(_.isInstanceOf[CommandClauseAllowedOnSystem]) && clauses.forall {
-        case w: With => w.withType == ParsedAsYield || w.withType == AddedInRewriteShowCommands
-        case c       => c.isInstanceOf[ClauseAllowedOnSystem]
+        case w: With                 => w.withType == ParsedAsYield || w.withType == AddedInRewriteShowCommands
+        case r: ResolvedNonLocalCall => r.signature.systemProcedure
+        case c                       => c.isInstanceOf[ClauseAllowedOnSystem]
       }
 
     // Return non-administration commands that are not allowed on system database, e.g. SHOW CONSTRAINTS YIELD ...
@@ -1854,20 +1856,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
 
       case q =>
         // Check for non-administration commands that are not allowed on system database, e.g. SHOW CONSTRAINTS YIELD ...
-        // To get a better error than the procedure error below
         val unsupportedCommandClauses = q match {
           case SingleQuery(clauses) =>
             getCommandClausesNotAllowedOnSystem(clauses).map(_.name).distinct
           case _ => List.empty
         }
-        if (unsupportedCommandClauses.nonEmpty) {
-          throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
-            unsupportedCommandClauses.sorted.mkString(", "),
-            s"The following commands are not allowed on a system database: ${unsupportedCommandClauses.sorted.mkString(", ")}.",
-            false
-          )
-        }
-
         val unsupportedClauses = q.folder.treeFold(List.empty[String]) {
           case _: Union         => acc => TraverseChildren(acc :+ "UNION")
           case _: NextStatement =>
@@ -1883,13 +1876,31 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             acc =>
               val name = w.where.map(_ => "WHERE").getOrElse(w.name)
               SkipChildren(acc :+ name)
-          case c: Clause => acc => SkipChildren(acc :+ c.name)
+          case w: With if w.withType == ParsedAsYield || w.withType == AddedInRewriteShowCommands =>
+            acc => SkipChildren(acc)
+          case _: CommandClauseAllowedOnSystem => acc => SkipChildren(acc)
+          case c: Clause                       => acc => SkipChildren(acc :+ c.name)
         }.distinct
+
         if (unsupportedClauses.nonEmpty) {
+          val hasCommandClauses = unsupportedCommandClauses.nonEmpty || q.folder.treeExists {
+            case _: CommandClause => true
+          }
+
+          val legacyMessage =
+            if (unsupportedClauses.equals(unsupportedCommandClauses))
+              // We only have disallowed commands, so let's say 'commands'
+              s"The following commands are not allowed on a system database: ${unsupportedClauses.sorted.mkString(", ")}."
+            else if (hasCommandClauses)
+              // We have at least one command and one other clause
+              s"The following clauses are not allowed on a system database: ${unsupportedClauses.sorted.mkString(", ")}."
+            else
+              s"The following unsupported clauses were used: ${unsupportedClauses.sorted.mkString(", ")}. \n" + systemDbProcedureRules
+
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             unsupportedClauses.sorted.mkString(", "),
-            s"The following unsupported clauses were used: ${unsupportedClauses.sorted.mkString(", ")}. \n" + systemDbProcedureRules,
-            true
+            legacyMessage,
+            !hasCommandClauses
           )
         }
 

@@ -2216,7 +2216,9 @@ case class Return(
     }
 
   def convertToWith: With =
-    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral(Some("RETURN")))(position)
+    // This method is currently just called from places converting a RETURN to a WITH before NEXT,
+    // if it gets called from non-NEXT related places we should update how the AddedInRewriteGeneral name is set.
+    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral(Some("NEXT")))(position)
 }
 
 case object Yield {

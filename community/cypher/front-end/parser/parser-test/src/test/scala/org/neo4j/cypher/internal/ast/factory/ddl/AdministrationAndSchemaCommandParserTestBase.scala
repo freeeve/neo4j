@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
@@ -73,6 +74,13 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   implicit val stringToLeftConvertor: String => Either[String, Parameter] = s => Left(s)
   implicit val stringToExpressionConvertor: String => Expression = s => literalString(s)
   implicit val namespacedNameConvertor: String => ast.DatabaseName = s => ast.NamespacedName(s)(pos)
+
+  protected val showCurrentGraphTypeCypher5Error: Parses[ast.Statements] => Parses[ast.Statements] =
+    _.withSyntaxErrorContaining(
+      "Invalid input ",
+      GqlStatusInfoCodes.STATUS_42I06,
+      "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
+    )
 
   val propSeq: Seq[String] = Seq("prop")
   val accessString = "access"

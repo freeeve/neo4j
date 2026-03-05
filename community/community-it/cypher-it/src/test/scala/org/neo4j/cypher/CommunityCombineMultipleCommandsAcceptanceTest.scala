@@ -19,10 +19,7 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
-import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
-import org.neo4j.cypher.CommunityShowFuncProcAcceptanceTest.readAll
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparsesable_42I67
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
@@ -31,52 +28,10 @@ import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
-import org.neo4j.graphdb.config.Setting
-import org.neo4j.kernel.api.procedure.GlobalProcedures
 import org.neo4j.test.DoubleLatch
 
-import java.lang.Boolean.TRUE
-import java.nio.file.NoSuchFileException
-
-class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptanceTestSupport
-    with ShowSettingsAcceptanceTestSupport {
-
-  override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
-    GraphDatabaseInternalSettings.composable_commands -> TRUE,
-    GraphDatabaseInternalSettings.graph_type_enabled -> TRUE,
-    GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25
-  )
-
-  override protected def onNewGraphDatabase(): Unit = {
-    super.onNewGraphDatabase()
-    val globalProcedures: GlobalProcedures = graph.getDependencyResolver.resolveDependency(classOf[GlobalProcedures])
-    globalProcedures.registerFunction(classOf[TestShowFunction])
-    globalProcedures.registerAggregationFunction(classOf[TestShowFunction])
-  }
-
-  private val funcResourceUrl = getClass.getResource("/builtInFunctions.json")
-  if (funcResourceUrl == null) throw new NoSuchFileException(s"File not found: builtInFunctions.json")
-
-  private val builtInFunctionsNames =
-    readAll(funcResourceUrl)
-      .filterNot(m => m.getOrElse("enterpriseOnly", false).asInstanceOf[Boolean])
-      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
-      .map(m => m("name").asInstanceOf[String])
-
-  private val userDefinedFunctionsNames = List("test.function", "test.functionWithInput", "test.return.latest")
-
-  private val allFunctionsNames = (builtInFunctionsNames ++ userDefinedFunctionsNames).sorted
-
-  private val procResourceUrl = getClass.getResource("/procedures.json")
-  if (procResourceUrl == null) throw new NoSuchFileException(s"File not found: procedures.json")
-
-  private val allProceduresNames =
-    readAll(procResourceUrl)
-      .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
-      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
-      .map(m => m("name").asInstanceOf[String])
-
-  // Tests
+class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCommandsAcceptanceTestBase {
+  // Tests for combining listing and terminating commands
 
   test("Should show and terminate transaction with id from show") {
     // GIVEN

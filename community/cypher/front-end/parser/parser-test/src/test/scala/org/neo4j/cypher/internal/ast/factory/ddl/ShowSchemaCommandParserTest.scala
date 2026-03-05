@@ -565,6 +565,54 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     )
   }
 
+  test("SHOW INDEXES WHERE uniqueness = 'UNIQUE' RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowIndexesClause(
+            AllIndexes,
+            Some(where(equals(varFor("uniqueness"), literalString("UNIQUE")))),
+            List.empty,
+            yieldAll = false,
+            None
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
+  test("SHOW INDEXES WHERE true RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowIndexesClause(
+            AllIndexes,
+            Some(where(trueLiteral)),
+            List.empty,
+            yieldAll = false,
+            None
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
+  test("SHOW INDEXES RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowIndexesClause(
+            AllIndexes,
+            None,
+            List.empty,
+            yieldAll = false,
+            None
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
   // Negative tests for show indexes
 
   test("SHOW INDEX YIELD (123 + xyz)") {
@@ -595,19 +643,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     failsParsing[Statements]
   }
 
-  test("SHOW INDEXES WHERE uniqueness = 'UNIQUE' RETURN *") {
-    failsParsing[Statements]
-  }
-
   test("SHOW INDEXES YIELD a b RETURN *") {
-    failsParsing[Statements]
-  }
-
-  test("SHOW INDEXES WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
-  test("SHOW INDEXES RETURN *") {
     failsParsing[Statements]
   }
 
@@ -644,6 +680,23 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         |"SHOW BUILT IN INDEXES"
         |               ^""".stripMargin
     )
+  }
+
+  for {
+    prefix <- Seq("USE neo4j", "")
+  } {
+    test(s"$prefix SHOW INDEXES RETURN name2 YIELD name2") {
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            "Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
+          )
+        case _ => _.withSyntaxErrorContaining(
+            "Invalid input 'YIELD': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', " +
+              "'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', " +
+              "'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>"
+          )
+      }
+    }
   }
 
   // Removed syntax (also includes parts using it that was invalid anyway)
@@ -710,7 +763,11 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           "Invalid input 'OUTPUT': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
         )
       case _ =>
-        _.withSyntaxErrorContaining("Invalid input 'OUTPUT': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+        _.withSyntaxErrorContaining(
+          "Invalid input 'OUTPUT': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', " +
+            "'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+            "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
+        )
     }
   }
 
@@ -1321,6 +1378,57 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     )
   }
 
+  test("SHOW CONSTRAINTS WHERE entityType = 'NODE' RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowConstraintsClause(
+            AllConstraints,
+            Some(where(equals(varFor("entityType"), literalString("NODE")))),
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Columns = false
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
+  test("SHOW CONSTRAINTS WHERE true RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowConstraintsClause(
+            AllConstraints,
+            Some(where(trueLiteral)),
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Columns = false
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
+  test("SHOW EXISTENCE CONSTRAINT RETURN *") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(Statements(Seq(singleQuery(
+          ShowConstraintsClause(
+            AllExistsConstraints,
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            returnCypher5Columns = false
+          )(pos),
+          returnAll
+        ))))
+    }
+  }
+
   // Negative tests for show constraints
 
   test("SHOW ALL KEY CONSTRAINTS") {
@@ -1413,19 +1521,7 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     failsParsing[Statements]
   }
 
-  test("SHOW CONSTRAINTS WHERE entityType = 'NODE' RETURN *") {
-    failsParsing[Statements]
-  }
-
   test("SHOW CONSTRAINTS YIELD a b RETURN *") {
-    failsParsing[Statements]
-  }
-
-  test("SHOW CONSTRAINTS WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
-  test("SHOW EXISTENCE CONSTRAINT RETURN *") {
     failsParsing[Statements]
   }
 
@@ -1450,6 +1546,23 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         |"SHOW BUILT IN CONSTRAINTS"
         |               ^""".stripMargin
     )
+  }
+
+  for {
+    prefix <- Seq("USE neo4j", "")
+  } {
+    test(s"$prefix SHOW CONSTRAINTS RETURN name2 YIELD name2") {
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            "Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
+          )
+        case _ => _.withSyntaxErrorContaining(
+            "Invalid input 'YIELD': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', " +
+              "'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', " +
+              "'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>"
+          )
+      }
+    }
   }
 
   // Removed syntax (also includes parts using it that was invalid anyway)
@@ -1630,7 +1743,11 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           "Invalid input 'OUTPUT': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"
         )
       case _ =>
-        _.withSyntaxErrorContaining("Invalid input 'OUTPUT': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+        _.withSyntaxErrorContaining(
+          "Invalid input 'OUTPUT': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', " +
+            "'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+            "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
+        )
     }
   }
 
@@ -1662,121 +1779,6 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
     assertFailsOnBriefVerbosePreviouslyAllowed("SHOW CONSTRAINTS", "VERBOSE")
   }
 
-  // Invalid clause order tests for indexes and constraints
-
-  for {
-    prefix <- Seq("USE neo4j", "")
-    entity <- Seq("INDEXES", "CONSTRAINTS")
-  } {
-    test(s"$prefix SHOW $entity YIELD * WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected 'ORDER BY'""".stripMargin
-      )
-    }
-
-    test(s"$prefix UNWIND range(1,10) as b SHOW $entity YIELD * RETURN *") {
-      // Can't parse SHOW  after UNWIND
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity WITH name, type RETURN *") {
-      // Can't parse WITH after SHOW
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix WITH 'n' as n SHOW $entity YIELD name RETURN name as numIndexes") {
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'SHOW': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity WITH 1 as c RETURN name as numIndexes") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity WITH 1 as c") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity YIELD a WITH a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SKIP', 'WHERE' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-          )
-      }
-    }
-
-    test(s"$prefix SHOW $entity RETURN name2 YIELD name2") {
-      failsParsing[Statements].in {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'BRIEF', 'VERBOSE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'RETURN': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-          )
-      }
-    }
-  }
-
   // Help methods
 
   private def assertFailsOnBriefVerbosePreviouslyAllowed(
@@ -1797,7 +1799,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
             "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'USERS' or 'VECTOR'"
         )
       case _ => _.withSyntaxErrorContaining(
-          s"Invalid input '$keyword': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+          s"Invalid input '$keyword': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', " +
+            "'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', " +
+            "'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
         )
     }
   }
@@ -1810,7 +1814,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
         )
       case _ =>
         _.withSyntaxErrorContaining(
-          s"Invalid input '$keyword': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+          s"Invalid input '$keyword': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', " +
+            "'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', " +
+            "'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
         )
     }
   }
@@ -1822,7 +1828,9 @@ class ShowSchemaCommandParserTest extends AdministrationAndSchemaCommandParserTe
           s"Invalid input '$errorKeyword': expected 'EXIST', 'EXISTENCE' or 'TYPE' (line"
         )
       case _ => _.withSyntaxErrorContaining(
-          s"Invalid input '$keyword': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+          s"Invalid input '$keyword': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', " +
+            "'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', " +
+            "'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
         )
     }
   }

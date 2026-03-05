@@ -782,6 +782,57 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     )
   }
 
+  test("TERMINATE TRANSACTIONS 'db1-transaction-123' WHERE transactionId = 'db1-transaction-123' RETURN *") {
+    // Missing YIELD
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          TerminateTransactionsClause(
+            Right(literalString("db1-transaction-123")),
+            List.empty,
+            yieldAll = false,
+            None,
+            Some(InputPosition(45, 1, 46))
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("TERMINATE TRANSACTIONS 'db1-transaction-123' RETURN *") {
+    // Missing YIELD
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          TerminateTransactionsClause(
+            Right(literalString("db1-transaction-123")),
+            List.empty,
+            yieldAll = false,
+            None,
+            None
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
+  test("TERMINATE TRANSACTIONS id WHERE true RETURN *") {
+    // Missing YIELD
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'RETURN'")
+      case _ => _.toAstPositioned(singleQuery(
+          TerminateTransactionsClause(
+            Right(varFor("id")),
+            List.empty,
+            yieldAll = false,
+            None,
+            Some(InputPosition(26, 1, 27))
+          )(defaultPos),
+          returnAll
+        ))
+    }
+  }
+
   // Negative tests
 
   test("TERMINATE TRANSACTION") {
@@ -805,20 +856,11 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     failsParsing[Statements]
   }
 
-  test("TERMINATE TRANSACTIONS 'db1-transaction-123' WHERE transactionId = 'db1-transaction-123' RETURN *") {
-    // Missing YIELD
-    failsParsing[Statements]
-  }
-
   test("TERMINATE TRANSACTIONS 'db1-transaction-123' YIELD a b RETURN *") {
     failsParsing[Statements]
   }
 
   test("TERMINATE TRANSACTIONS 'db1-transaction-123' YIELD (123 + xyz) AS foo") {
-    failsParsing[Statements]
-  }
-
-  test("TERMINATE TRANSACTIONS 'db1-transaction-123' RETURN *") {
     failsParsing[Statements]
   }
 
@@ -866,104 +908,34 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     failsParsing[Statements]
   }
 
-  test("TERMINATE TRANSACTIONS id WHERE true RETURN *") {
-    failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETURN'")
-  }
-
   // Invalid clause order
 
   for (prefix <- Seq("USE neo4j", "")) {
-    test(s"$prefix TERMINATE TRANSACTIONS WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after TERMINATE
-      // parses varFor("WITH") * function("MATCH", varFor("n"))
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS 'id' YIELD * WITH * MATCH (n) RETURN n") {
-      // Can't parse WITH after TERMINATE
-      failsParsing[Statements].withSyntaxErrorContaining(
-        "Invalid input 'WITH': expected 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"
-      )
-    }
-
-    test(s"$prefix UNWIND range(1,10) as b TERMINATE TRANSACTIONS YIELD * RETURN *") {
-      // Can't parse TERMINATE  after UNWIND
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'TERMINATE': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'TERMINATE': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS WITH name, type RETURN *") {
-      // Can't parse WITH after TERMINATE
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix WITH 'n' as n TERMINATE TRANSACTIONS YIELD name RETURN name as numIndexes") {
-      parsesIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining(
-            """Invalid input 'TERMINATE': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'FOREACH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
-          )
-        case _ => _.withSyntaxErrorContaining(
-            """Invalid input 'TERMINATE': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF>""".stripMargin
-          )
-      }
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS RETURN name as numIndexes") {
-      // parses varFor("RETURN")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'name': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS WITH 1 as c RETURN name as numIndexes") {
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS WITH 1 as c") {
-      // parses varFor("WITH")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input '1': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS 'id' YIELD a WITH a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'WITH': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS UNWIND as as a RETURN a") {
-      // parses varFor("UNWIND")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'as': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
-    }
-
-    test(s"$prefix TERMINATE TRANSACTIONS 'id' YIELD as UNWIND as as a RETURN a") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'UNWIND': expected ',', 'AS', 'ORDER BY', 'LIMIT', 'OFFSET', 'RETURN', 'SHOW', 'SKIP', 'TERMINATE', 'WHERE' or <EOF>"""
-      )
-    }
-
     test(s"$prefix TERMINATE TRANSACTIONS RETURN id2 YIELD id2") {
       // parses varFor("RETURN")
-      failsParsing[Statements].withSyntaxErrorContaining(
-        """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
-      )
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'id2': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+          )
+        case _ => _.withSyntaxErrorContaining(
+            "Invalid input 'id2': expected an expression, 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+              "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+              "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF>"
+          )
+      }
+    }
+
+    test(s"$prefix TERMINATE TRANSACTIONS tx RETURN id2 YIELD id2") {
+      failsParsing[Statements].in {
+        case Cypher5 => _.withSyntaxErrorContaining(
+            """Invalid input 'RETURN': expected an expression, 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"""
+          )
+        case _ => _.withSyntaxErrorContaining(
+            "Invalid input 'YIELD': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', " +
+              "'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', " +
+              "'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>"
+          )
+      }
     }
   }
 

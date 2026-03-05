@@ -612,7 +612,7 @@ class NextStatementParserTest extends AstParsingTestBase {
                             |"      LET a = 1"
                             |       ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input '': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 6, column 7 (offset: 50))
+        _.withSyntaxError("""Invalid input '': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 6, column 7 (offset: 50))
                             |""
                             |       ^""".stripMargin)
     }
