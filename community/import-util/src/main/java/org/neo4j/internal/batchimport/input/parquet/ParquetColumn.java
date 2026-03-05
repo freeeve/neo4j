@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.PrimitiveType;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
@@ -43,6 +44,7 @@ record ParquetColumn(
         PrimitiveType primitiveType,
         ParquetLogicalColumnType logicalColumnType,
         ParquetColumnType columnType,
+        LogicalTypeAnnotation logicalTypeAnnotation,
         boolean isArray,
         String rawConfiguration,
         Map<String, String> configuration) {
@@ -84,7 +86,10 @@ record ParquetColumn(
     }
 
     static ParquetColumn from(
-            HeaderDefinition headerDefinition, EntityType knownEntityType, PrimitiveType primitiveType) {
+            HeaderDefinition headerDefinition,
+            EntityType knownEntityType,
+            PrimitiveType primitiveType,
+            LogicalTypeAnnotation logicalTypeAnnotation) {
         String targetColumnName = headerDefinition.targetColumnName();
         boolean isArray = hasArrayDefinition(targetColumnName);
         // get rid of the array definition after we looked for its presence
@@ -111,6 +116,7 @@ record ParquetColumn(
                 primitiveType,
                 logicalColumnType,
                 columnType,
+                logicalTypeAnnotation,
                 isArray,
                 rawConfiguration,
                 configuration);
@@ -230,6 +236,7 @@ record ParquetColumn(
                 primitiveType(),
                 logicalColumnType(),
                 columnType(),
+                logicalTypeAnnotation(),
                 false,
                 rawConfiguration(),
                 configuration());
@@ -244,6 +251,7 @@ record ParquetColumn(
                 primitiveType(),
                 logicalColumnType(),
                 columnType,
+                logicalTypeAnnotation(),
                 isArray(),
                 rawConfiguration(),
                 configuration());

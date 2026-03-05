@@ -315,7 +315,8 @@ public class ParquetInput implements Input {
                     var currentColumnInfo = new ArrayList<ParquetColumn>();
                     var propertyNames = new HashSet<String>();
                     String previousGroupName = null;
-                    var columns = metadata.getFileMetaData().getSchema().getColumns();
+                    var schema = metadata.getFileMetaData().getSchema();
+                    var columns = schema.getColumns();
                     if (headerContext.hasHeader(labels)) {
                         headerContext.ensureAllColumnsExist(
                                 nodeFile,
@@ -330,6 +331,8 @@ public class ParquetInput implements Input {
                         ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
                         var columnName = namePath[0];
+                        var type = schema.getType(columnName);
+
                         if (columnName.isBlank()) {
                             throw new InputException("column name must not be blank");
                         }
@@ -341,7 +344,8 @@ public class ParquetInput implements Input {
                             var parquetColumn = ParquetColumn.from(
                                     headerContext.getHeaderDefinition(nodeFiles, i, columnName),
                                     EntityType.NODE,
-                                    columnDescriptor.getPrimitiveType());
+                                    columnDescriptor.getPrimitiveType(),
+                                    type.getLogicalTypeAnnotation());
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }
@@ -449,12 +453,16 @@ public class ParquetInput implements Input {
                     }
                     var currentColumnInfo = new ArrayList<ParquetColumn>();
                     var propertyNames = new HashSet<String>();
-                    var columns = metadata.getFileMetaData().getSchema().getColumns();
+                    var schema = metadata.getFileMetaData().getSchema();
+                    var columns = schema.getColumns();
                     String fileName = relationshipFile.getFileName().toString();
                     for (int i = 0; i < columns.size(); i++) {
                         ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
                         var columnName = namePath[0];
+
+                        var type = schema.getType(columnName);
+
                         try {
                             if (headerContext.columnShouldBeSkipped(relType, relationshipFileList, i, columnName)) {
                                 continue;
@@ -462,7 +470,8 @@ public class ParquetInput implements Input {
                             var parquetColumn = ParquetColumn.from(
                                     headerContext.getHeaderDefinition(relationshipFileList, i, columnName),
                                     EntityType.RELATIONSHIP,
-                                    columnDescriptor.getPrimitiveType());
+                                    columnDescriptor.getPrimitiveType(),
+                                    type.getLogicalTypeAnnotation());
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }

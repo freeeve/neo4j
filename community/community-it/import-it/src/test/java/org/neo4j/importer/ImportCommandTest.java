@@ -2932,6 +2932,40 @@ class ImportCommandTest {
         }
     }
 
+    @Test
+    void shouldHandleParquetInputWithLists() throws Exception {
+        // given a parquet file with the schema {id:int32, name: varchar, aList: varcharp[], label:varchar}
+        var nodes = getClass().getResource("/org/neo4j/importer/parquet/listColumns.parquet");
+
+        // when
+        List<String> args = Lists.mutable.of("--nodes", nodes.toString());
+        args.add("--input-type=parquet");
+
+        runImport(args.toArray(new String[0]));
+
+        // then
+        try (var tx = getDatabaseApi().beginTx()) {
+            List<String[]> allArrays = new ArrayList<>();
+            tx.getAllNodes().forEach(node -> {
+                // Verify that strArray property exists and is a String array
+                Object property = node.getProperty("aList");
+                assertThat(property).isInstanceOf(String[].class);
+
+                String[] strArray = (String[]) property;
+                assertThat(strArray).hasSize(3);
+                allArrays.add(strArray);
+            });
+
+            // Verify we have 2 nodes
+            assertThat(allArrays).hasSize(2);
+
+            // Verify one array contains ["1", "2", "3"] and the other contains ["4", "5", "6"]
+            assertThat(allArrays)
+                    .anySatisfy(arr -> assertThat(arr).containsExactlyInAnyOrder("a", "b", "c"))
+                    .anySatisfy(arr -> assertThat(arr).containsExactlyInAnyOrder("d", "e", "f"));
+        }
+    }
+
     private Path createParquetFile(String name, List<org.apache.parquet.schema.Type> types, List<Object[]> data)
             throws Exception {
         Path path = testDirectory.file(name);

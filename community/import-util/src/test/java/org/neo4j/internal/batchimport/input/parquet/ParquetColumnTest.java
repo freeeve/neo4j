@@ -22,6 +22,7 @@ package org.neo4j.internal.batchimport.input.parquet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.Stream;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,8 @@ class ParquetColumnTest {
         var column = ParquetColumn.from(
                 ParquetColumn.HeaderDefinition.from(input),
                 EntityType.NODE,
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"),
+                LogicalTypeAnnotation.intType(32));
 
         assertThat(column.rawConfiguration()).isEqualTo(expected);
     }
@@ -83,7 +85,8 @@ class ParquetColumnTest {
         var column = ParquetColumn.from(
                 ParquetColumn.HeaderDefinition.from(header),
                 EntityType.RELATIONSHIP,
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"),
+                LogicalTypeAnnotation.intType(32));
 
         assertThat(column.columnType()).isEqualTo(expectedType);
     }
@@ -97,7 +100,8 @@ class ParquetColumnTest {
         var column = ParquetColumn.from(
                 ParquetColumn.HeaderDefinition.from(header),
                 EntityType.NODE,
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"),
+                LogicalTypeAnnotation.intType(32));
 
         // Then the column type is still ID, as the id space type sets the column type
         assertThat(column.columnType()).isEqualTo(ParquetColumnType.STRING);
@@ -114,7 +118,8 @@ class ParquetColumnTest {
         var column = ParquetColumn.from(
                 ParquetColumn.HeaderDefinition.from(header),
                 EntityType.NODE,
-                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"),
+                LogicalTypeAnnotation.intType(32));
 
         // Then the column type is still ID, as the id space type sets the column type
         assertThat(column.columnType()).isEqualTo(ParquetColumnType.RAW);

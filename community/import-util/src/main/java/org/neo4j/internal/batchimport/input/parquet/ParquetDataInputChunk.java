@@ -20,8 +20,14 @@
 package org.neo4j.internal.batchimport.input.parquet;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,9 +35,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
@@ -68,6 +76,14 @@ class ParquetDataInputChunk implements ParquetInputChunk {
     private Group nodeIdGroup;
     private Group relationshipStartIdGroup;
     private Group relationshipEndIdGroup;
+
+    private static final ArrayValue EMPTY_POINT_ARRAY = Values.arrayValue(new PointValue[0], false);
+    private static final ArrayValue EMPTY_DATE_ARRAY = Values.arrayValue(new LocalDate[0], false);
+    private static final ArrayValue EMPTY_TIME_ARRAY = Values.arrayValue(new OffsetTime[0], false);
+    private static final ArrayValue EMPTY_DATETIME_ARRAY = Values.arrayValue(new ZonedDateTime[0], false);
+    private static final ArrayValue EMPTY_LOCALTIME_ARRAY = Values.arrayValue(new LocalTime[0], false);
+    private static final ArrayValue EMPTY_LOCALDATETIME_ARRAY = Values.arrayValue(new LocalDateTime[0], false);
+    private static final ArrayValue EMPTY_DURATION_ARRAY = Values.arrayValue(new DurationValue[0], false);
 
     @Override
     public boolean readWith(ParquetDataReader reader) {
@@ -151,16 +167,20 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                 if (readDatum instanceof Map rawDataMap) {
                     Map<String, Object> dataMap = (Map<String, Object>) rawDataMap;
                     for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
-                        entityToHydrate.property(
-                                entry.getKey(),
-                                convertType(entry.getValue(), parquetColumn),
-                                parquetColumn.isIdentifier());
+                        var converted = convertType(entry.getValue(), parquetColumn);
+                        if (converted == null) {
+                            // Skip null entries, as those should not be added as properties
+                            continue;
+                        }
+                        entityToHydrate.property(entry.getKey(), converted, parquetColumn.isIdentifier());
                     }
                 } else {
-                    entityToHydrate.property(
-                            parquetColumn.propertyName(),
-                            convertType(readDatum, parquetColumn),
-                            parquetColumn.isIdentifier());
+                    var converted = convertType(readDatum, parquetColumn);
+                    if (converted == null) {
+                        // Skip null entries, as those should not be added as properties
+                        continue;
+                    }
+                    entityToHydrate.property(parquetColumn.propertyName(), converted, parquetColumn.isIdentifier());
                 }
             }
             // relationship
@@ -228,8 +248,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                 return toArrayValue(parts, nonArrayType);
             } else if (parquetColumn.columnType() == ParquetColumnType.VECTOR) {
                 return convertVectorType(object, parquetColumn);
-            } else if (object instanceof List) {
-                return object;
+            } else if (object instanceof List<?> listValue) {
+                return toArrayValue(listValue, parquetColumn);
             }
 
             return switch (parquetColumn.columnType()) {
@@ -290,11 +310,83 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         if (parts.length == 0) {
             return null;
         }
-        var probeConversion = convertType(parts[0], nonArrayType).getClass();
-        // we need to have typed arrays in here
-        Object[] values = (Object[]) java.lang.reflect.Array.newInstance(probeConversion, parts.length);
-        for (int i = 0; i < parts.length; i++) {
-            values[i] = convertType(parts[i], nonArrayType);
+        return createTypedArrayValue(parts.length, i -> convertType(parts[i], nonArrayType));
+    }
+
+    private ArrayValue toArrayValue(List<?> listValue, ParquetColumn parquetColumn) {
+        if (listValue.isEmpty()) {
+            return getEmptyArrayValue(parquetColumn);
+        }
+        return createTypedArrayValue(listValue.size(), i -> convertType(listValue.get(i), parquetColumn));
+    }
+
+    private static ArrayValue getEmptyArrayValue(ParquetColumn parquetColumn) {
+        // For RAW or unspecified column types, infer from logical type annotation or primitive type
+        if (parquetColumn.columnType() == ParquetColumnType.RAW || parquetColumn.columnType() == null) {
+            return getEmptyArrayValueFromSchema(parquetColumn);
+        }
+
+        return switch (parquetColumn.columnType()) {
+            case BYTE -> Values.EMPTY_BYTE_ARRAY;
+            case SHORT -> Values.EMPTY_SHORT_ARRAY;
+            case INT -> Values.EMPTY_INT_ARRAY;
+            case LONG -> Values.EMPTY_LONG_ARRAY;
+            case FLOAT -> Values.EMPTY_FLOAT_ARRAY;
+            case DOUBLE -> Values.EMPTY_DOUBLE_ARRAY;
+            case BOOLEAN -> Values.EMPTY_BOOLEAN_ARRAY;
+            case CHAR -> Values.EMPTY_CHAR_ARRAY;
+            case STRING -> Values.EMPTY_TEXT_ARRAY;
+            case POINT -> EMPTY_POINT_ARRAY;
+            case DATE -> EMPTY_DATE_ARRAY;
+            case TIME -> EMPTY_TIME_ARRAY;
+            case DATE_TIME -> EMPTY_DATETIME_ARRAY;
+            case LOCAL_TIME -> EMPTY_LOCALTIME_ARRAY;
+            case LOCAL_DATE_TIME -> EMPTY_LOCALDATETIME_ARRAY;
+            case DURATION -> EMPTY_DURATION_ARRAY;
+            default -> getEmptyArrayValueFromSchema(parquetColumn);
+        };
+    }
+
+    private static ArrayValue getEmptyArrayValueFromSchema(ParquetColumn parquetColumn) {
+        // Try to infer from logical type annotation first
+        var logicalType = parquetColumn.logicalTypeAnnotation();
+        if (logicalType != null) {
+            if (LogicalTypeAnnotation.stringType().equals(logicalType)) {
+                return Values.EMPTY_TEXT_ARRAY;
+            }
+            if (logicalType instanceof LogicalTypeAnnotation.IntLogicalTypeAnnotation) {
+                return Values.EMPTY_INT_ARRAY;
+            }
+            if (LogicalTypeAnnotation.dateType().equals(logicalType)) {
+                return EMPTY_DATE_ARRAY;
+            }
+            if (logicalType instanceof LogicalTypeAnnotation.TimeLogicalTypeAnnotation ts) {
+                return ts.isAdjustedToUTC() ? EMPTY_TIME_ARRAY : EMPTY_LOCALTIME_ARRAY;
+            }
+            if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation ts) {
+                return ts.isAdjustedToUTC() ? EMPTY_DATETIME_ARRAY : EMPTY_LOCALDATETIME_ARRAY;
+            }
+        }
+
+        // Fall back to primitive type
+        if (parquetColumn.primitiveType() == null) {
+            return null;
+        }
+        return switch (parquetColumn.primitiveType().getPrimitiveTypeName()) {
+            case INT64, INT96 -> Values.EMPTY_LONG_ARRAY;
+            case INT32 -> Values.EMPTY_INT_ARRAY;
+            case BOOLEAN -> Values.EMPTY_BOOLEAN_ARRAY;
+            case BINARY, FIXED_LEN_BYTE_ARRAY -> Values.EMPTY_BYTE_ARRAY;
+            case FLOAT -> Values.EMPTY_FLOAT_ARRAY;
+            case DOUBLE -> Values.EMPTY_DOUBLE_ARRAY;
+        };
+    }
+
+    private ArrayValue createTypedArrayValue(int size, IntFunction<Object> valueMapper) {
+        var probeConversion = valueMapper.apply(0).getClass();
+        Object[] values = (Object[]) Array.newInstance(probeConversion, size);
+        for (int i = 0; i < size; i++) {
+            values[i] = valueMapper.apply(i);
         }
         return Values.arrayValue(values, true);
     }

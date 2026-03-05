@@ -92,6 +92,7 @@ import org.neo4j.token.ReadOnlyTokenCreator;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.NamedToken;
 import org.neo4j.token.api.TokenHolder;
+import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
@@ -99,6 +100,7 @@ import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 import org.opentest4j.AssertionFailedError;
@@ -628,23 +630,25 @@ class ParquetInputTest {
         }
     }
 
-    @Test
-    void shouldReadListTypesWithNoEntry() throws Exception {
+    @ParameterizedTest
+    @MethodSource("emptyListTypes")
+    void shouldReadListTypesWithEmptyList(String fileName, ArrayValue expectedEmptyArray) throws Exception {
         // GIVEN
-        var fileUrl = getClass().getResource("/parquet/list_empty.parquet");
+        var fileUrl = getClass().getResource("/parquet/empty_list/" + fileName);
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            assertNextNode(nodes, 123L, properties("aList", List.of(), "name", "Mattias Persson"), labels("HACKER"));
+            assertNextNode(
+                    nodes, 123L, properties("aList", expectedEmptyArray, "name", "Dhru Devalia"), labels("HACKER"));
             assertFalse(readNext(nodes));
         }
     }
 
     @Test
-    void shouldReadListTypesWithNullEntry() throws Exception {
+    void shouldReadListTypesWithNullList() throws Exception {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/list_null.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
@@ -653,7 +657,7 @@ class ParquetInputTest {
         assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
+            assertNextNode(nodes, 456L, properties("name", "Dhru"), labels("REKCAH"));
             assertFalse(readNext(nodes));
         }
     }
@@ -811,6 +815,7 @@ class ParquetInputTest {
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
         assertFalse(input.containsVectorData());
         // WHEN/THEN
+
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes,
@@ -821,11 +826,13 @@ class ParquetInputTest {
                             "aStruct.b",
                             "bb",
                             "name",
-                            "Mattias Persson",
+                            "Dhru Devalia",
                             "bStruct.x",
                             "xx",
                             "bStruct.y",
-                            12),
+                            12,
+                            "cStruct.items",
+                            List.of("foo", "bar", "baz")),
                     labels("HACKER"));
             assertFalse(readNext(nodes));
         }
@@ -4146,19 +4153,38 @@ class ParquetInputTest {
     }
 
     private Map<String, Object> primitiveArraysAsLists(Map<String, Object> map) {
-        Map<String, Object> result = new HashMap<>();
+        var result = new HashMap<String, Object>();
         for (var entry : map.entrySet()) {
-            var value = entry.getValue();
-            var cls = value.getClass();
-            if (cls.isArray()) {
-                List<Object> listValue = new ArrayList<>();
-                var length = Array.getLength(value);
-                for (var i = 0; i < length; i++) {
-                    listValue.add(Array.get(value, i));
-                }
-                value = listValue;
-            }
-            result.put(entry.getKey(), value);
+            result.put(entry.getKey(), convertToList(entry.getValue()));
+        }
+        return result;
+    }
+
+    private Object convertToList(Object value) {
+        if (value.getClass().isArray()) {
+            return convertPrimitiveArrayToList(value);
+        }
+        if (value instanceof ArrayValue arrayValue) {
+            return convertArrayValueToList(arrayValue);
+        }
+        return value;
+    }
+
+    private List<Object> convertPrimitiveArrayToList(Object array) {
+        var length = Array.getLength(array);
+        var result = new ArrayList<>(length);
+        for (var i = 0; i < length; i++) {
+            result.add(Array.get(array, i));
+        }
+        return result;
+    }
+
+    private List<Object> convertArrayValueToList(ArrayValue arrayValue) {
+        var size = arrayValue.intSize();
+        var result = new ArrayList<>(size);
+        for (var i = 0; i < size; i++) {
+            var v = arrayValue.value(i);
+            result.add(v instanceof Value value ? value.asObject() : v);
         }
         return result;
     }
@@ -4206,5 +4232,21 @@ class ParquetInputTest {
                 Arguments.of("list_float.parquet", List.of(1.01f, 2.21f, 3.23f)),
                 Arguments.of("list_double.parquet", List.of(1.01d, 2.21d, 3.23d)),
                 Arguments.of("list_boolean.parquet", List.of(true, false, true)));
+    }
+
+    private static Stream<Arguments> emptyListTypes() {
+        return Stream.of(
+                Arguments.of("list_empty.parquet", Values.EMPTY_TEXT_ARRAY),
+                Arguments.of("list_empty_int32.parquet", Values.EMPTY_INT_ARRAY),
+                Arguments.of("list_empty_int64.parquet", Values.EMPTY_LONG_ARRAY),
+                Arguments.of("list_empty_float.parquet", Values.EMPTY_FLOAT_ARRAY),
+                Arguments.of("list_empty_double.parquet", Values.EMPTY_DOUBLE_ARRAY),
+                Arguments.of("list_empty_boolean.parquet", Values.EMPTY_BOOLEAN_ARRAY),
+                Arguments.of("list_empty_date.parquet", Values.dateArray(new java.time.LocalDate[0])),
+                Arguments.of("list_empty_time.parquet", Values.timeArray(new java.time.OffsetTime[0])),
+                Arguments.of("list_empty_timestamp.parquet", Values.dateTimeArray(new java.time.ZonedDateTime[0])),
+                Arguments.of("list_empty_localtime.parquet", Values.localTimeArray(new java.time.LocalTime[0])),
+                Arguments.of(
+                        "list_empty_localdatetime.parquet", Values.localDateTimeArray(new java.time.LocalDateTime[0])));
     }
 }

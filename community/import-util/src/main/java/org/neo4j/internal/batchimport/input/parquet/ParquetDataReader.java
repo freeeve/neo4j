@@ -296,73 +296,150 @@ class ParquetDataReader implements Closeable {
             // reference:
             // https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#parquet-logical-type-definitions
 
-            if (isValueNull(columnReader)) {
+            // Handle lists and maps before the general null check, as they have separate null semantics (empty vs null)
+            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
+                return readListValues(columnReader, column, primitiveType);
+            }
+
+            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.mapType())) {
+                return readMapValues(columnReader, column, fieldName, primitiveType);
+            }
+
+            if (type instanceof GroupType groupType) {
+                return convertGroupValue(columnReader, groupType, fieldName, column, primitiveType);
+            }
+
+            // Check for null before reading temporal or primitive values
+            if (isPrimitiveValueNull(columnReader)) {
                 columnReader.consume();
-                if (logicalType != null) {
-                    if (logicalType.equals(LogicalTypeAnnotation.listType())) {
-                        return List.of();
-                    }
-                    if (logicalType.equals(LogicalTypeAnnotation.mapType())) {
-                        return Map.of();
-                    }
-                }
                 return null;
             }
 
             var object = readTemporalValues(columnReader, logicalType, primitiveType);
             if (object != null) return object;
 
-            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
-                var readValues = new ArrayList<>();
-                for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                    readValues.add(readPrimitiveType(columnReader, primitiveType));
-                    columnReader.consume();
-                }
-                return readValues;
-            }
-
-            if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.mapType())) {
-                // Initialize data structure for a map by fieldName
-                // the data will come in as "all keys" and then "all values".
-                // As a consequence, we need to return them separately and merge them
-                // later into a Java map.
-                if (column.getPath()[2].equals("key")) {
-                    var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
-                    for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                        String key = (String) readPrimitiveType(columnReader, primitiveType);
-                        mapKeys.keys().add(fieldName + "." + key);
-                        columnReader.consume();
-                    }
-                    return mapKeys;
-                }
-
-                var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
-                for (var i = 0; i < columnReader.getTotalValueCount(); i++) {
-                    Object value = readPrimitiveType(columnReader, primitiveType);
-                    mapValues.values().add(value);
-                    columnReader.consume();
-                }
-                return mapValues;
-            }
-
-            if (type instanceof GroupType) {
-                // The only groupType supported right now is a struct.
-                // This could also represent _any_ complex type.
-                var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
-                String propertyName = fieldName + "." + column.getPath()[1];
-                mapKeys.keys().add(propertyName);
-                var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
-                mapValues.values().add(readPrimitiveType(columnReader, primitiveType));
-                return new MapLikeRecord(fieldName, mapKeys, mapValues);
-            }
-
             // Primitives
             Object readValue = readPrimitiveType(columnReader, primitiveType);
+
             columnReader.consume();
             return readValue;
         }
 
-        private static boolean isValueNull(ColumnReader columnReader) {
+        private MapLikeRecord convertGroupValue(
+                ColumnReader columnReader,
+                GroupType groupType,
+                String fieldName,
+                ColumnDescriptor column,
+                PrimitiveType primitiveType) {
+            // The only groupType supported right now is a struct.
+            // This could also represent _any_ complex type.
+            // Check if the struct field is null using definition level (same pattern as lists/maps)
+            if (columnReader.getCurrentDefinitionLevel() == 0) {
+                columnReader.consume();
+                return null;
+            }
+            var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+            String nestedFieldName = column.getPath()[1];
+            String propertyName = fieldName + "." + nestedFieldName;
+            mapKeys.keys().add(propertyName);
+            var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+
+            // Check if the nested field is a list type
+            Type nestedType = groupType.getType(nestedFieldName);
+            LogicalTypeAnnotation nestedLogicalType = nestedType.getLogicalTypeAnnotation();
+
+            if (nestedLogicalType != null && nestedLogicalType.equals(LogicalTypeAnnotation.listType())) {
+                // Handle list within struct - use repetition level pattern
+                mapValues.values().add(collectRepeatedValues(columnReader, column, primitiveType));
+            } else {
+                // Only read value if we're at max definition level (field value is present)
+                if (columnReader.getCurrentDefinitionLevel() == column.getMaxDefinitionLevel()) {
+                    mapValues.values().add(readPrimitiveType(columnReader, primitiveType));
+                } else {
+                    // Field exists but value is null
+                    mapValues.values().add(null);
+                }
+                columnReader.consume();
+            }
+            return new MapLikeRecord(fieldName, mapKeys, mapValues);
+        }
+
+        private ArrayList<Object> readListValues(
+                ColumnReader columnReader, ColumnDescriptor column, PrimitiveType primitiveType) {
+            // Check if the list itself is null (definition level 0)
+            if (columnReader.getCurrentDefinitionLevel() == 0) {
+                columnReader.consume();
+                return null;
+            }
+
+            // Return empty list instead of null for empty lists
+            return collectRepeatedValues(columnReader, column, primitiveType);
+        }
+
+        private Record readMapValues(
+                ColumnReader columnReader, ColumnDescriptor column, String fieldName, PrimitiveType primitiveType) {
+            // Check if the map itself is null (definition level 0)
+            if (columnReader.getCurrentDefinitionLevel() == 0) {
+                columnReader.consume();
+                return null;
+            }
+
+            // Initialize data structure for a map by fieldName
+            // the data will come in as "all keys" and then "all values".
+            // As a consequence, we need to return them separately and merge them
+            // later into a Java map.
+            if (column.getPath()[2].equals("key")) {
+                var mapKeys = new MapLikeRecord.Keys(fieldName, new ArrayList<>());
+                var keys = collectRepeatedValues(columnReader, column, primitiveType);
+                for (Object key : keys) {
+                    mapKeys.keys().add(fieldName + "." + key);
+                }
+                return mapKeys;
+            }
+
+            var mapValues = new MapLikeRecord.Values(fieldName, new ArrayList<>());
+            var values = collectRepeatedValuesWithNulls(columnReader, column, primitiveType);
+            mapValues.values().addAll(values);
+            return mapValues;
+        }
+
+        /**
+         * Collects values from a repeated group (list elements, map keys, etc.) using repetition levels.
+         * Only collects non-null values where definition level equals max definition level.
+         */
+        private ArrayList<Object> collectRepeatedValues(
+                ColumnReader columnReader, ColumnDescriptor column, PrimitiveType primitiveType) {
+            var values = new ArrayList<>();
+            do {
+                if (columnReader.getCurrentDefinitionLevel() == column.getMaxDefinitionLevel()) {
+                    values.add(readPrimitiveType(columnReader, primitiveType));
+                }
+                columnReader.consume();
+            } while (columnReader.getCurrentRepetitionLevel() > 0);
+            return values;
+        }
+
+        /**
+         * Collects values from a repeated group, including null values for entries where the
+         * definition level indicates the entry exists but the value is null.
+         * Used for map values where null values need to be preserved.
+         */
+        private ArrayList<Object> collectRepeatedValuesWithNulls(
+                ColumnReader columnReader, ColumnDescriptor column, PrimitiveType primitiveType) {
+            var values = new ArrayList<>();
+            do {
+                if (columnReader.getCurrentDefinitionLevel() == column.getMaxDefinitionLevel()) {
+                    values.add(readPrimitiveType(columnReader, primitiveType));
+                } else if (columnReader.getCurrentDefinitionLevel() > 0) {
+                    // Entry exists but value is null
+                    values.add(null);
+                }
+                columnReader.consume();
+            } while (columnReader.getCurrentRepetitionLevel() > 0);
+            return values;
+        }
+
+        private static boolean isPrimitiveValueNull(ColumnReader columnReader) {
             ColumnDescriptor column = columnReader.getDescriptor();
 
             return columnReader.getCurrentDefinitionLevel() != column.getMaxDefinitionLevel();
@@ -371,36 +448,33 @@ class ParquetDataReader implements Closeable {
         private Object readTemporalValues(
                 ColumnReader columnReader, LogicalTypeAnnotation logicalType, PrimitiveType primitiveType) {
             // Dates
+            var object = readPrimitiveType(columnReader, primitiveType);
+
             if (LogicalTypeAnnotation.dateType().equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 return DateValue.date(LocalDate.ofEpochDay((int) object));
             }
             // Time UTC true
             if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 return TimeValue.time(
                         LocalTime.ofNanoOfDay(((int) object) * 1_000_000L).atOffset(ZoneOffset.UTC));
             }
             if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 return TimeValue.time(
                         LocalTime.ofNanoOfDay(((long) object) * 1_000L).atOffset(ZoneOffset.UTC));
             }
             if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.NANOS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 return TimeValue.time(LocalTime.ofNanoOfDay((long) object).atOffset(ZoneOffset.UTC));
             }
             // Time UTC false
             if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MILLIS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((int) object) * 1_000_000L / 1_000_000_000L;
                 var nanos = ((int) object) * 1_000_000L % 1_000_000_000L;
@@ -408,7 +482,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MICROS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) * 1_000L / 1_000_000_000L;
                 var nanos = ((long) object) * 1_000L % 1_000_000_000L;
@@ -416,7 +489,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.NANOS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000_000_000L;
                 var nanos = ((long) object) % 1_000_000_000L;
@@ -425,7 +497,6 @@ class ParquetDataReader implements Closeable {
             // Timestamp UTC true
             if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000L;
                 var millis = ((long) object) % 1_000L;
@@ -435,7 +506,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000_000L;
                 var micros = ((long) object) % 1_000_000L;
@@ -445,7 +515,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.NANOS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000_000_000L;
                 var nanos = ((long) object) % 1_000_000_000L;
@@ -456,7 +525,6 @@ class ParquetDataReader implements Closeable {
             // Timestamp UTC false
             if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MILLIS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000L;
                 var millis = ((long) object) % 1_000L;
@@ -465,7 +533,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MICROS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000_000L;
                 var micros = ((long) object) % 1_000_000L;
@@ -474,7 +541,6 @@ class ParquetDataReader implements Closeable {
             }
             if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.NANOS)
                     .equals(logicalType)) {
-                var object = readPrimitiveType(columnReader, primitiveType);
                 columnReader.consume();
                 var seconds = ((long) object) / 1_000_000_000L;
                 var nanos = ((long) object) % 1_000_000_000L;
