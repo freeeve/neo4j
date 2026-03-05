@@ -330,18 +330,12 @@ public abstract class CodeGenerationTest {
             handle = simple.handle();
         }
 
-        // when
-        try {
-            instanceMethod(handle.newInstance(), "fail", Thrower.class).invoke((Thrower<IOException>) () -> {
-                throw new IOException("Hello from the inside");
-            });
-
-            fail("expected exception");
-        }
-        // then
-        catch (IOException e) {
-            assertEquals("Hello from the inside", e.getMessage());
-        }
+        assertThatThrownBy(() -> instanceMethod(handle.newInstance(), "fail", Thrower.class)
+                        .invoke((Thrower<IOException>) () -> {
+                            throw new IOException("Hello from the inside");
+                        }))
+                .isInstanceOf(IOException.class)
+                .hasMessage("Hello from the inside");
     }
 
     @Test
@@ -2333,15 +2327,9 @@ public abstract class CodeGenerationTest {
             handle = simple.handle();
         }
 
-        // when
-        try {
-            instanceMethod(handle.newInstance(), "thrower").invoke();
-            fail("expected exception");
-        }
-        // then
-        catch (RuntimeException exception) {
-            assertEquals("hello world", exception.getMessage());
-        }
+        assertThatThrownBy(() -> instanceMethod(handle.newInstance(), "thrower").invoke())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("hello world");
     }
 
     @Test

@@ -21,7 +21,6 @@ package org.neo4j.server.security.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -138,13 +137,8 @@ public class BasicSystemGraphRealmTest {
         Map<String, Object> authToken = AuthToken.newBasicAuthToken("jake", password);
         authToken.put(AuthToken.SCHEME_KEY, null); // Null is not a valid scheme
 
-        // When
-        try {
-            realm.login(authToken, EMBEDDED_CONNECTION);
-            fail("exception expected");
-        } catch (InvalidAuthTokenException e) {
-            // expected
-        }
+        assertThatThrownBy(() -> realm.login(authToken, EMBEDDED_CONNECTION))
+                .isInstanceOf(InvalidAuthTokenException.class);
         assertThat(password).isEqualTo(clearedPasswordWithSameLengthAs("abc123"));
         assertThat(authToken).containsEntry(AuthToken.CREDENTIALS, clearedPasswordWithSameLengthAs("abc123"));
     }

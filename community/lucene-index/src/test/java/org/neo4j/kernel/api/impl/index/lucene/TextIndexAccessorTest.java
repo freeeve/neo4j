@@ -25,7 +25,6 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 import static org.neo4j.collection.PrimitiveLongCollections.toSet;
@@ -357,10 +356,10 @@ public class TextIndexAccessorTest {
             futures.add(threading.execute(
                     nothing -> {
                         try {
-                            indexSampler.sampleIndex(CursorContext.NULL_CONTEXT, new AtomicBoolean());
-                            fail("expected exception");
-                        } catch (IndexNotFoundKernelException e) {
-                            assertEquals("Index dropped while sampling.", e.getMessage());
+                            assertThatThrownBy(() ->
+                                            indexSampler.sampleIndex(CursorContext.NULL_CONTEXT, new AtomicBoolean()))
+                                    .isInstanceOf(IndexNotFoundKernelException.class)
+                                    .hasMessage("Index dropped while sampling.");
                         } finally {
                             dropLatch.release(); // if something goes wrong we do not want to block the drop
                         }

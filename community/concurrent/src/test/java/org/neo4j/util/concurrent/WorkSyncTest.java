@@ -20,9 +20,9 @@
 package org.neo4j.util.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -221,18 +221,18 @@ class WorkSyncTest {
         };
         sync = new WorkSync<>(adder);
 
-        try {
-            // Run this in a different thread to account for reentrant locks.
-            executor.submit(new CallableWork(new AddWork(10))).get();
-            fail("Should have thrown");
-        } catch (ExecutionException exception) {
-            // Outermost ExecutionException from the ExecutorService
-            assertThat(exception.getCause()).isInstanceOf(ExecutionException.class);
+        // Run this in a different thread to account for reentrant locks.
+        assertThatThrownBy(
+                        () -> executor.submit(new CallableWork(new AddWork(10))).get())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(exception -> {
+                    // Outermost ExecutionException from the ExecutorService
+                    assertThat(exception.getCause()).isInstanceOf(ExecutionException.class);
 
-            // Inner ExecutionException from the WorkSync
-            exception = (ExecutionException) exception.getCause();
-            assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
-        }
+                    // Inner ExecutionException from the WorkSync
+                    ExecutionException innerException = (ExecutionException) exception.getCause();
+                    assertThat(innerException.getCause()).isInstanceOf(IllegalStateException.class);
+                });
 
         broken.set(false);
         sync.apply(new AddWork(20));
@@ -375,22 +375,16 @@ class WorkSyncTest {
             }
         });
 
-        try {
-            asyncApply.await();
-            fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isSameAs(boo);
-        }
+        assertThatThrownBy(() -> asyncApply.await())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> assertThat(e.getCause()).isSameAs(boo));
 
         assertThat(sum.sum()).isEqualTo(10L);
         assertThat(count.sum()).isEqualTo(1L);
 
-        try {
-            asyncApply.await();
-            fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isSameAs(boo);
-        }
+        assertThatThrownBy(() -> asyncApply.await())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> assertThat(e.getCause()).isSameAs(boo));
 
         assertThat(sum.sum()).isEqualTo(10L);
         assertThat(count.sum()).isEqualTo(1L);
@@ -412,22 +406,16 @@ class WorkSyncTest {
         refillSemaphore();
         stuckAtSemaphore.get();
 
-        try {
-            asyncApply.await();
-            fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isSameAs(boo);
-        }
+        assertThatThrownBy(() -> asyncApply.await())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> assertThat(e.getCause()).isSameAs(boo));
 
         assertThat(sum.sum()).isEqualTo(11L);
         assertThat(count.sum()).isEqualTo(2L);
 
-        try {
-            asyncApply.await();
-            fail("Should have thrown");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause()).isSameAs(boo);
-        }
+        assertThatThrownBy(() -> asyncApply.await())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> assertThat(e.getCause()).isSameAs(boo));
 
         assertThat(sum.sum()).isEqualTo(11L);
         assertThat(count.sum()).isEqualTo(2L);

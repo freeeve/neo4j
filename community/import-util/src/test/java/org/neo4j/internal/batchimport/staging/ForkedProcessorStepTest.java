@@ -20,9 +20,9 @@
 package org.neo4j.internal.batchimport.staging;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
@@ -248,11 +248,7 @@ class ForkedProcessorStepTest {
 
         // THEN
         step.awaitCompleted();
-        try {
-            control.assertHealthy();
-        } catch (Exception e) {
-            assertSame(testPanic, e);
-        }
+        assertThatThrownBy(control::assertHealthy).isSameAs(testPanic);
     }
 
     @Test

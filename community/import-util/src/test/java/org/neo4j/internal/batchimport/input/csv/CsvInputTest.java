@@ -255,12 +255,9 @@ class CsvInputTest {
     }
 
     private static void assertClosed(CharReadable reader) {
-        try {
-            reader.read(new char[1], 0, 1);
-            fail(reader + " not closed");
-        } catch (IOException e) {
-            assertTrue(e.getMessage().contains("closed"));
-        }
+        assertThatThrownBy(() -> reader.read(new char[1], 0, 1))
+                .isInstanceOf(IOException.class)
+                .satisfies(e -> assertTrue(e.getMessage().contains("closed")));
     }
 
     @ParameterizedTest
@@ -1071,79 +1068,70 @@ class CsvInputTest {
     @EnumSource(MultilineSetting.class)
     void shouldFailOnArrayDelimiterBeingSameAsDelimiter(MultilineSetting setting) {
         // WHEN
-        try {
-            new CsvInput(
-                    null,
-                    null,
-                    null,
-                    null,
-                    INTEGER,
-                    config(setting).toBuilder()
-                            .withDelimiter(',')
-                            .withArrayDelimiter(',')
-                            .build(),
-                    false,
-                    NO_MONITOR,
-                    groups,
-                    INSTANCE);
-
-            fail("Should not be possible");
-        } catch (IllegalArgumentException e) {
-            // THEN
-            assertTrue(e.getMessage().contains("array delimiter"));
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                        null,
+                        null,
+                        null,
+                        null,
+                        INTEGER,
+                        config(setting).toBuilder()
+                                .withDelimiter(',')
+                                .withArrayDelimiter(',')
+                                .build(),
+                        false,
+                        NO_MONITOR,
+                        groups,
+                        INSTANCE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> assertTrue(e.getMessage().contains("array delimiter")));
     }
 
     @ParameterizedTest
     @EnumSource(MultilineSetting.class)
     void shouldFailOnQuotationCharacterBeingSameAsDelimiter(MultilineSetting setting) {
         // WHEN
-        try {
-            new CsvInput(
-                    null,
-                    null,
-                    null,
-                    null,
-                    INTEGER,
-                    config(setting).toBuilder()
-                            .withDelimiter(',')
-                            .withArrayDelimiter(';')
-                            .withQuotationCharacter(',')
-                            .build(),
-                    false,
-                    NO_MONITOR,
-                    groups,
-                    INSTANCE);
-            fail("Should not be possible");
-        } catch (IllegalArgumentException e) {
-            // THEN
-            assertTrue(e.getMessage().contains("delimiter"));
-            assertTrue(e.getMessage().contains("quotation"));
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                        null,
+                        null,
+                        null,
+                        null,
+                        INTEGER,
+                        config(setting).toBuilder()
+                                .withDelimiter(',')
+                                .withArrayDelimiter(';')
+                                .withQuotationCharacter(',')
+                                .build(),
+                        false,
+                        NO_MONITOR,
+                        groups,
+                        INSTANCE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> {
+                    assertTrue(e.getMessage().contains("delimiter"));
+                    assertTrue(e.getMessage().contains("quotation"));
+                });
     }
 
     @ParameterizedTest
     @EnumSource(MultilineSetting.class)
     void shouldFailOnQuotationCharacterBeingSameAsArrayDelimiter(MultilineSetting setting) {
         // WHEN
-        try {
-            new CsvInput(
-                    null,
-                    null,
-                    null,
-                    null,
-                    INTEGER,
-                    config(setting).toBuilder().withQuotationCharacter(';').build(),
-                    false,
-                    NO_MONITOR,
-                    groups,
-                    INSTANCE);
-            fail("Should not be possible");
-        } catch (IllegalArgumentException e) {
-            // THEN
-            assertTrue(e.getMessage().contains("array delimiter"));
-            assertTrue(e.getMessage().contains("quotation"));
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                        null,
+                        null,
+                        null,
+                        null,
+                        INTEGER,
+                        config(setting).toBuilder().withQuotationCharacter(';').build(),
+                        false,
+                        NO_MONITOR,
+                        groups,
+                        INSTANCE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .satisfies(e -> {
+                    assertTrue(e.getMessage().contains("array delimiter"));
+                    assertTrue(e.getMessage().contains("quotation"));
+                });
     }
 
     @ParameterizedTest
@@ -1940,24 +1928,20 @@ class CsvInputTest {
         Path file = writeFile("node-header", ":ID,name:string,name");
 
         // WHEN
-        try {
-            new CsvInput(
-                            datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
-                            defaultFormatNodeFileHeader(),
-                            datas(),
-                            defaultFormatRelationshipFileHeader(),
-                            STRING,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should have failed");
-        } catch (DuplicateHeaderException e) {
-            // THEN
-            assertThat(e).hasMessageContaining(file.getFileName().toString());
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                                defaultFormatNodeFileHeader(),
+                                datas(),
+                                defaultFormatRelationshipFileHeader(),
+                                STRING,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(DuplicateHeaderException.class)
+                .hasMessageContaining(file.getFileName().toString());
     }
 
     @Test
@@ -1966,24 +1950,20 @@ class CsvInputTest {
         Path file = writeFile("relationship-header", ":START_ID,:TYPE,:END_ID,:TYPE,name:string");
 
         // WHEN
-        try {
-            new CsvInput(
-                            datas(),
-                            defaultFormatNodeFileHeader(),
-                            datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
-                            defaultFormatRelationshipFileHeader(),
-                            STRING,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should have failed");
-        } catch (DuplicateHeaderException e) {
-            // THEN
-            assertThat(e).hasMessageContaining(file.getFileName().toString());
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                datas(),
+                                defaultFormatNodeFileHeader(),
+                                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), file)),
+                                defaultFormatRelationshipFileHeader(),
+                                STRING,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(DuplicateHeaderException.class)
+                .hasMessageContaining(file.getFileName().toString());
     }
 
     @Test

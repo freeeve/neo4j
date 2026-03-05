@@ -22,7 +22,6 @@ package org.neo4j.shell.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.shell.DatabaseManager.ABSENT_DB_NAME;
 import static org.neo4j.shell.DatabaseManager.DEFAULT_DEFAULT_DB_NAME;
@@ -134,14 +133,13 @@ class CypherShellMultiDatabaseIntegrationTest {
     void switchingToNonExistingDatabaseShouldGiveErrorResponseFromServer() throws CommandException {
         useCommand.execute(List.of(SYSTEM_DB_NAME));
 
-        try {
-            useCommand.execute(List.of("this_database_name_does_not_exist_in_test_container"));
-            fail("No ClientException thrown");
-        } catch (ClientException e) {
-            // In non-interactive we want to switch even if the database does not exist (in case we don't have
-            // fail-fast)
-            assertOnNoValidDB();
-        }
+        assertThatThrownBy(() -> useCommand.execute(List.of("this_database_name_does_not_exist_in_test_container")))
+                .isInstanceOf(ClientException.class)
+                .satisfies(e -> {
+                    // In non-interactive we want to switch even if the database does not exist (in case we don't have
+                    // fail-fast)
+                    assertOnNoValidDB();
+                });
     }
 
     @Test
@@ -156,13 +154,12 @@ class CypherShellMultiDatabaseIntegrationTest {
 
         useCommand.execute(List.of(SYSTEM_DB_NAME));
 
-        try {
-            useCommand.execute(List.of("this_database_name_does_not_exist_in_test_container"));
-            fail("No ClientException thrown");
-        } catch (ClientException e) {
-            // In interactive we do not want to switch if the database does not exist
-            assertOnSystemDB();
-        }
+        assertThatThrownBy(() -> useCommand.execute(List.of("this_database_name_does_not_exist_in_test_container")))
+                .isInstanceOf(ClientException.class)
+                .satisfies(e -> {
+                    // In interactive we do not want to switch if the database does not exist
+                    assertOnSystemDB();
+                });
     }
 
     // HELPERS

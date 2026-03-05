@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport.executor;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -296,24 +297,18 @@ class DynamicTaskExecutorTest {
         // WHEN
         executor.receivePanic(panic);
 
-        try {
-            // THEN
-            executor.assertHealthy();
-            fail("Should have failed");
-        } catch (TaskExecutionPanicException e) {
-            assertSame(panic, e.getCause());
-        }
+        // THEN
+        assertThatThrownBy(() -> executor.assertHealthy())
+                .isInstanceOf(TaskExecutionPanicException.class)
+                .satisfies(e -> assertSame(panic, e.getCause()));
 
         // and WHEN
         executor.close();
 
-        try {
-            // THEN
-            executor.assertHealthy();
-            fail("Should have failed");
-        } catch (TaskExecutionPanicException e) {
-            assertSame(panic, e.getCause());
-        }
+        // THEN
+        assertThatThrownBy(() -> executor.assertHealthy())
+                .isInstanceOf(TaskExecutionPanicException.class)
+                .satisfies(e -> assertSame(panic, e.getCause()));
     }
 
     private static void assertExceptionOnSubmit(TaskExecutor<Void> executor, IOException exception) {

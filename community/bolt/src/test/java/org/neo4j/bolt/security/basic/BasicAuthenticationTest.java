@@ -21,6 +21,7 @@ package org.neo4j.bolt.security.basic;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,13 +111,12 @@ class BasicAuthenticationTest {
         Authentication auth = createAuthentication(maxFailedAttempts, securityLog);
 
         for (int i = 0; i < maxFailedAttempts; ++i) {
-            try {
-                auth.authenticate(
-                        map("scheme", "basic", "principal", "bob", "credentials", password("gelato")),
-                        EMBEDDED_CONNECTION);
-            } catch (AuthenticationException e) {
-                assertThat(e.status()).isEqualTo(Status.Security.Unauthorized);
-            }
+            assertThatThrownBy(() -> auth.authenticate(
+                            map("scheme", "basic", "principal", "bob", "credentials", password("gelato")),
+                            EMBEDDED_CONNECTION))
+                    .isInstanceOf(AuthenticationException.class)
+                    .satisfies(e ->
+                            assertThat(((AuthenticationException) e).status()).isEqualTo(Status.Security.Unauthorized));
         }
         verify(securityLog, times(maxFailedAttempts))
                 .error(

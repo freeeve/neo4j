@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -609,13 +608,9 @@ public class PlainOperationsTest extends OperationsTest {
         when(tokenHolders.propertyKeyTokens().getTokenById(propertyId)).thenReturn(new NamedToken("prop", labelId));
 
         // when
-        try {
-            operations.uniquePropertyConstraintCreate(
-                    IndexPrototype.uniqueForSchema(schema).withName("constraint name"));
-            fail("Expected an exception because this schema should already be constrained.");
-        } catch (AlreadyConstrainedException ignore) {
-            // Good.
-        }
+        assertThatThrownBy(() -> operations.uniquePropertyConstraintCreate(
+                        IndexPrototype.uniqueForSchema(schema).withName("constraint name")))
+                .isInstanceOf(AlreadyConstrainedException.class);
 
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.LABEL, labelId);
@@ -634,13 +629,9 @@ public class PlainOperationsTest extends OperationsTest {
         when(tokenHolders.propertyKeyTokens().getTokenById(propertyId)).thenReturn(new NamedToken("prop", labelId));
 
         // when
-        try {
-            operations.keyConstraintCreate(
-                    IndexPrototype.uniqueForSchema(schema).withName("constraint name"));
-            fail("Expected an exception because this schema should already be constrained.");
-        } catch (AlreadyConstrainedException ignore) {
-            // Good.
-        }
+        assertThatThrownBy(() -> operations.keyConstraintCreate(
+                        IndexPrototype.uniqueForSchema(schema).withName("constraint name")))
+                .isInstanceOf(AlreadyConstrainedException.class);
 
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.LABEL, labelId);
@@ -659,12 +650,8 @@ public class PlainOperationsTest extends OperationsTest {
         when(tokenHolders.propertyKeyTokens().getTokenById(propertyId)).thenReturn(new NamedToken("prop", labelId));
 
         // when
-        try {
-            operations.nodePropertyExistenceConstraintCreate(schema, "constraint name", false);
-            fail("Expected an exception because this schema should already be constrained.");
-        } catch (AlreadyConstrainedException ignore) {
-            // Good.
-        }
+        assertThatThrownBy(() -> operations.nodePropertyExistenceConstraintCreate(schema, "constraint name", false))
+                .isInstanceOf(AlreadyConstrainedException.class);
 
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.LABEL, labelId);
@@ -709,12 +696,9 @@ public class PlainOperationsTest extends OperationsTest {
         when(storageReader.constraintsGetForRelationshipType(anyInt())).thenReturn(Collections.emptyIterator());
 
         // when
-        try {
-            operations.relationshipPropertyExistenceConstraintCreate(descriptor, "constraint name", false);
-            fail("Expected an exception because this schema should already be constrained.");
-        } catch (AlreadyConstrainedException ignore) {
-            // Good.
-        }
+        assertThatThrownBy(() ->
+                        operations.relationshipPropertyExistenceConstraintCreate(descriptor, "constraint name", false))
+                .isInstanceOf(AlreadyConstrainedException.class);
 
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.RELATIONSHIP_TYPE, relTypeId);

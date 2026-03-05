@@ -21,6 +21,7 @@ package org.neo4j.values.storable;
 
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -243,15 +244,12 @@ class DateValueTest {
     }
 
     private static void assertCorrectGqlDescr(String text, String expectedCauseGqlStatusDescription) {
-        var e = assertThrows(Exception.class, () -> parse(text));
-        try {
-            parse(text);
-        } catch (Exception ex) {
+        assertThatThrownBy(() -> parse(text)).isInstanceOf(Exception.class).satisfies(e -> {
             if (e instanceof ErrorGqlStatusObject gso && gso.cause().isPresent()) {
                 assertEquals(gso.cause().get().statusDescription(), expectedCauseGqlStatusDescription);
             } else {
                 fail("Expected exception to have a gql-code with cause");
             }
-        }
+        });
     }
 }

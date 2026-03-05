@@ -775,14 +775,10 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/map_duplicate_names.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         // WHEN/THEN
-        try {
-            Input input = createParquetInput(
-                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-            fail("Should have failed");
-        } catch (DuplicatedColumnException e) {
-            // THEN
-            assertThat(e).hasMessageContaining("map_duplicate_names.parquet");
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR))
+                .isInstanceOf(DuplicatedColumnException.class)
+                .hasMessageContaining("map_duplicate_names.parquet");
     }
 
     @Test
@@ -1366,10 +1362,7 @@ class ParquetInputTest {
 
         InputIterator nodes = input.nodes(EMPTY).iterator();
         try {
-            readNext(nodes);
-            fail("Should have failed when key assigned multiple times, but didn't.");
-        } catch (InputException ignore) {
-            // this is fine but please de-hydrate all results
+            assertThatThrownBy(() -> readNext(nodes)).isInstanceOf(InputException.class);
         } finally {
             assertFalse(readNext(nodes));
             nodes.close();
@@ -3351,15 +3344,9 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(unparsableColumnNames)),
                 List.<Object[]>of(new Object[] {1, "test"}));
-        try {
-            // when
-            createParquetInput(
-                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-            fail("Should not parse");
-        } catch (InputException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR))
+                .isInstanceOf(InputException.class);
     }
 
     @ParameterizedTest
@@ -3377,19 +3364,13 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(unparsableColumnName)),
                 List.<Object[]>of(new Object[] {1, 2, "TYPE", "test"}));
-        try {
-            // when
-            createParquetInput(
-                    Map.of(Set.of(""), List.of()),
-                    Map.of("", List.of(new FileGroup(relationshipFile))),
-                    INTEGER,
-                    groups,
-                    MONITOR);
-            fail("Should not parse");
-        } catch (InputException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of()),
+                        Map.of("", List.of(new FileGroup(relationshipFile))),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(InputException.class);
     }
 
     @Test
@@ -3407,19 +3388,13 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(left)")), List.of());
         Path nodeFile2 = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(right)")), List.of());
-        try {
-            // when
-            createParquetInput(
-                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
-                    Map.of("", List.of(new FileGroup(relationshipFile))),
-                    INTEGER,
-                    groups,
-                    MONITOR);
-            fail("Should not validate");
-        } catch (InputException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                        Map.of("", List.of(new FileGroup(relationshipFile))),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(InputException.class);
     }
 
     @Test
@@ -3437,19 +3412,13 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(left)")), List.of());
         Path nodeFile2 = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(right)")), List.of());
-        try {
-            // when
-            createParquetInput(
-                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
-                    Map.of("", List.of(new FileGroup(relationshipFile))),
-                    INTEGER,
-                    new Groups(),
-                    MONITOR); // new Groups() instead of field groups important here to not have the global id space
-            fail("Should not validate");
-        } catch (InputException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile1, nodeFile2))),
+                        Map.of("", List.of(new FileGroup(relationshipFile))),
+                        INTEGER,
+                        new Groups(),
+                        MONITOR)) // new Groups() instead of field groups important here to not have the global id space
+                .isInstanceOf(InputException.class);
     }
 
     @Test
@@ -3569,19 +3538,14 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("name")),
                 List.of());
-        try {
-            // when
-            createParquetInput(
-                    Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
-                    Map.of(),
-                    INTEGER,
-                    groups,
-                    new ParquetMonitor(System.out));
-            fail("Should have failed");
-        } catch (DuplicatedColumnException e) {
-            // THEN
-            assertThat(e).hasMessageContaining("test0.parquet");
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))),
+                        Map.of(),
+                        INTEGER,
+                        groups,
+                        new ParquetMonitor(System.out)))
+                .isInstanceOf(DuplicatedColumnException.class)
+                .hasMessageContaining("test0.parquet");
     }
 
     @Test
@@ -3601,19 +3565,14 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("name")),
                 List.of());
-        try {
-            // when
-            createParquetInput(
-                    Map.of(),
-                    Map.of("", List.of(new FileGroup(relationshipFile))),
-                    INTEGER,
-                    groups,
-                    new ParquetMonitor(System.out));
-            fail("Should have failed");
-        } catch (DuplicatedColumnException e) {
-            // THEN
-            assertThat(e).hasMessageContaining("test0.parquet");
-        }
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(),
+                        Map.of("", List.of(new FileGroup(relationshipFile))),
+                        INTEGER,
+                        groups,
+                        new ParquetMonitor(System.out)))
+                .isInstanceOf(DuplicatedColumnException.class)
+                .hasMessageContaining("test0.parquet");
     }
 
     @Test

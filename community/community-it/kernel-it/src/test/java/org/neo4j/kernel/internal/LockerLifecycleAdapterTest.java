@@ -21,7 +21,7 @@ package org.neo4j.kernel.internal;
 
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -60,18 +60,17 @@ class LockerLifecycleAdapterTest {
 
     private void shouldNotAllowDatabasesToUseFilesetsConcurrently(Map<Setting<?>, Object> config) {
         DatabaseManagementService managementService = newDb();
-        DatabaseManagementService embeddedService = null;
         try {
-            embeddedService = new TestDatabaseManagementServiceBuilder(directory.homePath())
-                    .setConfig(config)
-                    .build();
-            fail();
-        } catch (RuntimeException e) {
-            assertThat(e.getCause().getCause()).isInstanceOf(FileLockException.class);
+            assertThatThrownBy(() -> {
+                        try (var dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
+                                .setConfig(config)
+                                .build()) {
+                            // empty
+                        }
+                    })
+                    .isInstanceOf(RuntimeException.class)
+                    .satisfies(e -> assertThat(e.getCause().getCause()).isInstanceOf(FileLockException.class));
         } finally {
-            if (embeddedService != null) {
-                embeddedService.shutdown();
-            }
             if (managementService != null) {
                 managementService.shutdown();
             }

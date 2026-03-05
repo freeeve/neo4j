@@ -20,7 +20,7 @@
 package org.neo4j.test.ports;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,12 +58,8 @@ class SimplePortProviderTest {
         portProvider.getNextFreePort("foo");
         portProvider.getNextFreePort("foo");
 
-        try {
-            portProvider.getNextFreePort("foo");
-
-            fail("Failure was expected");
-        } catch (IllegalStateException e) {
-            assertThat(e.getMessage()).isEqualTo("There are no more ports available");
-        }
+        assertThatThrownBy(() -> portProvider.getNextFreePort("foo"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("There are no more ports available");
     }
 }

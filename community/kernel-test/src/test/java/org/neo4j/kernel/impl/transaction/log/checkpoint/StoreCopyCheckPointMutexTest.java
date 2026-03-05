@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -218,18 +219,17 @@ class StoreCopyCheckPointMutexTest {
         barrier.reached();
 
         // THEN
-        try {
-            firstRequest.get();
-        } catch (ExecutionException e) {
-            assertSame(controlledFailure, e.getCause());
-        }
-        try {
-            secondRequest.get().get();
-        } catch (ExecutionException e) {
-            Throwable cooperativeActionFailure = e.getCause();
-            assertThat(cooperativeActionFailure.getMessage()).contains("Co-operative");
-            assertSame(controlledFailure, cooperativeActionFailure.getCause());
-        }
+        assertThatThrownBy(() -> firstRequest.get())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> assertSame(controlledFailure, e.getCause()));
+
+        assertThatThrownBy(() -> secondRequest.get().get())
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(e -> {
+                    Throwable cooperativeActionFailure = e.getCause();
+                    assertThat(cooperativeActionFailure.getMessage()).contains("Co-operative");
+                    assertSame(controlledFailure, cooperativeActionFailure.getCause());
+                });
 
         // WHEN afterwards trying another store-copy
         CountingAction action = new CountingAction();

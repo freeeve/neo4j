@@ -20,10 +20,10 @@
 package org.neo4j.kernel.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -89,12 +89,9 @@ class LifeSupportTest {
         LifecycleMock instance3 = new LifecycleMock(null, null, null, null);
         lifeSupport.add(instance3);
 
-        try {
-            lifeSupport.init();
-            fail("Failure was expected");
-        } catch (LifecycleException throwable) {
-            assertEquals(initThrowable, throwable.getCause());
-        }
+        assertThatThrownBy(() -> lifeSupport.init())
+                .isInstanceOf(LifecycleException.class)
+                .hasCause(initThrowable);
         assertEquals(LifecycleStatus.SHUTDOWN, lifeSupport.getStatus());
         assertEquals(LifecycleStatus.SHUTDOWN, instance1.getStatus());
         assertEquals(LifecycleStatus.SHUTDOWN, instance2.getStatus());
@@ -113,12 +110,9 @@ class LifeSupportTest {
         LifecycleMock instance3 = new LifecycleMock(null, null, null, null);
         lifeSupport.add(instance3);
 
-        try {
-            lifeSupport.start();
-            fail("Failure was expected");
-        } catch (LifecycleException throwable) {
-            assertEquals(startThrowable, throwable.getCause());
-        }
+        assertThatThrownBy(() -> lifeSupport.start())
+                .isInstanceOf(LifecycleException.class)
+                .hasCause(startThrowable);
         assertEquals(LifecycleStatus.STOPPED, lifeSupport.getStatus());
         assertEquals(LifecycleStatus.STOPPED, instance1.getStatus());
         assertEquals(LifecycleStatus.STOPPED, instance2.getStatus());
@@ -138,15 +132,14 @@ class LifeSupportTest {
         LifecycleMock instance3 = new LifecycleMock(null, null, null, null);
         lifeSupport.add(instance3);
 
-        try {
-            lifeSupport.start();
-            fail("Failure was expected");
-        } catch (LifecycleException throwable) {
-            assertEquals(startThrowable, throwable.getCause());
-            assertEquals(1, throwable.getSuppressed().length);
-            assertThat(throwable.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
-            assertEquals(stopThrowable, throwable.getSuppressed()[0].getCause());
-        }
+        assertThatThrownBy(() -> lifeSupport.start())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(throwable -> {
+                    assertEquals(startThrowable, throwable.getCause());
+                    assertEquals(1, throwable.getSuppressed().length);
+                    assertThat(throwable.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
+                    assertEquals(stopThrowable, throwable.getSuppressed()[0].getCause());
+                });
 
         assertEquals(LifecycleStatus.STOPPED, lifeSupport.getStatus());
         assertEquals(LifecycleStatus.STOPPED, instance1.getStatus());
@@ -168,12 +161,9 @@ class LifeSupportTest {
 
         lifeSupport.start();
 
-        try {
-            lifeSupport.stop();
-            fail("Failure was expected");
-        } catch (LifecycleException throwable) {
-            assertEquals(stopThrowable, throwable.getCause());
-        }
+        assertThatThrownBy(() -> lifeSupport.stop())
+                .isInstanceOf(LifecycleException.class)
+                .hasCause(stopThrowable);
         assertEquals(LifecycleStatus.STOPPED, lifeSupport.getStatus());
         assertEquals(LifecycleStatus.STOPPED, instance1.getStatus());
         assertEquals(LifecycleStatus.STOPPED, instance2.getStatus());
@@ -194,12 +184,9 @@ class LifeSupportTest {
 
         lifeSupport.start();
 
-        try {
-            lifeSupport.shutdown();
-            fail("Failure was expected");
-        } catch (LifecycleException throwable) {
-            assertEquals(shutdownThrowable, throwable.getCause());
-        }
+        assertThatThrownBy(() -> lifeSupport.shutdown())
+                .isInstanceOf(LifecycleException.class)
+                .hasCause(shutdownThrowable);
         assertEquals(LifecycleStatus.SHUTDOWN, lifeSupport.getStatus());
         assertEquals(LifecycleStatus.SHUTDOWN, instance1.getStatus());
         assertEquals(LifecycleStatus.SHUTDOWN, instance2.getStatus());
@@ -289,13 +276,12 @@ class LifeSupportTest {
         // when
         doThrow(runtimeException).when(lifecycle).init();
         lifeSupport.add(lifecycle);
-        try {
-            lifeSupport.init();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(runtimeException, e.getCause());
-            assertEquals(0, e.getSuppressed().length);
-        }
+        assertThatThrownBy(() -> lifeSupport.init())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(runtimeException, e.getCause());
+                    assertEquals(0, e.getSuppressed().length);
+                });
     }
 
     @Test
@@ -309,15 +295,14 @@ class LifeSupportTest {
         doThrow(shutdownRuntimeException).when(lifecycle1).shutdown();
         lifeSupport.add(lifecycle1);
         lifeSupport.add(lifecycle2);
-        try {
-            lifeSupport.init();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(initRuntimeException, e.getCause());
-            assertEquals(1, e.getSuppressed().length);
-            assertEquals(shutdownRuntimeException, e.getSuppressed()[0].getCause());
-            assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
-        }
+        assertThatThrownBy(() -> lifeSupport.init())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(initRuntimeException, e.getCause());
+                    assertEquals(1, e.getSuppressed().length);
+                    assertEquals(shutdownRuntimeException, e.getSuppressed()[0].getCause());
+                    assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
+                });
     }
 
     @Test
@@ -327,13 +312,12 @@ class LifeSupportTest {
         RuntimeException runtimeException = new RuntimeException();
         doThrow(runtimeException).when(lifecycle).start();
         lifeSupport.add(lifecycle);
-        try {
-            lifeSupport.start();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(runtimeException, e.getCause());
-            assertEquals(0, e.getSuppressed().length);
-        }
+        assertThatThrownBy(() -> lifeSupport.start())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(runtimeException, e.getCause());
+                    assertEquals(0, e.getSuppressed().length);
+                });
     }
 
     @Test
@@ -347,15 +331,14 @@ class LifeSupportTest {
         doThrow(stopRuntimeException).when(lifecycle1).stop();
         lifeSupport.add(lifecycle1);
         lifeSupport.add(lifecycle2);
-        try {
-            lifeSupport.start();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(startRuntimeException, e.getCause());
-            assertEquals(1, e.getSuppressed().length);
-            assertEquals(stopRuntimeException, e.getSuppressed()[0].getCause());
-            assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
-        }
+        assertThatThrownBy(() -> lifeSupport.start())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(startRuntimeException, e.getCause());
+                    assertEquals(1, e.getSuppressed().length);
+                    assertEquals(stopRuntimeException, e.getSuppressed()[0].getCause());
+                    assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
+                });
     }
 
     @Test
@@ -366,13 +349,12 @@ class LifeSupportTest {
         doThrow(runtimeException).when(lifecycle).stop();
         lifeSupport.add(lifecycle);
         lifeSupport.start();
-        try {
-            lifeSupport.stop();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(runtimeException, e.getCause());
-            assertEquals(0, e.getSuppressed().length);
-        }
+        assertThatThrownBy(() -> lifeSupport.stop())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(runtimeException, e.getCause());
+                    assertEquals(0, e.getSuppressed().length);
+                });
     }
 
     @Test
@@ -387,15 +369,14 @@ class LifeSupportTest {
         lifeSupport.add(lifecycle1);
         lifeSupport.add(lifecycle2);
         lifeSupport.start();
-        try {
-            lifeSupport.shutdown();
-            fail("Expected exception");
-        } catch (LifecycleException e) {
-            assertEquals(stopRuntimeException, e.getCause());
-            assertEquals(1, e.getSuppressed().length);
-            assertEquals(shutdownRuntimeException, e.getSuppressed()[0].getCause());
-            assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
-        }
+        assertThatThrownBy(() -> lifeSupport.shutdown())
+                .isInstanceOf(LifecycleException.class)
+                .satisfies(e -> {
+                    assertEquals(stopRuntimeException, e.getCause());
+                    assertEquals(1, e.getSuppressed().length);
+                    assertEquals(shutdownRuntimeException, e.getSuppressed()[0].getCause());
+                    assertThat(e.getSuppressed()[0]).isInstanceOf(LifecycleException.class);
+                });
     }
 
     @Test
@@ -406,15 +387,12 @@ class LifeSupportTest {
         doThrow(new RuntimeException("Stop exceptions")).when(component).stop();
         lifeSupport.add(component);
 
-        try {
-            lifeSupport.start();
-            fail("Failure was expected");
-        } catch (Exception e) {
-            String message = getExceptionStackTrace(e);
+        assertThatThrownBy(() -> lifeSupport.start()).satisfies(e -> {
+            String message = getExceptionStackTrace((Exception) e);
             assertThat(message)
                     .contains("Exception during graceful attempt to stop partially started component."
                             + " Please use non suppressed exception to see original component failure.");
-        }
+        });
 
         assertEquals(LifecycleStatus.STOPPED, lifeSupport.getStatus());
         verify(component).stop();
@@ -428,15 +406,12 @@ class LifeSupportTest {
         doThrow(new RuntimeException("Shutdown exceptions")).when(component).shutdown();
         lifeSupport.add(component);
 
-        try {
-            lifeSupport.init();
-            fail("Failure was expected");
-        } catch (Exception e) {
-            String message = getExceptionStackTrace(e);
+        assertThatThrownBy(() -> lifeSupport.init()).satisfies(e -> {
+            String message = getExceptionStackTrace((Exception) e);
             assertThat(message)
                     .contains("Exception during graceful attempt to shutdown partially initialized component. "
                             + "Please use non suppressed exception to see original component failure.");
-        }
+        });
 
         assertEquals(LifecycleStatus.SHUTDOWN, lifeSupport.getStatus());
         verify(component).shutdown();
