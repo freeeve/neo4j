@@ -221,4 +221,12 @@ class IterablesTest {
         assertThat(iteratorClosed.isTrue()).isTrue();
         assertThat(iterableClosed.isTrue()).isTrue();
     }
+
+    @Test
+    void toStringHelpers() {
+        final Iterable<Integer> values = asList(1, 2, 3, 4, 5);
+        assertThat(Iterables.toString(values)).isEqualTo("12345");
+        assertThat(Iterables.toString(values, "|")).isEqualTo("1|2|3|4|5");
+        assertThat(Iterables.toString(values, ", ", "[", "]")).isEqualTo("[1, 2, 3, 4, 5]");
+    }
 }

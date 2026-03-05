@@ -26,6 +26,7 @@ import java.util.Arrays;
  * Helper functions for working with strings.
  */
 public final class Strings {
+    public static final String EMPTY = "";
     public static final String TAB = "\t";
 
     private Strings() {}

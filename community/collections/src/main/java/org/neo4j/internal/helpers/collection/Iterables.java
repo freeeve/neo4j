@@ -42,6 +42,7 @@ import org.neo4j.graphdb.Resource;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.helpers.Exceptions;
+import org.neo4j.internal.helpers.Strings;
 
 /**
  * Utility methods for processing iterables. Where possible, If the iterable implements
@@ -181,28 +182,74 @@ public final class Iterables {
     }
 
     /**
-     * Returns the given iterable's first element or {@code null} if no
-     * element found.
+     * Join the elements of the {@code values} into a string, as if each element is transformed with
+     * {@link String#valueOf}.
      * <p>
-     * If the {@code iterable} implements {@link Resource}, then it will be closed in a {@code finally} block
+     * If the {@code values} implements {@link Resource}, then it will be closed in a {@code finally} block
      * after the items have been joined.
      * <p>
-     * If the {@link Iterable#iterator() iterator} created by the {@code iterable} implements {@link Resource}
+     * If the {@link Iterable#iterator() iterator} created by the {@code values} implements {@link Resource}
      * it will be {@link Resource#close() closed} in a {@code finally} block after the items have been joined.
      *
      * @param values the {@link Iterable} to get elements from.
-     * @param separator the separator to use between the items in {@code values}.
      * @return the joined string.
      */
-    public static String toString(Iterable<?> values, String separator) {
+    public static String toString(Iterable<?> values) {
+        return toString(values, Strings.EMPTY);
+    }
+
+    /**
+     * Join the elements of the {@code values} into a string with provided deliter separating the values, as if each
+     * element is transformed with {@link String#valueOf}.
+     * <p>
+     * If the {@code values} implements {@link Resource}, then it will be closed in a {@code finally} block
+     * after the items have been joined.
+     * <p>
+     * If the {@link Iterable#iterator() iterator} created by the {@code values} implements {@link Resource}
+     * it will be {@link Resource#close() closed} in a {@code finally} block after the items have been joined.
+     *
+     * @param values the {@link Iterable} to get elements from.
+     * @param delimiter the delimiter to use between the items in {@code values}.
+     * @return the joined string.
+     */
+    public static String toString(Iterable<?> values, CharSequence delimiter) {
+        return toString(values, delimiter, Strings.EMPTY, Strings.EMPTY);
+    }
+
+    /**
+     * Join the elements of the {@code values} into a string with provided deliter separating the values, surrounded by
+     * the provided prefix and suffix, as if each element is transformed with {@link String#valueOf}.
+     * <p>
+     * If the {@code values} implements {@link Resource}, then it will be closed in a {@code finally} block
+     * after the items have been joined.
+     * <p>
+     * If the {@link Iterable#iterator() iterator} created by the {@code values} implements {@link Resource}
+     * it will be {@link Resource#close() closed} in a {@code finally} block after the items have been joined.
+     *
+     * @param values the {@link Iterable} to get elements from.
+     * @param delimiter the delimiter to use between the items in {@code values}.
+     * @param prefix the prefix to the joined string
+     * @param suffix the suffix to the joined string
+     * @return the joined string.
+     */
+    public static String toString(
+            Iterable<?> values, CharSequence delimiter, CharSequence prefix, CharSequence suffix) {
         Iterator<?> it = values.iterator();
         try {
-            StringBuilder sb = new StringBuilder();
+            final StringBuilder sb = new StringBuilder();
+            if (!prefix.isEmpty()) {
+                sb.append(prefix);
+            }
+
             while (it.hasNext()) {
                 sb.append(it.next());
-                if (it.hasNext()) {
-                    sb.append(separator);
+                if (!delimiter.isEmpty() && it.hasNext()) {
+                    sb.append(delimiter);
                 }
+            }
+
+            if (!suffix.isEmpty()) {
+                sb.append(suffix);
             }
             return sb.toString();
         } finally {
