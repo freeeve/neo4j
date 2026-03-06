@@ -322,7 +322,7 @@ public class ImportCommand {
                 converter = EscapedCharacterConverter.class,
                 description = "Delimiter character between values in CSV data. "
                         + "Also accepts 'TAB' and e.g. 'U+002A' for specifying a character using Unicode. Note that "
-                        + "the delimiter character must be a single byte character in UTF-8")
+                        + "the delimiter character must be a single byte character in UTF-8.")
         private char delimiter = DEFAULT_CSV_CONFIG.delimiter();
 
         @Option(
