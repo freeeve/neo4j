@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.FeatureError
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Add
@@ -73,6 +74,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.scalactic.Equality
 
 import java.nio.charset.StandardCharsets
 
@@ -84,6 +86,24 @@ import scala.reflect.runtime.universe.termNames
 import scala.reflect.runtime.universe.typeOf
 
 class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestSupport {
+
+  implicit val seqSemanticErrorEquality: Equality[Seq[SemanticErrorDef]] =
+    (a: Seq[SemanticErrorDef], b: Any) =>
+      b match {
+        case bSeq: Seq[_] if a.size == bSeq.size =>
+          a.zip(bSeq).forall {
+            case (actual, expected: SemanticErrorDef) =>
+              def normalizeMsg(error: SemanticErrorDef): String =
+                error.msg.replaceAll("\r\n", "\n")
+
+              normalizeMsg(actual) == normalizeMsg(expected) &&
+              actual.position == expected.position &&
+              actual.gqlStatusObject == expected.gqlStatusObject
+            case _ => false
+          }
+        case _ => false
+      }
+
   private val p = InputPosition.withLength(13, 12, 11, 10)
   private val pos1 = InputPosition(2, 1, 3).withInputLength(2)
   private val pos2 = InputPosition(16, 5, 4).withInputLength(4)
@@ -3471,7 +3491,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List.empty
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(p.offset, p.line, p.column)
@@ -3482,9 +3505,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           .build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin.replace("\r\n", "\n"),
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
         p
-      ).errors
+      ).errors)
   }
 
   test("CREATE OR REPLACE AUTH RULE authRule") {
@@ -3494,7 +3517,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List.empty
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(p.offset, p.line, p.column)
@@ -3505,9 +3531,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           .build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin.replace("\r\n", "\n"),
+          |22N06: Invalid input. 'SET CONDITION' needs to be specified.""".stripMargin,
         p
-      ).errors
+      ).errors)
   }
 
   test("CREATE OR REPLACE AUTH RULE IF EXISTS authRule SET CONDITION 1=1 SET ENABLED true") {
@@ -3675,7 +3701,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -3688,12 +3717,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin.replace(
-          "\r\n",
-          "\n"
-        ),
+          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION graph.byName('HELLO') = 'SE'") {
@@ -3711,7 +3737,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -3724,12 +3753,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin.replace(
-          "\r\n",
-          "\n"
-        ),
+          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(toLower('HELLO')) = 'SE'") {
@@ -3769,7 +3795,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         GqlHelper.getGql42001_42I13(
           1,
@@ -3784,9 +3813,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         """Function call does not provide the required number of arguments: expected 1 got 2.
           |
           |Function abac.oidc.user_attribute has signature: abac.oidc.user_attribute(attributeKey :: STRING) :: ANY
-          |meaning that it expects 1 [country, city]""".stripMargin.replace("\r\n", "\n"),
+          |meaning that it expects 1 [country, city]""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1) = 'SE_MALMÖ'") {
@@ -3862,7 +3891,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       authRule.semanticCheck.run(
         initialStateWithFeatureFlags,
         sematicContextCypher25
-      ).errors shouldBe SemanticCheckResult
+      ).errors should equal(SemanticCheckResult
         .error(
           ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
             .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -3875,12 +3904,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ).build(),
           initialStateWithFeatureFlags,
           s"""42001
-             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin.replace(
-            "\r\n",
-            "\n"
-          ),
+             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
           pos1
-        ).errors
+        ).errors)
     }
   }
 
@@ -4124,7 +4150,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -4137,12 +4166,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin.replace(
-          "\r\n",
-          "\n"
-        ),
+          |22N05: Invalid input 'unknown.function' for function in auth rule condition.""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("ALTER AUTH RULE authRule SET CONDITION graph.byName('HELLO') = 'SE'") {
@@ -4160,7 +4186,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -4173,12 +4202,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           ).build(),
         initialStateWithFeatureFlags,
         """42001
-          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin.replace(
-          "\r\n",
-          "\n"
-        ),
+          |22N05: Invalid input 'graph.byName' for function in auth rule condition.""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("ALTER AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(toLower('HELLO')) = 'SE'") {
@@ -4218,7 +4244,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )
     )(p)
 
-    authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe SemanticCheckResult
+    authRule.semanticCheck.run(
+      initialStateWithFeatureFlags,
+      sematicContextCypher25
+    ).errors should equal(SemanticCheckResult
       .error(
         GqlHelper.getGql42001_42I13(
           1,
@@ -4233,9 +4262,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         """Function call does not provide the required number of arguments: expected 1 got 2.
           |
           |Function abac.oidc.user_attribute has signature: abac.oidc.user_attribute(attributeKey :: STRING) :: ANY
-          |meaning that it expects 1 [country, city]""".stripMargin.replace("\r\n", "\n"),
+          |meaning that it expects 1 [country, city]""".stripMargin,
         pos1
-      ).errors
+      ).errors)
   }
 
   test("ALTER AUTH RULE authRule SET CONDITION abac.oidc.user_attribute(1) = 'SE_MALMÖ'") {
@@ -4311,7 +4340,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       authRule.semanticCheck.run(
         initialStateWithFeatureFlags,
         sematicContextCypher25
-      ).errors shouldBe SemanticCheckResult
+      ).errors should equal(SemanticCheckResult
         .error(
           ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
             .atPosition(pos1.offset, pos1.line, pos1.column)
@@ -4324,12 +4353,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ).build(),
           initialStateWithFeatureFlags,
           s"""42001
-             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin.replace(
-            "\r\n",
-            "\n"
-          ),
+             |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
           pos1
-        ).errors
+        ).errors)
     }
   }
 
