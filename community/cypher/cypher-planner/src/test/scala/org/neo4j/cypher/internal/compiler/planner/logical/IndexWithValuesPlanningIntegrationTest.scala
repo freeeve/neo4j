@@ -19,13 +19,16 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings.merge_optimization_enabled
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.GetValue
@@ -45,7 +48,9 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     isUnique: Boolean = false,
     isComposite: Boolean = false,
     existenceConstraints: Boolean = false,
-    indexType: IndexType = RANGE
+    indexType: IndexType = RANGE,
+    configure: StatisticsBackedLogicalPlanningConfigurationBuilder => StatisticsBackedLogicalPlanningConfigurationBuilder =
+      identity
   ): StatisticsBackedLogicalPlanningConfiguration = {
     val props = if (isComposite) Seq("prop1", "prop2") else Seq("prop1")
     var b = plannerBuilder()
@@ -69,7 +74,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       }
     }
 
-    b.build()
+    configure(b).build()
   }
 
   private def twoNodeIndexesConfig(): StatisticsBackedLogicalPlanningConfiguration = plannerBuilder()
@@ -648,6 +653,22 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("n.foo AS `n.foo`")
       .mergeUniqueNode("n", "Awesome", Seq("prop1" -> "'foo'"))
+      .build())
+  }
+
+  test(
+    "should not plan mergeUniqueSeek if optimization is disabled"
+  ) {
+    val planner =
+      nodeIndexConfig(isUnique = true, configure = b => b.withSetting(merge_optimization_enabled, Boolean.box(false)))
+    val plan = planner
+      .plan("MERGE (n:Awesome {prop1: 'foo'}) RETURN n.prop1")
+      .stripProduceResults
+
+    plan should equal(planner.subPlanBuilder()
+      .projection("cache[n.prop1] AS `n.prop1`")
+      .merge(Seq(createNodeFull("n", labels = Seq("Awesome"), properties = Some("{prop1: 'foo'}"))))
+      .nodeIndexOperator("n:Awesome(prop1 = 'foo')", getValue = Map("prop1" -> GetValue), unique = true)
       .build())
   }
 

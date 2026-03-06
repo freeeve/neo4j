@@ -171,7 +171,9 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
         context.logicalPlanIdGen
       )),
       Some(AllReduceFallback(anonymousVariableNameGenerator)),
-      Some(mergeRewriter(context.planContext.storageSupportsFastExpandInto))
+      Option.when(
+        context.config.mergeOptimizationEnabled()
+      )(mergeRewriter(context.planContext.storageSupportsFastExpandInto))
     ).flatten
 
     val (bottomUps, topDowns, others) = rewritersAfterUnnestApply.foldLeft((

@@ -257,6 +257,9 @@ class CypherConfiguration private (val config: Config) {
   val planningMergeJoinEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.planning_merge_join_enabled).booleanValue()
 
+  val mergeOptimizationEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.merge_optimization_enabled).booleanValue()
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

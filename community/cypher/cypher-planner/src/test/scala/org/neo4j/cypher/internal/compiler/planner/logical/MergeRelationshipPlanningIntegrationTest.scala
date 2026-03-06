@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
@@ -418,6 +419,27 @@ class MergeRelationshipPlanningIntegrationTest
       )
       .expandAll("(anon_0)-[anon_1]->(anon_2)")
       .nodeByLabelScan("anon_0", "A", IndexOrderNone)
+      .build()
+  }
+
+  test("should not plan mergeInto if optimization disabled") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:T]->()", 10000)
+      .withSetting(GraphDatabaseInternalSettings.merge_optimization_enabled, Boolean.box(false))
+      .build()
+
+    val plan = cfg.plan("MATCH (n) MATCH (m) MERGE (n)-[r:T]->(m)").stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .emptyResult()
+      .apply()
+      .|.merge(Seq(), Seq(createRelationship("r", "n", "T", "m", OUTGOING)), Seq(), Seq(), Set("n", "m"))
+      .|.expandInto("(n)-[r:T]->(m)")
+      .|.argument("n", "m")
+      .cartesianProduct()
+      .|.allNodeScan("m")
+      .allNodeScan("n")
       .build()
   }
 }

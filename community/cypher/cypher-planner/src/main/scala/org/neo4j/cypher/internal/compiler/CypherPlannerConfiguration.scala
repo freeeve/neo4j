@@ -302,4 +302,11 @@ class CypherPlannerConfiguration(
     )
     () => config.planningMergeJoinEnabled
   }
+
+  val mergeOptimizationEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.merge_optimization_enabled.dynamic()
+    )
+    () => config.mergeOptimizationEnabled
+  }
 }

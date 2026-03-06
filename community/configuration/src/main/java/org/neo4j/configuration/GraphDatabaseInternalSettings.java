@@ -1311,6 +1311,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Feature flag to allow/disallow the optimizing merge rewriter creating MergeUniqueNode and MergeInto.")
+    public static final Setting<Boolean> merge_optimization_enabled =
+            newBuilder("internal.cypher.merge_optimization_enabled", BOOL, true).build();
+
+    @Internal
     @Description("A legacy feature flag enabling Sharded Property Databases feature. This flag has no longer any use"
             + "and is part of the settings only for backward compatibility reasons.")
     public static final Setting<Boolean> spd_enabled = newBuilder(
