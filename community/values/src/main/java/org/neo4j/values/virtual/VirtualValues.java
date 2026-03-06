@@ -221,7 +221,7 @@ public final class VirtualValues {
         return new DirectPathValue(nodes, relationships, payloadSize);
     }
 
-    public static PathValue path(NodeValue[] nodes, RelationshipValue[] relationships, long payloadSize) {
+    public static DirectPathValue path(NodeValue[] nodes, RelationshipValue[] relationships, long payloadSize) {
         assert nodes != null;
         assert relationships != null;
         if ((nodes.length + relationships.length) % 2 == 0) {

@@ -23,9 +23,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.impl.util.BaseCoreAPIPath;
-import org.neo4j.kernel.impl.util.NodeEntityWrappingNodeValue;
-import org.neo4j.kernel.impl.util.PathWrappingPathValue;
-import org.neo4j.kernel.impl.util.RelationshipEntityWrappingValue;
+import org.neo4j.kernel.impl.util.WrappingEntity;
+import org.neo4j.kernel.impl.util.WrappingPath;
 import org.neo4j.values.ValueMapper;
 import org.neo4j.values.virtual.VirtualNodeValue;
 import org.neo4j.values.virtual.VirtualPathValue;
@@ -41,7 +40,7 @@ public class ExecutionContextValueMapper extends ValueMapper.JavaMapper {
 
     @Override
     public Object mapPath(VirtualPathValue value) {
-        if (value instanceof PathWrappingPathValue wrapper) {
+        if (value instanceof WrappingPath wrapper) {
             return wrapper.path();
         }
         return new ExecutionContextPath(value);
@@ -49,7 +48,7 @@ public class ExecutionContextValueMapper extends ValueMapper.JavaMapper {
 
     @Override
     public Object mapNode(VirtualNodeValue value) {
-        if (value instanceof NodeEntityWrappingNodeValue wrapper) {
+        if (value instanceof WrappingEntity<?> wrapper) {
             return wrapper.getEntity();
         }
 
@@ -58,7 +57,7 @@ public class ExecutionContextValueMapper extends ValueMapper.JavaMapper {
 
     @Override
     public Object mapRelationship(VirtualRelationshipValue value) {
-        if (value instanceof RelationshipEntityWrappingValue wrapper) {
+        if (value instanceof WrappingEntity<?> wrapper) {
             return wrapper.getEntity();
         }
         return new ExecutionContextRelationship(value.id(), executionContext);

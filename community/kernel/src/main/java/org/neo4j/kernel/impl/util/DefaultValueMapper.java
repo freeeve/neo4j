@@ -39,26 +39,26 @@ public class DefaultValueMapper extends ValueMapper.JavaMapper {
 
     @Override
     public Node mapNode(VirtualNodeValue value) {
-        if (value instanceof NodeEntityWrappingNodeValue) { // this is the back door through which "virtual nodes" slip
-            return ((NodeEntityWrappingNodeValue) value).getEntity();
+        if (value instanceof WrappingEntity<?> wrappingEntity) {
+            // this is the back door through which "virtual nodes" slip
+            return (Node) wrappingEntity.getEntity();
         }
         return mapNode(value.id());
     }
 
     @Override
     public Relationship mapRelationship(VirtualRelationshipValue value) {
-        if (value
-                instanceof
-                RelationshipEntityWrappingValue) { // this is the back door through which "virtual relationships" slip
-            return ((RelationshipEntityWrappingValue) value).getEntity();
+        if (value instanceof WrappingEntity<?> wrappingEntity) {
+            // this is the back door through which "virtual relationships" slip
+            return (Relationship) wrappingEntity.getEntity();
         }
         return mapRelationship(value.id());
     }
 
     @Override
     public Path mapPath(VirtualPathValue value) {
-        if (value instanceof PathWrappingPathValue) {
-            return ((PathWrappingPathValue) value).path();
+        if (value instanceof WrappingPath wrappedPath) {
+            return wrappedPath.path();
         }
         return new CoreAPIPath(value);
     }

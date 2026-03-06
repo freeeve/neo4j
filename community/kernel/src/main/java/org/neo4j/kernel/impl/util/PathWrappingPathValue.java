@@ -35,12 +35,12 @@ import org.neo4j.values.virtual.RelationshipValue;
 import org.neo4j.values.virtual.VirtualPathValue;
 
 @SuppressWarnings("removal")
-public class PathWrappingPathValue extends PathValue {
+public class PathWrappingPathValue extends PathValue implements WrappingPath {
     static final long SHALLOW_SIZE = shallowSizeOfInstance(PathWrappingPathValue.class);
 
     private final Path path;
 
-    PathWrappingPathValue(Path path) {
+    protected PathWrappingPathValue(Path path) {
         this.path = path;
     }
 
@@ -213,6 +213,7 @@ public class PathWrappingPathValue extends PathValue {
         throw new IndexOutOfBoundsException();
     }
 
+    @Override
     public Path path() {
         return path;
     }
