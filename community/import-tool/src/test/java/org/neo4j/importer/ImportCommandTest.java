@@ -128,63 +128,12 @@ class ImportCommandTest {
         assertIdTypeAliases(requiredArgs, List.of("INTEGER", "integer"), IdType.INTEGER);
     }
 
-    private void assertIdTypeAliases(List<String> requiredArgs, List<String> aliases, IdType idType) {
-        for (var alias : aliases) {
-            var command = new ImportCommand.Full(getExecutionContext());
-            var args = Stream.concat(Stream.of("--id-type", alias), requiredArgs.stream());
-            new CommandLine(command).parseArgs(args.toArray(String[]::new));
-            assertThat(command.idType).isEqualTo(idType);
-        }
-    }
-
     @Test
     void shouldAllowDifferentCasingForInputType() {
         var tempFileName = testDir.createFile("dummy").toString();
         var requiredArgs = List.of("--nodes", tempFileName, "--relationships", tempFileName);
         assertInputTypeAliases(requiredArgs, List.of("CSV", "csv"), FileImporter.FileInputType.CSV);
         assertInputTypeAliases(requiredArgs, List.of("PARQUET", "parquet"), FileImporter.FileInputType.PARQUET);
-    }
-
-    private void assertInputTypeAliases(
-            List<String> requiredArgs, List<String> aliases, FileImporter.FileInputType inputType) {
-        for (var alias : aliases) {
-            var command = new ImportCommand.Full(getExecutionContext());
-            var args = Stream.concat(Stream.of("--input-type", alias), requiredArgs.stream());
-            new CommandLine(command).parseArgs(args.toArray(String[]::new));
-            assertThat(command.fileInputType).isEqualTo(inputType);
-        }
-    }
-
-    private ExecutionContext getExecutionContext() {
-        return new ExecutionContext(Path.of("."), Path.of("."));
-    }
-
-    private Help getUsageHelp(Object command) {
-        final var ctx = getExecutionContext();
-        return new CommandLine(command, new ContextInjectingFactory(ctx)).getHelp();
-    }
-
-    private Set<String> getOptions(Help help) {
-        var options = new HashSet<String>();
-        for (var option : help.commandSpec().options()) {
-            if (option.hidden()) {
-                continue;
-            }
-            // Pick the first name
-            options.add(option.names()[0]);
-        }
-        return options;
-    }
-
-    private Set<String> getPositionals(Help help) {
-        var positionals = new HashSet<String>();
-        for (var positional : help.commandSpec().positionalParameters()) {
-            if (positional.hidden()) {
-                continue;
-            }
-            positionals.add(positional.paramLabel());
-        }
-        return positionals;
     }
 
     @Test
@@ -228,6 +177,105 @@ class ImportCommandTest {
 
         // then
         assertEquals(homeDir, resultingConfig.get(GraphDatabaseSettings.neo4j_home));
+    }
+
+    @Test
+    void shouldRejectMultibyteDelimiter() {
+        // given
+        var nodes = testDir.createFile("nodes.csv");
+        var rels = testDir.createFile("rels.csv");
+        var command = new ImportCommand.Full(getExecutionContext());
+
+        // when/then - using a 3-byte UTF-8 character (€ = U+20AC)
+        CommandLine.populateCommand(command, "--nodes=" + nodes, "--relationships=" + rels, "--delimiter=U+20AC");
+
+        assertThatThrownBy(() -> command.preImportValidation(new SchemeFileSystemAbstraction(testDir.getFileSystem())))
+                .isInstanceOf(CommandLine.ParameterException.class)
+                .hasMessageContaining("Delimiter must be a single byte character (In UTF-8)");
+    }
+
+    @Test
+    void shouldAcceptSingleByteDelimiter() {
+        // given
+        var nodes = testDir.createFile("nodes.csv");
+        var rels = testDir.createFile("rels.csv");
+        var command = new ImportCommand.Full(getExecutionContext());
+
+        // when - using a single-byte character (pipe = U+007C)
+        CommandLine.populateCommand(command, "--nodes=" + nodes, "--relationships=" + rels, "--delimiter=U+007C");
+
+        // then - should not throw
+        command.preImportValidation(new SchemeFileSystemAbstraction(testDir.getFileSystem()));
+    }
+
+    @Test
+    void shouldAcceptMultibyteDelimiterWhenExplicitlyAllowed() {
+        // given
+        var nodes = testDir.createFile("nodes.csv");
+        var rels = testDir.createFile("rels.csv");
+        var command = new ImportCommand.Full(getExecutionContext());
+
+        // when - using a multibyte character but with the flag enabled
+        CommandLine.populateCommand(
+                command,
+                "--nodes=" + nodes,
+                "--relationships=" + rels,
+                "--delimiter=U+20AC",
+                "--accept-multibyte-delimiter");
+
+        // then - should not throw
+        command.preImportValidation(new SchemeFileSystemAbstraction(testDir.getFileSystem()));
+    }
+
+    private void assertIdTypeAliases(List<String> requiredArgs, List<String> aliases, IdType idType) {
+        for (var alias : aliases) {
+            var command = new ImportCommand.Full(getExecutionContext());
+            var args = Stream.concat(Stream.of("--id-type", alias), requiredArgs.stream());
+            new CommandLine(command).parseArgs(args.toArray(String[]::new));
+            assertThat(command.idType).isEqualTo(idType);
+        }
+    }
+
+    private void assertInputTypeAliases(
+            List<String> requiredArgs, List<String> aliases, FileImporter.FileInputType inputType) {
+        for (var alias : aliases) {
+            var command = new ImportCommand.Full(getExecutionContext());
+            var args = Stream.concat(Stream.of("--input-type", alias), requiredArgs.stream());
+            new CommandLine(command).parseArgs(args.toArray(String[]::new));
+            assertThat(command.fileInputType).isEqualTo(inputType);
+        }
+    }
+
+    private ExecutionContext getExecutionContext() {
+        return new ExecutionContext(Path.of("."), Path.of("."));
+    }
+
+    private Help getUsageHelp(Object command) {
+        final var ctx = getExecutionContext();
+        return new CommandLine(command, new ContextInjectingFactory(ctx)).getHelp();
+    }
+
+    private Set<String> getOptions(Help help) {
+        var options = new HashSet<String>();
+        for (var option : help.commandSpec().options()) {
+            if (option.hidden()) {
+                continue;
+            }
+            // Pick the first name
+            options.add(option.names()[0]);
+        }
+        return options;
+    }
+
+    private Set<String> getPositionals(Help help) {
+        var positionals = new HashSet<String>();
+        for (var positional : help.commandSpec().positionalParameters()) {
+            if (positional.hidden()) {
+                continue;
+            }
+            positionals.add(positional.paramLabel());
+        }
+        return positionals;
     }
 
     @Nested

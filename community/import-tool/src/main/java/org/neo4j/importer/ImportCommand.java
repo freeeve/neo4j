@@ -321,8 +321,18 @@ public class ImportCommand {
                 paramLabel = "<char>",
                 converter = EscapedCharacterConverter.class,
                 description = "Delimiter character between values in CSV data. "
-                        + "Also accepts 'TAB' and e.g. 'U+20AC' for specifying a character using Unicode.")
+                        + "Also accepts 'TAB' and e.g. 'U+002A' for specifying a character using Unicode. Note that "
+                        + "the delimiter character must be a single byte character in UTF-8")
         private char delimiter = DEFAULT_CSV_CONFIG.delimiter();
+
+        @Option(
+                names = "--accept-multibyte-delimiter",
+                hidden = true,
+                arity = "0..1",
+                fallbackValue = "true",
+                description = "Allow multibyte delimiter character, this will have performance impact and this option"
+                        + " is only here to allow legacy delimiter characters")
+        private boolean allowMultibyteDelimiter = false;
 
         @Option(
                 names = "--array-delimiter",
@@ -720,6 +730,11 @@ public class ImportCommand {
                                 + " being encountered (due to '%s' being set to unlimited). You will be unable to identify"
                                 + "  these bad entries upon completion of the import.",
                         SKIP_BAD_ENTRIES_LOGGING, BAD_TOLERANCE_OPTION);
+            }
+            // Check if the provided delimiter is multibyte, disallow this
+            if (!allowMultibyteDelimiter && String.valueOf(delimiter).getBytes(StandardCharsets.UTF_8).length > 1) {
+                throw new ParameterException(
+                        spec.commandLine(), "Delimiter must be a single byte character (In UTF-8)");
             }
         }
 
