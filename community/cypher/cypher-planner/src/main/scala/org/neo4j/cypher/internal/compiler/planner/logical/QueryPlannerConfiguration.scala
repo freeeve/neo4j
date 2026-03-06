@@ -20,17 +20,18 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.ApplyOptionalSolverFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CandidateSelectorFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolverFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.OuterHashJoinSolverFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectPatternPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectSubQueryPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allNodesLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allRelationshipsScanLeafPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.applyOptional
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.argumentLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.idSeekLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexLeafPlanner
@@ -43,7 +44,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.nodeIndexS
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.nodeIndexStringSearchScanPlanProvider
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.intersectionLabelScanLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.labelScanLeafPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.outerHashJoin
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.pickBestPlanUsingHintsAndCost
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.relationshipTypeScanLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.resolveImplicitlySolvedPredicates
@@ -154,8 +154,8 @@ object QueryPlannerConfiguration {
       pickBestCandidate = pickBestPlanUsingHintsAndCost,
       applySelections = predicateSelector,
       optionalSolvers = Seq(
-        applyOptional,
-        outerHashJoin
+        ApplyOptionalSolverFactory,
+        OuterHashJoinSolverFactory
       ),
       leafPlanners = PriorityLeafPlannerList(
         // TODO We may want to permit other leaf plans.
@@ -171,7 +171,7 @@ object QueryPlannerConfiguration {
 case class QueryPlannerConfiguration(
   leafPlanners: LeafPlannerIterable,
   applySelections: PlanSelector,
-  optionalSolvers: Seq[OptionalSolver],
+  optionalSolvers: Seq[OptionalSolverFactory],
   pickBestCandidate: CandidateSelectorFactory
 ) {
 

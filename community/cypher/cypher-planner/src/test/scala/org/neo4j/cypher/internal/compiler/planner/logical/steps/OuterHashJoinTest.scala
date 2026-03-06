@@ -108,7 +108,11 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
       strategy = newMockedStrategy(innerPlan)
     )
     val left = newMockedLogicalPlanWithPatterns(context.staticComponents.planningAttributes, idNames = Set(aNode.name))
-    val plans = outerHashJoin.solver(optionalQg, enclosingQg, InterestingOrderConfig.empty, context).connect(left).toSeq
+    val plans =
+      OuterHashJoinSolverFactory
+        .solver(optionalQg, enclosingQg, InterestingOrderConfig.empty, context)
+        .connect(left)
+        .toSeq
 
     plans should contain theSameElementsAs Seq(
       LeftOuterHashJoin(Set(aNode), left, innerPlan),
@@ -153,7 +157,11 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
       strategy = newMockedStrategy(innerPlan)
     )
     val left = newMockedLogicalPlanWithPatterns(context.staticComponents.planningAttributes, Set(aNode.name))
-    val plans = outerHashJoin.solver(optionalQg, enclosingQg, InterestingOrderConfig.empty, context).connect(left).toSeq
+    val plans =
+      OuterHashJoinSolverFactory
+        .solver(optionalQg, enclosingQg, InterestingOrderConfig.empty, context)
+        .connect(left)
+        .toSeq
 
     plans should contain theSameElementsAs Seq(
       LeftOuterHashJoin(Set(aNode), left, innerPlan),
@@ -203,7 +211,7 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
     )
     val left = newMockedLogicalPlanWithPatterns(context.staticComponents.planningAttributes, idNames = Set(aNode.name))
     val io = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.asc(bNode)))
-    val plans = outerHashJoin.solver(optionalQg, enclosingQg, io, context).connect(left).toSeq
+    val plans = OuterHashJoinSolverFactory.solver(optionalQg, enclosingQg, io, context).connect(left).toSeq
 
     plans should contain theSameElementsAs Seq(
       LeftOuterHashJoin(Set(aNode), left, unorderedPlan),

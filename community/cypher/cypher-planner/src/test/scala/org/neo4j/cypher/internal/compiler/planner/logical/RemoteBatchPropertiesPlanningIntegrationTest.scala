@@ -3722,6 +3722,70 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("should fetch properties before Apply-Optional, no properties used on RHS of Apply") {
+    val query =
+      """
+        |MATCH (p:Person)
+        |OPTIONAL MATCH (p)-[:KNOWS]->(someone)
+        |RETURN p.prop
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.prop] AS `p.prop`")
+      .optionalExpandAll("(p)-[:KNOWS]->()")
+      .remoteBatchProperties("cacheNFromStore[p.prop]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("should fetch properties before Apply-Optional, property used on RHS of Apply") {
+    val query =
+      """
+        |MATCH (p:Person)
+        |OPTIONAL MATCH (p)-[:KNOWS]->(someone)
+        |  WHERE someone.name = p.name
+        |RETURN p.prop
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.prop] AS `p.prop`")
+      .apply()
+      .|.optional("p")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[someone.name]")("someone.name = cacheN[p.name]")
+      .|.expandAll("(p)-[:KNOWS]->(someone)")
+      .|.argument("p")
+      .remoteBatchProperties("cacheNFromStore[p.prop]", "cacheNFromStore[p.name]")
+      .nodeByLabelScan("p", "Person", IndexOrderNone)
+      .build()
+  }
+
+  test("should fetch used properties before Apply-Optional, other properties fetched at the lowest cardinality point") {
+    val query =
+      """
+        |MATCH (p:Person)
+        |OPTIONAL MATCH (p)-[:KNOWS]->(someone)
+        |  WHERE someone.name = p.name
+        |WITH p WHERE id(p) = 1 // reduce cardinality
+        |RETURN p.prop
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.prop] AS `p.prop`")
+      .remoteBatchProperties("cacheNFromStore[p.prop]")
+      .filter("id(p) = 1")
+      .apply()
+      .|.optional("p")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[someone.name]")("someone.name = cacheN[p.name]")
+      .|.expandAll("(p)-[:KNOWS]->(someone)")
+      .|.argument("p")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
   def temporalRuntimeConstant(_functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),

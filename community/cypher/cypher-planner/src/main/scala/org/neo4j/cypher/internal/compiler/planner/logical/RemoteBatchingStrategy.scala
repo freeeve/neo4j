@@ -136,6 +136,12 @@ sealed trait RemoteBatchingStrategy {
     context: LogicalPlanningContext
   ): LogicalPlan
 
+  def planRemotePropertiesBeforeApplyOptional(
+    optionalQg: QueryGraph,
+    lhsPlan: LogicalPlan,
+    context: LogicalPlanningContext
+  ): LogicalPlan
+
   def planBatchPropertiesForHorizonSelections(
     queryGraph: QueryGraph,
     input: LogicalPlan,
@@ -402,17 +408,29 @@ object RemoteBatchingStrategy {
     ): LogicalPlan = {
       // This restricts it to properties in the current CALL horizon
       val restrictedContext = context.withModifiedPlannerState(
-        _.withContextualPropertyAccess(
-          context.settings.remoteBatchPropertiesStrategy.findGlobalPropertyAccessesWithContext(query.withoutTail)
-        )
+        _.withContextualPropertyAccess(findGlobalPropertyAccessesWithContext(query.withoutTail))
       )
       // We want to plan all necessary remote batch properties before planning the subquery, so we have the chance to use previously cached properties for the subquery plan.
-      context.settings.remoteBatchPropertiesStrategy
-        .planPrefetchRemoteBatchPropertiesIfRequired(
-          QueryGraph.empty,
-          Seq(plan),
-          restrictedContext
-        ).headOption.getOrElse(plan)
+      planPrefetchRemoteBatchPropertiesIfRequired(
+        QueryGraph.empty,
+        Seq(plan),
+        restrictedContext
+      ).headOption.getOrElse(plan)
+    }
+
+    override def planRemotePropertiesBeforeApplyOptional(
+      optionalQg: QueryGraph,
+      lhsPlan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = {
+      // only fetch properties that are accessed in OPTIONAL MATCH
+      val propertyAccess = findGlobalPropertyAccessesWithContext(SinglePlannerQuery.empty.withQueryGraph(optionalQg))
+      val restrictedContext = context.withModifiedPlannerState(_.withContextualPropertyAccess(propertyAccess))
+      planPrefetchRemoteBatchPropertiesIfRequired(
+        optionalQg.removeArguments(), // normally we don't fetch properties for arguments, but in this case that's what we want, as we're fetching properties on LHS of an Apply
+        Seq(lhsPlan),
+        restrictedContext
+      ).headOption.getOrElse(lhsPlan)
     }
 
     private def planRemoteBatchPropertiesWithLookahead(
@@ -951,6 +969,12 @@ object RemoteBatchingStrategy {
       plan: LogicalPlan,
       context: LogicalPlanningContext
     ): LogicalPlan = plan
+
+    override def planRemotePropertiesBeforeApplyOptional(
+      optionalQg: QueryGraph,
+      lhsPlan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = lhsPlan
 
     override def planBatchPropertiesForHorizonSelections(
       queryGraph: QueryGraph,

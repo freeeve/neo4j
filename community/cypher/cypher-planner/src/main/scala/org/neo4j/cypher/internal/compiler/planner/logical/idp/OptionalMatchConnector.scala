@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolverFactory
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
@@ -39,11 +39,12 @@ case object OptionalMatchConnector
 
     // A map from each OPTIONAL MATCH QueryGraph to solvers that can connect the plan for that optional match
     // to the current LHS plan.
-    val optionalSolvers: Map[QueryGraph, Seq[OptionalSolver.Solver]] = queryGraph.optionalMatches.map { optionalQG =>
-      optionalQG -> context.plannerState.config.optionalSolvers.map { getSolver =>
-        getSolver.solver(optionalQG, queryGraph, interestingOrderConfig, context)
-      }
-    }.toMap
+    val optionalSolvers: Map[QueryGraph, Seq[OptionalSolverFactory.Solver]] =
+      queryGraph.optionalMatches.map { optionalQG =>
+        optionalQG -> context.plannerState.config.optionalSolvers.map { getSolver =>
+          getSolver.solver(optionalQG, queryGraph, interestingOrderConfig, context)
+        }
+      }.toMap
 
     (registry: IdRegistry[QueryGraph], goal: Goal, table: IDPCache[LogicalPlan], context: LogicalPlanningContext) => {
       val optionalsGoal = goalBitAllocation.optionalMatchesGoal(goal)

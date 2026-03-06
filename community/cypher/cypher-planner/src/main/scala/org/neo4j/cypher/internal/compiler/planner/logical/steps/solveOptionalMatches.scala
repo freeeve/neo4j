@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 
-trait OptionalSolver {
+trait OptionalSolverFactory {
 
   /**
    * Return a Solver for an OPTIONAL MATCH.
@@ -53,10 +53,10 @@ trait OptionalSolver {
     enclosingQg: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
-  ): OptionalSolver.Solver
+  ): OptionalSolverFactory.Solver
 }
 
-object OptionalSolver {
+object OptionalSolverFactory {
 
   trait Solver {
 
@@ -70,17 +70,28 @@ object OptionalSolver {
   }
 }
 
-case object applyOptional extends OptionalSolver {
+case object ApplyOptionalSolverFactory extends OptionalSolverFactory {
 
   override def solver(
     optionalQg: QueryGraph,
     enclosingQg: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
-  ): OptionalSolver.Solver = {
-    val innerContext: LogicalPlanningContext =
+  ): OptionalSolverFactory.Solver = {
+    new ApplyOptionalSolver(optionalQg, enclosingQg, interestingOrderConfig, context)
+  }
+
+  private class ApplyOptionalSolver(
+    optionalQg: QueryGraph,
+    enclosingQg: QueryGraph,
+    interestingOrderConfig: InterestingOrderConfig,
+    context: LogicalPlanningContext
+  ) extends OptionalSolverFactory.Solver {
+
+    private val innerContext: LogicalPlanningContext =
       context.withModifiedPlannerState(_.withFusedLabelInfo(enclosingQg.selections.labelInfo))
-    def doPlan(previouslyCachedProperties: CachedProperties): BestPlans = {
+
+    private def doPlan(previouslyCachedProperties: CachedProperties): BestPlans = {
       context.staticComponents.queryGraphSolver.plan(
         optionalQg,
         removeColumnsWithoutDependencies(interestingOrderConfig),
@@ -91,13 +102,28 @@ case object applyOptional extends OptionalSolver {
     // The case without previously cached properties is computed as a lazy val and not the cache function.
     // This case is handled separately, since non-sharded databases will never have previously cached properties.
     // This should avoid the overhead of the cache function and any regressions in planning times for non-sharded deployments.
-    lazy val innerPlanWithoutPreviouslyCachedProperties = context.staticComponents.queryGraphSolver.plan(
-      optionalQg,
-      removeColumnsWithoutDependencies(interestingOrderConfig),
-      innerContext
-    )
-    val cachedPlanInnerOfOptionalMatch = CachedFunction(doPlan _)
-    (lhs: LogicalPlan) =>
+    private lazy val innerPlanWithoutPreviouslyCachedProperties: BestPlans =
+      context.staticComponents.queryGraphSolver.plan(
+        optionalQg,
+        removeColumnsWithoutDependencies(interestingOrderConfig),
+        innerContext
+      )
+
+    private val cachedPlanInnerOfOptionalMatch = CachedFunction(doPlan _)
+
+    override def connect(lhs: LogicalPlan): Iterator[LogicalPlan] = {
+      // Prefetch properties used on RHS.
+      // This avoids:
+      // - Doing a remote call for each argument.
+      // - Fetching properties under Optional, which means we might be missing some values later on.
+      val lhsWithPrefetchedProperties =
+        context.settings.remoteBatchPropertiesStrategy
+          .planRemotePropertiesBeforeApplyOptional(optionalQg, lhs, context)
+
+      generateCandidates(lhsWithPrefetchedProperties)
+    }
+
+    private def generateCandidates(lhs: LogicalPlan): Iterator[LogicalPlan] = {
       val lhsSymbols = lhs.availableSymbols
       val lhsCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan(lhs.id)
       val inner =
@@ -121,7 +147,7 @@ case object applyOptional extends OptionalSolver {
                    |
                    |RHS: (available symbols: ${p.availableSymbols.map(_.name).mkString("`", "`, `", "`")})
                    |$inner
-                   | 
+                   |
                    |fails at: $p
                    |""".stripMargin
               )
@@ -138,8 +164,10 @@ case object applyOptional extends OptionalSolver {
         )
         // since inner is solved before the lhs, we are unable to carry the cached properties from lhs to the rhs.
         // therefore, we need to use a union to get the cached properties from both the lhs and rhs.
-        val lhsPlanCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhs.id)
-        val rhsPlanCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(rhs.id)
+        val lhsPlanCachedProperties =
+          context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(lhs.id)
+        val rhsPlanCachedProperties =
+          context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(rhs.id)
         val cachedPropertiesForOptional = lhsPlanCachedProperties.union(rhsPlanCachedProperties)
         val applied = context.staticComponents.logicalPlanProducer.planApplyWithCachedProperties(
           lhs,
@@ -152,30 +180,31 @@ case object applyOptional extends OptionalSolver {
         // is not a fair comparison (as they cannot be rewritten to something cheaper).
         unnestOptional(applied).asInstanceOf[LogicalPlan]
       }
-  }
+    }
 
-  /**
-   * Projecting a column without dependencies under Optional might incorrectly set it to NULL.
-   */
-  private def removeColumnsWithoutDependencies(interestingOrderConfig: InterestingOrderConfig)
-    : InterestingOrderConfig = {
-    InterestingOrderConfig(
-      orderToReportAndSolve =
-        interestingOrderConfig
-          .orderToSolve // we don't verify solved InterestingOrder for Optional anyway
-          .mapOrderCandidates(_.takeWhile(column => column.dependencies.nonEmpty))
-    )
+    /**
+     * Projecting a column without dependencies under Optional might incorrectly set it to NULL.
+     */
+    private def removeColumnsWithoutDependencies(interestingOrderConfig: InterestingOrderConfig)
+      : InterestingOrderConfig = {
+      InterestingOrderConfig(
+        orderToReportAndSolve =
+          interestingOrderConfig
+            .orderToSolve // we don't verify solved InterestingOrder for Optional anyway
+            .mapOrderCandidates(_.takeWhile(column => column.dependencies.nonEmpty))
+      )
+    }
   }
 }
 
-case object outerHashJoin extends OptionalSolver {
+case object OuterHashJoinSolverFactory extends OptionalSolverFactory {
 
   override def solver(
     optionalQg: QueryGraph,
     enclosingQg: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
-  ): OptionalSolver.Solver = {
+  ): OptionalSolverFactory.Solver = {
     val joinNodes = optionalQg.argumentIds
 
     // It is not allowed to plan a join on the RHS of an Apply if any of the nodes we are joining on comes from the LHS of the Apply.
