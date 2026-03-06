@@ -41,6 +41,7 @@ case object ArgumentOrderInComparisonsNormalized extends StepSequencer.Condition
 case object NormalizeArgumentOrder extends StepSequencer.Step with ASTRewriterFactory {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
+    NormalizePredicates.completed, // Predicates must have been extracted from patterns
     ContainsNoNodesOfType[NotEquals]() // NotEquals must have been rewritten to Equals
   )
 
