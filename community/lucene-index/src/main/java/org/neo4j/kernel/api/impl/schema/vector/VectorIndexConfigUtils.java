@@ -20,8 +20,9 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
-import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.VALID;
+import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.VALID;
 import static org.neo4j.internal.schema.InternalIndexSetting.VECTOR_QUANTIZATION_TYPE;
+import static org.neo4j.kernel.api.impl.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
@@ -38,19 +39,16 @@ import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.schema.IndexConfig;
+import org.neo4j.internal.schema.IndexConfigValidationRecord;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.values.storable.Value;
 
 public class VectorIndexConfigUtils {
-    static final Comparator<IndexSetting> INDEX_SETTING_COMPARATOR =
-            Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER);
-
     static final IndexSetting DIMENSIONS = IndexSetting.vector_Dimensions();
     static final IndexSetting SIMILARITY_FUNCTION = IndexSetting.vector_Similarity_Function();
     static final IndexSetting QUANTIZATION_ENABLED = IndexSetting.vector_Quantization_Enabled();

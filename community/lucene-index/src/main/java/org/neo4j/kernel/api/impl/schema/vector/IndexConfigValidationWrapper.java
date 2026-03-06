@@ -26,9 +26,9 @@ import java.util.SortedSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfig;
+import org.neo4j.internal.schema.IndexConfigValidationRecord;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.values.storable.Value;
 

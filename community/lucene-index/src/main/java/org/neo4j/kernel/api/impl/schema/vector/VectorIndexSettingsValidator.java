@@ -20,7 +20,7 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.INDEX_SETTING_COMPARATOR;
+import static org.neo4j.kernel.api.impl.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.assertValidRecords;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toIndexConfig;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toValidSettings;
@@ -35,8 +35,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;

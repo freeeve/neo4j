@@ -19,19 +19,15 @@
  */
 package org.neo4j.internal.schema;
 
-import static java.lang.String.CASE_INSENSITIVE_ORDER;
-
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
-import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.values.AnyValue;
-import org.neo4j.values.storable.Value;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.State;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 
 public class IndexConfigValidationRecords {
     private static final Function<State, SortedSet<IndexConfigValidationRecord>> NEW_RECORD_SORTED_SET =
@@ -114,139 +110,5 @@ public class IndexConfigValidationRecords {
             }
         }
         return null;
-    }
-
-    public enum State {
-        VALID,
-        PENDING,
-        UNRECOGNIZED_SETTING,
-        MISSING_SETTING,
-        INCORRECT_TYPE,
-        INVALID_VALUE;
-
-        public static final SortedSet<State> INVALID_STATES;
-
-        static {
-            final TreeSet<State> invalidStates = new TreeSet<>();
-            for (final State state : values()) {
-                if (state != VALID) {
-                    invalidStates.add(state);
-                }
-            }
-            INVALID_STATES = Collections.unmodifiableSortedSet(invalidStates);
-        }
-    }
-
-    @FunctionalInterface
-    public interface NamedSetting {
-        String settingName();
-    }
-
-    public interface KnownSetting extends NamedSetting {
-        IndexSetting setting();
-
-        @Override
-        default String settingName() {
-            return setting().getSettingName();
-        }
-    }
-
-    public sealed interface IndexConfigValidationRecord extends NamedSetting, Comparable<IndexConfigValidationRecord> {
-        Comparator<IndexConfigValidationRecord> COMPARATOR = Comparator.comparing(IndexConfigValidationRecord::state)
-                .thenComparing(NamedSetting::settingName, CASE_INSENSITIVE_ORDER);
-
-        State state();
-
-        @Override
-        default int compareTo(IndexConfigValidationRecord other) {
-            return COMPARATOR.compare(this, other);
-        }
-    }
-
-    public record Valid(IndexSetting setting, Object value, Value stored)
-            implements KnownSetting, IndexConfigValidationRecord {
-        public Valid(Pending pending, Value stored) {
-            this(pending.setting, pending.value, stored);
-        }
-
-        @Override
-        public State state() {
-            return State.VALID;
-        }
-
-        public <T> T get() {
-            return (T) value;
-        }
-    }
-
-    public sealed interface Invalid extends IndexConfigValidationRecord {}
-
-    public record Pending(IndexSetting setting, AnyValue rawValue, Object value) implements KnownSetting, Invalid {
-        public Pending(IndexSetting setting, AnyValue rawValue) {
-            this(setting, rawValue, null);
-        }
-
-        public Pending(Pending pending, Object value) {
-            this(pending.setting, pending.rawValue, value);
-        }
-
-        @Override
-        public State state() {
-            return State.PENDING;
-        }
-
-        public <T> T get() {
-            return (T) value;
-        }
-    }
-
-    public record UnrecognizedSetting(String settingName) implements Invalid {
-        @Override
-        public State state() {
-            return State.UNRECOGNIZED_SETTING;
-        }
-    }
-
-    public record MissingSetting(IndexSetting setting) implements KnownSetting, Invalid {
-        @Override
-        public State state() {
-            return State.MISSING_SETTING;
-        }
-    }
-
-    public record IncorrectType(IndexSetting setting, AnyValue rawValue, Class<?> targetType)
-            implements KnownSetting, Invalid {
-        public IncorrectType(Pending pending, Class<?> targetType) {
-            this(pending.setting, pending.rawValue, targetType);
-        }
-
-        @Override
-        public State state() {
-            return State.INCORRECT_TYPE;
-        }
-
-        public Class<?> providedType() {
-            return rawValue.getClass();
-        }
-
-        public String providedTypeString() {
-            return rawValue.prettify();
-        }
-    }
-
-    public record InvalidValue(IndexSetting setting, AnyValue rawValue, Object value, Object valid)
-            implements KnownSetting, Invalid {
-        public InvalidValue(Pending pending, Object value, Object valid) {
-            this(pending.setting, pending.rawValue, value, valid);
-        }
-
-        public InvalidValue(Pending pending, Object valid) {
-            this(pending, pending.value, valid);
-        }
-
-        @Override
-        public State state() {
-            return State.INVALID_VALUE;
-        }
     }
 }

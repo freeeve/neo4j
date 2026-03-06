@@ -33,7 +33,7 @@ import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
+import org.neo4j.internal.schema.IndexConfigValidationRecord;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.utils.PrettyPrinter;
