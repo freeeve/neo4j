@@ -259,6 +259,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_countStar -> exitCountStar((Cypher25Parser.CountStarContext) ctx);
             case Cypher25Parser.RULE_existsExpression ->
                 exitExistsExpression((Cypher25Parser.ExistsExpressionContext) ctx);
+            case Cypher25Parser.RULE_propertyExistsPredicate ->
+                exitPropertyExistsPredicate((Cypher25Parser.PropertyExistsPredicateContext) ctx);
             case Cypher25Parser.RULE_countExpression ->
                 exitCountExpression((Cypher25Parser.CountExpressionContext) ctx);
             case Cypher25Parser.RULE_collectExpression ->

@@ -4012,6 +4012,43 @@
     "category": "Scalar"
   },
   {
+    "name": "property_exists",
+    "aggregating": false,
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "isBuiltIn": true,
+    "rolesBoostedExecution": [],
+    "returnDescription": "BOOLEAN",
+    "description": "Returns true if the given node or relationship has a property with the given key, otherwise false. Returns null if the first argument is null.",
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "cypherVersionScope": [
+      25
+    ],
+    "signature": "property_exists(element :: NODE | RELATIONSHIP, propertyKeyName :: STRING) :: BOOLEAN",
+    "argumentDescription": [
+      {
+        "name": "element",
+        "description": "A node or relationship to check for the property.",
+        "isDeprecated": false,
+        "type": "NODE | RELATIONSHIP"
+      },
+      {
+        "name": "propertyKeyName",
+        "description": "The name of the property to check for.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "category": "Predicate"
+  },
+  {
     "name": "radians",
     "aggregating": false,
     "isDeprecated": false,

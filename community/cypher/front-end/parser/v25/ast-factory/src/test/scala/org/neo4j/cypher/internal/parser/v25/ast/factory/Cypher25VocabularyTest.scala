@@ -298,6 +298,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.PROCEDURES -> "'PROCEDURES'",
     Cypher25Parser.PROPERTIES -> "'PROPERTIES'",
     Cypher25Parser.PROPERTY -> "'PROPERTY'",
+    Cypher25Parser.PROPERTY_EXISTS -> "'PROPERTY_EXISTS'",
     Cypher25Parser.PROVIDER -> "'PROVIDER'",
     Cypher25Parser.PROVIDERS -> "'PROVIDERS'",
     Cypher25Parser.QUESTION -> "'?'",

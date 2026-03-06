@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Chang
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher25AndLater
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher5
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.IgnoreInCypher5
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.SameAcrossVersions
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Test
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Tuple2TestConverter
 
@@ -38,6 +39,9 @@ class PrettifierIT extends AbstractPrettifierTest {
     "return 42 as x" -> "RETURN 42 AS x",
     "return 42 as `43`" -> "RETURN 42 AS `43`",
     "return distinct 42" -> "RETURN DISTINCT 42",
+    // PROPERTY_EXISTS: Cypher 5 parses as function, Cypher 25 as predicate; both prettify the same
+    SameAcrossVersions("return PROPERTY_EXISTS(n, prop)", "RETURN PROPERTY_EXISTS(n, prop)"),
+    SameAcrossVersions("return PROPERTY_EXISTS(node, `prop-name`)", "RETURN PROPERTY_EXISTS(node, `prop-name`)"),
     "return distinct a, b as X, 3+3 as six order by b.prop, b.foo descending skip 1 limit 2" ->
       """RETURN DISTINCT a, b AS X, 3 + 3 AS six
         |  ORDER BY b.prop ASCENDING, b.foo DESCENDING

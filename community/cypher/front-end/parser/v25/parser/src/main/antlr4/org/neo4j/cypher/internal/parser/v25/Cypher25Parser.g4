@@ -544,6 +544,7 @@ expression8
 
 expression7
    : expression6 comparisonExpression6?
+   | propertyExistsPredicate
    ;
 
 // Making changes here? Consider looking at extendedWhen too.
@@ -777,6 +778,10 @@ countStar
 
 existsExpression
    : EXISTS LCURLY (queryWithLocalDefinitions | matchMode? patternList whereClause?) RCURLY
+   ;
+
+propertyExistsPredicate
+   : PROPERTY_EXISTS LPAREN variable COMMA propertyKeyName RPAREN
    ;
 
 countExpression

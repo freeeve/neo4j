@@ -535,6 +535,7 @@ import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.Pow
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.PropertyExists
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertySelector
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
@@ -912,7 +913,8 @@ class AstGenerator(
     containsIs <- boolean
     dynamicLabelsAllowed <- boolean
     labelExpression <- _labelExpression(None, containsIs, dynamicLabelsAllowed)
-    res <- oneOf(
+    propertyKey <- _propertyKeyName
+    baseUnary = Seq(
       Not(r)(pos),
       IsNull(r)(pos),
       IsNotNull(r)(pos),
@@ -922,6 +924,8 @@ class AstGenerator(
       IsNotNormalized(r, normalForm)(pos),
       LabelExpressionPredicate(r, labelExpression)(pos, isParenthesized = usesCypher5)
     )
+    res <- if (usesCypher5) oneOf(baseUnary)
+    else oneOf(oneOf(baseUnary), for { v <- _variable } yield PropertyExists(v, propertyKey)(pos))
   } yield res
 
   def _predicateBinary: Gen[Expression] = for {

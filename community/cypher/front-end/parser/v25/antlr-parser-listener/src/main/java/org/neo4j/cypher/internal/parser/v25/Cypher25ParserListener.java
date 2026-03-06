@@ -325,6 +325,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitExistsExpression(Cypher25Parser.ExistsExpressionContext ctx);
 
+    void exitPropertyExistsPredicate(Cypher25Parser.PropertyExistsPredicateContext ctx);
+
     void exitCountExpression(Cypher25Parser.CountExpressionContext ctx);
 
     void exitCollectExpression(Cypher25Parser.CollectExpressionContext ctx);

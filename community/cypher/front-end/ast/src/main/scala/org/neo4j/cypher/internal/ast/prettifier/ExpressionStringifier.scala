@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Pow
 import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.PropertyExists
 import org.neo4j.cypher.internal.expressions.PropertySelector
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.ReduceExpression
@@ -492,6 +493,11 @@ private class DefaultExpressionStringifier(
 
       case IsNotNormalized(_, normalForm) =>
         noEagerConsumption(s"IS NOT ${normalForm.description} NORMALIZED")
+
+      case PropertyExists(element, propertyKeyName) =>
+        noEagerConsumption(
+          s"PROPERTY_EXISTS(${delimitedInner(ast)(element)}, ${apply(propertyKeyName)})"
+        )
 
       case VectorValueConstructor(vectorCandidateType, dimension, candidateType) =>
         noEagerConsumption(

@@ -19,140 +19,20 @@ package org.neo4j.cypher.internal.parser.v25.ast.factory
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
-import org.neo4j.cypher.internal.ast.CollectExpression
-import org.neo4j.cypher.internal.ast.CountExpression
-import org.neo4j.cypher.internal.ast.ExistsExpression
-import org.neo4j.cypher.internal.ast.IsNormalized
-import org.neo4j.cypher.internal.ast.IsNotNormalized
-import org.neo4j.cypher.internal.ast.IsNotTyped
-import org.neo4j.cypher.internal.ast.IsTyped
-import org.neo4j.cypher.internal.ast.Match
-import org.neo4j.cypher.internal.ast.Query
-import org.neo4j.cypher.internal.ast.SingleQuery
-import org.neo4j.cypher.internal.ast.VectorValueConstructor
-import org.neo4j.cypher.internal.ast.Where
-import org.neo4j.cypher.internal.expressions.Add
-import org.neo4j.cypher.internal.expressions.AllIterablePredicate
-import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
-import org.neo4j.cypher.internal.expressions.AllReducePredicate
-import org.neo4j.cypher.internal.expressions.And
-import org.neo4j.cypher.internal.expressions.Ands
-import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
-import org.neo4j.cypher.internal.expressions.CaseExpression
-import org.neo4j.cypher.internal.expressions.Concatenate
-import org.neo4j.cypher.internal.expressions.ContainerIndex
-import org.neo4j.cypher.internal.expressions.Contains
-import org.neo4j.cypher.internal.expressions.CosineVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.CountStar
-import org.neo4j.cypher.internal.expressions.Divide
-import org.neo4j.cypher.internal.expressions.DotVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.EndsWith
-import org.neo4j.cypher.internal.expressions.Equals
-import org.neo4j.cypher.internal.expressions.EuclideanSquaredVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.EuclideanVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.ExplicitParameter
-import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FixedQuantifier
-import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.ast._
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
-import org.neo4j.cypher.internal.expressions.GreaterThan
-import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
-import org.neo4j.cypher.internal.expressions.HammingVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.In
-import org.neo4j.cypher.internal.expressions.IntervalQuantifier
-import org.neo4j.cypher.internal.expressions.InvalidNotEquals
-import org.neo4j.cypher.internal.expressions.IsNotNull
-import org.neo4j.cypher.internal.expressions.IsNull
-import org.neo4j.cypher.internal.expressions.LessThan
-import org.neo4j.cypher.internal.expressions.LessThanOrEqual
-import org.neo4j.cypher.internal.expressions.ListComprehension
-import org.neo4j.cypher.internal.expressions.ListSlice
-import org.neo4j.cypher.internal.expressions.LiteralEntry
-import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.ManhattanVectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.MapExpression
-import org.neo4j.cypher.internal.expressions.MapProjection
-import org.neo4j.cypher.internal.expressions.MatchMode
-import org.neo4j.cypher.internal.expressions.Modulo
-import org.neo4j.cypher.internal.expressions.Multiply
-import org.neo4j.cypher.internal.expressions.NFCNormalForm
-import org.neo4j.cypher.internal.expressions.NFDNormalForm
-import org.neo4j.cypher.internal.expressions.NFKCNormalForm
-import org.neo4j.cypher.internal.expressions.NFKDNormalForm
-import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
-import org.neo4j.cypher.internal.expressions.NormalForm
-import org.neo4j.cypher.internal.expressions.Not
-import org.neo4j.cypher.internal.expressions.NotEquals
-import org.neo4j.cypher.internal.expressions.Or
-import org.neo4j.cypher.internal.expressions.Parameter
-import org.neo4j.cypher.internal.expressions.ParenthesizedPath
-import org.neo4j.cypher.internal.expressions.PathConcatenation
-import org.neo4j.cypher.internal.expressions.PathFactor
-import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
-import org.neo4j.cypher.internal.expressions.PathMode
-import org.neo4j.cypher.internal.expressions.PathPatternPart
-import org.neo4j.cypher.internal.expressions.Pattern
-import org.neo4j.cypher.internal.expressions.PatternComprehension
-import org.neo4j.cypher.internal.expressions.PatternExpression
-import org.neo4j.cypher.internal.expressions.PatternPart
-import org.neo4j.cypher.internal.expressions.PlusQuantifier
-import org.neo4j.cypher.internal.expressions.Pow
-import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.Property
-import org.neo4j.cypher.internal.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.expressions.PropertySelector
-import org.neo4j.cypher.internal.expressions.QuantifiedPath
-import org.neo4j.cypher.internal.expressions.ReduceExpression
-import org.neo4j.cypher.internal.expressions.ReduceScope
-import org.neo4j.cypher.internal.expressions.RegexMatch
-import org.neo4j.cypher.internal.expressions.RelationshipChain
-import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.RelationshipsPattern
-import org.neo4j.cypher.internal.expressions.ShortestPathExpression
-import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
-import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
-import org.neo4j.cypher.internal.expressions.SimplePattern
-import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
-import org.neo4j.cypher.internal.expressions.StarQuantifier
-import org.neo4j.cypher.internal.expressions.StartsWith
-import org.neo4j.cypher.internal.expressions.StringLiteral
-import org.neo4j.cypher.internal.expressions.Subtract
-import org.neo4j.cypher.internal.expressions.UnaryAdd
-import org.neo4j.cypher.internal.expressions.UnarySubtract
-import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.expressions.VariableSelector
-import org.neo4j.cypher.internal.expressions.VectorDistanceMetric
-import org.neo4j.cypher.internal.expressions.Xor
+import org.neo4j.cypher.internal.expressions._
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.expressions.functions.Trim
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.parser.AstRuleCtx
-import org.neo4j.cypher.internal.parser.ast.util.Util.astBinaryFold
-import org.neo4j.cypher.internal.parser.ast.util.Util.astChild
-import org.neo4j.cypher.internal.parser.ast.util.Util.astCtxReduce
-import org.neo4j.cypher.internal.parser.ast.util.Util.astOpt
-import org.neo4j.cypher.internal.parser.ast.util.Util.astPairs
-import org.neo4j.cypher.internal.parser.ast.util.Util.astSeq
-import org.neo4j.cypher.internal.parser.ast.util.Util.child
-import org.neo4j.cypher.internal.parser.ast.util.Util.ctxChild
-import org.neo4j.cypher.internal.parser.ast.util.Util.lastChild
-import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChild
-import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChildType
-import org.neo4j.cypher.internal.parser.ast.util.Util.optSafeUnsignedDecimalInt
-import org.neo4j.cypher.internal.parser.ast.util.Util.pos
-import org.neo4j.cypher.internal.parser.ast.util.Util.safeUnsignedDecimalInt
+import org.neo4j.cypher.internal.parser.ast.util.Util._
 import org.neo4j.cypher.internal.parser.common.ast.factory.ParserTrimSpecification
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
-import org.neo4j.cypher.internal.util.CypherExceptionFactory
-import org.neo4j.cypher.internal.util.FunctionName
-import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.Namespace
-import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util._
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -184,7 +64,6 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
-import org.neo4j.cypher.internal.util.topDown
 
 import java.util.stream.Collectors
 
@@ -423,7 +302,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
 
   final override def exitExpression7(ctx: Cypher25Parser.Expression7Context): Unit = {
     ctx.ast = ctx.children.size match {
-      case 1 => ctxChild(ctx, 0).ast
+      case 1 =>
+        ctxChild(ctx, 0).ast
       case _ =>
         val lhs = ctxChild(ctx, 0).ast[Expression]()
         advancedPredicate(lhs, ctxChild(ctx, 1))
@@ -832,6 +712,14 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       ctx.whereClause(),
       ctx.patternList()
     ))(pos(ctx), None, None)
+  }
+
+  final override def exitPropertyExistsPredicate(
+    ctx: Cypher25Parser.PropertyExistsPredicateContext
+  ): Unit = {
+    val element = ctx.variable().ast[LogicalVariable]()
+    val propertyKey = ctx.propertyKeyName().ast[PropertyKeyName]()
+    ctx.ast = PropertyExists(element, propertyKey)(pos(ctx))
   }
 
   final override def exitCountExpression(

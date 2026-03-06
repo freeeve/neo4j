@@ -996,6 +996,10 @@ PROPERTIES
    : P R O P E R T I E S
    ;
 
+PROPERTY_EXISTS
+   : P R O P E R T Y '_' E X I S T S
+   ;
+
 PROPERTY
    : P R O P E R T Y
    ;

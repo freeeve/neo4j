@@ -16,13 +16,19 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.CanonicalStringHelper.nodeRelationCanonicalString
+import org.neo4j.cypher.internal.expressions.functions.Category
+import org.neo4j.cypher.internal.expressions.functions.FunctionWithName
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
+import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
 case class And(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
     with BinaryOperatorExpression {
@@ -296,6 +302,48 @@ case class IsNotNull(lhs: Expression)(val position: InputPosition) extends Boole
   )
 
   override def canonicalOperatorSymbol = "IS NOT NULL"
+}
+
+case class PropertyExists(element: Expression, propertyKeyName: PropertyKeyName)(val position: InputPosition)
+    extends BooleanExpression with OperatorExpression {
+
+  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+    TypeSignature(
+      argumentTypes = Vector(ClosedDynamicUnionType(Set(CTNode, CTRelationship))(InputPosition.NONE)),
+      outputType = CTBoolean
+    )
+  )
+
+  override def arguments: Seq[Expression] = Seq(element)
+
+  override def isConstantForQuery: Boolean = element.isConstantForQuery
+
+  override def asCanonicalStringVal: String =
+    s"property_exists(${element.asCanonicalStringVal}, ${propertyKeyName.asCanonicalStringVal})"
+}
+
+object PropertyExistsShowInfo extends FunctionWithName {
+  def name: String = "property_exists"
+
+  val functionInfoForShow: Seq[FunctionTypeSignature] = Vector(
+    FunctionTypeSignature(
+      function = this,
+      outputType = CTBoolean,
+      names = Vector("element", "propertyKeyName"),
+      description =
+        "Returns true if the given node or relationship has a property with the given key, otherwise false. Returns null if the first argument is null.",
+      category = Category.PREDICATE,
+      argumentTypes = Vector(
+        ClosedDynamicUnionType(Set(CTNode, CTRelationship))(InputPosition.NONE),
+        CTString
+      ),
+      argumentDescriptions = Map(
+        "element" -> "A node or relationship to check for the property.",
+        "propertyKeyName" -> "The name of the property to check for."
+      ),
+      scopes = Set(CypherVersion.Cypher25)
+    )
+  )
 }
 
 object InequalityExpression {

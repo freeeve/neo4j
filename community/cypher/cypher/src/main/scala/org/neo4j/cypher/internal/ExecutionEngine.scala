@@ -521,7 +521,11 @@ abstract class ExecutionEngine(
 
     val predicateInformations: Seq[FunctionInformation] =
       org.neo4j.cypher.internal.expressions.IterablePredicateExpression.functionInfo.map(FunctionWithInformation)
-    (informations ++ predicateInformations).asJava
+
+    val propertyExistsInformations: Seq[FunctionInformation] =
+      org.neo4j.cypher.internal.expressions.PropertyExistsShowInfo.functionInfoForShow.map(FunctionWithInformation)
+
+    (informations ++ predicateInformations ++ propertyExistsInformations).asJava
   }
 
   override def close(): Unit =

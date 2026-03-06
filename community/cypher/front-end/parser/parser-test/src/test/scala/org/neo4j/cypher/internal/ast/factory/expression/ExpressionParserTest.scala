@@ -16,11 +16,14 @@
  */
 package org.neo4j.cypher.internal.ast.factory.expression
 
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternComprehension
+import org.neo4j.cypher.internal.expressions.PropertyExists
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.RelationshipsPattern
@@ -411,6 +414,20 @@ class ExpressionParserTest extends AstParsingTestBase with LegacyAstParsingTestS
           )
         )
       )
+    }
+  }
+
+  test("PROPERTY_EXISTS(n, prop)") {
+    "PROPERTY_EXISTS(n, prop)" should parseIn[Expression] {
+      case Cypher25 => _.toAst(PropertyExists(varFor("n"), propName("prop"))(pos))
+      case Cypher5  => _.toAst(function("PROPERTY_EXISTS", varFor("n"), varFor("prop")))
+    }
+  }
+
+  test("x PROPERTY_EXISTS(n, prop) fails with user-facing syntax error in Cypher 25") {
+    "x PROPERTY_EXISTS(n, prop)" should parseIn[Expression] {
+      case Cypher25 => _.withSyntaxErrorContaining("Invalid input")
+      case Cypher5  => _.withSyntaxErrorContaining("Invalid input")
     }
   }
 }
