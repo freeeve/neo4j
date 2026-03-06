@@ -51,6 +51,7 @@ import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.cypher.internal.util.test_helpers.TestNameWithCaretPosition
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.scalatest.TryValues
 
@@ -79,6 +80,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
   def run(
     query: String,
+    extractedPositions: Option[Seq[InputPosition]] = None,
     pipeline: Pipeline = semanticAnalysisTwice(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
@@ -86,10 +88,20 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     disabledVersions: Set[CypherVersion] = Set.empty
   ): AnalysisAssertions =
-    analyse(query, pipeline, isComposite, sessionDatabase, state, semanticFeatures, disabledVersions).run
+    analyse(
+      query,
+      extractedPositions,
+      pipeline,
+      isComposite,
+      sessionDatabase,
+      state,
+      semanticFeatures,
+      disabledVersions
+    ).run
 
   def analyse(
     query: String,
+    extractedPositions: Option[Seq[InputPosition]] = None,
     pipeline: Pipeline = semanticAnalysisTwice(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
@@ -97,7 +109,17 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     disabledVersions: Set[CypherVersion] = Set.empty
   ): Analyse =
-    Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider, semanticFeatures, disabledVersions)
+    Analyse(
+      query,
+      extractedPositions,
+      pipeline,
+      isComposite,
+      sessionDatabase,
+      state,
+      messageProvider,
+      semanticFeatures,
+      disabledVersions
+    )
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   def semanticAnalysisTwice(): Pipeline = {
@@ -109,6 +131,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
   case class Analyse(
     query: String,
+    extractedPositions: Option[Seq[InputPosition]],
     pipeline: Pipeline,
     isComposite: Boolean,
     sessionDatabase: String,
@@ -157,6 +180,9 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def hasNoErrors: Self = hasErrors()
 
+    def hasErrorsWithMarkedPosition(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
+      hasErrors(expected(analyse.extractedPositions.get.toIndexedSeq): _*)
+
     def hasErrors(expected: SemanticErrorDef*): Self =
       assert { result =>
         (result.errors, expected) match {
@@ -168,6 +194,23 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
             }
           case (actual, expected) =>
             actual should contain theSameElementsAs expected
+        }
+      }
+
+    def hasAtLeastErrorsWithMarkedPosition(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
+      hasAtLeastErrors(expected(analyse.extractedPositions.get.toIndexedSeq): _*)
+
+    def hasAtLeastErrors(expected: SemanticErrorDef*): Self =
+      assert { result =>
+        (result.errors, expected) match {
+          case (Seq(error), Seq(expected)) =>
+            withClue(s"""position: ${error.position.verboseString}
+                        |expected position: ${expected.position.verboseString}
+                        |""".stripMargin) {
+              error shouldEqual expected
+            }
+          case (actual, expected) =>
+            actual should contain allElementsOf expected
         }
       }
 
@@ -184,21 +227,6 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
             actual should contain allElementsOf expected
         }
       }
-
-    def hasErrors(gql1: GqlError, msg1: String, p1: Pos, gql2: GqlError, msg2: String, p2: Pos): Self =
-      hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2))
-
-    def hasErrors(
-      gql1: GqlError,
-      msg1: String,
-      p1: Pos,
-      gql2: GqlError,
-      msg2: String,
-      p2: Pos,
-      gql3: GqlError,
-      msg3: String,
-      p3: Pos
-    ): Self = hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2), SemanticError(gql3, msg3, p3))
 
     def hasErrors(
       gql1: GqlError,
@@ -220,7 +248,45 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       SemanticError(gql4, msg4, p4)
     )
 
+    def hasErrors(
+      gql1: GqlError,
+      msg1: String,
+      p1: Pos,
+      gql2: GqlError,
+      msg2: String,
+      p2: Pos,
+      gql3: GqlError,
+      msg3: String,
+      p3: Pos
+    ): Self = hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2), SemanticError(gql3, msg3, p3))
+
+    def hasErrors(gql1: GqlError, msg1: String, p1: Pos, gql2: GqlError, msg2: String, p2: Pos): Self =
+      hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2))
+
+    def hasErrorWithMarkedPosition(
+      gql1: InputPosition => GqlError,
+      msg1: String,
+      gql2: InputPosition => GqlError,
+      msg2: String
+    ): Self = {
+      val pos1 = analyse.extractedPositions.get(0)
+      val pos2 = analyse.extractedPositions.get(1)
+      hasErrors(SemanticError(gql1(pos1), msg1, pos1), SemanticError(gql2(pos2), msg2, pos2))
+    }
+
     def hasError(gql: GqlError, msg: String, pos: Pos): Self = hasErrors(SemanticError(gql, msg, pos))
+
+    def hasErrorWithMarkedPosition(gql: InputPosition => GqlError, msg: String): Self = {
+      val pos = analyse.extractedPositions.get.head
+      hasErrors(SemanticError(gql(pos), msg, pos))
+    }
+
+    def hasAtLeastError(gql: GqlError, msg: String, pos: Pos): Self = hasAtLeastErrors(SemanticError(gql, msg, pos))
+
+    def hasAtLeastErrorWithMarkedPosition(gql: InputPosition => GqlError, msg: String): Self = {
+      val pos = analyse.extractedPositions.get.head
+      hasAtLeastErrors(SemanticError(gql(pos), msg, pos))
+    }
 
     def hasErrorMessages(expected: String*): Self =
       assert(_.errorMessages.distinct.map(normalizeNewLines) should contain theSameElementsAs expected)
@@ -322,6 +388,9 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
 
   def defaultQuery: String
 
+  // Set to None if non position extraction was performed
+  def defaultPositions: Option[Seq[InputPosition]] = None
+
   def run(): AnalysisAssertions = runWith()
 
   def runWith(features: SemanticFeature*): AnalysisAssertions =
@@ -336,19 +405,23 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
     runWith(defaultQuery, disabledCypherVersions: Set[CypherVersion], features: _*)
 
   def runWith(disabledCypherVersions: Set[CypherVersion], pipeline: Pipeline): AnalysisAssertions =
-    run(defaultQuery, pipeline, disabledVersions = disabledCypherVersions)
+    run(defaultQuery, defaultPositions, pipeline, disabledVersions = disabledCypherVersions)
 
   def runWith(
     query: String,
     disabledCypherVersions: Set[CypherVersion],
     features: SemanticFeature*
   ): AnalysisAssertions =
-    run(query, semanticAnalysisTwice(), disabledVersions = disabledCypherVersions, semanticFeatures = features)
+    run(
+      query,
+      defaultPositions,
+      semanticAnalysisTwice(),
+      disabledVersions = disabledCypherVersions,
+      semanticFeatures = features
+    )
 }
 
-trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDefaultQuery with TestName {
-
-  override def defaultQuery: String = testName
+trait CheckGqlDisjunctionError extends SemanticAnalysisTestSuiteWithDefaultQuery {
 
   def checkGqlDisjunctionError(error: SemanticErrorDef, invalidSymbol: String): Unit = {
     val gqlError = error.gqlStatusObject
@@ -363,6 +436,18 @@ trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDe
          | Label expressions and relationship type expressions cannot contain '$invalidSymbol'.
          | To express a label disjunction use '|' instead.""".stripMargin.linesIterator.mkString
   }
+}
+
+trait NameBasedSemanticAnalysisTestSuite extends CheckGqlDisjunctionError with TestName {
+  override def defaultQuery: String = testName
+}
+
+trait NameWithPositionCaretBasedSemanticAnalysisTestSuite extends CheckGqlDisjunctionError
+    with TestNameWithCaretPosition {
+  override def defaultQuery: String = testName
+
+  override def defaultPositions: Option[Seq[InputPosition]] =
+    Some(testPositions.map(cp => InputPosition(cp.offset, cp.line, cp.column)))
 }
 
 trait ErrorMessageProviderAdapter extends ErrorMessageProvider {

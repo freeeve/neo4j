@@ -74,3 +74,31 @@ trait TestName extends Suite {
     }
   }
 }
+
+trait TestNameWithCaretPosition extends Suite {
+  final def testName: String = caretPosition.cleanInput
+  final def testPositions: Seq[InputPositionFromCaret] = caretPosition.positions
+
+  private def caretPosition: CaretPosition = {
+    if (__lastTestName == __testName) {
+      __lastCaretPosition.get
+    } else {
+      __lastTestName = __testName
+      __lastCaretPosition = Some(CaretPosition(__testName.get))
+      __lastCaretPosition.get
+    }
+  }
+
+  private var __lastCaretPosition: Option[CaretPosition] = None
+  private var __lastTestName: Option[String] = None
+  private var __testName: Option[String] = None
+
+  override protected def runTest(testName: String, args: Args): Status = {
+    __testName = Some(testName)
+    try {
+      super.runTest(testName, args)
+    } finally {
+      __testName = None
+    }
+  }
+}

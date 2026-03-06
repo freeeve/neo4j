@@ -47,6 +47,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
   private def runSearchWithRewriter(): AnalysisAssertions = {
     run(
       defaultQuery,
+      defaultPositions,
       pipelineWithAstRewriting,
       semanticFeatures = Seq(VectorSearch, VectorSingleStageFilteringEnabled),
       disabledVersions = Set(CypherVersion.Cypher5)
