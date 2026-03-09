@@ -76,6 +76,8 @@ public final class WebContainerHelper {
             builder = builder.persistent();
         }
         builder.onRandomPorts();
+        builder.withProperty("server.http.x_forward.enabled", "true");
+        builder.withProperty("server.http.x_forward.allow_hosts", "foo.bar, foobar.com, dummy.example.org");
         return builder.usingDataDir(path != null ? path.toAbsolutePath().toString() : null)
                 .build();
     }

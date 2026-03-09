@@ -135,6 +135,31 @@ public class ServerSettings implements SettingsDeclaration {
                     "dbms.security.http_strict_transport_security", STRING, null)
             .build();
 
+    @Description("Enable processing of X-Forwarded-Host and X-Forwarded-Proto headers. "
+            + "Only enable this if Neo4j is behind a trusted reverse proxy or load balancer. "
+            + "When disabled, X-Forward headers are ignored for security reasons.")
+    public static final Setting<Boolean> http_x_forward_enabled =
+            newBuilder("server.http.x_forward.enabled", BOOL, true).build();
+
+    @Description("List of trusted proxy IP addresses allowed to set X-Forward headers. "
+            + "Only requests from these IPs will have their X-Forward headers processed. "
+            + "Leave empty to accept X-Forward headers from any source (not recommended).")
+    public static final Setting<List<String>> http_x_forward_allow_proxies = newBuilder(
+                    "server.http.x_forward.allow_proxies", listOf(STRING), emptyList())
+            .build();
+
+    @Description("List of allowed hostnames that can appear in X-Forwarded-Host header. "
+            + "This prevents host header injection attacks. "
+            + "Leave empty to accept any hostname (not recommended for production).")
+    public static final Setting<List<String>> http_x_forward_allow_hosts = newBuilder(
+                    "server.http.x_forward.allow_hosts", listOf(STRING), emptyList())
+            .build();
+
+    @Description("Allow private IP addresses (RFC 1918) in X-Forwarded-Host header. "
+            + "Set to false to prevent internal network reconnaissance attacks.")
+    public static final Setting<Boolean> http_x_forward_private_ips_enabled =
+            newBuilder("server.http.x_forward.private_ips_enabled", BOOL, false).build();
+
     @Description("Defines the Content-Security-Policy header to return to content returned on static endpoints.")
     public static final Setting<String> http_static_content_security_policy = newBuilder(
                     "dbms.security.http_static_content_security_policy_header",

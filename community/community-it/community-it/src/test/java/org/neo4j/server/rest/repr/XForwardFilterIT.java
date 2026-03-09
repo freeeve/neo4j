@@ -28,29 +28,45 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.server.configuration.ServerSettings;
+import org.neo4j.server.helpers.CommunityWebContainerBuilder;
 import org.neo4j.server.helpers.FunctionalTestHelper;
-import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
+import org.neo4j.server.helpers.TestWebContainer;
 import org.neo4j.server.rest.domain.GraphDbHelper;
+import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 
-public class XForwardFilterIT extends AbstractRestFunctionalTestBase {
+public class XForwardFilterIT extends ExclusiveWebContainerTestBase {
     private static final String X_FORWARDED_HOST = "X-Forwarded-Host";
     private static final String X_FORWARDED_PROTO = "X-Forwarded-Proto";
 
-    private static GraphDbHelper helper;
-
-    @BeforeAll
-    public static void setupServer() {
-        helper = new FunctionalTestHelper(container()).getGraphDbHelper();
-    }
+    private TestWebContainer testWebContainer;
+    private GraphDbHelper helper;
 
     @BeforeEach
-    public void setupTheDatabase() {
+    public void setupServer() throws IOException {
+        // Configure Neo4j with X-Forward security settings enabled for testing
+        testWebContainer = CommunityWebContainerBuilder.serverOnRandomPorts()
+                .withProperty(ServerSettings.http_x_forward_enabled.name(), "true")
+                .withProperty(
+                        ServerSettings.http_x_forward_allow_hosts.name(),
+                        "jimwebber.org,kathwebber.com,neo4j.org,good-host")
+                .build();
+
+        helper = new FunctionalTestHelper(testWebContainer).getGraphDbHelper();
         helper.createRelationship("RELATES_TO", helper.createNode(), helper.createNode());
+    }
+
+    @AfterEach
+    public void cleanup() {
+        if (testWebContainer != null) {
+            testWebContainer.shutdown();
+        }
     }
 
     @Test
@@ -118,7 +134,7 @@ public class XForwardFilterIT extends AbstractRestFunctionalTestBase {
         assertFalse(entity.contains(serverUriString()));
     }
 
-    private static String sendGetRequest(String... headers) throws Exception {
+    private String sendGetRequest(String... headers) throws Exception {
         var request = HttpRequest.newBuilder(serverUri())
                 .header(ACCEPT, APPLICATION_JSON)
                 .headers(headers)
@@ -128,7 +144,7 @@ public class XForwardFilterIT extends AbstractRestFunctionalTestBase {
         return newHttpClient().send(request, ofString()).body();
     }
 
-    private static String sendPostRequest(String uri, String payload, String... headers) throws Exception {
+    private String sendPostRequest(String uri, String payload, String... headers) throws Exception {
         var request = HttpRequest.newBuilder(URI.create(uri))
                 .header(ACCEPT, APPLICATION_JSON)
                 .header(CONTENT_TYPE, APPLICATION_JSON)
@@ -139,11 +155,15 @@ public class XForwardFilterIT extends AbstractRestFunctionalTestBase {
         return newHttpClient().send(request, ofString()).body();
     }
 
-    private static String serverUriString() {
+    private String serverUriString() {
         return serverUri().toString();
     }
 
-    private static URI serverUri() {
-        return container().getBaseUri();
+    private URI serverUri() {
+        return testWebContainer.getBaseUri();
+    }
+
+    private String txUri() {
+        return testWebContainer.getBaseUri().resolve("db/neo4j/tx").toString();
     }
 }

@@ -31,6 +31,8 @@ import java.util.function.Supplier;
 import org.eclipse.jetty.ee8.servlet.ServletHolder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.neo4j.configuration.Config;
+import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.server.bind.ComponentsBinder;
 import org.neo4j.server.http.error.JacksonExceptionMapper;
 import org.neo4j.server.http.error.MediaTypeExceptionMapper;
@@ -45,8 +47,13 @@ public class JaxRsServletHolderFactory {
     private final Set<String> packages = new HashSet<>();
     private final Set<Class<?>> classes = new HashSet<>();
     private final List<Injectable<?>> injectables = new ArrayList<>();
+    private final Config config;
+    private final InternalLogProvider logProvider;
 
-    public JaxRsServletHolderFactory() {
+    public JaxRsServletHolderFactory(Config config, InternalLogProvider logProvider) {
+        this.config = config;
+        this.logProvider = logProvider;
+
         // add classes common to all mount points
         classes.add(MediaTypeExceptionMapper.class);
         classes.add(JacksonExceptionMapper.class);
@@ -84,10 +91,12 @@ public class JaxRsServletHolderFactory {
 
         ResourceConfig resourceConfig = new ResourceConfig()
                 .register(binder)
-                .register(XForwardFilter.class)
                 .packages(packages.toArray(new String[0]))
                 .registerClasses(classes)
                 .property(WADL_FEATURE_DISABLE, String.valueOf(!wadlEnabled));
+
+        // Register secure X-Forward filter instance with configuration
+        resourceConfig.register(new SecureXForwardFilter(config, logProvider));
 
         ServletContainer container = new ServletContainer(resourceConfig);
         return new ServletHolder(container);

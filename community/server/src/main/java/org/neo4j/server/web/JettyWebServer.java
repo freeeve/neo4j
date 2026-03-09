@@ -99,6 +99,8 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
     private final SslSocketConnectorFactory sslSocketFactory;
     private final HttpConnectorFactory connectorFactory;
     private final InternalLog log;
+    private final Config config;
+    private final InternalLogProvider logProvider;
 
     public JettyWebServer(
             InternalLogProvider logProvider,
@@ -106,6 +108,8 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
             NetworkConnectionTracker connectionTracker,
             ByteBufferPool byteBufferPool) {
         this.log = logProvider.getLog(getClass());
+        this.config = config;
+        this.logProvider = logProvider;
         this.ocspStaplingEnabled = config.get(CommonConnectorConfig.ocsp_stapling_enabled);
         this.contentSecurityPolicyHeader = config.get(ServerSettings.http_static_content_security_policy);
         sslSocketFactory = new SslSocketConnectorFactory(connectionTracker, config, byteBufferPool);
@@ -225,8 +229,8 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
         mountPoint = ensureRelativeUri(mountPoint);
         mountPoint = trimTrailingSlashToKeepJettyHappy(mountPoint);
 
-        JaxRsServletHolderFactory factory =
-                jaxRsServletHolderFactories.computeIfAbsent(mountPoint, k -> new JaxRsServletHolderFactory());
+        JaxRsServletHolderFactory factory = jaxRsServletHolderFactories.computeIfAbsent(
+                mountPoint, k -> new JaxRsServletHolderFactory(config, logProvider));
         factory.addPackages(packageNames, injectables);
 
         log.debug("Adding JAXRS packages %s at [%s]", packageNames, mountPoint);
@@ -238,8 +242,8 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
         mountPoint = ensureRelativeUri(mountPoint);
         mountPoint = trimTrailingSlashToKeepJettyHappy(mountPoint);
 
-        JaxRsServletHolderFactory factory =
-                jaxRsServletHolderFactories.computeIfAbsent(mountPoint, k -> new JaxRsServletHolderFactory());
+        JaxRsServletHolderFactory factory = jaxRsServletHolderFactories.computeIfAbsent(
+                mountPoint, k -> new JaxRsServletHolderFactory(config, logProvider));
         factory.addClasses(classNames, injectables);
 
         log.debug("Adding JAXRS classes %s at [%s]", classNames, mountPoint);
