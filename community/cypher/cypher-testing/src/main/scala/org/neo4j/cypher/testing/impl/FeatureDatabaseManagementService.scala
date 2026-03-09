@@ -58,6 +58,7 @@ object FeatureDatabaseManagementService {
     def createBackingDbms(config: Config): DatabaseManagementService
     def baseConfig: Config.Builder = Config.newBuilder()
     def testApiKind: TestApiKind
+    def runOnSpd: Boolean = "spd".equals(System.getProperty("NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER"))
   }
 
   sealed trait TestApiKind
