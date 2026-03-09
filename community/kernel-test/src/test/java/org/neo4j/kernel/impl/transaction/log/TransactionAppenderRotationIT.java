@@ -120,7 +120,7 @@ class TransactionAppenderRotationIT {
         LogAppendEvent logAppendEvent =
                 new RotationLogAppendEvent(logFiles.getLogFile().getLogRotation());
         CompleteTransaction completeTransaction = prepareTransaction(LatestVersions.LATEST_KERNEL_VERSION);
-        transactionAppender.append(completeTransaction, logAppendEvent);
+        transactionAppender.register(completeTransaction, logAppendEvent);
 
         LogFile logFile = logFiles.getLogFile();
         LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
@@ -151,7 +151,7 @@ class TransactionAppenderRotationIT {
                     prepareTransaction(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
             // during append the new appendIndex is claimed before the write and was being captured
             // by mistake during the size based rotation
-            transactionAppender.append(completeTransaction, logAppendEvent);
+            transactionAppender.register(completeTransaction, logAppendEvent);
             if (logFile.getCurrentLogVersion() != prevLogVersion) {
                 long newLogVersion = logFile.getCurrentLogVersion();
                 LogHeader logHeader = logFile.extractHeader(newLogVersion);
@@ -188,6 +188,7 @@ class TransactionAppenderRotationIT {
                 NullLogProvider.getInstance(),
                 new TransactionMetadataCache(),
                 "le db",
+                false,
                 false);
     }
 

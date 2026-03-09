@@ -177,7 +177,7 @@ class BatchingTransactionAppenderTest {
             // Looked up to figure out previous version on creation of writer
             assertEquals(1, versionProvider.getVersionLookedUp());
 
-            appender.append(
+            appender.register(
                     new CompleteTransaction(
                             transaction, NULL_CONTEXT, StoreCursors.NULL, NO_COMMITMENT, TransactionIdGenerator.EMPTY),
                     LogAppendEvent.NULL);
@@ -223,7 +223,7 @@ class BatchingTransactionAppenderTest {
             CommandBatch batch2 = transaction(singleTestCommand(), 0, 0, 1, 0, LATEST_KERNEL_VERSION);
             CommandBatch batch3 = transaction(singleTestCommand(), 0, 0, 1, 0, LATEST_KERNEL_VERSION);
             CompleteTransaction batch = batchOf(batch1, batch2, batch3);
-            appender.append(batch, LogAppendEvent.NULL);
+            appender.register(batch, LogAppendEvent.NULL);
 
             verify(logWriterSpy).append(eq(batch1), eq(2L), anyLong(), anyLong(), anyInt(), anyLong(), any());
             verify(logWriterSpy).append(eq(batch2), eq(3L), anyLong(), anyLong(), anyInt(), anyLong(), any());
@@ -270,7 +270,7 @@ class BatchingTransactionAppenderTest {
             TransactionAppender appender = life.add(new BatchingTransactionAppender(
                     logFiles, transactionIdStore, databasePanic, new SimpleAppendIndexProvider(), positionCache));
 
-            appender.append(
+            appender.register(
                     new CompleteTransaction(
                             transaction,
                             NULL_CONTEXT,
@@ -326,7 +326,7 @@ class BatchingTransactionAppenderTest {
 
         var e = assertThrows(
                 Exception.class,
-                () -> appender.append(
+                () -> appender.register(
                         new CompleteTransaction(
                                 transaction,
                                 NULL_CONTEXT,
@@ -382,7 +382,7 @@ class BatchingTransactionAppenderTest {
 
         var e = assertThrows(
                 IOException.class,
-                () -> appender.append(
+                () -> appender.register(
                         new CompleteTransaction(
                                 transaction,
                                 NULL_CONTEXT,
@@ -448,7 +448,7 @@ class BatchingTransactionAppenderTest {
 
         var e = assertThrows(
                 IOException.class,
-                () -> appender.append(
+                () -> appender.register(
                         new CompleteTransaction(
                                 commandBatch,
                                 NULL_CONTEXT,
@@ -531,7 +531,7 @@ class BatchingTransactionAppenderTest {
                             UNKNOWN_CONSENSUS_INDEX));
             TransactionAppender appender = life.add(createTransactionAppender());
 
-            appender.append(
+            appender.register(
                     new CompleteTransaction(
                             transaction, NULL_CONTEXT, StoreCursors.NULL, NO_COMMITMENT, TransactionIdGenerator.EMPTY),
                     logAppendEvent);

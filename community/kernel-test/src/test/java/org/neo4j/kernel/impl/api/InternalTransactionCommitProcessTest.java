@@ -84,7 +84,7 @@ class InternalTransactionCommitProcessTest {
         IOException rootCause = new IOException("Mock exception");
         doThrow(new IOException(rootCause))
                 .when(appender)
-                .append(any(CompleteTransaction.class), any(LogAppendEvent.class));
+                .register(any(CompleteTransaction.class), any(LogAppendEvent.class));
 
         TransactionCommitProcess commitProcess = new InternalTransactionCommitProcess(
                 appender, storageEngine, false, commandCommitListeners, () -> true, logProvider);

@@ -146,7 +146,7 @@ class TransactionLogAppendAndRotateIT {
                 while (!setup.end().get()) {
                     try {
                         setup.appender()
-                                .append(
+                                .register(
                                         new CompleteTransaction(
                                                 sillyTransaction(1_000),
                                                 NULL_CONTEXT,
@@ -176,7 +176,7 @@ class TransactionLogAppendAndRotateIT {
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
@@ -184,7 +184,7 @@ class TransactionLogAppendAndRotateIT {
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(0);
 
         for (int i = 0; i < 3; i++) {
-            setup.appender.append(
+            setup.appender.register(
                     new CompleteTransaction(
                             txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                     TEST_LOG_APPEND_EVENT);
@@ -193,7 +193,7 @@ class TransactionLogAppendAndRotateIT {
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
 
         for (int i = 0; i < 3; i++) {
-            setup.appender.append(
+            setup.appender.register(
                     new CompleteTransaction(
                             txWithVersion(V5_13), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                     TEST_LOG_APPEND_EVENT);
@@ -217,7 +217,7 @@ class TransactionLogAppendAndRotateIT {
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
@@ -241,7 +241,7 @@ class TransactionLogAppendAndRotateIT {
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(fromVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
@@ -254,7 +254,7 @@ class TransactionLogAppendAndRotateIT {
         assertEquals(
                 LogFormat.fromKernelVersion(fromVersion).getHeaderSize(), noRotationStartPosition1.getByteOffset());
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(fromVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
@@ -269,7 +269,7 @@ class TransactionLogAppendAndRotateIT {
         // we have not rotations yet
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(0);
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(toVersion), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
                 TEST_LOG_APPEND_EVENT);
@@ -292,7 +292,7 @@ class TransactionLogAppendAndRotateIT {
 
         Setup setup = setupLogAppender(fixed(V5_11), useQueueAppender);
 
-        setup.appender.append(
+        setup.appender.register(
                 new CompleteTransaction(
                         txWithVersion(GLORIOUS_FUTURE),
                         NULL_CONTEXT,
@@ -324,7 +324,7 @@ class TransactionLogAppendAndRotateIT {
         two.next(three);
         three.next(new CompleteTransaction(
                 txWithVersion(GLORIOUS_FUTURE), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY));
-        setup.appender.append(batch, TEST_LOG_APPEND_EVENT);
+        setup.appender.register(batch, TEST_LOG_APPEND_EVENT);
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
 
@@ -411,6 +411,7 @@ class TransactionLogAppendAndRotateIT {
                 NullLogProvider.getInstance(),
                 metadataCache,
                 "le db",
+                false,
                 false);
     }
 

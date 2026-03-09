@@ -119,6 +119,7 @@ public class Runner implements Callable<Long> {
                 NullLogProvider.getInstance(),
                 new TransactionMetadataCache(),
                 "le db",
+                false,
                 false);
     }
 

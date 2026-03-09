@@ -62,7 +62,7 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
     }
 
     @Override
-    public long append(StorageEngineTransaction batch, LogAppendEvent logAppendEvent) throws IOException {
+    public long register(StorageEngineTransaction batch, LogAppendEvent logAppendEvent) throws IOException {
         // Assigned base tx id just to make compiler happy
         long lastAppendIndex = BASE_APPEND_INDEX;
         // Synchronized with logFile to get absolute control over concurrent rotations happening

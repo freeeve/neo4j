@@ -382,7 +382,7 @@ class PhysicalLogicalTransactionStoreTest {
                 LatestVersions.LATEST_KERNEL_VERSION,
                 ANONYMOUS);
         var transactionCommitment = new TransactionCommitment(logMetadataProvider);
-        appender.append(
+        appender.register(
                 new CompleteTransaction(
                         transaction,
                         NULL_CONTEXT,
@@ -435,6 +435,7 @@ class PhysicalLogicalTransactionStoreTest {
                 NullLogProvider.getInstance(),
                 positionCache,
                 "le db",
+                false,
                 false);
     }
 

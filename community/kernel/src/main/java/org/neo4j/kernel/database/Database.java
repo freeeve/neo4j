@@ -993,6 +993,7 @@ public class Database extends AbstractDatabase {
                 logProvider,
                 transactionMetadataCache,
                 namedDatabaseId.name(),
+                namedDatabaseId.isSystemDatabase(),
                 storageEngineFactory.multiVersioned());
         life.add(transactionAppender);
 

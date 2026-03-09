@@ -177,7 +177,7 @@ public class TransactionAppenderConcurrencyTest {
                 assertThatThrownBy(() ->
                                 // Append to the log, the LogAppenderEvent will have all of the appending threads
                                 // do wait for all of the other threads to start the force thing
-                                appender.append(tx(), LogAppendEvent.NULL))
+                                appender.register(tx(), LogAppendEvent.NULL))
                         .isInstanceOf(RuntimeException.class)
                         .hasRootCauseInstanceOf(IOException.class);
             });
@@ -211,18 +211,18 @@ public class TransactionAppenderConcurrencyTest {
         life.start();
 
         // Commit initial transaction
-        appender.append(tx(), LogAppendEvent.NULL);
+        appender.register(tx(), LogAppendEvent.NULL);
 
         // Try to commit one transaction, will fail during flush with OOM, but not actually panic
         fs.shouldOOM = true;
-        Future<Long> failingTransaction = executor.submit(() -> appender.append(tx(), LogAppendEvent.NULL));
+        Future<Long> failingTransaction = executor.submit(() -> appender.register(tx(), LogAppendEvent.NULL));
 
         var executionException = assertThrows(ExecutionException.class, failingTransaction::get);
         assertThat(executionException).rootCause().isInstanceOf(OutOfMemoryError.class);
 
         // Try to commit one additional transaction, should fail since database has already panicked
         fs.shouldOOM = false;
-        assertThatThrownBy(() -> appender.append(tx(), LogAppendEvent.NULL))
+        assertThatThrownBy(() -> appender.register(tx(), LogAppendEvent.NULL))
                 .isInstanceOf(RuntimeException.class)
                 .cause()
                 .hasMessageContaining("The database has encountered a critical error")
@@ -264,6 +264,7 @@ public class TransactionAppenderConcurrencyTest {
                 NullLogProvider.getInstance(),
                 new TransactionMetadataCache(),
                 "le db",
+                false,
                 false);
     }
 

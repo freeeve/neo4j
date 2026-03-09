@@ -90,7 +90,7 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
     private long appendToLog(StorageEngineTransaction batch, TransactionWriteEvent transactionWriteEvent)
             throws TransactionFailureException {
         try (LogAppendEvent logAppendEvent = transactionWriteEvent.beginLogAppend()) {
-            return appender.append(batch, logAppendEvent);
+            return appender.register(batch, logAppendEvent);
         } catch (Throwable cause) {
             throw TransactionFailureException.couldNotAppendTransaction(batch.toString(), cause, log);
         }

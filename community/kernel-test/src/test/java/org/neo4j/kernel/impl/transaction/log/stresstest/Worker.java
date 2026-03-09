@@ -46,7 +46,7 @@ class Worker implements Runnable {
         while (condition.getAsBoolean()) {
             CompleteTransaction transaction = factory.nextTransaction(latestAppendIndex);
             try {
-                latestAppendIndex = transactionAppender.append(transaction, LogAppendEvent.NULL);
+                latestAppendIndex = transactionAppender.register(transaction, LogAppendEvent.NULL);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

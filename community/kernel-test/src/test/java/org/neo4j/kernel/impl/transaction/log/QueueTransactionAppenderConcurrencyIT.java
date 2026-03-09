@@ -116,7 +116,7 @@ class QueueTransactionAppenderConcurrencyIT {
         var results = new ArrayList<Future<?>>(numberOfTransactions);
         for (int i = 0; i < numberOfTransactions; i++) {
             results.add(executor.submit(
-                    () -> transactionAppender.append(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
+                    () -> transactionAppender.register(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
         }
         Futures.getAll(results);
 
@@ -139,7 +139,7 @@ class QueueTransactionAppenderConcurrencyIT {
         int poisonIndex = random.nextInt(numberOfTransactions / 10, numberOfTransactions - 400);
         for (int i = 0; i < numberOfTransactions; i++) {
             results.add(executor.submit(
-                    () -> transactionAppender.append(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
+                    () -> transactionAppender.register(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
             if (i == poisonIndex) {
                 executor.submit(() -> life.shutdown());
             }
@@ -171,7 +171,7 @@ class QueueTransactionAppenderConcurrencyIT {
         int poisonIndex = random.nextInt(numberOfTransactions / 10, numberOfTransactions - 400);
         for (int i = 0; i < numberOfTransactions; i++) {
             results.add(executor.submit(
-                    () -> transactionAppender.append(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
+                    () -> transactionAppender.register(createTransaction(logMetadataProvider), LogAppendEvent.NULL)));
             if (i == poisonIndex) {
                 executor.submit(
                         () -> databaseHealth.panic(new RuntimeException("Period of intense transaction failures")));

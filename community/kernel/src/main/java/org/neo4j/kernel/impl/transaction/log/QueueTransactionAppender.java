@@ -24,6 +24,9 @@ import java.util.concurrent.ExecutionException;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
+/**
+ * Queues up transaction chunks to be appended to the transaction log, and registers commitment thereafter.
+ */
 class QueueTransactionAppender extends LifecycleAdapter implements TransactionAppender {
     private final TransactionLogQueue transactionLogQueue;
 
@@ -42,7 +45,7 @@ class QueueTransactionAppender extends LifecycleAdapter implements TransactionAp
     }
 
     @Override
-    public long append(StorageEngineTransaction batch, LogAppendEvent logAppendEvent)
+    public long register(StorageEngineTransaction batch, LogAppendEvent logAppendEvent)
             throws IOException, ExecutionException, InterruptedException {
         long committedAppendIndex =
                 transactionLogQueue.submit(batch, logAppendEvent).getCommittedAppendIndex();

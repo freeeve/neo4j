@@ -27,7 +27,7 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
 public class TestableTransactionAppender extends LifecycleAdapter implements TransactionAppender {
 
     @Override
-    public long append(StorageEngineTransaction batch, LogAppendEvent logAppendEvent) {
+    public long register(StorageEngineTransaction batch, LogAppendEvent logAppendEvent) {
         long appendIndex = BASE_APPEND_INDEX;
         while (batch != null) {
             // force transaction id generation

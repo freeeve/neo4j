@@ -26,22 +26,25 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
 /**
- * Writes batches of commands, each containing groups of commands to a log that is guaranteed to be recoverable,
- * i.e. consistently readable, in the event of failure.
+ * Registers batches of commands, each containing groups of commands, as having been committed. For segregated log
+ * implementations, this involves writing to a log that is guaranteed to be recoverable (i.e. consistently readable, in
+ * the event of failure).
  */
 public interface TransactionAppender extends Lifecycle {
     /**
-     * Appends a batch of commands to a log, effectively committing them.
-     * After this method have returned the returned command batch should be committed with progress of append index and possibly transaction counters
+     * Registers batches of commands as having been committed and made fully recoverable, and increments any transaction
+     * counters. Callers must make sure that successfully appended command batches exiting this method are closed.
      * <p>
-     * Failure happening inside this method will cause a {@link DatabaseHealth#panic(Throwable) kernel panic}.
-     * Callers must make sure that successfully appended command batches exiting this method are closed.
+     * In segregated log implementations, this method also results in appending a batch of commands to the write-ahead
+     * log. Failure happening inside such an implementation will cause a {@link DatabaseHealth#panic(Throwable) kernel
+     * panic}.
      *
-     * @param batch command batch to append to the log.
+     *
+     * @param batch command batch to register the commitment of.
      * @param logAppendEvent A trace event for the given log append operation.
      * @return last append index in this batch.
-     * @throws IOException if there was a problem appending the command batch.
+     * @throws IOException if there was a problem registering the command batch.
      */
-    long append(StorageEngineTransaction batch, LogAppendEvent logAppendEvent)
+    long register(StorageEngineTransaction batch, LogAppendEvent logAppendEvent)
             throws IOException, ExecutionException, InterruptedException;
 }

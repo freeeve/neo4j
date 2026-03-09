@@ -106,7 +106,7 @@ class QueueTransactionAppenderTestIT {
         long txId = logMetadataProvider.getLastCommittedTransactionId();
         for (int i = 0; i < 10; i++) {
             CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-            assertEquals(++txId, transactionAppender.append(completeTransaction, LogAppendEvent.NULL));
+            assertEquals(++txId, transactionAppender.register(completeTransaction, LogAppendEvent.NULL));
         }
     }
 
@@ -120,11 +120,11 @@ class QueueTransactionAppenderTestIT {
         life.add(transactionAppender);
 
         CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-        assertDoesNotThrow(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL));
+        assertDoesNotThrow(() -> transactionAppender.register(completeTransaction, LogAppendEvent.NULL));
 
         life.shutdown();
 
-        assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
+        assertThatThrownBy(() -> transactionAppender.register(completeTransaction, LogAppendEvent.NULL))
                 .isInstanceOf(DatabaseShutdownException.class);
     }
 
@@ -137,12 +137,12 @@ class QueueTransactionAppenderTestIT {
         QueueTransactionAppender transactionAppender = createAppender(logFiles);
 
         CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-        assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
+        assertThatThrownBy(() -> transactionAppender.register(completeTransaction, LogAppendEvent.NULL))
                 .isInstanceOf(DatabaseShutdownException.class);
     }
 
     @Test
-    void publishTransactionAsCommittedOnProcessing() throws IOException, ExecutionException, InterruptedException {
+    void registerTransactionAsCommittedOnProcessing() throws IOException, ExecutionException, InterruptedException {
         LogFiles logFiles = buildLogFiles();
         LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         life.add(logFiles);
@@ -155,7 +155,7 @@ class QueueTransactionAppenderTestIT {
         int numberOfTransactions = 10;
         for (int i = 0; i < numberOfTransactions; i++) {
             CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-            transactionAppender.append(completeTransaction, LogAppendEvent.NULL);
+            transactionAppender.register(completeTransaction, LogAppendEvent.NULL);
         }
 
         assertEquals(
@@ -176,7 +176,7 @@ class QueueTransactionAppenderTestIT {
         databaseHealth.panic(panicException);
 
         CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-        assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
+        assertThatThrownBy(() -> transactionAppender.register(completeTransaction, LogAppendEvent.NULL))
                 .hasRootCause(panicException);
     }
 
@@ -191,7 +191,7 @@ class QueueTransactionAppenderTestIT {
 
         CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
         RecordingLogAppendEvent logAppendEvent = new RecordingLogAppendEvent();
-        transactionAppender.append(completeTransaction, logAppendEvent);
+        transactionAppender.register(completeTransaction, logAppendEvent);
         assertThat(logAppendEvent.getEvents())
                 .containsExactly(
                         EventType.BEGIN_APPEND,
@@ -212,7 +212,7 @@ class QueueTransactionAppenderTestIT {
 
         RuntimeException criticalException = new RuntimeException("The greatest teacher, failure is.");
         CompleteTransaction completeTransaction = createTransaction(logMetadataProvider);
-        assertThatThrownBy(() -> transactionAppender.append(completeTransaction, new LogAppendEvent.Empty() {
+        assertThatThrownBy(() -> transactionAppender.register(completeTransaction, new LogAppendEvent.Empty() {
                     @Override
                     public LogForceEvent beginLogForce() {
                         throw criticalException;
@@ -224,7 +224,7 @@ class QueueTransactionAppenderTestIT {
         assertFalse(databaseHealth.hasNoPanic());
         assertThat(databaseHealth.causeOfPanic()).isSameAs(criticalException);
 
-        assertThatThrownBy(() -> transactionAppender.append(completeTransaction, LogAppendEvent.NULL))
+        assertThatThrownBy(() -> transactionAppender.register(completeTransaction, LogAppendEvent.NULL))
                 .rootCause()
                 .hasMessageContaining("failure is.");
     }
