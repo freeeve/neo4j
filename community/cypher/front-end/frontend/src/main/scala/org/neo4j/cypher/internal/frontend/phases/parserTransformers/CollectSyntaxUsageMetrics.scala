@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
@@ -27,6 +28,7 @@ import org.neo4j.cypher.internal.ast.ParsedAsFilter
 import org.neo4j.cypher.internal.ast.ParsedAsLet
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Search
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
@@ -116,6 +118,10 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.SEARCH_WITHOUT_FILTERS)
       case Search(_, _, _, _, Some(_), _) =>
         increaseMetric(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS)
+      case _: AlterCurrentGraphType =>
+        increaseMetric(SyntaxUsageMetricKey.ALTER_CURRENT_GRAPH_TYPE)
+      case _: ShowCurrentGraphTypeClause =>
+        increaseMetric(SyntaxUsageMetricKey.SHOW_CURRENT_GRAPH_TYPE)
     }
 
     if (isLoadCsvQuery) {

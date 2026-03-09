@@ -431,6 +431,22 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
   }
 
+  testVersionsExcept5("should find ALTER CURRENT GRAPH TYPE") { version =>
+    val stats = runPipeline(
+      version,
+      "ALTER CURRENT GRAPH TYPE SET { }"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ALTER_CURRENT_GRAPH_TYPE) should be(1)
+  }
+
+  testVersionsExcept5("should find SHOW CURRENT GRAPH TYPE") { version =>
+    val stats = runPipeline(
+      version,
+      "SHOW CURRENT GRAPH TYPE"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SHOW_CURRENT_GRAPH_TYPE) should be(1)
+  }
+
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version, query = query) {
