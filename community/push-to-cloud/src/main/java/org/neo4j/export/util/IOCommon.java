@@ -16,19 +16,88 @@
  */
 package org.neo4j.export.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Base64;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExecutionContext;
-import org.neo4j.export.UploadCommand;
+import org.neo4j.dbms.archive.DumpFormatSelector;
+import org.neo4j.dbms.archive.Dumper;
+import org.neo4j.dbms.archive.Loader;
+import org.neo4j.export.Source;
+import org.neo4j.io.fs.FileSystemAbstraction;
 
 public final class IOCommon {
 
     private IOCommon() {}
+
+    public static String sizeText(long size) {
+        return String.format("%.1f GB", bytesToGibibytes(size));
+    }
+
+    public static double bytesToGibibytes(long sizeInBytes) {
+        return sizeInBytes / (double) (1024 * 1024 * 1024);
+    }
+
+    public static long readSizeFromArchiveMetaData(ExecutionContext ctx, Path backup) {
+        try {
+            final var fileSystem = ctx.fs();
+
+            Loader.DumpMetaData metaData = new Loader(fileSystem, System.out)
+                    .getMetaData(
+                            () -> fileSystem.openAsInputStream(backup),
+                            streamSupplier -> DumpFormatSelector.decompressWithBackupSupport(streamSupplier, bd -> {}));
+
+            Loader.SizeMeta sizeMeta = metaData.sizeMeta();
+            if (sizeMeta != null) {
+                return sizeMeta.bytes();
+            }
+            return fileSystem.getFileSize(backup);
+        } catch (IOException e) {
+            throw new CommandFailedException("Unable to check size of archive backup.", e);
+        }
+    }
+
+    public static long readSizeFromTarMetaData(ExecutionContext ctx, Path tar, String dbName) {
+        final var fileSystem = ctx.fs();
+
+        try (TarArchiveInputStream tais = new TarArchiveInputStream(maybeGzipped(tar, fileSystem), UTF_8.name())) {
+            TarArchiveEntry entry;
+            while ((entry = tais.getNextEntry()) != null) {
+                if (entry.getName().endsWith(dbName + Dumper.DUMP_EXTENSION)) {
+
+                    Loader.DumpMetaData metaData =
+                            new Loader(fileSystem, System.out).getMetaData(() -> tais, DumpFormatSelector::decompress);
+                    Loader.SizeMeta sizeMeta = metaData.sizeMeta();
+                    if (sizeMeta != null) {
+                        return sizeMeta.bytes();
+                    }
+                    return fileSystem.getFileSize(tar);
+                }
+            }
+            throw new CommandFailedException("TAR file " + tar + " does not contain dump for  database " + dbName);
+        } catch (IOException e) {
+            throw new CommandFailedException("Unable to check size of tar dump database.", e);
+        }
+    }
+
+    private static InputStream maybeGzipped(Path tar, final FileSystemAbstraction fileSystem) throws IOException {
+        try {
+            return new GZIPInputStream(fileSystem.openAsInputStream(tar));
+        } catch (ZipException e) {
+            return fileSystem.openAsInputStream(tar);
+        }
+    }
 
     @FunctionalInterface
     public interface Sleeper {
@@ -68,7 +137,7 @@ public final class IOCommon {
         }
     }
 
-    public static long getFileSize(UploadCommand.Source src, ExecutionContext ctx) {
+    public static long getFileSize(Source src, ExecutionContext ctx) {
         long fileSize;
         try {
             fileSize = src.fs().getFileSize(src.path());

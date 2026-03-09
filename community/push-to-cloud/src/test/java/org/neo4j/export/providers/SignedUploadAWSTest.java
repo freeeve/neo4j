@@ -50,7 +50,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExecutionContext;
-import org.neo4j.export.UploadCommand;
+import org.neo4j.export.Source;
 import org.neo4j.export.util.ExportTestUtilities;
 import org.neo4j.export.util.IOCommon;
 import org.neo4j.io.layout.Neo4jLayout;
@@ -100,7 +100,7 @@ public class SignedUploadAWSTest {
     @BeforeEach
     public void setupEach() throws IOException {
         wireMockServer.start();
-        storeSize = UploadCommand.readSizeFromArchiveMetaData(ctx, dump);
+        storeSize = IOCommon.readSizeFromArchiveMetaData(ctx, dump);
         dumpFileSize = ctx.fs().getFileSize(dump);
         wiremockServerPort = wireMockServer.port();
         wireMockServerAddress = "http://localhost:" + wiremockServerPort;
@@ -123,7 +123,7 @@ public class SignedUploadAWSTest {
         SignedUploadAWS signedUploadAWS =
                 new SignedUploadAWS(signedLinks, "uploadID", signedLinks.length, ctx, "bolt://localhost");
         long chunkSize = signedUploadAWS.getChunkSize(dumpFileSize);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
         byte[][] chunks = new byte[signedLinks.length][];
         setUpRequestChunks(chunkSize, chunks);
         wireMockServer.stubFor(uploadRequest().willReturn(successfulInitiateResponse()));
@@ -137,7 +137,7 @@ public class SignedUploadAWSTest {
         SignedUploadAWS signedUploadAWS =
                 new SignedUploadAWS(signedLinks, "uploadID", signedLinks.length, ctx, "bolt://localhost", millis -> {});
         long chunkSize = signedUploadAWS.getChunkSize(dumpFileSize);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
         byte[][] chunks = new byte[signedLinks.length][];
         setUpRequestChunks(chunkSize, chunks);
         wireMockServer.stubFor(uploadRequest()
@@ -163,7 +163,7 @@ public class SignedUploadAWSTest {
         SignedUploadAWS signedUploadAWS =
                 new SignedUploadAWS(signedLinks, "uploadID", signedLinks.length, ctx, "bolt://localhost", millis -> {});
         long chunkSize = signedUploadAWS.getChunkSize(dumpFileSize);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
         byte[][] chunks = new byte[signedLinks.length][];
         setUpRequestChunks(chunkSize, chunks);
 
@@ -194,7 +194,7 @@ public class SignedUploadAWSTest {
     public void testCorrectlyErrorsAfterFiveAttempts() throws java.io.IOException {
         SignedUploadAWS signedUploadAWS =
                 new SignedUploadAWS(signedLinks, "uploadID", signedLinks.length, ctx, "bolt://localhost", millis -> {});
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
         byte[][] chunks = new byte[signedLinks.length][];
         long chunkSize = signedUploadAWS.getChunkSize(dumpFileSize);
         setUpRequestChunks(chunkSize, chunks);

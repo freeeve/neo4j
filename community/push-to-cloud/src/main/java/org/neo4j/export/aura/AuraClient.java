@@ -33,7 +33,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.compress.utils.IOUtils.toByteArray;
-import static org.neo4j.export.UploadCommand.bytesToGibibytes;
+import static org.neo4j.export.util.IOCommon.bytesToGibibytes;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Closeable;
@@ -79,6 +79,7 @@ public class AuraClient {
     private final CommandResponseHandler commandResponseHandler;
     private final ExecutionContext ctx;
     private final IOCommon.Sleeper sleeper;
+    private final String bearerToken;
     private boolean verbose;
 
     public AuraClient(AuraClientBuilder auraClientBuilder) {
@@ -92,6 +93,7 @@ public class AuraClient {
         this.clock = auraClientBuilder.clock;
         this.progressListenerFactory = auraClientBuilder.progressListenerFactory;
         this.commandResponseHandler = auraClientBuilder.commandResponseHandler;
+        this.bearerToken = auraClientBuilder.bearerToken;
     }
 
     public AuraConsole getAuraConsole() {
@@ -103,6 +105,9 @@ public class AuraClient {
     }
 
     public String authenticate(boolean verbose) throws CommandFailedException {
+        if (bearerToken != null) {
+            return bearerToken;
+        }
         try {
             return doAuthenticate(verbose);
         } catch (IOException e) {
@@ -548,8 +553,7 @@ public class AuraClient {
             if (ERROR_REASON_EXCEEDS_MAX_SIZE.equals(errorBody.getReason())) {
                 String trimmedMessage = StringUtils.removeEnd(message, ".");
                 message = String.format(
-                        "%s. Minimum storage space required: %s",
-                        trimmedMessage, org.neo4j.export.UploadCommand.sizeText(size));
+                        "%s. Minimum storage space required: %s", trimmedMessage, IOCommon.sizeText(size));
             }
 
             return formatCommandFailedExceptionError(message, errorBody.getUrl());
@@ -584,6 +588,8 @@ public class AuraClient {
 
         private CommandResponseHandler commandResponseHandler;
 
+        private String bearerToken;
+
         public AuraClientBuilder(ExecutionContext ctx) {
             this.ctx = ctx;
         }
@@ -600,6 +606,11 @@ public class AuraClient {
 
         public AuraClientBuilder withPassword(char[] password) {
             this.password = password;
+            return this;
+        }
+
+        public AuraClientBuilder withBearerToken(String bearerToken) {
+            this.bearerToken = bearerToken;
             return this;
         }
 

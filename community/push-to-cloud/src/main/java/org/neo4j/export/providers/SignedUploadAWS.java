@@ -37,7 +37,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.compress.utils.IOUtils;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExecutionContext;
-import org.neo4j.export.UploadCommand;
+import org.neo4j.export.Source;
 import org.neo4j.export.util.IOCommon;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -81,7 +81,7 @@ public class SignedUploadAWS implements SignedUpload {
     }
 
     @Override
-    public void copy(boolean verbose, UploadCommand.Source src) {
+    public void copy(boolean verbose, Source src) {
         try {
             upload(src);
         } catch (IOException e) {
@@ -89,7 +89,7 @@ public class SignedUploadAWS implements SignedUpload {
         }
     }
 
-    public void upload(UploadCommand.Source src) throws IOException {
+    public void upload(Source src) throws IOException {
         long fileSize;
         fileSize = IOCommon.getFileSize(src, ctx);
         ProgressListener progressListener = ProgressMonitorFactory.textual(ctx.out())
@@ -101,8 +101,7 @@ public class SignedUploadAWS implements SignedUpload {
         ctx.out().println("Total bytes copied: " + totalBytesCopied);
     }
 
-    private long copyToUrls(UploadCommand.Source src, ProgressListener progressListener, long fileSize)
-            throws IOException {
+    private long copyToUrls(Source src, ProgressListener progressListener, long fileSize) throws IOException {
 
         Path source = src.path();
         long totalBytesCopied = 0;

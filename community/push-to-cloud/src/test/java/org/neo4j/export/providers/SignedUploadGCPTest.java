@@ -55,9 +55,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.export.CommandResponseHandler;
-import org.neo4j.export.UploadCommand;
+import org.neo4j.export.Source;
 import org.neo4j.export.providers.SignedUploadGCP.ProgressListenerFactory;
 import org.neo4j.export.util.ExportTestUtilities;
+import org.neo4j.export.util.IOCommon;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.test.extension.Inject;
@@ -108,7 +109,7 @@ public class SignedUploadGCPTest {
     @BeforeEach
     public void setupEach() throws IOException {
         wireMockServer.start();
-        storeSize = UploadCommand.readSizeFromArchiveMetaData(ctx, dump);
+        storeSize = IOCommon.readSizeFromArchiveMetaData(ctx, dump);
         dumpFileSize = ctx.fs().getFileSize(dump);
         wiremockServerPort = wireMockServer.port();
         wireMockServerAddress = "http://localhost:" + wiremockServerPort;
@@ -130,7 +131,7 @@ public class SignedUploadGCPTest {
         wireMockServer.stubFor(initiateRequest().willReturn(successfulInitiateResponse("/upload")));
         wireMockServer.stubFor(resumeUpload().willReturn(aResponse().withStatus(HTTP_OK)));
         SignedUploadGCP gcpSignedUpload = getGcpSignedUpload(progressListenerFactory);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
         gcpSignedUpload.copy(true, source);
 
         verify(postRequestedFor(urlEqualTo("/initiate")));
@@ -147,7 +148,7 @@ public class SignedUploadGCPTest {
         wireMockServer.stubFor(initiateRequest().willReturn(successfulInitiateResponse("/upload")));
         wireMockServer.stubFor(resumeUpload().willReturn(aResponse().withStatus(HTTP_TOO_MANY_REQUESTS)));
         SignedUploadGCP gcpSignedUpload = getGcpSignedUpload(progressListenerFactory);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
 
         ExportTestUtilities.assertThrows(
                 CommandFailedException.class,
@@ -175,7 +176,7 @@ public class SignedUploadGCPTest {
                 .whenScenarioStateIs("keepResuming"));
 
         SignedUploadGCP gcpSignedUpload = getGcpSignedUpload(progressListenerFactory);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
 
         ExportTestUtilities.assertThrows(
                 CommandFailedException.class,
@@ -193,7 +194,7 @@ public class SignedUploadGCPTest {
 
         wireMockServer.stubFor(initiateRequest().willReturn(aResponse().withStatus(HTTP_INTERNAL_ERROR)));
         SignedUploadGCP gcpSignedUpload = getGcpSignedUpload(progressListenerFactory);
-        UploadCommand.Source source = new UploadCommand.Source(ctx.fs(), dump, storeSize);
+        Source source = new Source(ctx.fs(), dump, storeSize);
 
         ExportTestUtilities.assertThrows(
                 CommandFailedException.class,

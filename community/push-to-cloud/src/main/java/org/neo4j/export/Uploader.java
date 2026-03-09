@@ -14,11 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.export.providers;
+package org.neo4j.export;
 
-import org.neo4j.export.Source;
+import org.neo4j.export.aura.AuraClient;
 
-public interface SignedUpload {
+public abstract class Uploader {
+    protected final Source source;
 
-    void copy(boolean verbose, Source src);
+    Uploader(Source source) {
+        this.source = source;
+    }
+
+    long size() {
+        return source.size();
+    }
+
+    public abstract void process(AuraClient auraClient);
 }

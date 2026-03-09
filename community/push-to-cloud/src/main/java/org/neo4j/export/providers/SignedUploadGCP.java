@@ -47,7 +47,7 @@ import org.apache.commons.io.IOUtils;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.export.CommandResponseHandler;
-import org.neo4j.export.UploadCommand;
+import org.neo4j.export.Source;
 import org.neo4j.export.util.IOCommon;
 import org.neo4j.export.util.ProgressTrackingOutputStream;
 import org.neo4j.internal.helpers.progress.ProgressListener;
@@ -154,7 +154,7 @@ public class SignedUploadGCP implements SignedUpload {
     }
 
     @Override
-    public void copy(boolean verbose, UploadCommand.Source source) {
+    public void copy(boolean verbose, Source source) {
         URL dest;
         try {
             dest = initiateResumableUpload(verbose);
@@ -176,7 +176,7 @@ public class SignedUploadGCP implements SignedUpload {
         return dest;
     }
 
-    private void transfer(boolean verbose, UploadCommand.Source source, URL dest) {
+    private void transfer(boolean verbose, Source source, URL dest) {
         try {
             long sourceLength = ctx.fs().getFileSize(source.path());
 

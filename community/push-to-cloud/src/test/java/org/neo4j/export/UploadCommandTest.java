@@ -87,6 +87,7 @@ import org.neo4j.export.aura.AuraURLFactory;
 import org.neo4j.export.providers.SignedUpload;
 import org.neo4j.export.providers.SignedUploadAWS;
 import org.neo4j.export.util.ExportTestUtilities;
+import org.neo4j.export.util.IOCommon;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.test.extension.Inject;
@@ -152,7 +153,7 @@ public class UploadCommandTest {
         ctx = new ExecutionContext(homeDir, confPath, nullOutputStream, nullOutputStream, directory.getFileSystem());
         dump = dumpDir.resolve(DBNAME + ".dump");
         ExportTestUtilities.createDump(homeDir, confPath, dumpDir, fs, DBNAME);
-        dbFullSize = UploadCommand.readSizeFromArchiveMetaData(ctx, dump);
+        dbFullSize = IOCommon.readSizeFromArchiveMetaData(ctx, dump);
     }
 
     @AfterEach

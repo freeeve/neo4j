@@ -135,6 +135,19 @@ public class AuraClientTest {
                 .build();
     }
 
+    public AuraClient buildPreAuthenticatedTestAuraClient(String bearerToken) {
+        AuraClient.AuraClientBuilder builder = new AuraClient.AuraClientBuilder(ctx);
+        AuraConsole testConsole = new AuraConsole(TEST_CONSOLE_URL, "deadbeef");
+        return builder.withAuraConsole(testConsole)
+                .withBearerToken(bearerToken)
+                .withBoltURI("bolt://hello.com")
+                .withClock(org.neo4j.time.Clocks.nanoClock())
+                .withCommandResponseHandler(new CommandResponseHandler(ctx))
+                .withProgressListenerFactory((name, length) -> new ExportTestUtilities.ControlledProgressListener())
+                .withSleeper(millis -> {})
+                .build();
+    }
+
     public AuraClient buildTestAuraClientWithMockSleeper(boolean consentConfirmed) {
         var sleeper = mock(IOCommon.Sleeper.class);
         AuraClient.AuraClientBuilder builder = new AuraClient.AuraClientBuilder(ctx);
@@ -218,6 +231,26 @@ public class AuraClientTest {
         assertEquals(100, progressListener.progress);
         assertTrue(fs.fileExists(source));
         progressListener.close();
+    }
+
+    @Test
+    void shouldFailIfNeitherBearerTokenNorLoginDataIsSet() {
+        // given
+        AuraClient auraClient = buildPreAuthenticatedTestAuraClient(null);
+
+        // when/then
+        assertThrows(NullPointerException.class, CoreMatchers.any(String.class), () -> auraClient.authenticate(true));
+    }
+
+    @Test
+    void shouldNotCallAuthenticationEndpointIfPreAuthenticated() {
+        // given
+        var token = "123";
+        AuraClient auraClient = buildPreAuthenticatedTestAuraClient(token);
+
+        // when/then
+        assertEquals(token, auraClient.authenticate(true));
+        assertEquals(0, wireMock.findAllUnmatchedRequests().size());
     }
 
     @Test
