@@ -48,8 +48,8 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkEnd;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
 import org.neo4j.storageengine.api.Leases;
 
 class CommittedCommandBatchRepresentationCursorTest {
@@ -62,8 +62,15 @@ class CommittedCommandBatchRepresentationCursorTest {
     private static final LogEntryCommit COMMIT_ENTRY =
             newCommitEntry(LATEST_KERNEL_VERSION, 42, 0, BASE_TX_CHECKSUM + 1);
     private static final LogEntryCommand COMMAND_ENTRY = new LogEntryCommand(new TestCommand());
-    private static final LogEntryChunkStart CHUNK_START =
-            new LogEntryChunkStart(LATEST_KERNEL_VERSION, 12, 2, UNKNOWN_APPEND_INDEX, encodeLogIndex(42));
+    private static final LogEntryChunkStart CHUNK_START = new LogEntryChunkStart(
+            LATEST_KERNEL_VERSION,
+            12,
+            2,
+            UNKNOWN_APPEND_INDEX,
+            UNKNOWN_APPEND_INDEX,
+            NO_LEASE,
+            Leases.NO_LEASES,
+            encodeLogIndex(42));
     private static final LogEntryChunkEnd CHUNK_END =
             new LogEntryChunkEnd(LATEST_KERNEL_VERSION, 12, 2, BASE_TX_CHECKSUM);
     private CommittedCommandBatchCursor cursor;

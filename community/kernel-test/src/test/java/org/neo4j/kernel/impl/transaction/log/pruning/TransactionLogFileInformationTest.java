@@ -42,7 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
@@ -115,7 +115,14 @@ class TransactionLogFileInformationTest {
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
                 .thenReturn(new LogEntryChunkStart(
-                        LatestVersions.LATEST_KERNEL_VERSION, 42, 1, UNKNOWN_APPEND_INDEX, encodeLogIndex(42)));
+                        LatestVersions.LATEST_KERNEL_VERSION,
+                        42,
+                        1,
+                        UNKNOWN_APPEND_INDEX,
+                        UNKNOWN_APPEND_INDEX,
+                        NO_LEASE,
+                        Leases.NO_LEASES,
+                        encodeLogIndex(42)));
         var fileInfo = new TransactionLogFileInformation(logFiles, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(

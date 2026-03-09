@@ -35,13 +35,13 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.Leases;
 
-public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryChunkStartV5_20> {
+public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryChunkStart> {
     public ChunkStartLogEntrySerializerV5_20() {
         super(LogEntryTypeCodes.CHUNK_START);
     }
 
     @Override
-    public LogEntryChunkStartV5_20 parse(
+    public LogEntryChunkStart parse(
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
@@ -61,7 +61,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         }
         byte[] additionalHeader = new byte[additionalHeaderLength];
         channel.get(additionalHeader, additionalHeaderLength);
-        return new LogEntryChunkStartV5_20(
+        return new LogEntryChunkStart(
                 version,
                 timeWritten,
                 chunkId,
@@ -73,7 +73,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
     }
 
     @Override
-    public int write(WritableChannel channel, LogEntryChunkStartV5_20 logEntry) throws IOException {
+    public int write(WritableChannel channel, LogEntryChunkStart logEntry) throws IOException {
         channel.beginChecksumForWriting();
         writeLogEntryHeader(logEntry.kernelVersion(), CHUNK_START, channel);
         byte[] additionalHeaderData = logEntry.getAdditionalHeader();

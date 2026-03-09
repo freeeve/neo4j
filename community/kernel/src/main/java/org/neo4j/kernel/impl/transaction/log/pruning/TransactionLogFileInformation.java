@@ -32,7 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;

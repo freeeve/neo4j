@@ -27,8 +27,8 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.v202505.LogEntryStartV2025_05;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryCommitV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollbackV5_20;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryStartV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture.LogEntryStartVGloriousFuture;
 import org.neo4j.storageengine.api.Leases;
@@ -78,7 +78,7 @@ public final class LogEntryFactory {
 
     public static AbstractVersionAwareLogEntry newRollbackEntry(
             KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten) {
-        return new LogEntryRollbackV5_20(kernelVersion, transactionId, appendIndex, timeWritten, 0);
+        return new LogEntryRollback(kernelVersion, transactionId, appendIndex, timeWritten, 0);
     }
 
     public static LogEntry newChunkStartEntry(
@@ -90,7 +90,7 @@ public final class LogEntryFactory {
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
-        return new LogEntryChunkStartV5_20(
+        return new LogEntryChunkStart(
                 kernelVersion,
                 timeWritten,
                 chunkId,

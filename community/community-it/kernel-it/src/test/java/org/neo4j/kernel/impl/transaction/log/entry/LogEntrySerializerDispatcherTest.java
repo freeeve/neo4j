@@ -50,9 +50,9 @@ import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareCh
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkEnd;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryStartV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.Leases;
@@ -75,7 +75,7 @@ class LogEntrySerializerDispatcherTest {
     private TestDirectory directory;
 
     @ParameterizedTest
-    @KernelVersionSource(atLeast = "5.7") // chunks added in 5.7
+    @KernelVersionSource(atLeast = "5.20") // revised so that chunks now added in '5.20'
     void writeAndParseChunksEntries(KernelVersion version) throws IOException {
         Path path = directory.createFile("a");
         StoreChannel storeChannel = fs.write(path);

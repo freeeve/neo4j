@@ -41,10 +41,8 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollbackV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollback;
 import org.neo4j.storageengine.api.Leases;
 
 class AppendChunkPositionLocatorTest {
@@ -57,7 +55,7 @@ class AppendChunkPositionLocatorTest {
 
     private static final LogEntryStart START =
             newStartEntry(LATEST_KERNEL_VERSION, 0, 0, APPEND_INDEX, 1, NO_LEASE, Leases.NO_LEASES, null);
-    private static final LogEntryChunkStart CHUNK_START = new LogEntryChunkStartV5_20(
+    private static final LogEntryChunkStart CHUNK_START = new LogEntryChunkStart(
             LATEST_KERNEL_VERSION,
             0,
             1,
@@ -67,7 +65,7 @@ class AppendChunkPositionLocatorTest {
             Leases.NO_LEASES,
             encodeLogIndex(42));
     private static final LogEntryRollback ROLLBACK =
-            new LogEntryRollbackV5_20(LATEST_KERNEL_VERSION, 0, APPEND_INDEX, 17, 7896);
+            new LogEntryRollback(LATEST_KERNEL_VERSION, 0, APPEND_INDEX, 17, 7896);
 
     private static final LogEntryCommand COMMAND = new LogEntryCommand(new TestCommand());
     private static final LogEntryCommit COMMIT =

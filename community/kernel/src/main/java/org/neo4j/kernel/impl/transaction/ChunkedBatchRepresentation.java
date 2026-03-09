@@ -37,9 +37,8 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
-import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkEnd;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.StorageCommand;
 
@@ -122,7 +121,7 @@ public record ChunkedBatchRepresentation(
         if (start instanceof LogEntryChunkStart chunkStart) {
             return chunkStart;
         } else if (start instanceof LogEntryStart entryStart) {
-            return new LogEntryChunkStartV5_20(
+            return new LogEntryChunkStart(
                     entryStart.kernelVersion(),
                     entryStart.getTimeWritten(),
                     BASE_CHUNK_ID,

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.v57;
+package org.neo4j.kernel.impl.transaction.log.entry.v520;
 
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_ROLLBACK;
 
@@ -26,22 +26,21 @@ import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.string.Mask;
 
 public class LogEntryRollback extends AbstractVersionAwareLogEntry {
-    protected final long transactionId;
-    protected final long timeWritten;
-    protected final int checksum;
+    private final long transactionId;
+    private final long timeWritten;
+    private final int checksum;
+    private final long appendIndex;
 
-    public LogEntryRollback(KernelVersion kernelVersion, long transactionId, long timeWritten, int checksum) {
+    public LogEntryRollback(
+            KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten, int checksum) {
         super(kernelVersion, TX_ROLLBACK);
         this.transactionId = transactionId;
         this.timeWritten = timeWritten;
         this.checksum = checksum;
+        this.appendIndex = appendIndex;
     }
 
     public long getTransactionId() {
-        return transactionId;
-    }
-
-    public long getAppendIndex() {
         return transactionId;
     }
 
@@ -53,11 +52,15 @@ public class LogEntryRollback extends AbstractVersionAwareLogEntry {
         return checksum;
     }
 
+    public long getAppendIndex() {
+        return appendIndex;
+    }
+
     @Override
     public String toString(Mask mask) {
-        return "LogEntryRollback{" + "txId="
+        return "LogEntryRollbackV5_20{" + "txId="
                 + transactionId + ", timeWritten="
                 + timeWritten + ", checksum="
-                + checksum + '}';
+                + checksum + ", appendIndex=" + appendIndex + '}';
     }
 }

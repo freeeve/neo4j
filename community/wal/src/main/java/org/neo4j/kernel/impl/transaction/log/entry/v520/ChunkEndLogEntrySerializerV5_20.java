@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.v57;
+package org.neo4j.kernel.impl.transaction.log.entry.v520;
 
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_END;
 
@@ -69,8 +69,8 @@ import org.neo4j.storageengine.api.CommandReaderFactory;
  *     </tr>
  * </table>
  */
-public class ChunkEndLogEntrySerializerV5_7 extends LogEntrySerializer<LogEntryChunkEnd> {
-    public ChunkEndLogEntrySerializerV5_7() {
+public class ChunkEndLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryChunkEnd> {
+    public ChunkEndLogEntrySerializerV5_20() {
         super(LogEntryTypeCodes.CHUNK_END);
     }
 

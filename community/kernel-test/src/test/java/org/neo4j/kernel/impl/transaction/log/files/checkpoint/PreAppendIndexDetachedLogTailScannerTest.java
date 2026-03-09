@@ -515,29 +515,6 @@ class PreAppendIndexDetachedLogTailScannerTest {
     }
 
     @Test
-    void extractTxIdFromFirstChunkEndOnEmptyLogs() throws Exception {
-        long chunkTxId = 42;
-        setupLogFiles(10, logFile(start(), chunkEnd(chunkTxId)), logFile());
-
-        LogTailMetadata tailMetadata = logFiles.getTailMetadata();
-        assertEquals(chunkTxId, ((LogTailInformation) tailMetadata).firstAppendIndexAfterLastCheckPoint);
-    }
-
-    @Test
-    void extractTxIdFromFirstChunkEndOnNotEmptyLogs() throws Exception {
-        long chunkTxId = 42;
-        PositionEntry position = position();
-        setupLogFiles(
-                11,
-                logFile(start(), commit(chunkTxId - 1), position),
-                logFile(checkPoint(position)),
-                logFile(start(), chunkEnd(chunkTxId)));
-
-        LogTailMetadata tailMetadata = logFiles.getTailMetadata();
-        assertEquals(chunkTxId, ((LogTailInformation) tailMetadata).firstAppendIndexAfterLastCheckPoint);
-    }
-
-    @Test
     void parseConsensusIndexFromCheckpoint() throws Exception {
         // given
         long transactionId = 4;

@@ -32,8 +32,8 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 
 public class AppendedChunkPositionLocator implements LogFile.LogFileVisitor {

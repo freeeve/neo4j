@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.ChunkEndLogEntrySerializerV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.ChunkStartLogEntrySerializerV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.DetachedCheckpointLogEntrySerializerV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.RollbackLogEntrySerializerV5_20;
@@ -33,10 +34,11 @@ class LogEntrySerializationSetV5_20 extends LogEntrySerializationSetV5_7 {
     LogEntrySerializationSetV5_20(KernelVersion kernelVersion) {
         super(kernelVersion);
 
-        register(new DetachedCheckpointLogEntrySerializerV5_20(), true);
+        register(new ChunkStartLogEntrySerializerV5_20());
+        register(new ChunkEndLogEntrySerializerV5_20());
+        register(new RollbackLogEntrySerializerV5_20());
 
-        register(new ChunkStartLogEntrySerializerV5_20(), true);
-        register(new RollbackLogEntrySerializerV5_20(), true);
+        register(new DetachedCheckpointLogEntrySerializerV5_20(), true);
         register(new StartLogEntrySerializerV5_20(), true);
     }
 }

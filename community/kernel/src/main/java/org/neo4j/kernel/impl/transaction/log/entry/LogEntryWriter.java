@@ -37,7 +37,7 @@ import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkEnd;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;

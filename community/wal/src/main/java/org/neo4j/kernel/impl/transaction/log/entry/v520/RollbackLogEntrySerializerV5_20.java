@@ -31,14 +31,14 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
-public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryRollbackV5_20> {
+public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryRollback> {
 
     public RollbackLogEntrySerializerV5_20() {
         super(LogEntryTypeCodes.TX_ROLLBACK);
     }
 
     @Override
-    public LogEntryRollbackV5_20 parse(
+    public LogEntryRollback parse(
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
@@ -49,11 +49,11 @@ public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntry
         long timeWritten = channel.getLong();
         long appendIndex = channel.getAppendIndex();
         int checksum = channel.endChecksumAndValidate();
-        return new LogEntryRollbackV5_20(version, transactionId, appendIndex, timeWritten, checksum);
+        return new LogEntryRollback(version, transactionId, appendIndex, timeWritten, checksum);
     }
 
     @Override
-    public int write(WritableChannel channel, LogEntryRollbackV5_20 logEntry) throws IOException {
+    public int write(WritableChannel channel, LogEntryRollback logEntry) throws IOException {
         channel.beginChecksumForWriting();
         writeLogEntryHeader(logEntry.kernelVersion(), TX_ROLLBACK, channel);
         channel.putLong(logEntry.getTransactionId())

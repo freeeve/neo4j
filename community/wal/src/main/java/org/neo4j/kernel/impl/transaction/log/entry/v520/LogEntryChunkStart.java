@@ -19,18 +19,24 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry.v520;
 
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.CHUNK_START;
+
 import java.util.Arrays;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.string.Mask;
 
-public class LogEntryChunkStartV5_20 extends LogEntryChunkStart {
+public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
+    private final long timeWritten;
+    private final long chunkId;
+    private final long previousBatchAppendIndex;
+    private final byte[] additionalHeader;
     private final long appendIndex;
     private final int leaseId;
     private final Leases leases;
 
-    public LogEntryChunkStartV5_20(
+    public LogEntryChunkStart(
             KernelVersion kernelVersion,
             long timeWritten,
             long chunkId,
@@ -39,25 +45,42 @@ public class LogEntryChunkStartV5_20 extends LogEntryChunkStart {
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
-        super(kernelVersion, timeWritten, chunkId, previousBatchAppendIndex, additionalHeader);
+        super(kernelVersion, CHUNK_START);
+        this.timeWritten = timeWritten;
+        this.chunkId = chunkId;
+        this.previousBatchAppendIndex = previousBatchAppendIndex;
+        this.additionalHeader = additionalHeader;
         this.appendIndex = appendIndex;
         this.leaseId = leaseId;
         this.leases = leases;
     }
 
-    @Override
+    public long getTimeWritten() {
+        return timeWritten;
+    }
+
+    public long getChunkId() {
+        return chunkId;
+    }
+
     public long getAppendIndex() {
         return appendIndex;
     }
 
-    @Override
+    public long getPreviousBatchAppendIndex() {
+        return previousBatchAppendIndex;
+    }
+
     public int getLeaseId() {
         return leaseId;
     }
 
-    @Override
     public Leases getLeases() {
         return leases;
+    }
+
+    public byte[] getAdditionalHeader() {
+        return additionalHeader;
     }
 
     @Override
