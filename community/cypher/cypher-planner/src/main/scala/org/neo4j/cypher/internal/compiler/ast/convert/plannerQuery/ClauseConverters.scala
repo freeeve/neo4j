@@ -943,7 +943,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
     def returnItemsOK(ri: ReturnItems): Boolean = {
       ri.items.forall {
         case item: AliasedReturnItem =>
-          !containsAggregateOutsideOfAggregatingHorizon(item.expression) && item.expression == item.variable
+          item.expression == item.variable
         case _ => throw InternalException.internalError(
             this.getClass.getSimpleName,
             "This should have been rewritten to an AliasedReturnItem."
