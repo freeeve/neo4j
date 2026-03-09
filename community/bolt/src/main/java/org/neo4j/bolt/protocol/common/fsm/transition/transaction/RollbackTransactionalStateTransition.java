@@ -25,9 +25,9 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RollbackMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.request.transaction.RollbackMessage;
 
 public final class RollbackTransactionalStateTransition extends TransactionalStateTransition<RollbackMessage> {
     private static final RollbackTransactionalStateTransition INSTANCE = new RollbackTransactionalStateTransition();

@@ -31,7 +31,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.io.pipeline.WriterPipeline;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
@@ -39,6 +38,7 @@ import org.neo4j.bolt.testing.messages.factory.BeginMessageBuilder;
 import org.neo4j.bolt.testing.messages.factory.HelloMessageBuilder;
 import org.neo4j.bolt.testing.messages.factory.RunMessageBuilder;
 import org.neo4j.bolt.testing.messages.factory.TelemetryMessageBuilder;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.values.virtual.MapValue;
 

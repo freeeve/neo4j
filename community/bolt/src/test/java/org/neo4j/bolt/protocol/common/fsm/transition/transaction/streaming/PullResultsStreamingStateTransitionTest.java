@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.transaction.streaming;
 
-import org.neo4j.bolt.protocol.common.message.request.streaming.PullMessage;
+import org.neo4j.boltmessages.request.streaming.PullMessage;
 
 class PullResultsStreamingStateTransitionTest
         extends AbstractStreamingStateTransitionTest<PullMessage, PullResultsStreamingStateTransition> {

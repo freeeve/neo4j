@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.AbstractSingletonMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RollbackMessage;
+import org.neo4j.boltmessages.request.transaction.RollbackMessage;
 
 public final class DefaultRollbackMessageDecoder extends AbstractSingletonMessageDecoder<RollbackMessage> {
     private static final DefaultRollbackMessageDecoder INSTANCE = new DefaultRollbackMessageDecoder();

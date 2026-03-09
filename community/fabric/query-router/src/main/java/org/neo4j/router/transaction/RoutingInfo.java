@@ -19,8 +19,8 @@
  */
 package org.neo4j.router.transaction;
 
-import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.kernel.database.DatabaseReference;
 
 /**

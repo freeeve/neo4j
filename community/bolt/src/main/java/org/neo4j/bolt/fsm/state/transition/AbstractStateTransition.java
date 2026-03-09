@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.fsm.state.transition;
 
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 public abstract class AbstractStateTransition<R extends RequestMessage> implements StateTransition<R> {
     private final Class<R> requestType;

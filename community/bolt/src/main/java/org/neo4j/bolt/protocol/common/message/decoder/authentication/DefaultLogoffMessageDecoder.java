@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.authentication;
 
 import org.neo4j.bolt.protocol.common.message.decoder.AbstractSingletonMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogoffMessage;
+import org.neo4j.boltmessages.request.authentication.LogoffMessage;
 
 public final class DefaultLogoffMessageDecoder extends AbstractSingletonMessageDecoder<LogoffMessage> {
 

@@ -22,7 +22,7 @@ package org.neo4j.bolt.protocol.common.fsm.response;
 import java.util.List;
 import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
-import org.neo4j.bolt.tx.TransactionType;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;

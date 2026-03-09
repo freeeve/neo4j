@@ -29,8 +29,8 @@ import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.negotiation.HelloStateTransition;
-import org.neo4j.bolt.protocol.common.message.request.authentication.AuthenticationMessage;
 import org.neo4j.bolt.security.error.AuthenticationException;
+import org.neo4j.boltmessages.request.authentication.AuthenticationMessage;
 import org.neo4j.values.storable.Values;
 
 /**

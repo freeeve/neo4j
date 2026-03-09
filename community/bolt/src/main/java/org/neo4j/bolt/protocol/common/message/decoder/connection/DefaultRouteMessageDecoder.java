@@ -25,7 +25,7 @@ import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.transaction.AbstractTransactionInitiatingMessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.util.TransactionInitiatingMetadataParser;
-import org.neo4j.bolt.protocol.common.message.request.connection.RouteMessage;
+import org.neo4j.boltmessages.request.connection.RouteMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.io.Type;

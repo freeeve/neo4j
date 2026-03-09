@@ -23,11 +23,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.v40.BoltProtocolV40;
 import org.neo4j.bolt.testing.error.UnsupportedProtocolFeatureException;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.request.RequestMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 
 /**
  * Quick access of all Bolt V4 messages

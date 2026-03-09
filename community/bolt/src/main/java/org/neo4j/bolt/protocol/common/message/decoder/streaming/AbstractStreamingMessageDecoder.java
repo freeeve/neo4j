@@ -21,7 +21,7 @@ package org.neo4j.bolt.protocol.common.message.decoder.streaming;
 
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.streaming.AbstractStreamingMessage;
+import org.neo4j.boltmessages.request.streaming.AbstractStreamingMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;

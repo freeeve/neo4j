@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.connection;
 
 import org.neo4j.bolt.protocol.common.message.decoder.SingletonMessageDecoderTest;
-import org.neo4j.bolt.protocol.common.message.request.connection.GoodbyeMessage;
+import org.neo4j.boltmessages.request.connection.GoodbyeMessage;
 
 public class DefaultGoodbyeMessageDecoderTest
         implements SingletonMessageDecoderTest<DefaultGoodbyeMessageDecoder, GoodbyeMessage> {

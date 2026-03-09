@@ -36,11 +36,11 @@ import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.authentication.AuthenticationMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogonMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.testing.mock.TestConnectorConfiguration;
+import org.neo4j.boltmessages.request.authentication.AuthenticationMessage;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.authentication.LogonMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.values.storable.Values;
 
 class AppendAdvertisedAddressOnStateTransitionTest
@@ -59,7 +59,7 @@ class AppendAdvertisedAddressOnStateTransitionTest
                 .flatMap(token -> Stream.of(
                         new HelloMessage(
                                 "Test/1.0",
-                                List.of(Feature.UTC_DATETIME),
+                                List.of(Feature.UTC_DATETIME.getId()),
                                 new RoutingContext(false, Collections.emptyMap()),
                                 token),
                         new LogonMessage(token)));

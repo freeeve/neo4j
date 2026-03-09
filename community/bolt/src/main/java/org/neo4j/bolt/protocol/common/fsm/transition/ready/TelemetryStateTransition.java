@@ -24,7 +24,7 @@ import org.neo4j.bolt.fsm.Context;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.generic.TelemetryMessage;
+import org.neo4j.boltmessages.request.generic.TelemetryMessage;
 
 public class TelemetryStateTransition extends AbstractStateTransition<TelemetryMessage> {
     private static final TelemetryStateTransition INSTANCE = new TelemetryStateTransition();

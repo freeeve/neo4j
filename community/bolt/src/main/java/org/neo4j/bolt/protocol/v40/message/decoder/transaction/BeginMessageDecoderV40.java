@@ -20,9 +20,9 @@
 package org.neo4j.bolt.protocol.v40.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.transaction.DefaultBeginMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.request.transaction.BeginMessage;
-import org.neo4j.bolt.tx.TransactionType;
+import org.neo4j.boltmessages.TransactionType;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.values.virtual.MapValue;

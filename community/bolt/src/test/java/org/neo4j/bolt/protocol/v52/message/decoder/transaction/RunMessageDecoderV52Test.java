@@ -20,14 +20,15 @@
 package org.neo4j.bolt.protocol.v52.message.decoder.transaction;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Set;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.decoder.transaction.DefaultRunMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.SelectiveNotificationsConfig;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.notifications.SelectiveNotificationsConfig;
+import org.neo4j.kernel.impl.query.NotificationConfiguration;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.io.value.PackstreamValueReader;
@@ -95,6 +96,7 @@ class RunMessageDecoderV52Test extends DefaultRunMessageDecoder {
         Assertions.assertThat(msg.databaseName()).isEqualTo("neo4j");
         Assertions.assertThat(msg.impersonatedUser()).isEqualTo("bob");
         Assertions.assertThat(msg.notificationsConfig())
-                .isEqualTo(new SelectiveNotificationsConfig("WARNING", List.of("HINT")));
+                .isEqualTo(new SelectiveNotificationsConfig(
+                        NotificationConfiguration.Severity.WARNING, Set.of(NotificationConfiguration.Category.HINT)));
     }
 }

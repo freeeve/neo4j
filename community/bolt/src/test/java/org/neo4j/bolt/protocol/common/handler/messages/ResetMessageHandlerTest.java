@@ -26,9 +26,9 @@ import static org.neo4j.logging.LogAssertions.assertThat;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
-import org.neo4j.bolt.protocol.common.message.request.connection.ResetMessage;
-import org.neo4j.bolt.protocol.common.message.request.transaction.CommitMessage;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.boltmessages.request.connection.ResetMessage;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.AssertableLogProvider.Level;
 

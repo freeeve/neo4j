@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
+import org.neo4j.boltmessages.AccessMode;
 import org.neo4j.cypher.internal.ast.SubqueryCall;
 import org.neo4j.cypher.internal.expressions.ExplicitParameter;
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral;

@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.protocol.common.connector.admissioncontrol;
 
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 
 /**

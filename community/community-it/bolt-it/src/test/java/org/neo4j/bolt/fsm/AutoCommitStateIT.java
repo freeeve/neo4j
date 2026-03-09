@@ -27,12 +27,12 @@ import static org.neo4j.values.storable.Values.longValue;
 
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.States;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.test.annotation.CommunityStateMachineTestExtension;
 import org.neo4j.bolt.testing.annotation.fsm.StateMachineTest;
 import org.neo4j.bolt.testing.annotation.fsm.initializer.Autocommit;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.response.ResponseRecorder;
+import org.neo4j.boltmessages.request.RequestMessage;
 import org.neo4j.kernel.api.exceptions.Status;
 
 @CommunityStateMachineTestExtension

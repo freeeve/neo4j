@@ -20,8 +20,8 @@
 package org.neo4j.bolt.protocol.v50.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.transaction.DefaultBeginMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.request.transaction.BeginMessage;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
 import org.neo4j.values.virtual.MapValue;
 
 public final class BeginMessageDecoderV50 extends DefaultBeginMessageDecoder {

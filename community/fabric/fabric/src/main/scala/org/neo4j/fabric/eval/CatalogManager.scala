@@ -19,7 +19,7 @@
  */
 package org.neo4j.fabric.eval
 
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext
+import org.neo4j.boltmessages.request.connection.RoutingContext
 import org.neo4j.fabric.executor.Location
 import org.neo4j.kernel.database.AbstractCatalogManager
 import org.neo4j.kernel.database.DatabaseReference

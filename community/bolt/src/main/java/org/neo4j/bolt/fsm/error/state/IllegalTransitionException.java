@@ -21,7 +21,7 @@ package org.neo4j.bolt.fsm.error.state;
 
 import org.neo4j.bolt.fsm.error.ConnectionTerminating;
 import org.neo4j.bolt.fsm.state.State;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;

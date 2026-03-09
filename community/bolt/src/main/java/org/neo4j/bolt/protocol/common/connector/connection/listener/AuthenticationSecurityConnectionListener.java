@@ -26,7 +26,7 @@ import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.handler.AuthenticationProtocolLimiterHandler;
 import org.neo4j.bolt.protocol.common.handler.AuthenticationTimeoutHandler;
 import org.neo4j.bolt.protocol.common.handler.HouseKeeperHandler;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;

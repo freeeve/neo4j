@@ -60,6 +60,7 @@
     <module>import-util</module>
     <module>server-api</module>
     <module>bolt</module>
+    <module>bolt-messages</module>
     <module>server</module>
     <module>server-test-utils</module>
     <module>consistency-check</module>

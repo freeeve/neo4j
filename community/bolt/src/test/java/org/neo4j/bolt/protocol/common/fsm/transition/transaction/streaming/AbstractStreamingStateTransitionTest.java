@@ -32,9 +32,9 @@ import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.state.IllegalRequestParameterException;
 import org.neo4j.bolt.protocol.common.fsm.transition.transaction.AbstractTransactionalTransitionTest;
 import org.neo4j.bolt.protocol.common.fsm.transition.transaction.TransactionalStateTransition;
-import org.neo4j.bolt.protocol.common.message.request.streaming.AbstractStreamingMessage;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.error.statement.StatementException;
+import org.neo4j.boltmessages.request.streaming.AbstractStreamingMessage;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 

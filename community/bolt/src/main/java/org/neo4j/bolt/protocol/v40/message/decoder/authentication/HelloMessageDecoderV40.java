@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.decoder.authentication.AbstractLegacyHelloMessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.authentication.DefaultHelloMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 
 public final class HelloMessageDecoderV40 extends AbstractLegacyHelloMessageDecoder {

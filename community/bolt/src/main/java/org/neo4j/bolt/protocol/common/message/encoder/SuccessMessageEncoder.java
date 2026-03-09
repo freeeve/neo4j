@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.encoder;
 
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.message.response.SuccessMessage;
+import org.neo4j.boltmessages.response.SuccessMessage;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructWriter;
 

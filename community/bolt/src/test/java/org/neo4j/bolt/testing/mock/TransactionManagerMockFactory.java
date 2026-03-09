@@ -28,11 +28,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.mockito.Mockito;
 import org.mockito.internal.util.MockUtil;
 import org.neo4j.bolt.protocol.common.connector.tx.TransactionOwner;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.TransactionType;
 
 public final class TransactionManagerMockFactory
         extends AbstractMockFactory<TransactionManager, TransactionManagerMockFactory> {

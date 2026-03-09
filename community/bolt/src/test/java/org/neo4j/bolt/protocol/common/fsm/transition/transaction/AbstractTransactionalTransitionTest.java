@@ -23,9 +23,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.statement.Statement;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 public abstract class AbstractTransactionalTransitionTest<
                 R extends RequestMessage, D extends TransactionalStateTransition<R>>

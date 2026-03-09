@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
-import org.neo4j.bolt.protocol.common.message.response.IgnoredMessage;
+import org.neo4j.boltmessages.response.IgnoredMessage;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.signal.FrameSignal;
 

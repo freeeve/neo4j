@@ -32,9 +32,9 @@ import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.NonEmptyMessageDecoderTest;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
@@ -127,7 +127,7 @@ public abstract class AbstractHelloMessageDecoderTest<D extends MessageDecoder<H
 
         Assertions.assertThat(msg).isNotNull();
         Assertions.assertThat(msg.userAgent()).isEqualTo("Example/1.0 (+https://github.com/neo4j)");
-        Assertions.assertThat(msg.features()).isEqualTo(List.of(Feature.UTC_DATETIME));
+        Assertions.assertThat(msg.features()).isEqualTo(List.of(Feature.UTC_DATETIME.getId()));
 
         Assertions.assertThat(msg)
                 .asInstanceOf(InstanceOfAssertFactories.type(HelloMessage.class))

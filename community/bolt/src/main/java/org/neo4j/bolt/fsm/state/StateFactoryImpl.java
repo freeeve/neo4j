@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.neo4j.bolt.fsm.state.State.Factory;
 import org.neo4j.bolt.fsm.state.transition.StateTransition;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 final class StateFactoryImpl implements State.Factory {
     private final StateReference reference;

@@ -24,8 +24,8 @@ import java.util.Objects;
 import java.util.UUID;
 import org.neo4j.bolt.fsm.error.BoltException;
 import org.neo4j.bolt.fsm.error.ConnectionTerminating;
-import org.neo4j.bolt.protocol.common.message.response.FailureMessage;
-import org.neo4j.bolt.protocol.common.message.response.FailureMetadata;
+import org.neo4j.boltmessages.response.FailureMessage;
+import org.neo4j.boltmessages.response.FailureMetadata;
 import org.neo4j.gqlstatus.DiagnosticRecord;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
@@ -37,7 +37,7 @@ import org.neo4j.kernel.api.exceptions.Status;
  * An error object, represents something having gone wrong that is to be signaled to the user. This is, by design, not using the java exception system.
  *
  * This object is responsible for centralise the order related to errors like default values from fields expected fields
- * on the {@link org.neo4j.bolt.protocol.common.message.response.FailureMessage}, detecting fatal errors, and so on.
+ * on the {@link org.neo4j.boltmessages.response.FailureMessage}, detecting fatal errors, and so on.
  *
  */
 public class Error {

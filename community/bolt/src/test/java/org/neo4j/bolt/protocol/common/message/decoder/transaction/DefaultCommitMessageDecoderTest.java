@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.SingletonMessageDecoderTest;
-import org.neo4j.bolt.protocol.common.message.request.transaction.CommitMessage;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
 
 public class DefaultCommitMessageDecoderTest
         implements SingletonMessageDecoderTest<DefaultCommitMessageDecoder, CommitMessage> {

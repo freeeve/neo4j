@@ -21,8 +21,8 @@ package org.neo4j.bolt.testing.assertions;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.InstanceOfAssertFactory;
-import org.neo4j.bolt.protocol.common.message.response.IgnoredMessage;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.response.IgnoredMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 
 public abstract class ResponseMessageAssertions<
                 SELF extends AbstractAssert<SELF, ACTUAL>, ACTUAL extends ResponseMessage>

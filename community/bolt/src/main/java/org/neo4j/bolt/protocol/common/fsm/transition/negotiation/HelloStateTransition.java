@@ -19,16 +19,18 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.negotiation;
 
+import java.util.Objects;
 import org.neo4j.bolt.fsm.Context;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
+import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.CapabilityViolationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValueBuilder;
@@ -56,7 +58,10 @@ public final class HelloStateTransition extends AbstractStateTransition<HelloMes
     @Override
     public StateReference process(Context ctx, HelloMessage message, ResponseHandler handler)
             throws StateMachineException {
-        var features = message.features();
+        var features = message.features().stream()
+                .map(Feature::findFeatureById)
+                .filter(Objects::nonNull)
+                .toList();
         var userAgent = message.userAgent();
         var routingContext = message.routingContext();
         var notificationsConfig = message.notificationsConfig();

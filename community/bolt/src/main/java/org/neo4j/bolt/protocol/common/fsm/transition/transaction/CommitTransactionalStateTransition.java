@@ -25,9 +25,9 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.transaction.CommitMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
 
 public final class CommitTransactionalStateTransition extends TransactionalStateTransition<CommitMessage> {
     private static final CommitTransactionalStateTransition INSTANCE = new CommitTransactionalStateTransition();

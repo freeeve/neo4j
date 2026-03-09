@@ -22,7 +22,7 @@ package org.neo4j.bolt.protocol.common.codec;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import java.util.List;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.packstream.signal.FrameSignal;
 
 /**

@@ -31,6 +31,7 @@ import org.neo4j.bolt.dbapi.BoltTransaction;
 import org.neo4j.bolt.tx.error.TransactionCloseException;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.error.statement.StatementException;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;

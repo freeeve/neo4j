@@ -30,9 +30,9 @@ import org.neo4j.bolt.protocol.common.fsm.response.AbstractMetadataAwareResponse
 import org.neo4j.bolt.protocol.common.fsm.response.RecordHandler;
 import org.neo4j.bolt.protocol.common.fsm.response.metadata.MetadataHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
-import org.neo4j.bolt.protocol.common.message.response.IgnoredMessage;
-import org.neo4j.bolt.protocol.common.message.response.SuccessMessage;
 import org.neo4j.bolt.protocol.v44.fsm.response.metadata.MetadataHandlerV44;
+import org.neo4j.boltmessages.response.IgnoredMessage;
+import org.neo4j.boltmessages.response.SuccessMessage;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 

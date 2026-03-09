@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.testing.response;
 
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.values.AnyValue;
 
 public interface RecordedMessage {

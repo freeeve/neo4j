@@ -38,12 +38,12 @@ import org.neo4j.bolt.protocol.common.connector.connection.authentication.Authen
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.authentication.AuthenticationMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogonMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.security.error.AuthenticationException;
 import org.neo4j.bolt.testing.mock.TestConnectorConfiguration;
+import org.neo4j.boltmessages.request.authentication.AuthenticationMessage;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.authentication.LogonMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.kernel.api.exceptions.Status.Request;
 import org.neo4j.values.storable.Values;
 
@@ -63,7 +63,7 @@ class AuthenticationStateTransitionTest
                 .flatMap(token -> Stream.of(
                         new HelloMessage(
                                 "Test/1.0",
-                                List.of(Feature.UTC_DATETIME),
+                                List.of(Feature.UTC_DATETIME.getId()),
                                 new RoutingContext(false, Collections.emptyMap()),
                                 token),
                         new LogonMessage(token)));

@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.connection;
 
 import org.neo4j.bolt.protocol.common.message.decoder.AbstractSingletonMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.connection.ResetMessage;
+import org.neo4j.boltmessages.request.connection.ResetMessage;
 
 public final class DefaultResetMessageDecoder extends AbstractSingletonMessageDecoder<ResetMessage> {
     private static final DefaultResetMessageDecoder INSTANCE = new DefaultResetMessageDecoder();

@@ -20,8 +20,8 @@
 package org.neo4j.bolt.testing.messages;
 
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.protocol.v50.BoltProtocolV50;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 public class BoltV50Messages extends BoltV44Messages {
     private static final BoltV50Messages INSTANCE = new BoltV50Messages();

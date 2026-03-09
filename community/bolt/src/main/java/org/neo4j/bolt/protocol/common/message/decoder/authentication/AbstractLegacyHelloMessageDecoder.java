@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.decoder.util.AuthenticationMetadataUtils;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
 
 public abstract class AbstractLegacyHelloMessageDecoder extends DefaultHelloMessageDecoder {
 

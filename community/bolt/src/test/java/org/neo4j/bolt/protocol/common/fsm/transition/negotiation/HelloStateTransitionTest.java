@@ -33,11 +33,11 @@ import org.neo4j.bolt.protocol.common.connector.Connector;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.testing.assertions.ListValueAssertions;
 import org.neo4j.bolt.testing.assertions.MapValueAssertions;
 import org.neo4j.bolt.testing.mock.ConnectorMockFactory;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValue;
@@ -91,7 +91,11 @@ class HelloStateTransitionTest extends AbstractStateTransitionTest<HelloMessage,
         inOrder.verify(this.context).connection();
         inOrder.verify(this.connection)
                 .negotiate(
-                        request.features(), request.userAgent(), request.routingContext(), null, request.boltAgent());
+                        Collections.emptyList(),
+                        request.userAgent(),
+                        request.routingContext(),
+                        null,
+                        request.boltAgent());
 
         inOrder.verify(this.responseHandler, Mockito.never()).onMetadata(Mockito.eq("patch_bolt"), Mockito.any());
 
@@ -132,7 +136,7 @@ class HelloStateTransitionTest extends AbstractStateTransitionTest<HelloMessage,
 
         var request = new HelloMessage(
                 "Test/1.0",
-                List.of(Feature.UTC_DATETIME),
+                List.of(Feature.UTC_DATETIME.getId()),
                 new RoutingContext(true, Map.of("address", "example.org:7687")),
                 Map.of("scheme", "none"));
 
@@ -145,7 +149,7 @@ class HelloStateTransitionTest extends AbstractStateTransitionTest<HelloMessage,
 
         inOrder.verify(this.context).connection();
         inOrder.verify(this.connection)
-                .negotiate(request.features(), request.userAgent(), request.routingContext(), null, null);
+                .negotiate(List.of(Feature.UTC_DATETIME), request.userAgent(), request.routingContext(), null, null);
 
         var featureCaptor = ArgumentCaptor.forClass(ListValue.class);
         inOrder.verify(this.responseHandler).onMetadata(Mockito.eq("patch_bolt"), featureCaptor.capture());
@@ -208,7 +212,11 @@ class HelloStateTransitionTest extends AbstractStateTransitionTest<HelloMessage,
         inOrder.verify(this.context).connection();
         inOrder.verify(this.connection)
                 .negotiate(
-                        request.features(), request.userAgent(), request.routingContext(), null, request.boltAgent());
+                        Collections.emptyList(),
+                        request.userAgent(),
+                        request.routingContext(),
+                        null,
+                        request.boltAgent());
 
         inOrder.verify(this.responseHandler, Mockito.never()).onMetadata(Mockito.eq("patch_bolt"), Mockito.any());
 

@@ -26,10 +26,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.mockito.Mockito;
 import org.mockito.internal.util.MockUtil;
 import org.neo4j.bolt.tx.Transaction;
-import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.error.statement.StatementException;
 import org.neo4j.bolt.tx.statement.Statement;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.values.virtual.MapValue;
 
 public class TransactionMockFactory extends AbstractMockFactory<Transaction, TransactionMockFactory> {

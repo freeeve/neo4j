@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.v44.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.transaction.DefaultRunMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
 import org.neo4j.values.virtual.MapValue;
 
 public final class RunMessageDecoderV44 extends DefaultRunMessageDecoder {

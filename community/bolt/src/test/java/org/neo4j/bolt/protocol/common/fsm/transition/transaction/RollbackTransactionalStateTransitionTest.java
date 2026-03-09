@@ -20,8 +20,8 @@
 package org.neo4j.bolt.protocol.common.fsm.transition.transaction;
 
 import org.mockito.InOrder;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RollbackMessage;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.request.transaction.RollbackMessage;
 
 class RollbackTransactionalStateTransitionTest
         extends AbstractTransactionCompletionStateTransitionTest<

@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.message.response.FailureMessage;
-import org.neo4j.bolt.protocol.common.message.response.FailureMetadata;
+import org.neo4j.boltmessages.response.FailureMessage;
+import org.neo4j.boltmessages.response.FailureMetadata;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructWriter;
 

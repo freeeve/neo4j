@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.bolt.protocol.common.message.request.transaction.AbstractTransactionInitiatingMessage;
-import org.neo4j.bolt.protocol.common.message.request.transaction.BeginMessage;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.request.transaction.AbstractTransactionInitiatingMessage;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
 import org.neo4j.values.virtual.MapValue;
 
 abstract class ResolveHomeDatabaseStateTransitionTest<M extends AbstractTransactionInitiatingMessage>

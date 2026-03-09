@@ -25,9 +25,9 @@ import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.message.encoder.FailureMessageEncoder;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
 import org.neo4j.bolt.protocol.v40.message.encoder.FailureMessageEncoderV40;
 import org.neo4j.bolt.protocol.v41.BoltProtocolV41;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.packstream.struct.StructRegistry;
 
 /**

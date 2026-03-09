@@ -20,7 +20,7 @@
 package org.neo4j.bolt.testing.response;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 
 public record RecordedResponseMessage(ResponseMessage response, Throwable throwable) implements RecordedMessage {
 

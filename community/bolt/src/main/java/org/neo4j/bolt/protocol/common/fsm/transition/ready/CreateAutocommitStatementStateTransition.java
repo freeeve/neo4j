@@ -27,11 +27,11 @@ import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
 import org.neo4j.bolt.protocol.common.signal.StateSignal;
 import org.neo4j.bolt.security.error.AuthenticationException;
-import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.TransactionType;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
 
 /**
  * Handles the creation of auto-commit transactions.

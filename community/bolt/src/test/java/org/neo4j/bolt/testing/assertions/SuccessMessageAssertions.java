@@ -21,7 +21,7 @@ package org.neo4j.bolt.testing.assertions;
 
 import java.util.function.Consumer;
 import org.assertj.core.api.InstanceOfAssertFactory;
-import org.neo4j.bolt.protocol.common.message.response.SuccessMessage;
+import org.neo4j.boltmessages.response.SuccessMessage;
 import org.neo4j.values.virtual.MapValue;
 
 public class SuccessMessageAssertions extends ResponseMessageAssertions<SuccessMessageAssertions, SuccessMessage> {

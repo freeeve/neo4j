@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
+import org.neo4j.boltmessages.AccessMode;
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;

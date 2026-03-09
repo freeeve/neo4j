@@ -23,7 +23,7 @@ import java.util.Collections;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.util.AuthenticationMetadataUtils;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogonMessage;
+import org.neo4j.boltmessages.request.authentication.LogonMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructHeader;

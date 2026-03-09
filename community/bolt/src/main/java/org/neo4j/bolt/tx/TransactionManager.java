@@ -24,8 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.neo4j.bolt.protocol.common.connector.tx.TransactionOwner;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.kernel.impl.query.NotificationConfiguration;
 
 public interface TransactionManager {

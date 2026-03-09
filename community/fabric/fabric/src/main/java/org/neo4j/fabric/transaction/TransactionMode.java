@@ -19,7 +19,7 @@
  */
 package org.neo4j.fabric.transaction;
 
-import org.neo4j.bolt.protocol.common.message.AccessMode;
+import org.neo4j.boltmessages.AccessMode;
 import org.neo4j.cypher.internal.options.CypherExecutionMode;
 
 /**

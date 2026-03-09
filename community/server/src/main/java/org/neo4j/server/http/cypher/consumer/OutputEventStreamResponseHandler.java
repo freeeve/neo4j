@@ -26,7 +26,7 @@ import org.neo4j.bolt.protocol.common.fsm.response.AbstractMetadataAwareResponse
 import org.neo4j.bolt.protocol.common.fsm.response.RecordHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
 import org.neo4j.bolt.protocol.v44.fsm.response.metadata.MetadataHandlerV44;
-import org.neo4j.bolt.tx.TransactionType;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;

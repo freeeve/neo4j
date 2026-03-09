@@ -55,8 +55,8 @@ import org.neo4j.bolt.protocol.common.message.decoder.transaction.DefaultRunMess
 import org.neo4j.bolt.protocol.common.message.encoder.FailureMessageEncoder;
 import org.neo4j.bolt.protocol.common.message.encoder.IgnoredMessageEncoder;
 import org.neo4j.bolt.protocol.common.message.encoder.SuccessMessageEncoder;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.packstream.struct.StructRegistry;
 
 public abstract class AbstractBoltProtocol implements BoltProtocol {

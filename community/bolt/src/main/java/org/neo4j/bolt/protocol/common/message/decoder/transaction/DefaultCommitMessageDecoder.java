@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.message.decoder.AbstractSingletonMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.transaction.CommitMessage;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
 
 public final class DefaultCommitMessageDecoder extends AbstractSingletonMessageDecoder<CommitMessage> {
     private static final DefaultCommitMessageDecoder INSTANCE = new DefaultCommitMessageDecoder();

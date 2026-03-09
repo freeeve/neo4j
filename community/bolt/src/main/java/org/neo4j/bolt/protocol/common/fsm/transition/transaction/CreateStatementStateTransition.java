@@ -24,10 +24,10 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
 import org.neo4j.bolt.tx.Transaction;
-import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.TransactionType;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
 
 public final class CreateStatementStateTransition extends TransactionalStateTransition<RunMessage> {
     private static final CreateStatementStateTransition INSTANCE = new CreateStatementStateTransition();

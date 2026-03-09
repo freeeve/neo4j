@@ -27,9 +27,9 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 public abstract class AbstractTransactionCompletionStateTransitionTest<
                 R extends RequestMessage, T extends TransactionalStateTransition<R>>

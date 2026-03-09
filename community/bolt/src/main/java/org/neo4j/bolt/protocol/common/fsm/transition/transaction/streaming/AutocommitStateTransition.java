@@ -25,10 +25,10 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.streaming.AbstractStreamingMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.statement.Statement;
+import org.neo4j.boltmessages.request.streaming.AbstractStreamingMessage;
 
 public abstract sealed class AutocommitStateTransition<R extends AbstractStreamingMessage>
         extends StreamingStateTransition<R>

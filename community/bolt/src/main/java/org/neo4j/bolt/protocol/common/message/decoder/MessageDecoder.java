@@ -20,7 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder;
 
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.boltmessages.request.RequestMessage;
 import org.neo4j.packstream.struct.StructReader;
 
 public interface MessageDecoder<M extends RequestMessage> extends StructReader<Connection, M> {}

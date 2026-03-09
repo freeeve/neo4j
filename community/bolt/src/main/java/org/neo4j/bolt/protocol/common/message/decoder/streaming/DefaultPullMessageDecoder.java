@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.protocol.common.message.decoder.streaming;
 
-import org.neo4j.bolt.protocol.common.message.request.streaming.PullMessage;
+import org.neo4j.boltmessages.request.streaming.PullMessage;
 
 public final class DefaultPullMessageDecoder extends AbstractStreamingMessageDecoder<PullMessage> {
     private static final DefaultPullMessageDecoder INSTANCE = new DefaultPullMessageDecoder();

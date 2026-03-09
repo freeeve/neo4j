@@ -20,7 +20,7 @@
 package org.neo4j.bolt.testing.assertions;
 
 import java.util.function.Consumer;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 
 @SuppressWarnings("unchecked")
 public final class MessageConditions {

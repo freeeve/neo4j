@@ -24,7 +24,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
+import org.neo4j.boltmessages.AccessMode;
 import org.neo4j.cypher.internal.ast.GraphSelection;
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter;
 import org.neo4j.cypher.internal.expressions.Expression;

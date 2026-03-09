@@ -27,7 +27,7 @@ import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.fsm.state.transition.StateTransition;
 import org.neo4j.bolt.protocol.common.connector.config.ExternalConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.authentication.AuthenticationMessage;
+import org.neo4j.boltmessages.request.authentication.AuthenticationMessage;
 import org.neo4j.values.storable.Values;
 
 /**

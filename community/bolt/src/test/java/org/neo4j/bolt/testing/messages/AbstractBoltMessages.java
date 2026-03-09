@@ -22,9 +22,9 @@ package org.neo4j.bolt.testing.messages;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
+import org.neo4j.boltmessages.request.RequestMessage;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 
 public abstract class AbstractBoltMessages implements BoltMessages {
     @Override
@@ -34,6 +34,7 @@ public abstract class AbstractBoltMessages implements BoltMessages {
 
     @Override
     public RequestMessage hello(List<Feature> features, RoutingContext routingContext, Map<String, Object> authToken) {
-        return new HelloMessage(this.getUserAgent(), features, routingContext, authToken);
+        return new HelloMessage(
+                this.getUserAgent(), features.stream().map(Feature::getId).toList(), routingContext, authToken);
     }
 }

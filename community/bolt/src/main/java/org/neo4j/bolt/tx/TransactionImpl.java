@@ -41,6 +41,7 @@ import org.neo4j.bolt.tx.error.statement.StatementExecutionException;
 import org.neo4j.bolt.tx.statement.Statement;
 import org.neo4j.bolt.tx.statement.StatementImpl;
 import org.neo4j.bolt.tx.statement.StatementQuerySubscriber;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;

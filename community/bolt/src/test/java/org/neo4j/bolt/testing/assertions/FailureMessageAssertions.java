@@ -21,7 +21,7 @@ package org.neo4j.bolt.testing.assertions;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactory;
-import org.neo4j.bolt.protocol.common.message.response.FailureMessage;
+import org.neo4j.boltmessages.response.FailureMessage;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.Classification;
 

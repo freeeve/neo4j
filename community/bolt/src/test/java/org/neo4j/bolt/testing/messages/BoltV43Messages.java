@@ -23,9 +23,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.protocol.v43.BoltProtocolV43;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 /**
  * Quick access of all Bolt v43 messages

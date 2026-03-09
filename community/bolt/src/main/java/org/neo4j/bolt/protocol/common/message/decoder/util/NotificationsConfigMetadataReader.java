@@ -20,12 +20,16 @@
 package org.neo4j.bolt.protocol.common.message.decoder.util;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import org.neo4j.bolt.protocol.common.message.notifications.DefaultNotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.notifications.DisabledNotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.notifications.SelectiveNotificationsConfig;
+import java.util.Set;
+import org.neo4j.boltmessages.notifications.DefaultNotificationsConfig;
+import org.neo4j.boltmessages.notifications.DisabledNotificationsConfig;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.notifications.SelectiveNotificationsConfig;
+import org.neo4j.kernel.impl.query.NotificationConfiguration;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.virtual.ListValue;
@@ -162,6 +166,53 @@ public final class NotificationsConfigMetadataReader {
             return DisabledNotificationsConfig.getInstance();
         }
 
-        return new SelectiveNotificationsConfig(minimumSeverity, categoriesToIgnore);
+        return new SelectiveNotificationsConfig(mapSeverity(minimumSeverity), mapCategories(categoriesToIgnore));
+    }
+
+    private static NotificationConfiguration.Severity mapSeverity(String minimumSeverity)
+            throws IllegalStructArgumentException {
+        if (minimumSeverity == null) return null;
+
+        try {
+            return Enum.valueOf(NotificationConfiguration.Severity.class, minimumSeverity.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException err) {
+            // DRI-006
+            List<String> severityLevels = new ArrayList<>();
+            for (var severityValue : NotificationConfiguration.Severity.values()) {
+                severityLevels.add(severityValue.name());
+            }
+            throw IllegalStructArgumentException.invalidInput(
+                    "Could not parse a NotificationConfig's minimum severity.",
+                    minimumSeverity,
+                    "NotificationConfig minimumSeverity",
+                    severityLevels,
+                    err);
+        }
+    }
+
+    private static Set<NotificationConfiguration.Category> mapCategories(List<String> cats)
+            throws IllegalStructArgumentException {
+        if (cats == null) return null;
+
+        var set = new HashSet<NotificationConfiguration.Category>();
+        for (var x : cats) {
+            try {
+                set.add(Enum.valueOf(NotificationConfiguration.Category.class, x.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException err) {
+                // DRI-005
+                List<String> categoryLevels = new ArrayList<>();
+                for (var categoryValue : NotificationConfiguration.Category.values()) {
+                    categoryLevels.add(categoryValue.name());
+                }
+                throw IllegalStructArgumentException.invalidInput(
+                        "Could not parse a NotificationConfig category to ignore.",
+                        x,
+                        "NotificationConfig category",
+                        categoryLevels,
+                        err);
+            }
+        }
+
+        return set;
     }
 }

@@ -21,7 +21,7 @@ package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.util.TransactionInitiatingMetadataParser;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;

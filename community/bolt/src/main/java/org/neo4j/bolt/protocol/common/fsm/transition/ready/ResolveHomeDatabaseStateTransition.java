@@ -24,9 +24,9 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.transaction.AbstractTransactionInitiatingMessage;
-import org.neo4j.bolt.protocol.common.message.request.transaction.BeginMessage;
-import org.neo4j.bolt.protocol.common.message.request.transaction.RunMessage;
+import org.neo4j.boltmessages.request.transaction.AbstractTransactionInitiatingMessage;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
 
 /**
  * Resolves the HomeDatabaseResolution case the message is not impersonating and doesn't have database set.

@@ -24,6 +24,7 @@ import org.neo4j.bolt.tx.error.TransactionCloseException;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.error.statement.StatementException;
 import org.neo4j.bolt.tx.statement.Statement;
+import org.neo4j.boltmessages.TransactionType;
 import org.neo4j.values.virtual.MapValue;
 
 public interface Transaction {

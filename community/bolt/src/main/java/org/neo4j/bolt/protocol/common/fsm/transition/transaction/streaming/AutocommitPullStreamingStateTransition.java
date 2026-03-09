@@ -22,10 +22,10 @@ package org.neo4j.bolt.protocol.common.fsm.transition.transaction.streaming;
 import org.neo4j.bolt.fsm.Context;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.streaming.PullMessage;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.statement.Statement;
+import org.neo4j.boltmessages.request.streaming.PullMessage;
 
 public final class AutocommitPullStreamingStateTransition extends AutocommitStateTransition<PullMessage> {
     private static final AutocommitPullStreamingStateTransition INSTANCE = new AutocommitPullStreamingStateTransition();

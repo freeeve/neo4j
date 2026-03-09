@@ -22,7 +22,7 @@ package org.neo4j.bolt.protocol.v51.message.decoder.authentication;
 import java.util.Collections;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.message.decoder.authentication.DefaultHelloMessageDecoder;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
 
 public final class HelloMessageDecoderV51 extends DefaultHelloMessageDecoder {
     private static final HelloMessageDecoderV51 INSTANCE = new HelloMessageDecoderV51();

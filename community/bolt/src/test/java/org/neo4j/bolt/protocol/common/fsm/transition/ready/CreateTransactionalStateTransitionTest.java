@@ -36,12 +36,12 @@ import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.error.TransactionStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.bolt.protocol.common.message.request.transaction.BeginMessage;
 import org.neo4j.bolt.security.error.AuthenticationException;
-import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionCreationException;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.TransactionType;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
 import org.neo4j.kernel.api.exceptions.Status.Request;
 
 class CreateTransactionalStateTransitionTest

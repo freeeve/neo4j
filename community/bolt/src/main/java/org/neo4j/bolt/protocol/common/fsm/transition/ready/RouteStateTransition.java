@@ -26,7 +26,7 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.fsm.error.CapabilityViolationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.SimpleImpersonationStateTransition;
-import org.neo4j.bolt.protocol.common.message.request.connection.RouteMessage;
+import org.neo4j.boltmessages.request.connection.RouteMessage;
 import org.neo4j.dbms.routing.RoutingException;
 import org.neo4j.dbms.routing.result.RoutingResultFormat;
 import org.neo4j.values.virtual.MapValue;

@@ -22,15 +22,16 @@ package org.neo4j.bolt.protocol.common.message.decoder.authentication;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.neo4j.bolt.protocol.common.message.notifications.SelectiveNotificationsConfig;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.boltmessages.notifications.SelectiveNotificationsConfig;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.kernel.impl.query.NotificationConfiguration;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;
@@ -94,7 +95,8 @@ public class DefaultHelloMessageDecoderTest extends AbstractHelloMessageDecoderT
             Assertions.assertThat(ctx.getParameters()).hasSize(1).containsEntry("address", "localhost");
         });
         Assertions.assertThat(msg.notificationsConfig())
-                .isEqualTo(new SelectiveNotificationsConfig("WARNING", List.of("HINT")));
+                .isEqualTo(new SelectiveNotificationsConfig(
+                        NotificationConfiguration.Severity.WARNING, Set.of(NotificationConfiguration.Category.HINT)));
 
         // ensure that readPrimitiveMap is the only interaction point on PackstreamValueReader as HELLO explicitly
         // forbids the use of complex structures (such as dates, points, etc) to reduce potential attack vectors that

@@ -32,7 +32,6 @@ import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateTransactionStat
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.RouteStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.TelemetryStateTransition;
 import org.neo4j.bolt.protocol.common.message.encoder.FailureMessageEncoder;
-import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
 import org.neo4j.bolt.protocol.io.pipeline.WriterPipeline;
 import org.neo4j.bolt.protocol.io.reader.DateReader;
 import org.neo4j.bolt.protocol.io.reader.DateTimeReader;
@@ -46,6 +45,7 @@ import org.neo4j.bolt.protocol.io.reader.TimeReader;
 import org.neo4j.bolt.protocol.io.writer.VectorAsMapMarkerStructWriter;
 import org.neo4j.bolt.protocol.v56.metadata.MetadataHandlerV56;
 import org.neo4j.bolt.protocol.v57.message.encoder.FailureMessageEncoderV57;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.packstream.struct.StructRegistry;
 import org.neo4j.values.storable.Value;
 

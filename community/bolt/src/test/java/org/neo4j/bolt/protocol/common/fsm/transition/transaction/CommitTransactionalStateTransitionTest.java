@@ -22,8 +22,8 @@ package org.neo4j.bolt.protocol.common.fsm.transition.transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.neo4j.bolt.protocol.common.message.request.transaction.CommitMessage;
 import org.neo4j.bolt.tx.error.TransactionException;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
 
 class CommitTransactionalStateTransitionTest
         extends AbstractTransactionCompletionStateTransitionTest<CommitMessage, CommitTransactionalStateTransition> {

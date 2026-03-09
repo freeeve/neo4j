@@ -25,7 +25,7 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogoffMessage;
+import org.neo4j.boltmessages.request.authentication.LogoffMessage;
 
 /**
  * Handles de-authentication for the purposes of user switching within supported protocol versions.

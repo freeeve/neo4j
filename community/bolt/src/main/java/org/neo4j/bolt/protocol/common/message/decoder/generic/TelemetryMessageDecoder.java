@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
-import org.neo4j.bolt.protocol.common.message.request.generic.TelemetryMessage;
+import org.neo4j.boltmessages.request.generic.TelemetryMessage;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;

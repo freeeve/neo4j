@@ -79,6 +79,13 @@
 
         <dependency>
             <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-bolt-messages</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
             <artifactId>neo4j-bolt</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>

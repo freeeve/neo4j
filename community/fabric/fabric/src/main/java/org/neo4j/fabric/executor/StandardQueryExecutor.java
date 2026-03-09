@@ -24,7 +24,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.neo4j.bolt.protocol.common.message.AccessMode;
+import org.neo4j.boltmessages.AccessMode;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.fabric.eval.UseEvaluation;
 import org.neo4j.fabric.planning.FabricPlan;

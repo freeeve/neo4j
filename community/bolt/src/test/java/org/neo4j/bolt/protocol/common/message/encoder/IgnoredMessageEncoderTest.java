@@ -22,7 +22,7 @@ package org.neo4j.bolt.protocol.common.message.encoder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.neo4j.bolt.protocol.common.message.response.IgnoredMessage;
+import org.neo4j.boltmessages.response.IgnoredMessage;
 import org.neo4j.packstream.io.PackstreamBuf;
 
 class IgnoredMessageEncoderTest {

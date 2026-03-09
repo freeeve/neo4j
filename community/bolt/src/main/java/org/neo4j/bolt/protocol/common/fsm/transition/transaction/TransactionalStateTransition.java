@@ -24,8 +24,8 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.bolt.tx.Transaction;
+import org.neo4j.boltmessages.request.RequestMessage;
 
 public abstract class TransactionalStateTransition<R extends RequestMessage> extends AbstractStateTransition<R> {
 

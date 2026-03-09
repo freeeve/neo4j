@@ -21,11 +21,11 @@ package org.neo4j.bolt.testing.messages;
 
 import java.util.Collections;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.common.message.notifications.DisabledNotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.v52.BoltProtocolV52;
+import org.neo4j.boltmessages.notifications.DisabledNotificationsConfig;
+import org.neo4j.boltmessages.request.RequestMessage;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 
 public class BoltV52Messages extends BoltV51Messages {
     private static final String USER_AGENT = "BoltV52Wire/0.0";

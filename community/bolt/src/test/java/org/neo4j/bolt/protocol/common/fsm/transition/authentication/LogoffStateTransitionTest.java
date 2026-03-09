@@ -25,7 +25,7 @@ import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.protocol.common.fsm.States;
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
-import org.neo4j.bolt.protocol.common.message.request.authentication.LogoffMessage;
+import org.neo4j.boltmessages.request.authentication.LogoffMessage;
 
 class LogoffStateTransitionTest extends AbstractStateTransitionTest<LogoffMessage, LogoffStateTransition> {
 

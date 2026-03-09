@@ -19,19 +19,19 @@
  */
 package org.neo4j.bolt.protocol.common.message.decoder.authentication;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.message.decoder.MessageDecoder;
 import org.neo4j.bolt.protocol.common.message.decoder.util.AuthenticationMetadataUtils;
 import org.neo4j.bolt.protocol.common.message.decoder.util.NotificationsConfigMetadataReader;
-import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
-import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
-import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
+import org.neo4j.boltmessages.notifications.NotificationsConfig;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;
@@ -83,13 +83,15 @@ public class DefaultHelloMessageDecoder implements MessageDecoder<HelloMessage> 
         return PackstreamConversions.asString(FIELD_USER_AGENT, meta.get(FIELD_USER_AGENT));
     }
 
-    protected List<Feature> readFeatures(Map<String, Object> meta) {
+    protected List<String> readFeatures(Map<String, Object> meta) {
         if (meta.get(FIELD_FEATURES) instanceof List<?> listValue) {
-            return listValue.stream()
-                    .filter(it -> it instanceof String)
-                    .map(id -> Feature.findFeatureById((String) id))
-                    .filter(Objects::nonNull)
-                    .toList();
+            var features = new ArrayList<String>();
+            for (var it : listValue) {
+                if (it instanceof String featureId && Feature.findFeatureById(featureId) != null) {
+                    features.add(featureId);
+                }
+            }
+            return Collections.unmodifiableList(features);
         }
 
         // since this is an optional protocol feature which was introduced after the original spec was written, we're
