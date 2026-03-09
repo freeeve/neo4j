@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -58,7 +59,7 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.topDown
 
 /**
- * This rewriter will sometimes transform a Repeat-Trail or -Walk into a VarExpand, like in the example below.
+ * This rewriter will sometimes transform a Repeat-Trail, -Walk or -Acyclic into a VarExpand, like in the example below.
  *
  * Before
  * .repeat((a) ((n)-[r]->(m))+ (b))
@@ -180,7 +181,7 @@ case class RepeatToVarExpandRewriter(
     val pathMode = repeat match {
       case _: RepeatTrail   => TraversalPathMode.Trail
       case _: RepeatWalk    => TraversalPathMode.Walk
-      case _: RepeatAcyclic => ???
+      case _: RepeatAcyclic => TraversalPathMode.Acyclic
     }
 
     VarExpand(
@@ -217,8 +218,12 @@ case class RepeatToVarExpandRewriter(
       NoneOfRelationships(previouslyBoundedRel, groupRelationship)(InputPosition.NONE)
 
     repeat match {
-      case repeat: RepeatTrail if repeat.previouslyBoundRelationships.nonEmpty =>
-        val predicates: Set[Expression] = repeat.previouslyBoundRelationships
+      case repeatTrail: RepeatTrail if repeatTrail.previouslyBoundRelationships.nonEmpty =>
+        val predicates: Set[Expression] = repeatTrail.previouslyBoundRelationships
+          .map(boundRel => excluded(varExpandRel, boundRel))
+        appendSelection(source, predicates)
+      case repeatAcyclic: RepeatAcyclic if repeatAcyclic.previouslyBoundRelationships.nonEmpty =>
+        val predicates: Set[Expression] = repeatAcyclic.previouslyBoundRelationships
           .map(boundRel => excluded(varExpandRel, boundRel))
         appendSelection(source, predicates)
       case _ => source
@@ -234,8 +239,12 @@ case class RepeatToVarExpandRewriter(
     source: LogicalPlan
   ): LogicalPlan =
     repeat match {
-      case repeat: RepeatTrail if repeat.previouslyBoundRelationshipGroups.nonEmpty =>
-        val predicates: Set[Expression] = repeat.previouslyBoundRelationshipGroups
+      case repeatTrail: RepeatTrail if repeatTrail.previouslyBoundRelationshipGroups.nonEmpty =>
+        val predicates: Set[Expression] = repeatTrail.previouslyBoundRelationshipGroups
+          .map(boundRel => Disjoint(varExpandRel, boundRel)(InputPosition.NONE))
+        appendSelection(source, predicates)
+      case repeatAcyclic: RepeatAcyclic if repeatAcyclic.previouslyBoundRelationshipGroups.nonEmpty =>
+        val predicates: Set[Expression] = repeatAcyclic.previouslyBoundRelationshipGroups
           .map(boundRel => Disjoint(varExpandRel, boundRel)(InputPosition.NONE))
         appendSelection(source, predicates)
       case _ => source
@@ -307,6 +316,17 @@ object RepeatToVarExpandRewriter {
     object Empty {
 
       def unapply(variableGroupings: Set[VariableGrouping]): Boolean = variableGroupings.isEmpty
+    }
+  }
+
+  object VariableSet {
+
+    object Empty {
+      def unapply(variables: Set[LogicalVariable]): Boolean = variables.isEmpty
+    }
+
+    object Single {
+      def unapply(variables: Set[LogicalVariable]): Boolean = variables.size == 1
     }
   }
 
@@ -405,6 +425,36 @@ object RepeatToVarExpandRewriter {
             AllReduceAccumulators.Empty()
           ) =>
           Option((walk, expand, inlinablePredicates, quantifier, relationship, expansionMode))
+
+        /**
+         * Additional to the rewrite requirements for Trail and Walk, we only rewrite if the following are true:
+         *    - No references to node variables of the QPP (this precludes any subsequent node in the same path pattern)
+         *    - No previously visited singleton or group nodes for this path pattern
+         */
+        case acyclic @ RepeatAcyclic(
+            _,
+            RewritableAcyclicRhs(
+              expand,
+              inlinablePredicates
+            ),
+            RewritableRepeatQuantifier(quantifier),
+            _,
+            _,
+            _,
+            _,
+            VariableGroupings.Empty(), // No nodeVariableGroupings
+            _,
+            VariableSet.Single(), // Only one PreviouslyBoundNode (one of the outer boundary nodes of the QPP).
+            VariableSet.Empty(), // No previouslyBoundNodeGroups
+            VariableGroupings.Maybe(relationship), // Max one relationshipVariableGrouping
+            _,
+            _,
+            _,
+            _,
+            expansionMode,
+            AllReduceAccumulators.Empty()
+          ) =>
+          Option((acyclic, expand, inlinablePredicates, quantifier, relationship, expansionMode))
         case _ => None
       }
     }
@@ -494,6 +544,29 @@ object RepeatToVarExpandRewriter {
             Some((
               expand,
               predicatesBeforeExpand.toSeq
+            ))
+          case _ => None
+        }
+      }
+    }
+
+    private object RewritableAcyclicRhs {
+
+      /**
+       * Similar to the Trail case but also with isRepeatAcyclic next to isRepeatTrailUnique
+       */
+      def unapply(repeatRhs: LogicalPlan): Option[(Expand, Seq[Expression])] = {
+        val rhsBeforeExpandExtractor: PartialFunction[LogicalPlan, ListSet[Expression]] = self.rhsBeforeExpandExtractor
+
+        repeatRhs match {
+          case Selection(
+              Ands(predicatesAfterExpand),
+              expand @ Expand(rhsBeforeExpandExtractor(predicatesBeforeExpand), _, _, _, _, _, ExpandAll)
+            ) =>
+            Some((
+              expand,
+              (predicatesAfterExpand ++ predicatesBeforeExpand)
+                .filterNot(pred => pred.isInstanceOf[IsRepeatAcyclic] || pred.isInstanceOf[IsRepeatTrailUnique]).toSeq
             ))
           case _ => None
         }
