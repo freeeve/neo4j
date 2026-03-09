@@ -90,6 +90,11 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
     }.get
   }
 
+  private def assertRewritten(query: String, rewrittenQuery: String): Unit = {
+    val rewritten = projectionInlinedAst(query)
+    Prettifier(ExpressionStringifier()).asString(rewritten) shouldBe rewrittenQuery
+  }
+
   private def assertRewrittenReturnP(query: String, rewrittenQuery: String, returnExpr: Expression): Unit = {
     val rewritten = projectionInlinedAst(query)
     Prettifier(ExpressionStringifier()).asString(rewritten) shouldBe rewrittenQuery
@@ -228,6 +233,88 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       PathExpression(
         NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
       ) _
+    )
+  }
+
+  test("Usage with redeclaration and usage later in query") {
+    assertRewritten(
+      """MATCH p = (a)-[r:R]->(b)
+        |CALL(p) {
+        |  WITH p, nodes(p) AS y
+        |  CALL(p, y) {
+        |    RETURN nodes(p) AS z
+        |  }
+        |  RETURN z
+        |}
+        |RETURN p, z""".stripMargin,
+      """MATCH (a)-[r:R]->(b)
+        |CALL (b,r,a) {
+        |  WITH (a)-[r]->(b) AS p, nodes((a)-[r]->(b)) AS y
+        |  CALL (p,y) {
+        |    RETURN nodes(p) AS z
+        |  }
+        |  RETURN z AS z
+        |}
+        |RETURN (a)-[r]->(b) AS p, z AS z""".stripMargin
+    )
+  }
+
+  test("Usage without redeclaration and usage later in query") {
+    assertRewritten(
+      """MATCH p = (a)-[r:R]->(b)
+        |CALL(p) {
+        |  WITH nodes(p) AS y
+        |  CALL(p, y) {
+        |    RETURN nodes(p) AS z
+        |  }
+        |  RETURN z
+        |}
+        |RETURN p AS p, z AS z""".stripMargin,
+      """MATCH (a)-[r:R]->(b)
+        |CALL (b,r,a) {
+        |  WITH nodes((a)-[r]->(b)) AS y
+        |  CALL (b,r,a,y) {
+        |    RETURN nodes((a)-[r]->(b)) AS z
+        |  }
+        |  RETURN z AS z
+        |}
+        |RETURN (a)-[r]->(b) AS p, z AS z""".stripMargin
+    )
+  }
+
+  test("Usage in aggregation without redeclaration and usage later in query") {
+    assertRewritten(
+      """MATCH p = (a)-[r:R]->(b)
+        |CALL(p) {
+        |  WITH count(p) AS y
+        |  CALL(p, y) {
+        |    RETURN nodes(p) AS z
+        |  }
+        |  RETURN z
+        |}
+        |RETURN p AS p, z AS z""".stripMargin,
+      """MATCH (a)-[r:R]->(b)
+        |CALL (b,r,a) {
+        |  WITH count((a)-[r]->(b)) AS y
+        |  CALL (b,r,a,y) {
+        |    RETURN nodes((a)-[r]->(b)) AS z
+        |  }
+        |  RETURN z AS z
+        |}
+        |RETURN (a)-[r]->(b) AS p, z AS z""".stripMargin
+    )
+  }
+
+  test("Redeclaration and usage in the same clause") {
+    assertRewritten(
+      """MATCH p = (a)-[r:R]->(b)
+        |WITH p, COUNT {
+        |    RETURN p AS x
+        |  } AS x
+        |RETURN p AS p, x AS x""".stripMargin,
+      """MATCH (a)-[r:R]->(b)
+        |WITH (a)-[r]->(b) AS p, COUNT { RETURN (a)-[r]->(b) AS x } AS x
+        |RETURN p AS p, x AS x""".stripMargin
     )
   }
 
