@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
+import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
 import org.neo4j.cypher.internal.ast.ParsedAsLet
@@ -61,6 +62,10 @@ case object CollectSyntaxUsageMetrics
       context.internalUsageStats.incrementSyntaxUsageCount(key)
     }
 
+    var isLoadCsvQuery = false
+    var isCallInTxQuery = false
+    var isCallInTxConcurrentQuery = false
+
     state.statement().folder.treeForeach {
       case _: SelectiveSelector =>
         increaseMetric(SyntaxUsageMetricKey.GPM_SHORTEST)
@@ -80,6 +85,8 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.LET_CLAUSE)
       case ParsedAsFilter =>
         increaseMetric(SyntaxUsageMetricKey.FILTER_CLAUSE)
+      case _: LoadCSV =>
+        isLoadCsvQuery = true
       case sq: ImportingWithSubqueryCall =>
         increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY)
         if (sq.isCorrelated) {
@@ -87,8 +94,20 @@ case object CollectSyntaxUsageMetrics
         } else {
           increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY_UNCORRELATED)
         }
-      case _: ScopeClauseSubqueryCall =>
+        if (sq.inTransactionsParameters.isDefined) {
+          isCallInTxQuery = true
+          if (sq.inTransactionsParameters.get.concurrencyParams.isDefined) {
+            isCallInTxConcurrentQuery = true
+          }
+        }
+      case sq: ScopeClauseSubqueryCall =>
         increaseMetric(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY)
+        if (sq.inTransactionsParameters.isDefined) {
+          isCallInTxQuery = true
+          if (sq.inTransactionsParameters.get.concurrencyParams.isDefined) {
+            isCallInTxConcurrentQuery = true
+          }
+        }
       case _: ConditionalQueryWhen =>
         increaseMetric(SyntaxUsageMetricKey.CONDITIONAL_QUERY)
       case _: NextStatement =>
@@ -97,6 +116,16 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.SEARCH_WITHOUT_FILTERS)
       case Search(_, _, _, _, Some(_), _) =>
         increaseMetric(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS)
+    }
+
+    if (isLoadCsvQuery) {
+      increaseMetric(SyntaxUsageMetricKey.LOAD_CSV)
+      if (isCallInTxQuery) {
+        increaseMetric(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX)
+        if (isCallInTxConcurrentQuery) {
+          increaseMetric(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT)
+        }
+      }
     }
   }
 

@@ -278,6 +278,159 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SEARCH_WITH_FILTERS) should be(1)
   }
 
+  testVersions("should find LOAD CSV") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |SET p.name = row.name, p.born = row.born
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(0)
+  }
+
+  testVersions("should find LOAD CSV with CALL - importing WITH") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL {
+        |  WITH row
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |}
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(0)
+  }
+
+  testVersions("should find LOAD CSV with CALL - scope clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL (row) {
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |}
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
+  }
+
+  testVersions("should find LOAD CSV with CALL IN TX - importing WITH") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL {
+        |  WITH row
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |} IN TRANSACTIONS OF 200 ROWS
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(0)
+  }
+
+  testVersions("should find LOAD CSV with CALL IN TX - scope clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL (row) {
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |} IN TRANSACTIONS OF 200 ROWS
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
+  }
+
+  testVersions("should find LOAD CSV with CALL IN CONCURRENT TX - importing WITH") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL {
+        |  WITH row
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |} IN CONCURRENT TRANSACTIONS OF 200 ROWS
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(1)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(0)
+  }
+
+  testVersions("should find LOAD CSV with CALL IN CONCURRENT TX - scope clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LOAD CSV WITH HEADERS FROM 'https://data.neo4j.com/importing-cypher/persons.csv' AS row
+        |CALL (row) {
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |} IN CONCURRENT TRANSACTIONS OF 200 ROWS
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(1)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
+  }
+
+  testVersions("should not find CALL IN TX without LOAD CSV") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        | WITH {person_tmbid: 5, name:'Alice', born:date('2012')} AS row
+        |CALL (row) {
+        |  MERGE (p:Person {tmdbId: row.person_tmdbId})
+        |  SET p.name = row.name, p.born = row.born
+        |} IN TRANSACTIONS OF 200 ROWS
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT) should be(0)
+
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(0)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
+  }
+
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version, query = query) {
