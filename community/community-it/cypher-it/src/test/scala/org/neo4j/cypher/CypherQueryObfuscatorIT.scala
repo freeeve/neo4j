@@ -50,17 +50,17 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
   for (password <- passwords) {
     val literalTests: Seq[(String, String)] = Seq(
       s"CREATE USER test SET PASSWORD '$password'" ->
-        "CREATE USER test SET PASSWORD ******",
+        "CREATE USER ****** SET PASSWORD ******",
       s"CREATE USER test IF NOT EXISTS SET PASSWORD '$password'" ->
-        "CREATE USER test IF NOT EXISTS SET PASSWORD ******",
+        "CREATE USER ****** IF NOT EXISTS SET PASSWORD ******",
       s"CREATE OR REPLACE USER test SET PASSWORD '$password'" ->
-        "CREATE OR REPLACE USER test SET PASSWORD ******",
+        "CREATE OR REPLACE USER ****** SET PASSWORD ******",
       s"CREATE USER test SET PASSWORD '$password' CHANGE REQUIRED" ->
-        "CREATE USER test SET PASSWORD ****** CHANGE REQUIRED",
+        "CREATE USER ****** SET PASSWORD ****** CHANGE REQUIRED",
       s"ALTER USER test SET PASSWORD '$password'" ->
-        "ALTER USER test SET PASSWORD ******",
+        "ALTER USER ****** SET PASSWORD ******",
       s"ALTER USER test SET PASSWORD '$password' CHANGE REQUIRED" ->
-        "ALTER USER test SET PASSWORD ****** CHANGE REQUIRED",
+        "ALTER USER ****** SET PASSWORD ****** CHANGE REQUIRED",
       s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO '$password'" ->
         "ALTER CURRENT USER SET PASSWORD FROM ****** TO ******"
     )
@@ -87,13 +87,13 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
   private val parameterTests: Seq[ParameterTest] = Seq(
     ParameterTest(
       "CREATE USER test SET PASSWORD 'password'",
-      "CREATE USER test SET PASSWORD ******",
+      "CREATE USER ****** SET PASSWORD ******",
       Map.empty,
       Map.empty
     ),
     ParameterTest(
       "CREATE USER test SET PASSWORD $param",
-      "CREATE USER test SET PASSWORD $param",
+      "CREATE USER ****** SET PASSWORD $param",
       Map("param" -> "test"),
       Map("param" -> "******")
     ),

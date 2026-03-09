@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.util.LiteralOffset
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.impl.util.ValueUtils
+import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.MapValue
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -193,12 +194,60 @@ class CypherQueryObfuscatorTest extends CypherFunSuite {
     an[IllegalStateException] should be thrownBy ob.obfuscateText(originalText, 0)
   }
 
+  test("should obfuscate different Cypher literal types in text") {
+    val originalText = "CREATE (n {s: 'str\u0060', i: 42, b: true, f: 4.42, v: vector([2, 2, 2], 3, INT), z: null})"
+    val expectedText =
+      "CREATE (n {s: ******, i: ******, b: ******, f: ******, v: vector(******, ******, INT), z: ******})"
+
+    val offsets = Vector(
+      LiteralOffset(originalText.indexOf("'str\u0060'"), 0, Some(6)), // string literal including quotes
+      LiteralOffset(originalText.indexOf("42"), 0, Some(2)), // integer literal
+      LiteralOffset(originalText.indexOf("true"), 0, Some(4)), // boolean literal
+      LiteralOffset(originalText.indexOf("4.42"), 0, Some(4)), // float literal
+      LiteralOffset(originalText.indexOf("[2, 2, 2]"), 0, Some(9)), // list literal
+      LiteralOffset(originalText.indexOf("3"), 0, Some(1)), // list literal
+      LiteralOffset(originalText.indexOf("null"), 0, Some(4)) // null literal
+    )
+
+    val ob = CypherQueryObfuscator(ObfuscationMetadata(offsets, Set.empty))
+
+    ob.obfuscateText(originalText, 0) should equal(expectedText)
+  }
+
+  test("should obfuscate sensitive parameters of different types") {
+    val originalParams = makeAnyParams(
+      "s" -> "str",
+      "i" -> Int.box(42),
+      "b" -> Boolean.box(true),
+      "f" -> Double.box(3.14d),
+      "v" -> Values.int32Vector(1, 2, 3, 4),
+      "x" -> "kept"
+    )
+
+    val expectedParams = makeAnyParams(
+      "s" -> "******",
+      "i" -> "******",
+      "b" -> "******",
+      "f" -> "******",
+      "v" -> "******",
+      "x" -> "kept"
+    )
+
+    val ob = CypherQueryObfuscator(ObfuscationMetadata(Vector.empty, Set("s", "i", "b", "f", "v")))
+
+    ob.obfuscateParameters(originalParams) should equal(expectedParams)
+  }
+
   private def makeParams(params: (String, String)*): MapValue = {
     ValueUtils.asMapValue(Map(params: _*).asJava)
   }
 
   private def offsetOf(originalText: String, word: String): LiteralOffset = {
     LiteralOffset(originalText.indexOf(word), 0, None)
+  }
+
+  private def makeAnyParams(params: (String, AnyRef)*): MapValue = {
+    ValueUtils.asMapValue(Map(params: _*).asJava)
   }
 
 }

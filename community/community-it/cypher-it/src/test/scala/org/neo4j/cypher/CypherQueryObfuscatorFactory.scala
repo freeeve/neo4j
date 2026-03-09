@@ -29,10 +29,13 @@ import org.neo4j.cypher.internal.compiler.phases.PlannerContextImpl
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
+import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
@@ -92,7 +95,7 @@ class CypherQueryObfuscatorFactory {
   private val pipeline =
     Parse andThen
       RewriteProcedureCalls andThen
-      ObfuscationMetadataCollection
+      ExtractSensitiveLiterals.andThen(ObfuscationMetadataCollection)
 
   private def plannerContext(version: CypherVersion, query: String) =
     new PlannerContextImpl(
@@ -100,7 +103,7 @@ class CypherQueryObfuscatorFactory {
       Neo4jCypherExceptionFactory(query, None),
       CompilationPhaseTracer.NO_TRACING,
       null,
-      PlanContextWithProceduresRegistry,
+      new PlanContextWithProceduresRegistry(version),
       null,
       null,
       null,
@@ -127,11 +130,12 @@ class CypherQueryObfuscatorFactory {
       shadowedFunctions = Set.empty
     )
 
-  private object PlanContextWithProceduresRegistry extends PlanContext {
+  private class PlanContextWithProceduresRegistry(version: CypherVersion) extends PlanContext {
 
     override def procedureSignature(name: ProcedureName): ProcedureSignature = {
       val neo4jName = new org.neo4j.internal.kernel.api.procs.QualifiedName(name.namespace.parts.toArray, name.name)
-      val handle = procedures.getCurrentView().procedure(neo4jName, org.neo4j.kernel.api.QueryLanguage.CYPHER_5)
+      val kernelScope = org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope(version)
+      val handle = procedures.getCurrentView().procedure(neo4jName, kernelScope)
       asCypherProcedureSignature(name, handle.id(), handle.signature())
     }
 
@@ -172,7 +176,28 @@ class CypherQueryObfuscatorFactory {
     override def lastCommittedTxIdProvider: Nothing = fail()
     override def statistics: Nothing = fail()
     override def notificationLogger(): Nothing = fail()
-    override def functionSignature(name: FunctionName): Nothing = fail()
+
+    override def functionSignature(name: FunctionName): Option[UserFunctionSignature] = {
+      val maybeSig = org.neo4j.cypher.internal.expressions.functions.Function
+        .scopedFunctionInfo(version)
+        .find(_.function.name == name.name)
+
+      maybeSig.map { sig =>
+        val inputSig: IndexedSeq[FieldSignature] =
+          sig.names.zip(sig.argumentTypes).map { case (n, t) => FieldSignature(n, t) }
+
+        UserFunctionSignature(
+          name = name,
+          inputSignature = inputSig,
+          outputType = sig.outputType,
+          deprecationInfo = None,
+          description = Option(sig.description),
+          isAggregate = sig.isAggregationFunction,
+          id = -1,
+          builtIn = true
+        )
+      }
+    }
     override def getLabelName(id: Int): Nothing = fail()
     override def getOptLabelId(labelName: String): Nothing = fail()
     override def getLabelId(labelName: String): Nothing = fail()
@@ -231,6 +256,6 @@ class CypherQueryObfuscatorFactory {
 
     override def storageSupportsFastExpandInto: Boolean = fail()
 
-    override def queryLanguage: QueryLanguage = fail()
+    override def queryLanguage: QueryLanguage = QueryLanguage.from(version)
   }
 }
