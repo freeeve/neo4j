@@ -25,10 +25,8 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
 
-public class MissingEndQuoteException extends GqlRuntimeException
-        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+public class MissingEndQuoteException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate = "Missing end quote at position %s in '%s'.";
     private final SourceTraceability source;
     private final String sourceDescription;

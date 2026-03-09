@@ -324,4 +324,21 @@ abstract class GqlExceptionTestBase {
         var unknownException = testException(unknownError, "legacy message");
         assertFalse(unknownException.diagnosticRecord().containsKey("_classification"));
     }
+
+    @Test
+    void shouldObfuscateStatusDescriptionIfGqlStatusRequiresObfuscation() {
+        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N39)
+                .withParam(GqlParams.StringParam.value, "{key: secret}")
+                .build();
+        var exception = testException(errorGqlStatusObject, "legacy message");
+        assertEquals("", exception.obfuscatedStatusDescription());
+    }
+
+    @Test
+    void shouldNotObfuscateStatusDescriptionIfGqlStatusDoesNotRequiresObfuscation() {
+        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22012)
+                .build();
+        var exception = testException(errorGqlStatusObject, "legacy message");
+        assertEquals("error: data exception - division by zero", exception.obfuscatedStatusDescription());
+    }
 }

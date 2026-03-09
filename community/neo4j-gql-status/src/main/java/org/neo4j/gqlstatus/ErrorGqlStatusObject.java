@@ -59,6 +59,14 @@ public interface ErrorGqlStatusObject extends CommonGqlStatusObject {
         return DEFAULT_STATUS_DESCRIPTION;
     }
 
+    default String obfuscatedStatusDescription() {
+        if (gqlStatusObject() instanceof ErrorGqlStatusObjectImplementation e && e.hasNonSensitiveStatusDescription()) {
+            return statusDescription();
+        } else {
+            return "";
+        }
+    }
+
     @Override
     default Map<String, Object> diagnosticRecord() {
         var innerGqlStatusObject = gqlStatusObject();

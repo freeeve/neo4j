@@ -139,6 +139,10 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         return "";
     }
 
+    public boolean hasNonSensitiveStatusDescription() {
+        return gqlStatusInfoCode.hasNonSensitiveStatusDescription();
+    }
+
     @Override
     public String toString() {
         return recToString();

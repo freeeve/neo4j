@@ -22,7 +22,6 @@ package org.neo4j.fleetmanagement.queries.model;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.Objects;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
 
 public class SimplifiedGqlError {
     @JsonPropertyDescription("Nested error (if any)")
@@ -44,21 +43,11 @@ public class SimplifiedGqlError {
 
         var o = new SimplifiedGqlError();
         o.classification = errorGqlStatusObject.getClassification().toString();
-        o.statusDescription = obfuscatedStatusDescription(errorGqlStatusObject);
+        o.statusDescription = errorGqlStatusObject.obfuscatedStatusDescription();
         o.gqlStatus = errorGqlStatusObject.gqlStatus();
         o.cause = from(errorGqlStatusObject.cause().orElse(null));
 
         return o;
-    }
-
-    // Logic taken from
-    // private/enterprise/query-logging/src/main/java/com/neo4j/kernel/impl/query/QueryLogFormatter.java
-    private static String obfuscatedStatusDescription(ErrorGqlStatusObject errorGqlStatusObject) {
-        if (errorGqlStatusObject instanceof ObfuscatableErrorGqlStatusObject obfuscatable) {
-            return obfuscatable.obfuscatedStatusDescription();
-        } else {
-            return "";
-        }
     }
 
     @Override

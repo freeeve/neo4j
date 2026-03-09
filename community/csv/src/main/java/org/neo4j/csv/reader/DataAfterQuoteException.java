@@ -25,10 +25,8 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
 
-public class DataAfterQuoteException extends GqlRuntimeException
-        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+public class DataAfterQuoteException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate =
             "Characters after an ending quote in a CSV field are not supported. See '%s' at position %s. This is read as `%s`.";
     private final SourceTraceability source;

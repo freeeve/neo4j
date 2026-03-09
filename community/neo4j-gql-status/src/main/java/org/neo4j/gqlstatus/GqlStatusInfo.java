@@ -33,6 +33,8 @@ public sealed interface GqlStatusInfo permits GqlStatusInfoCodes {
 
     GqlClassification getClassification();
 
+    boolean hasNonSensitiveStatusDescription();
+
     GqlStatus getGqlStatus();
 
     String getStatusString();

@@ -25,10 +25,8 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.gqlstatus.ObfuscatableErrorGqlStatusObject;
 
-public class IllegalMultilineFieldException extends GqlRuntimeException
-        implements ObfuscatableException, ObfuscatableErrorGqlStatusObject {
+public class IllegalMultilineFieldException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate =
             "Multi-line fields are illegal in this context. Verify that there is not a missing end quote in '%s' at position %s.";
     private final SourceTraceability source;
