@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log;
 import static java.util.Collections.emptyIterator;
 import static org.apache.commons.io.IOUtils.EMPTY_BYTE_ARRAY;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -79,7 +80,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.mockito.Mockito;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
-import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
@@ -471,29 +471,37 @@ class BatchingTransactionAppenderTest {
     }
 
     @Test
-    void shouldFailIfTransactionIdsMismatch() {
+    void shouldFailIfTransactionIdsMismatch() throws IOException {
         // Given
-        BatchingTransactionAppender appender = life.add(createTransactionAppender());
-        var commitProcess = new InternalTransactionCommitProcess(
-                appender,
-                mock(StorageEngine.class, RETURNS_MOCKS),
-                false,
-                CommandCommitListeners.NO_LISTENERS,
-                () -> true,
-                NullLogProvider.getInstance());
-        when(transactionIdStore.nextCommittingTransactionId()).thenReturn(42L);
-        var transactionCommitment = new TransactionCommitment(transactionIdStore);
-        var transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
-        var transaction = new CompleteBatchRepresentation(
-                newStartEntry(LATEST_KERNEL_VERSION, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, EMPTY_BYTE_ARRAY),
-                singleTestCommand(),
-                newCommitEntry(LATEST_KERNEL_VERSION, 11, 1L, BASE_TX_CHECKSUM + 1),
-                BASE_TX_CHECKSUM);
-        CompleteTransaction batch = new CompleteTransaction(
-                transaction, NULL_CONTEXT, StoreCursors.NULL, transactionCommitment, transactionIdGenerator);
-        assertThrows(
-                TransactionFailureException.class,
-                () -> commitProcess.commit(batch, TransactionWriteEvent.NULL, TransactionApplicationMode.EXTERNAL));
+        try (var writeChannel = getWriteChannel(fs, path, LATEST_KERNEL_VERSION)) {
+            doReturn(new TransactionLogWriter(
+                            writeChannel, LATEST_KERNEL_VERSION_PROVIDER, BINARY_VERSIONS, LogRotation.NO_ROTATION))
+                    .when(logFile)
+                    .getTransactionLogWriter();
+            BatchingTransactionAppender appender = life.add(createTransactionAppender());
+            var commitProcess = new InternalTransactionCommitProcess(
+                    appender,
+                    mock(StorageEngine.class, RETURNS_MOCKS),
+                    false,
+                    CommandCommitListeners.NO_LISTENERS,
+                    () -> true,
+                    NullLogProvider.getInstance());
+            when(transactionIdStore.nextCommittingTransactionId()).thenReturn(42L);
+            var transactionCommitment = new TransactionCommitment(transactionIdStore);
+            var transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
+            var transaction = new CompleteBatchRepresentation(
+                    newStartEntry(LATEST_KERNEL_VERSION, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, EMPTY_BYTE_ARRAY),
+                    singleTestCommand(),
+                    newCommitEntry(LATEST_KERNEL_VERSION, 11, 1L, BASE_TX_CHECKSUM + 1),
+                    BASE_TX_CHECKSUM);
+            CompleteTransaction batch = new CompleteTransaction(
+                    transaction, NULL_CONTEXT, StoreCursors.NULL, transactionCommitment, transactionIdGenerator);
+            assertThatThrownBy(() -> commitProcess.commit(
+                            batch, TransactionWriteEvent.NULL, TransactionApplicationMode.EXTERNAL))
+                    .rootCause()
+                    .hasMessageContaining(
+                            "Received commands batch with txId:11 to be applied, but appending it ended up generating an unexpected txId:42");
+        }
     }
 
     private void assertShouldAppendSingleTransaction(
