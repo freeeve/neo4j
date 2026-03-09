@@ -520,6 +520,26 @@ case class NoneOfNodes(node: Expression, listOfNodes: Expression)(val position: 
 }
 
 /**
+ * Predicate expression that represents that a node must be different from all the nodes in a VarExpand pattern.
+ * This should only be generated when the 'equivalence class' of the node and the VarExpand are different, i.e. there
+ * should be a fixed-length relationship between the node and the VarExpand pattern in the path pattern.
+ *
+ * @param nodeVariable The node variable that needs to be different from all nodes of the VarExpand pattern
+ * @param varExpandRelationshipVariable The relationship variable of the VarExpand pattern
+ * @param varLengthRelDirection The direction of the VarExpand pattern
+ */
+case class InlinedNoneOfNodesInVarLengthRelationship(
+  nodeVariable: Expression,
+  varExpandRelationshipVariable: Expression,
+  varLengthRelDirection: SemanticDirection
+)(val position: InputPosition)
+    extends NodeUniquenessPredicate {
+
+  override def isConstantForQuery: Boolean =
+    nodeVariable.isConstantForQuery && varExpandRelationshipVariable.isConstantForQuery
+}
+
+/**
  * Tests whether the elements in the two lists given are disjoint, that is, none of the elements from one list
  * also exist in the other list.
  *

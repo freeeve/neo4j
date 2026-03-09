@@ -123,6 +123,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.HasDegreeLessThan",
     "org.neo4j.cypher.internal.expressions.HasDegreeLessThanOrEqual",
     "org.neo4j.cypher.internal.expressions.ImplicitProcedureArgument",
+    "org.neo4j.cypher.internal.expressions.InlinedNoneOfNodesInVarLengthRelationship",
     "org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique",
     "org.neo4j.cypher.internal.expressions.IsRepeatAcyclic",
     "org.neo4j.cypher.internal.expressions.MatchMode.DifferentRelationships",

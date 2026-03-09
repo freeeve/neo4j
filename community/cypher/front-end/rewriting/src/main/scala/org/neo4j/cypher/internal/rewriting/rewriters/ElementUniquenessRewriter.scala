@@ -24,14 +24,20 @@ import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.In
+import org.neo4j.cypher.internal.expressions.InlinedNoneOfNodesInVarLengthRelationship
+import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Not
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
 import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.expressions.functions.EndNode
+import org.neo4j.cypher.internal.expressions.functions.StartNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
@@ -44,8 +50,15 @@ import org.neo4j.cypher.internal.util.topDown
 case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator) extends Rewriter
     with TopDownMergeableRewriter {
 
+  private def newAnonymousVariable(pos: InputPosition): Variable = {
+    Variable(anonymousVariableNameGenerator.nextName)(
+      pos,
+      Variable.isIsolatedDefault
+    )
+  }
+
   private def disjointPredicateToExpression(x: Expression, y: Expression, pos: InputPosition) = {
-    val innerX = Variable(anonymousVariableNameGenerator.nextName)(x.position, Variable.isIsolatedDefault)
+    val innerX = newAnonymousVariable(x.position)
     NoneIterablePredicate(
       innerX,
       x,
@@ -54,8 +67,8 @@ case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVa
   }
 
   private def uniquePredicateToExpression(list: Expression, pos: InputPosition) = {
-    val element1 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
-    val element2 = Variable(anonymousVariableNameGenerator.nextName)(list.position, Variable.isIsolatedDefault)
+    val element1 = newAnonymousVariable(list.position)
+    val element2 = newAnonymousVariable(list.position)
     AllIterablePredicate(
       element1,
       list,
@@ -93,6 +106,53 @@ case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVa
 
     case p @ NoneOfNodes(node, nodeList) =>
       noneOfPredicateToExpression(node, nodeList, p.position)
+
+    case p @ InlinedNoneOfNodesInVarLengthRelationship(
+        node,
+        varLengthRelationshipVariable,
+        varLengthRelDirection
+      ) =>
+      val pos = p.position
+      if (varLengthRelDirection == BOTH) {
+        // NOT node IN [startNode(varLengthRelationshipVariable), endNode(varLengthRelationshipVariable)]
+        // When it would not be inlined, we would need something like
+        //   none(innerRel IN varLengthRelationshipVariable WHERE node IN [startNode(innerRel), endNode(innerRel)])
+        Not(
+          In(
+            node,
+            ListLiteral(Seq(
+              StartNode(varLengthRelationshipVariable)(pos),
+              EndNode(varLengthRelationshipVariable)(pos)
+            ))(pos)
+          )(pos)
+        )(pos)
+      } else {
+        // NOT node = right(varLengthRelationshipVariable)
+        // Using this, we will miss a check for the left outer boundary node.
+        // This will be handled by a separate DifferentNodes predicate.
+        //   The boundary nodes of a VarExpand have the same equivalence class as the VarExpand.
+        //   The node has a different equivalence class that the VarExpand.
+        //   Therefore, the node will have a different equivalence class than the boundary nodes.
+        //   Nodes with different equivalence classes will lead to the generation of DifferentNodes predicates.
+        //
+        // Using endNode instead of startNode, or the other way around would be equivalent.
+        // We just need to include all inner nodes of the var-length relationship and may include the boundary nodes.
+        // We chose `right`, i.e. endNode for outgoing relationship and startNode for incoming relationship, to allow
+        // pruning to happen one iteration earlier.
+        // When the predicate would not be inlined we would need something like this:
+        //   NOT node in ([innerRel IN varLengthRelationshipVariable | startNode(innerRel)])
+        Not(
+          Equals(
+            node,
+            if (varLengthRelDirection == OUTGOING)
+              EndNode(varLengthRelationshipVariable)(pos)
+            else {
+              // INCOMING
+              StartNode(varLengthRelationshipVariable)(pos)
+            }
+          )(pos)
+        )(pos)
+      }
 
     case p @ DifferentRelationships(rel1, rel2) =>
       differentPredicateToExpression(rel1, rel2, p.position)

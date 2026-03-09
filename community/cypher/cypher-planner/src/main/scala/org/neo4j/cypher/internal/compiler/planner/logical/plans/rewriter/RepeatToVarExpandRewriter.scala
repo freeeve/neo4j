@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.InlinedNoneOfNodesInVarLengthRelationship
 import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalProperty
@@ -385,6 +386,38 @@ object RepeatToVarExpandRewriter {
       Option[VariableGrouping],
       ExpansionMode
     )] = {
+
+      /**
+       * VarExpand does not consider previously bound nodes during its evaluation.
+       * In order to guarantee path mode semantics, we need to add uniqueness predicates.
+       * For ACYCLIC: Each node in `acyclic.previouslyBoundNodes`, except the start node of the repeat operator, leads to an InlinedNoneOfNodesInVarLengthRelationship predicate.
+       *
+       * @param repeat The Repeat operator that is rewritten into a VarExpand operator
+       * @param expandDir The direction of the VarExpand
+       * @param varExpandRel The relationship variable of the VarExpand
+       * @return A set of uniqueness predicates that ensures that the Repeat to VarExpand rewrite preserves the path mode semantics.
+       */
+      def additionalUniquenessPredicatesForRepeatToVarExpandRewrite(
+        repeat: Repeat,
+        expandDir: SemanticDirection,
+        varExpandRel: LogicalVariable
+      ): Set[Expression] = {
+        repeat match {
+          case acyclic: RepeatAcyclic if acyclic.previouslyBoundNodes.size > 1 =>
+            // The nodes in acyclic.previouslyBoundNodes (except the startNode) are coming from NoneOfNodes predicates (see expandSolverStep.produceRepeatLogicalPlan).
+            // NoneOfNodes predicates are only generated when the node belongs to a different equivalence class than the QPP (see AddElementUniquenessPredicates.createInterNodeUniquenessPredicates).
+            (acyclic.previouslyBoundNodes - acyclic.start)
+              .map(boundNode =>
+                InlinedNoneOfNodesInVarLengthRelationship(
+                  boundNode,
+                  varExpandRel,
+                  expandDir
+                )(InputPosition.NONE)
+              )
+          case _ => Set.empty
+        }
+      }
+
       plan match {
         case repeat @ RepeatTrail(
             _,
@@ -444,7 +477,7 @@ object RepeatToVarExpandRewriter {
             _,
             VariableGroupings.Empty(), // No nodeVariableGroupings
             _,
-            VariableSet.Single(), // Only one PreviouslyBoundNode (one of the outer boundary nodes of the QPP).
+            _, // Possibly PreviouslyBoundNodes
             VariableSet.Empty(), // No previouslyBoundNodeGroups
             VariableGroupings.Maybe(relationship), // Max one relationshipVariableGrouping
             _,
@@ -454,7 +487,19 @@ object RepeatToVarExpandRewriter {
             expansionMode,
             AllReduceAccumulators.Empty()
           ) =>
-          Option((acyclic, expand, inlinablePredicates, quantifier, relationship, expansionMode))
+          val inlinableNoneOfNodesPredicates = additionalUniquenessPredicatesForRepeatToVarExpandRewrite(
+            acyclic,
+            expand.dir,
+            relationship.map(_.singleton).getOrElse(acyclic.innerRelationships.head)
+          )
+          Option((
+            acyclic,
+            expand,
+            inlinablePredicates ++ inlinableNoneOfNodesPredicates,
+            quantifier,
+            relationship,
+            expansionMode
+          ))
         case _ => None
       }
     }

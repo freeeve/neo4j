@@ -26,13 +26,18 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
+import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
+import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -359,12 +364,12 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and QPP - process left-to-right"
+    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and QPP - process left-to-right - Repeat"
   ) {
     val planner = pb.build()
     val query =
       s"""
-         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3)-[r2]->(n4)){0,3}(n5)
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3)-[r2]->(n4)){0,${intMaxValuePlus1}}(n5)
          |RETURN n1, n5
          |""".stripMargin
 
@@ -374,7 +379,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("NOT n1 = n5") // Should already be solved by a combination of 'NOT n1 = n2' (in case of 0-iterations of the QPP) and 'IsRepeatAcyclic(n4) with n1 in alreadyBoundNodes' (in case of at least one iteration of the QPP)
       .repeatAcyclic(AcyclicParameters(
         min = 0,
-        max = Limited(3),
+        max = Limited(intMaxValuePlus1),
         start = "n2",
         end = "n5",
         innerStart = "n3",
@@ -395,6 +400,103 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4")
       .|.expandAll("(n3)-[r2]->(n4)")
       .|.argument("n3")
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[]->(n2)")
+      .nodeByLabelScan("n1", "S")
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and outgoing QPP - process left-to-right - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3)-[r2]->(n4)){0,3}(n5)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expand(
+        "(n2)-[*0..3]->(n5)",
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)"),
+          Predicate(
+            "anon_0",
+            "NOT n1 = endNode(anon_0)"
+          )
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[]->(n2)")
+      .nodeByLabelScan("n1", "S")
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and incoming QPP - process left-to-right - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3)<-[r2]-(n4)){0,3}(n5)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expand(
+        "(n2)<-[*0..3]-(n5)",
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT endNode(anon_0) = startNode(anon_0)"),
+          Predicate("anon_0", "NOT n1 = startNode(anon_0)")
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[]->(n2)")
+      .nodeByLabelScan("n1", "S")
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and undirected QPP - process left-to-right - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3)-[r2]-(n4)){0,3}(n5)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expandExpr(
+        "(n2)-[*0..3]-(n5)",
+        relationshipPredicates = Seq(
+          VariablePredicate(
+            v"anon_0",
+            not(equals(
+              TraversalEndpoint(tempVar = v"anon_1", endpoint = From),
+              TraversalEndpoint(tempVar = v"anon_2", endpoint = To)
+            ))
+          ),
+          Predicate(
+            "anon_0",
+            "NOT n1 IN [startNode(anon_0), endNode(anon_0)]"
+          ).asVariablePredicate
+        ),
+        pathMode = Acyclic
+      )
       .filter("NOT n1 = n2")
       .expandAll("(n1)-[]->(n2)")
       .nodeByLabelScan("n1", "S")
@@ -444,6 +546,98 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .|.expandAll("(n4)<-[r2]-(n3)")
       .|.argument("n4")
       .nodeByLabelScan("n5", "S")
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - outgoing QPP and Fixed-length relationship - process right-to-left - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1)((n2)-[r1]->(n3)){0,3}(n4)-[r2]->(n5:S)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expand(
+        "(n4)<-[*0..3]-(n1)",
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)"),
+          Predicate("anon_0", "NOT n5 = startNode(anon_0)")
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT n4 = n5")
+      .expandAll("(n5)<-[]-(n4)")
+      .nodeByLabelScan("n5", "S", IndexOrderNone)
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - incoming QPP and Fixed-length relationship - process right-to-left - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1)((n2)<-[r1]-(n3)){0,3}(n4)-[r2]->(n5:S)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expand(
+        "(n4)-[*0..3]->(n1)",
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT endNode(anon_0) = startNode(anon_0)"),
+          Predicate("anon_0", "NOT n5 = endNode(anon_0)")
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT n4 = n5")
+      .expandAll("(n5)<-[]-(n4)")
+      .nodeByLabelScan("n5", "S", IndexOrderNone)
+      .build()
+  }
+
+  test(
+    "Single ACYCLIC path pattern case 2 - undirected QPP and Fixed-length relationship - process right-to-left - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1)((n2)-[r1]-(n3)){0,3}(n4)-[r2]->(n5:S)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .expandExpr(
+        "(n4)-[*0..3]-(n1)",
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(
+          VariablePredicate(
+            v"anon_0",
+            not(equals(
+              TraversalEndpoint(tempVar = v"anon_1", endpoint = To),
+              TraversalEndpoint(tempVar = v"anon_2", endpoint = From)
+            ))
+          ),
+          Predicate("anon_0", "NOT n5 IN [startNode(anon_0), endNode(anon_0)]").asVariablePredicate
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT n4 = n5")
+      .expandAll("(n5)<-[]-(n4)")
+      .nodeByLabelScan("n5", "S", IndexOrderNone)
       .build()
   }
 
@@ -854,18 +1048,20 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Multiple ACYCLIC path pattern case 3 - Two path patterns both with a fixed-length relationship and a QPP") {
+  test(
+    "Multiple ACYCLIC path pattern case 3 - Two path patterns both with a fixed-length relationship and a QPP - Repeat"
+  ) {
     val planner = pb.build()
     val query =
-      """
-        |MATCH ACYCLIC (n1:S)-[r1]->(n2)
-        |((n3)<-[r2]-(n4)){0,2}
-        |(n5),
-        |ACYCLIC (n5)-[r3]->(n6)
-        |((n7)-[r4]->(n8)){0,1}
-        |(n9)
-        |RETURN n1, n9
-        |""".stripMargin
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)
+         |((n3)<-[r2]-(n4)){0,${intMaxValuePlus1}}
+         |(n5),
+         |ACYCLIC (n5)-[r3]->(n6)
+         |((n7)-[r4]->(n8)){0,${intMaxValuePlus1}}
+         |(n9)
+         |RETURN n1, n9
+         |""".stripMargin
 
     val plan = planner.plan(CypherVersion.Cypher25, query)
     plan shouldEqual planner.subPlanBuilder()
@@ -873,7 +1069,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("NOT n5 = n9")
       .repeatAcyclic(AcyclicParameters(
         min = 0,
-        max = Limited(1),
+        max = Limited(intMaxValuePlus1),
         start = "n6",
         end = "n9",
         innerStart = "n7",
@@ -898,7 +1094,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("NOT n1 = n5") // Not strictly needed
       .repeatAcyclic(AcyclicParameters(
         min = 0,
-        max = Limited(2),
+        max = Limited(intMaxValuePlus1),
         start = "n2",
         end = "n5",
         innerStart = "n3",
@@ -918,6 +1114,57 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4", isRepeatTrailUnique("r2"))
       .|.expandAll("(n3)<-[r2]-(n4)")
       .|.argument("n3")
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[r1]->(n2)")
+      .nodeByLabelScan("n1", "S", IndexOrderNone)
+      .build()
+  }
+
+  test(
+    "Multiple ACYCLIC path pattern case 3 - Two path patterns both with a fixed-length relationship and a QPP - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)
+         |((n3)<-[r2]-(n4)){0,2}
+         |(n5),
+         |ACYCLIC (n5)-[r3]->(n6)
+         |((n7)-[r4]->(n8)){0,1}
+         |(n9)
+         |RETURN n1, n9
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n9")
+      .filter("NOT r1 IN r4", "none(anon_2 IN r4 WHERE anon_2 IN r2)", "NOT n5 = n9")
+      .expandExpr(
+        "(n6)-[r4*0..1]->(n9)",
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)").asVariablePredicate,
+          Predicate(
+            "anon_0",
+            "NOT n5 = endNode(anon_0)"
+          ).asVariablePredicate
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT r3 IN r2", "NOT n5 = n6", "NOT r1 = r3")
+      .expandAll("(n5)-[r3]->(n6)")
+      .filter("NOT n1 = n5")
+      .expandExpr(
+        "(n2)<-[r2*0..2]-(n5)",
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(
+          Predicate("anon_1", "NOT endNode(anon_1) = startNode(anon_1)").asVariablePredicate,
+          Predicate(
+            "anon_1",
+            "NOT n1 = startNode(anon_1)"
+          ).asVariablePredicate
+        ),
+        pathMode = Acyclic
+      )
       .filter("NOT n1 = n2")
       .expandAll("(n1)-[r1]->(n2)")
       .nodeByLabelScan("n1", "S", IndexOrderNone)
