@@ -104,4 +104,17 @@ class LatchMapTest {
         }
         latchList.forEach(LatchMap.Latch::release);
     }
+
+    @Test
+    void maxContinuousLatchesShouldRespectCapacity() {
+        int size = 1024;
+        LatchMap latches = new LatchMap(size);
+
+        assertThat(latches.maxContinuousLatches(0, 100)).isEqualTo(100);
+        assertThat(latches.maxContinuousLatches(0, 2000)).isEqualTo(size);
+        assertThat(latches.maxContinuousLatches(512, 100)).isEqualTo(100);
+        assertThat(latches.maxContinuousLatches(512, 1000)).isEqualTo(512);
+        assertThat(latches.maxContinuousLatches(size - 1, 10)).isEqualTo(1);
+        assertThat(latches.maxContinuousLatches(size, 100)).isEqualTo(100);
+    }
 }

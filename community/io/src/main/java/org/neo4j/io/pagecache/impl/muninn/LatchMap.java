@@ -98,13 +98,6 @@ final class LatchMap {
         return null;
     }
 
-    /**
-     * Size of the LatchMap
-     */
-    int size() {
-        return latches.length;
-    }
-
     private int index(long identifier) {
         return (int) (identifier & faultLockMask);
     }
@@ -116,5 +109,12 @@ final class LatchMap {
             }
         }
         return true;
+    }
+
+    /**
+     * Returns the maximum number of latches that can be taken simutaneously avoiding deadlocks starting from the given identifier and up to the given count.
+     */
+    int maxContinuousLatches(long identifier, int count) {
+        return Math.min(count, latches.length - index(identifier));
     }
 }

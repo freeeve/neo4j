@@ -1138,7 +1138,8 @@ final class MuninnPagedFile implements PagedFile, Flushable {
      * Returns number of grabbed latches
      */
     private int grabPageFaultLatches(long pageId, int count, LatchMap.Latch[] latches) {
-        var latchesToGrab = Math.min(count, pageFaultLatches.size());
+        int latchesToGrab = pageFaultLatches.maxContinuousLatches(pageId, count);
+
         int index = 0;
         int[][] tt = translationTable;
         while (index < latchesToGrab) {
