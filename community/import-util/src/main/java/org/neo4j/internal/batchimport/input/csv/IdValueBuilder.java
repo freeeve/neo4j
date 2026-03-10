@@ -28,7 +28,7 @@ import org.neo4j.internal.helpers.collection.Iterables;
  * Contains logic around a single or multiple :ID columns, the combined value and also which parts are stored
  * as properties on the node.
  */
-class IdValueBuilder {
+public class IdValueBuilder {
     public static final char DELIMITER = '\u0007'; // BEL char
     private final boolean delimitIDs;
     private final List<Part> parts = new ArrayList<>();
@@ -39,12 +39,12 @@ class IdValueBuilder {
         this.delimitIDs = delimitIds;
     }
 
-    void clear() {
+    public void clear() {
         parts.clear();
         group = null;
     }
 
-    void part(Object value, Header.Entry entry) {
+    public void part(Object value, Header.Entry entry) {
         if (group != null && !entry.group().equals(group)) {
             throw new IllegalStateException(
                     "Multiple ID columns for different groups:" + group + " and " + entry.group());
@@ -53,7 +53,7 @@ class IdValueBuilder {
         this.group = entry.group();
     }
 
-    Object value() {
+    public Object value() {
         return switch (parts.size()) {
             case 0 -> null;
             case 1 -> parts.get(0).value;
@@ -70,17 +70,17 @@ class IdValueBuilder {
         };
     }
 
-    Group group() {
+    public Group group() {
         return group;
     }
 
-    Iterable<Part> idPropertyValues() {
+    public Iterable<Part> idPropertyValues() {
         return Iterables.filter(parts, p -> p.name != null);
     }
 
-    boolean isEmpty() {
+    public boolean isEmpty() {
         return parts.isEmpty();
     }
 
-    record Part(String name, Object value) {}
+    public record Part(String name, Object value) {}
 }

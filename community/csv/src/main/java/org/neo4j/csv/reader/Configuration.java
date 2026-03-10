@@ -19,6 +19,7 @@
  */
 package org.neo4j.csv.reader;
 
+import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 
 import java.util.function.Predicate;
@@ -165,6 +166,8 @@ public class Configuration {
     }
 
     public static class Builder {
+        public static final int DEFAULT_BUFFER_SIZE_IF_SUPER_FAST = (int) kibiBytes(64);
+
         private char quotationCharacter = '"';
         private char delimiter = ',';
         private char arrayDelimiter = ';';

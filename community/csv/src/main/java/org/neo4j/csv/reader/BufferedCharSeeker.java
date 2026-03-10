@@ -301,12 +301,7 @@ public class BufferedCharSeeker implements CharSeeker {
 
         if (!first) {
             if (bufferPos - seekStartPos >= dataCapacity) {
-                throw new BufferOverflowException("Tried to read a field larger than buffer size " + dataLength
-                        + ". A common cause of this is that a field has an unterminated "
-                        + "quote and so will try to seek until the next quote, which ever line it may be on."
-                        + " This should not happen if multi-line fields are disabled, given that the fields contains "
-                        + "no new-line characters. This field started at "
-                        + sourceDescription() + ":" + lineNumber());
+                throw new BufferOverflowException(dataLength, sourceDescription(), lineNumber());
             }
         }
 

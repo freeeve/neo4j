@@ -19,13 +19,11 @@
  */
 package org.neo4j.csv.reader;
 
-public class BufferOverflowException extends IllegalStateException {
-    public BufferOverflowException(int chunkSize, String sourceDescription, long lineNumber) {
-        super("Tried to read a field larger than buffer size " + chunkSize
-                + ". A common cause of this is that a field has an unterminated "
-                + "quote and so will try to seek until the next quote, which ever line it may be on."
-                + " This should not happen if multi-line fields are disabled, given that the fields contains "
-                + "no new-line characters. This field started at "
-                + sourceDescription + ":" + lineNumber);
+public class ColumnMismatchException extends RuntimeException {
+    private static final String messageTemplate =
+            "Wrong number of columns in a row. This might be caused by illegal quotes that cause separators to be ignored. See '%s' at position %s. This is read as `%s`.";
+
+    public ColumnMismatchException(SourceTraceability source, String readValue, Throwable cause) {
+        super(messageTemplate.formatted(source.sourceDescription(), source.position(), readValue), cause);
     }
 }
