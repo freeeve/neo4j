@@ -26,8 +26,9 @@ import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.kernel.api.impl.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.kernel.api.impl.schema.IndexConfigUtils.NamedSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.NamedSetting;
+import org.neo4j.util.MarkerInterface;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Value;
 
@@ -44,7 +45,7 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
 
     enum State {
         VALID,
-        PENDING,
+        UNPROCESSED,
         UNRECOGNIZED_SETTING,
         MISSING_SETTING,
         INCORRECT_TYPE,
@@ -63,59 +64,88 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
         }
     }
 
-    sealed interface Invalid extends IndexConfigValidationRecord {}
+    sealed interface RecordWithSetting extends IndexConfigValidationRecord, HasSetting {}
 
-    record Valid(IndexSetting setting, Object value, Value stored) implements HasSetting, IndexConfigValidationRecord {
-        public Valid(Pending pending, Value stored) {
-            this(pending.setting, pending.value, stored);
+    sealed interface RecordWithValue extends RecordWithSetting {
+        Object value();
+
+        @SuppressWarnings("unchecked")
+        default <T> T valueAs(Class<T> type) {
+            return (T) value();
+        }
+
+        @SuppressWarnings("unchecked")
+        default <T> T get() {
+            return (T) value();
+        }
+    }
+
+    sealed interface RecordWithStorable extends RecordWithValue {
+        Value storable();
+    }
+
+    record Valid(IndexSetting setting, Object value, Value storable) implements RecordWithStorable {
+        public Valid(RecordWithStorable hasStorable) {
+            this(hasStorable.setting(), hasStorable.value(), hasStorable.storable());
+        }
+
+        public Valid(RecordWithStorable hasStorable, Object value) {
+            this(hasStorable.setting(), value, hasStorable.storable());
+        }
+
+        public Valid(RecordWithValue hasValue, Value storable) {
+            this(hasValue.setting(), hasValue.value(), storable);
+        }
+
+        public Valid(RecordWithSetting hasSetting, Object value, Value storable) {
+            this(hasSetting.setting(), value, storable);
         }
 
         @Override
         public State state() {
             return State.VALID;
         }
-
-        public <T> T get() {
-            return (T) value;
-        }
     }
 
-    record Pending(IndexSetting setting, AnyValue rawValue, Object value) implements HasSetting, Invalid {
-        public Pending(IndexSetting setting, AnyValue rawValue) {
-            this(setting, rawValue, null);
-        }
+    @MarkerInterface
+    sealed interface Invalid extends IndexConfigValidationRecord {}
 
-        public Pending(Pending pending, Object value) {
-            this(pending.setting, pending.rawValue, value);
-        }
-
+    record Unprocessed(IndexSetting setting, AnyValue rawValue) implements RecordWithSetting, Invalid {
         @Override
         public State state() {
-            return State.PENDING;
-        }
-
-        public <T> T get() {
-            return (T) value;
+            return State.UNPROCESSED;
         }
     }
 
     record UnrecognizedSetting(String settingName) implements Invalid {
+        public UnrecognizedSetting(NamedSetting namedSetting) {
+            this(namedSetting.settingName());
+        }
+
         @Override
         public State state() {
             return State.UNRECOGNIZED_SETTING;
         }
     }
 
-    record MissingSetting(IndexSetting setting) implements HasSetting, Invalid {
+    record MissingSetting(IndexSetting setting) implements RecordWithSetting, Invalid {
+        public MissingSetting(RecordWithSetting hasSetting) {
+            this(hasSetting.setting());
+        }
+
         @Override
         public State state() {
             return State.MISSING_SETTING;
         }
     }
 
-    record IncorrectType(IndexSetting setting, AnyValue rawValue, Class<?> targetType) implements HasSetting, Invalid {
-        public IncorrectType(Pending pending, Class<?> targetType) {
-            this(pending.setting, pending.rawValue, targetType);
+    record IncorrectType(IndexSetting setting, Object value, Class<?> targetType) implements RecordWithValue, Invalid {
+        public IncorrectType(RecordWithValue hasValue, Class<?> targetType) {
+            this(hasValue.setting(), hasValue.value(), targetType);
+        }
+
+        public IncorrectType(Unprocessed unprocessed, Class<?> targetType) {
+            this(unprocessed.setting, unprocessed.rawValue, targetType);
         }
 
         @Override
@@ -124,22 +154,17 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
         }
 
         public Class<?> providedType() {
-            return rawValue.getClass();
-        }
-
-        public String providedTypeString() {
-            return rawValue.prettify();
+            return value.getClass();
         }
     }
 
-    record InvalidValue(IndexSetting setting, AnyValue rawValue, Object value, Object valid)
-            implements HasSetting, Invalid {
-        public InvalidValue(Pending pending, Object value, Object valid) {
-            this(pending.setting, pending.rawValue, value, valid);
+    record InvalidValue(IndexSetting setting, Object value, Object valid) implements RecordWithValue, Invalid {
+        public InvalidValue(RecordWithValue hasValue, Object valid) {
+            this(hasValue.setting(), hasValue.value(), valid);
         }
 
-        public InvalidValue(Pending pending, Object valid) {
-            this(pending, pending.value, valid);
+        public InvalidValue(RecordWithSetting hasSetting, Object value, Object valid) {
+            this(hasSetting.setting(), value, valid);
         }
 
         @Override

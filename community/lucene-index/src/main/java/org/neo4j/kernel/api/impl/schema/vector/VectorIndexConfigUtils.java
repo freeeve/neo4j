@@ -20,16 +20,19 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
+import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.VALID;
 import static org.neo4j.internal.schema.InternalIndexSetting.VECTOR_QUANTIZATION_TYPE;
-import static org.neo4j.kernel.api.impl.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
 import static org.neo4j.values.storable.Values.NO_VALUE;
+import static org.neo4j.values.utils.PrettyPrinter.stringify;
+import static org.neo4j.values.utils.ValueTypeNames.nameOfType;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -103,8 +106,8 @@ public class VectorIndexConfigUtils {
     static IndexConfig toIndexConfig(Iterable<Valid> validRecords, Predicate<Valid> filter) {
         final Map<String, Value> settings = new HashMap<>();
         for (final Valid valid : validRecords) {
-            if (filter.test(valid) && valid.stored() != null && valid.stored() != NO_VALUE) {
-                settings.put(valid.settingName(), valid.stored());
+            if (filter.test(valid) && valid.storable() != null && valid.storable() != NO_VALUE) {
+                settings.put(valid.settingName(), valid.storable());
             }
         }
         return IndexConfig.with(settings);
@@ -132,7 +135,7 @@ public class VectorIndexConfigUtils {
                                 .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
 
             // this is an implementation mistake
-            case PENDING ->
+            case UNPROCESSED ->
                 InternalException.indexNotApplicable(
                         descriptor.name(), "Validation for '%s' is incomplete.".formatted(settingName));
 
@@ -143,27 +146,27 @@ public class VectorIndexConfigUtils {
                 final var incorrectType = (IncorrectType) invalidRecord;
                 yield InvalidArgumentException.invalidType(
                         settingName,
-                        incorrectType.rawValue().prettify(),
-                        incorrectType.targetType().getSimpleName(),
-                        incorrectType.rawValue().getTypeName());
+                        stringify(incorrectType.value()),
+                        nameOfType(incorrectType.targetType()),
+                        nameOfType(incorrectType.value()));
             }
             case INVALID_VALUE -> {
                 final var invalidValue = (InvalidValue) invalidRecord;
                 final var valid = invalidValue.valid();
+                final var value = Objects.requireNonNullElse(invalidValue.value(), NO_VALUE);
+                final var valueString = stringify(value);
                 if (valid instanceof final InclusiveRange<?> range) {
-                    var actualRawValue = invalidValue.rawValue() != null ? invalidValue.rawValue() : NO_VALUE;
                     yield InvalidArgumentException.outOfRange(
                             settingName,
-                            actualRawValue.prettify(),
-                            actualRawValue.getTypeName(),
+                            valueString,
+                            nameOfType(value),
                             range.min().toString(),
                             range.max().toString());
                 } else if (valid instanceof Iterable<?> || valid instanceof PrimitiveIterable) {
                     yield InvalidArgumentException.invalidIndexInput(
-                            invalidValue.rawValue().prettify(),
+                            valueString,
                             settingName,
-                            "'%s' is an unsupported '%s'. Supported: %s"
-                                    .formatted(invalidValue.rawValue().prettify(), settingName, valid));
+                            "'%s' is an unsupported '%s'. Supported: %s".formatted(valueString, settingName, valid));
                 }
 
                 // this is an implementation mistake

@@ -22,6 +22,8 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.CLASS;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.INCORRECT_TYPE;
 import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.INVALID_VALUE;
 import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.MISSING_SETTING;
@@ -35,15 +37,17 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIM
 import java.util.OptionalInt;
 import java.util.StringJoiner;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.NamedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
@@ -104,8 +108,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
-                .extracting(UnrecognizedSetting::settingName)
+                .asInstanceOf(type(UnrecognizedSetting.class))
+                .extracting(NamedSetting::settingName)
                 .isEqualTo(unrecognisedSetting.getSettingName());
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
@@ -124,8 +128,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(MISSING_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(MissingSetting.class))
-                .extracting(MissingSetting::setting)
+                .asInstanceOf(type(MissingSetting.class))
+                .extracting(HasSetting::setting)
                 .isEqualTo(DIMENSIONS);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
@@ -145,8 +149,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
-                .extracting(InvalidValue::setting, InvalidValue::value)
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(DIMENSIONS, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
@@ -168,22 +172,22 @@ class VectorIndexV2ForV518ConfigValidationTest {
         final var incorrectTypeAssert = assertThat(validationRecords.get(INCORRECT_TYPE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(IncorrectType.class));
+                .asInstanceOf(type(IncorrectType.class));
         incorrectTypeAssert
-                .extracting(IncorrectType::setting, IncorrectType::rawValue)
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(DIMENSIONS, Values.stringValue(incorrectDimensions));
         incorrectTypeAssert
                 .extracting(IncorrectType::providedType)
-                .asInstanceOf(InstanceOfAssertFactories.CLASS)
+                .asInstanceOf(CLASS)
                 .isAssignableTo(TextValue.class);
         incorrectTypeAssert
                 .extracting(IncorrectType::targetType)
-                .asInstanceOf(InstanceOfAssertFactories.CLASS)
+                .asInstanceOf(CLASS)
                 .isAssignableTo(IntegralValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
-                .hasMessage("Wrong type for vector.dimensions. Expected IntegralValue, got String");
+                .hasMessage("Wrong type for vector.dimensions. Expected INTEGER, got STRING");
     }
 
     @ParameterizedTest
@@ -214,8 +218,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
-                .extracting(InvalidValue::setting, InvalidValue::value)
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(DIMENSIONS, OptionalInt.of(invalidDimensions));
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
@@ -235,8 +239,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(MISSING_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(MissingSetting.class))
-                .extracting(MissingSetting::setting)
+                .asInstanceOf(type(MissingSetting.class))
+                .extracting(HasSetting::setting)
                 .isEqualTo(SIMILARITY_FUNCTION);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
@@ -256,8 +260,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
-                .extracting(InvalidValue::setting, InvalidValue::value)
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(SIMILARITY_FUNCTION, null);
 
         final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
@@ -286,22 +290,22 @@ class VectorIndexV2ForV518ConfigValidationTest {
         final var incorrectTypeAssert = assertThat(validationRecords.get(INCORRECT_TYPE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(IncorrectType.class));
+                .asInstanceOf(type(IncorrectType.class));
         incorrectTypeAssert
-                .extracting(IncorrectType::setting, IncorrectType::rawValue)
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(SIMILARITY_FUNCTION, Values.longValue(incorrectSimilarityFunction));
         incorrectTypeAssert
                 .extracting(IncorrectType::providedType)
-                .asInstanceOf(InstanceOfAssertFactories.CLASS)
+                .asInstanceOf(CLASS)
                 .isAssignableTo(NumberValue.class);
         incorrectTypeAssert
                 .extracting(IncorrectType::targetType)
-                .asInstanceOf(InstanceOfAssertFactories.CLASS)
+                .asInstanceOf(CLASS)
                 .isAssignableTo(TextValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
-                .hasMessage("Wrong type for vector.similarity_function. Expected TextValue, got Long");
+                .hasMessage("Wrong type for vector.similarity_function. Expected STRING, got INTEGER");
     }
 
     @Test
@@ -317,8 +321,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(InvalidValue.class))
-                .extracting(InvalidValue::setting, InvalidValue::rawValue)
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
 
         final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
@@ -347,8 +351,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
-                .extracting(UnrecognizedSetting::settingName)
+                .asInstanceOf(type(UnrecognizedSetting.class))
+                .extracting(NamedSetting::settingName)
                 .isEqualTo(QUANTIZATION_ENABLED.getSettingName());
     }
 
@@ -365,8 +369,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
-                .extracting(UnrecognizedSetting::settingName)
+                .asInstanceOf(type(UnrecognizedSetting.class))
+                .extracting(NamedSetting::settingName)
                 .isEqualTo(HNSW_M.getSettingName());
     }
 
@@ -383,8 +387,8 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(UnrecognizedSetting.class))
-                .extracting(UnrecognizedSetting::settingName)
+                .asInstanceOf(type(UnrecognizedSetting.class))
+                .extracting(NamedSetting::settingName)
                 .isEqualTo(HNSW_EF_CONSTRUCTION.getSettingName());
     }
 }

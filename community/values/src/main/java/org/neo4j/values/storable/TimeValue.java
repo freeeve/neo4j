@@ -59,7 +59,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     public static final TimeValue MIN_VALUE = new TimeValue(OffsetTime.MIN);
     public static final TimeValue MAX_VALUE = new TimeValue(OffsetTime.MAX);
-    private static final String cypherTypeName = "ZONED TIME";
+    public static final String CYPHER_TYPE_NAME = "ZONED TIME";
 
     private final OffsetTime value;
     private final long nanosOfDayUTC;
@@ -99,7 +99,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     @Override
     public String getTemporalCypherTypeName() {
-        return cypherTypeName;
+        return CYPHER_TYPE_NAME;
     }
 
     public static TimeValue parse(
@@ -140,7 +140,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
                 default -> throw new IllegalStateException("Unexpected value: " + parsed);
             }
         } catch (IllegalArgumentException | DateTimeParseException ex) {
-            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), CYPHER_TYPE_NAME);
         }
     }
 

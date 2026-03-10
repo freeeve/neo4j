@@ -1475,7 +1475,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.valueType, valueType)
                         .withParam(GqlParams.StringParam.lower, min)
                         .withParam(GqlParams.StringParam.upper, max)
-                        .withParam(GqlParams.StringParam.value, String.valueOf(value))
+                        .withParam(GqlParams.StringParam.value, value)
                         .build())
                 .build();
         return new InvalidArgumentException(

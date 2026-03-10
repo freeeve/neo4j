@@ -30,7 +30,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecord;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
@@ -70,7 +70,7 @@ class IndexSettingValidators {
 
         protected IndexConfigValidationRecord extractOrDefault(SettingsAccessor accessor) {
             if (accessor.containsSetting(setting)) {
-                return new Pending(setting, accessor.get(setting));
+                return new Unprocessed(setting, accessor.get(setting));
             }
             if (createDefault == null) {
                 return new MissingSetting(setting);
@@ -135,21 +135,21 @@ class IndexSettingValidators {
         @Override
         public IndexConfigValidationRecord validate(SettingsAccessor accessor) {
             final IndexConfigValidationRecord record = extractOrDefault(accessor);
-            if (!(record instanceof final Pending pending)) {
+            if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
 
-            final AnyValue rawValue = pending.rawValue();
+            final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, booleans);
+                return new InvalidValue(unprocessed, null, booleans);
             }
             if (!(rawValue instanceof final BooleanValue booleanValue)) {
-                return new IncorrectType(pending, BooleanValue.class);
+                return new IncorrectType(unprocessed, BooleanValue.class);
             }
 
             final Boolean quantization = map(booleanValue);
             return quantization == null
-                    ? new InvalidValue(pending, booleans)
+                    ? new InvalidValue(unprocessed, null, booleans)
                     : new Valid(setting, quantization, map(quantization));
         }
     }
@@ -176,22 +176,22 @@ class IndexSettingValidators {
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
             final IndexConfigValidationRecord record = extractOrDefault(accessor);
-            if (!(record instanceof final Pending pending)) {
+            if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
 
-            final AnyValue rawValue = pending.rawValue();
+            final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, supportedRange);
+                return new InvalidValue(unprocessed, null, supportedRange);
             }
             if (!(rawValue instanceof final IntegralValue integralValue)) {
-                return new IncorrectType(pending, IntegralValue.class);
+                return new IncorrectType(unprocessed, IntegralValue.class);
             }
 
             final Integer value = map(integralValue);
             return supportedRange.contains(value)
                     ? new Valid(setting, value, map(value))
-                    : new InvalidValue(pending, value, supportedRange);
+                    : new InvalidValue(unprocessed, value, supportedRange);
         }
     }
 
@@ -219,23 +219,23 @@ class IndexSettingValidators {
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
             final IndexConfigValidationRecord record = extractOrDefault(accessor);
-            if (!(record instanceof final Pending pending)) {
+            if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
 
-            final AnyValue rawValue = pending.rawValue();
+            final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, supportedRange);
+                return new InvalidValue(unprocessed, null, supportedRange);
             }
             if (!(rawValue instanceof final IntegralValue integralValue)) {
-                return new IncorrectType(pending, IntegralValue.class);
+                return new IncorrectType(unprocessed, IntegralValue.class);
             }
 
             final OptionalInt dimensions = map(integralValue);
             return supportedRange.contains(dimensions.orElseThrow(() ->
                             new IllegalStateException("'%s' should not be empty at this point.".formatted(setting))))
                     ? new Valid(setting, dimensions, map(dimensions))
-                    : new InvalidValue(pending, dimensions, supportedRange);
+                    : new InvalidValue(unprocessed, dimensions, supportedRange);
         }
     }
 
@@ -267,20 +267,22 @@ class IndexSettingValidators {
         @Override
         IndexConfigValidationRecord validate(SettingsAccessor accessor) {
             final IndexConfigValidationRecord record = extractOrDefault(accessor);
-            if (!(record instanceof final Pending pending)) {
+            if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
 
-            final AnyValue rawValue = pending.rawValue();
+            final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(pending, null, lookup.keySet());
+                return new InvalidValue(unprocessed, null, lookup.keySet());
             }
             if (!(rawValue instanceof final TextValue textValue)) {
-                return new IncorrectType(pending, TextValue.class);
+                return new IncorrectType(unprocessed, TextValue.class);
             }
 
             final TYPE type = map(textValue);
-            return type == null ? new InvalidValue(pending, lookup.keySet()) : new Valid(setting, type, map(type));
+            return type == null
+                    ? new InvalidValue(unprocessed, textValue, lookup.keySet())
+                    : new Valid(setting, type, map(type));
         }
     }
 }

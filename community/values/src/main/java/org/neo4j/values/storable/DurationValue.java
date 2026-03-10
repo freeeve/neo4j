@@ -76,7 +76,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
 
     public static final DurationValue MIN_VALUE = duration(0, 0, Long.MIN_VALUE, 0);
     public static final DurationValue MAX_VALUE = duration(0, 0, Long.MAX_VALUE, 999_999_999);
-    private static final String cypherTypeName = "DURATION";
+    public static final String CYPHER_TYPE_NAME = "DURATION";
 
     public static final DurationValue ZERO = new DurationValue(0, 0, 0, 0);
     private static final List<TemporalUnit> UNITS = List.of(MONTHS, DAYS, SECONDS, NANOS);
@@ -884,7 +884,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
 
         public void hasSeen(int token) {
             if (seenElements[token]) {
-                throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+                throw TemporalParseException.mismatchedPattern(pattern, input, CYPHER_TYPE_NAME);
             }
         }
 
@@ -892,7 +892,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
             try {
                 values[token] = Long.parseLong(value);
             } catch (NumberFormatException e) {
-                throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+                throw TemporalParseException.mismatchedPattern(pattern, input, CYPHER_TYPE_NAME);
             }
         }
 
@@ -901,7 +901,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
                 if (last) {
                     return '!';
                 } else {
-                    throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+                    throw TemporalParseException.mismatchedPattern(pattern, input, CYPHER_TYPE_NAME);
                 }
             }
             return input.charAt(inputIndex + length + 1);
@@ -1001,7 +1001,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         }
 
         if (ctx.inputIndex + 1 < input.length()) {
-            throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern, input, CYPHER_TYPE_NAME);
         }
 
         return ctx.getDuration();

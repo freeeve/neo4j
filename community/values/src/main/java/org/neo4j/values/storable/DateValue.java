@@ -56,7 +56,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     public static final DateValue MIN_VALUE = new DateValue(LocalDate.MIN);
     public static final DateValue MAX_VALUE = new DateValue(LocalDate.MAX);
-    public static final String cypherTypeName = "DATE";
+    public static final String CYPHER_TYPE_NAME = "DATE";
 
     private final LocalDate value;
 
@@ -110,7 +110,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
             LocalDate ld = dtf.parse(text.stringValue(), LocalDate::from);
             return new DateValue(ld);
         } catch (IllegalArgumentException | DateTimeParseException e) {
-            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), CYPHER_TYPE_NAME);
         }
     }
 
@@ -188,7 +188,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     @Override
     public String getTemporalCypherTypeName() {
-        return cypherTypeName;
+        return CYPHER_TYPE_NAME;
     }
 
     @Override

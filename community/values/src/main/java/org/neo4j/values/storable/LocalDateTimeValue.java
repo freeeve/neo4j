@@ -64,7 +64,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     public static final LocalDateTimeValue MIN_VALUE = new LocalDateTimeValue(LocalDateTime.MIN);
     public static final LocalDateTimeValue MAX_VALUE = new LocalDateTimeValue(LocalDateTime.MAX);
-    private static final String cypherTypeName = "LOCAL DATETIME";
+    public static final String CYPHER_TYPE_NAME = "LOCAL DATETIME";
 
     private final LocalDateTime value;
     private final long epochSecondsInUTC;
@@ -119,7 +119,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
                 default -> throw new IllegalStateException("Unexpected value: " + parsed);
             }
         } catch (IllegalArgumentException | DateTimeParseException e) {
-            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), CYPHER_TYPE_NAME);
         }
     }
 
@@ -286,7 +286,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     @Override
     public String getTemporalCypherTypeName() {
-        return cypherTypeName;
+        return CYPHER_TYPE_NAME;
     }
 
     @Override

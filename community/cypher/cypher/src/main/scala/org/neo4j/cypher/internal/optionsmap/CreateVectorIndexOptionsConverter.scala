@@ -42,10 +42,14 @@ import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.IntegralValue
 import org.neo4j.values.storable.TextValue
+import org.neo4j.values.storable.Values
 import org.neo4j.values.utils.PrettyPrinter
+import org.neo4j.values.utils.PrettyPrinter.stringify
+import org.neo4j.values.utils.ValueTypeNames.nameOfType
 import org.neo4j.values.virtual.MapValue
 
 import java.lang
+import java.util.OptionalInt
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -112,39 +116,38 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
     }
 
     def assertConfigSettingsCorrectTypes(validationRecords: IndexConfigValidationRecords, itemsMap: MapValue): Unit = {
-      val validTypes: Map[Class[_], String] =
+      val legacyExceptionValidTypes: Map[Class[_], String] =
         Map(
           classOf[IntegralValue] -> "an Integer",
           classOf[TextValue] -> "a String",
           classOf[BooleanValue] -> "a Boolean"
         )
-      val validCypherTypes: Map[Class[_], String] =
-        Map(
-          classOf[IntegralValue] -> "INTEGER",
-          classOf[TextValue] -> "STRING",
-          classOf[BooleanValue] -> "BOOLEAN"
-        )
 
       validationRecords.get(INCORRECT_TYPE).asScala.foreach {
         // valid type for vector index config, *but* invalid for that setting
-        case incorrectType: IncorrectType if validTypes.exists { case (cls, _) =>
+        case incorrectType: IncorrectType if legacyExceptionValidTypes.exists { case (cls, _) =>
             cls.isAssignableFrom(incorrectType.providedType)
           } =>
           throw InvalidArgumentsException.invalidVectorIndexConfigSetting(
             schemaType,
             incorrectType.settingName,
-            String.valueOf(incorrectType.providedTypeString),
-            validTypes(incorrectType.targetType),
-            validCypherTypes(incorrectType.targetType())
+            stringify(incorrectType.value),
+            legacyExceptionValidTypes(incorrectType.targetType),
+            nameOfType(incorrectType.targetType)
           )
         // invalid type for valid type for vector index config
         case _ => throw InvalidArgumentsException.invalidVectorIndexConfig(schemaType, itemsMap)
       }
     }
 
-    def assertValidConfigValues(pp: PrettyPrinter, validationRecords: IndexConfigValidationRecords): Unit = {
+    def assertValidConfigValues(validationRecords: IndexConfigValidationRecords): Unit = {
       validationRecords.get(INVALID_VALUE).asScala.map(_.asInstanceOf[InvalidValue]).foreach {
         invalidValue =>
+          val value = invalidValue.value match {
+            case maybeInt: OptionalInt if maybeInt.isEmpty => Values.NO_VALUE
+            case maybeInt: OptionalInt                     => maybeInt.getAsInt
+            case value                                     => value
+          }
           val valid = invalidValue.valid
           valid match {
             case range: InclusiveRange[_] => throw InvalidArgumentsException.indexSettingOutOfRange(
@@ -154,8 +157,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
                 "INTEGER NOT NULL",
                 range.min.toString,
                 range.max.toString,
-                pp,
-                invalidValue.rawValue()
+                value
               )
             case _: lang.Iterable[_] | _: PrimitiveIterable =>
               val supported: List[String] = valid match {
@@ -168,8 +170,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
               throw InvalidArgumentsException.invalidIndexSettingValue(
                 invalidValue.settingName,
                 supported.asJava,
-                pp,
-                invalidValue.rawValue()
+                value
               )
             case unknown => throw InternalException.internalError(
                 this.getClass.getSimpleName,
@@ -196,7 +197,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         )
         assertMandatoryConfigSettingsExists(validationRecords)
         assertConfigSettingsCorrectTypes(validationRecords, itemsMap)
-        assertValidConfigValues(new PrettyPrinter(), validationRecords)
+        assertValidConfigValues(validationRecords)
         validator.trustIsValidToVectorIndexConfig(validationRecords).config
       case unknown =>
         throw InvalidArgumentsException.invalidVectorIndexConfig(schemaType, unknown)

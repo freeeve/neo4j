@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Float32Vector;
@@ -87,6 +88,10 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
         this.counter = new Counter(maxLength);
         this.builder = new StringBuilder(64);
         this.stack.push(new ValueWriter(builder, quoteMark, counter));
+    }
+
+    public static String stringify(Object value) {
+        return value instanceof final AnyValue anyValue ? anyValue.prettify() : String.valueOf(value);
     }
 
     public void reset() {

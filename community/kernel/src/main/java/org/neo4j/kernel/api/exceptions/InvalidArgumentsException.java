@@ -24,6 +24,7 @@ import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
 import static org.neo4j.gqlstatus.GqlHelper.maybeInvalidParameter;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.databasesAlreadyExists;
+import static org.neo4j.values.utils.PrettyPrinter.stringify;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -316,12 +317,12 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException invalidVectorIndexConfigSetting(
-            String schemaType, String settingName, String providedType, String validTypes, String validCypherTypes) {
+            String schemaType, String settingName, String providedValue, String validTypes, String validCypherTypes) {
         var oldMsg = String.format(
                 "Could not create %s with specified index config '%s'. Expected %s.",
                 schemaType, settingName, validTypes);
         var gql = getGql22G03_22N27(
-                providedType, GqlParams.StringParam.cmd.process(settingName), List.of(validCypherTypes));
+                providedValue, GqlParams.StringParam.cmd.process(settingName), List.of(validCypherTypes));
         return new InvalidArgumentsException(gql, oldMsg);
     }
 
@@ -396,23 +397,15 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException indexSettingOutOfRange(
-            String settingName,
-            String expectedType,
-            String minValue,
-            String maxValue,
-            PrettyPrinter pp,
-            AnyValue given) {
-        given.writeTo(pp);
-        var gql = GqlHelper.getGql22003_22N03(settingName, expectedType, minValue, maxValue, pp.value());
-
+            String settingName, String expectedType, String minValue, String maxValue, Object given) {
+        var gql = GqlHelper.getGql22003_22N03(settingName, expectedType, minValue, maxValue, stringify(given));
         return new InvalidArgumentsException(
                 gql, String.format("'%s' must be between %s and %s inclusively", settingName, minValue, maxValue));
     }
 
     public static InvalidArgumentsException invalidIndexSettingValue(
-            String settingName, java.util.List<String> validTypes, PrettyPrinter pp, AnyValue given) {
-        given.writeTo(pp);
-        String givenString = pp.value();
+            String settingName, List<String> validTypes, Object given) {
+        String givenString = stringify(given);
         var supported = "";
         if (!validTypes.isEmpty()) {
             var sb = new StringBuilder();
@@ -424,7 +417,6 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         }
 
         var gql = GqlHelper.getGql42001_22N04(givenString, settingName, validTypes);
-
         return new InvalidArgumentsException(
                 gql,
                 String.format("'%s' is an unsupported '%s'. Supported: [%s]", givenString, settingName, supported));

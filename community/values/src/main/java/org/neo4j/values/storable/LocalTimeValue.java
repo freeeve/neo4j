@@ -52,7 +52,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     public static final LocalTimeValue MIN_VALUE = new LocalTimeValue(LocalTime.MIN);
     public static final LocalTimeValue MAX_VALUE = new LocalTimeValue(LocalTime.MAX);
-    private static final String cypherTypeName = "LOCAL TIME";
+    public static final String CYPHER_TYPE_NAME = "LOCAL TIME";
 
     private final LocalTime value;
 
@@ -91,7 +91,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
             LocalTime lt = dtf.parse(text.stringValue(), LocalTime::from);
             return new LocalTimeValue(lt);
         } catch (IllegalArgumentException | DateTimeParseException e) {
-            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), CYPHER_TYPE_NAME);
         }
     }
 
@@ -193,7 +193,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     public String getTemporalCypherTypeName() {
-        return cypherTypeName;
+        return CYPHER_TYPE_NAME;
     }
 
     @Override

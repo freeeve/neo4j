@@ -74,7 +74,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
             new DateTimeValue(ZonedDateTime.of(LocalDateTime.MIN, ZoneOffset.MIN));
     public static final DateTimeValue MAX_VALUE =
             new DateTimeValue(ZonedDateTime.of(LocalDateTime.MAX, ZoneOffset.MAX));
-    private static final String cypherTypeName = "ZONED DATETIME";
+    public static final String CYPHER_TYPE_NAME = "ZONED DATETIME";
 
     private final ZonedDateTime value;
     private final long epochSeconds;
@@ -188,7 +188,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                 default -> throw new IllegalStateException("Unexpected value: " + parsed);
             }
         } catch (IllegalArgumentException | DateTimeParseException e) {
-            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), CYPHER_TYPE_NAME);
         }
     }
 
@@ -533,7 +533,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
 
     @Override
     public String getTemporalCypherTypeName() {
-        return cypherTypeName;
+        return CYPHER_TYPE_NAME;
     }
 
     @Override

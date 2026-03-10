@@ -20,7 +20,7 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
-import static org.neo4j.kernel.api.impl.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
+import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.assertValidRecords;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toIndexConfig;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toValidSettings;
