@@ -447,6 +447,46 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SHOW_CURRENT_GRAPH_TYPE) should be(1)
   }
 
+  testVersionsExcept5("should find CREATE AUTH RULE command") { version =>
+    val stats = runPipeline(
+      version,
+      "CREATE AUTH RULE rule SET CONDITION abac.oidc.user_attribute('country') = 'SE'"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.CREATE_AUTH_RULE) should be(1)
+  }
+
+  testVersionsExcept5("should find RENAME AUTH RULE command") { version =>
+    val stats = runPipeline(
+      version,
+      "RENAME AUTH RULE authRule TO authRule2"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.RENAME_AUTH_RULE) should be(1)
+  }
+
+  testVersionsExcept5("should find ALTER AUTH RULE command") { version =>
+    val stats = runPipeline(
+      version,
+      "ALTER AUTH RULE rule SET CONDITION abac.oidc.user_attribute('country') = 'SE'"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ALTER_AUTH_RULE) should be(1)
+  }
+
+  testVersionsExcept5("should find DROP AUTH RULE command") { version =>
+    val stats = runPipeline(
+      version,
+      "DROP AUTH RULE rule"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.DROP_AUTH_RULE) should be(1)
+  }
+
+  testVersionsExcept5("should find SHOW AUTH RULE command") { version =>
+    val stats = runPipeline(
+      version,
+      "SHOW AUTH RULES"
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SHOW_AUTH_RULES) should be(1)
+  }
+
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version, query = query) {

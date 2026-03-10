@@ -16,18 +16,23 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
+import org.neo4j.cypher.internal.ast.AlterAuthRule
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
+import org.neo4j.cypher.internal.ast.CreateAuthRule
+import org.neo4j.cypher.internal.ast.DropAuthRule
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
 import org.neo4j.cypher.internal.ast.ParsedAsLet
+import org.neo4j.cypher.internal.ast.RenameAuthRule
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Search
+import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
@@ -122,6 +127,16 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.ALTER_CURRENT_GRAPH_TYPE)
       case _: ShowCurrentGraphTypeClause =>
         increaseMetric(SyntaxUsageMetricKey.SHOW_CURRENT_GRAPH_TYPE)
+      case _: CreateAuthRule =>
+        increaseMetric(SyntaxUsageMetricKey.CREATE_AUTH_RULE)
+      case _: RenameAuthRule =>
+        increaseMetric(SyntaxUsageMetricKey.RENAME_AUTH_RULE)
+      case _: AlterAuthRule =>
+        increaseMetric(SyntaxUsageMetricKey.ALTER_AUTH_RULE)
+      case _: DropAuthRule =>
+        increaseMetric(SyntaxUsageMetricKey.DROP_AUTH_RULE)
+      case _: ShowAuthRules =>
+        increaseMetric(SyntaxUsageMetricKey.SHOW_AUTH_RULES)
     }
 
     if (isLoadCsvQuery) {
