@@ -28,13 +28,14 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIM
 import java.util.Collections;
 import java.util.Objects;
 import java.util.OptionalInt;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfig;
+import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.TypedIndexConfig;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 
-public class VectorIndexConfig extends IndexConfigValidationWrapper {
+public class VectorIndexConfig extends TypedIndexConfig {
     public static final VectorIndexConfig EMPTY = new VectorIndexConfig();
 
     private final VectorIndexVersion version;
@@ -43,13 +44,8 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     private final VectorQuantizationType quantization;
     private final HnswConfig hnswConfig;
 
-    VectorIndexConfig(
-            VectorIndexVersion version,
-            IndexConfig config,
-            SortedMap<IndexSetting, Object> settings,
-            SortedSet<String> validSettingNames,
-            SortedSet<String> possibleValidSettingNames) {
-        super(version.descriptor(), config, settings, validSettingNames, possibleValidSettingNames);
+    VectorIndexConfig(VectorIndexVersion version, Set<IndexSetting> acceptedSettings, Iterable<Valid> records) {
+        super(version.descriptor(), acceptedSettings, records);
         this.version = version;
         this.dimensions = get(DIMENSIONS);
         this.similarityFunction = get(SIMILARITY_FUNCTION);
@@ -59,12 +55,7 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     }
 
     private VectorIndexConfig() {
-        super(
-                VectorIndexVersion.UNKNOWN.descriptor(),
-                IndexConfig.empty(),
-                Collections.emptySortedMap(),
-                Collections.emptySortedSet(),
-                Collections.emptySortedSet());
+        super(VectorIndexVersion.UNKNOWN.descriptor(), Collections.emptySet(), Iterables.empty());
         this.version = VectorIndexVersion.UNKNOWN;
         this.dimensions = OptionalInt.empty();
         this.similarityFunction = null;
@@ -102,11 +93,11 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (!(o instanceof VectorIndexConfig that)) {
+        if (!(obj instanceof VectorIndexConfig that)) {
             return false;
         }
         return Objects.equals(this.dimensions, that.dimensions)

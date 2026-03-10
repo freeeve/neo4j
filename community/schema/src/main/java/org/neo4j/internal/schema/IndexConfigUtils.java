@@ -21,7 +21,11 @@ package org.neo4j.internal.schema;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 
 public class IndexConfigUtils {
@@ -41,5 +45,13 @@ public class IndexConfigUtils {
         default String settingName() {
             return setting().getSettingName();
         }
+    }
+
+    public static InvalidArgumentException unrecognizedSetting(String settingName, Set<IndexSetting> settings) {
+        final List<String> settingNames = new ArrayList<>(settings.size());
+        for (final IndexSetting setting : settings) {
+            settingNames.addLast(setting.getSettingName());
+        }
+        return InvalidArgumentException.invalidIndexConfig(settingName, settingNames);
     }
 }

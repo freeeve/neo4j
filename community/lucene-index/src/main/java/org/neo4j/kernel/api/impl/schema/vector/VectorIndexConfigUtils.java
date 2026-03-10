@@ -19,37 +19,30 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
-import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
+import static org.neo4j.internal.schema.IndexConfigUtils.unrecognizedSetting;
 import static org.neo4j.internal.schema.IndexConfigValidationRecord.State.VALID;
 import static org.neo4j.internal.schema.InternalIndexSetting.VECTOR_QUANTIZATION_TYPE;
-import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.utils.PrettyPrinter.stringify;
 import static org.neo4j.values.utils.ValueTypeNames.nameOfType;
 
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Predicate;
 import org.eclipse.collections.api.PrimitiveIterable;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
-import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexConfigValidationRecord;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.values.storable.Value;
 
 public class VectorIndexConfigUtils {
     static final IndexSetting DIMENSIONS = IndexSetting.vector_Dimensions();
@@ -74,49 +67,10 @@ public class VectorIndexConfigUtils {
         INDEX_SETTING_INTRODUCED_VERSIONS = Collections.unmodifiableSortedMap(indexSettingIntroducedVersions);
     }
 
-    static SortedMap<IndexSetting, Object> toValidSettings(Iterable<Valid> validRecords) {
-        final TreeMap<IndexSetting, Object> validSettings =
-                new TreeMap<>(Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER));
-        for (final Valid valid : validRecords) {
-            validSettings.put(valid.setting(), valid.value());
-        }
-        return validSettings;
-    }
-
-    static IndexConfig toIndexConfig(Iterable<Valid> validRecords) {
-        return toIndexConfig(validRecords, valid -> true);
-    }
-
-    static IndexConfig toIndexConfig(Iterable<Valid> validRecords, Iterable<String> validSettingNames) {
-        return toIndexConfig(validRecords, containsSettingNamePredicate(validSettingNames));
-    }
-
-    private static <RECORD extends IndexConfigValidationRecord> Predicate<RECORD> containsSettingNamePredicate(
-            Iterable<String> settingNames) {
-        return record -> {
-            for (final String settingName : settingNames) {
-                if (record.settingName().equals(settingName)) {
-                    return true;
-                }
-            }
-            return false;
-        };
-    }
-
-    static IndexConfig toIndexConfig(Iterable<Valid> validRecords, Predicate<Valid> filter) {
-        final Map<String, Value> settings = new HashMap<>();
-        for (final Valid valid : validRecords) {
-            if (filter.test(valid) && valid.storable() != null && valid.storable() != NO_VALUE) {
-                settings.put(valid.settingName(), valid.storable());
-            }
-        }
-        return IndexConfig.with(settings);
-    }
-
     static void assertValidRecords(
             IndexConfigValidationRecords validationRecords,
             IndexProviderDescriptor descriptor,
-            Iterable<String> validSettingNames) {
+            Set<IndexSetting> acceptedSettings) {
         // fail on first
         final IndexConfigValidationRecord invalidRecord = validationRecords.getFirstInvalidRecordOrNull();
         if (invalidRecord == null) {
@@ -140,7 +94,7 @@ public class VectorIndexConfigUtils {
                         descriptor.name(), "Validation for '%s' is incomplete.".formatted(settingName));
 
             // these are likely user mistakes
-            case UNRECOGNIZED_SETTING -> unrecognizedSetting(invalidRecord.settingName(), validSettingNames);
+            case UNRECOGNIZED_SETTING -> unrecognizedSetting(invalidRecord.settingName(), acceptedSettings);
             case MISSING_SETTING -> InvalidArgumentException.missingIndexConfig(settingName);
             case INCORRECT_TYPE -> {
                 final var incorrectType = (IncorrectType) invalidRecord;

@@ -31,6 +31,12 @@ public class IndexSettingTestUtils {
         }
     };
 
+    public enum Lookup {
+        FOO,
+        BAR,
+        BAZ
+    }
+
     public enum TestIndexSetting implements IndexSetting {
         OBJECT(Object.class),
         BOOLEAN(Boolean.class),

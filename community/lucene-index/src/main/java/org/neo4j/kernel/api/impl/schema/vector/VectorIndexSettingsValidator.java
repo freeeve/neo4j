@@ -22,8 +22,6 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.assertValidRecords;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toIndexConfig;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.toValidSettings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +33,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
@@ -49,11 +48,10 @@ public interface VectorIndexSettingsValidator {
     IndexConfigValidationRecords validate(SettingsAccessor settings);
 
     default VectorIndexConfig validateToVectorIndexConfig(SettingsAccessor settings) {
-        return validateToVectorIndexConfig(settings, validate(settings));
+        return validateToVectorIndexConfig(validate(settings));
     }
 
-    VectorIndexConfig validateToVectorIndexConfig(
-            SettingsAccessor settings, IndexConfigValidationRecords validationRecords);
+    VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords);
 
     VectorIndexConfig trustIsValidToVectorIndexConfig(SettingsAccessor settings);
 
@@ -64,8 +62,7 @@ public interface VectorIndexSettingsValidator {
     class Validators implements VectorIndexSettingsValidator {
         private final VectorIndexVersion version;
         private final SortedSet<IndexSettingValidator<? extends Value, ?>> validators;
-        private final SortedSet<IndexSetting> validSettings;
-        private final SortedSet<String> validSettingNames;
+        private final SortedSet<IndexSetting> acceptedSettings;
         private final SortedSet<String> handledSettingNames;
 
         @SafeVarargs
@@ -106,22 +103,25 @@ public interface VectorIndexSettingsValidator {
                 }
             }
 
-            final SortedSet<IndexSetting> validSettings = new TreeSet<>(INDEX_SETTING_COMPARATOR);
-            final SortedSet<String> validSettingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
+            final SortedSet<IndexSetting> acceptedSettings = new TreeSet<>(INDEX_SETTING_COMPARATOR);
             for (final IndexSetting setting : handledSettings) {
                 if (!readDefaultOnlySettings.contains(setting)) {
-                    validSettings.add(setting);
-                    validSettingNames.add(setting.getSettingName());
+                    acceptedSettings.add(setting);
                 }
             }
-            this.validSettings = Collections.unmodifiableSortedSet(validSettings);
-            this.validSettingNames = Collections.unmodifiableSortedSet(validSettingNames);
+            this.acceptedSettings = Collections.unmodifiableSortedSet(acceptedSettings);
         }
 
         @Override
         public IndexConfigValidationRecords validate(SettingsAccessor settings) {
-            final MutableIndexConfigValidationRecords validationRecords =
-                    IndexConfigValidationWrapper.validateSettingNames(settings.settingNames(), handledSettingNames);
+            Set<String> settingNames = settings.settingNames();
+            final MutableIndexConfigValidationRecords validationRecords = new MutableIndexConfigValidationRecords();
+            for (final String settingName : settingNames) {
+                if (!handledSettingNames.contains(settingName)) {
+                    validationRecords.with(new UnrecognizedSetting(settingName));
+                }
+            }
+
             for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
                 validationRecords.with(validator.validate(settings));
             }
@@ -129,16 +129,10 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public VectorIndexConfig validateToVectorIndexConfig(
-                SettingsAccessor settings, IndexConfigValidationRecords validationRecords) {
-            assertValidRecords(validationRecords, version.descriptor(), validSettingNames);
+        public VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
+            assertValidRecords(validationRecords, version.descriptor(), acceptedSettings);
             final Iterable<Valid> validRecords = validationRecords.validRecords();
-            return new VectorIndexConfig(
-                    version,
-                    toIndexConfig(validRecords, validSettingNames),
-                    toValidSettings(validRecords),
-                    validSettingNames,
-                    handledSettingNames);
+            return new VectorIndexConfig(version, acceptedSettings, validRecords);
         }
 
         @Override
@@ -147,28 +141,18 @@ public interface VectorIndexSettingsValidator {
             for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
                 validRecords.add(validator.trustIsValid(settings));
             }
-            return new VectorIndexConfig(
-                    version,
-                    toIndexConfig(validRecords),
-                    toValidSettings(validRecords),
-                    validSettingNames,
-                    handledSettingNames);
+            return new VectorIndexConfig(version, acceptedSettings, validRecords);
         }
 
         @Override
         public VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
-            final var validRecords = validationRecords.validRecords();
-            return new VectorIndexConfig(
-                    version,
-                    toIndexConfig(validRecords),
-                    toValidSettings(validRecords),
-                    validSettingNames,
-                    handledSettingNames);
+            final Iterable<Valid> records = validationRecords.validRecords();
+            return new VectorIndexConfig(version, acceptedSettings, records);
         }
 
         @Override
         public Set<IndexSetting> validSettings() {
-            return validSettings;
+            return acceptedSettings;
         }
     }
 
@@ -190,8 +174,7 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public VectorIndexConfig validateToVectorIndexConfig(
-                SettingsAccessor settings, IndexConfigValidationRecords validationRecords) {
+        public VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
             throw exception;
         }
 

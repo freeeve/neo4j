@@ -55,14 +55,14 @@ public class VectorIndexUnknownConfigValidationTest {
                         "not found for",
                         version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
                         version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
@@ -102,7 +102,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         "on",
                         kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
@@ -111,7 +111,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         "on",
                         kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
@@ -155,7 +155,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         "on",
                         kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
@@ -164,7 +164,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         "on",
                         kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
+        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
