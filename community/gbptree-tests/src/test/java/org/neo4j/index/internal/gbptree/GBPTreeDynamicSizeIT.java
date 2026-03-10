@@ -19,6 +19,14 @@
  */
 package org.neo4j.index.internal.gbptree;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheckStrict;
+import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
+
+import java.util.Arrays;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.test.RandomSupport;
 
 public class GBPTreeDynamicSizeIT extends GBPTreeITBase<RawBytes, RawBytes> {
@@ -31,5 +39,61 @@ public class GBPTreeDynamicSizeIT extends GBPTreeITBase<RawBytes, RawBytes> {
     @Override
     Class<RawBytes> getKeyClass() {
         return RawBytes.class;
+    }
+
+    @EnumSource(WriterFactory.class)
+    @ParameterizedTest
+    void shouldValidateSizeAfterMerge(WriterFactory writerFactory) throws Exception {
+        try (var writer = createWriter(index, writerFactory)) {
+            writer.put(key(1), value(1));
+        }
+
+        int targetSize = DynamicSizeUtil.keyValueSizeCapFromPageSize(payloadSize) + 1;
+
+        byte[] expected = random.nextBytes(targetSize);
+
+        try (var writer = createWriter(index, writerFactory)) {
+            assertThatThrownBy(() -> writer.merge(key(1), value(2), ((existingKey, newKey, existingValue, newValue) -> {
+                        existingValue.bytes = Arrays.copyOf(expected, expected.length);
+                        return ValueMerger.MergeResult.MERGED;
+                    })))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Index key-value size it too large");
+        }
+
+        try (var seek = index.seek(key(1), key(1), NULL_CONTEXT)) {
+            assertTrue(seek.next());
+            assertEqualsValue(value(1), seek.value());
+        }
+
+        consistencyCheckStrict(index);
+    }
+
+    @EnumSource(WriterFactory.class)
+    @ParameterizedTest
+    void shouldValidateSizeAfterReplace(WriterFactory writerFactory) throws Exception {
+        try (var writer = createWriter(index, writerFactory)) {
+            writer.put(key(1), value(1));
+        }
+
+        int targetSize = DynamicSizeUtil.keyValueSizeCapFromPageSize(payloadSize) + 1;
+
+        byte[] expected = random.nextBytes(targetSize);
+
+        try (var writer = createWriter(index, writerFactory)) {
+            assertThatThrownBy(() -> writer.merge(key(1), value(2), ((existingKey, newKey, existingValue, newValue) -> {
+                        newValue.bytes = Arrays.copyOf(expected, expected.length);
+                        return ValueMerger.MergeResult.REPLACED;
+                    })))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Index key-value size it too large");
+        }
+
+        try (var seek = index.seek(key(1), key(1), NULL_CONTEXT)) {
+            assertTrue(seek.next());
+            assertEqualsValue(value(1), seek.value());
+        }
+
+        consistencyCheckStrict(index);
     }
 }

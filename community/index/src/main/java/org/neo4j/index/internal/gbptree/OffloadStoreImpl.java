@@ -155,6 +155,7 @@ public class OffloadStoreImpl<KEY, VALUE> implements OffloadStore<KEY, VALUE> {
             cursor.setOffset(SIZE_HEADER);
             putKeyValueSize(cursor, keySize, 0);
             layout.writeKey(cursor, key);
+            PointerChecking.checkOutOfBounds(cursor);
             return newId;
         }
     }
@@ -174,6 +175,7 @@ public class OffloadStoreImpl<KEY, VALUE> implements OffloadStore<KEY, VALUE> {
             putKeyValueSize(cursor, keySize, valueSize);
             layout.writeKey(cursor, key);
             layout.writeValue(cursor, value);
+            PointerChecking.checkOutOfBounds(cursor);
             return newId;
         }
     }

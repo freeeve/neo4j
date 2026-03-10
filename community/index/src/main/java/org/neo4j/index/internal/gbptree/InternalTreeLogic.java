@@ -36,6 +36,9 @@ import static org.neo4j.index.internal.gbptree.StructurePropagation.UPDATE_RIGHT
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.generation;
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.isInternal;
 import static org.neo4j.index.internal.gbptree.TreeNodeUtil.keyCount;
+import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.MERGED;
+import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.REPLACED;
+import static org.neo4j.index.internal.gbptree.ValueMerger.MergeResult.UNCHANGED;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -376,7 +379,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
     private void ensureNodeIsTreeNode(PageCursor cursor, KEY key) {
         if (TreeNodeUtil.nodeType(cursor) != TreeNodeUtil.NODE_TYPE_TREE_NODE) {
             throw new TreeInconsistencyException(
-                    "Index update aborted due to finding tree node that doesn't have correct type (pageId: %d, type: %d), when moving cursor towards "
+                    "Index update aborted due to finding tree node that doesn't have correct type (pageId: %d, type:"
+                            + " %d), when moving cursor towards "
                             + key + ". This is most likely caused by an inconsistency in the index. ",
                     cursor.getCurrentPageId(),
                     TreeNodeUtil.nodeType(cursor));
@@ -386,7 +390,8 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
     private void ensureTreeNodeIsLeaf(PageCursor cursor, KEY key) {
         if (!TreeNodeUtil.isLeaf(cursor)) {
             throw new TreeInconsistencyException(
-                    "Index update aborted due to ending up on a tree node which isn't a leaf after moving cursor towards "
+                    "Index update aborted due to ending up on a tree node which isn't a leaf after moving cursor"
+                            + " towards "
                             + key + ", cursor is at pageId " + cursor.getCurrentPageId()
                             + ". This is most likely caused by an inconsistency in the index.");
         }
@@ -730,26 +735,15 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         // This key already exists, what shall we do? ask the valueMerger
         leafNode.valueAt(cursor, readValue, pos, cursorContext);
         int totalSpaceBefore = leafNode.totalSpaceOfKeyValue(key, readValue.value);
-        var mergeResult = ValueMerger.MergeResult.REPLACED;
-        if (!readValue.deleted) {
-            mergeResult = valueMerger.merge(readKey, key, readValue.value, value);
-            if (mergeResult == ValueMerger.MergeResult.UNCHANGED) {
-                return true;
-            }
-        } else if (!createIfNotExists) {
-            // multiversion tree could observe key with undefined value, it shouldn't create new value if it's not
-            // requested in this case
+        var mergeResult = mergeAndValidateNewValue(valueMerger, key, value, readKey, readValue, createIfNotExists);
+        if (mergeResult == UNCHANGED) {
             return true;
         }
 
-        // Check the value size diff with coordination because the size could be reduced and may cause underflow
-        int totalSpaceAfter =
-                switch (mergeResult) {
-                    case MERGED -> leafNode.totalSpaceOfKeyValue(key, readValue.value);
-                    case REPLACED -> leafNode.totalSpaceOfKeyValue(key, value);
-                    default -> 0;
-                };
+        var mergedValue = getMergedValue(mergeResult, readValue.value, value);
+        int totalSpaceAfter = totalSpaceAfterMerge(mergeResult, key, mergedValue);
 
+        // Check the value size diff with coordination because the size could be reduced and may cause underflow
         int valueShrinkSize = totalSpaceBefore - totalSpaceAfter;
         if (!coordination.beforeRemovalFromLeaf(valueShrinkSize)) {
             return false;
@@ -757,33 +751,105 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
 
         createSuccessorIfNeeded(
                 cursor, structurePropagation, UPDATE_MID_CHILD, stableGeneration, unstableGeneration, cursorContext);
-        if (mergeResult == ValueMerger.MergeResult.REPLACED || mergeResult == ValueMerger.MergeResult.MERGED) {
-            // First try to write the merged value right in there
-            var mergedValue = mergeResult == ValueMerger.MergeResult.REPLACED ? value : readValue.value;
-            return setValueAtWithFallback(
-                    cursor,
-                    pos,
-                    key,
-                    mergedValue,
-                    keyCount,
-                    structurePropagation,
-                    stableGeneration,
-                    unstableGeneration,
-                    cursorContext);
-        } else if (mergeResult == ValueMerger.MergeResult.REMOVED) {
-            // Remove this entry from the tree and possibly underflow while doing so
-            int newKeyCount = leafNode.removeKeyValueAt(
-                    cursor, pos, keyCount, stableGeneration, unstableGeneration, cursorContext);
-            TreeNodeUtil.setKeyCount(cursor, newKeyCount);
-            coordination.updateChildInformation(leafNode.availableSpace(cursor, newKeyCount), newKeyCount);
-            if (leafNode.underflow(cursor, newKeyCount)) {
-                underflowInLeaf(
-                        cursor, structurePropagation, newKeyCount, stableGeneration, unstableGeneration, cursorContext);
-            }
-        } else {
-            throw new UnsupportedOperationException("Unexpected merge result " + mergeResult);
+        return applyMerge(
+                cursor,
+                structurePropagation,
+                key,
+                pos,
+                keyCount,
+                stableGeneration,
+                unstableGeneration,
+                cursorContext,
+                mergeResult,
+                mergedValue);
+    }
+
+    private boolean applyMerge(
+            PageCursor cursor,
+            StructurePropagation<KEY> structurePropagation,
+            KEY key,
+            int pos,
+            int keyCount,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext,
+            ValueMerger.MergeResult mergeResult,
+            VALUE mergedValue)
+            throws IOException {
+        return switch (mergeResult) {
+            case REPLACED, MERGED ->
+                setValueAtWithFallback(
+                        cursor,
+                        pos,
+                        key,
+                        mergedValue,
+                        keyCount,
+                        structurePropagation,
+                        stableGeneration,
+                        unstableGeneration,
+                        cursorContext);
+            case REMOVED ->
+                removeAndUnderflow(
+                        cursor,
+                        structurePropagation,
+                        pos,
+                        keyCount,
+                        stableGeneration,
+                        unstableGeneration,
+                        cursorContext);
+            default -> throw new UnsupportedOperationException("Unexpected merge result " + mergeResult);
+        };
+    }
+
+    private boolean removeAndUnderflow(
+            PageCursor cursor,
+            StructurePropagation<KEY> structurePropagation,
+            int pos,
+            int keyCount,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext)
+            throws IOException {
+        // Remove this entry from the tree and possibly underflow while doing so
+        int newKeyCount =
+                leafNode.removeKeyValueAt(cursor, pos, keyCount, stableGeneration, unstableGeneration, cursorContext);
+        TreeNodeUtil.setKeyCount(cursor, newKeyCount);
+        coordination.updateChildInformation(leafNode.availableSpace(cursor, newKeyCount), newKeyCount);
+        if (leafNode.underflow(cursor, newKeyCount)) {
+            underflowInLeaf(
+                    cursor, structurePropagation, newKeyCount, stableGeneration, unstableGeneration, cursorContext);
         }
         return true;
+    }
+
+    private int totalSpaceAfterMerge(ValueMerger.MergeResult mergeResult, KEY key, VALUE mergedValue) {
+        return switch (mergeResult) {
+            case MERGED, REPLACED -> leafNode.totalSpaceOfKeyValue(key, mergedValue);
+            default -> 0;
+        };
+    }
+
+    private VALUE getMergedValue(ValueMerger.MergeResult mergeResult, VALUE existingValue, VALUE newValue) {
+        return mergeResult == REPLACED ? newValue : existingValue;
+    }
+
+    private ValueMerger.MergeResult mergeAndValidateNewValue(
+            ValueMerger<KEY, VALUE> valueMerger,
+            KEY newKey,
+            VALUE newValue,
+            KEY existingKey,
+            ValueHolder<VALUE> existingValue,
+            boolean createIfNotExists) {
+        if (existingValue.deleted) {
+            // multiversion tree could observe key with undefined value, it shouldn't create new value if it's not
+            // requested
+            return createIfNotExists ? REPLACED : UNCHANGED;
+        }
+        var result = valueMerger.merge(existingKey, newKey, existingValue.value, newValue);
+        if (result == MERGED || result == REPLACED) {
+            leafNode.validateKeyValueSize(existingKey, getMergedValue(result, existingValue.value, newValue));
+        }
+        return result;
     }
 
     private boolean setValueAtWithFallback(

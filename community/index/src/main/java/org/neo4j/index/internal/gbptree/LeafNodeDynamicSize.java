@@ -437,7 +437,8 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         int valueSize = layout.valueSize(value);
         if (keyValueSizeTooLarge(keySize, valueSize)) {
             throw new IllegalArgumentException(
-                    "Index key-value size it too large. Please see index documentation for limitations.");
+                    "Index key-value size it too large. Please see index documentation for limitations. Key size: "
+                            + keySize + ", value size: " + valueSize + ", cap: " + keyValueSizeCap);
         }
     }
 
