@@ -46,6 +46,7 @@ import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Exact
 import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
 import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
 import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
+import org.neo4j.cypher.cucumber.user.function.NodeHashFunction
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
@@ -141,6 +142,9 @@ final class RegularCypherSteps @Inject() (
         registeredProcedures =
           registeredProcedures ++ Seq(new QualifiedName("test", "seededRand"), new QualifiedName("test", "setSeed"))
         db.registerFunction(classOf[SeededRandFunction])
+      case "test.nodeHash" =>
+        registeredProcedures = registeredProcedures.appended(new QualifiedName("test", "nodeHash"))
+        db.registerFunction(classOf[NodeHashFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")
     }
