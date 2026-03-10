@@ -46,7 +46,7 @@ public class MetricsService extends AbstractReportingService {
             Config config,
             State state,
             Configuration configuration) {
-        super(transactor, upstream, state);
+        super(transactor, upstream, state, configuration);
 
         this.metricsCollection = new MetricsCollection(config, configuration);
         this.serverIdentity = serverIdentity;

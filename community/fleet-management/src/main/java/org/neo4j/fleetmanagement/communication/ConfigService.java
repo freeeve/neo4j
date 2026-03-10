@@ -46,7 +46,7 @@ public class ConfigService extends AbstractReportingService implements PropertyC
             Config config,
             State state,
             Configuration configuration) {
-        super(transactor, upstream, state);
+        super(transactor, upstream, state, configuration);
         this.neo4jConfigMapper = new Neo4jConfigMapper(config, configuration);
         this.transactor = transactor;
         this.serverIdentity = serverIdentity;

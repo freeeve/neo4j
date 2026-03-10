@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
@@ -50,8 +51,9 @@ class BaseServiceTest {
     @BeforeEach
     public void setup() {
         mockTransactor = Mockito.mock(ITransactor.class);
+        Configuration mockConfiguration = Mockito.mock(Configuration.class);
         state = new State();
-        baseService = Mockito.spy(new BaseService(mockTransactor, state));
+        baseService = Mockito.spy(new BaseService(mockTransactor, state, mockConfiguration));
     }
 
     @AfterEach

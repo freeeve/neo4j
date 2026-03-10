@@ -19,6 +19,8 @@
  */
 package org.neo4j.fleetmanagement.communication;
 
+import static org.neo4j.fleetmanagement.communication.Helpers.responseOk;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -40,7 +42,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 public class ConnectService extends BaseService {
     private final TopologyMapper topologyMapper;
     private final Upstream upstream;
-    private final Configuration configuration;
 
     public ConnectService(
             Config config,
@@ -50,10 +51,9 @@ public class ConnectService extends BaseService {
             Upstream upstream,
             State state,
             Configuration configuration) {
-        super(transactor, state);
+        super(transactor, state, configuration);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
         this.upstream = upstream;
-        this.configuration = configuration;
     }
 
     private synchronized void ensureConnected() {
@@ -99,7 +99,7 @@ public class ConnectService extends BaseService {
             var responseCode = upstreamPostRequest.transmit(payload.getBytes());
             byte[] responseBody = upstreamPostRequest.getResponseBody();
 
-            if (responseCode == 200 && responseBody != null) {
+            if (responseOk(responseCode) && responseBody != null) {
                 this.fleetManagerLog.payload("Fleet manager connect received response: " + new String(responseBody));
                 ConfigurationResponse configurationResponse;
                 try {

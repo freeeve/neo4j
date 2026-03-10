@@ -19,14 +19,9 @@
  */
 package org.neo4j.fleetmanagement.communication;
 
-import static org.neo4j.fleetmanagement.configuration.Configuration.updateConfigurationIfPresent;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import java.io.IOException;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
-import org.neo4j.fleetmanagement.communication.model.ConfigurationResponse;
 import org.neo4j.fleetmanagement.communication.model.PingMessage;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
@@ -38,7 +33,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 
 public class PingService extends AbstractReportingService {
     private final TopologyMapper topologyMapper;
-    private final Configuration configuration;
 
     public PingService(
             Config config,
@@ -48,9 +42,8 @@ public class PingService extends AbstractReportingService {
             ServerIdentity serverIdentity,
             State state,
             Configuration configuration) {
-        super(transactor, upstream, state);
+        super(transactor, upstream, state, configuration);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
-        this.configuration = configuration;
     }
 
     @Override
@@ -71,35 +64,7 @@ public class PingService extends AbstractReportingService {
         var projectId = upstream.getApiKey().projectId();
         PingMessage msg = new PingMessage(serverId, serverVersion, projectId);
         msg.projectId = upstream.getApiKey().projectId();
-        var response = transmitReportWithResponse(msg, Upstream.Endpoint.PING);
-
-        if (response == null) {
-            this.userLog.error("Fleet manager failed to receive configuration");
-            return;
-        }
-
-        if (response.responseCode == 200 && response.responseBody != null) {
-            ConfigurationResponse configurationResponse = null;
-            try {
-                configurationResponse = objectMapper.readValue(response.responseBody, ConfigurationResponse.class);
-            } catch (JsonProcessingException e) {
-                this.userLog.warn(
-                        "Fleet manager failed to receive configuration - Failed to deserialize configuration message: "
-                                + e.getMessage());
-            } catch (IOException e) {
-                var errorMsg = "Fleet manager failed to receive configuration - IOException: " + e.getMessage();
-                this.userLog.error(errorMsg);
-                this.state.setDisconnected(errorMsg);
-                throw new RuntimeException(e);
-            }
-
-            if (configurationResponse != null) {
-                updateConfigurationIfPresent(configuration, configurationResponse);
-            }
-        } else {
-            this.userLog.error(
-                    "Fleet manager failed to receive configuration - response code: " + response.responseCode);
-        }
+        transmitReport(msg, Upstream.Endpoint.PING);
     }
 
     public static class PingTask extends FleetManagerTask {

@@ -101,14 +101,16 @@ public class FleetManagement extends LifecycleAdapter {
         var upstream = new Upstream(this.transactor, this.log, config, this.state);
         var connectService = new ConnectService(
                 config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
-        var reportingService = new TopologyService(config, fs, this.transactor, serverIdentity, upstream, this.state);
+        var reportingService = new TopologyService(
+                config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
         var metricsService =
                 new MetricsService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
         this.configService =
                 new ConfigService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
         var pingService =
                 new PingService(config, fs, this.transactor, upstream, serverIdentity, this.state, this.configuration);
-        var queryService = new QueryService(this.transactor, serverIdentity, upstream, this.state, config);
+        var queryService =
+                new QueryService(this.transactor, serverIdentity, upstream, this.state, config, this.configuration);
 
         var clusterSync = new ClusterSync(this.transactor, upstream, this.state);
 

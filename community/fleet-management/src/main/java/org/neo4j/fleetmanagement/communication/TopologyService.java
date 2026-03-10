@@ -25,6 +25,7 @@ import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
 import org.neo4j.fleetmanagement.communication.model.ReportingMessage;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.metrics.ServerMetadata;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
@@ -42,8 +43,9 @@ public class TopologyService extends AbstractReportingService {
             ITransactor transactor,
             ServerIdentity serverIdentity,
             Upstream upstream,
-            State state) {
-        super(transactor, upstream, state);
+            State state,
+            Configuration configuration) {
+        super(transactor, upstream, state, configuration);
         this.topologyMapper = new TopologyMapper(config, fs, transactor, serverIdentity);
     }
 

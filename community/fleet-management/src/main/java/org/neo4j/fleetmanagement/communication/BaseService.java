@@ -22,6 +22,7 @@ package org.neo4j.fleetmanagement.communication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.neo4j.fleetmanagement.communication.model.ErrorCode;
 import org.neo4j.fleetmanagement.communication.model.ErrorResponse;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
@@ -32,15 +33,17 @@ public class BaseService {
     protected final ITransactor transactor;
     protected final Log userLog;
     protected final Logger fleetManagerLog;
+    protected final Configuration configuration;
 
     protected final State state;
 
-    public BaseService(ITransactor transactor, State state) {
+    public BaseService(ITransactor transactor, State state, Configuration configuration) {
         this.objectMapper = new ObjectMapper();
         this.transactor = transactor;
         this.userLog = Logger.getNeo4jLogger();
         this.fleetManagerLog = Logger.getFleetManagerLogger();
         this.state = state;
+        this.configuration = configuration;
     }
 
     void handleErrorResponse(String errMsgPrefix, int responseCode, byte[] responseBody) {

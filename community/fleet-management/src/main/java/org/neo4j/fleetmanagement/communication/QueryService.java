@@ -27,6 +27,7 @@ import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
 import org.neo4j.fleetmanagement.communication.model.QueryReportMessage;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
+import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.queries.model.AggregatedQueriesTimeSlice;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
@@ -47,8 +48,13 @@ public class QueryService extends AbstractReportingService {
     private int missedReports;
 
     public QueryService(
-            ITransactor transactor, ServerIdentity serverIdentity, Upstream upstream, State state, Config config) {
-        super(transactor, upstream, state);
+            ITransactor transactor,
+            ServerIdentity serverIdentity,
+            Upstream upstream,
+            State state,
+            Config config,
+            Configuration configuration) {
+        super(transactor, upstream, state, configuration);
         this.serverIdentity = serverIdentity;
         this.userLog = Logger.getNeo4jLogger();
         missedReports = 0;
