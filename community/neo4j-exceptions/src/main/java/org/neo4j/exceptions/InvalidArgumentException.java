@@ -26,13 +26,13 @@ import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityAlreadyExists;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityNotFound;
 
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -731,16 +731,6 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
     }
 
-    public static InvalidArgumentException invalidIndexConfig(String key, Iterable<String> expected) {
-        if (expected instanceof List<String> list) {
-            return invalidIndexConfig(key, list);
-        } else {
-            List<String> list = new ArrayList<>();
-            expected.forEach(list::add);
-            return invalidIndexConfig(key, list);
-        }
-    }
-
     public static InvalidArgumentException invalidIndexConfig(String key, List<String> expected) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
@@ -752,12 +742,6 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(
                 gql, String.format("Invalid index config key '%s', it was not recognized as an index setting.", key));
-    }
-
-    public static InvalidArgumentException missingIndexConfig(String setting) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .build();
-        return new InvalidArgumentException(gql, "'%s' is expected to have been set".formatted(setting));
     }
 
     public static InvalidArgumentException noSuchFullTextAnalyzer(String analyzerName, List<String> expected) {
@@ -1462,6 +1446,20 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, gql.toString());
     }
 
+    public static InvalidArgumentException missingInput(String context, String... expected) {
+        return missingInput(context, Arrays.asList(expected));
+    }
+
+    public static InvalidArgumentException missingInput(String context, List<String> expected) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withParam(GqlParams.ListParam.inputList, expected)
+                .build();
+        var joiner = new StringJoiner(", ", "[", "]");
+        expected.forEach(joiner::add);
+        return new InvalidArgumentException(
+                gql, "%s is expected to have been set. Expected %s".formatted(context, joiner.toString()));
+    }
+
     public static InvalidArgumentException expectedString(String msg, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("STRING"), gotCypherType);
         return new InvalidArgumentException(gql, msg);
@@ -1475,7 +1473,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.valueType, valueType)
                         .withParam(GqlParams.StringParam.lower, min)
                         .withParam(GqlParams.StringParam.upper, max)
-                        .withParam(GqlParams.StringParam.value, value)
+                        .withParam(GqlParams.StringParam.value, String.valueOf(value))
                         .build())
                 .build();
         return new InvalidArgumentException(

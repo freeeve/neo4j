@@ -741,7 +741,7 @@ public class VectorTestUtils {
 
         public IndexConfig toIndexConfigWith(VectorIndexVersion version) {
             return version.indexSettingValidator()
-                    .validateToVectorIndexConfig(toSettingsAccessor())
+                    .validateToTypedConfig(toSettingsAccessor())
                     .config();
         }
 

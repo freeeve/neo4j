@@ -186,19 +186,19 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         val version = maybeIndexProvider.map(VectorIndexVersion.fromDescriptor).getOrElse(latestSupportedVersion)
         val validator = version.indexSettingValidator
         val validationRecords = validator.validate(new MapValueAccessor(itemsMap))
-        if (validationRecords.valid) return validator.trustIsValidToVectorIndexConfig(validationRecords).config
+        if (validationRecords.valid) return validator.validateToTypedConfig(validationRecords).config
 
         assertInvalidConfigValues(
           new PrettyPrinter(),
           validationRecords,
           itemsMap,
           schemaType,
-          validator.validSettings.asScala.map(_.getSettingName)
+          validator.acceptedSettings.asScala.map(_.getSettingName)
         )
         assertMandatoryConfigSettingsExists(validationRecords)
         assertConfigSettingsCorrectTypes(validationRecords, itemsMap)
         assertValidConfigValues(validationRecords)
-        validator.trustIsValidToVectorIndexConfig(validationRecords).config
+        validator.validateToTypedConfig(validationRecords).config
       case unknown =>
         throw InvalidArgumentsException.invalidVectorIndexConfig(schemaType, unknown)
     }

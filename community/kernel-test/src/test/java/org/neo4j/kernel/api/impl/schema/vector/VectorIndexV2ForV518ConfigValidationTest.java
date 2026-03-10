@@ -50,6 +50,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.SettingsAccessor;
+import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig.HnswConfig;
 import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
@@ -61,7 +62,8 @@ import org.neo4j.values.storable.Values;
 
 class VectorIndexV2ForV518ConfigValidationTest {
     private static final VectorIndexVersion VERSION = VectorIndexVersion.V2_0;
-    private static final VectorIndexSettingsValidator VALIDATOR = VERSION.indexSettingValidator(KernelVersion.V5_18);
+    private static final TypedIndexSettingsValidator<VectorIndexConfig> VALIDATOR =
+            VERSION.indexSettingValidator(KernelVersion.V5_18);
 
     @Test
     void validIndexConfig() {
@@ -74,7 +76,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
         assertThat(validationRecords.valid()).isTrue();
 
         final var ref = new MutableObject<VectorIndexConfig>();
-        assertThatCode(() -> ref.setValue(VALIDATOR.validateToVectorIndexConfig(settings)))
+        assertThatCode(() -> ref.setValue(VALIDATOR.validateToTypedConfig(settings)))
                 .doesNotThrowAnyException();
         final var vectorIndexConfig = ref.get();
 
@@ -112,7 +114,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(NamedSetting::settingName)
                 .isEqualTo(unrecognisedSetting.getSettingName());
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessage("Invalid index config key 'fulltext.analyzer', it was not recognized as an index setting.");
     }
@@ -132,7 +134,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(HasSetting::setting)
                 .isEqualTo(DIMENSIONS);
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(DIMENSIONS.getSettingName(), "is expected to have been set");
     }
@@ -153,7 +155,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(DIMENSIONS, null);
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
@@ -185,7 +187,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .asInstanceOf(CLASS)
                 .isAssignableTo(IntegralValue.class);
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessage("Wrong type for vector.dimensions. Expected INTEGER, got STRING");
     }
@@ -222,7 +224,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(HasSetting::setting, RecordWithValue::value)
                 .containsExactly(DIMENSIONS, OptionalInt.of(invalidDimensions));
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
@@ -243,7 +245,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(HasSetting::setting)
                 .isEqualTo(SIMILARITY_FUNCTION);
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(SIMILARITY_FUNCTION.getSettingName(), "is expected to have been set");
     }
@@ -268,7 +270,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
         for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
             supportedSimilarityFunctions.add(similarityFunction.functionName());
         }
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "null",
@@ -303,7 +305,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .asInstanceOf(CLASS)
                 .isAssignableTo(TextValue.class);
 
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessage("Wrong type for vector.similarity_function. Expected STRING, got INTEGER");
     }
@@ -329,7 +331,7 @@ class VectorIndexV2ForV518ConfigValidationTest {
         for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
             supportedSimilarityFunctions.add(similarityFunction.functionName());
         }
-        assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         invalidSimilarityFunction,

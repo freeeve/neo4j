@@ -200,7 +200,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
   private def vectorConfig: IndexConfig = IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR.toPublicApi)
 
   private def vectorConfig(version: VectorIndexVersion): IndexConfig =
-    version.indexSettingValidator.validateToVectorIndexConfig(new IndexConfigAccessor(vectorConfig)).config
+    version.indexSettingValidator.validateToTypedConfig(new IndexConfigAccessor(vectorConfig)).config
 
   private def vectorConfigMap(version: VectorIndexVersion): MapValue = {
     val entries = vectorConfig(version).entries

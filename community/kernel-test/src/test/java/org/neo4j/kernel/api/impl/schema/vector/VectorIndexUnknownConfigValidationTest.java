@@ -25,11 +25,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.NotFoundTypedIndexSettingsValidator;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.ValidatorNotFound;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.ValidatorNotFoundForKernelVersion;
 import org.neo4j.test.arguments.KernelVersionSource;
 
 public class VectorIndexUnknownConfigValidationTest {
@@ -42,48 +42,42 @@ public class VectorIndexUnknownConfigValidationTest {
         return null;
     }
 
+    private static <T> Iterable<T> anyIterable(Class<T> cls) {
+        return null;
+    }
+
     @Test
     void unknownVectorIndexVersionValidation() {
         final var version = VectorIndexVersion.UNKNOWN;
         final var validator = version.indexSettingValidator();
-        assertThat(validator).isInstanceOf(ValidatorNotFound.class);
+        assertThat(validator).isInstanceOf(NotFoundTypedIndexSettingsValidator.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name());
+                        "Validator not found for", version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name());
+                        "Validator not found for", version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name());
+                        "Validator not found for", version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name());
+                        "Validator not found for", version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(anyIterable(Valid.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name());
+                        "Validator not found for", version.descriptor().name());
 
-        assertThat(validator.validSettings()).isEmpty();
+        assertThat(validator.acceptedSettings()).isEmpty();
     }
 
     @ParameterizedTest
@@ -91,52 +85,32 @@ public class VectorIndexUnknownConfigValidationTest {
     void unknownValidationForVectorIndexV1(KernelVersion kernelVersion) {
         final var version = VectorIndexVersion.V1_0;
         final var validator = version.indexSettingValidator(kernelVersion);
-        assertThat(validator).isInstanceOf(ValidatorNotFoundForKernelVersion.class);
+        assertThat(validator).isInstanceOf(NotFoundTypedIndexSettingsValidator.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(anyIterable(Valid.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
     }
 
     @ParameterizedTest
@@ -144,53 +118,33 @@ public class VectorIndexUnknownConfigValidationTest {
     void unknownValidationForVectorIndexV2(KernelVersion kernelVersion) {
         final var version = VectorIndexVersion.V2_0;
         final var validator = version.indexSettingValidator(kernelVersion);
-        assertThat(validator).isInstanceOf(ValidatorNotFoundForKernelVersion.class);
+        assertThat(validator).isInstanceOf(NotFoundTypedIndexSettingsValidator.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(anyIterable(Valid.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        VectorIndexSettingsValidator.class.getSimpleName(),
-                        "not found for",
-                        version.descriptor().name(),
-                        "on",
-                        kernelVersion.toString());
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThat(validator.validSettings()).isEmpty();
+        assertThat(validator.acceptedSettings()).isEmpty();
     }
 }

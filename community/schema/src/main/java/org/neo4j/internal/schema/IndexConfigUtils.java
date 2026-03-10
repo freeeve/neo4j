@@ -20,17 +20,94 @@
 package org.neo4j.internal.schema;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
+import static org.neo4j.values.storable.Values.NO_VALUE;
+import static org.neo4j.values.utils.PrettyPrinter.stringify;
+import static org.neo4j.values.utils.ValueTypeNames.nameOfType;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.InclusiveRange;
+import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Invalid;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Unprocessed;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
+import org.neo4j.values.utils.PrettyPrinter;
 
 public class IndexConfigUtils {
     public static final Comparator<IndexSetting> INDEX_SETTING_COMPARATOR =
             Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER);
+
+    public static void assertValidRecords(
+            IndexConfigValidationRecords validationRecords,
+            IndexProviderDescriptor descriptor,
+            Set<IndexSetting> acceptedSettings) {
+        // fail on first
+        final Invalid invalidRecord = validationRecords.getFirstInvalidRecordOrNull();
+        if (invalidRecord == null) {
+            return;
+        }
+
+        final String settingName = invalidRecord.settingName();
+        throw switch (invalidRecord) {
+            // these are an implementation mistake
+            case Unprocessed unprocessed -> incompleteValidation(descriptor, unprocessed);
+            case Pending pending -> incompleteValidation(descriptor, pending);
+
+            // these are likely user mistakes
+            case UnrecognizedSetting ignored -> unrecognizedSetting(settingName, acceptedSettings);
+
+            case MissingSetting ignored -> InvalidArgumentException.missingInput("setting", settingName);
+
+            case IncorrectType incorrectType -> {
+                final Object value = incorrectType.value();
+                yield InvalidArgumentException.invalidType(
+                        settingName, stringify(value), nameOfType(incorrectType.targetType()), nameOfType(value));
+            }
+
+            case InvalidValue invalidValue -> {
+                final Object value = Objects.requireNonNullElse(invalidValue.value(), NO_VALUE);
+                final String valueString = stringify(value);
+
+                final Object valid = invalidValue.valid();
+                yield switch (valid) {
+                    case InclusiveRange<?> range ->
+                        InvalidArgumentException.outOfRange(
+                                settingName,
+                                valueString,
+                                nameOfType(value),
+                                stringify(range.min()),
+                                stringify(range.max()));
+
+                    case Iterable<?> iterable -> {
+                        final String supported =
+                                Iterables.toString(Iterables.map(iterable, PrettyPrinter::stringify), ", ", "[", "]");
+                        yield InvalidArgumentException.invalidIndexInput(
+                                valueString,
+                                settingName,
+                                "'%s' is an unsupported '%s'. Supported: %s"
+                                        .formatted(valueString, settingName, supported));
+                    }
+
+                    // this is an implementation mistake
+                    default ->
+                        InternalException.indexNotApplicable(
+                                descriptor.name(),
+                                "Unhandled valid value type '%s' for '%s'. Provided: %s"
+                                        .formatted(valid.getClass().getSimpleName(), settingName, valid));
+                };
+            }
+        };
+    }
 
     @FunctionalInterface
     public interface NamedSetting {
@@ -45,6 +122,13 @@ public class IndexConfigUtils {
         default String settingName() {
             return setting().getSettingName();
         }
+    }
+
+    private static InternalException incompleteValidation(
+            IndexProviderDescriptor descriptor, IndexConfigValidationRecord record) {
+        return InternalException.indexNotApplicable(
+                descriptor.name(),
+                "Validation for '%s' is incomplete. Provided: %s".formatted(record.settingName(), record));
     }
 
     public static InvalidArgumentException unrecognizedSetting(String settingName, Set<IndexSetting> settings) {

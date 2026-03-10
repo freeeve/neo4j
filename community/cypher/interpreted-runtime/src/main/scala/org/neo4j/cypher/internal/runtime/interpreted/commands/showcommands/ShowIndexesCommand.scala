@@ -371,7 +371,7 @@ object ShowIndexesCommand {
           val labelsOrTypesWithBars = asEscapedString(labelsOrTypes, barStringJoiner)
           val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
           val vectorIndexConfig =
-            settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(indexConfig))
+            settingsValidator.interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(indexConfig))
           val vectorConfig = configAsString(vectorIndexConfig.config)
           val optionsString = optionsAsString(vectorConfig)
 

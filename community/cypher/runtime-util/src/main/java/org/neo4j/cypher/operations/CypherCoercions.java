@@ -173,7 +173,7 @@ public final class CypherCoercions {
     public static float[] validateAndConvertVectorIndexQuery(IndexDescriptor index, VectorCandidate query) {
         final var version = VectorIndexVersion.fromDescriptor(index.getIndexProvider());
         final var vectorIndexConfig = version.indexSettingValidator()
-                .trustIsValidToVectorIndexConfig(new SettingsAccessor.IndexConfigAccessor(index.getIndexConfig()));
+                .interpretAuthoritativeToTypedConfig(new SettingsAccessor.IndexConfigAccessor(index.getIndexConfig()));
 
         final var dimensions = vectorIndexConfig.dimensions();
         if (dimensions.isPresent() && query.dimensions() != dimensions.getAsInt()) {

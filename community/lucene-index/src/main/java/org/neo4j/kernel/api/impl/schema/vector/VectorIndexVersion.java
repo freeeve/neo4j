@@ -45,10 +45,10 @@ import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
+import org.neo4j.internal.schema.NotFoundTypedIndexSettingsValidator;
+import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.ValidatorNotFound;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.ValidatorNotFoundForKernelVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.Validators;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidators.VersionedValidator;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.VectorCandidate;
@@ -65,15 +65,17 @@ public enum VectorIndexVersion {
             Collections.emptySet(),
             Collections.emptySet()) {
         @Override
-        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+        protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(Map.entry(
                     KernelVersion.EARLIEST,
-                    new ValidatorNotFound(InvalidArgumentException.internalError(
-                            "Validator Not Found",
-                            "%s not found for '%s'"
-                                    .formatted(
-                                            VectorIndexSettingsValidator.class.getSimpleName(),
-                                            descriptor().name())))));
+                    new NotFoundTypedIndexSettingsValidator<>(
+                            AllIndexProviderDescriptors.UNDECIDED,
+                            InvalidArgumentException.internalError(
+                                    "Validator Not Found",
+                                    "%s not found for '%s'"
+                                            .formatted(
+                                                    TypedIndexSettingsValidator.class.getSimpleName(),
+                                                    descriptor().name())))));
         }
 
         @Override
@@ -91,11 +93,11 @@ public enum VectorIndexVersion {
             Set.of(EUCLIDEAN, SIMPLE_COSINE),
             Collections.emptySet()) {
         @Override
-        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+        protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(
                     Map.entry(
                             KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED,
-                            new Validators(
+                            new VersionedValidator(
                                     this,
                                     dimensionsValidator(1, Integer.MAX_VALUE), // this was a bug
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -104,7 +106,7 @@ public enum VectorIndexVersion {
                                     hnswEfConstructionValidator(100))),
                     Map.entry(
                             KernelVersion.V5_12,
-                            new Validators(
+                            new VersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions()),
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -128,11 +130,11 @@ public enum VectorIndexVersion {
             Set.of(EUCLIDEAN, L2_NORM_COSINE),
             Set.of(false, true)) {
         @Override
-        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+        protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(
                     Map.entry(
                             KernelVersion.VERSION_VECTOR_2_INTRODUCED,
-                            new Validators(
+                            new VersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions()),
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -141,7 +143,7 @@ public enum VectorIndexVersion {
                                     hnswEfConstructionValidator(100))),
                     Map.entry(
                             KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS,
-                            new Validators(
+                            new VersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
                                     similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
@@ -164,10 +166,10 @@ public enum VectorIndexVersion {
             Set.of(EUCLIDEAN, L2_NORM_COSINE),
             Set.of(false, true)) {
         @Override
-        protected Map<KernelVersion, VectorIndexSettingsValidator> configureValidators() {
+        protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(Map.entry(
                     KernelVersion.VERSION_LUCENE_10_INTRODUCED,
-                    new Validators(
+                    new VersionedValidator(
                             this,
                             dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
                             similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
@@ -219,8 +221,8 @@ public enum VectorIndexVersion {
     private final Set<Boolean> quantizationBooleans;
     private final int maxHnswM;
     private final int maxHnswEfConstruction;
-    private final SortedMap<KernelVersion, VectorIndexSettingsValidator> validators;
-    private final VectorIndexSettingsValidator latestIndexSettingValidator;
+    private final SortedMap<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> validators;
+    private final TypedIndexSettingsValidator<VectorIndexConfig> latestIndexSettingValidator;
 
     VectorIndexVersion(
             IndexProviderDescriptor providerDescriptor,
@@ -245,7 +247,7 @@ public enum VectorIndexVersion {
         this.maxHnswM = maxHnswM;
         this.maxHnswEfConstruction = maxHnswEfConstruction;
         {
-            final TreeMap<KernelVersion, VectorIndexSettingsValidator> validators =
+            final TreeMap<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> validators =
                     new TreeMap<>(Comparator.reverseOrder());
             validators.putAll(configureValidators());
             this.validators = Collections.unmodifiableSortedMap(validators);
@@ -276,7 +278,7 @@ public enum VectorIndexVersion {
         return maxHnswEfConstruction;
     }
 
-    protected abstract Map<KernelVersion, VectorIndexSettingsValidator> configureValidators();
+    protected abstract Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators();
 
     public abstract boolean acceptsValueInstanceType(Value candidate);
 
@@ -311,16 +313,20 @@ public enum VectorIndexVersion {
         return quantizationBooleans;
     }
 
-    public VectorIndexSettingsValidator indexSettingValidator() {
+    public TypedIndexSettingsValidator<VectorIndexConfig> indexSettingValidator() {
         return latestIndexSettingValidator;
     }
 
-    public VectorIndexSettingsValidator indexSettingValidator(KernelVersion kernelVersion) {
-        for (final Entry<KernelVersion, VectorIndexSettingsValidator> entry : validators.entrySet()) {
+    public TypedIndexSettingsValidator<VectorIndexConfig> indexSettingValidator(KernelVersion kernelVersion) {
+        for (final Entry<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> entry : validators.entrySet()) {
             if (kernelVersion.isAtLeast(entry.getKey())) {
                 return entry.getValue();
             }
         }
-        return new ValidatorNotFoundForKernelVersion(this, kernelVersion);
+        return new NotFoundTypedIndexSettingsValidator<>(
+                descriptor,
+                InvalidArgumentException.internalError(
+                        "Validator Not Found",
+                        "Validator not found for '%s' on '%s'.".formatted(descriptor.name(), kernelVersion)));
     }
 }

@@ -132,7 +132,7 @@ object ShowSchemaCommandHelper {
     val completedIndexConfig = indexType match {
       case IndexType.VECTOR =>
         val settingsValidator = VectorIndexVersion.fromDescriptor(provider).indexSettingValidator
-        settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(indexConfig)).config
+        settingsValidator.interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(indexConfig)).config
       case _ => indexConfig
     }
 

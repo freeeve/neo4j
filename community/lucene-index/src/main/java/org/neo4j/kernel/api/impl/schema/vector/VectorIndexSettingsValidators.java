@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.assertValidRecords;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,42 +30,29 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
-import org.neo4j.kernel.KernelVersion;
+import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.ReadDefaultOnly;
 import org.neo4j.values.storable.Value;
 
-public interface VectorIndexSettingsValidator {
+class VectorIndexSettingsValidators {
+    private VectorIndexSettingsValidators() {}
 
-    IndexConfigValidationRecords validate(SettingsAccessor settings);
-
-    default VectorIndexConfig validateToVectorIndexConfig(SettingsAccessor settings) {
-        return validateToVectorIndexConfig(validate(settings));
-    }
-
-    VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords);
-
-    VectorIndexConfig trustIsValidToVectorIndexConfig(SettingsAccessor settings);
-
-    VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords);
-
-    Set<IndexSetting> validSettings();
-
-    class Validators implements VectorIndexSettingsValidator {
+    public static class VersionedValidator extends TypedIndexSettingsValidator<VectorIndexConfig> {
         private final VectorIndexVersion version;
         private final SortedSet<IndexSettingValidator<? extends Value, ?>> validators;
         private final SortedSet<IndexSetting> acceptedSettings;
         private final SortedSet<String> handledSettingNames;
 
         @SafeVarargs
-        Validators(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
+        VersionedValidator(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
+            super(version.descriptor());
             this.version = version;
 
             // check we've not passed multiple validators for the same setting
@@ -113,8 +99,8 @@ public interface VectorIndexSettingsValidator {
         }
 
         @Override
-        public IndexConfigValidationRecords validate(SettingsAccessor settings) {
-            Set<String> settingNames = settings.settingNames();
+        public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
+            Set<String> settingNames = accessor.settingNames();
             final MutableIndexConfigValidationRecords validationRecords = new MutableIndexConfigValidationRecords();
             for (final String settingName : settingNames) {
                 if (!handledSettingNames.contains(settingName)) {
@@ -123,86 +109,28 @@ public interface VectorIndexSettingsValidator {
             }
 
             for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
-                validationRecords.with(validator.validate(settings));
+                validationRecords.with(validator.validate(accessor));
             }
             return validationRecords.toUnmodifiable();
         }
 
         @Override
-        public VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
-            assertValidRecords(validationRecords, version.descriptor(), acceptedSettings);
-            final Iterable<Valid> validRecords = validationRecords.validRecords();
-            return new VectorIndexConfig(version, acceptedSettings, validRecords);
-        }
-
-        @Override
-        public VectorIndexConfig trustIsValidToVectorIndexConfig(SettingsAccessor settings) {
-            final List<Valid> validRecords = new ArrayList<>(validators.size());
+        public Iterable<Valid> interpretAuthoritative(SettingsAccessor accessor) {
+            final List<Valid> records = new ArrayList<>(validators.size());
             for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
-                validRecords.add(validator.trustIsValid(settings));
+                records.add(validator.trustIsValid(accessor));
             }
-            return new VectorIndexConfig(version, acceptedSettings, validRecords);
+            return records;
         }
 
         @Override
-        public VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
-            final Iterable<Valid> records = validationRecords.validRecords();
+        public VectorIndexConfig toTypedConfig(Iterable<Valid> records) {
             return new VectorIndexConfig(version, acceptedSettings, records);
         }
 
         @Override
-        public Set<IndexSetting> validSettings() {
+        public Set<IndexSetting> acceptedSettings() {
             return acceptedSettings;
-        }
-    }
-
-    class ValidatorNotFound implements VectorIndexSettingsValidator {
-        private final InvalidArgumentException exception;
-
-        ValidatorNotFound(InvalidArgumentException exception) {
-            this.exception = exception;
-        }
-
-        @Override
-        public IndexConfigValidationRecords validate(SettingsAccessor settings) {
-            throw exception;
-        }
-
-        @Override
-        public VectorIndexConfig validateToVectorIndexConfig(SettingsAccessor settings) {
-            throw exception;
-        }
-
-        @Override
-        public VectorIndexConfig validateToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
-            throw exception;
-        }
-
-        @Override
-        public VectorIndexConfig trustIsValidToVectorIndexConfig(SettingsAccessor settings) {
-            throw exception;
-        }
-
-        @Override
-        public VectorIndexConfig trustIsValidToVectorIndexConfig(IndexConfigValidationRecords validationRecords) {
-            throw exception;
-        }
-
-        @Override
-        public Set<IndexSetting> validSettings() {
-            return Collections.emptySet();
-        }
-    }
-
-    class ValidatorNotFoundForKernelVersion extends ValidatorNotFound {
-        ValidatorNotFoundForKernelVersion(VectorIndexVersion version, KernelVersion kernelVersion) {
-            super(InvalidArgumentException.internalError(
-                    "Validator Not Found",
-                    ("%s not found for '%s' on '%s'."
-                            .formatted(
-                                    VectorIndexSettingsValidator.class.getSimpleName(),
-                                    version.descriptor().name(),
-                                    kernelVersion))));
         }
     }
 }

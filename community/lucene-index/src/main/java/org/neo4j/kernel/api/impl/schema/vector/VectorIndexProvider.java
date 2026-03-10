@@ -34,6 +34,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
@@ -65,7 +66,7 @@ import org.neo4j.values.storable.Value;
 public class VectorIndexProvider extends AbstractLuceneIndexProvider {
     private final VectorIndexVersion version;
     private final LuceneContext luceneContext;
-    private final VectorIndexSettingsValidator settingsValidator;
+    private final TypedIndexSettingsValidator<VectorIndexConfig> settingsValidator;
     private final VectorDocumentStructure documentStructure;
     private final FileSystemAbstraction fileSystem;
     private final JobScheduler scheduler;
@@ -105,7 +106,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         prototype = super.validatePrototype(prototype);
         // construction handles validation
         final VectorIndexConfig vectorIndexConfig =
-                settingsValidator.validateToVectorIndexConfig(new IndexConfigAccessor(prototype.getIndexConfig()));
+                settingsValidator.validateToTypedConfig(new IndexConfigAccessor(prototype.getIndexConfig()));
         // replaces provided config with validated config with set defaults
         return prototype.withIndexConfig(vectorIndexConfig.config());
     }
@@ -121,8 +122,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour,
             IndexPopulator.Configuration configuration) {
-        final VectorIndexConfig vectorIndexConfig =
-                settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
+        final VectorIndexConfig vectorIndexConfig = settingsValidator.interpretAuthoritativeToTypedConfig(
+                new IndexConfigAccessor(descriptor.getIndexConfig()));
         final OptionalInt dimensions = vectorIndexConfig.dimensions();
 
         final LuceneCodec codec = luceneContext.codecsFactory().codecFor(vectorIndexConfig);
@@ -156,8 +157,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             boolean readOnly,
             StorageEngineIndexingBehaviour indexingBehaviour)
             throws IOException {
-        final VectorIndexConfig vectorIndexConfig =
-                settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
+        final VectorIndexConfig vectorIndexConfig = settingsValidator.interpretAuthoritativeToTypedConfig(
+                new IndexConfigAccessor(descriptor.getIndexConfig()));
         final LuceneCodec codec = luceneContext.codecsFactory().codecFor(vectorIndexConfig);
         VectorIndexBuilder builder = VectorIndexBuilder.create(
                         descriptor, vectorIndexConfig, documentStructure, codec, readOnlyChecker, config, logProvider)
@@ -184,7 +185,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
 
     public static IndexCapability capability(VectorIndexVersion version, IndexConfig config) {
         final VectorIndexConfig vectorIndexConfig =
-                version.indexSettingValidator().trustIsValidToVectorIndexConfig(new IndexConfigAccessor(config));
+                version.indexSettingValidator().interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(config));
         return new VectorIndexCapability(
                 new IgnoreStrategy(version, vectorIndexConfig.dimensions()), vectorIndexConfig.similarityFunction());
     }
