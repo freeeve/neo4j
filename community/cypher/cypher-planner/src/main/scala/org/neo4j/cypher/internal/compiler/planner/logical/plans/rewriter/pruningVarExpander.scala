@@ -404,7 +404,7 @@ case class pruningVarExpander(
                 mode,
                 nodePredicate,
                 relationshipPredicate,
-                matchMode
+                pathMode
               ) =>
               if (replacementPlans.bfsPruningExpands.contains(Ref(expand))) {
                 BFSPruningVarExpand(
@@ -419,7 +419,7 @@ case class pruningVarExpander(
                   mode,
                   nodePredicate,
                   relationshipPredicate,
-                  matchMode
+                  pathMode
                 )(SameId(expand.id))
               } else if (replacementPlans.pruningExpands(Ref(expand))) {
                 PruningVarExpand(
@@ -432,7 +432,7 @@ case class pruningVarExpander(
                   length.max.get,
                   nodePredicate,
                   relationshipPredicate,
-                  matchMode
+                  pathMode
                 )(SameId(expand.id))
               } else {
                 expand

@@ -527,11 +527,13 @@ case class NoneOfNodes(node: Expression, listOfNodes: Expression)(val position: 
  * @param nodeVariable The node variable that needs to be different from all nodes of the VarExpand pattern
  * @param varExpandRelationshipVariable The relationship variable of the VarExpand pattern
  * @param varLengthRelDirection The direction of the VarExpand pattern
+ * @param mustBeInlined Whether this predicate must be inlined in the VarExpand relationshipPredicates
  */
-case class InlinedNoneOfNodesInVarLengthRelationship(
+case class NoneOfNodesInVarLengthRelationship(
   nodeVariable: Expression,
   varExpandRelationshipVariable: Expression,
-  varLengthRelDirection: SemanticDirection
+  varLengthRelDirection: SemanticDirection,
+  mustBeInlined: Boolean
 )(val position: InputPosition)
     extends NodeUniquenessPredicate {
 

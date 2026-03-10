@@ -22,16 +22,21 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.InlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
+import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.InlinedNoneOfNodesInVarLengthRelationship
+import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.MultiOperatorExpression
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
+import org.neo4j.cypher.internal.expressions.NoneOfNodesInVarLengthRelationship
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
+import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.VarPatternLength
@@ -51,13 +56,18 @@ import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LabelAndRelTypeInfos
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.Attributes
+import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.SameId
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.topDown
+
+import scala.collection.mutable
 
 /**
  * This rewriter will sometimes transform a Repeat-Trail, -Walk or -Acyclic into a VarExpand, like in the example below.
@@ -79,6 +89,8 @@ import org.neo4j.cypher.internal.util.topDown
  *  - the Repeat's node group variables are not used by downstream logical plans and thus empty
  *  - the Repeat's inner node variables are only used during path expansion in predicates within the QPP, and the QPP is a single directional relationship, i.e., in case where it can be substituted with startNode/endNode of the relationship.
  *  - the Repeat's quantifier can be converted lossless from Long to Int
+ *
+ * For path patterns with the ACYCLIC path mode, we only consider translating Repeat into VarExpand when the path pattern has at most one Repeat.
  *
  * This rewriter should run after [[RemoveUnusedGroupVariablesRewriter]], so that unused group variables are pruned.
  * This rewriter should run before [[pruningVarExpander]] so that the [[PruningVarExpand]] optimisation may take place.
@@ -126,12 +138,83 @@ case class RepeatToVarExpandRewriter(
     }
   }
 
-  private def innerRewriter(rootPlan: LogicalPlan): Rewriter = {
-    Rewriter.lift {
+  /**
+   * We will rewrite RepeatAcyclic to VarExpand, even when RepeatAcyclic has some `nodeVariableGroupings`.
+   * The presence of `nodeVariableGroupings` indicates that the node group variables in the QPP are used later in the plan.
+   * However, after rewriting the `Repeat` to a `VarExpand`, these node variables are not available no longer.
+   * The rewrite is allowed, though, if the variables only occur in `NoneOfNode` uniqueness predicate expressions, since those will be rewritten into `NoneOfNodesInVarLengthRelationship` without referencing the inner QPP group nodes.
+   * This method is testing that.
+   * @param rootPlan The full plan before rewriting
+   * @param nodeGroupVariablesInQPP The group variables for the nodes in a QPP
+   * @param repeatId The id of the RepeatAcyclic operator that is being rewritten into a VarExpand
+   * @return True when at least one of the group node variables is referenced outside NoneOfNodes expressions
+   */
+  private def referencesGroupVariables(
+    rootPlan: LogicalPlan,
+    nodeGroupVariablesInQPP: Set[LogicalVariable],
+    repeatId: Id
+  ): Boolean = {
+    rootPlan.folder.treeFold[Boolean](false) {
+      case _: MultiOperatorExpression =>
+        acc => TraverseChildren(acc)
+      case _: NoneOfNodes =>
+        // This is allowed, we translate these NoneOfNode expressions into NoneOfNodesInVarLengthRelationship without references to the inner QPP group nodes.
+        acc => SkipChildren(acc)
+      case Not(In(_: LogicalVariable, Add(node1: LogicalVariable, node2: LogicalVariable)))
+        if nodeGroupVariablesInQPP.contains(node1) && nodeGroupVariablesInQPP.contains(node2) =>
+        // This is the translated version of NoneOfNodes (done by ElementUniquenessRewriter)
+        acc => SkipChildren(acc)
+      case acyclic: RepeatAcyclic if acyclic.id == repeatId =>
+        // The RepeatAcyclic that is being translated into a VarExpand
+        acc => SkipChildren(acc)
+      case e: Expression
+        if (e.dependencies intersect nodeGroupVariablesInQPP).nonEmpty =>
+        // Found an expression that depends on at least one of the node group variables in the QPP
+        _ => SkipChildren(true)
+    }
+  }
+
+  private def instance(rootPlan: LogicalPlan): Rewriter = {
+    // Rewriting a QPP into a VarExpand might require rewriting some uniqueness predicates.
+    // In the mutable map `qppToVarExpandInfo` we keep track of
+    //   which uniqueness predicates need to be rewritten (in the map-key: the inner group variables in the QPP)
+    //   and the information that is needed for the rewrite (in the map-value: the relationship variable and relationship direction).
+    val qppInnerGroupNodesToVarExpandRel: mutable.Map[Set[LogicalVariable], (LogicalVariable, SemanticDirection)] =
+      mutable.Map()
+
+    def maybeTranslateNoneOfNodes(
+      expr: Expression,
+      node: LogicalVariable,
+      lhsVar: LogicalVariable,
+      rhsVar: LogicalVariable
+    ) = {
+      qppInnerGroupNodesToVarExpandRel.get(Set(lhsVar, rhsVar)) match {
+        case None => expr
+        case Some((varExpandVariable, varExpandDirection)) =>
+          NoneOfNodesInVarLengthRelationship(
+            node,
+            varExpandVariable,
+            varExpandDirection,
+            mustBeInlined = false
+          )(expr.position)
+      }
+    }
+
+    bottomUp(Rewriter.lift {
       // Rewrite special cases of Repeat into VarLengthExpand(All)
       case rewritableRepeatExtractor(repeat, expand, inlinablePredicates, quantifier, relationship, repeatExpansionMode)
-        if !requiresPropertyAccessFromShards(inlinablePredicates) =>
-        // Create the VarLengthExpandAll/VarLengthExpandInto
+        if !requiresPropertyAccessFromShards(inlinablePredicates) && !referencesGroupVariables(
+          rootPlan,
+          repeat.nodeVariableGroupings.map(_.group),
+          repeat.id
+        ) =>
+        qppInnerGroupNodesToVarExpandRel
+          .addOne(
+            (
+              repeat.nodeVariableGroupings.map(_.group),
+              (relationship.map(_.group).getOrElse(repeat.innerRelationships.head), expand.dir)
+            )
+          )
         createVarLengthExpand(
           repeat,
           expand,
@@ -141,7 +224,24 @@ case class RepeatToVarExpandRewriter(
           repeatExpansionMode,
           rootPlan
         ).getOrElse(repeat)
-    }
+      case s @ Selection(predicates, source) =>
+        // Rewrite NoneOfNodes into NoneOfNodesInVarLengthRelationship when the NoneOfNodes references
+        // the two inner nodes of a QPP that has been rewritten into a VarExpand
+        val updatedPredicateExpressions = predicates.exprs.map {
+          case n @ NoneOfNodes(
+              node: LogicalVariable,
+              Add(lhsVar: LogicalVariable, rhsVar: LogicalVariable)
+            ) =>
+            maybeTranslateNoneOfNodes(n, node, lhsVar, rhsVar)
+          case n @ Not(In(node: LogicalVariable, Add(lhsVar: LogicalVariable, rhsVar: LogicalVariable))) =>
+            maybeTranslateNoneOfNodes(n, node, lhsVar, rhsVar)
+          case other => other
+        }
+        s.copy(
+          predicate = Ands(updatedPredicateExpressions)(predicates.position),
+          source = source
+        )(SameId(s.id))
+    })
   }
 
   private def requiresPropertyAccessFromShards(predicates: Iterable[Expression]): Boolean = {
@@ -152,8 +252,6 @@ case class RepeatToVarExpandRewriter(
     expr.folder.treeExists {
       case _: LogicalProperty => true
     }
-
-  private def instance(rootPlan: LogicalPlan): Rewriter = topDown(innerRewriter(rootPlan))
 
   override def apply(input: AnyRef): AnyRef = {
     val rootPlan = input match {
@@ -390,7 +488,7 @@ object RepeatToVarExpandRewriter {
       /**
        * VarExpand does not consider previously bound nodes during its evaluation.
        * In order to guarantee path mode semantics, we need to add uniqueness predicates.
-       * For ACYCLIC: Each node in `acyclic.previouslyBoundNodes`, except the start node of the repeat operator, leads to an InlinedNoneOfNodesInVarLengthRelationship predicate.
+       * For ACYCLIC: Each node in `acyclic.previouslyBoundNodes`, except the start node of the repeat operator, leads to a `InlinedNoneOfNodesInVarLengthRelationship` predicate.
        *
        * @param repeat The Repeat operator that is rewritten into a VarExpand operator
        * @param expandDir The direction of the VarExpand
@@ -408,10 +506,11 @@ object RepeatToVarExpandRewriter {
             // NoneOfNodes predicates are only generated when the node belongs to a different equivalence class than the QPP (see AddElementUniquenessPredicates.createInterNodeUniquenessPredicates).
             (acyclic.previouslyBoundNodes - acyclic.start)
               .map(boundNode =>
-                InlinedNoneOfNodesInVarLengthRelationship(
+                NoneOfNodesInVarLengthRelationship(
                   boundNode,
                   varExpandRel,
-                  expandDir
+                  expandDir,
+                  mustBeInlined = true
                 )(InputPosition.NONE)
               )
           case _ => Set.empty
@@ -458,12 +557,6 @@ object RepeatToVarExpandRewriter {
             AllReduceAccumulators.Empty()
           ) =>
           Option((walk, expand, inlinablePredicates, quantifier, relationship, expansionMode))
-
-        /**
-         * Additional to the rewrite requirements for Trail and Walk, we only rewrite if the following are true:
-         *    - No references to node variables of the QPP (this precludes any subsequent node in the same path pattern)
-         *    - No previously visited singleton or group nodes for this path pattern
-         */
         case acyclic @ RepeatAcyclic(
             _,
             RewritableAcyclicRhs(
@@ -475,7 +568,7 @@ object RepeatToVarExpandRewriter {
             _,
             _,
             _,
-            VariableGroupings.Empty(), // No nodeVariableGroupings
+            _, // Possibly nodeVariableGroupings
             _,
             _, // Possibly PreviouslyBoundNodes
             VariableSet.Empty(), // No previouslyBoundNodeGroups

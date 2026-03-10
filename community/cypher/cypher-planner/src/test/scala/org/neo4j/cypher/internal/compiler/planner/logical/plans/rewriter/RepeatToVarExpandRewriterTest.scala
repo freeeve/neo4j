@@ -840,11 +840,11 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(b)<-[r_i:R*1..]-(a)",
         relationshipPredicates =
-          Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop <> endNode(`  UNNAMED1`).prop"))
+          Seq(Predicate("  UNNAMED3", "startNode(`  UNNAMED3`).prop <> endNode(`  UNNAMED3`).prop"))
       )
       .expand(
         "(b)-[rr_i:RR*1..]->(c)",
-        relationshipPredicates = Seq(Predicate("  UNNAMED3", "endNode(`  UNNAMED3`).name = 'foo'"))
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).name = 'foo'"))
       )
       .allNodeScan("b")
       .build()
@@ -1858,12 +1858,12 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(b)<-[r_i:R*1..]-(a)",
         relationshipPredicates =
-          Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop <> endNode(`  UNNAMED1`).prop")),
+          Seq(Predicate("  UNNAMED3", "startNode(`  UNNAMED3`).prop <> endNode(`  UNNAMED3`).prop")),
         pathMode = Walk
       )
       .expand(
         "(b)-[rr_i:RR*1..]->(c)",
-        relationshipPredicates = Seq(Predicate("  UNNAMED3", "endNode(`  UNNAMED3`).name = 'foo'")),
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).name = 'foo'")),
         pathMode = Walk
       )
       .allNodeScan("b")

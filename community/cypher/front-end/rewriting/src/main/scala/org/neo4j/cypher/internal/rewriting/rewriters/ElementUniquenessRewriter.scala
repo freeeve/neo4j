@@ -24,13 +24,15 @@ import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.In
-import org.neo4j.cypher.internal.expressions.InlinedNoneOfNodesInVarLengthRelationship
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
 import org.neo4j.cypher.internal.expressions.NoneOfNodes
+import org.neo4j.cypher.internal.expressions.NoneOfNodesInVarLengthRelationship
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Not
+import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
+import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
 import org.neo4j.cypher.internal.expressions.Unique
@@ -45,7 +47,7 @@ import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.topDown
 
 /**
- * Removes [[Disjoint]] and [[Unique]] predicates into expressions that the runtime can evaluate.
+ *  Rewrites synthetic uniqueness predicates such as [[Disjoint]] and [[Unique]] into expressions that the runtime can evaluate.
  */
 case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator) extends Rewriter
     with TopDownMergeableRewriter {
@@ -84,6 +86,61 @@ case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVa
     Not(In(element, list)(pos))(pos)
   }
 
+  private def translateInlinedNoneOfNodesInVarLengthRelExpr(
+    node: Expression,
+    varLengthRelationshipVariable: Expression,
+    varLengthRelDirection: SemanticDirection,
+    pos: InputPosition
+  ) = {
+    if (varLengthRelDirection == BOTH) {
+      Not(
+        In(
+          node,
+          ListLiteral(Seq(
+            StartNode(varLengthRelationshipVariable)(pos),
+            EndNode(varLengthRelationshipVariable)(pos)
+          ))(pos)
+        )(pos)
+      )(pos)
+    } else {
+      // We check that `node` is not equal to the node we expand towards with each step. This allows us
+      // to prune one step earlier. And due to juxtaposition, the only node we miss a check against
+      // is the first node, but this will have already been handled by a DifferentNodes predicate.
+      Not(
+        Equals(
+          node,
+          if (varLengthRelDirection == OUTGOING)
+            EndNode(varLengthRelationshipVariable)(pos)
+          else {
+            // INCOMING
+            StartNode(varLengthRelationshipVariable)(pos)
+          }
+        )(pos)
+      )(pos)
+    }
+  }
+
+  private def translateNonInlinedNoneOfNodesInVarLengthRelExpr(
+    node: Expression,
+    varLengthRelationshipVariable: Expression,
+    varLengthRelDirection: SemanticDirection,
+    pos: InputPosition
+  ) = {
+    val innerX = newAnonymousVariable(pos)
+    val check = varLengthRelDirection match {
+      // We need to include at least all inner nodes of the chain. The two end points can be included,
+      // but are handled also by DifferentNodes predicates.
+      case BOTH     => ListLiteral(Seq(StartNode(innerX)(pos), EndNode(innerX)(pos)))(pos)
+      case OUTGOING => ListLiteral(Seq(EndNode(innerX)(pos)))(pos) // Using StartNode would also be fine.
+      case INCOMING => ListLiteral(Seq(StartNode(innerX)(pos)))(pos) // Using EndNode would also be fine.
+    }
+    NoneIterablePredicate(
+      innerX,
+      varLengthRelationshipVariable,
+      Some(In(node, check)(pos))
+    )(pos)
+  }
+
   private def differentPredicateToExpression(element1: Expression, element2: Expression, pos: InputPosition) = {
     Not(Equals(element1, element2)(pos))(pos)
   }
@@ -107,52 +164,26 @@ case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVa
     case p @ NoneOfNodes(node, nodeList) =>
       noneOfPredicateToExpression(node, nodeList, p.position)
 
-    case p @ InlinedNoneOfNodesInVarLengthRelationship(
+    case p @ NoneOfNodesInVarLengthRelationship(
         node,
         varLengthRelationshipVariable,
-        varLengthRelDirection
+        varLengthRelDirection,
+        mustBeInlined
       ) =>
-      val pos = p.position
-      if (varLengthRelDirection == BOTH) {
-        // NOT node IN [startNode(varLengthRelationshipVariable), endNode(varLengthRelationshipVariable)]
-        // When it would not be inlined, we would need something like
-        //   none(innerRel IN varLengthRelationshipVariable WHERE node IN [startNode(innerRel), endNode(innerRel)])
-        Not(
-          In(
-            node,
-            ListLiteral(Seq(
-              StartNode(varLengthRelationshipVariable)(pos),
-              EndNode(varLengthRelationshipVariable)(pos)
-            ))(pos)
-          )(pos)
-        )(pos)
-      } else {
-        // NOT node = right(varLengthRelationshipVariable)
-        // Using this, we will miss a check for the left outer boundary node.
-        // This will be handled by a separate DifferentNodes predicate.
-        //   The boundary nodes of a VarExpand have the same equivalence class as the VarExpand.
-        //   The node has a different equivalence class that the VarExpand.
-        //   Therefore, the node will have a different equivalence class than the boundary nodes.
-        //   Nodes with different equivalence classes will lead to the generation of DifferentNodes predicates.
-        //
-        // Using endNode instead of startNode, or the other way around would be equivalent.
-        // We just need to include all inner nodes of the var-length relationship and may include the boundary nodes.
-        // We chose `right`, i.e. endNode for outgoing relationship and startNode for incoming relationship, to allow
-        // pruning to happen one iteration earlier.
-        // When the predicate would not be inlined we would need something like this:
-        //   NOT node in ([innerRel IN varLengthRelationshipVariable | startNode(innerRel)])
-        Not(
-          Equals(
-            node,
-            if (varLengthRelDirection == OUTGOING)
-              EndNode(varLengthRelationshipVariable)(pos)
-            else {
-              // INCOMING
-              StartNode(varLengthRelationshipVariable)(pos)
-            }
-          )(pos)
-        )(pos)
-      }
+      if (mustBeInlined)
+        translateInlinedNoneOfNodesInVarLengthRelExpr(
+          node,
+          varLengthRelationshipVariable,
+          varLengthRelDirection,
+          p.position
+        )
+      else
+        translateNonInlinedNoneOfNodesInVarLengthRelExpr(
+          node,
+          varLengthRelationshipVariable,
+          varLengthRelDirection,
+          p.position
+        )
 
     case p @ DifferentRelationships(rel1, rel2) =>
       differentPredicateToExpression(rel1, rel2, p.position)

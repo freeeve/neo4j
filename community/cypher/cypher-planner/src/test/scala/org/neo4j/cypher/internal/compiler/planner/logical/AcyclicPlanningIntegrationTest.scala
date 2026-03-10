@@ -33,9 +33,11 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Trai
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
+import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.UpperBound.Limited
@@ -58,7 +60,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
     .setRelationshipCardinality("(:T)-[:R]->(:T)", 250)
     .addSemanticFeature(PathModes)
 
-  test("Single ACYCLIC path pattern case 0 - Unsatisfiable query") {
+  test("Unsatisfiable query") {
     val planner = pb.build()
 
     val query =
@@ -76,7 +78,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 1 - Fixed-length relationships") {
+  test("Fixed-length relationships") {
     val planner = pb.build()
 
     val query =
@@ -98,7 +100,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   private val intMaxValuePlus1: Long = Int.MaxValue.toLong + 1L
 
   test(
-    "Single ACYCLIC path pattern - Single QPP - upperbound (Int.MaxValue+1) is too large to rewrite Repeat to VarExpand"
+    "Single QPP - upperbound (Int.MaxValue+1) is too large to rewrite Repeat to VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -136,7 +138,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern - Single QPP - plan as VarExpand") {
+  test("Single QPP - plan as VarExpand") {
     val planner = pb.build()
     val query =
       """
@@ -172,12 +174,12 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("none(anon_2 IN r2 WHERE anon_2 IN r1)") // Relationship uniqueness hold for the whole graph pattern
       .expand(
         "(n2)-[r2*3..10]->(n3)",
-        relationshipPredicates = Seq(Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)")),
+        relationshipPredicates = Seq(Predicate("anon_1", "NOT startNode(anon_1) = endNode(anon_1)")),
         pathMode = Acyclic
       )
       .expand(
         "(n1)-[r1*0..4]->(n2)",
-        relationshipPredicates = Seq(Predicate("anon_1", "NOT startNode(anon_1) = endNode(anon_1)")),
+        relationshipPredicates = Seq(Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)")),
         pathMode = Acyclic
       )
       .nodeByLabelScan("n1", "S", IndexOrderNone)
@@ -364,7 +366,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and QPP - process left-to-right - Repeat"
+    "Fixed-length relationship and QPP - process left-to-right - Repeat"
   ) {
     val planner = pb.build()
     val query =
@@ -407,7 +409,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and outgoing QPP - process left-to-right - VarExpand"
+    "Fixed-length relationship and outgoing QPP - process left-to-right - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -438,7 +440,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and incoming QPP - process left-to-right - VarExpand"
+    "Fixed-length relationship and incoming QPP - process left-to-right - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -467,7 +469,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - Fixed-length relationship and undirected QPP - process left-to-right - VarExpand"
+    "Fixed-length relationship and undirected QPP - process left-to-right - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -503,7 +505,98 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 2 - Fixed-length relationship and QPP - process right-to-left") {
+  test(
+    "Fixed-length relationship and undirected QPP - process left-to-right - Should plan Repeat when the RHS of Repeat contains a filter before the expandAll and the repeat cannot be rewritten into a pruning VarExpand"
+  ) {
+    // The following shape is only translated to VarExpand when it can become a pruning varExpand
+    // .repeat
+    //  .|.filter
+    //  .|.expandAll
+    //  .|.filter     <-- This is the filter on the RHS of Repeat that is before the expandAll
+    //  .|.argument
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3 {p:1})-[r2]-(n4)){0,3}(n5)
+         |RETURN n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter("NOT n1 = n5")
+      .repeatAcyclic(AcyclicParameters(
+        min = 0,
+        max = Limited(3),
+        start = "n2",
+        end = "n5",
+        innerStart = "n3",
+        innerEnd = "n4",
+        groupNodes = Set(),
+        innerNodes = Set("n3", "n4"),
+        previouslyBoundNodes = Set("n1", "n2"),
+        previouslyBoundNodeGroups = Set(),
+        groupRelationships = Set(),
+        innerRelationships = Set("r2"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll,
+        accumulators = Set()
+      ))
+      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4")
+      .|.expandAll("(n3)-[r2]-(n4)")
+      .|.filter("n3.p = 1")
+      .|.argument("n3")
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[]->(n2)")
+      .nodeByLabelScan("n1", "S")
+      .build()
+  }
+
+  test(
+    "Fixed-length relationship and undirected QPP - process left-to-right - Should plan VarExpand when the RHS contains a filter before the repeat and the repeat can be rewritten into a pruning VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      s"""
+         |MATCH ACYCLIC (n1:S)-[r1]->(n2)((n3 {p:1})-[r2]-(n4)){0,3}(n5)
+         |RETURN DISTINCT n1, n5
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .orderedDistinct(Seq("n1"), "n1 AS n1", "n5 AS n5")
+      .filter("NOT n1 = n5")
+      .bfsPruningVarExpandExpr(
+        "(n2)-[*0..3]-(n5)",
+        relationshipPredicates = Seq(
+          VariablePredicate(
+            v"anon_0",
+            not(equals(
+              TraversalEndpoint(varFor("anon_1"), Endpoint.From),
+              TraversalEndpoint(varFor("anon_2"), Endpoint.To)
+            ))
+          ),
+          VariablePredicate(
+            v"anon_0",
+            equals(propExpression(TraversalEndpoint(varFor("anon_3"), Endpoint.From), "p"), literalInt(1))
+          ),
+          Predicate("anon_0", "NOT n1 IN [startNode(anon_0), endNode(anon_0)]").asVariablePredicate
+        ),
+        mode = ExpandAll,
+        pathMode = Acyclic
+      )
+      .filter("NOT n1 = n2")
+      .expandAll("(n1)-[]->(n2)")
+      .nodeByLabelScan("n1", "S", IndexOrderAscending)
+      .build()
+  }
+
+  test(
+    "Fixed-length relationship and outgoing QPP - process right-to-left - VarExpand"
+  ) {
     val planner = pb.build()
     val query =
       """
@@ -515,10 +608,107 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
     plan shouldEqual planner.subPlanBuilder()
       .produceResults("n1", "n5")
       .filter(
-        "NOT n1 IN n4 + n3",
+        "none(anon_1 IN r2 WHERE n1 = startNode(anon_1))",
         "NOT n1 = n2",
         "NOT n1 = n5"
-      ) // 'NOT n1 = n5' should already be solved by a combination of 'NOT n1 = n2' (in case of 0-iterations of the QPP) and 'NOT n1 IN n4 + n3' (in case of at least one iteration of the QPP)
+      )
+      .expandAll("(n2)<-[]-(n1)")
+      .expand(
+        "(n5)<-[r2*0..3]-(n2)",
+        expandMode = ExpandAll,
+        relationshipPredicates = Seq(Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)")),
+        pathMode = Acyclic
+      )
+      .nodeByLabelScan("n5", "S")
+      .build()
+  }
+
+  test(
+    "Fixed-length relationship and incoming QPP - process right-to-left - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      """
+        |MATCH ACYCLIC (n1)-[r1]->(n2)((n3)<-[r2]-(n4)){0,3}(n5:S)
+        |RETURN n1, n5
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter(
+        "none(anon_1 IN r2 WHERE n1 = endNode(anon_1))",
+        "NOT n1 = n5",
+        "NOT n1 = n2"
+      )
+      .expandAll("(n2)<-[]-(n1)")
+      .expand(
+        "(n5)-[r2*0..3]->(n2)",
+        expandMode = ExpandAll,
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(Predicate("anon_0", "NOT endNode(anon_0) = startNode(anon_0)")),
+        pathMode = Acyclic
+      )
+      .nodeByLabelScan("n5", "S")
+      .build()
+  }
+
+  test(
+    "Fixed-length relationship and undirected QPP - process right-to-left - VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      """
+        |MATCH ACYCLIC (n1)-[r1]->(n2)((n3)-[r2]-(n4)){0,3}(n5:S)
+        |RETURN n1, n5
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .filter(
+        "none(anon_3 IN r2 WHERE n1 IN [startNode(anon_3), endNode(anon_3)])",
+        "NOT n1 = n5",
+        "NOT n1 = n2"
+      )
+      .expandAll("(n2)<-[]-(n1)")
+      .expandExpr(
+        "(n5)-[r2*0..3]-(n2)",
+        expandMode = ExpandAll,
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(VariablePredicate(
+          v"anon_0",
+          not(equals(
+            TraversalEndpoint(varFor("anon_1"), Endpoint.To),
+            TraversalEndpoint(varFor("anon_2"), Endpoint.From)
+          ))
+        )),
+        pathMode = Acyclic
+      )
+      .nodeByLabelScan("n5", "S")
+      .build()
+  }
+
+  test(
+    "Fixed-length relationship and QPP - process right-to-left - Should plan Repeat with filter before the expand when it cannot become a pruning VarExpand"
+  ) {
+    val planner = pb.build()
+    val query =
+      """
+        |MATCH ACYCLIC (n1)-[r1]->(n2)((n3)-[r2]->(n4 {p:1})){0,3}(n5:S)
+        |RETURN DISTINCT n1, n5
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n1", "n5")
+      .orderedDistinct(Seq("n5"), "n1 AS n1", "n5 AS n5")
+      .filter(
+        // The Uniqueness checks require access to the individual paths, which are not being kept with pruning VarExpands.
+        "NOT n1 IN n4 + n3",
+        "NOT n1 = n5",
+        "NOT n1 = n2"
+      )
       .expandAll("(n2)<-[]-(n1)")
       .repeatAcyclic(AcyclicParameters(
         min = 0,
@@ -527,10 +717,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "n2",
         innerStart = "n4",
         innerEnd = "n3",
-        groupNodes = Set(
-          ("n3", "n3"),
-          ("n4", "n4")
-        ), // n3 and n4 are needed later in the plan for node uniqueness checks with node n1, this prevents the rewrite to VarExpand.
+        groupNodes = Set(("n3", "n3"), ("n4", "n4")),
         innerNodes = Set("n3", "n4"),
         previouslyBoundNodes = Set("n5"),
         previouslyBoundNodeGroups = Set(),
@@ -544,13 +731,14 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       ))
       .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n3 = n4")
       .|.expandAll("(n4)<-[r2]-(n3)")
+      .|.filter("n4.p = 1")
       .|.argument("n4")
-      .nodeByLabelScan("n5", "S")
+      .nodeByLabelScan("n5", "S", IndexOrderAscending)
       .build()
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - outgoing QPP and Fixed-length relationship - process right-to-left - VarExpand"
+    "outgoing QPP and Fixed-length relationship - process right-to-left - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -578,7 +766,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - incoming QPP and Fixed-length relationship - process right-to-left - VarExpand"
+    "incoming QPP and Fixed-length relationship - process right-to-left - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -607,7 +795,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Single ACYCLIC path pattern case 2 - undirected QPP and Fixed-length relationship - process right-to-left - VarExpand"
+    "undirected QPP and Fixed-length relationship - process right-to-left - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -641,7 +829,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 3 - QPP with more than one relationship - process left-to-right") {
+  test("QPP with more than one relationship - process left-to-right") {
     val planner = pb.build()
     val query =
       """
@@ -688,7 +876,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 3 - QPP with more than one relationship - process right-to-left") {
+  test("QPP with more than one relationship - process right-to-left") {
     val planner = pb.build()
     val query =
       """
@@ -735,7 +923,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 4 - Directly connected QPPs") {
+  test("Directly connected QPPs") {
     val planner = pb.build()
     val query =
       """
@@ -763,7 +951,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         // n1 was also previously bound. It is not strictly needed,
         // since it's the same as n4 in the case of zero-iterations of the first QPP
         // and the same as the last n2 in the case of at least one iteration of the first QPP
-        previouslyBoundNodeGroups = Set("n3", "n2"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodeGroups = Set("n3", "n2"), // This prevents the rewrite to VarExpand (for both Repeats)
         groupRelationships = Set(),
         innerRelationships = Set("r2"),
         previouslyBoundRelationships = Set(),
@@ -782,7 +970,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "n4",
         innerStart = "n2",
         innerEnd = "n3",
-        groupNodes = Set(("n2", "n2"), ("n3", "n3")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("n2", "n2"), ("n3", "n3")),
         innerNodes = Set("n2", "n3"),
         previouslyBoundNodes = Set("n1"),
         previouslyBoundNodeGroups = Set(),
@@ -801,15 +989,15 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 5 - QPPs with a relationship in between - processing QPP1, rel, QPP2") {
+  test("QPPs with a relationship in between - processing QPP1, rel, QPP2") {
     val planner = pb.build()
     val query =
       """
         |MATCH ACYCLIC (n1:S)
-        |((n2)-[r1:R]->(n3)){0,2}
-        |(n4)-[r2]->(n5)
-        |((n6)-[r3]->(n7)){0,3}
-        |(n8)
+        |  ((n2)-[r1:R]->(n3)){0,2}
+        |  (n4)-[r2]->(n5)
+        |  ((n6)-[r3]->(n7)){0,3}
+        |  (n8)
         |RETURN n1, n8
         |""".stripMargin
 
@@ -826,8 +1014,8 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         innerEnd = "n7",
         groupNodes = Set(),
         innerNodes = Set("n6", "n7"),
-        previouslyBoundNodes = Set("n1", "n4", "n5"), // This prevents the rewrite to VarExpand
-        previouslyBoundNodeGroups = Set("n3", "n2"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("n1", "n4", "n5"),
+        previouslyBoundNodeGroups = Set("n3", "n2"), // This prevents the rewrite to VarExpand (for both Repeats)
         groupRelationships = Set(),
         innerRelationships = Set("r3"),
         previouslyBoundRelationships = Set(),
@@ -848,7 +1036,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "n4",
         innerStart = "n2",
         innerEnd = "n3",
-        groupNodes = Set(("n2", "n2"), ("n3", "n3")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("n2", "n2"), ("n3", "n3")),
         innerNodes = Set("n2", "n3"),
         previouslyBoundNodes = Set("n1"),
         previouslyBoundNodeGroups = Set(),
@@ -867,7 +1055,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 5 - QPPs with a relationship in between - processing rel, QPP1, QPP2") {
+  test("QPPs with a relationship in between - processing rel, QPP1, QPP2") {
     val planner = pb
       .setRelationshipCardinality("(:S)-[:R]->(:S)", 3)
       .build()
@@ -894,8 +1082,8 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         innerEnd = "n7",
         groupNodes = Set(),
         innerNodes = Set("n6", "n7"),
-        previouslyBoundNodes = Set("n1", "n4", "n5"), // This prevents the rewrite to VarExpand
-        previouslyBoundNodeGroups = Set("n2", "n3"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("n1", "n4", "n5"),
+        previouslyBoundNodeGroups = Set("n2", "n3"), // This prevents the rewrite to VarExpand (for both Repeats)
         groupRelationships = Set(),
         innerRelationships = Set("r3"),
         previouslyBoundRelationships = Set(),
@@ -915,7 +1103,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "n1",
         innerStart = "n3",
         innerEnd = "n2",
-        groupNodes = Set(("n2", "n2"), ("n3", "n3")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("n2", "n2"), ("n3", "n3")),
         innerNodes = Set("n2", "n3"),
         previouslyBoundNodes = Set("n5", "n4"),
         previouslyBoundNodeGroups = Set(),
@@ -936,7 +1124,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Single ACYCLIC path pattern case 6 - Relationship before and after QPP") {
+  test("Relationship before and after QPP") {
     val planner = pb.build()
     val query =
       """
@@ -958,7 +1146,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "f",
         innerStart = "c",
         innerEnd = "e",
-        groupNodes = Set(("c", "c"), ("d", "d"), ("e", "e")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("c", "c"), ("d", "d"), ("e", "e")),
         innerNodes = Set("c", "d", "e"),
         previouslyBoundNodes = Set("a", "b"), // This prevents the rewrite to VarExpand
         previouslyBoundNodeGroups = Set(),
@@ -981,11 +1169,42 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Multiple ACYCLIC path pattern case 1 - Two path patterns with single fixed-length relationships") {
+  test("Relationship before and after QPP - VarExpand") {
     val planner = pb.build()
     val query =
       """
-        |MATCH ACYCLIC (n1:S)-[r1:R]->(n2), ACYCLIC (n2)-[r2]->(n3)
+        |MATCH ACYCLIC (a:S)-[q:R]->(b) ((c)-[r]->(d)){1,10} (f)-[t]->(g)
+        |RETURN a, g
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("a", "g")
+      .filter("none(anon_1 IN r WHERE g = endNode(anon_1))", "NOT b = g", "NOT a = g", "NOT f = g")
+      .expandAll("(f)-[]->(g)")
+      .filter("NOT a = f")
+      .expand(
+        "(b)-[r*1..10]->(f)",
+        expandMode = ExpandAll,
+        relationshipPredicates = Seq(
+          Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)"),
+          Predicate("anon_0", "NOT a = endNode(anon_0)")
+        ),
+        pathMode = Acyclic
+      )
+      .filter("NOT a = b")
+      .expandAll("(a)-[:R]->(b)")
+      .nodeByLabelScan("a", "S", IndexOrderNone)
+      .build()
+  }
+
+  test("Multiple ACYCLIC path patterns - Two path patterns with single fixed-length relationships") {
+    val planner = pb.build()
+    val query =
+      """
+        |MATCH
+        |  ACYCLIC (n1:S)-[r1:R]->(n2),
+        |  ACYCLIC (n2)-[r2]->(n3)
         |RETURN n1, n3
         |""".stripMargin
 
@@ -1001,12 +1220,14 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Multiple ACYCLIC path pattern case 1 - Two path patterns with single fixed-length relationships - anonymous variables"
+    "Multiple ACYCLIC path patterns - Two path patterns with single fixed-length relationships - anonymous variables"
   ) {
     val planner = pb.build()
     val query =
       """
-        |MATCH ACYCLIC ()-[]-(), ACYCLIC ()-[]-()
+        |MATCH
+        |  ACYCLIC ()-[]-(),
+        |  ACYCLIC ()-[]-()
         |RETURN 1
         |""".stripMargin
 
@@ -1023,7 +1244,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .build()
   }
 
-  test("Multiple ACYCLIC path pattern case 2 - Two path patterns with multiple fixed-length relationships") {
+  test("Multiple ACYCLIC path patterns - Two path patterns with multiple fixed-length relationships") {
     val planner = pb.build()
     val query =
       """
@@ -1049,7 +1270,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Multiple ACYCLIC path pattern case 3 - Two path patterns both with a fixed-length relationship and a QPP - Repeat"
+    "Multiple ACYCLIC path patterns - Two path patterns both with a fixed-length relationship and a QPP - Repeat"
   ) {
     val planner = pb.build()
     val query =
@@ -1069,14 +1290,14 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("NOT n5 = n9")
       .repeatAcyclic(AcyclicParameters(
         min = 0,
-        max = Limited(intMaxValuePlus1),
+        max = Limited(intMaxValuePlus1), // This prevents the rewrite to VarExpand
         start = "n6",
         end = "n9",
         innerStart = "n7",
         innerEnd = "n8",
         groupNodes = Set(),
         innerNodes = Set("n7", "n8"),
-        previouslyBoundNodes = Set("n5", "n6"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("n5", "n6"),
         previouslyBoundNodeGroups = Set(),
         groupRelationships = Set(),
         innerRelationships = Set("r4"),
@@ -1094,14 +1315,14 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .filter("NOT n1 = n5") // Not strictly needed
       .repeatAcyclic(AcyclicParameters(
         min = 0,
-        max = Limited(intMaxValuePlus1),
+        max = Limited(intMaxValuePlus1), // This prevents the rewrite to VarExpand
         start = "n2",
         end = "n5",
         innerStart = "n3",
         innerEnd = "n4",
         groupNodes = Set(),
         innerNodes = Set("n3", "n4"),
-        previouslyBoundNodes = Set("n1", "n2"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("n1", "n2"),
         previouslyBoundNodeGroups = Set(),
         groupRelationships = Set(("r2", "r2")),
         innerRelationships = Set("r2"),
@@ -1121,7 +1342,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
   }
 
   test(
-    "Multiple ACYCLIC path pattern case 3 - Two path patterns both with a fixed-length relationship and a QPP - VarExpand"
+    "Multiple ACYCLIC path patterns - Two path patterns both with a fixed-length relationship and a QPP - VarExpand"
   ) {
     val planner = pb.build()
     val query =
@@ -1142,10 +1363,10 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .expandExpr(
         "(n6)-[r4*0..1]->(n9)",
         relationshipPredicates = Seq(
-          Predicate("anon_0", "NOT startNode(anon_0) = endNode(anon_0)").asVariablePredicate,
+          Predicate("anon_1", "NOT startNode(anon_1) = endNode(anon_1)").asVariablePredicate,
           Predicate(
-            "anon_0",
-            "NOT n5 = endNode(anon_0)"
+            "anon_1",
+            "NOT n5 = endNode(anon_1)"
           ).asVariablePredicate
         ),
         pathMode = Acyclic
@@ -1157,10 +1378,10 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         "(n2)<-[r2*0..2]-(n5)",
         projectedDir = INCOMING,
         relationshipPredicates = Seq(
-          Predicate("anon_1", "NOT endNode(anon_1) = startNode(anon_1)").asVariablePredicate,
+          Predicate("anon_0", "NOT endNode(anon_0) = startNode(anon_0)").asVariablePredicate,
           Predicate(
-            "anon_1",
-            "NOT n1 = startNode(anon_1)"
+            "anon_0",
+            "NOT n1 = startNode(anon_0)"
           ).asVariablePredicate
         ),
         pathMode = Acyclic
@@ -1198,7 +1419,8 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         innerEnd = "h_inner",
         groupNodes = Set(),
         innerNodes = Set("g_inner2", "h_inner"),
-        previouslyBoundNodes = Set("c", "d", "g"), // e is not strictly necessary
+        // e is a previously bound node, but it has the same equivalence class as this Repeat and is not the start node of the Repeat. Therefore, it should not be included. Including it would add useless checks, but will also break our rewriter to VarExpand.
+        previouslyBoundNodes = Set("c", "d", "g"),
         previouslyBoundNodeGroups = Set("g_inner1", "f", "e_inner"), // This prevents the rewrite to VarExpand
         groupRelationships = Set(),
         innerRelationships = Set("r6"),
@@ -1228,12 +1450,12 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         innerStart = "e_inner",
         innerEnd = "g_inner1",
         groupNodes =
-          Set(("e_inner", "e_inner"), ("f", "f"), ("g_inner1", "g_inner1")), // This prevents the rewrite to VarExpand
+          Set(("e_inner", "e_inner"), ("f", "f"), ("g_inner1", "g_inner1")),
         innerNodes = Set("e_inner", "f", "g_inner1"),
-        previouslyBoundNodes = Set("c", "d", "e"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("c", "d", "e"),
         previouslyBoundNodeGroups = Set(),
         groupRelationships = Set(),
-        innerRelationships = Set("r4", "r5"),
+        innerRelationships = Set("r4", "r5"), // This prevents the rewrite to VarExpand
         previouslyBoundRelationships = Set("r1"),
         previouslyBoundRelationshipGroups = Set(),
         reverseGroupVariableProjections = false,
@@ -1291,9 +1513,9 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "p",
         innerStart = "c",
         innerEnd = "d",
-        groupNodes = Set(("c", "c"), ("d", "d")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("c", "c"), ("d", "d")),
         innerNodes = Set("c", "d"),
-        previouslyBoundNodes = Set("a", "b"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("a", "b"),
         previouslyBoundNodeGroups = Set(),
         groupRelationships = Set(("s", "s")),
         innerRelationships = Set("s"),
@@ -1303,7 +1525,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.semiApply()
+      .|.semiApply() // This prevents the rewrite to VarExpand for the Repeat in the outer query
       .|.|.expand(
         "(d)-[*1..]->(c)",
         expandMode = ExpandInto,
@@ -1340,9 +1562,9 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "p",
         innerStart = "c",
         innerEnd = "d",
-        groupNodes = Set(("c", "c"), ("d", "d")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("c", "c"), ("d", "d")),
         innerNodes = Set("c", "d"),
-        previouslyBoundNodes = Set("a", "b"), // This prevents the rewrite to VarExpand
+        previouslyBoundNodes = Set("a", "b"),
         previouslyBoundNodeGroups = Set(),
         groupRelationships = Set(("s", "s")),
         innerRelationships = Set("s"),
@@ -1352,7 +1574,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.semiApply()
+      .|.semiApply() // This prevents the rewrite to VarExpand for the Repeat in the outer query
       .|.|.repeatTrail(TrailParameters(
         min = 1,
         max = Unlimited,
@@ -1403,7 +1625,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "e",
         innerStart = "b",
         innerEnd = "d",
-        groupNodes = Set(("b", "b"), ("c", "c"), ("d", "d")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("b", "b"), ("c", "c"), ("d", "d")),
         innerNodes = Set("b", "c", "d"),
         previouslyBoundNodes = Set("a"),
         previouslyBoundNodeGroups = Set(),
@@ -1445,7 +1667,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         end = "e",
         innerStart = "b",
         innerEnd = "d",
-        groupNodes = Set(("b", "b"), ("c", "c"), ("d", "d")), // This prevents the rewrite to VarExpand
+        groupNodes = Set(("b", "b"), ("c", "c"), ("d", "d")),
         innerNodes = Set("b", "c", "d"),
         previouslyBoundNodes = Set("a"),
         previouslyBoundNodeGroups = Set(),
