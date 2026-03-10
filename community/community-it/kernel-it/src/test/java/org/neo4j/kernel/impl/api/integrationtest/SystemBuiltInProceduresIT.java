@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.api.integrationtest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
@@ -36,6 +35,10 @@ import static org.neo4j.values.storable.Values.stringValue;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.collection.RawIterator;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlExceptionLikeAssert;
+import org.neo4j.gqlstatus.GqlRuntimeException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.internal.kernel.api.Procedures;
 import org.neo4j.internal.kernel.api.TokenWrite;
@@ -408,13 +411,31 @@ class SystemBuiltInProceduresIT extends KernelIntegrationTest implements Procedu
         for (String q : queries) {
             try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
                 // When & Then
-                RuntimeException exception = assertThrows(RuntimeException.class, () -> tx.execute(q));
-                assertTrue(
-                        exception
-                                .getMessage()
-                                .startsWith(
-                                        "Not a recognised system command or procedure. This Cypher command can only be executed in a user database:"),
-                        "Wrong error message for '" + q + "' => " + exception.getMessage());
+                String invalidClause = q.substring(0, q.indexOf("("));
+                GqlExceptionLikeAssert assertion = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                                () -> tx.execute(q).close())
+                        .isInstanceOf(GqlRuntimeException.class)
+                        .hasMessageStartingWith(
+                                "The following unsupported clauses were used: " + invalidClause + ". \n"
+                                        + "The system database supports a restricted set of Cypher clauses. "
+                                        + "The supported clause structure for procedure calls is: CALL, YIELD, RETURN. "
+                                        + "YIELD and RETURN clauses are optional. The order of the clauses is fixed and each can only occur once.")
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_42001);
+
+                var causeAssertion = assertion
+                        .gqlCause()
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_42N17)
+                        .hasStatusDescription("error: syntax error or access rule violation - unsupported request. '"
+                                + invalidClause + "' is not allowed on the system database.");
+
+                causeAssertion
+                        .gqlCause()
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_42NA9)
+                        .hasStatusDescription(
+                                "error: syntax error or access rule violation - system database rules. "
+                                        + "The system database supports a restricted set of Cypher clauses. "
+                                        + "The supported clauses include procedure calls (if the procedure is allowed), a subset of show and terminate commands, and combinations of the two. "
+                                        + "'YIELD' and 'RETURN' are also permitted when combined with procedure calls, show, or terminate commands.");
             }
         }
     }

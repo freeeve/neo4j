@@ -4574,11 +4574,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA9(
             new GqlStatus("42NA9"),
-            "The system database supports a restricted set of Cypher clauses. The supported clause structure for procedure calls is: 'CALL', 'YIELD', 'RETURN'. 'YIELD' and 'RETURN' clauses are optional. The order of the clauses is fixed and each can only occur once.",
+            "The system database supports a restricted set of Cypher clauses. The supported clauses include procedure calls (if the procedure is allowed), a subset of show and terminate commands, and combinations of the two. 'YIELD' and 'RETURN' are also permitted when combined with procedure calls, show, or terminate commands.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "system database procedure rules",
+            "system database rules",
             ErrorClassification.CLIENT_ERROR),
     @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42NAA(

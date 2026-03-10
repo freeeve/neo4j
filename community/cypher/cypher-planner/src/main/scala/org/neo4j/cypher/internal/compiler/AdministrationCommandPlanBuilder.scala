@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.ast.AlterServer
 import org.neo4j.cypher.internal.ast.AlterUser
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
-import org.neo4j.cypher.internal.ast.CallClause
 import org.neo4j.cypher.internal.ast.CascadeAliases
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.Clause
@@ -330,7 +329,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     // Currently doesn't allow WITH except when it is used instead of YIELD or added in rewrites
     // Also allows system procedure calls together with the commands
     def checkClausesAllowedOnSystem(clauses: Seq[Clause]) =
-      clauses.exists(_.isInstanceOf[CommandClauseAllowedOnSystem]) && clauses.forall {
+      clauses.exists {
+        case r: ResolvedNonLocalCall => r.signature.systemProcedure
+        case c                       => c.isInstanceOf[CommandClauseAllowedOnSystem]
+      } && clauses.forall {
         case w: With                 => w.withType == ParsedAsYield || w.withType == AddedInRewriteShowCommands
         case r: ResolvedNonLocalCall => r.signature.systemProcedure
         case c                       => c.isInstanceOf[ClauseAllowedOnSystem]
@@ -1869,9 +1871,11 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           case _: TopLevelBraces =>
             // might have been re-written away but let's keep the check for if not
             acc => TraverseChildren(acc :+ TopLevelBraces.name)
-          case _: UseGraph   => acc => SkipChildren(acc)
-          case _: CallClause => acc => SkipChildren(acc)
-          case _: Return     => acc => SkipChildren(acc)
+          case _: UseGraph                                            => acc => SkipChildren(acc)
+          case c: ResolvedNonLocalCall if c.signature.systemProcedure => acc => SkipChildren(acc)
+          case c: ResolvedNonLocalCall =>
+            acc => SkipChildren(acc :+ s"CALL ${c.signature.name.fullName}")
+          case _: Return => acc => SkipChildren(acc)
           case w: With if w.withType == AddedInRewriteProcCall =>
             acc =>
               val name = w.where.map(_ => "WHERE").getOrElse(w.name)
@@ -1900,17 +1904,6 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             unsupportedClauses.sorted.mkString(", "),
             legacyMessage,
-            !hasCommandClauses
-          )
-        }
-
-        val callCount = q.folder.treeCount {
-          case _: CallClause => ()
-        }
-        if (callCount > 1) {
-          throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
-            "More than one CALL clause",
-            s"The given query uses $callCount CALL clauses (${callCount - 1} too many). \n" + systemDbProcedureRules,
             true
           )
         }

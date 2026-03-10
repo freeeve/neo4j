@@ -124,6 +124,13 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
   test("Should fail to combine Cypher with commands on system") {
     // GIVEN
     selectDatabase(GraphDatabaseSettings.SYSTEM_DATABASE_NAME)
+    val systemDbClauseRules = gqlStatus(
+      GqlStatusInfoCodes.STATUS_42NA9,
+      s"error: syntax error or access rule violation - system database rules. " +
+        "The system database supports a restricted set of Cypher clauses. " +
+        "The supported clauses include procedure calls (if the procedure is allowed), a subset of show and terminate commands, and combinations of the two. " +
+        "'YIELD' and 'RETURN' are also permitted when combined with procedure calls, show, or terminate commands."
+    )
 
     // WHEN
     val exceptionCommandAllowed = the[InvalidSemanticsException] thrownBy {
@@ -137,7 +144,7 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
         GqlStatusInfoCodes.STATUS_42N17,
         "error: syntax error or access rule violation - unsupported request. " +
           s"'MATCH' is not allowed on the system database."
-      ))
+      ).withCause(systemDbClauseRules))
     ))
 
     // WHEN
@@ -152,7 +159,7 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
         GqlStatusInfoCodes.STATUS_42N17,
         "error: syntax error or access rule violation - unsupported request. " +
           s"'MATCH, SHOW CONSTRAINTS' is not allowed on the system database."
-      ))
+      ).withCause(systemDbClauseRules))
     ))
   }
 
