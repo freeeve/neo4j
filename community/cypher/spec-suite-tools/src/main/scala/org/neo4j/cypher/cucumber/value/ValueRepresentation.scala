@@ -87,6 +87,7 @@ object ValueRepresentation {
           .view
           .map { case (key, value) => s"$key: ${render(value.asInstanceOf[AnyRef])}" }
           .mkString("{", ", ", "}")
+      case null => "null"
       case _ =>
         Try(renderer.render(Cypher.literalOf(value))).getOrElse(value.toString)
     }
