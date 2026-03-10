@@ -30,6 +30,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecord;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
+import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.values.storable.Value;
 
 public abstract class IndexConfigValidationWrapper {
@@ -77,9 +78,9 @@ public abstract class IndexConfigValidationWrapper {
         return (T) settings.get(setting);
     }
 
-    public static IndexConfigValidationRecords validateSettingNames(
+    public static MutableIndexConfigValidationRecords validateSettingNames(
             Set<String> settingNames, Set<String> validSettingNames) {
-        final IndexConfigValidationRecords validationRecords = new IndexConfigValidationRecords();
+        final MutableIndexConfigValidationRecords validationRecords = new MutableIndexConfigValidationRecords();
         for (final String settingName : settingNames) {
             if (!validSettingNames.contains(settingName)) {
                 validationRecords.with(new UnrecognizedSetting(settingName));

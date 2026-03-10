@@ -46,6 +46,7 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
     enum State {
         VALID,
         UNPROCESSED,
+        PENDING,
         UNRECOGNIZED_SETTING,
         MISSING_SETTING,
         INCORRECT_TYPE,
@@ -114,6 +115,29 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
         @Override
         public State state() {
             return State.UNPROCESSED;
+        }
+    }
+
+    record Pending(IndexSetting setting, Object value, Value storable) implements RecordWithStorable, Invalid {
+        public Pending(RecordWithStorable hasStorable) {
+            this(hasStorable.setting(), hasStorable.value(), hasStorable.storable());
+        }
+
+        public Pending(RecordWithStorable hasStorable, Object value) {
+            this(hasStorable.setting(), value, hasStorable.storable());
+        }
+
+        public Pending(RecordWithValue hasValue, Value storable) {
+            this(hasValue.setting(), hasValue.value(), storable);
+        }
+
+        public Pending(RecordWithSetting hasSetting, Object value, Value storable) {
+            this(hasSetting.setting(), value, storable);
+        }
+
+        @Override
+        public State state() {
+            return State.PENDING;
         }
     }
 

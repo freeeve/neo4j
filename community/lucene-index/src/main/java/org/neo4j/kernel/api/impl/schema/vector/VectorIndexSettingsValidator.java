@@ -37,6 +37,7 @@ import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;
@@ -119,12 +120,12 @@ public interface VectorIndexSettingsValidator {
 
         @Override
         public IndexConfigValidationRecords validate(SettingsAccessor settings) {
-            final IndexConfigValidationRecords validationRecords =
+            final MutableIndexConfigValidationRecords validationRecords =
                     IndexConfigValidationWrapper.validateSettingNames(settings.settingNames(), handledSettingNames);
             for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
                 validationRecords.with(validator.validate(settings));
             }
-            return validationRecords;
+            return validationRecords.toUnmodifiable();
         }
 
         @Override

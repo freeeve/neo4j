@@ -135,7 +135,7 @@ public class VectorIndexConfigUtils {
                                 .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
 
             // this is an implementation mistake
-            case UNPROCESSED ->
+            case UNPROCESSED, PENDING ->
                 InternalException.indexNotApplicable(
                         descriptor.name(), "Validation for '%s' is incomplete.".formatted(settingName));
 
