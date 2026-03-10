@@ -41,6 +41,10 @@ public class UniqueKey {
         return queryText;
     }
 
+    public int getQueryTextLength() {
+        return queryText.length();
+    }
+
     public SimplifiedGqlError getGqlError() {
         return gqlError;
     }

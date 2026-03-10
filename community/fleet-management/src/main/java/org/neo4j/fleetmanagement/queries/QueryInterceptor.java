@@ -66,7 +66,9 @@ public class QueryInterceptor implements QueryExecutionMonitor {
 
     private void processInterceptedQuery(ExecutingQuery query, ErrorGqlStatusObject errorGqlStatusObject) {
         if (!config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)) {
-            userLog.error("Fleet management requires log_queries_obfuscate_literals=true to report queries");
+            userLog.error(String.format(
+                    "Fleet Manager requires %s=true to report queries",
+                    GraphDatabaseSettings.log_queries_obfuscate_literals.name()));
             return;
         }
 

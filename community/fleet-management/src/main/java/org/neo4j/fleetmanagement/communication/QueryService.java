@@ -41,6 +41,8 @@ public class QueryService extends AbstractReportingService {
     // Maximum number of missed reports before pausing log collection
     private static final int MAX_CACHED_REPORTS = 3;
 
+    private static final int MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10 MiB
+
     private final ServerIdentity serverIdentity;
     private final AtomicReference<AggregatedQueriesTimeSlice> current =
             new AtomicReference<>(new AggregatedQueriesTimeSlice());
@@ -62,7 +64,16 @@ public class QueryService extends AbstractReportingService {
 
     public void add(ExecutingQuery query, ErrorGqlStatusObject errorGqlStatusObject) {
         if (missedReports < MAX_CACHED_REPORTS) {
-            current.get().add(query, errorGqlStatusObject);
+            var currentSlice = current.get();
+            if (currentSlice.cumulativeQueryTextSize() < MAX_PAYLOAD_SIZE) {
+                currentSlice.add(query, errorGqlStatusObject);
+            } else {
+                // This limit normally shouldn't be reached, but it's here to print an error and cap the
+                // current slice rather than rejecting the entire message on the service-side.
+                userLog.warn(
+                        "Fleet Manager: current query text volume (%s bytes) limit reached",
+                        currentSlice.cumulativeQueryTextSize());
+            }
         }
     }
 

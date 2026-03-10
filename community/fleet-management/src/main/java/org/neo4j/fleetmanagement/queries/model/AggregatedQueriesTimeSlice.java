@@ -25,11 +25,15 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.query.ExecutingQuery;
 
 public class AggregatedQueriesTimeSlice {
+    public static final int META_JSON_SIZE = 400; // Approx size of QueryAggregationMeta marshaled into json
+
     private final Map<UniqueKey, QueryAggregationMeta> aggregations = new HashMap<>();
     private final long creationTime;
+    private int cumulativeQueryTextSize;
 
     public AggregatedQueriesTimeSlice() {
         creationTime = System.currentTimeMillis();
+        cumulativeQueryTextSize = 0;
     }
 
     public long getCreationTime() {
@@ -39,12 +43,21 @@ public class AggregatedQueriesTimeSlice {
     public void add(ExecutingQuery query, ErrorGqlStatusObject errorGqlStatusObject) {
         query.obfuscatedQueryText().ifPresent(obfuscatedText -> {
             var key = new UniqueKey(obfuscatedText, errorGqlStatusObject, query.queryLanguage());
-            aggregations.computeIfAbsent(key, k -> new QueryAggregationMeta()).addFromExecutingQuery(query);
+            aggregations
+                    .computeIfAbsent(key, k -> {
+                        cumulativeQueryTextSize += obfuscatedText.length() + META_JSON_SIZE;
+                        return new QueryAggregationMeta();
+                    })
+                    .addFromExecutingQuery(query);
         });
     }
 
     public int size() {
         return aggregations.size();
+    }
+
+    public int cumulativeQueryTextSize() {
+        return cumulativeQueryTextSize;
     }
 
     public Map<UniqueKey, QueryAggregationMeta> getAggregations() {

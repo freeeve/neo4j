@@ -55,6 +55,9 @@ public class QueryAggregationMeta {
     @JsonPropertyDescription("List of initiation types of the query")
     public HashSet<String> types = new HashSet<>();
 
+    @JsonPropertyDescription("List of users that executed the query")
+    public HashSet<String> users = new HashSet<>();
+
     public void addFromExecutingQuery(ExecutingQuery query) {
         var snapshot = query.snapshot();
         long elapsedMs = query.elapsedMillis();
@@ -81,6 +84,12 @@ public class QueryAggregationMeta {
 
         if (snapshot.databaseId().isPresent()) {
             databases.add(snapshot.databaseId().get().name());
+        }
+        if (snapshot.executingUsername() != null
+                && !snapshot.executingUsername().isEmpty()) {
+            users.add(snapshot.executingUsername());
+        } else {
+            users.add("anonymous");
         }
         if (snapshot.transactionAnnotationData().containsKey("app")) {
             applications.add(snapshot.transactionAnnotationData().get("app").toString());
