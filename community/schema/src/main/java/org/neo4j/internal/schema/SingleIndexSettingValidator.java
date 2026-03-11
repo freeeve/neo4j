@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.internal.schema;
+
+import java.util.OptionalInt;
+import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.InclusiveRange;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
+
+/// A [SingleIndexSettingProcessor] which validates the value and produces a [Valid] record.
+public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSettingProcessor
+        implements ValidatingIndexSettingsProcessor {
+    protected final Class<TYPE> type;
+    protected final Object valid;
+
+    protected SingleIndexSettingValidator(IndexSetting setting, Class<TYPE> type, Object valid) {
+        super(setting);
+        this.type = type;
+        this.valid = valid;
+    }
+
+    protected abstract boolean isValid(TYPE value);
+
+    /// Validates values from [Pending] records using [#isValid(TYPE)]
+    @Override
+    public RecordWithSetting processForVerification(RecordWithSetting record) {
+        if (!(record instanceof final Pending pending)) {
+            return record;
+        }
+
+        final Object value = pending.value();
+        if (value == null) {
+            return new InvalidValue(pending, valid);
+        }
+        if (!type.isInstance(value)) {
+            return new IncorrectType(pending, type);
+        }
+        if (!isValid(pending.valueAs(type))) {
+            return new InvalidValue(pending, valid);
+        }
+
+        return new Valid(pending);
+    }
+
+    @Override
+    public RecordWithSetting processForAuthoritativeRead(RecordWithSetting record) {
+        return record;
+    }
+
+    /// A [SingleIndexSettingValidator] that allows for `null` values within records
+    public abstract static class SingleIndexSettingNullableValidator<TYPE> extends SingleIndexSettingValidator<TYPE> {
+        protected SingleIndexSettingNullableValidator(IndexSetting setting, Class<TYPE> type, Object valid) {
+            super(setting, type, valid);
+        }
+
+        @Override
+        public RecordWithSetting processForVerification(RecordWithSetting record) {
+            if (!(record instanceof final Pending pending)) {
+                return record;
+            }
+
+            final Object value = pending.value();
+            if (value != null && !type.isInstance(value)) {
+                return new IncorrectType(pending, type);
+            }
+            if (!isValid(pending.valueAs(type))) {
+                return new InvalidValue(pending, valid);
+            }
+
+            return new Valid(pending);
+        }
+    }
+
+    // =================
+    //  Implementations
+    // =================
+
+    /// A [SingleIndexSettingValidator] for [Integer]
+    ///
+    /// Valid: non-null and inclusively within the provide range
+    public static final class IntegerRangeValidator extends SingleIndexSettingValidator<Integer> {
+        private final InclusiveRange<Integer> supportedRange;
+
+        public static IntegerRangeValidator of(IndexSetting setting, int min, int max) {
+            return new IntegerRangeValidator(setting, new InclusiveRange<>(min, max));
+        }
+
+        private IntegerRangeValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange) {
+            super(setting, Integer.class, supportedRange);
+            this.supportedRange = supportedRange;
+        }
+
+        @Override
+        protected boolean isValid(Integer value) {
+            return supportedRange.contains(value);
+        }
+    }
+
+    /// A [SingleIndexSettingValidator] for [OptionalInt]
+    ///
+    /// Valid: [OptionalInt#empty()] or inclusively within the provide range.
+    public static final class OptionalIntRangeValidator extends SingleIndexSettingValidator<OptionalInt> {
+        private final InclusiveRange<Integer> supportedRange;
+
+        public static OptionalIntRangeValidator of(IndexSetting setting, int min, int max) {
+            return new OptionalIntRangeValidator(setting, new InclusiveRange<>(min, max));
+        }
+
+        private OptionalIntRangeValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange) {
+            super(setting, OptionalInt.class, supportedRange);
+            this.supportedRange = supportedRange;
+        }
+
+        @Override
+        protected boolean isValid(OptionalInt value) {
+            return value.isEmpty() || supportedRange.contains(value.getAsInt());
+        }
+    }
+}

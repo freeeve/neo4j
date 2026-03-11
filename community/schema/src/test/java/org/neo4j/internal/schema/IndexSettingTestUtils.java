@@ -19,10 +19,35 @@
  */
 package org.neo4j.internal.schema;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.helpers.collection.ImmutableMapEntry;
+import org.neo4j.internal.schema.SettingsAccessor.IndexSettingObjectMapAccessor;
 
 public class IndexSettingTestUtils {
     private IndexSettingTestUtils() {}
+
+    public static SettingsAccessor settings(IndexSetting setting, Object value) {
+        return settings(nullableEntry(setting, value));
+    }
+
+    @SafeVarargs
+    public static SettingsAccessor settings(Entry<IndexSetting, Object>... entries) {
+        // HashMap can support null values
+        final Map<IndexSetting, Object> map = new HashMap<>(entries.length);
+        for (final Entry<IndexSetting, Object> entry : entries) {
+            map.put(entry.getKey(), entry.getValue());
+        }
+        return new IndexSettingObjectMapAccessor(map);
+    }
+
+    public static Entry<IndexSetting, Object> nullableEntry(IndexSetting setting, Object value) {
+        return new ImmutableNullableMapEntry<>(setting, value);
+    }
+
+    private record ImmutableNullableMapEntry<K, V>(K getKey, V getValue) implements ImmutableMapEntry<K, V> {}
 
     public static final Object FAKE_VALUE = new Object() {
         @Override

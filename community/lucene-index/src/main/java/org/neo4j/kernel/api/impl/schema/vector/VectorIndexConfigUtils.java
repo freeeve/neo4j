@@ -20,18 +20,19 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
-import static org.neo4j.internal.schema.InternalIndexSetting.VECTOR_QUANTIZATION_TYPE;
 
 import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.InternalIndexSetting;
 import org.neo4j.kernel.KernelVersion;
 
 public class VectorIndexConfigUtils {
     static final IndexSetting DIMENSIONS = IndexSetting.vector_Dimensions();
     static final IndexSetting SIMILARITY_FUNCTION = IndexSetting.vector_Similarity_Function();
     static final IndexSetting QUANTIZATION_ENABLED = IndexSetting.vector_Quantization_Enabled();
+    static final IndexSetting QUANTIZATION_TYPE = InternalIndexSetting.vector_Quantization_Type();
     static final IndexSetting HNSW_M = IndexSetting.vector_Hnsw_M();
     static final IndexSetting HNSW_EF_CONSTRUCTION = IndexSetting.vector_Hnsw_Ef_Construction();
 
@@ -44,7 +45,7 @@ public class VectorIndexConfigUtils {
         indexSettingIntroducedVersions.put(SIMILARITY_FUNCTION, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
         indexSettingIntroducedVersions.put(
                 QUANTIZATION_ENABLED, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
-        indexSettingIntroducedVersions.put(VECTOR_QUANTIZATION_TYPE, KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION);
+        indexSettingIntroducedVersions.put(QUANTIZATION_TYPE, KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION);
         indexSettingIntroducedVersions.put(HNSW_M, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
         indexSettingIntroducedVersions.put(
                 HNSW_EF_CONSTRUCTION, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
