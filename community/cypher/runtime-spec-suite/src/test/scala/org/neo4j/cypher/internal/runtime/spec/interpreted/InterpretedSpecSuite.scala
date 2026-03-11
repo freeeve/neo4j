@@ -21,9 +21,11 @@ package org.neo4j.cypher.internal.runtime.spec.interpreted
 
 import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunityRuntimeContext
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.COMMUNITY
+import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.interpreted.InterpretedSpecSuite.SIZE_HINT
 import org.neo4j.cypher.internal.runtime.spec.tests.AggregationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllNodeScanTestBase
@@ -212,6 +214,8 @@ import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeReadC
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeScanConcurrencyStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.UnionRelationshipTypesScanConcurrencyStressTestBase
 import org.neo4j.cypher.internal.util.test_helpers.TimeLimitedCypherTest
+import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.RelationshipType
 
 object InterpretedSpecSuite {
   val SIZE_HINT = 200
@@ -283,6 +287,14 @@ class InterpretedVarExpandAcyclicTest
       TraversalPathMode.Acyclic
     )
 
+class InterpretedPruningVarExpandAcyclicTest
+    extends PruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Acyclic
+    )
+
 class InterpretedPruningVarExpandTrailTest
     extends PruningVarLengthExpandTestBase(
       COMMUNITY.EDITION,
@@ -301,6 +313,14 @@ class InterpretedPruningVarExpandWalkTest
 
 class InterpretedPruningVarExpandFuzzTest
     extends PruningVarLengthExpandFuzzTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
+
+class InterpretedBFSPruningVarExpandAcyclicTest
+    extends BFSPruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Acyclic
+    )
 
 class InterpretedBFSPruningVarExpandTrailTest
     extends BFSPruningVarLengthExpandTestBase(

@@ -47,8 +47,9 @@ import org.eclipse.collections.impl.factory.primitive.IntLists;
 import org.eclipse.collections.impl.factory.primitive.LongLists;
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.Predicates;
 import org.neo4j.graphdb.Direction;
@@ -72,8 +73,15 @@ class BFSPruningVarExpandCursorTest {
     @Inject
     private Kernel kernel;
 
-    @Test
-    void shouldDoBreadthFirstSearch() throws KernelException {
+    enum TraversalPathMode {
+        // WALK, // TODO: enable once we fix WALK implementation
+        TRAIL,
+        ACYCLIC
+    }
+
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearch(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -111,34 +119,40 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a5, rel, b5);
 
             // then
-            BFSGraph expectedWithStart = graph().add(start)
+            var excludeStart = graph().add()
                     .add(a1, a2, a3, a4, a5)
                     .add(b1, b2, b3, b4, b5)
                     .build();
-            assertThat(f.cursor(OUTGOING, start).max(5).toGraph()).isEqualTo(expectedWithStart);
-            assertThat(f.cursor(OUTGOING, start).toGraph()).isEqualTo(expectedWithStart);
+            var withStart = graph().add(start)
+                    .add(a1, a2, a3, a4, a5)
+                    .add(b1, b2, b3, b4, b5)
+                    .build();
+            assertThat(f.cursor(OUTGOING, start).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(OUTGOING, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
 
-            BFSGraph expectedWithoutStart = graph().add()
-                    .add(a1, a2, a3, a4, a5)
-                    .add(b1, b2, b3, b4, b5)
-                    .build();
-            assertThat(f.cursor(OUTGOING, start).excludeStart().max(5).toGraph())
-                    .isEqualTo(expectedWithoutStart);
-            assertThat(f.cursor(OUTGOING, start).excludeStart().toGraph()).isEqualTo(expectedWithoutStart);
+            assertThat(f.cursor(OUTGOING, start).excludeStart().max(5).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(OUTGOING, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
             BFSGraph expectedInto = nodeAtDepth(b3, 3);
 
-            assertThat(f.cursor(OUTGOING, start).max(5).into(b3).toGraph()).isEqualTo(expectedInto);
-            assertThat(f.cursor(OUTGOING, start).into(b3).toGraph()).isEqualTo(expectedInto);
-            assertThat(f.cursor(OUTGOING, start).excludeStart().max(5).into(b3).toGraph())
+            assertThat(f.cursor(OUTGOING, start).max(5).into(b3).toGraph(traversalPathMode))
                     .isEqualTo(expectedInto);
-            assertThat(f.cursor(OUTGOING, start).excludeStart().into(b3).toGraph())
+            assertThat(f.cursor(OUTGOING, start).into(b3).toGraph(traversalPathMode))
+                    .isEqualTo(expectedInto);
+            assertThat(f.cursor(OUTGOING, start).excludeStart().max(5).into(b3).toGraph(traversalPathMode))
+                    .isEqualTo(expectedInto);
+            assertThat(f.cursor(OUTGOING, start).excludeStart().into(b3).toGraph(traversalPathMode))
                     .isEqualTo(expectedInto);
         }
     }
 
-    @Test
-    void shouldDoBreadthFirstSearchUndirected() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearchUndirected(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -176,32 +190,39 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a5, rel, b5);
 
             // then
-            BFSGraph expectedWithoutStart = graph().add()
+            var excludeStart = graph().add()
                     .add(a1, a2, a3, a4, a5)
                     .add(b1, b2, b3, b4, b5)
                     .build();
-            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph()).isEqualTo(expectedWithoutStart);
-            assertThat(f.cursor(BOTH, start).excludeStart().toGraph()).isEqualTo(expectedWithoutStart);
-
-            BFSGraph expectedWithStart = graph().add(start)
+            var withStart = graph().add(start)
                     .add(a1, a2, a3, a4, a5)
                     .add(b1, b2, b3, b4, b5)
                     .build();
-            assertThat(f.cursor(BOTH, start).max(5).toGraph()).isEqualTo(expectedWithStart);
-            assertThat(f.cursor(BOTH, start).toGraph()).isEqualTo(expectedWithStart);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, start).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
 
             BFSGraph expectedInto = nodeAtDepth(b3, 3);
 
-            assertThat(f.cursor(BOTH, start).into(b3).excludeStart().max(5).toGraph())
+            assertThat(f.cursor(BOTH, start).into(b3).excludeStart().max(5).toGraph(traversalPathMode))
                     .isEqualTo(expectedInto);
-            assertThat(f.cursor(BOTH, start).into(b3).excludeStart().toGraph()).isEqualTo(expectedInto);
-            assertThat(f.cursor(BOTH, start).into(b3).max(5).toGraph()).isEqualTo(expectedInto);
-            assertThat(f.cursor(BOTH, start).into(b3).toGraph()).isEqualTo(expectedInto);
+            assertThat(f.cursor(BOTH, start).into(b3).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(expectedInto);
+            assertThat(f.cursor(BOTH, start).into(b3).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(expectedInto);
+            assertThat(f.cursor(BOTH, start).into(b3).toGraph(traversalPathMode))
+                    .isEqualTo(expectedInto);
         }
     }
 
-    @Test
-    void shouldDoBreadthFirstSearchWithNodePredicate() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearchWithNodePredicate(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -238,42 +259,40 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
+            var excludeStart =
+                    graph().add().add(a1, a2, a4, a5).add(b1, b2, b4, b5).build();
+            var withStart =
+                    graph().add(start).add(a1, a2, a4, a5).add(b1, b2, b4, b5).build();
+
             // then
-            assertThat(f.cursor(OUTGOING, start).max(26).nodePred(n -> n != a3).toGraph())
-                    .isEqualTo(graph().add(start)
-                            .add(a1, a2, a4, a5)
-                            .add(b1, b2, b4, b5)
-                            .build());
-
+            assertThat(f.cursor(OUTGOING, start).max(26).nodePred(n -> n != a3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add(a1, a2, a4, a5)
-                            .add(b1, b2, b4, b5)
-                            .build());
-
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .into(b4)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b4, 3));
-
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .into(b4)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b4, 3));
         }
     }
 
-    @Test
-    void shouldDoBreadthFirstSearchWithNodePredicateUndirected() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearchWithNodePredicateUndirected(TraversalPathMode traversalPathMode)
+            throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -310,42 +329,39 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
+            var excludeStart =
+                    graph().add().add(a1, a2, a4, a5).add(b1, b2, b4, b5).build();
+            var withStart =
+                    graph().add(start).add(a1, a2, a4, a5).add(b1, b2, b4, b5).build();
             // then
-            assertThat(f.cursor(BOTH, start).max(26).nodePred(n -> n != a3).toGraph())
-                    .isEqualTo(graph().add(start)
-                            .add(a1, a2, a4, a5)
-                            .add(b1, b2, b4, b5)
-                            .build());
-
+            assertThat(f.cursor(BOTH, start).max(26).nodePred(n -> n != a3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(BOTH, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add(a1, a2, a4, a5)
-                            .add(b1, b2, b4, b5)
-                            .build());
-
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
             assertThat(f.cursor(BOTH, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .into(b4)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b4, 3));
-
             assertThat(f.cursor(BOTH, start)
                             .max(26)
                             .nodePred(n -> n != a3)
                             .into(b4)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b4, 3));
         }
     }
 
-    @Test
-    void shouldDoBreadthFirstSearchWithRelationshipPredicate() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearchWithRelationshipPredicate(TraversalPathMode traversalPathMode)
+            throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -385,39 +401,39 @@ class BFSPruningVarExpandCursorTest {
             Predicate<RelationshipTraversalEntities> relPred = cursor ->
                     cursor.relationshipReference() != filterThis && cursor.relationshipReference() != andFilterThat;
 
+            var excludeStart = graph().add().add(a1, a2, a3, a5).add(b1, b3, b5).build();
+            var withStart =
+                    graph().add(start).add(a1, a2, a3, a5).add(b1, b3, b5).build();
+
             // then
-            assertThat(f.cursor(OUTGOING, start).max(26).relPred(relPred).toGraph())
-                    .isEqualTo(graph().add(start)
-                            .add(a1, a2, a3, a5)
-                            .add(b1, b3, b5)
-                            .build());
-
+            assertThat(f.cursor(OUTGOING, start).max(26).relPred(relPred).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .relPred(relPred)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a1, a2, a3, a5).add(b1, b3, b5).build());
-
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .relPred(relPred)
                             .into(b3)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b3, 3));
-
             assertThat(f.cursor(OUTGOING, start)
                             .max(26)
                             .relPred(relPred)
                             .into(b3)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b3, 3));
         }
     }
 
-    @Test
-    void shouldDoBreadthFirstSearchWithRelationshipPredicateUndirected() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldDoBreadthFirstSearchWithRelationshipPredicateUndirected(TraversalPathMode traversalPathMode)
+            throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -457,35 +473,33 @@ class BFSPruningVarExpandCursorTest {
             Predicate<RelationshipTraversalEntities> relPred = cursor ->
                     cursor.relationshipReference() != filterThis && cursor.relationshipReference() != andFilterThat;
 
+            var excludeStart = graph().add().add(a1, a2, a3, a5).add(b1, b3, b5).build();
+            var withStart =
+                    graph().add(start).add(a1, a2, a3, a5).add(b1, b3, b5).build();
             // then
-            assertThat(f.cursor(BOTH, start).max(26).relPred(relPred).toGraph())
-                    .isEqualTo(graph().add(start)
-                            .add(a1, a2, a3, a5)
-                            .add(b1, b3, b5)
-                            .build());
-
+            assertThat(f.cursor(BOTH, start).max(26).relPred(relPred).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(BOTH, start)
                             .max(26)
                             .relPred(relPred)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a1, a2, a3, a5).add(b1, b3, b5).build());
-
-            assertThat(f.cursor(BOTH, start).max(26).relPred(relPred).into(b3).toGraph())
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, start).max(26).relPred(relPred).into(b3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b3, 3));
-
             assertThat(f.cursor(BOTH, start)
                             .max(26)
                             .relPred(relPred)
                             .into(b3)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(b3, 3));
         }
     }
 
-    @Test
-    void shouldOnlyTakeShortestPathBetweenNodes() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldOnlyTakeShortestPathBetweenNodes(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -509,8 +523,8 @@ class BFSPruningVarExpandCursorTest {
             long shouldNotCross = write.relationshipCreate(b3, rel, end);
 
             // when
-            var expander = f.cursor(OUTGOING, start).max(5).excludeStart().build();
-            var expanderWithMaxDepth = f.cursor(OUTGOING, start).excludeStart().build();
+            var expander = f.cursor(OUTGOING, start).max(5).excludeStart().build(traversalPathMode);
+            var expanderWithMaxDepth = f.cursor(OUTGOING, start).excludeStart().build(traversalPathMode);
 
             // then
             BFSGraph expected =
@@ -520,103 +534,115 @@ class BFSPruningVarExpandCursorTest {
         }
     }
 
-    @Test
-    void shouldExpandOutgoing() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldExpandOutgoing(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(10);
         try (var f = new Fixture()) {
+            var excludeStart = graphWithEmptyZeroFrontier(graph.nodes.subList(1, 4));
+            var withStart = graph(graph.nodes.subList(0, 4));
+
             // then
-            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).toGraph())
-                    .isEqualTo(graph(graph.nodes.subList(0, 4)));
+            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graphWithEmptyZeroFrontier(graph.nodes.subList(1, 4)));
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
             var target = graph.nodes.get(3);
 
-            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).into(target).toGraph())
+            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).into(target).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(target, 4));
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .into(target)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(target, 4));
         }
     }
 
-    @Test
-    void shouldExpandIncoming() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldExpandIncoming(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(10);
         try (var f = new Fixture()) {
+            var excludeStart = graph().add()
+                    .add(graph.nodes.get(9))
+                    .add(graph.nodes.get(8))
+                    .add(graph.nodes.get(7))
+                    .build();
+            var withStart = graph().add(graph.startNode())
+                    .add(graph.nodes.get(9))
+                    .add(graph.nodes.get(8))
+                    .add(graph.nodes.get(7))
+                    .build();
+
             // then
-            assertThat(f.cursor(INCOMING, graph.startNode()).max(3).toGraph())
-                    .isEqualTo(graph().add(graph.startNode())
-                            .add(graph.nodes.get(9))
-                            .add(graph.nodes.get(8))
-                            .add(graph.nodes.get(7))
-                            .build());
+            assertThat(f.cursor(INCOMING, graph.startNode()).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(INCOMING, graph.startNode())
                             .max(3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add(graph.nodes.get(9))
-                            .add(graph.nodes.get(8))
-                            .add(graph.nodes.get(7))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
             var target = graph.nodes.get(7);
 
-            assertThat(f.cursor(INCOMING, graph.startNode()).max(3).into(target).toGraph())
+            assertThat(f.cursor(INCOMING, graph.startNode()).max(3).into(target).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(7), 4));
             assertThat(f.cursor(INCOMING, graph.startNode())
                             .max(3)
                             .into(target)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(7), 4));
         }
     }
 
-    @Test
-    void shouldExpandAll() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldExpandAll(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(10);
         try (var f = new Fixture()) {
 
+            var excludeStart = graph().add()
+                    .add(graph.nodes.get(1), graph.nodes.get(9))
+                    .add(graph.nodes.get(2), graph.nodes.get(8))
+                    .add(graph.nodes.get(3), graph.nodes.get(7))
+                    .build();
+            var withStart = graph().add(graph.startNode())
+                    .add(graph.nodes.get(1), graph.nodes.get(9))
+                    .add(graph.nodes.get(2), graph.nodes.get(8))
+                    .add(graph.nodes.get(3), graph.nodes.get(7))
+                    .build();
             // then
-            assertThat(f.cursor(BOTH, graph.startNode()).max(3).toGraph())
-                    .isEqualTo(graph().add(graph.startNode())
-                            .add(graph.nodes.get(1), graph.nodes.get(9))
-                            .add(graph.nodes.get(2), graph.nodes.get(8))
-                            .add(graph.nodes.get(3), graph.nodes.get(7))
-                            .build());
-            assertThat(f.cursor(BOTH, graph.startNode()).max(3).excludeStart().toGraph())
-                    .isEqualTo(graph().add()
-                            .add(graph.nodes.get(1), graph.nodes.get(9))
-                            .add(graph.nodes.get(2), graph.nodes.get(8))
-                            .add(graph.nodes.get(3), graph.nodes.get(7))
-                            .build());
+            assertThat(f.cursor(BOTH, graph.startNode()).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, graph.startNode()).max(3).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
             var target = graph.nodes.get(7);
 
-            assertThat(f.cursor(BOTH, graph.startNode()).max(3).into(target).toGraph())
+            assertThat(f.cursor(BOTH, graph.startNode()).max(3).into(target).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(7), 4));
             assertThat(f.cursor(BOTH, graph.startNode())
                             .max(3)
                             .into(target)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(7), 4));
         }
     }
 
-    @Test
-    void shouldRespectTypesOutgoing() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldRespectTypesOutgoing(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             // given
@@ -629,30 +655,34 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(start, type1, end);
             write.relationshipCreate(start, type2, write.nodeCreate());
 
+            var excludeStart = graph().add().add(end).build();
+            var withStart = graph().add(start).add(end).build();
+
             // then
-            assertThat(f.cursor(OUTGOING, start).types(type1).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(end).build());
+            assertThat(f.cursor(OUTGOING, start).types(type1).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, start)
                             .types(type1)
                             .max(3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(end).build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
-            assertThat(f.cursor(OUTGOING, start).types(type1).max(3).into(end).toGraph())
+            assertThat(f.cursor(OUTGOING, start).types(type1).max(3).into(end).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
             assertThat(f.cursor(OUTGOING, start)
                             .types(type1)
                             .max(3)
                             .into(end)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
         }
     }
 
-    @Test
-    void shouldRespectTypesIncoming() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldRespectTypesIncoming(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             // given
@@ -665,30 +695,34 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(end, type1, start);
             write.relationshipCreate(write.nodeCreate(), type2, start);
 
+            var excludeStart = graph().add().add(end).build();
+            var withStart = graph().add(start).add(end).build();
+
             // then
-            assertThat(f.cursor(INCOMING, start).types(type1).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(end).build());
+            assertThat(f.cursor(INCOMING, start).types(type1).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(INCOMING, start)
                             .types(type1)
                             .max(3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(end).build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
-            assertThat(f.cursor(INCOMING, start).types(type1).max(3).into(end).toGraph())
+            assertThat(f.cursor(INCOMING, start).types(type1).max(3).into(end).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
             assertThat(f.cursor(INCOMING, start)
                             .types(type1)
                             .max(3)
                             .excludeStart()
                             .into(end)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
         }
     }
 
-    @Test
-    void shouldRespectTypesAll() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldRespectTypesAll(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             // given
@@ -701,55 +735,61 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(start, type1, end);
             write.relationshipCreate(start, type2, write.nodeCreate());
 
+            var excludeStart = graph().add().add(end).build();
+            var withStart = graph().add(start).add(end).build();
             // then
-            assertThat(f.cursor(BOTH, start).types(type1).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(end).build());
-            assertThat(f.cursor(BOTH, start).types(type1).max(3).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(end).build());
+            assertThat(f.cursor(BOTH, start).types(type1).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, start).types(type1).max(3).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
-            assertThat(f.cursor(BOTH, start).types(type1).max(3).into(end).toGraph())
+            assertThat(f.cursor(BOTH, start).types(type1).max(3).into(end).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
             assertThat(f.cursor(BOTH, start)
                             .types(type1)
                             .max(3)
                             .into(end)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(end, 2));
         }
     }
 
-    @Test
-    void shouldExpandWithLength0() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldExpandWithLength0(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(10);
         try (var f = new Fixture()) {
+            var withStart = graph().add(graph.startNode()).build();
+
             // then
             for (var dir : Direction.values()) {
-                assertThat(f.cursor(dir, graph.startNode()).max(0).toGraph())
-                        .isEqualTo(graph().add(graph.startNode()).build());
+                assertThat(f.cursor(dir, graph.startNode()).max(0).toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
                 assertThat(f.cursor(dir, graph.startNode())
                                 .max(0)
                                 .excludeStart()
-                                .toGraph())
+                                .toGraph(traversalPathMode))
                         .isEqualTo(EMPTY);
                 assertThat(f.cursor(dir, graph.startNode())
                                 .max(0)
                                 .into(graph.startNode())
-                                .toGraph())
-                        .isEqualTo(graph().add(graph.startNode()).build());
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
                 assertThat(f.cursor(dir, graph.startNode())
                                 .max(0)
                                 .into(graph.startNode())
                                 .excludeStart()
-                                .toGraph())
+                                .toGraph(traversalPathMode))
                         .isEqualTo(EMPTY);
             }
         }
     }
 
-    @Test
-    void endNodesAreUnique() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void endNodesAreUnique(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             // given
@@ -768,7 +808,7 @@ class BFSPruningVarExpandCursorTest {
                             .types(type)
                             .excludeStart()
                             .max(3)
-                            .build()))
+                            .build(traversalPathMode)))
                     .isEqualTo(graph().add().add(middleNode, end).build());
 
             assertThat(graph(f.cursor(OUTGOING, start)
@@ -776,50 +816,55 @@ class BFSPruningVarExpandCursorTest {
                             .excludeStart()
                             .max(3)
                             .into(end)
-                            .build()))
+                            .build(traversalPathMode)))
                     .isEqualTo(nodeAtDepth(end, 2));
         }
     }
 
-    @Test
-    void shouldTraverseFullGraph() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldTraverseFullGraph(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = fanOutGraph(3, 3);
         try (var f = new Fixture()) {
 
+            var excludeStart = graph().add()
+                    .add(graph.nodes.subList(1, 4))
+                    .add(graph.nodes.subList(4, 13))
+                    .add(graph.nodes.subList(13, 40))
+                    .build();
+            var withStart = graph().add(graph.nodes.get(0))
+                    .add(graph.nodes.subList(1, 4))
+                    .add(graph.nodes.subList(4, 13))
+                    .add(graph.nodes.subList(13, 40))
+                    .build();
+
             // then
-            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).toGraph())
-                    .isEqualTo(graph().add(graph.nodes.get(0))
-                            .add(graph.nodes.subList(1, 4))
-                            .add(graph.nodes.subList(4, 13))
-                            .add(graph.nodes.subList(13, 40))
-                            .build());
+            assertThat(f.cursor(OUTGOING, graph.startNode()).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add(graph.nodes.subList(1, 4))
-                            .add(graph.nodes.subList(4, 13))
-                            .add(graph.nodes.subList(13, 40))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .into(graph.nodes.get(39))
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(39), 4));
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .into(graph.nodes.get(39))
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(39), 4));
         }
     }
 
-    @Test
-    void shouldStopAtSpecifiedDepth() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldStopAtSpecifiedDepth(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = fanOutGraph(2, 5);
         try (var f = new Fixture()) {
@@ -829,7 +874,7 @@ class BFSPruningVarExpandCursorTest {
             assertThat(graph(f.cursor(OUTGOING, graph.startNode())
                             .max(3)
                             .excludeStart()
-                            .build()))
+                            .build(traversalPathMode)))
                     .isEqualTo(graph().add()
                             .add(graph.nodes.get(1), graph.nodes.get(2))
                             .add(graph.nodes.get(3), graph.nodes.get(4), graph.nodes.get(5), graph.nodes.get(6))
@@ -849,105 +894,103 @@ class BFSPruningVarExpandCursorTest {
                             .max(3)
                             .excludeStart()
                             .into(graph.nodes.get(14))
-                            .build()))
+                            .build(traversalPathMode)))
                     .isEqualTo(nodeAtDepth(graph.nodes.get(14), 4));
         }
     }
 
-    @Test
-    void shouldSatisfyPredicateOnNodes() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldSatisfyPredicateOnNodes(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(100);
         try (var f = new Fixture()) {
+            var excludeStart = graphWithEmptyZeroFrontier(graph.nodes.subList(1, 6));
+            var withStart = graph(graph.nodes.subList(0, 6));
+
             // then
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .nodePred(value -> value <= graph.nodes.get(5))
-                            .toGraph())
-                    .isEqualTo(graph(graph.nodes.subList(0, 6)));
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .nodePred(value -> value <= graph.nodes.get(5))
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graphWithEmptyZeroFrontier(graph.nodes.subList(1, 6)));
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
 
+            var expected = graph().add()
+                    .add()
+                    .add()
+                    .add()
+                    .add()
+                    .add(graph.nodes.get(5))
+                    .build();
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .nodePred(value -> value <= graph.nodes.get(5))
                             .into(graph.nodes.get(5))
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add()
-                            .add()
-                            .add()
-                            .add()
-                            .add(graph.nodes.get(5))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(expected);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .nodePred(value -> value <= graph.nodes.get(5))
                             .into(graph.nodes.get(5))
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add()
-                            .add()
-                            .add()
-                            .add()
-                            .add(graph.nodes.get(5))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(expected);
         }
     }
 
-    @Test
-    void shouldSatisfyPredicateOnRelationships() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldSatisfyPredicateOnRelationships(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         var graph = circleGraph(100);
         try (var f = new Fixture()) {
+            var excludeStart = graphWithEmptyZeroFrontier(graph.nodes.subList(1, 10));
+            var withStart = graph(graph.nodes.subList(0, 10));
+            var node5AtDepth6 = graph().add()
+                    .add()
+                    .add()
+                    .add()
+                    .add()
+                    .add(graph.nodes.get(5))
+                    .build();
+
             // then
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .relPred(cursor -> cursor.relationshipReference() < graph.relationships.get(9))
-                            .toGraph())
-                    .isEqualTo(graph(graph.nodes.subList(0, 10)));
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .relPred(cursor -> cursor.relationshipReference() < graph.relationships.get(9))
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graphWithEmptyZeroFrontier(graph.nodes.subList(1, 10)));
-
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .relPred(cursor -> cursor.relationshipReference() < graph.relationships.get(9))
                             .into(graph.nodes.get(5))
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add()
-                            .add()
-                            .add()
-                            .add()
-                            .add(graph.nodes.get(5))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(node5AtDepth6);
             assertThat(f.cursor(OUTGOING, graph.startNode())
                             .max(11)
                             .relPred(cursor -> cursor.relationshipReference() < graph.relationships.get(9))
                             .into(graph.nodes.get(5))
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add()
-                            .add()
-                            .add()
-                            .add()
-                            .add()
-                            .add(graph.nodes.get(5))
-                            .build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(node5AtDepth6);
         }
     }
 
-    @Test
-    void shouldHandleSimpleLoopOutgoing() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleLoopOutgoing(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -957,34 +1000,39 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(node1, rel, node2);
             write.relationshipCreate(node2, rel, node1);
 
-            // then
-            assertThat(f.cursor(OUTGOING, node1).max(2).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(OUTGOING, node1).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(OUTGOING, node1).max(2).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(node2).add(node1).build());
-            assertThat(f.cursor(OUTGOING, node1).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(node2).add(node1).build());
+            var excludeStartShort = graph().add().add(node2).build();
+            var excludeStartLong = graph().add().add(node2).add(node1).build();
+            var withStart = graph().add(node1).add(node2).build();
 
-            assertThat(f.cursor(OUTGOING, node1).max(2).into(node2).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(OUTGOING, node1).into(node2).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
+            // then
+            assertThat(f.cursor(OUTGOING, node1).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartShort : withStart);
+            assertThat(f.cursor(OUTGOING, node1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartShort : withStart);
+            assertThat(f.cursor(OUTGOING, node1).max(2).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartShort : excludeStartLong);
+            assertThat(f.cursor(OUTGOING, node1).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartShort : excludeStartLong);
+
+            assertThat(f.cursor(OUTGOING, node1).max(2).into(node2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+            assertThat(f.cursor(OUTGOING, node1).into(node2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
             assertThat(f.cursor(OUTGOING, node1)
                             .max(2)
                             .excludeStart()
                             .into(node1)
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(node1, 3));
-            assertThat(f.cursor(OUTGOING, node1).excludeStart().into(node1).toGraph())
-                    .isEqualTo(nodeAtDepth(node1, 3));
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : nodeAtDepth(node1, 3));
+            assertThat(f.cursor(OUTGOING, node1).excludeStart().into(node1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : nodeAtDepth(node1, 3));
         }
     }
 
     // tests targeting undirected searches
-    @Test
-    void shouldNotRetraceSteps() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldNotRetraceSteps(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -993,32 +1041,36 @@ class BFSPruningVarExpandCursorTest {
             long node2 = write.nodeCreate();
             write.relationshipCreate(node1, rel, node2);
 
+            var excludeStart = graph().add().add(node2).build();
+            var withStart = graph().add(node1).add(node2).build();
             // then
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).max(1).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).max(2).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).into(node1).toGraph())
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).max(1).into(node2).toGraph())
+            assertThat(f.cursor(BOTH, node1).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, node1).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).into(node1).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, node1).max(1).into(node2).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).into(node2).toGraph())
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).into(node2).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).max(2).into(node2).toGraph())
+            assertThat(f.cursor(BOTH, node1).max(2).into(node2).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).into(node2).toGraph())
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).into(node2).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(node2).build());
         }
     }
 
-    @Test
-    void shouldHandleSingleSelfLoop() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSingleSelfLoop(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1026,40 +1078,44 @@ class BFSPruningVarExpandCursorTest {
             long node1 = write.nodeCreate();
             write.relationshipCreate(node1, rel, node1);
 
-            // then
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).max(1).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).max(2).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
+            var withStart = graph().add(node1).build();
+            var excludeStart = graph().add().add(node1).build();
 
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(0).toGraph())
+            // then
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).into(node1).max(1).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).max(2).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).toGraph())
-                    .isEqualTo(graph().add(node1).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(node1).build());
+            assertThat(f.cursor(BOTH, node1).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
+            assertThat(f.cursor(BOTH, node1).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
+            assertThat(f.cursor(BOTH, node1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, node1).into(node1).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : withStart);
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : excludeStart);
         }
     }
 
-    @Test
-    void shouldHandleSimpleLoop() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleLoop(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1069,40 +1125,61 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(node1, rel, node2);
             write.relationshipCreate(node2, rel, node1);
 
-            // then
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).max(1).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).max(2).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(node2).add(node1).build());
-            assertThat(f.cursor(BOTH, node1).toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
-            assertThat(f.cursor(BOTH, node1).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(node2).add(node1).build());
+            var withStart = graph().add(node1).add(node2).build();
+            var excludeStartShort = graph().add().add(node2).build();
+            var excludeStartLong = graph().add().add(node2).add(node1).build();
 
-            assertThat(f.cursor(BOTH, node1).into(node2).excludeStart().max(0).toGraph())
+            // then
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, node1).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).toGraph(traversalPathMode)).isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, node1).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, node1).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(withStart);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartLong);
+                    assertThat(f.cursor(BOTH, node1).toGraph(traversalPathMode)).isEqualTo(withStart);
+                    assertThat(f.cursor(BOTH, node1).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartLong);
+                }
+            }
+
+            assertThat(f.cursor(BOTH, node1).into(node2).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, node1).into(node2).max(1).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).into(node2).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).into(node2).max(2).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(2).toGraph())
-                    .isEqualTo(nodeAtDepth(node1, 3));
-            assertThat(f.cursor(BOTH, node1).into(node2).toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().toGraph())
-                    .isEqualTo(nodeAtDepth(node1, 3));
+            assertThat(f.cursor(BOTH, node1).into(node2).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+            assertThat(f.cursor(BOTH, node1).into(node2).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+            assertThat(f.cursor(BOTH, node1).into(node2).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+            assertThat(f.cursor(BOTH, node1).into(node2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : nodeAtDepth(node1, 3));
+            assertThat(f.cursor(BOTH, node1).into(node1).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : nodeAtDepth(node1, 3));
         }
     }
 
-    @Test
-    void shouldHandleSimpleLoopWithPredicate() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleLoopWithPredicate(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1112,37 +1189,33 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(node1, rel, node2);
             long dontUse = write.relationshipCreate(node2, rel, node1);
 
+            Predicate<RelationshipTraversalEntities> relPred = cursor -> cursor.relationshipReference() != dontUse;
+            var excludeStart = graph().add().add(node2).build();
+            var withStart = graph().add(node1).add(node2).build();
             // then
-            assertThat(f.cursor(BOTH, node1)
-                            .max(2)
-                            .relPred(cursor -> cursor.relationshipReference() != dontUse)
-                            .toGraph())
-                    .isEqualTo(graph().add(node1).add(node2).build());
+            assertThat(f.cursor(BOTH, node1).max(2).relPred(relPred).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
             assertThat(f.cursor(BOTH, node1)
                             .excludeStart()
                             .max(2)
-                            .relPred(cursor -> cursor.relationshipReference() != dontUse)
-                            .toGraph())
-                    .isEqualTo(graph().add().add(node2).build());
-
-            assertThat(f.cursor(BOTH, node1)
-                            .into(node2)
-                            .max(2)
-                            .relPred(cursor -> cursor.relationshipReference() != dontUse)
-                            .toGraph())
+                            .relPred(relPred)
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, node1).into(node2).max(2).relPred(relPred).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(node2, 2));
             assertThat(f.cursor(BOTH, node1)
                             .into(node2)
                             .excludeStart()
                             .max(2)
-                            .relPred(cursor -> cursor.relationshipReference() != dontUse)
-                            .toGraph())
+                            .relPred(relPred)
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(node2, 2));
         }
     }
 
-    @Test
-    void shouldHandleSimpleTriangularPattern() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleTriangularPattern(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1158,30 +1231,37 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a, rel, b);
             write.relationshipCreate(a, rel, c);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
+            var excludeStart = graph().add().add(b, c).build();
+            var withStart = graph().add(a).add(b, c).build();
 
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph())
+            // then
+            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
         }
     }
 
-    @Test
-    void shouldHandleSimpleTriangularPatternWithBackTrace() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleTriangularPatternWithBackTrace(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1198,34 +1278,41 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a, rel, b);
             write.relationshipCreate(a, rel, c);
 
-            // then
-            assertThat(f.cursor(BOTH, a).max(0).toGraph())
-                    .isEqualTo(graph().add(a).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(a).build());
+            var excludeStart = graph().add().add(b, c).build();
+            var startOnly = graph().add(a).build();
+            var withStart = graph().add(a).add(b, c).build();
+            var excludeStartLong = graph().add().add(b, c).add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).max(0).toGraph())
-                    .isEqualTo(graph().add(a).build());
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case TraversalPathMode.ACYCLIC -> excludeStart;
+                                case TraversalPathMode.TRAIL -> excludeStartLong;
+                            });
+            assertThat(f.cursor(BOTH, a).into(a).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
         }
     }
 
-    @Test
-    void shouldHandleSimpleTriangularPatternWithBackTrace2() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSimpleTriangularPatternWithBackTrace2(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -1242,31 +1329,41 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a, rel, c);
             write.relationshipCreate(c, rel, a);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(a).build());
+            var excludeStart = graph().add().add(b, c).build();
+            var withStart = graph().add(a).add(b, c).build();
+            var excludeStartLong = graph().add().add(b, c).add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph())
+            // then
+            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case TraversalPathMode.ACYCLIC -> excludeStart;
+                                case TraversalPathMode.TRAIL -> excludeStartLong;
+                            });
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
         }
     }
 
-    @Test
-    void shouldHandleTriangularLoop() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleTriangularLoop(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1282,38 +1379,53 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a, rel, c);
             write.relationshipCreate(b, rel, c);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(3).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add().add(a).build());
+            var excludeStart = graph().add().add(b, c).build();
+            var withStart = graph().add(a).add(b, c).build();
+            var excludeStartLonger = graph().add().add(b, c).add().add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case TraversalPathMode.ACYCLIC -> excludeStart;
+                                case TraversalPathMode.TRAIL -> excludeStartLonger;
+                            });
+
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(c).max(3).toGraph()).isEqualTo(nodeAtDepth(c, 2));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 4));
+            assertThat(f.cursor(BOTH, a).into(c).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(c).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 2));
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case ACYCLIC -> EMPTY;
+                                case TRAIL -> nodeAtDepth(a, 4);
+                            });
         }
     }
 
-    @Test
-    void shouldHandleTriangularLoop2() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleTriangularLoop2(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1331,59 +1443,53 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(a, rel, c);
             write.relationshipCreate(b, rel, c);
 
-            // then
-            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).toGraph())
-                    .isEqualTo(graph().add(start).add(a).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).max(2).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(4).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(5).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
+            var excludeStart = graph().add().add(a).build();
+            var withStart = graph().add(start).add(a).build();
+            var withStartLong = graph().add(start).add(a).add(b, c).build();
+            var excludeStartLong = graph().add().add(a).add(b, c).build();
 
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            for (int depth : new int[] {2, 3, 4, 5}) {
+                assertThat(f.cursor(BOTH, start).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartLong : withStartLong);
+                assertThat(f.cursor(BOTH, start).excludeStart().max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(excludeStartLong);
+            }
+            assertThat(f.cursor(BOTH, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartLong : withStartLong);
+            assertThat(f.cursor(BOTH, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartLong);
+
+            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph())
+            for (int depth : new int[] {2, 3, 4, 5}) {
+                assertThat(f.cursor(BOTH, start).into(c).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(c, 3));
+                assertThat(f.cursor(BOTH, start)
+                                .into(c)
+                                .excludeStart()
+                                .max(depth)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(c, 3));
+            }
+            assertThat(f.cursor(BOTH, start).into(c).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(BOTH, start).into(c).excludeStart().toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).max(3).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).max(4).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).max(5).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(5).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().toGraph()).isEqualTo(nodeAtDepth(c, 3));
         }
     }
 
-    @Test
-    void shouldHandleImpossibleSquareLoop() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleImpossibleSquareLoop(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1402,70 +1508,70 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b, rel, d);
             write.relationshipCreate(c, rel, d);
 
-            // then
-            assertThat(f.cursor(BOTH, start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).toGraph())
-                    .isEqualTo(graph().add(start).add(a).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).max(2).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(4).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(5).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(6).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(6).toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
+            var startOnly = graph().add(start).build();
+            var excludeStart = graph().add().add(a).build();
+            var includeStart = graph().add(start).add(a).build();
+            var excludeStartLong = graph().add().add(a).add(b, c).build();
+            var includeStartLong = graph().add(start).add(a).add(b, c).build();
+            var withStartLonger = graph().add(start).add(a).add(b, c).add(d).build();
+            var excludeStartLonger = graph().add().add(a).add(b, c).add(d).build();
 
-            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : includeStart);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, start).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartLong : includeStartLong);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartLong);
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(
+                                traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartLonger : withStartLonger);
+                assertThat(f.cursor(BOTH, start).excludeStart().max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(excludeStartLonger);
+            }
+            assertThat(f.cursor(BOTH, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartLonger : withStartLonger);
+            assertThat(f.cursor(BOTH, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartLonger);
+
+            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(d).max(3).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start).into(d).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+                assertThat(f.cursor(BOTH, start)
+                                .into(d)
+                                .excludeStart()
+                                .max(depth)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+            }
+            assertThat(f.cursor(BOTH, start).into(d).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(4).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(5).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(5).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(6).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(6).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph()).isEqualTo(nodeAtDepth(d, 4));
         }
     }
 
-    @Test
-    void shouldHandleImpossibleSquareLoopWithMultipleOutgoingFromSource() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleImpossibleSquareLoopWithMultipleOutgoingFromSource(TraversalPathMode traversalPathMode)
+            throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1486,70 +1592,77 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b, rel, d);
             write.relationshipCreate(c, rel, d);
 
-            // then
-            assertThat(f.cursor(BOTH, start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(a, e).build());
-            assertThat(f.cursor(BOTH, start).max(2).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(4).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(5).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(6).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(6).toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).toGraph())
-                    .isEqualTo(graph().add(start).add(a, e).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(a, e).add(b, c).add(d).build());
+            var startOnly = graph().add(start).build();
+            var excludeStart1 = graph().add().add(a, e).build();
+            var withStart1 = graph().add(start).add(a, e).build();
+            var excludeStart2 = graph().add().add(a, e).add(b, c).build();
+            var withStart2 = graph().add(start).add(a, e).add(b, c).build();
+            var excludeStart3 = graph().add().add(a, e).add(b, c).add(d).build();
+            var withStart3 = graph().add(start).add(a, e).add(b, c).add(d).build();
 
-            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).into(e).max(1).toGraph())
+
+            assertThat(f.cursor(BOTH, start).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart1 : withStart1);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart1);
+
+            assertThat(f.cursor(BOTH, start).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart2 : withStart2);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart2);
+
+            assertThat(f.cursor(BOTH, start).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart3);
+
+            for (int depth : new int[] {4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+                assertThat(f.cursor(BOTH, start).excludeStart().max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(excludeStart3);
+            }
+            assertThat(f.cursor(BOTH, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+            assertThat(f.cursor(BOTH, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart3);
+
+            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, start).into(e).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(e).build());
-            assertThat(f.cursor(BOTH, start).into(e).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).into(e).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(e).build());
-            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(d).max(3).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start).into(d).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+                assertThat(f.cursor(BOTH, start)
+                                .into(d)
+                                .excludeStart()
+                                .max(depth)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+            }
+            assertThat(f.cursor(BOTH, start).into(d).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(4).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(5).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(5).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(6).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(6).toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph()).isEqualTo(nodeAtDepth(d, 4));
         }
     }
 
-    @Test
-    void shouldHandleSquareLoopWhenNoFirstHopRelationshipsAreFiltered() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSquareLoopWhenNoFirstHopRelationshipsAreFiltered(TraversalPathMode traversalPathMode)
+            throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1569,70 +1682,92 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b, rel, d);
             write.relationshipCreate(c, rel, d);
 
-            // then
-            assertThat(f.cursor(BOTH, start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).toGraph())
-                    .isEqualTo(graph().add(start).add(a).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).max(2).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).build());
-            assertThat(f.cursor(BOTH, start).max(3).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(4).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(5).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(5).toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(6).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().max(6).toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(a).add(start, b, c).add(d).build());
+            var startOnly = graph().add(start).build();
+            var excludeStart = graph().add().add(a).build();
+            var withStart1 = graph().add(start).add(a).build();
+            var excludeStart2 = graph().add().add(a).add(b, c).build();
+            var withStart2 = graph().add(start).add(a).add(b, c).build();
+            var excludeStart2Trail = graph().add().add(a).add(start, b, c).build();
+            var excludeStart3 = graph().add().add(a).add(b, c).add(d).build();
+            var withStart3 = graph().add(start).add(a).add(b, c).add(d).build();
+            var excludeStartDeepTrail =
+                    graph().add().add(a).add(start, b, c).add(d).build();
 
-            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart : withStart1);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, start).max(2).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart2 : withStart2);
+            assertThat(f.cursor(BOTH, start).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case TraversalPathMode.ACYCLIC -> excludeStart2;
+                                case TraversalPathMode.TRAIL -> excludeStart2Trail;
+                            });
+
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start).max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+                assertThat(f.cursor(BOTH, start).excludeStart().max(depth).toGraph(traversalPathMode))
+                        .isEqualTo(
+                                switch (traversalPathMode) {
+                                    case TraversalPathMode.ACYCLIC -> excludeStart3;
+                                    case TraversalPathMode.TRAIL -> excludeStartDeepTrail;
+                                });
+            }
+
+            assertThat(f.cursor(BOTH, start).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+            assertThat(f.cursor(BOTH, start).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(
+                            switch (traversalPathMode) {
+                                case TraversalPathMode.ACYCLIC -> excludeStart3;
+                                case TraversalPathMode.TRAIL -> excludeStartDeepTrail;
+                            });
+
+            assertThat(f.cursor(BOTH, start).into(start).max(0).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+            assertThat(f.cursor(BOTH, start).into(start).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, start).into(a).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, start).into(a).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start).into(d).max(3).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, start).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(BOTH, start).into(d).max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(4).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(4).toGraph())
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(5).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(5).toGraph())
+            assertThat(f.cursor(BOTH, start).into(d).max(4).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).max(6).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(6).toGraph())
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(4).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).toGraph()).isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph()).isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(5).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).max(6).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().max(6).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(d, 4));
+            assertThat(f.cursor(BOTH, start).into(d).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 4));
         }
     }
 
-    @Test
-    void shouldHandleSquareLoopWhenAllButOneFirstHopRelationshipsAreFiltered() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSquareLoopWhenAllButOneFirstHopRelationshipsAreFiltered(TraversalPathMode traversalPathMode)
+            throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1654,176 +1789,128 @@ class BFSPruningVarExpandCursorTest {
 
             Predicate<RelationshipTraversalEntities> relPredicate = r -> r.relationshipReference() != r1;
 
-            // then
-            assertThat(f.cursor(BOTH, start).max(0).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
+            var startOnly = graph().add(start).build();
+            var aOnly = graph().add().add(a).build();
+            var withStart1 = graph().add(start).add(a).build();
+            var excludeStart2 = graph().add().add(a).add(b, c).build();
+            var withStart2 = graph().add(start).add(a).add(b, c).build();
+            var excludeStart3 = graph().add().add(a).add(b, c).add(d).build();
+            var withStart3 = graph().add(start).add(a).add(b, c).add(d).build();
+
+            assertThat(f.cursor(BOTH, start).max(0).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
             assertThat(f.cursor(BOTH, start)
                             .max(0)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).build());
+            assertThat(f.cursor(BOTH, start).max(1).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? aOnly : withStart1);
             assertThat(f.cursor(BOTH, start)
                             .max(1)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).build());
-            assertThat(f.cursor(BOTH, start).max(2).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(aOnly);
+            assertThat(f.cursor(BOTH, start).max(2).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart2 : withStart2);
             assertThat(f.cursor(BOTH, start)
                             .max(2)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, start).max(3).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(4).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(5).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).max(6).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, start).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).add(a).add(b, c).add(d).build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart2);
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
+                assertThat(f.cursor(BOTH, start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .excludeStart()
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(excludeStart3);
+            }
+            assertThat(f.cursor(BOTH, start).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStart3 : withStart3);
             assertThat(f.cursor(BOTH, start)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
-                    .isEqualTo(graph().add().add(a).add(b, c).add(d).build());
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart3);
+            assertThat(f.cursor(BOTH, start)
+                            .into(start)
+                            .max(0)
+                            .relPred(relPredicate)
+                            .toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
 
             assertThat(f.cursor(BOTH, start)
                             .into(start)
                             .max(0)
                             .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(0)
-                            .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
             assertThat(f.cursor(BOTH, start)
                             .into(a)
                             .max(1)
                             .relPred(relPredicate)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
             assertThat(f.cursor(BOTH, start)
                             .into(a)
                             .max(1)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(a).build());
             assertThat(f.cursor(BOTH, start)
                             .into(c)
                             .max(2)
                             .relPred(relPredicate)
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
             assertThat(f.cursor(BOTH, start)
                             .into(c)
                             .max(2)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start)
-                            .into(d)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(nodeAtDepth(d, 4));
-            assertThat(f.cursor(BOTH, start).into(d).relPred(relPredicate).toGraph())
+            for (int depth : new int[] {3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start)
+                                .into(d)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+                assertThat(f.cursor(BOTH, start)
+                                .into(d)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .excludeStart()
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(nodeAtDepth(d, 4));
+            }
+            assertThat(f.cursor(BOTH, start).into(d).relPred(relPredicate).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
             assertThat(f.cursor(BOTH, start)
                             .into(d)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 4));
         }
     }
 
-    @Test
-    void shouldHandleSquareLoopWhenAllFirstHopRelationshipsAreFiltered() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleSquareLoopWhenAllFirstHopRelationshipsAreFiltered(TraversalPathMode traversalPathMode)
+            throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -1846,176 +1933,60 @@ class BFSPruningVarExpandCursorTest {
             Predicate<RelationshipTraversalEntities> relPredicate =
                     r -> r.relationshipReference() != r1 && r.relationshipReference() != r2;
 
-            // then
-            assertThat(f.cursor(BOTH, start).max(0).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(0)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(1).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(1)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(2).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(2)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(3).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(4).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(5).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).max(6).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
+            var startOnly = graph().add(start).build();
+
+            for (int depth : new int[] {0, 1, 2, 3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+                assertThat(f.cursor(BOTH, start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .excludeStart()
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(EMPTY);
+            }
+
+            assertThat(f.cursor(BOTH, start).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
             assertThat(f.cursor(BOTH, start)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
 
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(0)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(0)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(1)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(1)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(2)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(2)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(3)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(4)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(5)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .toGraph())
-                    .isEqualTo(graph().add(start).build());
-            assertThat(f.cursor(BOTH, start)
-                            .into(start)
-                            .max(6)
-                            .relPred(relPredicate)
-                            .excludeStart()
-                            .toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, start).into(start).relPred(relPredicate).toGraph())
-                    .isEqualTo(graph().add(start).build());
+            for (int depth : new int[] {0, 1, 2, 3, 4, 5, 6}) {
+                assertThat(f.cursor(BOTH, start)
+                                .into(start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
+                assertThat(f.cursor(BOTH, start)
+                                .into(start)
+                                .max(depth)
+                                .relPred(relPredicate)
+                                .excludeStart()
+                                .toGraph(traversalPathMode))
+                        .isEqualTo(EMPTY);
+            }
+
+            assertThat(f.cursor(BOTH, start).into(start).relPred(relPredicate).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? EMPTY : startOnly);
             assertThat(f.cursor(BOTH, start)
                             .into(start)
                             .relPred(relPredicate)
                             .excludeStart()
-                            .toGraph())
+                            .toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
         }
     }
 
-    @Test
-    void shouldHandleLoopBetweenDifferentBFSLayers() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleLoopBetweenDifferentBFSLayers(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -2033,52 +2004,92 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b, rel, d);
             write.relationshipCreate(d, rel, c);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).max(3).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).max(4).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).add().add(a).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).add().add(a).build());
+            var excludeStart1 = graph().add().add(b, c).build();
+            var withStart1 = graph().add(a).add(b, c).build();
+            var excludeStart2 = graph().add().add(b, c).add(d).build();
+            var withStartDeep = graph().add(a).add(b, c).add(d).build();
+            var excludeStart4Trail = graph().add().add(b, c).add(d).add().add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(4).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart4Trail);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart4Trail);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 5));
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 5));
+                }
+            }
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(d).max(2).toGraph()).isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(d).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(d).max(3).toGraph()).isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(d).max(4).toGraph()).isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 5));
-            assertThat(f.cursor(BOTH, a).into(d).toGraph()).isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 5));
+            assertThat(f.cursor(BOTH, a).into(d).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 3));
+            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 3));
+            assertThat(f.cursor(BOTH, a).into(d).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(d, 3));
+            assertThat(f.cursor(BOTH, a).into(d).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(d, 3));
         }
     }
 
-    @Test
-    void shouldHandleLoopConnectingSameBFSLayer() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleLoopConnectingSameBFSLayer(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -2098,61 +2109,106 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(c, rel, e);
             write.relationshipCreate(e, rel, d);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).max(3).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).max(4).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).max(5).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph())
-                    .isEqualTo(
-                            graph().add().add(b, c).add(d, e).add().add().add(a).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(
-                            graph().add().add(b, c).add(d, e).add().add().add(a).build());
+            var excludeStart1 = graph().add().add(b, c).build();
+            var withStart1 = graph().add(a).add(b, c).build();
+            var excludeStartShort = graph().add().add(b, c).add(d, e).build();
+            var withStartDeep = graph().add(a).add(b, c).add(d, e).build();
+            var excludeStartLongTrail =
+                    graph().add().add(b, c).add(d, e).add().add().add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(4).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).max(5).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartLongTrail);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartLongTrail);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 6));
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 6));
+                }
+            }
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(e).max(2).toGraph()).isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).max(3).toGraph()).isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).max(4).toGraph()).isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(4).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(e).max(5).toGraph()).isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(5).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 6));
-            assertThat(f.cursor(BOTH, a).into(e).toGraph()).isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 6));
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(e, 3));
+            assertThat(f.cursor(BOTH, a).into(e).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(e, 3));
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(e, 3));
+            assertThat(f.cursor(BOTH, a).into(e).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(e, 3));
+            assertThat(f.cursor(BOTH, a).into(e).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(e, 3));
         }
     }
 
-    @Test
-    void shouldHandleLoopConnectingSameAndDifferentBFSLayer() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleLoopConnectingSameAndDifferentBFSLayer(TraversalPathMode traversalPathMode)
+            throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -2177,47 +2233,80 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b2, rel, b3);
             write.relationshipCreate(b3, rel, c3);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b1, b2, b3).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).max(3).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(
-                            graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(
-                            graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build());
+            var excludeStart1 = graph().add().add(b1, b2, b3).build();
+            var withStart1 = graph().add(a).add(b1, b2, b3).build();
+            var withStartDeep = graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build();
+            var excludeStart2 = graph().add().add(b1, b2, b3).add(c1, c2, c3).build();
+            var excludeStart3Trail =
+                    graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3Trail);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3Trail);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                }
+            }
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(b3).max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(b3).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(b3).build());
-            assertThat(f.cursor(BOTH, a).into(b3).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(b3).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(b3).build());
-            assertThat(f.cursor(BOTH, a).into(c3).max(2).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(c3).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c3).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(c3).max(3).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 4));
-            assertThat(f.cursor(BOTH, a).into(c3).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 4));
+            assertThat(f.cursor(BOTH, a).into(c3).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c3, 3));
+            assertThat(f.cursor(BOTH, a).into(c3).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c3, 3));
+            assertThat(f.cursor(BOTH, a).into(c3).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(c3, 3));
         }
     }
 
-    @Test
-    void shouldHandleTwoLoopsOfTheSameLength() throws KernelException {
-        // given
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleTwoLoopsOfTheSameLength(TraversalPathMode traversalPathMode) throws KernelException {
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
@@ -2243,46 +2332,81 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b3, rel, c3);
             write.relationshipCreate(c1, rel, c2);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b1, b2, b3).build());
-            assertThat(f.cursor(BOTH, a).max(2).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).max(3).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(
-                            graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(
-                            graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build());
+            var excludeStart1 = graph().add().add(b1, b2, b3).build();
+            var withStart1 = graph().add(a).add(b1, b2, b3).build();
+            var withStartDeep = graph().add(a).add(b1, b2, b3).add(c1, c2, c3).build();
+            var excludeStart2 = graph().add().add(b1, b2, b3).add(c1, c2, c3).build();
+            var excludeStart3Trail =
+                    graph().add().add(b1, b2, b3).add(c1, c2, c3).add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).max(2).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).max(3).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3Trail);
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3Trail);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                }
+            }
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(b3).max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(b3).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(b3).build());
-            assertThat(f.cursor(BOTH, a).into(b3).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(b3).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(b3).build());
-            assertThat(f.cursor(BOTH, a).into(c3).max(2).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(c3).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c3).max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(c3).max(3).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 4));
-            assertThat(f.cursor(BOTH, a).into(c3).toGraph()).isEqualTo(nodeAtDepth(c3, 3));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 4));
+            assertThat(f.cursor(BOTH, a).into(c3).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c3, 3));
+            assertThat(f.cursor(BOTH, a).into(c3).max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c3, 3));
+            assertThat(f.cursor(BOTH, a).into(c3).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(c3, 3));
         }
     }
 
-    @Test
-    void shouldHandleLoopWithContinuation() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleLoopWithContinuation(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -2306,35 +2430,59 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(e, rel, ff);
 
             // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).add(e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).add(e).add(ff, a).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d).add(e).add(ff, a).build());
-
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(graph().add().add(b, c).build());
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(d).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(d, 3));
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(e, 4));
-            assertThat(f.cursor(BOTH, a).into(ff).excludeStart().max(4).toGraph())
+            assertThat(f.cursor(BOTH, a).into(ff).excludeStart().max(4).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(ff, 5));
-            assertThat(f.cursor(BOTH, a).into(ff).excludeStart().toGraph()).isEqualTo(nodeAtDepth(ff, 5));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 5));
+            assertThat(f.cursor(BOTH, a).into(ff).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(ff, 5));
+
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(graph().add().add(b, c).add(d).build());
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(graph().add().add(b, c).add(d).add(e).build());
+                    var expected = graph().add().add(b, c).add(d).add(e).add(ff).build();
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(expected);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(expected);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(graph().add().add(b, c).add(d).build());
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(graph().add().add(b, c).add(d).add(e).build());
+                    var expected =
+                            graph().add().add(b, c).add(d).add(e).add(ff, a).build();
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(expected);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(expected);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 5));
+                }
+            }
         }
     }
 
-    @Test
-    void shouldHandleParallelLayers() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleParallelLayers(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -2358,196 +2506,259 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(d, rel, ff);
             write.relationshipCreate(e, rel, g);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).add(ff, g).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).add(ff, g).build());
-            assertThat(f.cursor(BOTH, a).max(5).toGraph())
-                    .isEqualTo(graph().add(a).add(b, c).add(d, e).add(ff, g).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph())
-                    .isEqualTo(graph().add().add(b, c).add(d, e).add(ff, g).build());
+            var excludeStart1 = graph().add().add(b, c).build();
+            var withStart1 = graph().add(a).add(b, c).build();
+            var excludeStart2 = graph().add().add(b, c).add(d, e).build();
+            var excludeStart3 = graph().add().add(b, c).add(d, e).add(ff, g).build();
+            var withStartDeep = graph().add(a).add(b, c).add(d, e).add(ff, g).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            // then
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                    assertThat(f.cursor(BOTH, a).max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).max(1).toGraph(traversalPathMode))
+                            .isEqualTo(withStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart1);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart2);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                    assertThat(f.cursor(BOTH, a).max(5).toGraph(traversalPathMode))
+                            .isEqualTo(withStartDeep);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(5).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart3);
+                }
+            }
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(c).build());
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(e, 3));
-            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(g, 4));
-            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(4).toGraph())
+            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(4).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(g, 4));
-            assertThat(f.cursor(BOTH, a).into(g).max(5).toGraph()).isEqualTo(nodeAtDepth(g, 4));
-            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(5).toGraph())
+            assertThat(f.cursor(BOTH, a).into(g).max(5).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(g, 4));
+            assertThat(f.cursor(BOTH, a).into(g).excludeStart().max(5).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(g, 4));
         }
     }
 
-    @Test
-    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOrigin() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOrigin(TraversalPathMode traversalPathMode)
+            throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
             int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
             // (a) -> (b) <=> (c)
-            long a = write.nodeCreate();
-            long b = write.nodeCreate();
-            long c = write.nodeCreate();
-
-            write.relationshipCreate(a, rel, b);
-            write.relationshipCreate(b, rel, c);
-            write.relationshipCreate(c, rel, b);
-
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(BOTH, a).max(4).toGraph())
-                    .isEqualTo(graph().add(a).add(b).add(c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b).add(c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(b).max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).max(4).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().toGraph()).isEqualTo(nodeAtDepth(c, 3));
-        }
-    }
-
-    @Test
-    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOriginOutGoing() throws KernelException {
-        // given
-        try (var f = new Fixture()) {
-            Write write = f.tx.dataWrite();
-            int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
-            // (a) -> (b) <=> (c)
-            long a = write.nodeCreate();
-            long b = write.nodeCreate();
-            long c = write.nodeCreate();
-
-            write.relationshipCreate(a, rel, b);
-            write.relationshipCreate(b, rel, c);
-            write.relationshipCreate(c, rel, b);
-
-            // then
-            assertThat(f.cursor(OUTGOING, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(OUTGOING, a).max(1).toGraph())
-                    .isEqualTo(graph().add(a).add(b).build());
-            assertThat(f.cursor(OUTGOING, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(OUTGOING, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(OUTGOING, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(OUTGOING, a).max(4).toGraph())
-                    .isEqualTo(graph().add(a).add(b).add(c).build());
-            assertThat(f.cursor(OUTGOING, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-            assertThat(f.cursor(OUTGOING, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b).add(c).build());
-            assertThat(f.cursor(OUTGOING, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b).add(c).build());
-
-            assertThat(f.cursor(OUTGOING, a).into(a).excludeStart().max(0).toGraph())
-                    .isEqualTo(EMPTY);
-            assertThat(f.cursor(OUTGOING, a).into(b).max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(OUTGOING, a).into(b).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(2).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(OUTGOING, a).into(c).max(4).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(4).toGraph())
-                    .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(OUTGOING, a).into(c).toGraph()).isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().toGraph()).isEqualTo(nodeAtDepth(c, 3));
-        }
-    }
-
-    @Test
-    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOrigin2() throws KernelException {
-        // given
-        try (var f = new Fixture()) {
-            Write write = f.tx.dataWrite();
-            int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
-            // (a) -> (b) <=> (b)
             long a = write.nodeCreate();
             long b = write.nodeCreate();
 
             write.relationshipCreate(a, rel, b);
             write.relationshipCreate(b, rel, b);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).max(4).toGraph())
-                    .isEqualTo(graph().add(a).add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).toGraph())
-                    .isEqualTo(graph().add(a).add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b).build());
+            var excludeStart = graph().add().add(b).build();
+            var withStart = graph().add(a).add(b).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            // then
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    for (int i = 1; i < 5; i++) {
+                        assertThat(f.cursor(BOTH, a).max(i).toGraph(traversalPathMode))
+                                .isEqualTo(excludeStart);
+                        assertThat(f.cursor(BOTH, a).excludeStart().max(i).toGraph(traversalPathMode))
+                                .isEqualTo(excludeStart);
+                    }
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(excludeStart);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    for (int i = 1; i < 5; i++) {
+                        assertThat(f.cursor(BOTH, a).max(i).toGraph(traversalPathMode))
+                                .isEqualTo(withStart);
+                        assertThat(f.cursor(BOTH, a).excludeStart().max(i).toGraph(traversalPathMode))
+                                .isEqualTo(excludeStart);
+                    }
+                    assertThat(f.cursor(BOTH, a).toGraph(traversalPathMode)).isEqualTo(withStart);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart);
+                }
+            }
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b).build());
+            assertThat(f.cursor(BOTH, a).into(b).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
         }
     }
 
-    @Test
-    void shouldRetraceWhenALoopIsDetectedThatHasPathToOrigin() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOriginOutGoing(TraversalPathMode traversalPathMode)
+            throws KernelException {
+        // given
+        try (var f = new Fixture()) {
+            Write write = f.tx.dataWrite();
+            int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
+            // (a) -> (b) <=> (c)
+            long a = write.nodeCreate();
+            long b = write.nodeCreate();
+            long c = write.nodeCreate();
+
+            write.relationshipCreate(a, rel, b);
+            write.relationshipCreate(b, rel, c);
+            write.relationshipCreate(c, rel, b);
+
+            var bOnly = graph().add().add(b).build();
+            var excludeStartDeep = graph().add().add(b).add(c).build();
+            var withStart = graph().add(a).add(b).add(c).build();
+
+            // then
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(OUTGOING, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            traversalPathMode == TraversalPathMode.ACYCLIC
+                                    ? bOnly
+                                    : graph().add(a).add(b).build());
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(bOnly);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartDeep : withStart);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(4).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartDeep : withStart);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+
+            assertThat(f.cursor(OUTGOING, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(OUTGOING, a).into(b).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(graph().add().add(b).build());
+            assertThat(f.cursor(OUTGOING, a).into(b).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(graph().add().add(b).build());
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldNotRetraceWhenALoopIsDetectedThatHasNoPathLeftToOrigin2(TraversalPathMode traversalPathMode)
+            throws KernelException {
+        // given
+        try (var f = new Fixture()) {
+            Write write = f.tx.dataWrite();
+            int rel = f.tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
+            // (a) -> (b) <=> (c)
+            long a = write.nodeCreate();
+            long b = write.nodeCreate();
+            long c = write.nodeCreate();
+
+            write.relationshipCreate(a, rel, b);
+            write.relationshipCreate(b, rel, c);
+            write.relationshipCreate(c, rel, b);
+
+            var excludeStart = graph().add().add(b).build();
+            var excludeStartDeep = graph().add().add(b).add(c).build();
+            var withStartDeep = graph().add(a).add(b).add(c).build();
+
+            // then
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(OUTGOING, a).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(
+                            traversalPathMode == TraversalPathMode.ACYCLIC
+                                    ? excludeStart
+                                    : graph().add(a).add(b).build());
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartDeep : withStartDeep);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().max(4).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+            assertThat(f.cursor(OUTGOING, a).toGraph(traversalPathMode))
+                    .isEqualTo(traversalPathMode == TraversalPathMode.ACYCLIC ? excludeStartDeep : withStartDeep);
+            assertThat(f.cursor(OUTGOING, a).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartDeep);
+
+            assertThat(f.cursor(OUTGOING, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(OUTGOING, a).into(b).max(1).toGraph(traversalPathMode))
+                    .isEqualTo(graph().add().add(b).build());
+            assertThat(f.cursor(OUTGOING, a).into(b).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(graph().add().add(b).build());
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(3).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().max(4).toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).toGraph(traversalPathMode)).isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(OUTGOING, a).into(c).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldRetraceWhenALoopIsDetectedThatHasPathToOrigin(TraversalPathMode traversalPathMode)
+            throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -2562,35 +2773,60 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b, rel, c);
             write.relationshipCreate(c, rel, b);
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b).add(a, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b).add(a, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph())
-                    .isEqualTo(graph().add().add(b).add(a, c).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b).add(a, c).build());
+            var excludeStart = graph().add().add(b).build();
+            var excludeStartDeepAcyclic = graph().add().add(b).add(c).build();
+            var excludeStartDeepTrail = graph().add().add(b).add(a, c).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            // then
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepAcyclic);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepAcyclic);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepAcyclic);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepAcyclic);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStart);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(4).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                }
+            }
+
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b).build());
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(b).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStart);
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(3).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(3).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(4).toGraph())
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().max(4).toGraph(traversalPathMode))
                     .isEqualTo(nodeAtDepth(c, 3));
-            assertThat(f.cursor(BOTH, a).into(c).excludeStart().toGraph()).isEqualTo(nodeAtDepth(c, 3));
+            assertThat(f.cursor(BOTH, a).into(c).excludeStart().toGraph(traversalPathMode))
+                    .isEqualTo(nodeAtDepth(c, 3));
         }
     }
 
-    @Test
-    void shouldHandleDoublyConnectedFanOutGraph() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleDoublyConnectedFanOutGraph(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -2654,23 +2890,24 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(b3, rel, c9);
 
             // then
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(0).build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(0).build(traversalPathMode), traversalPathMode))
                     .isEmpty();
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(1).build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(1).build(traversalPathMode), traversalPathMode))
                     .containsOnlyKeys(List.of(b1, b2, b3));
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(2).build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(2).build(traversalPathMode), traversalPathMode))
                     .containsOnlyKeys(List.of(b1, b2, b3, c1, c2, c3, c4, c5, c6, c7, c8, c9));
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(3).build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(3).build(traversalPathMode), traversalPathMode))
                     .containsOnlyKeys(List.of(b1, b2, b3, c1, c2, c3, c4, c5, c6, c7, c8, c9));
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(4).build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().max(4).build(traversalPathMode), traversalPathMode))
                     .containsOnlyKeys(List.of(b1, b2, b3, c1, c2, c3, c4, c5, c6, c7, c8, c9));
-            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().build()))
+            assertThat(asDepthMap(f.cursor(BOTH, a).excludeStart().build(traversalPathMode), traversalPathMode))
                     .containsOnlyKeys(List.of(b1, b2, b3, c1, c2, c3, c4, c5, c6, c7, c8, c9));
         }
     }
 
-    @Test
-    void shouldHandleComplicatedGraph() throws KernelException {
+    @ParameterizedTest
+    @EnumSource(TraversalPathMode.class)
+    void shouldHandleComplicatedGraph(TraversalPathMode traversalPathMode) throws KernelException {
         // given
         try (var f = new Fixture()) {
             Write write = f.tx.dataWrite();
@@ -2691,34 +2928,53 @@ class BFSPruningVarExpandCursorTest {
             write.relationshipCreate(c, rel, a); // 1
             write.relationshipCreate(d, rel, a); // 2
             write.relationshipCreate(e, rel, a); // 3
-
             write.relationshipCreate(b, rel, c); // 4
             write.relationshipCreate(b, rel, d); // 5
             write.relationshipCreate(e, rel, b); // 6
-
             write.relationshipCreate(c, rel, d); // 7
 
-            // then
-            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph()).isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph())
-                    .isEqualTo(graph().add().add(b, c, d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph())
-                    .isEqualTo(graph().add().add(b, c, d, e).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph())
-                    .isEqualTo(graph().add().add(b, c, d, e).add().add(a).build());
-            assertThat(f.cursor(BOTH, a).excludeStart().toGraph())
-                    .isEqualTo(graph().add().add(b, c, d, e).add().add(a).build());
+            var excludeStartShort = graph().add().add(b, c, d, e).build();
+            var excludeStartDeepTrail =
+                    graph().add().add(b, c, d, e).add().add(a).build();
 
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph())
+            // then
+            assertThat(f.cursor(BOTH, a).excludeStart().max(0).toGraph(traversalPathMode))
                     .isEqualTo(EMPTY);
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(1).toGraph())
+            assertThat(f.cursor(BOTH, a).excludeStart().max(1).toGraph(traversalPathMode))
+                    .isEqualTo(excludeStartShort);
+            switch (traversalPathMode) {
+                case ACYCLIC -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(EMPTY);
+                }
+                case TRAIL -> {
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(2).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartShort);
+                    assertThat(f.cursor(BOTH, a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                    assertThat(f.cursor(BOTH, a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(excludeStartDeepTrail);
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                    assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph(traversalPathMode))
+                            .isEqualTo(nodeAtDepth(a, 4));
+                }
+            }
+            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(0).toGraph(traversalPathMode))
+                    .isEqualTo(EMPTY);
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(1).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(e).build());
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().max(2).toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(e).build());
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().max(3).toGraph())
-                    .isEqualTo(nodeAtDepth(a, 4));
-            assertThat(f.cursor(BOTH, a).into(a).excludeStart().toGraph()).isEqualTo(nodeAtDepth(a, 4));
-            assertThat(f.cursor(BOTH, a).into(e).excludeStart().toGraph())
+            assertThat(f.cursor(BOTH, a).into(e).excludeStart().toGraph(traversalPathMode))
                     .isEqualTo(graph().add().add(e).build());
         }
     }
@@ -2789,7 +3045,7 @@ class BFSPruningVarExpandCursorTest {
         }
     }
 
-    private Map<Long, Integer> asDepthMap(BFSPruningVarExpandCursor expander) {
+    private Map<Long, Integer> asDepthMap(BFSPruningVarExpandCursor expander, TraversalPathMode traversalPathMode) {
         Map<Long, Integer> depth = new HashMap<>();
         int prevDepth = -1;
         while (expander.next()) {
@@ -2971,7 +3227,7 @@ class BFSPruningVarExpandCursorTest {
                 this.startNode = startNode;
             }
 
-            BFSPruningVarExpandCursor build() {
+            BFSPruningVarExpandCursor build(TraversalPathMode traversalPathMode) {
                 return switch (direction) {
                     case BOTH ->
                         BFSPruningVarExpandCursor.allExpander(
@@ -2985,7 +3241,8 @@ class BFSPruningVarExpandCursorTest {
                                 nodeFilter,
                                 relFilter,
                                 soughtEndNode,
-                                true,
+                                traversalPathMode == TraversalPathMode.TRAIL,
+                                traversalPathMode == TraversalPathMode.ACYCLIC,
                                 memoryTracker);
                     case INCOMING ->
                         BFSPruningVarExpandCursor.incomingExpander(
@@ -2999,7 +3256,8 @@ class BFSPruningVarExpandCursorTest {
                                 nodeFilter,
                                 relFilter,
                                 soughtEndNode,
-                                memoryTracker);
+                                memoryTracker,
+                                traversalPathMode == TraversalPathMode.ACYCLIC);
                     case OUTGOING ->
                         BFSPruningVarExpandCursor.outgoingExpander(
                                 startNode,
@@ -3012,7 +3270,8 @@ class BFSPruningVarExpandCursorTest {
                                 nodeFilter,
                                 relFilter,
                                 soughtEndNode,
-                                memoryTracker);
+                                memoryTracker,
+                                traversalPathMode == TraversalPathMode.ACYCLIC);
                 };
             }
 
@@ -3046,8 +3305,8 @@ class BFSPruningVarExpandCursorTest {
                 return this;
             }
 
-            BFSGraph toGraph() {
-                return graph(this.build());
+            BFSGraph toGraph(TraversalPathMode traversalPathMode) {
+                return graph(this.build(traversalPathMode));
             }
         }
     }

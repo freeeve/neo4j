@@ -53,46 +53,48 @@ case class PruningVarLengthExpandPipe(
   require(min <= max)
 
   /**
-   * Performs DFS traversal, but omits traversing relationships that have been completely traversed (to the
-   * remaining depth) before.
-   *
-   * Pruning and full expand depths
-   * The full expand depth is an integer that denotes how deep a relationship has previously been explored. For
-   * example, a full expand depth of 2 would mean that all nodes that can be reached by following this relationship
-   * and maximally one more permitted relationship have already been visited. A relationship is permitted if is
-   * conforms to the var-length predicates (which is controlled at expand time), and the relationship is not already
-   * part of the current path.
-   *
-   * Before emitting a node (after relationship traversals), the PruningDFS updates the full expand depth of the
-   * incoming relationship on the previous node in the path. The full expand depth is computed as
-   *
-   *   1                 if the max path length is reached
-   *   inf               if the node has no relationships except the incoming one
-   *   d+1               if at or above minLength, or if the node has been emitted
-   *                       d is the minimum outgoing full expand depth
-   *   0                 otherwise
-   *
-   * Full expand depth always increase, so if a newly computed full expand depth is smaller than the previous value,
-   * the new depth is ignored.
-   *
-   * @param state                    The state to return to when this node is done
-   * @param node                     The current node
-   * @param path                     The path so far. Only the first pathLength elements are valid.
-   * @param pathLength               Length of the path so far
-   * @param queryState               The QueryState
-   * @param row                      The current row we are adding reachable nodes to
-   * @param expandMap                maps NodeID -> NodeState
-   * @param prevLocalRelIndex        index of the incoming relationship in the NodeState
-   * @param prevNodeState            The NodeState of the previous node in the path
-   *
-   * For this algorithm the incoming relationship is the one traversed to reach this
-   * node, while outgoing relationships are all other relationships connected to this
-   * node.
-   **/
+    * Performs DFS traversal, but omits traversing relationships that have been completely traversed (to the
+    * remaining depth) before.
+    *
+    * Pruning and full expand depths
+    * The full expand depth is an integer that denotes how deep a relationship has previously been explored. For
+    * example, a full expand depth of 2 would mean that all nodes that can be reached by following this relationship
+    * and maximally one more permitted relationship have already been visited. A relationship is permitted if is
+    * conforms to the var-length predicates (which is controlled at expand time), and the relationship is not already
+    * part of the current path.
+    *
+    * Before emitting a node (after relationship traversals), the PruningDFS updates the full expand depth of the
+    * incoming relationship on the previous node in the path. The full expand depth is computed as
+    *
+    *   1                 if the max path length is reached
+    *   inf               if the node has no relationships except the incoming one
+    *   d+1               if at or above minLength, or if the node has been emitted
+    *                       d is the minimum outgoing full expand depth
+    *   0                 otherwise
+    *
+    * Full expand depth always increase, so if a newly computed full expand depth is smaller than the previous value,
+    * the new depth is ignored.
+    *
+    * @param state                    The state to return to when this node is done
+    * @param node                     The current node
+    * @param path                     The path so far. Only the first pathLength elements are valid.
+    * @param nodes                    The nodes seen so far. Only the first pathLength+1 elements are valid.
+    * @param pathLength               Length of the path so far
+    * @param queryState               The QueryState
+    * @param row                      The current row we are adding reachable nodes to
+    * @param expandMap                maps NodeID -> NodeState
+    * @param prevLocalRelIndex        index of the incoming relationship in the NodeState
+    * @param prevNodeState            The NodeState of the previous node in the path
+    *
+    * For this algorithm the incoming relationship is the one traversed to reach this
+    * node, while outgoing relationships are all other relationships connected to this
+    * node.
+    */
   class PruningDFS(
     val state: FullPruneState,
     val node: VirtualNodeValue,
     val path: Array[Long],
+    val nodes: Array[Long],
     val pathLength: Int,
     val queryState: QueryState,
     val row: CypherRow,
@@ -118,8 +120,9 @@ case class PruningVarLengthExpandPipe(
           if (!haveFullyExploredTheRemainingStepsBefore(currentRelIdx)) {
             val (rel, nextNode) = nodeState.relAndNext(currentRelIdx)
             val relId = rel.id()
-            if (!seenRelationshipInPath(relId)) {
+            if (!seenRelationshipInPath(relId) && !seenNodeInPath(nextNode.id())) {
               path(pathLength) = relId
+              if (traversalPathMode == TraversalPathMode.Acyclic) nodes(pathLength + 1) = nextNode.id()
               val endNode = state.push(
                 node = nextNode,
                 pathLength = pathLength + 1,
@@ -139,13 +142,18 @@ case class PruningVarLengthExpandPipe(
 
       updatePrevFullExpandDepth()
 
-      if (!nodeState.isEmitted && pathLength >= self.min) {
+      if (shouldEmit) {
         nodeState.isEmitted = true
         node
       } else {
         null
       }
     }
+
+    private def shouldEmit: Boolean = (
+      !nodeState.isEmitted && pathLength >= self.min
+        && (traversalPathMode != TraversalPathMode.Acyclic || pathLength > 0)
+    )
 
     private def hasRelationship: Boolean = relationshipCursor < nodeState.relAndNext.length
 
@@ -160,6 +168,17 @@ case class PruningVarLengthExpandPipe(
       var idx = 0
       while (idx < pathLength) {
         if (path(idx) == r) return true
+        idx += 1
+      }
+      false
+    }
+
+    private def seenNodeInPath(n: Long): Boolean = {
+      if (traversalPathMode != TraversalPathMode.Acyclic) return false
+      var idx = 0
+      while (idx <= pathLength) {
+        val node = nodes(idx)
+        if (node == n) return true
         idx += 1
       }
       false
@@ -217,8 +236,8 @@ case class PruningVarLengthExpandPipe(
   }
 
   /**
-   * The state of expansion for one node
-   */
+    * The state of expansion for one node
+    */
   class NodeState(memoryTracker: MemoryTracker) {
 
     // All relationships that connect to this node and the next node, filtered by the var-length predicates
@@ -231,11 +250,11 @@ case class PruningVarLengthExpandPipe(
     var isEmitted = false
 
     /**
-     * Computes the minimum outgoing full expanded depth.
-     *
-     * @param incomingRelId id of the incoming relationship, which is omitted from this computation
-     * @return the full expand depth
-     */
+      * Computes the minimum outgoing full expanded depth.
+      *
+      * @param incomingRelId id of the incoming relationship, which is omitted from this computation
+      * @return the full expand depth
+      */
     def minOutgoingDepth(incomingRelId: Long): Int = {
       var min = Integer.MAX_VALUE >> 1 // we don't want it to overflow
       var i = 0
@@ -254,8 +273,8 @@ case class PruningVarLengthExpandPipe(
     }
 
     /**
-     * If not already done, list all relationships of a node, given the predicates of this pipe.
-     */
+      * If not already done, list all relationships of a node, given the predicates of this pipe.
+      */
     def ensureExpanded(queryState: QueryState, row: CypherRow, node: VirtualNodeValue): Unit = {
       if (relAndNext == null) {
         val allRels = queryState.query.getRelationshipsForIds(node.id(), dir, types.types(queryState.query))
@@ -283,19 +302,22 @@ case class PruningVarLengthExpandPipe(
   }
 
   /**
-   * The overall state of the full pruning var expand. Mostly manages stack of PruningDFS nodes.
-   */
+    * The overall state of the full pruning var expand. Mostly manages stack of PruningDFS nodes.
+    */
   class FullPruneState(queryState: QueryState, val memoryTracker: MemoryTracker) {
     private var inputRow: CypherRow = _
     private val nodeState = new Array[PruningDFS](self.max + 1)
     private val path = new Array[Long](max)
+    private val nodes = if (traversalPathMode == TraversalPathMode.Acyclic) new Array[Long](max + 1) else null
+
     memoryTracker.allocateHeap(HeapEstimator.shallowSizeOfObjectArray(nodeState.length) + HeapEstimator.sizeOf(path))
+    if (traversalPathMode == TraversalPathMode.Acyclic) memoryTracker.allocateHeap(HeapEstimator.sizeOf(nodes))
+
     private var depth = -1
 
     private val writer = self.maybeToName match {
-      case Some(toName) =>
-        (endNode: VirtualNodeValue) => rowFactory.copyWith(inputRow, toName, endNode)
-      case None => (_: VirtualNodeValue) => rowFactory.copyWith(inputRow)
+      case Some(toName) => (endNode: VirtualNodeValue) => rowFactory.copyWith(inputRow, toName, endNode)
+      case None         => (_: VirtualNodeValue) => rowFactory.copyWith(inputRow)
     }
 
     def startRow(inputRow: CypherRow): Unit = {
@@ -359,20 +381,21 @@ case class PruningVarLengthExpandPipe(
       prevNodeState: NodeState
     ): VirtualNodeValue = {
       queryState.query.transactionalContext.assertTransactionOpen() // Check transaction termination/timeout in case this is long running
+      if (depth == -1 && traversalPathMode == TraversalPathMode.Acyclic) nodes(0) = node.id() // Insert startnode
       depth += 1
-      nodeState(depth) =
-        new PruningDFS(
-          this,
-          node,
-          path,
-          pathLength,
-          queryState,
-          inputRow,
-          expandMap,
-          prevLocalRelIndex,
-          prevNodeState,
-          traversalPathMode
-        )
+      nodeState(depth) = new PruningDFS(
+        this,
+        node,
+        path,
+        nodes,
+        pathLength,
+        queryState,
+        inputRow,
+        expandMap,
+        prevLocalRelIndex,
+        prevNodeState,
+        traversalPathMode
+      )
 
       nodeState(depth).nextEndNode()
     }

@@ -134,11 +134,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected =
-      Array(
-        Array[Any](n1, 0),
-        Array[Any](n2, 1)
-      )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(Array[Any](n2, 1))
+      case _ =>
+        Array(
+          Array[Any](n1, 0),
+          Array[Any](n2, 1)
+        )
+    }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -158,11 +162,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected =
-      Array(
-        Array[Any](n1, 0),
-        Array[Any](n2, 1)
-      )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(Array[Any](n2, 1))
+      case _ =>
+        Array(
+          Array[Any](n1, 0),
+          Array[Any](n2, 1)
+        )
+    }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -221,7 +229,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk    => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
       case TraversalPathMode.Trail   => expectedTrails
-      case TraversalPathMode.Acyclic => ??? // TODO: implement when acyclic var length expand is implemented
+      case TraversalPathMode.Acyclic => expectedTrails
     }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
@@ -242,7 +250,12 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(Array[Any](n1, 0))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array.empty[Array[Any]]
+      case _ =>
+        Array(Array[Any](n1, 0))
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -261,7 +274,12 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(Array[Any](n1, 0))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array.empty[Array[Any]]
+      case _ =>
+        Array(Array[Any](n1, 0))
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -280,11 +298,19 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array[Any](n1, 0),
-      Array[Any](n2, 1),
-      Array[Any](n3, 2)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n2, 1),
+          Array[Any](n3, 2)
+        )
+      case _ =>
+        Array(
+          Array[Any](n1, 0),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2)
+        )
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -303,11 +329,19 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array[Any](n1, 0),
-      Array[Any](n2, 1),
-      Array[Any](n3, 2)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n2, 1),
+          Array[Any](n3, 2)
+        )
+      case _ =>
+        Array(
+          Array[Any](n1, 0),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2)
+        )
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -333,10 +367,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array[Any](n1, 1),
-      Array[Any](n2, 1)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(Array[Any](n2, 1))
+      case _ =>
+        Array(
+          Array[Any](n1, 1),
+          Array[Any](n2, 1)
+        )
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -362,10 +401,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array[Any](n1, 1),
-      Array[Any](n2, 1)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(Array[Any](n2, 1))
+      case _ =>
+        Array(
+          Array[Any](n1, 1),
+          Array[Any](n2, 1)
+        )
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -407,12 +451,22 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array[Any](n1_2, 1),
-      Array[Any](n2, 1),
-      Array[Any](n3, 2),
-      Array[Any](n4, 3)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n1_2, 1),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2),
+          Array[Any](n4, 3)
+        )
+      case _ =>
+        Array(
+          Array[Any](n1_2, 1),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2),
+          Array[Any](n4, 3)
+        )
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -472,7 +526,13 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](n1, 3),
           Array[Any](n4, 3)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO: fix when acyclic is implemented for var length expand
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n1_2, 1),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2),
+          Array[Any](n4, 3)
+        )
     }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
@@ -588,7 +648,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](n1, 4),
           Array[Any](n4, 3)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n1_2a, 1),
+          Array[Any](n1_2b, 2),
+          Array[Any](n2, 1),
+          Array[Any](n3, 2),
+          Array[Any](n4, 3)
+        )
     }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
@@ -703,7 +770,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](y, 1),
           Array[Any](z, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](n1, 1),
+          Array[Any](n2, 2),
+          Array[Any](n3, 2),
+          Array[Any](y, 1),
+          Array[Any](z, 2)
+        )
     }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
@@ -837,7 +911,20 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.sc2, 2),
           Array[Any](g.end, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sb1, 1), // outgoing only
+          Array[Any](g.sa1, 1),
+          Array[Any](g.middle, 1),
+          Array[Any](g.sb2, 2),
+          Array[Any](g.sc3, 2),
+          Array[Any](g.ea1, 2),
+          Array[Any](g.eb1, 2),
+          Array[Any](g.ec1, 2),
+          Array[Any](g.sc1, 1), // incoming only
+          Array[Any](g.sc2, 2),
+          Array[Any](g.end, 2)
+        )
     }
 
     // then
@@ -930,7 +1017,17 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.ea1, 2),
           Array[Any](g.ec1, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sa1, 1),
+          Array[Any](g.sc1, 1),
+          Array[Any](g.middle, 1),
+          Array[Any](g.end, 2),
+          Array[Any](g.sc2, 2),
+          Array[Any](g.sc3, 2),
+          Array[Any](g.ea1, 2),
+          Array[Any](g.ec1, 2)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -962,7 +1059,11 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.sb1, 1),
           Array[Any](g.sb2, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sb1, 1),
+          Array[Any](g.sb2, 2)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1038,7 +1139,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.sc1, 1),
           Array[Any](g.sc2, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sa1, 1),
+          Array[Any](g.sb1, 1),
+          Array[Any](g.sb2, 2),
+          Array[Any](g.sc1, 1),
+          Array[Any](g.sc2, 2)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1220,7 +1328,19 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.ec1, 3),
           Array[Any](g.sc3, 3)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sa1, 1),
+          Array[Any](g.sb1, 1),
+          Array[Any](g.sc1, 1),
+          Array[Any](g.middle, 2),
+          Array[Any](g.sb2, 2),
+          Array[Any](g.sc2, 2),
+          Array[Any](g.ea1, 3),
+          Array[Any](g.eb1, 3),
+          Array[Any](g.ec1, 3),
+          Array[Any](g.sc3, 3)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1265,7 +1385,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.sb2, 2),
           Array[Any](g.sc2, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sa1, 1),
+          Array[Any](g.middle, 2),
+          Array[Any](g.sb1, 1),
+          Array[Any](g.sc1, 1),
+          Array[Any](g.sb2, 2),
+          Array[Any](g.sc2, 2)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1336,7 +1464,13 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array[Any](g.sb2, 2),
           Array[Any](g.sc2, 2)
         )
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array[Any](g.sb1, 1),
+          Array[Any](g.sc1, 1),
+          Array[Any](g.sb2, 2),
+          Array[Any](g.sc2, 2)
+        )
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1405,7 +1539,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       case TraversalPathMode.Walk =>
         expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
       case TraversalPathMode.Trail   => expectedTrails
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1433,11 +1567,19 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
+
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1464,11 +1606,18 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1537,7 +1686,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk    => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
       case TraversalPathMode.Trail   => expectedTrails
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1566,11 +1715,18 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1598,11 +1754,18 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1630,11 +1793,10 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 1 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = for {
+      path <- paths
+      length <- 1 to 5
+    } yield Array[Any](path.take(length).endNode(), length)
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1671,7 +1833,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk    => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
       case TraversalPathMode.Trail   => expectedTrails
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1700,11 +1862,18 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1732,11 +1901,18 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected =
-      for {
-        path <- paths
-        length <- 0 to 5
-      } yield Array[Any](path.take(length).endNode(), length)
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        for {
+          path <- paths
+          length <- 1 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+      case _ =>
+        for {
+          path <- paths
+          length <- 0 to 5
+        } yield Array[Any](path.take(length).endNode(), length)
+    }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
 
@@ -1760,8 +1936,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        singleColumn(nodes.tail) // skip startNode
+      case _ =>
+        singleColumn(nodes)
+    }
+
     // then
-    runtimeResult should beColumns("y").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("y").withRows(expected)
   }
 
   test("var-length-expand should only find start node once, undirected") {
@@ -1784,8 +1967,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        singleColumn(nodes.tail) // skip startNode
+      case _ =>
+        singleColumn(nodes)
+    }
+
     // then
-    runtimeResult should beColumns("y").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("y").withRows(expected)
   }
 
   test("var-length-expand should only find start node once with node filtering") {
@@ -1813,8 +2003,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        singleColumn(nodes.tail) // skip startNode
+      case _ =>
+        singleColumn(nodes)
+    }
+
     // then
-    runtimeResult should beColumns("y").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("y").withRows(expected)
   }
 
   test("var-length-expand should only find start node once with node filtering, undirected") {
@@ -1842,8 +2039,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        singleColumn(nodes.tail) // skip startNode
+      case _ =>
+        singleColumn(nodes)
+    }
+
     // then
-    runtimeResult should beColumns("y").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("y").withRows(expected)
   }
 
   test("should work on the RHS of an apply") {
@@ -1896,6 +2100,12 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
 
+    val expectedTrails = (for (i <- 1 to 10)
+      yield Seq(Array[Any](i, g.sb1), Array[Any](i, g.sc1), Array[Any](i, g.sb2), Array[Any](i, g.sc2))).flatten
+
+    val expectedAcycles = (for (i <- 1 to 10)
+      yield Seq(Array[Any](i, g.sb1), Array[Any](i, g.sc1), Array[Any](i, g.sb2), Array[Any](i, g.sc2))).flatten
+
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk =>
         (for (i <- 1 to 10)
@@ -1907,9 +2117,9 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
             Array[Any](i, g.sc2)
           )).flatten
       case TraversalPathMode.Trail =>
-        (for (i <- 1 to 10)
-          yield Seq(Array[Any](i, g.sb1), Array[Any](i, g.sc1), Array[Any](i, g.sb2), Array[Any](i, g.sc2))).flatten
-      case TraversalPathMode.Acyclic => ??? // TODO
+        expectedTrails
+      case TraversalPathMode.Acyclic =>
+        expectedAcycles
     }
     // then
     runtimeResult should beColumns("i", "y").withRows(expected)
@@ -1937,8 +2147,12 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
 
-    val expected =
-      (for (i <- 1 to 10) yield Seq(Array[Any](i, g.start), Array[Any](i, g.sb1), Array[Any](i, g.sb2))).flatten
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        (for (i <- 1 to 10) yield Seq(Array[Any](i, g.sb1), Array[Any](i, g.sb2))).flatten
+      case _ =>
+        (for (i <- 1 to 10) yield Seq(Array[Any](i, g.start), Array[Any](i, g.sb1), Array[Any](i, g.sb2))).flatten
+    }
 
     // then
     runtimeResult should beColumns("i", "y").withRows(expected)
@@ -1966,14 +2180,25 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
 
-    val expected = (for (i <- 1 to 10)
-      yield Seq(
-        Array[Any](i, g.start),
-        Array[Any](i, g.sb1),
-        Array[Any](i, g.sc1),
-        Array[Any](i, g.sb2),
-        Array[Any](i, g.sc2)
-      )).flatten
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        (for (i <- 1 to 10)
+          yield Seq(
+            Array[Any](i, g.sb1),
+            Array[Any](i, g.sc1),
+            Array[Any](i, g.sb2),
+            Array[Any](i, g.sc2)
+          )).flatten
+      case _ =>
+        (for (i <- 1 to 10)
+          yield Seq(
+            Array[Any](i, g.start),
+            Array[Any](i, g.sb1),
+            Array[Any](i, g.sc1),
+            Array[Any](i, g.sb2),
+            Array[Any](i, g.sc2)
+          )).flatten
+    }
 
     // then
     runtimeResult should beColumns("i", "y").withRows(expected)
@@ -2019,7 +2244,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    runtimeResult should beColumns("x", "depth").withRows(Array(Array[Any](nodes(0), 0)))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array.empty[Array[Any]]
+      case _ =>
+        Array(Array[Any](nodes(0), 0))
+    }
+
+    runtimeResult should beColumns("x", "depth").withRows(expected)
   }
 
   test("var-length-expand into self with min length") {
@@ -2040,7 +2272,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk    => Array(Array[Any](nodes.head, 2))
       case TraversalPathMode.Trail   => Array(Array[Any](nodes.head, 4))
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic => Array.empty[Array[Any]]
     }
     runtimeResult should beColumns("x", "depth").withRows(expected)
   }
@@ -2062,7 +2294,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    runtimeResult should beColumns("x", "depth").withRows(Array(Array[Any](node, 1)))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array.empty[Array[Any]]
+      case _ =>
+        Array(Array[Any](node, 1))
+    }
+
+    runtimeResult should beColumns("x", "depth").withRows(expected)
   }
 
   test(
@@ -2127,7 +2366,11 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(a, b),
           Array(a, c)
         ))
-      case TraversalPathMode.Acyclic => ??? // TODO
+      case TraversalPathMode.Acyclic =>
+        inAnyOrder(Seq(
+          Array(a, b),
+          Array(a, c)
+        ))
     }
 
     runtimeResult should beColumns("s", "t").withRows(expected)

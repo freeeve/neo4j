@@ -92,11 +92,11 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected =
-      Array(
-        Array(n1),
-        Array(n2)
-      )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic => Array(Array(n2))
+      case TraversalPathMode.Walk    => Array(Array(n1), Array(n2))
+      case TraversalPathMode.Trail   => Array(Array(n1), Array(n2))
+    }
 
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -143,7 +143,11 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(Array(n1))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic => Array.empty[Array[Any]]
+      case TraversalPathMode.Walk    => Array(Array(n1))
+      case TraversalPathMode.Trail   => Array(Array(n1))
+    }
     runtimeResult should beColumns("y").withRows(expected)
   }
 
@@ -162,10 +166,11 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array(n1),
-      Array(n2)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic => Array(Array(n2))
+      case TraversalPathMode.Walk    => Array(Array(n1), Array(n2))
+      case TraversalPathMode.Trail   => Array(Array(n1), Array(n2))
+    }
     runtimeResult should beColumns("y").withRows(expected)
   }
 
@@ -184,11 +189,25 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Array(
-      Array(n1),
-      Array(n2),
-      Array(n3)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(n2),
+          Array(n3)
+        )
+      case TraversalPathMode.Walk =>
+        Array(
+          Array(n1),
+          Array(n2),
+          Array(n3)
+        )
+      case TraversalPathMode.Trail =>
+        Array(
+          Array(n1),
+          Array(n2),
+          Array(n3)
+        )
+    }
     runtimeResult should beColumns("y").withRows(expected)
   }
 
@@ -217,7 +236,53 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val expected = traversalPathMode match {
       case TraversalPathMode.Walk =>
         Array(Array(n2), Array(n1))
-      case TraversalPathMode.Trail => Array(Array(n2))
+      case TraversalPathMode.Trail   => Array(Array(n2))
+      case TraversalPathMode.Acyclic => Array.empty[Array[Any]]
+    }
+    runtimeResult should beColumns("y").withRows(expected)
+  }
+
+  test("var-length-expand with cycle") {
+    // given
+    val (n0, n1, n2, n3, n4, n5, n6) = givenGraph {
+      //                      (n2) - (n5)
+      //                    /    \
+      //   (n0:START) - (n1)     (n3)
+      //                   \    /
+      //                    (n4) - (n6)
+      val n0 = tx.createNode(Label.label("START"))
+      val n1 = tx.createNode()
+      val n2 = tx.createNode()
+      val n3 = tx.createNode()
+      val n4 = tx.createNode()
+      val n5 = tx.createNode()
+      val n6 = tx.createNode()
+      val relType = RelationshipType.withName("R")
+      n0.createRelationshipTo(n1, relType)
+      n1.createRelationshipTo(n2, relType)
+      n2.createRelationshipTo(n3, relType)
+      n3.createRelationshipTo(n4, relType)
+      n1.createRelationshipTo(n4, relType)
+      n2.createRelationshipTo(n5, relType)
+      n4.createRelationshipTo(n6, relType)
+      (n0, n1, n2, n3, n4, n5, n6)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("y")
+      .distinct("y AS y")
+      .pruningVarExpand("(x)-[*5..5]-(y)", pathMode = traversalPathMode)
+      .nodeByLabelScan("x", "START", IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk    => Array(Array(n1), Array(n3), Array(n5), Array(n6))
+      case TraversalPathMode.Trail   => Array(Array(n1), Array(n5), Array(n6))
+      case TraversalPathMode.Acyclic => Array(Array(n5), Array(n6))
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -273,6 +338,10 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         Array(
           Array(n4)
         )
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(n4)
+        )
     }
 
     runtimeResult should beColumns("y").withRows(expected)
@@ -325,6 +394,10 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(n4)
         )
       case TraversalPathMode.Trail =>
+        Array(
+          Array(n4)
+        )
+      case TraversalPathMode.Acyclic =>
         Array(
           Array(n4)
         )
@@ -495,6 +568,20 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2),
           Array(g.end)
         )
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sb1), // outgoing only
+          Array(g.sa1),
+          Array(g.middle),
+          Array(g.sb2),
+          Array(g.sc3),
+          Array(g.ea1),
+          Array(g.eb1),
+          Array(g.ec1),
+          Array(g.sc1), // incoming only
+          Array(g.sc2),
+          Array(g.end)
+        )
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -585,6 +672,14 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1),
           Array(g.sc2)
         )
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sb2),
+          Array(g.sc1),
+          Array(g.sc2)
+        )
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -622,6 +717,14 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2)
         )
       case TraversalPathMode.Trail =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sb2),
+          Array(g.sc1),
+          Array(g.sc2)
+        )
+      case TraversalPathMode.Acyclic =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -755,6 +858,19 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.ec1),
           Array(g.sc3)
         )
+      case TraversalPathMode.Acyclic =>
+        Array(
+          Array(g.sa1),
+          Array(g.sb1),
+          Array(g.sc1),
+          Array(g.middle),
+          Array(g.sb2),
+          Array(g.sc2),
+          Array(g.ea1),
+          Array(g.eb1),
+          Array(g.ec1),
+          Array(g.sc3)
+        )
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -787,6 +903,11 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sb2)
         )
       case TraversalPathMode.Trail =>
+        Array(
+          Array(g.sc2),
+          Array(g.sb2)
+        )
+      case TraversalPathMode.Acyclic =>
         Array(
           Array(g.sc2),
           Array(g.sb2)
@@ -951,7 +1072,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         path <- paths
         length <- 0 to 5
       } yield Array(path.take(length).endNode())
-    runtimeResult should beColumns("y").withRows(expected)
+    runtimeResult should beColumns("y").withRows(expected) // TODO: maybe incorrect for ACYCLIC?
   }
 
   // HELPERS

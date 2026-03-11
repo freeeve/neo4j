@@ -192,7 +192,8 @@ object BFSPruningVarLengthExpandPipe {
           nodePredicate,
           relPredicate,
           if (mode == ExpandInto) to else NO_SUCH_NODE,
-          memoryTracker
+          memoryTracker,
+          traversalPathMode == TraversalPathMode.Acyclic
         )
       case SemanticDirection.INCOMING =>
         incomingExpander(
@@ -206,7 +207,8 @@ object BFSPruningVarLengthExpandPipe {
           nodePredicate,
           relPredicate,
           if (mode == ExpandInto) to else NO_SUCH_NODE,
-          memoryTracker
+          memoryTracker,
+          traversalPathMode == TraversalPathMode.Acyclic
         )
       case SemanticDirection.BOTH =>
         allExpander(
@@ -221,6 +223,7 @@ object BFSPruningVarLengthExpandPipe {
           relPredicate,
           if (mode == ExpandInto) to else NO_SUCH_NODE,
           traversalPathMode == TraversalPathMode.Trail,
+          traversalPathMode == TraversalPathMode.Acyclic,
           memoryTracker
         )
     }
