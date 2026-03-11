@@ -25,9 +25,7 @@ import static org.eclipse.collections.impl.block.factory.Functions.identity;
 import static org.neo4j.internal.recordstorage.RecordBuilders.filterType;
 import static org.neo4j.internal.recordstorage.RecordBuilders.records;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.assertj.core.api.AbstractAssert;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
@@ -44,16 +42,18 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
         return new RecordAssert(changeSet);
     }
 
-    /** Match a RecordChangeSet */
-    public DiffAssert<RecordChangeSet> containsChanges(AbstractBaseRecord... expectedChanges) {
+    /**
+     * Match a RecordChangeSet
+     */
+    public void containsChanges(AbstractBaseRecord... expectedChanges) {
         DiffAssert<Iterable<? extends AbstractBaseRecord>> nodes =
-                containsRecords("nodes", filterType(expectedChanges, NodeRecord.class));
+                containsRecords(filterType(expectedChanges, NodeRecord.class));
         DiffAssert<Iterable<? extends AbstractBaseRecord>> rels =
-                containsRecords("relationships", filterType(expectedChanges, RelationshipRecord.class));
+                containsRecords(filterType(expectedChanges, RelationshipRecord.class));
         DiffAssert<Iterable<? extends AbstractBaseRecord>> groups =
-                containsRecords("relationship groups", filterType(expectedChanges, RelationshipGroupRecord.class));
+                containsRecords(filterType(expectedChanges, RelationshipGroupRecord.class));
 
-        return new DiffAssert<>() {
+        new DiffAssert<RecordChangeSet>() {
             @Override
             String diff(RecordChangeSet actual) {
                 String diff;
@@ -71,7 +71,7 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
                 diff = groups.diff(records(actual.getRelGroupRecords().changes()));
                 return diff;
             }
-        };
+        }.hasNoDiff(actual);
     }
 
     // Build a contains matcher that matches all records of a single given type
@@ -82,14 +82,12 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
     // a single record, just refactor those out and have this delegate to them, see how
     // the containsChanges delegates here for an example.
     public DiffAssert<Iterable<? extends AbstractBaseRecord>> containsRecords(
-            String recordPlural, Stream<? extends AbstractBaseRecord> expected) {
+            Stream<? extends AbstractBaseRecord> expected) {
         Map<Long, AbstractBaseRecord> expectedById = expected.collect(toMap(AbstractBaseRecord::getId, identity()));
         return new DiffAssert<>() {
             @Override
             String diff(Iterable<? extends AbstractBaseRecord> actual) {
-                Set<Long> seen = new HashSet<>(expectedById.keySet());
                 for (AbstractBaseRecord record : actual) {
-                    seen.remove(record.getId());
                     if (!expectedById.containsKey(record.getId())) {
                         return String.format("This record was not expected: %s", record);
                     }
@@ -118,41 +116,22 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
             }
 
             private String diff(NodeRecord expected, NodeRecord actual) {
-                if (actual.getId() == expected.getId()
-                        && actual.getNextRel() == expected.getNextRel()
-                        && actual.getLabelField() == expected.getLabelField()
-                        && actual.getNextProp() == expected.getNextProp()
-                        && actual.isDense() == expected.isDense()
-                        && actual.isLight() == expected.isLight()) {
+                // NodeRecord#equals ignores isLight
+                if (actual.equals(expected) && actual.isLight() == expected.isLight()) {
                     return null;
                 }
                 return describeDiff(expected.toString(), actual.toString());
             }
 
             private String diff(RelationshipGroupRecord expected, RelationshipGroupRecord actual) {
-                if (actual.getId() == expected.getId()
-                        && actual.getType() == expected.getType()
-                        && actual.getNext() == expected.getNext()
-                        && actual.getFirstOut() == expected.getFirstOut()
-                        && actual.getFirstIn() == expected.getFirstIn()
-                        && actual.getFirstLoop() == expected.getFirstLoop()
-                        && actual.getOwningNode() == expected.getOwningNode()) {
+                if (actual.equals(expected)) {
                     return null;
                 }
                 return describeDiff(expected.toString(), actual.toString());
             }
 
             private String diff(RelationshipRecord expected, RelationshipRecord actual) {
-                if (actual.getId() == expected.getId()
-                        && actual.getFirstNode() == expected.getFirstNode()
-                        && actual.getSecondNode() == expected.getSecondNode()
-                        && actual.getType() == expected.getType()
-                        && actual.getFirstPrevRel() == expected.getFirstPrevRel()
-                        && actual.getFirstNextRel() == expected.getFirstNextRel()
-                        && actual.getSecondPrevRel() == expected.getSecondPrevRel()
-                        && actual.getSecondNextRel() == expected.getSecondNextRel()
-                        && actual.isFirstInFirstChain() == expected.isFirstInFirstChain()
-                        && actual.isFirstInSecondChain() == expected.isFirstInSecondChain()) {
+                if (actual.equals(expected)) {
                     return null;
                 }
                 return describeDiff(expected.toString(), actual.toString());
@@ -170,7 +149,7 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
                 }
                 return String.format(
                         "Record fields don't match.\n" + "Expected: %s\n" + "Actual:   %s\n" + "          %s",
-                        expected, actual, arrow.append('^').toString());
+                        expected, actual, arrow.append('^'));
             }
         };
     }
@@ -182,7 +161,7 @@ public class RecordAssert extends AbstractAssert<RecordAssert, RecordChangeSet> 
     public abstract class DiffAssert<T> {
         abstract String diff(T item);
 
-        protected void hasDiff(T item) {
+        protected void hasNoDiff(T item) {
             var itemDifference = diff(item);
             if (isNotBlank(itemDifference)) {
                 failWithMessage("Element difference found: " + itemDifference);
