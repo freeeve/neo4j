@@ -189,6 +189,7 @@
     <jackson.version>2.21.1</jackson.version>
     <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
     <jackson.annotations.version>2.21</jackson.annotations.version>
+    <jakarta.inject.version>2.0.1</jakarta.inject.version>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
     <awssdk.version>2.41.29</awssdk.version>
     <awssdk-crt.version>0.43.3</awssdk-crt.version>
