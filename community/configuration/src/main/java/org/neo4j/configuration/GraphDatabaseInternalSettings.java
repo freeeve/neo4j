@@ -2037,6 +2037,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .dynamic()
             .build();
 
+    @Internal
+    @Description("Directory for capturing any import related context information.")
+    public static final Setting<Path> import_base_context_directory = newBuilder(
+                    "internal.db.import.base_context_directory", PATH, Path.of("imports"))
+            .setDependency(GraphDatabaseSettings.data_directory)
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

@@ -34,17 +34,12 @@ import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
 import static picocli.CommandLine.Help.Visibility.NEVER;
 
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UncheckedIOException;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.ProviderMismatchException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,7 +56,6 @@ import org.eclipse.collections.api.tuple.Pair;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.IndexConfig;
 import org.neo4j.batchimport.api.Monitor;
-import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.FileGroup;
 import org.neo4j.batchimport.api.input.IdType;
@@ -81,7 +75,6 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
-import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.importer.FileImporter.FileInputType;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.batchimport.DefaultAdditionalIds;
@@ -92,7 +85,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction.PatternStyle;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
-import org.neo4j.io.locker.FileLockException;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -109,7 +101,6 @@ import org.neo4j.kernel.impl.util.Converters;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.logging.internal.NullLogService;
-import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -610,14 +601,15 @@ public class ImportCommand {
 
             final var databaseConfig = loadNeo4jConfig(format);
             final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
-            final var logFilePath = FileImporter.getLogFilePath(databaseConfig);
 
-            try {
-                ctx.fs().mkdirs(logFilePath.toAbsolutePath().getParent());
-
-                try (var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
-                        var logProvider = FileImporter.getLog(logFile, verbose);
-                        var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
+            try (var importContext = ImportContext.create(
+                    ctx.fs(),
+                    database,
+                    databaseConfig,
+                    // INFO retained not currently used but will be coming in a followup PR
+                    !disableInstrumentation && captureProfile,
+                    verbose)) {
+                try (var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, importContext)) {
                     preImportValidation(fileSystem);
 
                     final var importerBuilder = configureFileImporterBuilder(FileImporter.builder()
@@ -640,9 +632,8 @@ public class ImportCommand {
                             .withNormalizeTypes(normalizeTypes)
                             .withVerbose(verbose)
                             .withAutoSkipHeaders(autoSkipHeaders)
-                            .withLogProvider(logProvider)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
-                            .withLogProvider(logProvider));
+                            .withLogProvider(importContext));
 
                     FileImporter importer;
                     if (isDistributedPropShard()) {
@@ -653,52 +644,18 @@ public class ImportCommand {
                     }
 
                     if (dryRun) {
-                        if (verbose) {
-                            printf(
-                                    "Starting dry run of import, output will be saved to: %s%n",
-                                    logFilePath.toAbsolutePath());
-                        }
                         importer.dryRun(this);
                     } else {
                         try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout)) {
-                            printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
+                            importContext.preamble(ctx.out());
                             importer.doImport(this);
-                            postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
-                        } catch (FileLockException e) {
-                            throw new CommandFailedException(
-                                    "The database is in use. Stop database '%s' and try again."
-                                            .formatted(databaseLayout.getDatabaseName()),
-                                    e,
-                                    ExitCode.FAIL);
-                        } catch (CannotWriteException e) {
-                            throw new CommandFailedException(
-                                    "You do not have permission to import.", e, ExitCode.NOPERM);
+                            postImport(fileSystem, databaseConfig, importContext, databaseLayout);
                         }
                     }
-                } catch (CsvImportException e) {
-                    throw new CommandFailedException("Error importing csv file.", e, ExitCode.SOFTWARE);
-                } catch (UnsupportedFormatException e) {
-                    throw new CommandFailedException("Unsupported format.", e, ExitCode.SOFTWARE);
-                } catch (UncheckedIOException e) {
-                    throw transformIOException(e.getCause());
+                } catch (Exception e) {
+                    throw importContext.captureError(e);
                 }
-            } catch (IOException e) {
-                throw transformIOException(e);
             }
-        }
-
-        private CommandFailedException transformIOException(IOException e) {
-            var error = new CommandFailedException(e, ExitCode.SOFTWARE);
-            if (e instanceof NoSuchFileException ex) {
-                error.addSupplementaryMessage(
-                        "Check that the file '%s' exists or is specified correctly.".formatted(ex.getFile()));
-            } else if (e.getCause() instanceof ProviderMismatchException) {
-                error.addSupplementaryMessage("The scheme of the provided URI is not currently supported - currently "
-                        + "only 's3', 'gs' and 'azb' schemes are supported.");
-            } else if (e.getCause() instanceof URISyntaxException) {
-                error.addSupplementaryMessage("Please check that the syntax of the URI resource provided is correct.");
-            }
-            throw error;
         }
 
         protected boolean isDryRun() {
@@ -741,7 +698,7 @@ public class ImportCommand {
         protected void postImport(
                 SchemeFileSystemAbstraction fileSystem,
                 Config config,
-                Log4jLogProvider logProvider,
+                InternalLogProvider logProvider,
                 DatabaseLayout databaseLayout)
                 throws IOException {}
 

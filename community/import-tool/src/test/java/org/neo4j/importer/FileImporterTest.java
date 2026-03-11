@@ -29,7 +29,6 @@ import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import blue.strategic.parquet.ParquetWriter;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -61,6 +60,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.extension.Inject;
@@ -82,25 +82,30 @@ class FileImporterTest {
         List<String> lines = Collections.singletonList("foo\\tbar\\tbaz");
         Files.write(inputFile, lines, Charset.defaultCharset());
         Config config = dbConfig();
-        final var logFilePath = FileImporter.getLogFilePath(config);
-        try (var logFile = new BufferedOutputStream(Files.newOutputStream(logFilePath));
-                var logProvider = FileImporter.getLog(logFile, true)) {
-            final var csvImporter = importerBuilder(
-                            databaseLayout.getNeo4jLayout().databaseLayout("foodb"))
+
+        var databaseName = "foodb";
+        try (var importContext = ImportContext.create(
+                testDir.getFileSystem(), new NormalizedDatabaseName(databaseName), config, false, true)) {
+            var csvImporter = importerBuilder(databaseLayout.getNeo4jLayout().databaseLayout(databaseName))
                     .withDatabaseConfig(config)
                     .withReportFile(reportLocation.toAbsolutePath())
                     .withCsvConfig(Configuration.TABS)
                     .withStdOut(NullPrintStream.INSTANCE)
                     .withStdErr(NullPrintStream.INSTANCE)
-                    .withLogProvider(logProvider)
+                    .withLogProvider(importContext)
                     .addNodeFiles(emptySet(), new FileGroup(inputFile.toAbsolutePath()))
                     .build();
 
             csvImporter.doImport(fullImport());
+
+            assertThat(importContext.baseDir()).exists();
+            assertThat(importContext.logFile())
+                    .exists()
+                    .content()
+                    .contains("[" + databaseName + "]", "Import starting");
         }
 
         assertTrue(Files.exists(reportLocation));
-        assertThat(Files.readString(logFilePath)).contains("[foodb] Import starting");
     }
 
     @Test
@@ -199,7 +204,7 @@ class FileImporterTest {
 
     private Config dbConfig() {
         return Config.newBuilder()
-                .set(GraphDatabaseSettings.logs_directory, testDir.directory("logs"))
+                .set(GraphDatabaseSettings.neo4j_home, testDir.homePath())
                 .set(GraphDatabaseSettings.logical_log_rotation_threshold, kibiBytes(256))
                 .build();
     }
@@ -283,8 +288,8 @@ class FileImporterTest {
             // more generic exception from FileImporter.
             throwableAssert
                     .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessage(
-                            "Provided input is known to contain vector value data, which is not supported by the target storage engine.");
+                    .hasMessage("Provided input is known to contain vector value data, which is not supported by the"
+                            + " target storage engine.");
         }
     };
 

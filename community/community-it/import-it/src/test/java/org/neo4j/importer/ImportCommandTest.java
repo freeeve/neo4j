@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.cli.CommandTestUtils.capturingExecutionContext;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.databases_root_path;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_base_context_directory;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.initial_default_database;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
@@ -1958,7 +1959,7 @@ class ImportCommandTest {
         var fs = testDirectory.getFileSystem();
         var databaseLayout = layout.databaseLayout(DEFAULT_DATABASE_NAME);
         List<Path> storeFiles = StorageEngineFactory.selectStorageEngine(fs, databaseLayout)
-                .get()
+                .orElseThrow()
                 .listStorageFiles(fs, databaseLayout);
         assertThat(storeFiles.size()).isGreaterThan(5);
 
@@ -1996,18 +1997,23 @@ class ImportCommandTest {
         // given
         runImport(
                 ctx,
+                "--verbose",
                 "--nodes",
                 nodeData(true, COMMAS, nodeIds(), TRUE).toAbsolutePath().toString());
 
-        var fileNamePattern = Pattern.compile(".*output will be saved to: (?<path>.*)", Pattern.MULTILINE);
+        var fileNamePattern =
+                Pattern.compile(".*output will be saved in the directory: (?<path>.*)", Pattern.MULTILINE);
         var filenameMatcher = fileNamePattern.matcher(ctx.outAsString());
         assertTrue(filenameMatcher.find());
-        var internalLogFile = Path.of(filenameMatcher.group("path"));
-        assertEquals(
-                Config.defaults(neo4j_home, testDirectory.homePath()).get(GraphDatabaseSettings.logs_directory),
-                internalLogFile.getParent());
+
+        var importContextDir = Path.of(filenameMatcher.group("path"));
+        assertThat(testDirectory.getFileSystem().isDirectory(importContextDir)).isTrue();
+        assertThat(importContextDir.getFileName()).asString().startsWith(DEFAULT_DATABASE_NAME + "-admin-import-");
+        assertThat(importContextDir.getParent())
+                .isEqualTo(Config.defaults(neo4j_home, testDirectory.homePath()).get(import_base_context_directory));
+
+        var internalLogFile = importContextDir.resolve(ImportContext.LOG_FILE_NAME);
         // THEN go and read the debug.log where it's expected to be and see if there's an IMPORT DONE line in it
-        assertTrue(testDirectory.getFileSystem().fileExists(internalLogFile));
         assertContains("debug", Files.readAllLines(internalLogFile), "Import completed successfully");
     }
 
