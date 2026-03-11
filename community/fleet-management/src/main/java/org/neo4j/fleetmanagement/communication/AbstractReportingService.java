@@ -23,6 +23,7 @@ import static org.neo4j.fleetmanagement.communication.Helpers.responseOk;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
+import java.util.function.Consumer;
 import org.neo4j.fleetmanagement.communication.model.ReportingResponse;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.Configuration;
@@ -41,6 +42,24 @@ public abstract class AbstractReportingService extends BaseService {
     public abstract void report();
 
     protected void transmitReport(Object msg, Upstream.Endpoint endpoint) {
+        transmitReport(msg, endpoint, responseBody -> {
+            try {
+                ReportingResponse reportingResponse = objectMapper.readValue(responseBody, ReportingResponse.class);
+                Configuration.updateConfigurationIfPresent(configuration, reportingResponse.pluginConfig);
+            } catch (JsonProcessingException e) {
+                this.userLog.warn(
+                        "Fleet manager failed to receive reporting response - Failed to deserialize response: "
+                                + e.getMessage());
+            } catch (IOException e) {
+                var errorMsg = "Fleet manager failed to receive reporting response - IOException: " + e.getMessage();
+                this.userLog.error(errorMsg);
+                this.state.setDisconnected(errorMsg);
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    protected void transmitReport(Object msg, Upstream.Endpoint endpoint, Consumer<byte[]> processBody) {
         var messageName = msg.getClass().getSimpleName();
         try {
             String payload = objectMapper.writeValueAsString(msg);
@@ -61,22 +80,9 @@ public abstract class AbstractReportingService extends BaseService {
             byte[] responseBody = getResponseBody(upstreamPostRequest, messageName);
 
             if (responseBody == null) {
-                this.userLog.error("Fleet management plugin failed to " + messageName + " response");
+                this.userLog.error("Fleet manager received no response to " + messageName);
             } else {
-                try {
-                    ReportingResponse reportingResponse = objectMapper.readValue(responseBody, ReportingResponse.class);
-                    Configuration.updateConfigurationIfPresent(configuration, reportingResponse.pluginConfig);
-                } catch (JsonProcessingException e) {
-                    this.userLog.warn(
-                            "Fleet manager failed to receive reporting response - Failed to deserialize response: "
-                                    + e.getMessage());
-                } catch (IOException e) {
-                    var errorMsg =
-                            "Fleet manager failed to receive reporting response - IOException: " + e.getMessage();
-                    this.userLog.error(errorMsg);
-                    this.state.setDisconnected(errorMsg);
-                    throw new RuntimeException(e);
-                }
+                processBody.accept(responseBody);
             }
         } catch (IOException e) {
             var errorMsg = "Fleet manager failed to report " + messageName + " - " + e;
