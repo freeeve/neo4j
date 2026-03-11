@@ -107,7 +107,8 @@ public class TransactionLogWriter {
         channel.getCurrentLogPosition(logPositionMarker);
 
         if (batch.isRollback()) {
-            return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, batch.getTimeCommitted());
+            return writer.writeRollbackEntry(
+                    kernelVersion, transactionId, appendIndex, chunkId, batch.getTimeCommitted());
         }
 
         writer.writeBatchStart(

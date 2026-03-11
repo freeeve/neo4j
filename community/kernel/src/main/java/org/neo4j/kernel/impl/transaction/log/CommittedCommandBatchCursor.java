@@ -86,6 +86,7 @@ public class CommittedCommandBatchCursor implements CommandBatchCursor {
                     rollback.kernelVersion(),
                     rollback.getTransactionId(),
                     rollback.getAppendIndex(),
+                    rollback.getChunkId(),
                     rollback.getTimeWritten(),
                     rollback.getChecksum(),
                     previousChecksum);

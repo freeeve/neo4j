@@ -350,6 +350,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             RecoveryMonitor monitor)
             throws IOException {
         long[] notCompletedTransactions = transactionTracker.notCompletedTransactions();
+
         if (notCompletedTransactions.length == 0) {
             return null;
         }
@@ -364,8 +365,12 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             for (int i = 0; i < notCompletedTransactions.length; i++) {
                 long notCompletedTransaction = notCompletedTransactions[i];
                 long appendIndex = appendIndexProvider.nextAppendIndex();
-                int checksum =
-                        entryWriter.writeRollbackEntry(kernelVersion, notCompletedTransaction, appendIndex, time);
+                int checksum = entryWriter.writeRollbackEntry(
+                        kernelVersion,
+                        notCompletedTransaction,
+                        appendIndex,
+                        transactionTracker.lastNotCompletedTransactionChunk(notCompletedTransaction),
+                        time);
                 if (i == (notCompletedTransactions.length - 1)) {
                     lastBatchInfo = new CommittedCommandBatchRepresentation.BatchInformation(
                             notCompletedTransaction,

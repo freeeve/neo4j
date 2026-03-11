@@ -30,14 +30,21 @@ public class LogEntryRollback extends AbstractVersionAwareLogEntry {
     private final long timeWritten;
     private final int checksum;
     private final long appendIndex;
+    private final long chunkId;
 
     public LogEntryRollback(
-            KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten, int checksum) {
+            KernelVersion kernelVersion,
+            long transactionId,
+            long appendIndex,
+            long chunkId,
+            long timeWritten,
+            int checksum) {
         super(kernelVersion, TX_ROLLBACK);
         this.transactionId = transactionId;
         this.timeWritten = timeWritten;
         this.checksum = checksum;
         this.appendIndex = appendIndex;
+        this.chunkId = chunkId;
     }
 
     public long getTransactionId() {
@@ -56,11 +63,15 @@ public class LogEntryRollback extends AbstractVersionAwareLogEntry {
         return appendIndex;
     }
 
+    public long getChunkId() {
+        return chunkId;
+    }
+
     @Override
     public String toString(Mask mask) {
         return "LogEntryRollbackV5_20{" + "txId="
                 + transactionId + ", timeWritten="
                 + timeWritten + ", checksum="
-                + checksum + ", appendIndex=" + appendIndex + '}';
+                + checksum + ", appendIndex=" + appendIndex + ", chunkId=" + chunkId + '}';
     }
 }

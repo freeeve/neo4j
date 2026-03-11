@@ -65,7 +65,7 @@ class AppendChunkPositionLocatorTest {
             Leases.NO_LEASES,
             encodeLogIndex(42));
     private static final LogEntryRollback ROLLBACK =
-            new LogEntryRollback(LATEST_KERNEL_VERSION, 0, APPEND_INDEX, 17, 7896);
+            new LogEntryRollback(LATEST_KERNEL_VERSION, 0, APPEND_INDEX, 2, 17, 7896);
 
     private static final LogEntryCommand COMMAND = new LogEntryCommand(new TestCommand());
     private static final LogEntryCommit COMMIT =

@@ -23,7 +23,9 @@ import static org.neo4j.kernel.recovery.TransactionStatus.INCOMPLETE;
 import static org.neo4j.kernel.recovery.TransactionStatus.RECOVERABLE;
 import static org.neo4j.kernel.recovery.TransactionStatus.ROLLED_BACK;
 
+import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.storageengine.api.CommandBatch;
@@ -34,6 +36,7 @@ public class TransactionIdTracker {
     private final MutableLongSet rollbackTransactions = LongSets.mutable.empty();
     private final MutableLongSet notCompletedTransactions = LongSets.mutable.empty();
     private final MutableLongSet notCompletedTransactionAppendIndexes = LongSets.mutable.empty();
+    private final MutableLongLongMap notCompletedTransactionLatestChunkId = LongLongMaps.mutable.empty();
 
     TransactionStatus transactionStatus(long transactionId) {
         if (notCompletedTransactions.contains(transactionId)) {
@@ -53,12 +56,17 @@ public class TransactionIdTracker {
         return notCompletedTransactionAppendIndexes.toSortedArray();
     }
 
+    long lastNotCompletedTransactionChunk(long transactionId) {
+        return notCompletedTransactionLatestChunkId.get(transactionId);
+    }
+
     public void trackBatch(CommittedCommandBatchRepresentation committedBatch) {
         CommandBatch commandBatch = committedBatch.commandBatch();
         if (commandBatch.isFirst() && commandBatch.isLast()) {
             return;
         }
         long transactionId = committedBatch.txId();
+        long chunkId = commandBatch.chunkId();
 
         if (commandBatch.isLast()) {
             completedTransactionsWindow.add(transactionId);
@@ -70,6 +78,7 @@ public class TransactionIdTracker {
                 // we encountered transaction that we never completed, so we will need to rollback it
                 if (notCompletedTransactions.add(transactionId)) {
                     notCompletedTransactionAppendIndexes.add(committedBatch.appendIndex());
+                    notCompletedTransactionLatestChunkId.put(transactionId, chunkId);
                 }
             }
             // we are not really interested in keeping the whole set; window of this transaction is gone now

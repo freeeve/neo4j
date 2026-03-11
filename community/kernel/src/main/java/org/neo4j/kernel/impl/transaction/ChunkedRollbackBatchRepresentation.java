@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.transaction;
 
 import static java.util.Collections.emptyList;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
-import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
@@ -39,6 +38,7 @@ public record ChunkedRollbackBatchRepresentation(
         KernelVersion kernelVersion,
         long transactionId,
         long appendIndex,
+        long chunkId,
         long timeWritten,
         int checksum,
         int previousChecksum)
@@ -53,9 +53,9 @@ public record ChunkedRollbackBatchRepresentation(
                         true,
                         true,
                         UNKNOWN_APPEND_INDEX,
-                        UNKNOWN_CHUNK_ID,
+                        chunkId,
                         new MutableLong(UNKNOWN_CONSENSUS_INDEX),
-                        new MutableLong(UNKNOWN_APPEND_INDEX),
+                        new MutableLong(appendIndex),
                         timeWritten,
                         UNKNOWN_TX_ID,
                         timeWritten,
@@ -66,7 +66,7 @@ public record ChunkedRollbackBatchRepresentation(
 
     @Override
     public int serialize(LogEntryWriter<? extends WritableChannel> writer) throws IOException {
-        return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, timeWritten);
+        return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, chunkId, timeWritten);
     }
 
     @Override

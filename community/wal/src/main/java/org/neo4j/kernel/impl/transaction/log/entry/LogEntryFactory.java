@@ -77,8 +77,8 @@ public final class LogEntryFactory {
     }
 
     public static AbstractVersionAwareLogEntry newRollbackEntry(
-            KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten) {
-        return new LogEntryRollback(kernelVersion, transactionId, appendIndex, timeWritten, 0);
+            KernelVersion kernelVersion, long transactionId, long appendIndex, long chunkId, long timeWritten) {
+        return new LogEntryRollback(kernelVersion, transactionId, appendIndex, chunkId, timeWritten, 0);
     }
 
     public static LogEntry newChunkStartEntry(

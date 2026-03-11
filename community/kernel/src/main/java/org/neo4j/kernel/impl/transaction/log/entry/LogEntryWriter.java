@@ -122,13 +122,14 @@ public class LogEntryWriter<T extends WritableChannel> {
                 .write(channel, new LogEntryChunkEnd(kernelVersion, transactionId, chunkId, 0));
     }
 
-    public int writeRollbackEntry(KernelVersion kernelVersion, long transactionId, long appendIndex, long timeWritten)
+    public int writeRollbackEntry(
+            KernelVersion kernelVersion, long transactionId, long appendIndex, long chunkId, long timeWritten)
             throws IOException {
         updateSerializationSet(kernelVersion);
 
         return logEntrySerializationSet
                 .select(TX_ROLLBACK)
-                .write(channel, newRollbackEntry(kernelVersion, transactionId, appendIndex, timeWritten));
+                .write(channel, newRollbackEntry(kernelVersion, transactionId, appendIndex, chunkId, timeWritten));
     }
 
     public int writeCommitEntry(KernelVersion kernelVersion, long transactionId, long timeWritten) throws IOException {
