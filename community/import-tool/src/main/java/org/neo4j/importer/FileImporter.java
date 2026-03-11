@@ -56,6 +56,7 @@ import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.MutableList;
 import org.neo4j.batchimport.api.Configuration;
+import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.FileGroup;
@@ -138,6 +139,7 @@ public class FileImporter {
     private final List<SchemaCommand> schemaCommands;
     private final FileInputType fileImportType;
     private final ShardingArguments shardingArguments;
+    private final Monitor monitor;
 
     private FileImporter(Builder b) {
         this.databaseLayout = requireNonNull(b.databaseLayout);
@@ -169,6 +171,7 @@ public class FileImporter {
         this.schemaCommands = b.schemaCommands;
         this.fileImportType = b.fileInputType;
         this.shardingArguments = b.shardingArguments;
+        this.monitor = b.monitor;
     }
 
     public void dryRun(ImportCommand.Base type) throws IOException {
@@ -212,7 +215,8 @@ public class FileImporter {
                     },
                     stdOut,
                     verbose,
-                    shardingArguments);
+                    shardingArguments,
+                    monitor);
         } catch (Exception ex) {
             throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());
         }
@@ -320,7 +324,8 @@ public class FileImporter {
                     memoryTracker,
                     input,
                     indexProviders,
-                    shardingArguments);
+                    shardingArguments,
+                    monitor);
             success = true;
         } catch (Exception ex) {
             throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());
@@ -534,6 +539,7 @@ public class FileImporter {
         private final MutableList<SchemaCommand> schemaCommands = Lists.mutable.empty();
         private FileInputType fileInputType = FileInputType.CSV;
         private ShardingArguments shardingArguments;
+        private Monitor monitor = Monitor.NO_MONITOR;
 
         public Builder withDatabaseLayout(DatabaseLayout databaseLayout) {
             this.databaseLayout = databaseLayout;
@@ -695,6 +701,11 @@ public class FileImporter {
 
         public Builder withShardingArguments(ShardingArguments shardingArguments) {
             this.shardingArguments = shardingArguments;
+            return this;
+        }
+
+        public Builder withMonitor(Monitor monitor) {
+            this.monitor = monitor;
             return this;
         }
 

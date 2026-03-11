@@ -21,27 +21,38 @@ package org.neo4j.importer;
 
 import static java.lang.String.format;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_base_context_directory;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_detailed_reporting_interval;
 import static org.neo4j.logging.Level.DEBUG;
 import static org.neo4j.logging.Level.INFO;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Supplier;
+import org.neo4j.batchimport.api.DetailedProgressReport;
+import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.ExitCode;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.configuration.Config;
 import org.neo4j.importer.FileImporter.CsvImportException;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.locker.FileLockException;
@@ -53,29 +64,49 @@ import org.neo4j.logging.log4j.LoggerTarget;
 import picocli.CommandLine.ParameterException;
 
 @SuppressWarnings("resource")
-public class ImportContext implements InternalLogProvider {
+public class ImportContext extends Monitor.Delegate implements InternalLogProvider {
 
-    public static final String LOG_FILE_NAME = "import.log";
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
     private static final String DEFAULT_LOG_DIR_TEMPLATE = "%s-admin-import-%s";
+
+    public static final String LOG_FILE_NAME = "import.log";
+    public static final String PROGRESS_REPORTING_FILE_NAME = "progress.json.log";
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+            .registerModule(new SimpleModule().addSerializer(new DurationSerializer()));
 
     private final String dbName;
 
     private final Path baseDir;
 
-    private final Supplier<InternalLogProvider> delegateProvider;
+    private final long reportingIntervalMs;
 
-    private InternalLogProvider delegate;
+    private final Supplier<InternalLogProvider> logProviderSupplier;
+
+    private final Supplier<PrintStream> progressStreamSupplier;
+
+    private InternalLogProvider logProvider;
+
+    private PrintStream progressStream;
 
     private boolean clearBaseDir;
 
     private ImportContext(
-            String dbName, Path baseDir, boolean retainContextDir, Supplier<InternalLogProvider> delegateProvider) {
+            String dbName,
+            Path baseDir,
+            long reportingIntervalMs,
+            boolean retainContextDir,
+            Supplier<InternalLogProvider> logProviderSupplier,
+            Supplier<PrintStream> progressStreamSupplier) {
+        super(Monitor.NO_MONITOR);
         this.dbName = dbName;
         this.baseDir = baseDir;
+        this.reportingIntervalMs = reportingIntervalMs;
         this.clearBaseDir = !retainContextDir;
-        this.delegateProvider = delegateProvider;
+        this.logProviderSupplier = logProviderSupplier;
+        this.progressStreamSupplier = progressStreamSupplier;
     }
 
     public static ImportContext create(
@@ -86,33 +117,32 @@ public class ImportContext implements InternalLogProvider {
             boolean verbose) {
         var baseDir = newContextDir(
                 fs, databaseConfig.get(import_base_context_directory).toAbsolutePath(), database.name());
-        return new ImportContext(database.name(), baseDir, retainContextDir || verbose, () -> {
-            try {
-                fs.mkdirs(baseDir);
-                return new Log4jLogProvider(
-                        new BufferedOutputStream(fs.openAsOutputStream(baseDir.resolve(LOG_FILE_NAME), true)),
-                        verbose ? DEBUG : INFO);
-            } catch (IOException ex) {
-                throw new UncheckedIOException(ex);
-            }
-        });
-    }
-
-    private static Path newContextDir(FileSystemAbstraction fs, Path importsDir, String dbName) {
-        var ts = SPACELESS_DATE_FORMATTER.format(Instant.now());
-        var repeat = 0;
-        Path contextDir;
-        do {
-            var suffix = ts + (repeat++ == 0 ? "" : "." + repeat);
-            contextDir = importsDir.resolve(format(DEFAULT_LOG_DIR_TEMPLATE, dbName, suffix));
-        } while (fs.fileExists(contextDir));
-        return contextDir;
+        return new ImportContext(
+                database.name(),
+                baseDir,
+                databaseConfig.get(import_detailed_reporting_interval).toMillis(),
+                retainContextDir || verbose,
+                () -> {
+                    try {
+                        return new Log4jLogProvider(output(fs, baseDir.resolve(LOG_FILE_NAME)), verbose ? DEBUG : INFO);
+                    } catch (IOException ex) {
+                        throw new UncheckedIOException(ex);
+                    }
+                },
+                () -> {
+                    try {
+                        return new PrintStream(output(fs, baseDir.resolve(PROGRESS_REPORTING_FILE_NAME)), true);
+                    } catch (IOException ex) {
+                        throw new UncheckedIOException(ex);
+                    }
+                });
     }
 
     public void preamble(PrintStream out) {
         var baseDir = baseDir();
         out.printf("Starting to import, the following output will be saved in the directory: %s%n", baseDir);
         out.printf("  Logging information: %s%n", LOG_FILE_NAME);
+        out.printf("  Detailed progress reporting (JSON formatted): %s%n", PROGRESS_REPORTING_FILE_NAME);
         if (clearBaseDir) {
             out.println();
             out.println("NOTE this directory will be cleared on the completion of a successful import.");
@@ -124,8 +154,12 @@ public class ImportContext implements InternalLogProvider {
         return baseDir;
     }
 
-    public Path logFile() {
+    public Path logPath() {
         return baseDir.resolve(LOG_FILE_NAME);
+    }
+
+    public Path detailedReportingPath() {
+        return baseDir.resolve(PROGRESS_REPORTING_FILE_NAME);
     }
 
     public Exception captureError(Exception error) {
@@ -153,35 +187,56 @@ public class ImportContext implements InternalLogProvider {
 
     @Override
     public InternalLog getLog(Class<?> loggingClass) {
-        return delegate().getLog(loggingClass);
+        return logProvider().getLog(loggingClass);
     }
 
     @Override
     public InternalLog getLog(String name) {
-        return delegate().getLog(name);
+        return logProvider().getLog(name);
     }
 
     @Override
     public InternalLog getLog(LoggerTarget target) {
-        return delegate().getLog(target);
+        return logProvider().getLog(target);
+    }
+
+    @Override
+    public long detailedProgressReportIntervalMillis() {
+        return reportingIntervalMs;
+    }
+
+    @Override
+    public void detailedProgressReport(DetailedProgressReport report) {
+        try {
+            var out = progressStream();
+            OBJECT_MAPPER.writeValue(out, report);
+            out.println();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
     }
 
     @Override
     public void close() {
         try {
-            if (delegate != null) {
-                delegate.close();
-            }
+            IOUtils.closeAllUnchecked(logProvider, progressStream);
         } finally {
             clearBaseDir();
         }
     }
 
-    private InternalLogProvider delegate() {
-        if (delegate == null) {
-            delegate = delegateProvider.get();
+    private InternalLogProvider logProvider() {
+        if (logProvider == null) {
+            logProvider = logProviderSupplier.get();
         }
-        return delegate;
+        return logProvider;
+    }
+
+    private PrintStream progressStream() {
+        if (progressStream == null) {
+            progressStream = progressStreamSupplier.get();
+        }
+        return progressStream;
     }
 
     private void clearBaseDir() {
@@ -196,7 +251,7 @@ public class ImportContext implements InternalLogProvider {
         }
     }
 
-    static CommandFailedException transformIOException(IOException e) {
+    private static CommandFailedException transformIOException(IOException e) {
         var error = new CommandFailedException(e, ExitCode.SOFTWARE);
         if (e instanceof NoSuchFileException ex) {
             error.addSupplementaryMessage(
@@ -208,5 +263,34 @@ public class ImportContext implements InternalLogProvider {
             error.addSupplementaryMessage("Please check that the syntax of the URI resource provided is correct.");
         }
         return error;
+    }
+
+    private static Path newContextDir(FileSystemAbstraction fs, Path importsDir, String dbName) {
+        var ts = SPACELESS_DATE_FORMATTER.format(Instant.now());
+        var repeat = 0;
+        Path contextDir;
+        do {
+            var suffix = ts + (repeat++ == 0 ? "" : "." + repeat);
+            contextDir = importsDir.resolve(format(DEFAULT_LOG_DIR_TEMPLATE, dbName, suffix));
+        } while (fs.fileExists(contextDir));
+        return contextDir;
+    }
+
+    private static OutputStream output(FileSystemAbstraction fs, Path path) throws IOException {
+        fs.mkdirs(path.getParent());
+        return new BufferedOutputStream(fs.openAsOutputStream(path, true));
+    }
+
+    private static class DurationSerializer extends StdSerializer<Duration> {
+
+        private DurationSerializer() {
+            super(Duration.class);
+        }
+
+        @Override
+        public void serialize(Duration duration, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+                throws IOException {
+            jsonGenerator.writeNumber(duration.toMillis());
+        }
     }
 }

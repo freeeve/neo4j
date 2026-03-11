@@ -99,7 +99,7 @@ class FileImporterTest {
             csvImporter.doImport(fullImport());
 
             assertThat(importContext.baseDir()).exists();
-            assertThat(importContext.logFile())
+            assertThat(importContext.logPath())
                     .exists()
                     .content()
                     .contains("[" + databaseName + "]", "Import starting");

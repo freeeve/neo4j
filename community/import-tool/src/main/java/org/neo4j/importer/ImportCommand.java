@@ -187,8 +187,10 @@ public class ImportCommand {
                 names = "--schema",
                 paramLabel = "<path>",
                 description =
-                        "Path to the file containing the Cypher commands for creating indexes and constraints during data import.\n"
-                                + "It is possible to load commands from AWS S3 buckets, Google Cloud storage buckets, and Azure buckets using the appropriate URI as the path.")
+                        "Path to the file containing the Cypher commands for creating indexes and constraints during"
+                                + " data import.\n"
+                                + "It is possible to load commands from AWS S3 buckets, Google Cloud storage buckets, and"
+                                + " Azure buckets using the appropriate URI as the path.")
         private String schemaCommands;
 
         @Parameters(
@@ -261,10 +263,10 @@ public class ImportCommand {
                     description =
                             "In v1, whether or not fields from an input source can span multiple lines, i.e. contain "
                                     + "newline characters. Setting " + MULTILINE_FIELDS
-                                    + "=true can severely degrade the "
-                                    + "performance of the importer. Therefore, use it with care, especially with large imports. "
-                                    + "In v2, this option will specify the list of files that contain multiline fields. Files can "
-                                    + "also be specified using regular expressions.")
+                                    + "=true can severely degrade the performance of the importer. Therefore, use it"
+                                    + " with care, especially with large imports. In v2, this option will specify the"
+                                    + " list of files that contain multiline fields. Files can also be specified using"
+                                    + " regular expressions.")
             private String multilineFields;
 
             @Option(
@@ -286,7 +288,8 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description =
-                        "Whether or not empty string fields, i.e. \"\" from input source are ignored, i.e. treated as null.")
+                        "Whether or not empty string fields, i.e. \"\" from input source are ignored, i.e. treated as"
+                                + " null.")
         private boolean ignoreEmptyStrings = DEFAULT_CSV_CONFIG.emptyQuotedStringsAsNull();
 
         @Option(
@@ -346,8 +349,9 @@ public class ImportCommand {
                 paramLabel = "<char>",
                 converter = EscapedCharacterConverter.class,
                 description =
-                        "Character to treat as a quotation mark for values in CSV data. For example, quotes can be escaped as per RFC 4180 by doubling them. "
-                                + "Thus \"\" would be interpreted as a literal \". You cannot escape using \\.")
+                        "Character to treat as quotation character for values in CSV data. Quotes can be escaped as"
+                                + " per RFC 4180 by doubling them, for example \"\" would be interpreted as a literal \"."
+                                + " You cannot escape using \\.")
         private char quote = DEFAULT_CSV_CONFIG.quotationCharacter();
 
         @Option(
@@ -374,8 +378,9 @@ public class ImportCommand {
                 defaultValue = "auto",
                 converter = OnOffAutoConverter.class,
                 description =
-                        "Ignore environment-based heuristics and indicate if the target storage subsystem can support parallel IO with high throughput or auto detect. "
-                                + " Typically this is on for SSDs, large raid arrays, and network-attached storage.")
+                        "Ignore environment-based heuristics and indicate if the target storage subsystem can support"
+                                + " parallel IO with high throughput or auto detect.  Typically this is on for SSDs, large"
+                                + " raid arrays, and network-attached storage.")
         private OnOffAuto highIo;
 
         private static final String THREADS = "--threads";
@@ -383,10 +388,11 @@ public class ImportCommand {
         @Option(
                 names = THREADS,
                 paramLabel = "<num>",
-                description =
-                        "(advanced) Max number of worker threads used by the importer. Defaults to the number of available processors reported by the JVM. "
-                                + "There is a certain amount of minimum threads needed so for that reason there is no lower bound for this "
-                                + "value. For optimal performance, this value should not be greater than the number of available processors.")
+                description = "(advanced) Max number of worker threads used by the importer. Defaults to the number of"
+                        + " available processors reported by the JVM. There is a certain amount of minimum threads"
+                        + " needed so for that reason there is no lower bound for this value. For optimal"
+                        + " performance, this value should not be greater than the number of available"
+                        + " processors.")
         private int threads = DEFAULT_IMPORTER_CONFIG.maxNumberOfWorkerThreads();
 
         protected static final String BAD_TOLERANCE_OPTION = "--bad-tolerance";
@@ -394,11 +400,11 @@ public class ImportCommand {
         @Option(
                 names = BAD_TOLERANCE_OPTION,
                 paramLabel = "<num>",
-                description =
-                        "Number of bad entries before the import is aborted. The import process is optimized for error-free data. "
-                                + "Therefore, cleaning the data before importing it is highly recommended. If you encounter any bad entries during "
-                                + "the import process, you can set the number of bad entries to a specific value that suits your needs. "
-                                + "However, setting a high value may affect the performance of the tool.")
+                description = "Number of bad entries before the import is aborted. The import process is optimized for"
+                        + " error-free data. Therefore, cleaning the data before importing it is highly"
+                        + " recommended. If you encounter any bad entries during the import process, you can set"
+                        + " the number of bad entries to a specific value that suits your needs. However, setting"
+                        + " a high value may affect the performance of the tool.")
         private long badTolerance = BadCollector.UNLIMITED_TOLERANCE;
 
         public static final String SKIP_BAD_ENTRIES_LOGGING = "--skip-bad-entries-logging";
@@ -410,10 +416,10 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description =
-                        "When set to `true`, the details of bad entries are not written in the log. Disabling logging "
-                                + "can improve performance when the data contains lots of faults. Cleaning the data before importing "
-                                + "it is highly recommended because faults dramatically affect the tool's performance even without "
-                                + "logging.")
+                        "When set to `true`, the details of bad entries are not written in the log. Disabling logging"
+                                + " can improve performance when the data contains lots of faults. Cleaning the data"
+                                + " before importing it is highly recommended because faults dramatically affect the"
+                                + " tool's performance even without logging.")
         private boolean skipBadEntriesLogging;
 
         @Option(
@@ -423,9 +429,11 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description =
-                        "Whether or not to skip importing relationships that refer to missing node IDs, i.e. either start or end node ID/group referring "
-                                + "to a node that was not specified by the node input data. Skipped relationships will be logged if they are within the limit of entities "
-                                + "specified by " + BAD_TOLERANCE_OPTION + " and the " + SKIP_BAD_ENTRIES_LOGGING
+                        "Whether or not to skip importing relationships that refer to missing node IDs, i.e. either"
+                                + " start or end node ID/group referring to a node that was not specified by the node"
+                                + " input data. Skipped relationships will be logged if they are within the limit of"
+                                + " entities specified by " + BAD_TOLERANCE_OPTION + " and the "
+                                + SKIP_BAD_ENTRIES_LOGGING
                                 + " option is disabled.")
         private boolean skipBadRelationships;
 
@@ -435,9 +443,10 @@ public class ImportCommand {
                 showDefaultValue = ALWAYS,
                 paramLabel = "true|false",
                 description =
-                        "Whether or not the lookup of nodes referred to from relationships needs to be checked strict. "
-                                + "If disabled, most but not all relationships referring to non-existent nodes will be detected. "
-                                + "If enabled all those relationships will be found but at the cost of lower performance.")
+                        "Whether or not the lookup of nodes referred to from relationships needs to be checked strict."
+                                + " If disabled, most but not all relationships referring to non-existent nodes will be"
+                                + " detected. If enabled all those relationships will be found but at the cost of lower"
+                                + " performance.")
         private boolean strict = false;
 
         @Option(
@@ -447,9 +456,10 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description =
-                        "Whether or not to skip importing nodes that have the same ID/group. In the event of multiple nodes within the same group having "
-                                + "the same ID, the first encountered will be imported, whereas consecutive such nodes will be skipped. Skipped nodes will be logged "
-                                + "if they are within the limit of entities specified by " + BAD_TOLERANCE_OPTION
+                        "Whether or not to skip importing nodes that have the same ID/group. In the event of multiple"
+                                + " nodes within the same group having the same ID, the first encountered will be"
+                                + " imported, whereas consecutive such nodes will be skipped. Skipped nodes will be logged"
+                                + " if they are within the limit of entities specified by " + BAD_TOLERANCE_OPTION
                                 + " and the " + SKIP_BAD_ENTRIES_LOGGING + " option is disabled.")
         private boolean skipDuplicateNodes;
 
@@ -468,11 +478,12 @@ public class ImportCommand {
                 arity = "1..*",
                 converter = NodeFilesConverter.class,
                 paramLabel = "[<label>[:<label>]...=]<files>",
-                description =
-                        "Node CSV header and data. Multiple files will be logically seen as one big file from the perspective of the importer. The first "
-                                + "line must contain the header. Multiple data sources like these can be specified in one import, where each data source has its "
-                                + "own header. Files can also be specified using regular expressions.\n"
-                                + "It is possible to import files from AWS S3 buckets, Google Cloud storage buckets, and Azure buckets using the appropriate URI as the path.")
+                description = "Node CSV header and data. Multiple files will be logically seen as one big file from the"
+                        + " perspective of the importer. The first line must contain the header. Multiple data"
+                        + " sources like these can be specified in one import, where each data source has its own"
+                        + " header. Files can also be specified using regular expressions.\n"
+                        + "It is possible to import files from AWS S3 buckets, Google Cloud storage buckets, and"
+                        + " Azure buckets using the appropriate URI as the path.")
         private List<NodeFilesGroup> nodes;
 
         @Option(
@@ -482,10 +493,12 @@ public class ImportCommand {
                 showDefaultValue = NEVER,
                 paramLabel = "[<type>=]<files>",
                 description =
-                        "Relationship CSV header and data. Multiple files will be logically seen as one big file from the perspective of the importer. "
-                                + "The first line must contain the header. Multiple data sources like these can be specified in one import, where each data source has "
-                                + "its own header. Files can also be specified using regular expressions.\n"
-                                + "It is possible to import files from AWS S3 buckets, Google Cloud storage buckets, and Azure buckets using the appropriate URI as the path.")
+                        "Relationship CSV header and data. Multiple files will be logically seen as one big file from"
+                                + " the perspective of the importer. The first line must contain the header. Multiple data"
+                                + " sources like these can be specified in one import, where each data source has its own"
+                                + " header. Files can also be specified using regular expressions.\n"
+                                + "It is possible to import files from AWS S3 buckets, Google Cloud storage buckets, and"
+                                + " Azure buckets using the appropriate URI as the path.")
         private List<RelationshipFilesGroup> relationships = new ArrayList<>();
 
         @Option(
@@ -495,7 +508,8 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description =
-                        "Automatically skip accidental header lines in subsequent files in file groups with more than one file.")
+                        "Automatically skip accidental header lines in subsequent files in file groups with more than"
+                                + " one file.")
         private boolean autoSkipHeaders;
 
         @Option(
@@ -503,10 +517,11 @@ public class ImportCommand {
                 hidden = true,
                 defaultValue = "-1",
                 description =
-                        "(advanced) override the number of ranges the relationship data is split into during import. "
-                                + "Number of ranges relates to reducing unnecessary page faults during import and typically the number of ranges "
-                                + "is automatically and optimally calculated for best performance. However, if it turns out that this calculation "
-                                + "may not be optimal, this option can override this calculation")
+                        "(advanced) override the number of ranges the relationship data is split into during import."
+                                + " Number of ranges relates to reducing unnecessary page faults during import and"
+                                + " typically the number of ranges is automatically and optimally calculated for best"
+                                + " performance. However, if it turns out that this calculation may not be optimal, this"
+                                + " option can override this calculation")
         private int overrideNumRanges;
 
         @Option(
@@ -520,8 +535,9 @@ public class ImportCommand {
                 names = "--temp-path",
                 paramLabel = "<path>",
                 description =
-                        "Provide a path where to store temporary files that are created and deleted during import. "
-                                + "If not specifically provided, the default temp path will be created inside the database directory of the imported database.")
+                        "Provide a path where to store temporary files that are created and deleted during import. If"
+                                + " not specifically provided, the default temp path will be created inside the database"
+                                + " directory of the imported database.")
         private Path tempPath;
 
         @Option(
@@ -569,7 +585,7 @@ public class ImportCommand {
                         + "option. Requires --profile or --profile=true to be set to have an effect.")
         private Path captureProfileResultPath = null;
 
-        protected Monitor monitor = Monitor.NO_MONITOR;
+        private Monitor monitor;
 
         protected Base(ExecutionContext ctx) {
             super(ctx);
@@ -586,10 +602,22 @@ public class ImportCommand {
         }
 
         /**
+         * @deprecated Please use {@link Base#decorateImportContext(Monitor)} instead to decorate the import context
          * Available since it's otherwise difficult to do this by means of PicoCLI.
          */
+        @Deprecated(forRemoval = true, since = "2026.03")
         public void setMonitor(Monitor monitor) {
             this.monitor = monitor;
+        }
+
+        /**
+         * (Optionally) decorates the import context monitor to receive callbacks about the various stages of the
+         * import process.
+         * @param contextMonitor the import context monitor to decorate
+         * @return the monitor to be used during the import process
+         */
+        public Monitor decorateImportContext(Monitor contextMonitor) {
+            return contextMonitor;
         }
 
         @Override
@@ -633,7 +661,8 @@ public class ImportCommand {
                             .withVerbose(verbose)
                             .withAutoSkipHeaders(autoSkipHeaders)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
-                            .withLogProvider(importContext));
+                            .withLogProvider(importContext)
+                            .withMonitor(monitor == null ? decorateImportContext(importContext) : monitor));
 
                     FileImporter importer;
                     if (isDistributedPropShard()) {
@@ -737,7 +766,8 @@ public class ImportCommand {
                 IndexProvidersAccess indexProvidersAccess,
                 PrintStream stdOut,
                 boolean verbose,
-                ShardingArguments shardingArguments)
+                ShardingArguments shardingArguments,
+                Monitor monitor)
                 throws IOException;
 
         protected abstract void doImport(
@@ -759,7 +789,8 @@ public class ImportCommand {
                 MemoryTracker memoryTracker,
                 Input input,
                 IndexProvidersAccess indexProvidersAccess,
-                ShardingArguments shardingArguments)
+                ShardingArguments shardingArguments,
+                Monitor monitor)
                 throws IOException;
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
@@ -1061,8 +1092,8 @@ public class ImportCommand {
 
     @Command(
             name = "full",
-            description =
-                    "High-speed initial import of fault-free data from CSV files into a non-existent or empty database.")
+            description = "High-speed initial import of fault-free data from CSV files into a non-existent or empty"
+                    + " database.")
     public static class Full extends Base {
         @Option(
                 names = "--format",
@@ -1146,7 +1177,8 @@ public class ImportCommand {
                 IndexProvidersAccess indexProvidersAccess,
                 PrintStream stdOut,
                 boolean verbose,
-                ShardingArguments shardingArguments)
+                ShardingArguments shardingArguments,
+                Monitor monitor)
                 throws IOException {
             var batchImporter = storageEngineFactory.batchImporter(
                     databaseLayout,
@@ -1160,7 +1192,7 @@ public class ImportCommand {
                     DefaultAdditionalIds.EMPTY,
                     logTailMetadataFactory,
                     databaseConfig,
-                    Monitor.NO_MONITOR,
+                    monitor,
                     jobScheduler,
                     Collector.EMPTY,
                     LogFilesInitializer.NULL,
@@ -1193,7 +1225,8 @@ public class ImportCommand {
                 MemoryTracker memoryTracker,
                 Input input,
                 IndexProvidersAccess indexProvidersAccess,
-                ShardingArguments shardingArguments)
+                ShardingArguments shardingArguments,
+                Monitor monitor)
                 throws IOException {
             storageEngineFactory
                     .batchImporter(

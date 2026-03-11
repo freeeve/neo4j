@@ -2044,6 +2044,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .setDependency(GraphDatabaseSettings.data_directory)
             .build();
 
+    @Internal
+    @Description("The duration between detailed reporting events during an import process.")
+    public static final Setting<Duration> import_detailed_reporting_interval = newBuilder(
+                    "internal.db.import.detailed_reporting_interval", DURATION, Duration.ofMinutes(1))
+            .addConstraint(resolution(ChronoUnit.SECONDS))
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

@@ -28,13 +28,17 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.stream.Stream;
+import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.batchimport.api.DetailedProgressReport;
+import org.neo4j.batchimport.api.DetailedProgressReportBase;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
+import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.configuration.Config;
@@ -74,7 +78,8 @@ class ImportContextTest {
     void createContextDoesNotCreateDirectories() throws IOException {
         try (var importContext = ImportContext.create(fs, DB, config, true, true)) {
             assertThat(importContext.baseDir()).doesNotExist();
-            assertThat(importContext.logFile()).doesNotExist();
+            assertThat(importContext.logPath()).doesNotExist();
+            assertThat(importContext.detailedReportingPath()).doesNotExist();
 
             try (var output = new ByteArrayOutputStream()) {
                 importContext.preamble(new PrintStream(output));
@@ -83,7 +88,9 @@ class ImportContextTest {
                                 "Starting to import, the following output will be saved in the directory",
                                 importContext.baseDir().toString(),
                                 "Logging information:",
-                                ImportContext.LOG_FILE_NAME)
+                                ImportContext.LOG_FILE_NAME,
+                                "Detailed progress reporting (JSON formatted)",
+                                ImportContext.PROGRESS_REPORTING_FILE_NAME)
                         .doesNotContain("NOTE this directory will be cleared on the completion of a successful import");
             }
         }
@@ -95,23 +102,39 @@ class ImportContextTest {
     void contextClearedIfNotVerboseAndNotRetained() {
         try (var importContext = ImportContext.create(fs, DB, config, false, false)) {
             assertThat(importContext.baseDir()).doesNotExist();
-            assertThat(importContext.logFile()).doesNotExist();
+            assertThat(importContext.logPath()).doesNotExist();
+            assertThat(importContext.detailedReportingPath()).doesNotExist();
 
             importContext.getLog("testing").info("some content");
             assertThat(importContext.baseDir()).exists();
-            assertThat(importContext.logFile()).exists();
+            assertThat(importContext.logPath()).exists();
+            assertThat(importContext.detailedReportingPath()).doesNotExist();
+
+            importContext.detailedProgressReport(progressReport());
+            assertThat(importContext.detailedReportingPath()).exists();
         }
 
         assertThat(importsDir).exists().isEmptyDirectory();
     }
 
     @ParameterizedTest
-    @CsvSource(value = {"true,false", "false,true", "true,true"})
-    void contextNotClearedIfVerboseOrRetained(boolean retain, boolean verbose) {
+    @CsvSource(
+            value = {
+                "true,false,true",
+                "false,true,true",
+                "true,true,true",
+                "true,false,false",
+                "false,true,false",
+                "true,true,false"
+            })
+    void contextNotClearedIfVerboseOrRetained(boolean retain, boolean verbose, boolean contentViaLogging) {
         try (var importContext = ImportContext.create(fs, DB, config, retain, verbose)) {
-            importContext.getLog("testing").info("some content");
+            if (contentViaLogging) {
+                importContext.getLog("testing").info("some content");
+            } else {
+                importContext.detailedProgressReport(progressReport());
+            }
             assertThat(importContext.baseDir()).exists();
-            assertThat(importContext.logFile()).exists();
         }
 
         assertThat(importsDir).exists().isNotEmptyDirectory().satisfies(dir -> assertThat(fs.listFiles(dir))
@@ -133,6 +156,8 @@ class ImportContextTest {
                                 importContext.baseDir().toString(),
                                 "Logging information:",
                                 ImportContext.LOG_FILE_NAME,
+                                "Detailed progress reporting (JSON formatted)",
+                                ImportContext.PROGRESS_REPORTING_FILE_NAME,
                                 "NOTE this directory will be cleared on the completion of a successful import");
             }
 
@@ -155,13 +180,13 @@ class ImportContextTest {
         Path run1;
         try (var importContext = ImportContext.create(fs, DB, config, true, false)) {
             importContext.getLog("testing").info(content1);
-            run1 = importContext.logFile();
+            run1 = importContext.logPath();
         }
 
         Path run2;
         try (var importContext = ImportContext.create(fs, DB, config, true, false)) {
             importContext.getLog("testing").info(content2);
-            run2 = importContext.logFile();
+            run2 = importContext.logPath();
         }
 
         assertThat(run1).exists().content().contains(content1);
@@ -189,5 +214,13 @@ class ImportContextTest {
                 Arguments.of(new UnsupportedFormatException(boom), CommandFailedException.class),
                 Arguments.of(new UncheckedIOException(ioBoom), CommandFailedException.class),
                 Arguments.of(ioBoom, CommandFailedException.class));
+    }
+
+    private static DetailedProgressReport progressReport() {
+        var reportBase = new DetailedProgressReportBase(42, 69, true);
+        reportBase.registerNodeStats(ApplicationMode.CREATE, IntSets.immutable.of(1, 2));
+        reportBase.registerNodeStats(ApplicationMode.CREATE, IntSets.immutable.of(3, 4));
+        reportBase.registerRelationshipStats(ApplicationMode.CREATE, 5);
+        return reportBase.snapshot();
     }
 }
