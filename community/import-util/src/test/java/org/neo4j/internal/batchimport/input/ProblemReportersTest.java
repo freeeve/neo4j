@@ -1,0 +1,358 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.internal.batchimport.input;
+
+import static java.lang.System.lineSeparator;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.batchimport.api.input.Group;
+import org.neo4j.common.EntityType;
+import org.neo4j.internal.batchimport.input.BadCollector.ProblemHandler;
+import org.neo4j.internal.batchimport.input.BadCollector.ProblemReporter;
+
+class ProblemReportersTest {
+
+    private static final String DUFF = "duff";
+    private static final String SOURCE = "some.file";
+    private static final long LINE = 13;
+
+    private static final Groups GROUPS = new Groups();
+    private static final Group G1 = GROUPS.getOrCreate("G1");
+    private static final Group G2 = GROUPS.getOrCreate("G2");
+
+    private static final String P1 = "p1";
+    private static final String P2 = "p2";
+    private static final Object V1 = "v1";
+    private static final Object V2 = 42;
+
+    @ParameterizedTest
+    @MethodSource
+    void shouldReportProblems(Problem problem) throws IOException {
+        assertProblem(problem.reporter, ProblemReporters::printingProblemHandler, problem.expectedPlain);
+        assertProblem(problem.reporter, ProblemReporters::jsonOutputProblemHandler, problem.expectedJson);
+    }
+
+    private static void assertProblem(
+            ProblemReporter reporter, Function<OutputStream, ProblemHandler> handlerProvider, String expectedContent)
+            throws IOException {
+        try (var output = new ByteArrayOutputStream();
+                var handler = handlerProvider.apply(output)) {
+            handler.handle(reporter);
+            assertThat(output.toString(StandardCharsets.UTF_8).trim()).isEqualTo(expectedContent.trim());
+        }
+    }
+
+    private static Stream<Problem> shouldReportProblems() {
+        return Stream.of(
+                new Problem(
+                        ProblemReporters.relationshipsProblemReporter(
+                                "node1", G1, "theRel", "node2", G2, DUFF, SOURCE, LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Invalid relationship in import data\\nsome.file: line 13\\n(node1:G1)-[theRel]->(node2:G2) referring to missing node duff",
+                                "source":"some.file",
+                                "line":13,
+                                "relationship":{
+                                    "type":"theRel",
+                                    "source":{
+                                        "id":"node1",
+                                        "group":"G1"
+                                    },
+                                    "target":{
+                                        "id":"node2",
+                                        "group":"G2"
+                                    },
+                                    "invalid": "duff"
+                                }
+                            }
+                            """),
+                        """
+                        Invalid relationship in import data
+                        some.file: line 13
+                        (node1:G1)-[theRel]->(node2:G2) referring to missing node duff
+                        """),
+                new Problem(
+                        ProblemReporters.relationshipsProblemReporter(
+                                null, G1, "theRel", "node2", G2, DUFF, SOURCE, LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Invalid relationship in import data\\nsome.file: line 13\\n(null:G1)-[theRel]->(node2:G2) is missing data",
+                                "source":"some.file",
+                                "line":13,
+                                "relationship":{
+                                    "type":"theRel",
+                                    "source":{
+                                        "id":null,
+                                        "group":"G1"
+                                    },
+                                    "target":{
+                                        "id":"node2",
+                                        "group":"G2"
+                                    },
+                                    "missing": true
+                                }
+                            }
+                            """),
+                        """
+                        Invalid relationship in import data
+                        some.file: line 13
+                        (null:G1)-[theRel]->(node2:G2) is missing data
+                        """),
+                new Problem(
+                        ProblemReporters.relationshipsProblemReporter(
+                                "node1", G1, "theRel", null, G2, DUFF, SOURCE, LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Invalid relationship in import data\\nsome.file: line 13\\n(node1:G1)-[theRel]->(null:G2) is missing data",
+                                "source":"some.file",
+                                "line":13,
+                                "relationship":{
+                                    "type":"theRel",
+                                    "source":{
+                                        "id":"node1",
+                                        "group":"G1"
+                                    },
+                                    "target":{
+                                        "id":null,
+                                        "group":"G2"
+                                    },
+                                    "missing": true
+                                }
+                            }
+                            """),
+                        """
+                        Invalid relationship in import data
+                        some.file: line 13
+                        (node1:G1)-[theRel]->(null:G2) is missing data
+                        """),
+                new Problem(
+                        ProblemReporters.relationshipsProblemReporter(
+                                "node1", G1, null, "node2", G2, DUFF, SOURCE, LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Invalid relationship in import data\\nsome.file: line 13\\n(node1:G1)-[null]->(node2:G2) is missing data",
+                                "source":"some.file",
+                                "line":13,
+                                "relationship":{
+                                    "type":null,
+                                    "source":{
+                                        "id":"node1",
+                                        "group":"G1"
+                                    },
+                                    "target":{
+                                        "id":"node2",
+                                        "group":"G2"
+                                    },
+                                    "missing": true
+                                }
+                            }
+                            """),
+                        """
+                        Invalid relationship in import data
+                        some.file: line 13
+                        (node1:G1)-[null]->(node2:G2) is missing data
+                        """),
+                new Problem(
+                        ProblemReporters.relationshipViolatingConstraintReporter(
+                                Map.of(P1, V1, P2, V2),
+                                "CREATE CONSTRAINT Foo",
+                                "node1",
+                                G1,
+                                "theRel",
+                                "node2",
+                                G2,
+                                SOURCE,
+                                LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Relationship would have violated a constraint\\nsome.file: line 13\\n(node1:G1)-[theRel]->(node2:G2) would have violated constraint: CREATE CONSTRAINT Foo, with properties:{p1=v1, p2=42}",
+                                "source":"some.file",
+                                "line":13,
+                                "constraint":"CREATE CONSTRAINT Foo",
+                                "relationship":{
+                                    "type":"theRel",
+                                    "source":{
+                                        "id":"node1",
+                                        "group":"G1"
+                                    },
+                                    "target":{
+                                        "id":"node2",
+                                        "group":"G2"
+                                    },
+                                    "properties":{
+                                        "p1":"v1",
+                                        "p2":"42"
+                                    }
+                                }
+                            }
+                            """),
+                        """
+                        Relationship would have violated a constraint
+                        some.file: line 13
+                        (node1:G1)-[theRel]->(node2:G2) would have violated constraint: CREATE CONSTRAINT Foo, with properties:{p1=v1, p2=42}
+                        """),
+                new Problem(
+                        ProblemReporters.entityViolatingConstraintReporter(
+                                "node1",
+                                13,
+                                Map.of(P1, V1, P2, V2),
+                                "CREATE CONSTRAINT Foo",
+                                EntityType.NODE,
+                                SOURCE,
+                                LINE),
+                        formatJson("""
+                            {
+                                "problem":"NodeViolation",
+                                "message":"Node would have violated a constraint\\nsome.file: line 13\\nNode node1 (internal id 13) would have violated constraint: CREATE CONSTRAINT Foo, with properties: {p1=v1, p2=42}",
+                                "source":"some.file",
+                                "line":13,
+                                "constraint":"CREATE CONSTRAINT Foo",
+                                "node":{
+                                    "entityId":"node1",
+                                    "dbId":"13",
+                                    "properties":{
+                                        "p1":"v1",
+                                        "p2":"42"
+                                    }
+                                }
+                            }
+                            """),
+                        """
+                        Node would have violated a constraint
+                        some.file: line 13
+                        Node node1 (internal id 13) would have violated constraint: CREATE CONSTRAINT Foo, with properties: {p1=v1, p2=42}
+                        """),
+                new Problem(
+                        ProblemReporters.entityViolatingConstraintReporter(
+                                "rel1",
+                                13,
+                                Map.of(P1, V1, P2, V2),
+                                "CREATE CONSTRAINT Foo",
+                                EntityType.RELATIONSHIP,
+                                SOURCE,
+                                LINE),
+                        formatJson("""
+                            {
+                                "problem":"BadRelationship",
+                                "message":"Relationship would have violated a constraint\\nsome.file: line 13\\nRelationship rel1 (internal id 13) would have violated constraint: CREATE CONSTRAINT Foo, with properties: {p1=v1, p2=42}",
+                                "source":"some.file",
+                                "line":13,
+                                "constraint":"CREATE CONSTRAINT Foo",
+                                "relationship":{
+                                    "entityId":"rel1",
+                                    "dbId":"13",
+                                    "properties":{
+                                        "p1":"v1",
+                                        "p2":"42"
+                                    }
+                                }
+                            }
+                            """),
+                        """
+                        Relationship would have violated a constraint
+                        some.file: line 13
+                        Relationship rel1 (internal id 13) would have violated constraint: CREATE CONSTRAINT Foo, with properties: {p1=v1, p2=42}
+                        """),
+                new Problem(ProblemReporters.nodesProblemReporter("id1", G1, SOURCE, LINE), formatJson("""
+                    {
+                        "problem":"DuplicateNode",
+                        "message":"Id defined multiple times\\nsome.file: line 13\\n'id1' is defined more than once in group 'G1'",
+                        "source":"some.file",
+                        "line":13,
+                        "node":{
+                            "id":"id1",
+                            "group":"G1"
+                        }
+                    }
+                    """), """
+                        Id defined multiple times
+                        some.file: line 13
+                        'id1' is defined more than once in group 'G1'
+                        """),
+                new Problem(ProblemReporters.collectExtraColumnsReporter(SOURCE, LINE, DUFF), formatJson("""
+                    {
+                        "problem":"ExtraColumn",
+                        "message":"Extra column not present in header\\nsome.file: line 13\\nBad extra column value: 'duff'",
+                        "source":"some.file",
+                        "line":13,
+                        "extraValue":"duff"
+                    }
+                    """), """
+                        Extra column not present in header
+                        some.file: line 13
+                        Bad extra column value: 'duff'
+                        """),
+                new Problem(
+                        ProblemReporters.schemaCommandFailureReporter(EntityType.NODE, DUFF), formatJson("""
+                            {
+                                "problem": "NodeSchemaViolation",
+                                "message": "duff"
+                            }
+                            """), DUFF),
+                new Problem(
+                        ProblemReporters.schemaCommandFailureReporter(EntityType.RELATIONSHIP, DUFF),
+                        formatJson("""
+                            {
+                                "problem": "RelationshipSchemaViolation",
+                                "message": "duff"
+                            }
+                            """),
+                        DUFF),
+                new Problem(ProblemReporters.otherViolationReporter(EntityType.NODE, DUFF), formatJson("""
+                    {
+                        "problem": "OtherNodeViolation",
+                        "message": "duff"
+                    }
+                    """), DUFF),
+                new Problem(
+                        ProblemReporters.otherViolationReporter(EntityType.RELATIONSHIP, DUFF), formatJson("""
+                            {
+                                "problem": "OtherRelationshipViolation",
+                                "message": "duff"
+                            }
+                            """), DUFF));
+    }
+
+    private static String formatJson(String json) {
+        return json
+                // strip out all non-content WS
+                .replaceAll("\s\s+", "")
+                // tidy up field separators
+                .replace("\": ", "\":")
+                // drop all new lines that are left
+                .replace(lineSeparator(), "");
+    }
+
+    private record Problem(ProblemReporter reporter, String expectedJson, String expectedPlain) {}
+}

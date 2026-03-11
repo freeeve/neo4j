@@ -33,7 +33,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMappers;
-import org.neo4j.internal.batchimport.input.Collectors;
+import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
@@ -78,7 +78,7 @@ class RelationshipImporterTest {
         var idMapper = IdMappers.actual();
         var monitor = new DataImporter.Monitor();
         var output = new ByteArrayOutputStream();
-        try (var collector = Collectors.badCollector(output, 1);
+        try (var collector = BadCollector.create(output, 1);
                 var importer = new RelationshipImporter(
                         0,
                         stores,
@@ -90,7 +90,7 @@ class RelationshipImporterTest {
                         false,
                         NULL_CONTEXT_FACTORY,
                         INSTANCE,
-                        SchemaMonitor.NO_MONITOR); ) {
+                        SchemaMonitor.NO_MONITOR)) {
 
             // when
             importer.startId(1);

@@ -56,7 +56,7 @@ class BadCollectorTest {
 
         var groupA = groups.getOrCreate("a");
         var groupB = groups.getOrCreate("b");
-        try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
+        try (var badCollector = BadCollector.create(badOutputFile(), tolerance)) {
             // when
             badCollector.collectBadRelationship("1", groupA, "T", "2", groupB, "1", "source", 8L);
 
@@ -70,7 +70,7 @@ class BadCollectorTest {
         // given
         int tolerance = 1;
 
-        try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
+        try (var badCollector = BadCollector.create(badOutputFile(), tolerance)) {
             // when
             collectBadRelationship(badCollector, group);
             assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
@@ -82,7 +82,7 @@ class BadCollectorTest {
         // given
         int tolerance = 1;
 
-        try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, COLLECT_ALL)) {
+        try (var badCollector = BadCollector.create(badOutputFile(), tolerance)) {
             // when
             badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
             assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
@@ -94,7 +94,7 @@ class BadCollectorTest {
         // given
         int tolerance = 1;
 
-        try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, BadCollector.DUPLICATE_NODES)) {
+        try (var badCollector = BadCollector.create(badOutputFile(), tolerance, BadCollector.DUPLICATE_NODES)) {
             // when
             badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
             assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
@@ -107,7 +107,7 @@ class BadCollectorTest {
         // given
         int tolerance = 1;
 
-        try (BadCollector badCollector = new BadCollector(badOutputFile(), tolerance, BadCollector.BAD_RELATIONSHIPS)) {
+        try (var badCollector = BadCollector.create(badOutputFile(), tolerance, BadCollector.BAD_RELATIONSHIPS)) {
             // when
             collectBadRelationship(badCollector, group);
             assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
@@ -118,7 +118,7 @@ class BadCollectorTest {
     @Test
     void shouldCollectUnlimitedNumberOfBadEntriesIfToldTo() {
         // GIVEN
-        try (BadCollector collector = new BadCollector(nullOutputStream(), UNLIMITED_TOLERANCE, COLLECT_ALL)) {
+        try (var collector = BadCollector.create(nullOutputStream(), UNLIMITED_TOLERANCE, COLLECT_ALL)) {
             // WHEN
             int count = 10_000;
             for (int i = 0; i < count; i++) {

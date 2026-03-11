@@ -35,6 +35,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.DetailedProgressReport;
 import org.neo4j.batchimport.api.DetailedProgressReportBase;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
@@ -76,10 +77,10 @@ class ImportContextTest {
 
     @Test
     void createContextDoesNotCreateDirectories() throws IOException {
-        try (var importContext = ImportContext.create(fs, DB, config, true, true)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, true, true)) {
             assertThat(importContext.baseDir()).doesNotExist();
             assertThat(importContext.logPath()).doesNotExist();
-            assertThat(importContext.detailedReportingPath()).doesNotExist();
+            assertThat(importContext.progressReportingPath()).doesNotExist();
 
             try (var output = new ByteArrayOutputStream()) {
                 importContext.preamble(new PrintStream(output));
@@ -100,18 +101,18 @@ class ImportContextTest {
 
     @Test
     void contextClearedIfNotVerboseAndNotRetained() {
-        try (var importContext = ImportContext.create(fs, DB, config, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
             assertThat(importContext.baseDir()).doesNotExist();
             assertThat(importContext.logPath()).doesNotExist();
-            assertThat(importContext.detailedReportingPath()).doesNotExist();
+            assertThat(importContext.progressReportingPath()).doesNotExist();
 
             importContext.getLog("testing").info("some content");
             assertThat(importContext.baseDir()).exists();
             assertThat(importContext.logPath()).exists();
-            assertThat(importContext.detailedReportingPath()).doesNotExist();
+            assertThat(importContext.progressReportingPath()).doesNotExist();
 
             importContext.detailedProgressReport(progressReport());
-            assertThat(importContext.detailedReportingPath()).exists();
+            assertThat(importContext.progressReportingPath()).exists();
         }
 
         assertThat(importsDir).exists().isEmptyDirectory();
@@ -120,19 +121,22 @@ class ImportContextTest {
     @ParameterizedTest
     @CsvSource(
             value = {
-                "true,false,true",
-                "false,true,true",
-                "true,true,true",
-                "true,false,false",
-                "false,true,false",
-                "true,true,false"
+                "true,false,LOGGING",
+                "false,true,LOGGING",
+                "true,true,LOGGING",
+                "true,false,REPORTING",
+                "false,true,REPORTING",
+                "true,true,REPORTING",
+                "true,false,VIOLATION",
+                "false,true,VIOLATION",
+                "true,true,VIOLATION"
             })
-    void contextNotClearedIfVerboseOrRetained(boolean retain, boolean verbose, boolean contentViaLogging) {
-        try (var importContext = ImportContext.create(fs, DB, config, retain, verbose)) {
-            if (contentViaLogging) {
-                importContext.getLog("testing").info("some content");
-            } else {
-                importContext.detailedProgressReport(progressReport());
+    void contextNotClearedIfVerboseOrRetained(boolean retainForInstrumentation, boolean verbose, ContextAction action) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, retainForInstrumentation, verbose)) {
+            switch (action) {
+                case LOGGING -> importContext.getLog("testing").info("some content");
+                case REPORTING -> importContext.detailedProgressReport(progressReport());
+                case VIOLATION -> new PrintStream(importContext.collectorOutputStream()).println("bad tings");
             }
             assertThat(importContext.baseDir()).exists();
         }
@@ -147,7 +151,7 @@ class ImportContextTest {
     @MethodSource
     void contextNotClearedOnLoggedErrors(Exception error, Class<? extends Exception> expectedErrorType)
             throws IOException {
-        try (var importContext = ImportContext.create(fs, DB, config, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
             try (var output = new ByteArrayOutputStream()) {
                 importContext.preamble(new PrintStream(output));
                 assertThat(output.toString())
@@ -161,9 +165,9 @@ class ImportContextTest {
                                 "NOTE this directory will be cleared on the completion of a successful import");
             }
 
+            importContext.detailedProgressReport(progressReport());
             var capturedError = importContext.captureError(error);
             assertThat(capturedError).isInstanceOf(expectedErrorType);
-            importContext.getLog("testing").error("boom", error);
         }
 
         assertThat(importsDir).exists().isNotEmptyDirectory().satisfies(dir -> assertThat(fs.listFiles(dir))
@@ -172,19 +176,51 @@ class ImportContextTest {
                 .satisfies(ImportContextTest::assertIsImportContextDir));
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void contextNotClearedOnCollectorOutput(boolean addViolation) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
+            if (addViolation) {
+                new PrintStream(importContext.collectorOutputStream()).println("bad tings");
+                assertThat(importContext.baseDir()).exists();
+            }
+        }
+
+        if (addViolation) {
+            assertThat(importsDir).exists().isNotEmptyDirectory().satisfies(dir -> assertThat(fs.listFiles(dir))
+                    .hasSize(1)
+                    .singleElement()
+                    .satisfies(ImportContextTest::assertIsImportContextDir));
+        } else {
+            assertThat(importsDir).doesNotExist();
+        }
+    }
+
+    @Test
+    void contextClearedWhenCollectorOutputOutside() {
+        var reportFile = testDir.file("some.report");
+        try (var importContext = ImportContext.create(fs, DB, config, reportFile, false, false)) {
+            new PrintStream(importContext.collectorOutputStream()).println("bad tings");
+            assertThat(importContext.baseDir()).doesNotExist();
+        }
+
+        assertThat(reportFile).exists().isNotEmptyFile();
+        assertThat(importsDir).doesNotExist();
+    }
+
     @Test
     void eachRunCreatesNewContext() {
         var content1 = "content1";
         var content2 = "content2";
 
         Path run1;
-        try (var importContext = ImportContext.create(fs, DB, config, true, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, true, false)) {
             importContext.getLog("testing").info(content1);
             run1 = importContext.logPath();
         }
 
         Path run2;
-        try (var importContext = ImportContext.create(fs, DB, config, true, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, true, false)) {
             importContext.getLog("testing").info(content2);
             run2 = importContext.logPath();
         }
@@ -222,5 +258,11 @@ class ImportContextTest {
         reportBase.registerNodeStats(ApplicationMode.CREATE, IntSets.immutable.of(3, 4));
         reportBase.registerRelationshipStats(ApplicationMode.CREATE, 5);
         return reportBase.snapshot();
+    }
+
+    private enum ContextAction {
+        LOGGING,
+        REPORTING,
+        VIOLATION
     }
 }

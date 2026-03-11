@@ -409,7 +409,7 @@ class MultipleIndexPopulationStressIT {
     private class RandomDataInput implements Input, AutoCloseable {
         private final long nodeCount;
         private final long relCount;
-        private final BadCollector badCollector;
+        private final Collector badCollector;
         private final RandomValues.Configuration config;
 
         RandomDataInput(long nodeCount, long relCount, RandomValues.Configuration config) {
@@ -455,9 +455,9 @@ class MultipleIndexPopulationStressIT {
             }
         }
 
-        private BadCollector createBadCollector() {
+        private Collector createBadCollector() {
             try {
-                return new BadCollector(
+                return BadCollector.create(
                         fileSystemAbstraction.openAsOutputStream(
                                 directory.homePath().resolve("bad"), false),
                         0,

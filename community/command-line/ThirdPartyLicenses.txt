@@ -22,6 +22,9 @@ Apache Software License, Version 2.0
   Caffeine cache
   Commons Pool
   IPAddress
+  Jackson-annotations
+  Jackson-core
+  jackson-databind
   Java Concurrency Tools Core Library
   Java Native Access
   Jettison

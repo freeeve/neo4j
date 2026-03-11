@@ -85,7 +85,12 @@ class FileImporterTest {
 
         var databaseName = "foodb";
         try (var importContext = ImportContext.create(
-                testDir.getFileSystem(), new NormalizedDatabaseName(databaseName), config, false, true)) {
+                testDir.getFileSystem(),
+                new NormalizedDatabaseName(databaseName),
+                config,
+                reportLocation,
+                false,
+                true)) {
             var csvImporter = importerBuilder(databaseLayout.getNeo4jLayout().databaseLayout(databaseName))
                     .withDatabaseConfig(config)
                     .withReportFile(reportLocation.toAbsolutePath())

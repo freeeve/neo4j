@@ -21,6 +21,7 @@ package org.neo4j.importer;
 
 import static java.lang.String.format;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_base_context_directory;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_context_directory;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_detailed_reporting_interval;
 import static org.neo4j.logging.Level.DEBUG;
 import static org.neo4j.logging.Level.INFO;
@@ -43,6 +44,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.neo4j.batchimport.api.DetailedProgressReport;
 import org.neo4j.batchimport.api.Monitor;
@@ -72,6 +74,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     public static final String LOG_FILE_NAME = "import.log";
     public static final String PROGRESS_REPORTING_FILE_NAME = "progress.json.log";
+    public static final String DEFAULT_REPORT_FILE_NAME = "report.json.log";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
@@ -79,59 +82,76 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     private final String dbName;
 
-    private final Path baseDir;
+    private final String collectorPath;
 
-    private final long reportingIntervalMs;
+    private final Config databaseConfig;
 
-    private final Supplier<InternalLogProvider> logProviderSupplier;
+    private final Function<Path, InternalLogProvider> logProviderFactory;
 
-    private final Supplier<PrintStream> progressStreamSupplier;
+    private final Function<Path, PrintStream> progressStreamFactory;
+
+    private final Supplier<OutputStream> collectorStreamFactory;
+
+    private final Function<RetainCheck, Boolean> retainContextDir;
 
     private InternalLogProvider logProvider;
 
     private PrintStream progressStream;
 
-    private boolean clearBaseDir;
+    private OutputStream collectorStream;
+
+    private boolean hasErrors;
 
     private ImportContext(
             String dbName,
-            Path baseDir,
-            long reportingIntervalMs,
-            boolean retainContextDir,
-            Supplier<InternalLogProvider> logProviderSupplier,
-            Supplier<PrintStream> progressStreamSupplier) {
+            Config databaseConfig,
+            Function<Path, InternalLogProvider> logProviderFactory,
+            Function<Path, PrintStream> progressStreamFactory,
+            String collectorPath,
+            Supplier<OutputStream> collectorStreamFactory,
+            Function<RetainCheck, Boolean> retainContextDir) {
         super(Monitor.NO_MONITOR);
         this.dbName = dbName;
-        this.baseDir = baseDir;
-        this.reportingIntervalMs = reportingIntervalMs;
-        this.clearBaseDir = !retainContextDir;
-        this.logProviderSupplier = logProviderSupplier;
-        this.progressStreamSupplier = progressStreamSupplier;
+        this.databaseConfig = databaseConfig;
+        this.logProviderFactory = logProviderFactory;
+        this.progressStreamFactory = progressStreamFactory;
+        this.collectorPath = collectorPath;
+        this.collectorStreamFactory = collectorStreamFactory;
+        this.retainContextDir = retainContextDir;
     }
 
     public static ImportContext create(
             FileSystemAbstraction fs,
             NormalizedDatabaseName database,
             Config databaseConfig,
-            boolean retainContextDir,
+            Path collectorReporting,
+            boolean retainForInstrumentation,
             boolean verbose) {
         var baseDir = newContextDir(
                 fs, databaseConfig.get(import_base_context_directory).toAbsolutePath(), database.name());
+        var collectorReportingIsInContextDir = collectorReporting == null;
+        var resolvedCollectorPath =
+                collectorReportingIsInContextDir ? baseDir.resolve(DEFAULT_REPORT_FILE_NAME) : collectorReporting;
+        var retaining = verbose || retainForInstrumentation;
         return new ImportContext(
                 database.name(),
-                baseDir,
-                databaseConfig.get(import_detailed_reporting_interval).toMillis(),
-                retainContextDir || verbose,
-                () -> {
-                    try {
-                        return new Log4jLogProvider(output(fs, baseDir.resolve(LOG_FILE_NAME)), verbose ? DEBUG : INFO);
-                    } catch (IOException ex) {
-                        throw new UncheckedIOException(ex);
+                Config.newBuilder()
+                        .fromConfig(databaseConfig)
+                        .set(import_context_directory, baseDir)
+                        .build(),
+                loggingPath -> new Log4jLogProvider(output(fs, loggingPath), verbose ? DEBUG : INFO),
+                progressPath -> new PrintStream(output(fs, progressPath), true),
+                collectorReporting == null ? DEFAULT_REPORT_FILE_NAME : collectorReporting.toString(),
+                () -> output(fs, resolvedCollectorPath),
+                check -> {
+                    if (check == RetainCheck.PREAMBLE) {
+                        return retaining;
                     }
-                },
-                () -> {
                     try {
-                        return new PrintStream(output(fs, baseDir.resolve(PROGRESS_REPORTING_FILE_NAME)), true);
+                        return retaining
+                                || (collectorReportingIsInContextDir
+                                        && fs.fileExists(resolvedCollectorPath)
+                                        && fs.getFileSize(resolvedCollectorPath) > 0);
                     } catch (IOException ex) {
                         throw new UncheckedIOException(ex);
                     }
@@ -143,27 +163,39 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         out.printf("Starting to import, the following output will be saved in the directory: %s%n", baseDir);
         out.printf("  Logging information: %s%n", LOG_FILE_NAME);
         out.printf("  Detailed progress reporting (JSON formatted): %s%n", PROGRESS_REPORTING_FILE_NAME);
-        if (clearBaseDir) {
+        out.printf("  Import data errors / violations (JSON formatted): %s%n", collectorPath);
+        if (!retainContextDir.apply(RetainCheck.PREAMBLE)) {
             out.println();
             out.println("NOTE this directory will be cleared on the completion of a successful import.");
             out.println();
         }
     }
 
+    public Config config() {
+        return databaseConfig;
+    }
+
     public Path baseDir() {
-        return baseDir;
+        return databaseConfig.get(import_context_directory);
     }
 
     public Path logPath() {
-        return baseDir.resolve(LOG_FILE_NAME);
+        return baseDir().resolve(LOG_FILE_NAME);
     }
 
-    public Path detailedReportingPath() {
-        return baseDir.resolve(PROGRESS_REPORTING_FILE_NAME);
+    public Path progressReportingPath() {
+        return baseDir().resolve(PROGRESS_REPORTING_FILE_NAME);
+    }
+
+    public OutputStream collectorOutputStream() {
+        if (collectorStream == null) {
+            collectorStream = collectorStreamFactory.get();
+        }
+        return collectorStream;
     }
 
     public Exception captureError(Exception error) {
-        clearBaseDir = false;
+        hasErrors = true;
         if (error instanceof ParameterException) {
             return error;
         } else if (error instanceof FileLockException) {
@@ -202,7 +234,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     @Override
     public long detailedProgressReportIntervalMillis() {
-        return reportingIntervalMs;
+        return databaseConfig.get(import_detailed_reporting_interval).toMillis();
     }
 
     @Override
@@ -219,7 +251,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     @Override
     public void close() {
         try {
-            IOUtils.closeAllUnchecked(logProvider, progressStream);
+            IOUtils.closeAllUnchecked(logProvider, progressStream, collectorStream);
         } finally {
             clearBaseDir();
         }
@@ -227,20 +259,21 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     private InternalLogProvider logProvider() {
         if (logProvider == null) {
-            logProvider = logProviderSupplier.get();
+            logProvider = logProviderFactory.apply(logPath());
         }
         return logProvider;
     }
 
     private PrintStream progressStream() {
         if (progressStream == null) {
-            progressStream = progressStreamSupplier.get();
+            progressStream = progressStreamFactory.apply(progressReportingPath());
         }
         return progressStream;
     }
 
     private void clearBaseDir() {
-        if (clearBaseDir) {
+        if (!(hasErrors || retainContextDir.apply(RetainCheck.CLEARING))) {
+            var baseDir = baseDir();
             try {
                 FileUtils.deleteDirectory(baseDir);
             } catch (IOException e) {
@@ -276,9 +309,14 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         return contextDir;
     }
 
-    private static OutputStream output(FileSystemAbstraction fs, Path path) throws IOException {
-        fs.mkdirs(path.getParent());
-        return new BufferedOutputStream(fs.openAsOutputStream(path, true));
+    private static OutputStream output(FileSystemAbstraction fs, Path path) throws UncheckedIOException {
+        try {
+            fs.mkdirs(path.getParent());
+            // NOTE collector needs to be appending when we switch to resumable imports
+            return new BufferedOutputStream(fs.openAsOutputStream(path, false));
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
     }
 
     private static class DurationSerializer extends StdSerializer<Duration> {
@@ -292,5 +330,10 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
                 throws IOException {
             jsonGenerator.writeNumber(duration.toMillis());
         }
+    }
+
+    private enum RetainCheck {
+        PREAMBLE,
+        CLEARING
     }
 }

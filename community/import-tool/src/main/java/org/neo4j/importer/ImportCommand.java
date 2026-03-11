@@ -27,7 +27,6 @@ import static org.eclipse.collections.impl.tuple.Tuples.pair;
 import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.csv.reader.Configuration.COMMAS;
-import static org.neo4j.importer.FileImporter.DEFAULT_REPORT_FILE_NAME;
 import static org.neo4j.importer.FileImporter.FileInputType.NO_INPUT;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static picocli.CommandLine.Command;
@@ -205,9 +204,8 @@ public class ImportCommand {
         @Option(
                 names = "--report-file",
                 paramLabel = "<path>",
-                defaultValue = DEFAULT_REPORT_FILE_NAME,
                 description = "File in which to store the report of the csv-import.")
-        private Path reportFile = Path.of(DEFAULT_REPORT_FILE_NAME);
+        private Path reportFile;
 
         @Option(
                 names = "--id-type",
@@ -622,21 +620,20 @@ public class ImportCommand {
 
         @Override
         public void execute() throws Exception {
-            final var format = importFormat();
+            var format = importFormat();
             if (format != null && StorageEngineFactory.isFormatDeprecated(format)) {
                 printf("WARNING: %s%n", DeprecatedFormatWarning.getTargetFormatWarning(format));
             }
 
-            final var databaseConfig = loadNeo4jConfig(format);
-            final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
-
             try (var importContext = ImportContext.create(
                     ctx.fs(),
                     database,
-                    databaseConfig,
-                    // INFO retained not currently used but will be coming in a followup PR
-                    !disableInstrumentation && captureProfile,
+                    loadNeo4jConfig(format),
+                    reportFile,
+                    !disableInstrumentation && captureProfile && captureProfileResultPath == null,
                     verbose)) {
+                var databaseConfig = importContext.config();
+                var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
                 try (var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, importContext)) {
                     preImportValidation(fileSystem);
 
@@ -650,7 +647,6 @@ public class ImportCommand {
                             .withStdErr(ctx.err())
                             .withIdType(idType)
                             .withInputEncoding(inputEncoding)
-                            .withReportFile(reportFile.toAbsolutePath())
                             .withIgnoreExtraColumns(ignoreExtraColumns)
                             .withBadTolerance(badTolerance)
                             .withSkipBadRelationships(skipBadRelationships)
@@ -661,6 +657,7 @@ public class ImportCommand {
                             .withVerbose(verbose)
                             .withAutoSkipHeaders(autoSkipHeaders)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
+                            .withReportOutputStream(importContext::collectorOutputStream)
                             .withLogProvider(importContext)
                             .withMonitor(monitor == null ? decorateImportContext(importContext) : monitor));
 

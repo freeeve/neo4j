@@ -26,8 +26,6 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfThrowable
 import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfType;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.duplication_user_messages;
 import static org.neo4j.configuration.GraphDatabaseSettings.db_temporal_timezone;
-import static org.neo4j.internal.batchimport.input.Collectors.badCollector;
-import static org.neo4j.internal.batchimport.input.Collectors.collect;
 import static org.neo4j.internal.batchimport.input.InputEntityDecorators.NO_DECORATOR;
 import static org.neo4j.internal.batchimport.input.InputEntityDecorators.additiveLabels;
 import static org.neo4j.internal.batchimport.input.InputEntityDecorators.defaultRelationshipType;
@@ -66,12 +64,14 @@ import org.neo4j.cloud.storage.StorageUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.csv.reader.IllegalMultilineFieldException;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.importer.ImportCommand.ShardingArguments;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
 import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.batchimport.input.MissingRelationshipDataException;
+import org.neo4j.internal.batchimport.input.ProblemReporters;
 import org.neo4j.internal.batchimport.input.csv.CsvInput;
 import org.neo4j.internal.batchimport.input.csv.CsvInput.PrintingMonitor;
 import org.neo4j.internal.batchimport.input.csv.DataFactory;
@@ -104,7 +104,7 @@ import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.token.TokenHolders;
 
 public class FileImporter {
-    public static final String DEFAULT_REPORT_FILE_NAME = "import.report";
+
     private static final String MULTILINE_HINT = "Detected field which spanned multiple lines for an import where "
             + "--multiline-fields=false. If you know that your input data "
             + "include fields containing new-line characters then import with this option set to "
@@ -115,7 +115,7 @@ public class FileImporter {
     private final StorageEngineFactory storageEngineFactory;
     private final org.neo4j.csv.reader.Configuration csvConfig;
     private final Configuration importConfig;
-    private final Path reportFile;
+    private final ThrowingSupplier<OutputStream, IOException> reportOutputStream;
     private final IdType idType;
     private final Charset inputEncoding;
     private final boolean ignoreExtraColumns;
@@ -147,7 +147,7 @@ public class FileImporter {
         this.storageEngineFactory = requireNonNull(b.storageEngineFactory);
         this.csvConfig = requireNonNull(b.csvConfig);
         this.importConfig = requireNonNull(b.importConfig);
-        this.reportFile = requireNonNull(b.reportFile);
+        this.reportOutputStream = requireNonNull(b.reportOutputStream);
         this.idType = requireNonNull(b.idType);
         this.inputEncoding = requireNonNull(b.inputEncoding);
         this.ignoreExtraColumns = b.ignoreExtraColumns;
@@ -229,8 +229,7 @@ public class FileImporter {
             fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
         }
 
-        try (var badOutput = fileSystem.openAsOutputStream(reportFile, false);
-                var badCollector = getBadCollector(badOutput)) {
+        try (var badCollector = getBadCollector()) {
             try (var input = importInput()) {
                 doImport(input, badCollector, type);
             }
@@ -337,10 +336,7 @@ public class FileImporter {
                         + badTolerance + "). Import is optimized to import fault-free data.");
                 stdOut.println();
                 if (skipBadEntriesLogging) {
-                    stdOut.println(
-                            "Bad entry logging is disabled, enable it using --skip-bad-entries-logging=false" + ".");
-                } else {
-                    stdOut.println("Bad entries were logged to " + reportFile.toAbsolutePath() + ".");
+                    stdOut.println("Bad entry logging is disabled, enable it using --skip-bad-entries-logging=false.");
                 }
                 stdOut.println();
                 stdOut.println("We recommend that data should be cleaned before importing. The fault-tolerance can be "
@@ -489,11 +485,12 @@ public class FileImporter {
         return result;
     }
 
-    private Collector getBadCollector(OutputStream badOutput) {
-        return badCollector(
-                badOutput,
+    private Collector getBadCollector() throws IOException {
+        return BadCollector.create(
+                ProblemReporters.jsonOutputProblemHandler(reportOutputStream.get()),
                 badTolerance,
-                collect(skipBadRelationships, skipDuplicateNodes, ignoreExtraColumns, !schemaCommands.isEmpty()),
+                BadCollector.collectFlag(
+                        skipBadRelationships, skipDuplicateNodes, ignoreExtraColumns, !schemaCommands.isEmpty()),
                 skipBadEntriesLogging);
     }
 
@@ -514,7 +511,7 @@ public class FileImporter {
         private StorageEngineFactory storageEngineFactory;
         private org.neo4j.csv.reader.Configuration csvConfig = org.neo4j.csv.reader.Configuration.COMMAS;
         private Configuration importConfig = Configuration.DEFAULT;
-        private Path reportFile;
+        private ThrowingSupplier<OutputStream, IOException> reportOutputStream;
         private IdType idType = IdType.STRING;
         private Charset inputEncoding = StandardCharsets.UTF_8;
         private boolean ignoreExtraColumns;
@@ -574,8 +571,13 @@ public class FileImporter {
             return this;
         }
 
+        public Builder withReportOutputStream(ThrowingSupplier<OutputStream, IOException> reportOutputStream) {
+            this.reportOutputStream = reportOutputStream;
+            return this;
+        }
+
         public Builder withReportFile(Path reportFile) {
-            this.reportFile = reportFile;
+            this.reportOutputStream = () -> fileSystem.openAsOutputStream(reportFile, false);
             return this;
         }
 
@@ -660,6 +662,7 @@ public class FileImporter {
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder withMemoryTracker(MemoryTracker memoryTracker) {
             this.memoryTracker = memoryTracker;
             return this;

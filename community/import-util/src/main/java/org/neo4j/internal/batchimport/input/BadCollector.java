@@ -22,17 +22,14 @@ package org.neo4j.internal.batchimport.input;
 import static java.lang.String.format;
 
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.common.EntityType;
-import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
-import org.neo4j.internal.batchimport.input.csv.Type;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.util.concurrent.AsyncEvent;
 import org.neo4j.util.concurrent.AsyncEvents;
 
@@ -43,7 +40,7 @@ public final class BadCollector implements Collector {
      * Introduced to avoid creating an exception for every reported bad thing, since it can be
      * quite the performance hogger for scenarios where there are many many bad things to collect.
      */
-    abstract static class ProblemReporter extends AsyncEvent {
+    public abstract static class ProblemReporter extends AsyncEvent {
         private final int type;
 
         ProblemReporter(int type) {
@@ -57,6 +54,20 @@ public final class BadCollector implements Collector {
         abstract String message();
 
         abstract InputException exception();
+    }
+
+    /**
+     * Handles any problems that get reported to the collector, ex. print to {@link OutputStream}
+     */
+    public interface ProblemHandler extends AutoCloseable {
+        /**
+         * Callback to handle any errors being reported during an import.
+         * @param reporter the error being reported
+         */
+        void handle(ProblemReporter reporter);
+
+        @Override
+        void close();
     }
 
     interface Monitor {
@@ -78,7 +89,7 @@ public final class BadCollector implements Collector {
     public static final long UNLIMITED_TOLERANCE = -1;
     static final int DEFAULT_BACK_PRESSURE_THRESHOLD = 10_000;
 
-    private final PrintStream out;
+    private final ProblemHandler problemHandler;
     private final long tolerance;
     private final int collect;
     private final int backPressureThreshold;
@@ -92,10 +103,7 @@ public final class BadCollector implements Collector {
     private final Thread eventProcessor;
     private final AtomicLong queueSize = new AtomicLong();
 
-    public BadCollector(OutputStream out, long tolerance, int collect) {
-        this(out, tolerance, collect, DEFAULT_BACK_PRESSURE_THRESHOLD, false, NO_MONITOR);
-    }
-
+    @VisibleForTesting
     BadCollector(
             OutputStream out,
             long tolerance,
@@ -103,7 +111,23 @@ public final class BadCollector implements Collector {
             int backPressureThreshold,
             boolean skipBadEntriesLogging,
             Monitor monitor) {
-        this.out = new PrintStream(out);
+        this(
+                ProblemReporters.printingProblemHandler(out),
+                tolerance,
+                collect,
+                backPressureThreshold,
+                skipBadEntriesLogging,
+                monitor);
+    }
+
+    BadCollector(
+            ProblemHandler problemHandler,
+            long tolerance,
+            int collect,
+            int backPressureThreshold,
+            boolean skipBadEntriesLogging,
+            Monitor monitor) {
+        this.problemHandler = problemHandler;
         this.tolerance = tolerance;
         this.collect = collect;
         this.backPressureThreshold = backPressureThreshold;
@@ -114,9 +138,42 @@ public final class BadCollector implements Collector {
         this.eventProcessor.start();
     }
 
+    @VisibleForTesting
+    public static Collector create(OutputStream out, long tolerance) {
+        return create(out, tolerance, COLLECT_ALL, false);
+    }
+
+    @VisibleForTesting
+    public static Collector create(OutputStream out, long tolerance, int collect) {
+        return create(out, tolerance, collect, false);
+    }
+
+    public static Collector create(OutputStream out, long tolerance, int collect, boolean skipBadEntriesLogging) {
+        return create(ProblemReporters.printingProblemHandler(out), tolerance, collect, skipBadEntriesLogging);
+    }
+
+    public static Collector create(
+            ProblemHandler problemHandler, long tolerance, int collect, boolean skipBadEntriesLogging) {
+        return new BadCollector(
+                problemHandler, tolerance, collect, DEFAULT_BACK_PRESSURE_THRESHOLD, skipBadEntriesLogging, NO_MONITOR);
+    }
+
+    public static int collectFlag(
+            boolean skipBadRelationships,
+            boolean skipDuplicateNodes,
+            boolean ignoreExtraColumns,
+            boolean hasSchemaCommands) {
+        return (skipBadRelationships ? BAD_RELATIONSHIPS : 0)
+                // for now, we use the skipDuplicateNodes for both duplicate and violating nodes
+                // We probably need to split this into multiple ones
+                | (skipDuplicateNodes ? BAD_NODES : 0)
+                | (ignoreExtraColumns ? EXTRA_COLUMNS : 0)
+                | (hasSchemaCommands ? VIOLATING_SCHEMA : 0);
+    }
+
     private void processEvent(ProblemReporter report) {
         monitor.beforeProcessEvent();
-        out.println(report.message());
+        problemHandler.handle(report);
         queueSize.addAndGet(-1);
     }
 
@@ -130,18 +187,18 @@ public final class BadCollector implements Collector {
             Object specificValue,
             String source,
             long lineNumber) {
-        collect(new RelationshipsProblemReporter(
+        collect(ProblemReporters.relationshipsProblemReporter(
                 startId, startIdGroup, type, endId, endIdGroup, specificValue, source, lineNumber));
     }
 
     @Override
     public void collectExtraColumns(final String source, final long row, final String value) {
-        collect(new ExtraColumnsProblemReporter(row, source, value));
+        collect(ProblemReporters.collectExtraColumnsReporter(source, row, value));
     }
 
     @Override
     public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {
-        collect(new NodesProblemReporter(id, group, source, lineNumber));
+        collect(ProblemReporters.nodesProblemReporter(id, group, source, lineNumber));
     }
 
     @Override
@@ -153,7 +210,7 @@ public final class BadCollector implements Collector {
             EntityType entityType,
             String sourceDescription,
             long lineNumber) {
-        collect(new EntityViolatingConstraintReporter(
+        collect(ProblemReporters.entityViolatingConstraintReporter(
                 id, actualId, properties, constraintDescription, entityType, sourceDescription, lineNumber));
     }
 
@@ -168,7 +225,7 @@ public final class BadCollector implements Collector {
             Group endIdGroup,
             String sourceDescription,
             long lineNumber) {
-        collect(new RelationshipViolatingConstraintReporter(
+        collect(ProblemReporters.relationshipViolatingConstraintReporter(
                 properties,
                 constraintDescription,
                 startId,
@@ -182,17 +239,17 @@ public final class BadCollector implements Collector {
 
     @Override
     public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {
-        collect(new SchemaCommandFailureReporter(entityType, failureMessage));
+        collect(ProblemReporters.schemaCommandFailureReporter(entityType, failureMessage));
     }
 
     @Override
     public void collectOtherNodeViolation(String problem) {
-        collect(new OtherViolationReporter(EntityType.NODE, problem));
+        collect(ProblemReporters.otherViolationReporter(EntityType.NODE, problem));
     }
 
     @Override
     public void collectOtherRelationshipViolation(String problem) {
-        collect(new OtherViolationReporter(EntityType.RELATIONSHIP, problem));
+        collect(ProblemReporters.otherViolationReporter(EntityType.RELATIONSHIP, problem));
     }
 
     @Override
@@ -231,15 +288,12 @@ public final class BadCollector implements Collector {
 
     @Override
     public void close() {
-        logger.shutdown();
-        try {
+        try (problemHandler) {
+            logger.shutdown();
             logger.awaitTermination();
             eventProcessor.join();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } finally {
-            out.flush();
-            out.close();
         }
     }
 
@@ -250,301 +304,5 @@ public final class BadCollector implements Collector {
 
     private boolean collects(int bit) {
         return (collect & bit) != 0;
-    }
-
-    private static class RelationshipsProblemReporter extends ProblemReporter {
-        private String message;
-        private final Object specificValue;
-        private final Object startId;
-        private final Group startIdGroup;
-        private final Object type;
-        private final Object endId;
-        private final Group endIdGroup;
-        private final String source;
-        private final long lineNumber;
-
-        private RelationshipsProblemReporter(
-                Object startId,
-                Group startIdGroup,
-                Object type,
-                Object endId,
-                Group endIdGroup,
-                Object specificValue,
-                String source,
-                long lineNumber) {
-            super(BAD_RELATIONSHIPS);
-            this.startId = startId;
-            this.startIdGroup = startIdGroup;
-            this.type = type;
-            this.endId = endId;
-            this.endIdGroup = endIdGroup;
-            this.specificValue = specificValue;
-            this.source = source;
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        public String message() {
-            return getReportMessage();
-        }
-
-        @Override
-        public InputException exception() {
-            Optional<Type> maybeMissingDataField = getMissingDataField();
-            if (maybeMissingDataField.isPresent()) {
-                return new MissingRelationshipDataException(maybeMissingDataField.get(), getReportMessage(true));
-            } else {
-                return new InputException(getReportMessage());
-            }
-        }
-
-        private String getReportMessage(boolean missingData) {
-            if (message == null) {
-                if (missingData) {
-                    message = Collector.standardisedErrorMessage(
-                            "Invalid relationship in import data",
-                            source,
-                            lineNumber,
-                            format(
-                                    "%s is missing data",
-                                    Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup)));
-                } else {
-                    message = Collector.standardisedErrorMessage(
-                            "Invalid relationship in import data",
-                            source,
-                            lineNumber,
-                            format(
-                                    "%s referring to missing node %s",
-                                    Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
-                                    specificValue));
-                }
-            }
-            return message;
-        }
-
-        private String getReportMessage() {
-            return getReportMessage(getMissingDataField().isPresent());
-        }
-
-        // Returns the first data field that is missing, or null if none are missing
-        private Optional<Type> getMissingDataField() {
-            if (startId == null) {
-                return Optional.of(Type.START_ID);
-            } else if (endId == null) {
-                return Optional.of(Type.END_ID);
-            } else if (type == null) {
-                return Optional.of(Type.TYPE);
-            }
-            return Optional.empty();
-        }
-    }
-
-    private static class NodesProblemReporter extends ProblemReporter {
-        private final Object id;
-        private final Group group;
-        private final String source;
-        private final long lineNumber;
-
-        private NodesProblemReporter(Object id, Group group, String source, long lineNumber) {
-            super(DUPLICATE_NODES);
-            this.id = id;
-            this.group = group;
-            this.source = source;
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        public String message() {
-            return DuplicateInputIdException.message(id, group, source, lineNumber);
-        }
-
-        @Override
-        public InputException exception() {
-            return new DuplicateInputIdException(id, group, source, lineNumber);
-        }
-    }
-
-    private static class ExtraColumnsProblemReporter extends ProblemReporter {
-        private String message;
-        private final long row;
-        private final String source;
-        private final String value;
-
-        private ExtraColumnsProblemReporter(long row, String source, String value) {
-            super(EXTRA_COLUMNS);
-            this.row = row;
-            this.source = source;
-            this.value = value;
-        }
-
-        @Override
-        public String message() {
-            return getReportMessage();
-        }
-
-        @Override
-        public InputException exception() {
-            return new InputException(getReportMessage());
-        }
-
-        private String getReportMessage() {
-            if (message == null) {
-                message = Collector.standardisedErrorMessage(
-                        "Extra column not present in header",
-                        source,
-                        row,
-                        format("Bad extra column value: '%s'", value));
-            }
-            return message;
-        }
-    }
-
-    private static class EntityViolatingConstraintReporter extends ProblemReporter {
-        private final Object id;
-        private final long actualId;
-        private final Map<String, Object> properties;
-        private final String constraintDescription;
-        private final EntityType entityType;
-        private final String sourceDescription;
-        private final long lineNumber;
-
-        private EntityViolatingConstraintReporter(
-                Object id,
-                long actualId,
-                Map<String, Object> properties,
-                String constraintDescription,
-                EntityType entityType,
-                String sourceDescription,
-                long lineNumber) {
-            super(entityType == EntityType.NODE ? VIOLATING_NODES : BAD_RELATIONSHIPS);
-            this.id = id;
-            this.actualId = actualId;
-            this.properties = properties;
-            this.constraintDescription = constraintDescription;
-            this.entityType = entityType;
-            this.sourceDescription = sourceDescription;
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        String message() {
-            final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
-            return Collector.standardisedErrorMessage(
-                    format("%s would have violated a constraint", entityTypeString),
-                    sourceDescription,
-                    lineNumber,
-                    format(
-                            "%s %s (internal id %d) would have violated constraint: %s, with properties: %s",
-                            entityTypeString, id, actualId, constraintDescription, properties));
-        }
-
-        @Override
-        InputException exception() {
-            return new InputException(message());
-        }
-    }
-
-    private static class RelationshipViolatingConstraintReporter extends ProblemReporter {
-        private final Map<String, Object> properties;
-        private final String constraintDescription;
-        private final Object startId;
-        private final Group startIdGroup;
-        private final String type;
-        private final Object endId;
-        private final Group endIdGroup;
-        private final String sourceDescription;
-        private final long lineNumber;
-
-        private RelationshipViolatingConstraintReporter(
-                Map<String, Object> properties,
-                String constraintDescription,
-                Object startId,
-                Group startIdGroup,
-                String type,
-                Object endId,
-                Group endIdGroup,
-                String sourceDescription,
-                long lineNumber) {
-            super(BAD_RELATIONSHIPS);
-            this.properties = properties;
-            this.constraintDescription = constraintDescription;
-            this.startId = startId;
-            this.startIdGroup = startIdGroup;
-            this.type = type;
-            this.endId = endId;
-            this.endIdGroup = endIdGroup;
-            this.sourceDescription = sourceDescription;
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        String message() {
-            return Collector.standardisedErrorMessage(
-                    "Relationship would have violated a constraint",
-                    sourceDescription,
-                    lineNumber,
-                    format(
-                            "%s would have violated constraint: %s, with properties:%s",
-                            Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
-                            constraintDescription,
-                            properties));
-        }
-
-        @Override
-        InputException exception() {
-            return new InputException(message());
-        }
-    }
-
-    private static class SchemaCommandFailureReporter extends ProblemReporter {
-
-        private static final int ALL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES | BAD_RELATIONSHIPS;
-        private static final int NODE_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES;
-        private static final int REL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_RELATIONSHIPS;
-
-        private final String failureMessage;
-
-        private SchemaCommandFailureReporter(EntityType entityType, String failureMessage) {
-            super(violationType(entityType));
-            this.failureMessage = failureMessage;
-        }
-
-        private static int violationType(EntityType entityType) {
-            if (entityType == null) {
-                // just collect them all in this case as we don't know which one it was
-                return ALL_SCHEMA_VIOLATIONS;
-            }
-
-            return entityType == EntityType.NODE ? NODE_SCHEMA_VIOLATIONS : REL_SCHEMA_VIOLATIONS;
-        }
-
-        @Override
-        String message() {
-            return failureMessage;
-        }
-
-        @Override
-        InputException exception() {
-            return new InputException(message());
-        }
-    }
-
-    private static class OtherViolationReporter extends ProblemReporter {
-        private final String problem;
-
-        public OtherViolationReporter(EntityType entityType, String problem) {
-            super(entityType == EntityType.NODE ? OTHER_NODE_VIOLATION : OTHER_RELATIONSHIP_VIOLATION);
-            this.problem = problem;
-        }
-
-        @Override
-        String message() {
-            return problem;
-        }
-
-        @Override
-        InputException exception() {
-            return new InputException(message());
-        }
     }
 }

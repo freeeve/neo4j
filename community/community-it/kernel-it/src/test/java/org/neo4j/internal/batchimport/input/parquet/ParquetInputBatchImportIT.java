@@ -205,7 +205,7 @@ class ParquetInputBatchImportIT {
                 .build();
         try (JobScheduler scheduler = new ThreadPoolJobScheduler();
                 var outputStream = new ByteArrayOutputStream();
-                var badCollector = new BadCollector(outputStream, 0, 20)) {
+                var badCollector = BadCollector.create(outputStream, 0, 20)) {
 
             BatchImporter importer = new ParallelBatchImporter(
                     databaseLayout,
