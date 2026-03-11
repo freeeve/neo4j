@@ -37,6 +37,7 @@
     <properties>
         <moduleName>org.neo4j.annotations</moduleName>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <build>
