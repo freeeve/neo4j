@@ -41,7 +41,8 @@ public abstract class TypedIndexConfig {
 
     /// @param descriptor the [IndexProviderDescriptor] associate with this configuration
     /// @param acceptedSettings the [IndexSetting]s accepted as persisted input
-    /// @param records the valid records collected via a read of persisted settings or validation of provided settings
+    /// @param records the valid records collected via a read of persisted settings or validation of provided
+    // settings
     protected TypedIndexConfig(
             IndexProviderDescriptor descriptor, Set<IndexSetting> acceptedSettings, Iterable<Valid> records) {
         final SortedMap<IndexSetting, Object> settings = new TreeMap<>(INDEX_SETTING_COMPARATOR);

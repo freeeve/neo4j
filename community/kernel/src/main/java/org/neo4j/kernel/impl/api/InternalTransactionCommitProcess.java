@@ -79,7 +79,7 @@ public class InternalTransactionCommitProcess implements TransactionCommitProces
                 close(batch);
             }
 
-            commandCommitListeners.registerSuccess(batch, lastAppendIndex);
+            commandCommitListeners.registerSuccess(batch);
             return lastAppendIndex;
         } catch (Exception e) {
             commandCommitListeners.registerFailure(batch, e);

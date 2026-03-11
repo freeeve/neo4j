@@ -45,7 +45,7 @@ public final class CommandCommitListeners {
         }
     }
 
-    public void registerSuccess(StorageEngineTransaction commandBatch, long lastAppendIndex) {
+    public void registerSuccess(StorageEngineTransaction commandBatch) {
         for (CommandCommitListener listener : listeners) {
             listener.onCommandBatchCommitSuccess(commandBatch);
         }

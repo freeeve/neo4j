@@ -54,7 +54,8 @@ public class ArrayQueueOutOfOrderSequence implements OutOfOrderSequence {
 
         if (number <= localGapFree.number()) {
             throw new IllegalStateException("Was offered " + number + ", but highest gap-free is "
-                    + highestGapFreeNumber + " and was only expecting values higher than that");
+                    + highestGapFreeNumber
+                    + " and was only expecting values higher than that. Observed gap free state: " + localGapFree);
         }
         outOfOrderQueue.offer(localGapFree.number(), number, meta);
         reverseSnapshot.setRelease(null);

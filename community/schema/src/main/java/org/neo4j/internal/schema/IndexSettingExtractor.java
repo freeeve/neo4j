@@ -26,7 +26,8 @@ import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
 public interface IndexSettingExtractor extends HasSetting {
     /// Extract a value with a corresponding [org.neo4j.graphdb.schema.IndexSetting] from a [SettingsAccessor]
     ///
-    /// If the [SettingsAccessor] does not contain that [org.neo4j.graphdb.schema.IndexSetting], or its extracted value
+    /// If the [SettingsAccessor] does not contain that [org.neo4j.graphdb.schema.IndexSetting], or its extracted
+    // value
     /// is `null` or [org.neo4j.values.storable.Values#NO_VALUE], a
     /// [org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting] should be returned.
     /// @return a [RecordWithSetting] wrapping the extracted result.

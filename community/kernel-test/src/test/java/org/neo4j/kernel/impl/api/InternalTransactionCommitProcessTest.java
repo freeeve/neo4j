@@ -164,7 +164,7 @@ class InternalTransactionCommitProcessTest {
         assertThat(exception.getMessage()).contains("Could not apply the transaction:");
         assertTrue(contains(exception, rootCause.getMessage(), rootCause.getClass()));
         verify(commandCommitListeners).registerFailure(transaction, exception);
-        verify(commandCommitListeners, never()).registerSuccess(any(), anyLong());
+        verify(commandCommitListeners, never()).registerSuccess(any());
 
         // THEN
         // we can't verify transactionCommitted since that's part of the TransactionAppender, which we have mocked
@@ -261,7 +261,7 @@ class InternalTransactionCommitProcessTest {
                         FakeCommitment.TIMESTAMP,
                         FakeCommitment.CONSENSUS_INDEX);
         verify(commandCommitListeners, never()).registerFailure(any(), any());
-        verify(commandCommitListeners).registerSuccess(transactionToApply, appendIndex);
+        verify(commandCommitListeners).registerSuccess(transactionToApply);
     }
 
     @Test
