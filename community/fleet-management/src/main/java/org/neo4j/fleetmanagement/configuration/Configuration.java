@@ -101,6 +101,9 @@ public class Configuration {
 
     public static void updateConfigurationIfPresent(
             Configuration configuration, ConfigurationResponse configurationResponse) throws IllegalArgumentException {
+        if (configurationResponse == null) {
+            return;
+        }
         if (configurationResponse.getMetrics() != null
                 && !configurationResponse.getMetrics().isEmpty()) {
             configuration.setMetrics(configurationResponse.getMetrics().stream()
