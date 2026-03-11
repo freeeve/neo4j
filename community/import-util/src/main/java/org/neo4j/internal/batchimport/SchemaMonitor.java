@@ -309,7 +309,8 @@ public interface SchemaMonitor extends AutoCloseable {
             return entityTokens.intIterator().next();
         }
 
-        public Relationship newRelationshipWithId(long relationshipId) {
+        @Override
+        public Relationship newWithEntityId(long relationshipId) {
             return new Relationship(
                     relationshipId,
                     properties,
