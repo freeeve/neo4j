@@ -39,6 +39,7 @@ import org.neo4j.fabric.transaction.StatementLifecycleTransactionInfo;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.query.ExecutingQuery;
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics;
 import org.neo4j.kernel.impl.api.ExecutingQueryFactory;
 import org.neo4j.kernel.impl.query.QueryExecutionMonitor;
 import org.neo4j.lock.LockTracer;
@@ -301,7 +302,8 @@ public class QueryStatementLifecycles {
                 if (!shouldLogIfSingleQuery) {
                     getQueryExecutionMonitor().startExecution(executingQuery);
                     executingQuery.onCompilationCompleted(null, null, null, 0);
-                    executingQuery.onExecutionStarted(HeapHighWaterMarkTracker.NONE);
+                    executingQuery.onExecutionStarted(
+                            HeapHighWaterMarkTracker.NONE, () -> ExtendedQueryStatistics.EMPTY);
                 }
             }
 

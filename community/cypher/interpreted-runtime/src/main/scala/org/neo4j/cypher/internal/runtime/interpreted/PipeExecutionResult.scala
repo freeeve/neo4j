@@ -51,7 +51,9 @@ class PipeExecutionResult(
 
   override def getErrorOrNull: Throwable = null
 
-  override def queryStatistics(): QueryStatistics = state.getStatistics
+  override def queryStatistics(): QueryStatistics = {
+    queryStatisticsSnapshot
+  }
 
   override def heapHighWaterMark: Long = state.queryMemoryTracker.heapHighWaterMark
 
@@ -93,6 +95,15 @@ class PipeExecutionResult(
 
   override def notifications(): util.Set[InternalNotification] = state.notifications
 
+  private def queryStatisticsSnapshot: QueryStatistics = {
+    val statisticsSnapshot = state.getStatistics
+    val fileLinesRead = state.resources.getLastIterator.map(_.lastProcessed).getOrElse(0L).toInt
+    if (fileLinesRead > 0L) {
+      return new QueryStatistics(fileLinesRead = fileLinesRead) + statisticsSnapshot
+    }
+    statisticsSnapshot
+  }
+
   private def serveResults(): Unit = {
     while (inner.hasNext && demand > 0 && !cancelled) {
       nonEmptyResult = true
@@ -100,7 +111,7 @@ class PipeExecutionResult(
       demand -= 1L
     }
     if (!inner.hasNext) {
-      subscriber.onResultCompleted(state.getStatistics)
+      subscriber.onResultCompleted(queryStatisticsSnapshot)
     }
   }
 

@@ -91,7 +91,7 @@ class ExecutingQueryTest {
         assertEquals("planned", query.snapshot().status());
 
         // when
-        query.onExecutionStarted(new FakeMemoryTracker());
+        query.onExecutionStarted(new FakeMemoryTracker(), null);
 
         // then
         assertEquals("running", query.snapshot().status());
@@ -139,7 +139,7 @@ class ExecutingQueryTest {
                 null,
                 null,
                 0);
-        query.onExecutionStarted(new FakeMemoryTracker());
+        query.onExecutionStarted(new FakeMemoryTracker(), null);
 
         // then
         assertEquals("running", query.snapshot().status());
@@ -310,7 +310,7 @@ class ExecutingQueryTest {
 
     @Test
     void shouldNotAllowStartingExecutionWithoutCompilation() {
-        assertThatIllegalStateException().isThrownBy(() -> query.onExecutionStarted(null));
+        assertThatIllegalStateException().isThrownBy(() -> query.onExecutionStarted(null, null));
     }
 
     @Test
@@ -323,7 +323,7 @@ class ExecutingQueryTest {
         query.onCompilationCompleted(null, null, null, 0);
         assertEquals("planned", query.snapshot().status());
 
-        query.onExecutionStarted(new FakeMemoryTracker());
+        query.onExecutionStarted(new FakeMemoryTracker(), null);
         assertEquals("running", query.snapshot().status());
 
         query.onRetryAttempted();

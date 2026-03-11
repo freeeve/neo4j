@@ -538,7 +538,7 @@ class Neo4jTransactionalContextIT {
         // Start query execution
         executingQuery.onObfuscatorReady(QueryObfuscator.PASSTHROUGH, 0);
         executingQuery.onCompilationCompleted(null, null, null, 0);
-        executingQuery.onExecutionStarted(queryMemoryTracker);
+        executingQuery.onExecutionStarted(queryMemoryTracker, null);
 
         // Some operator in outer transaction allocates some memory
         outerTxMemoryTrackerForOperatorProvider

@@ -1733,6 +1733,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Log query statistics. ")
+    public static final Setting<Boolean> log_query_statistics = newBuilder(
+                    "internal.dbms.logs.query.log_query_statistics", BOOL, false)
+            .dynamic()
+            .build();
+
+    @Internal
     @Description("The maximum period of time to wait for changes to the transaction log (specifically to get the "
             + "position after the last committed transaction). This is an upper bound as further subscriber requests "
             + "will always lead to fetching the latest transaction details.")

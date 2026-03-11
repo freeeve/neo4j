@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.spec._
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.graphdb.QueryStatistics
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.lock.LockType
 import org.neo4j.lock.ResourceType
@@ -379,7 +380,7 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
 
       def transactionsStatsDoNotMatch: Option[MatchResult] = {
         left match {
-          case qs: org.neo4j.cypher.internal.runtime.ExtendedQueryStatistics =>
+          case qs: ExtendedQueryStatistics =>
             // FIXME: we currently do not account for the outermost transaction because that is out of cypher's control
             if (matchFailed(transactionsCommitted, qs.getTransactionsCommitted + 1)) {
               Some(MatchResult(

@@ -59,6 +59,7 @@ public class QuerySnapshot {
     private final QueryCacheUsage executableQueryCacheUsage;
     private final QueryCacheUsage logicalPlanCacheUsage;
     private final int executionPlanCacheKeyHash;
+    private final ExtendedQueryStatistics queryStatistics;
 
     QuerySnapshot(
             ExecutingQuery query,
@@ -83,7 +84,8 @@ public class QuerySnapshot {
             long parentTransactionSequenceNumber,
             QueryCacheUsage executableQueryCacheUsage,
             QueryCacheUsage logicalPlanCacheUsage,
-            int executionPlanCacheKeyHash) {
+            int executionPlanCacheKeyHash,
+            ExtendedQueryStatistics queryStatistics) {
         this.query = query;
         this.compilerInfo = compilerInfo;
         this.pageHits = pageHits;
@@ -107,6 +109,7 @@ public class QuerySnapshot {
         this.executableQueryCacheUsage = executableQueryCacheUsage;
         this.logicalPlanCacheUsage = logicalPlanCacheUsage;
         this.executionPlanCacheKeyHash = executionPlanCacheKeyHash;
+        this.queryStatistics = queryStatistics;
     }
 
     public long internalQueryId() {
@@ -175,6 +178,10 @@ public class QuerySnapshot {
 
     public long activeLockCount() {
         return activeLockCount;
+    }
+
+    public ExtendedQueryStatistics queryStatistics() {
+        return queryStatistics;
     }
 
     public String planner() {

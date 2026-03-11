@@ -22,6 +22,7 @@ package org.neo4j.cypher.result;
 import java.util.Set;
 import org.neo4j.cypher.internal.notification.InternalNotification;
 import org.neo4j.graphdb.QueryStatistics;
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics;
 import org.neo4j.kernel.impl.query.QuerySubscription;
 import org.neo4j.memory.HeapHighWaterMarkTracker;
 
@@ -53,7 +54,7 @@ public interface RuntimeResult extends AutoCloseable, QuerySubscription, HeapHig
     /**
      * Get the {@link QueryStatistics} related to this query execution.
      */
-    QueryStatistics queryStatistics();
+    ExtendedQueryStatistics queryStatistics();
 
     /**
      * Get the {@link QueryProfile} of this query execution.

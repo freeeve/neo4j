@@ -55,17 +55,21 @@ object CSVResources {
   val DEFAULT_BUFFER_SIZE: Int = 2 * 1024 * 1024
   val DEFAULT_QUOTE_CHAR: Char = '"'
 
-  private def config(legacyCsvQuoteEscaping: Boolean, csvBufferSize: Int) = Configuration.newBuilder()
-    .withQuotationCharacter(DEFAULT_QUOTE_CHAR)
-    .withBufferSize(csvBufferSize)
-    .withLegacyMultilineBehaviour()
-    .withTrimStrings(false)
-    .withEmptyQuotedStringsAsNull(true)
-    .withLegacyStyleQuoting(legacyCsvQuoteEscaping)
-    .build()
+  private def config(legacyCsvQuoteEscaping: Boolean, csvBufferSize: Int) =
+    Configuration
+      .newBuilder()
+      .withQuotationCharacter(DEFAULT_QUOTE_CHAR)
+      .withBufferSize(csvBufferSize)
+      .withLegacyMultilineBehaviour()
+      .withTrimStrings(false)
+      .withEmptyQuotedStringsAsNull(true)
+      .withLegacyStyleQuoting(legacyCsvQuoteEscaping)
+      .build()
 }
 
-case class CSVResource(url: URI, resource: AutoCloseable) extends DefaultCloseListenable with AutoCloseablePlus {
+case class CSVResource(url: URI, resource: AutoCloseable)
+    extends DefaultCloseListenable
+    with AutoCloseablePlus {
   override def closeInternal(): Unit = resource.close()
 
   // This is not correct, but hopefully the defensive answer. We don't expect this to be called,
@@ -75,6 +79,7 @@ case class CSVResource(url: URI, resource: AutoCloseable) extends DefaultCloseLi
 }
 
 class CSVResources(resourceManager: ResourceManager) extends ExternalCSVResource {
+  var lastIterator: LoadCsvIterator = null
 
   override def getCsvIterator(
     urlString: String,
@@ -113,7 +118,7 @@ class CSVResources(resourceManager: ResourceManager) extends ExternalCSVResource
     val resource = CSVResource(uri, seeker)
     resourceManager.trace(resource)
 
-    new LoadCsvIterator {
+    lastIterator = new LoadCsvIterator {
       var lastProcessed = 0L
       var readAll = false
 
@@ -153,6 +158,11 @@ class CSVResources(resourceManager: ResourceManager) extends ExternalCSVResource
         row
       }
     }
+    lastIterator
+  }
+
+  override def getLastIterator: Option[LoadCsvIterator] = {
+    Option(lastIterator)
   }
 
   private def checkForUnsecureProtocols(uri: URI, state: QueryState): Unit = {
@@ -163,6 +173,7 @@ class CSVResources(resourceManager: ResourceManager) extends ExternalCSVResource
       case _ =>
     }
   }
+
 }
 
 object TheCookieManager {

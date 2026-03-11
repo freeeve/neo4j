@@ -268,12 +268,7 @@ abstract class ExecutionEngine(
               case withStatus: HasStatus => withStatus.status()
               case _                     => null
             }
-            queryMonitor.endFailure(
-              context.executingQuery(),
-              gqlException.getMessage,
-              status,
-              gqlException
-            )
+            queryMonitor.endFailure(context.executingQuery(), gqlException.getMessage, status, gqlException)
           }
           throw gqlException
         case up: Throwable =>

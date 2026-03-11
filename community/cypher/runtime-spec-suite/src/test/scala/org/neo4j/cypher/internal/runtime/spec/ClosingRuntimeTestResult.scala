@@ -28,6 +28,7 @@ import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.exceptions.QueryExecutionTimeoutException
 import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.graphdb.Transaction
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.util.VisibleForTesting
@@ -64,7 +65,7 @@ class ClosingRuntimeTestResult(
 
   override def hasServedRows: Boolean = inner.hasServedRows
 
-  override def queryStatistics(): QueryStatistics = inner.queryStatistics()
+  override def queryStatistics(): ExtendedQueryStatistics = inner.queryStatistics()
 
   override def heapHighWaterMark(): Long = inner.heapHighWaterMark()
 

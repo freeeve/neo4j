@@ -74,6 +74,7 @@ import org.neo4j.cypher.internal.runtime.NormalMode
 import org.neo4j.cypher.internal.runtime.ProfileMode
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
+import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.READ_ONLY
 import org.neo4j.cypher.internal.runtime.READ_WRITE
 import org.neo4j.cypher.internal.runtime.ResourceManager
@@ -627,7 +628,10 @@ object CypherCurrentCompiler {
             executionPlan.run(queryContext, innerExecutionMode, params, prePopulateResults, input, subscriber)
 
           if (isOutermostQuery) {
-            transactionalContext.executingQuery().onExecutionStarted(runtimeResult)
+            transactionalContext.executingQuery().onExecutionStarted(
+              runtimeResult,
+              () => QueryStatistics(runtimeResult.queryStatistics())
+            )
           }
           taskCloser.addTask(_ => runtimeResult.close())
 

@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal.runtime
 
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics
+
 import scala.beans.BeanProperty
 
 // Whenever you add a field here, please also update
@@ -51,6 +53,7 @@ case class QueryStatistics(
   @BeanProperty transactionsStarted: Int = 0,
   @BeanProperty transactionsCommitted: Int = 0,
   @BeanProperty transactionsRolledBack: Int = 0,
+  @BeanProperty fileLinesRead: Int = 0,
   @BeanProperty systemUpdates: Int = 0
 ) extends org.neo4j.graphdb.QueryStatistics with ExtendedQueryStatistics {
 
@@ -111,6 +114,7 @@ case class QueryStatistics(
       includeIfNonZero(builder, "Transactions started: ", transactionsStarted)
       includeIfNonZero(builder, "Transactions committed: ", transactionsCommitted)
       includeIfNonZero(builder, "Transactions rolled back: ", transactionsRolledBack)
+      includeIfNonZero(builder, "File lines read: ", fileLinesRead)
     }
     val result = builder.toString()
 
@@ -151,6 +155,7 @@ case class QueryStatistics(
       transactionsCommitted = this.transactionsCommitted + other.transactionsCommitted,
       transactionsStarted = this.transactionsStarted + other.transactionsStarted,
       transactionsRolledBack = this.transactionsRolledBack + other.transactionsRolledBack,
+      fileLinesRead = this.fileLinesRead + other.fileLinesRead,
       systemUpdates = this.systemUpdates + other.systemUpdates
     )
   }
@@ -185,6 +190,7 @@ case class QueryStatistics(
       transactionsCommitted = this.transactionsCommitted - other.transactionsCommitted,
       transactionsStarted = this.transactionsStarted - other.transactionsStarted,
       transactionsRolledBack = this.transactionsRolledBack - other.transactionsRolledBack,
+      fileLinesRead = this.fileLinesRead - other.fileLinesRead,
       systemUpdates = this.systemUpdates - other.systemUpdates
     )
   }
@@ -211,9 +217,11 @@ object QueryStatistics {
         systemUpdates = q.getSystemUpdates,
         transactionsCommitted = q.getTransactionsCommitted,
         transactionsStarted = q.getTransactionsStarted,
-        transactionsRolledBack = q.getTransactionsRolledBack
+        transactionsRolledBack = q.getTransactionsRolledBack,
+        fileLinesRead = q.getFileLinesRead
       )
-    case _ => withoutExtended(statistics)
+    case null => empty
+    case _    => withoutExtended(statistics)
   }
 
   def withoutExtended(statistics: org.neo4j.graphdb.QueryStatistics): QueryStatistics = QueryStatistics(

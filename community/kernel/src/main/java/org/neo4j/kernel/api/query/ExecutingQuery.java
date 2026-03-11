@@ -85,6 +85,7 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
     private ObfuscatedQueryData obfuscatedQueryData;
 
     private Supplier<ExecutionPlanDescription> planDescriptionSupplier;
+    private Supplier<ExtendedQueryStatistics> queryStatisticsSupplier;
     private DeprecationNotificationsProvider deprecationNotificationsProvider;
     private DeprecationNotificationsProvider fabricDeprecationNotificationsProvider;
     private int executionPlanCacheKeyHash;
@@ -350,10 +351,12 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.status = SimpleState.planned(); // write barrier - must be last
     }
 
-    public void onExecutionStarted(HeapHighWaterMarkTracker memoryTracker) {
+    public void onExecutionStarted(
+            HeapHighWaterMarkTracker memoryTracker, Supplier<ExtendedQueryStatistics> queryStatisticsSupplier) {
         assertExpectedStatus(SimpleState.planned());
 
         this.memoryTracker = memoryTracker;
+        this.queryStatisticsSupplier = queryStatisticsSupplier;
         this.status = SimpleState.running(); // write barrier - must be last
     }
 
@@ -430,6 +433,11 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         cpuTimeNanos -= cpuTimeNanosWhenQueryStarted;
         waitTimeNanos += status.waitTimeNanos(currentTimeNanos);
 
+        ExtendedQueryStatistics queryStatistics = null;
+        if (queryStatisticsSupplier != null) {
+            queryStatistics = queryStatisticsSupplier.get();
+        }
+
         return new QuerySnapshot(
                 this,
                 planner,
@@ -453,7 +461,8 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
                 parentTransactionSequenceNumber,
                 executableQueryCacheUsage,
                 logicalPlanCacheUsage,
-                executionPlanCacheKeyHash);
+                executionPlanCacheKeyHash,
+                queryStatistics);
     }
 
     public String cypherRuntime() {

@@ -32,6 +32,8 @@ trait ExternalCSVResource {
     bufferSize: Int,
     headers: Boolean = false
   ): LoadCsvIterator
+
+  def getLastIterator: Option[LoadCsvIterator]
 }
 
 trait LoadCsvIterator extends ClosingIterator[Array[Value]] {

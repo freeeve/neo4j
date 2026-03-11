@@ -52,7 +52,6 @@ import org.neo4j.values.virtual.VirtualRelationshipValue
 import scala.collection.immutable.ArraySeq
 
 class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryContext(inner) with CountingQueryContext {
-
   private val nodesCreated = new Counter
   private val relationshipsCreated = new Counter
   private val propertiesSet = new Counter
@@ -74,6 +73,7 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
   private val relSourceLabelConstraintsAdded = new Counter
   private val relTargetLabelConstraintsAdded = new Counter
   private val constraintsRemoved = new Counter
+  private val fileLinesRead = new Counter
 
   def getTrackedStatistics: QueryStatistics = QueryStatistics(
     nodesCreated = nodesCreated.count,
@@ -96,7 +96,8 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     nodeLabelExistenceConstraintsAdded = nodeLabelExistenceConstraintsAdded.count,
     relSourceLabelConstraintsAdded = relSourceLabelConstraintsAdded.count,
     relTargetLabelConstraintsAdded = relTargetLabelConstraintsAdded.count,
-    constraintsRemoved = constraintsRemoved.count
+    constraintsRemoved = constraintsRemoved.count,
+    fileLinesRead = fileLinesRead.count
   )
 
   override def addStatistics(statistics: QueryStatistics): Unit = {
@@ -121,6 +122,7 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     relSourceLabelConstraintsAdded.increase(statistics.relSourceLabelConstraintsAdded)
     relTargetLabelConstraintsAdded.increase(statistics.relTargetLabelConstraintsAdded)
     constraintsRemoved.increase(statistics.constraintsRemoved)
+    fileLinesRead.increase(statistics.fileLinesRead)
     inner.addStatistics(statistics)
   }
 

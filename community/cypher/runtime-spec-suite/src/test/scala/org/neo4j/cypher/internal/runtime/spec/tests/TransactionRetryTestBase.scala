@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency.Concurrent
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency.Serial
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.ExtendedQueryStatistics
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -58,6 +57,7 @@ import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.kernel.api.KernelTransaction.Type
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
+import org.neo4j.kernel.api.query.ExtendedQueryStatistics
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.logging.InternalLogProvider
