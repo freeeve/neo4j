@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInde
 import org.neo4j.cypher.internal.logical.plans.ApplyPlan
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.logical.plans.RepeatTrail
+import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
@@ -81,8 +81,8 @@ case class recordEffectiveOutputCardinality(
               case _: CartesianProduct =>
                 // The RHS is executed for each chunk of LHS rows
                 effectiveBatchSize.numBatchesFor(lhsEffectiveCardinality)
-              case t: RepeatTrail =>
-                val repetitions = RepetitionCardinalityModel.quantifiedPathPatternRepetitionAsRange(t.repetition).end
+              case r: Repeat =>
+                val repetitions = RepetitionCardinalityModel.quantifiedPathPatternRepetitionAsRange(r.repetition).end
                 (0 until repetitions).map(rhsEffectiveCardinality ^ _).sum(NumericCardinality) * lhsEffectiveCardinality
               case _: ApplyPlan =>
                 // The RHS is executed for each LHS row

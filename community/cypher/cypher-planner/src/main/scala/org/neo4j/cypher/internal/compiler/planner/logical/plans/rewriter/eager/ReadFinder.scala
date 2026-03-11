@@ -163,10 +163,8 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
-import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
+import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
-import org.neo4j.cypher.internal.logical.plans.RepeatTrail
-import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.RunQueryAt
@@ -1005,48 +1003,8 @@ object ReadFinder {
       case TransactionForeach(_, _, _, _, _, _, _) =>
         PlanReads().withCallInTx
 
-      case RepeatAcyclic(
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _
-        ) => ???
-
-      case RepeatTrail(
-          _,
-          _,
-          _,
-          _,
-          end,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _
-        ) =>
-        PlanReads().withIntroducedNodeVariable(end)
-
-      case RepeatWalk(_, _, _, _, end, _, _, _, _, _, _, _, _) =>
-        PlanReads().withIntroducedNodeVariable(end)
+      case r: Repeat =>
+        PlanReads().withIntroducedNodeVariable(r.end)
 
       case BidirectionalRepeatTrail(_, _, _, _, _, _, _, _, _, _, _, _, _) |
         RepeatOptions(_, _) =>
