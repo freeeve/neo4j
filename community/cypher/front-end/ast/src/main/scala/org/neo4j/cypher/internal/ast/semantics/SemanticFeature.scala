@@ -85,6 +85,10 @@ object SemanticFeature {
     override def name: String = "vector search in Cypher"
   }
 
+  case object VectorSearchWithComplexPattern extends SemanticFeature with FeatureToString {
+    override def name: String = "vector search with complex pattern"
+  }
+
   case object LocalCallables extends SemanticFeature with FeatureToString {
     override def name: String = "local callables"
   }
@@ -141,6 +145,7 @@ object SemanticFeature {
     RelationshipPropertyValueAccessRules,
     VectorSingleStageFilteringEnabled,
     VectorSearch,
+    VectorSearchWithComplexPattern,
     LocalCallables,
     ScopeQueries,
     VariableChecking,

@@ -463,6 +463,10 @@ trait SemanticAnalysisTooling {
 
   def unwrapLists(typeGen: TypeGenerator): TypeGenerator =
     (state: SemanticState) => typeGen(state).unwrapLists
+
+  def ifOkChainAll(checks: SemanticCheck*): SemanticCheck = {
+    checks.foldLeft(SemanticCheck.success)(_ ifOkChain _)
+  }
 }
 
 object SemanticAnalysisTooling {

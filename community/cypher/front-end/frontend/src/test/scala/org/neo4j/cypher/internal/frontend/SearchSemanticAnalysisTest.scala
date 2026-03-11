@@ -19,7 +19,9 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
@@ -44,26 +46,31 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       SemanticAnalysis(warn = Some(false)) andThen
       SemanticTypeCheck
 
-  private def runSearchWithRewriter(): AnalysisAssertions = {
+  private def semanticFeatures(complexPatternAllowed: Boolean): Seq[SemanticFeature] = {
+    Seq(VectorSearch, VectorSingleStageFilteringEnabled) ++
+      Option.when(complexPatternAllowed)(VectorSearchWithComplexPattern)
+  }
+
+  private def runSearchWithRewriter(complexPatternAllowed: Boolean): AnalysisAssertions = {
     run(
       defaultQuery,
       defaultPositions,
       pipelineWithAstRewriting,
-      semanticFeatures = Seq(VectorSearch, VectorSingleStageFilteringEnabled),
+      semanticFeatures = semanticFeatures(complexPatternAllowed),
       disabledVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  private def runSearch(): AnalysisAssertions =
+  private def runSearch(complexPatternAllowed: Boolean): AnalysisAssertions =
     runWith(
       disabledCypherVersions = Set(CypherVersion.Cypher5),
-      VectorSearch,
-      VectorSingleStageFilteringEnabled
+      semanticFeatures(complexPatternAllowed): _*
     )
 
   for {
     (maybeOptional, optionalLength) <- Seq(("", 0), ("OPTIONAL ", 9))
-  } yield {
+    complexPatternAllowed <- Seq(true, false)
+  } {
 
     // Tests for variable reference
 
@@ -75,9 +82,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -88,9 +96,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN x
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -101,9 +110,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN r
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -114,9 +124,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42N62("m", 30 + optionalLength, 2, 10),
           "Variable `m` not defined",
@@ -138,9 +149,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42N62("null", 30 + optionalLength, 2, 10),
           "Variable `null` not defined",
@@ -163,9 +175,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I69("movie", 67 + optionalLength, 3, 10),
           "The variable `movie` in SEARCH must reference a variable from the same MATCH statement.",
@@ -183,9 +196,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     // Tests for index name
@@ -198,9 +212,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -212,9 +227,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -225,9 +241,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -238,9 +255,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -251,9 +269,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I04(
             "Parameter",
@@ -293,9 +312,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasNoErrors
+        runSearch(complexPatternAllowed).hasNoErrors
       }
     }
 
@@ -316,9 +336,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearch(complexPatternAllowed).hasErrors(
           SemanticError(
             GqlHelper.getGql42001_22NB1(
               java.util.List.of("VECTOR", "LIST<INTEGER | FLOAT>"),
@@ -343,9 +364,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN m.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("m.embedding", "m", 92 + optionalLength, 4, 10),
           s"Vector search query vector referencing the search binding variable",
@@ -362,9 +384,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("movie.embedding", "movie", 82 + optionalLength, 4, 14),
           s"Vector search query vector referencing the search binding variable",
@@ -383,9 +406,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 0
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     val invalidLimits: Seq[Any] = Seq(
@@ -405,9 +429,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT $limit
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearch(complexPatternAllowed).hasErrors(
           SemanticError(
             ErrorGqlStatusObjectImplementation
               .from(GqlStatusInfoCodes.STATUS_42001)
@@ -438,9 +463,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -452,9 +478,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42N59("score", 129 + optionalLength, 7, 14),
           "Variable `score` already declared",
@@ -471,9 +498,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS x
          |RETURN *
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42N59("x", 103 + optionalLength, 6, 14),
           "Variable `x` already declared",
@@ -490,9 +518,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS null
          |RETURN *
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -504,9 +533,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |  ) SCORE AS score
          |  WHERE score > 0.8
          |RETURN movie.title AS title, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -518,9 +548,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     // Tests for single-stage filtering - Rule 0 from CIP-240
@@ -534,9 +565,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 97 + optionalLength, 5, 11),
           "The vector search filter predicate 'true' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
@@ -554,9 +586,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -568,9 +601,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("movie.imdbRating > 8 OR movie.year > 2010", 118 + optionalLength, 5, 32),
           "The vector search filter predicate 'movie.imdbRating > 8 OR movie.year > 2010' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
@@ -588,9 +622,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("NOT movie.imdbRating = 8", 97 + optionalLength, 5, 11),
           "The vector search filter predicate 'NOT movie.imdbRating = 8' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
@@ -608,9 +643,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I73("true", 122 + optionalLength, 5, 36),
           "The vector search filter predicate 'true' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
@@ -631,9 +667,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 137 + optionalLength, 6, 11),
           "The variable `m` in a vector search filter property predicate must be the same as the search clause binding variable `movie`.",
@@ -652,9 +689,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasErrors(
+      runSearch(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I74("m", "movie", 159 + optionalLength, 6, 33),
           "The variable `m` in a vector search filter property predicate must be the same as the search clause binding variable `movie`.",
@@ -681,9 +719,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     // Tests for single-stage filtering - Rule 3 from CIP-240
@@ -698,9 +737,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -713,9 +753,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -728,9 +769,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     /*
@@ -747,9 +789,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  ) SCORE AS score
          |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     for (comparator <- Seq(">", ">=", "=")) {
@@ -766,9 +809,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  ) SCORE AS score
            |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearch(complexPatternAllowed).hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I73(
               s"movie.p > 8.2 AND movie.p $comparator 8.8 AND movie.q < \"a\" AND movie.q > \"b\" AND movie.r = 7.5",
@@ -797,9 +841,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  ) SCORE AS score
            |RETURN movie.title AS title, movie.imdbRating AS rating, movie.year AS year, score
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasNoErrors
+        runSearch(complexPatternAllowed).hasNoErrors
       }
     }
 
@@ -851,9 +896,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearchWithRewriter().hasNoErrors
+        runSearchWithRewriter(complexPatternAllowed).hasNoErrors
       }
     }
 
@@ -871,9 +917,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearchWithRewriter().hasErrors(
+        runSearchWithRewriter(complexPatternAllowed).hasErrors(
           SemanticError(
             GqlHelper.getGql42001_22NB1(
               java.util.List.of(
@@ -909,9 +956,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
+      runSearchWithRewriter(complexPatternAllowed).hasErrors(
         SemanticError(
           GqlHelper.getGql42001_42I75("movie.prop", "movie", 122 + optionalLength, 5, 36),
           s"Vector search filter predicate referencing the search binding variable",
@@ -936,9 +984,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearch().hasErrors(
+        runSearch(complexPatternAllowed).hasErrors(
           SemanticError(
             GqlHelper.getGql42001_42I73(s"movie.imdbRating $comparison", 114 + optionalLength, 5, 28),
             s"The vector search filter predicate 'movie.imdbRating $comparison' must consist of one or more property predicates joined by AND, and the combined property predicates for each property must specify either an exact value (e.g. x.prop = 1), a half-bounded range (e.g. x.prop >= 1), or a bounded range (e.g. x.prop > 1 AND x.prop < 100). Note that this is not an exhaustive list of valid predicates, see documentation for all rules.",
@@ -957,9 +1006,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -971,9 +1021,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearch().hasNoErrors
+      runSearch(complexPatternAllowed).hasNoErrors
     }
 
     // Tests for MATCH restrictions
@@ -986,9 +1037,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -999,9 +1051,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -1012,15 +1065,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
-          p(6 + optionalLength, 1, 7 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+            p(6 + optionalLength, 1, 7 + optionalLength)
+          )
         )
-      )
     }
 
     test(
@@ -1031,9 +1089,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN r
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -1044,15 +1103,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN r
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
-          p(6 + optionalLength, 1, 7 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 7 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+            p(6 + optionalLength, 1, 7 + optionalLength)
+          )
         )
-      )
     }
 
     test(
@@ -1063,9 +1127,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -1076,15 +1141,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I70(21 + optionalLength, 1, 22 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have one bound variable.",
-          p(21 + optionalLength, 1, 22 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I70(21 + optionalLength, 1, 22 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have one bound variable.",
+            p(21 + optionalLength, 1, 22 + optionalLength)
+          )
         )
-      )
     }
 
     test(
@@ -1095,15 +1165,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have one bound variable.",
-          p(7 + optionalLength, 1, 8 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have one bound variable.",
+            p(7 + optionalLength, 1, 8 + optionalLength)
+          )
         )
-      )
     }
 
     test(
@@ -1114,15 +1189,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have one bound variable.",
-          p(7 + optionalLength, 1, 8 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I70(7 + optionalLength, 1, 8 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have one bound variable.",
+            p(7 + optionalLength, 1, 8 + optionalLength)
+          )
         )
-      )
     }
 
     test(
@@ -1133,9 +1213,10 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasNoErrors
+      runSearchWithRewriter(complexPatternAllowed).hasNoErrors
     }
 
     test(
@@ -1146,15 +1227,20 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
          |    LIMIT 5
          |  )
          |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
          |""".stripMargin
     ) {
-      runSearchWithRewriter().hasErrors(
-        SemanticError(
-          GqlHelper.getGql42001_42I70(27 + optionalLength, 1, 28 + optionalLength),
-          "In order to have a search clause, a MATCH statement can only have one bound variable.",
-          p(27 + optionalLength, 1, 28 + optionalLength)
+      val result = runSearchWithRewriter(complexPatternAllowed)
+      if (complexPatternAllowed)
+        result.hasNoErrors
+      else
+        result.hasErrors(
+          SemanticError(
+            GqlHelper.getGql42001_42I70(27 + optionalLength, 1, 28 + optionalLength),
+            "In order to have a search clause, a MATCH statement can only have one bound variable.",
+            p(27 + optionalLength, 1, 28 + optionalLength)
+          )
         )
-      )
     }
 
     val invalidPredicatesForNodeSearch = Seq(
@@ -1186,17 +1272,22 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearchWithRewriter().hasErrors(
-          SemanticError(
-            GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
-            if (length.isDefined)
-              InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
-            else p(offset + optionalLength, 1, offset + optionalLength + 1)
+        val result = runSearchWithRewriter(complexPatternAllowed)
+        if (complexPatternAllowed)
+          result.hasNoErrors
+        else
+          result.hasErrors(
+            SemanticError(
+              GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
+              "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
+              if (length.isDefined)
+                InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
+              else p(offset + optionalLength, 1, offset + optionalLength + 1)
+            )
           )
-        )
       }
     }
 
@@ -1224,23 +1315,27 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN r
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearchWithRewriter().hasErrors(
-          SemanticError(
-            GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
-            if (length.isDefined)
-              InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
-            else p(offset + optionalLength, 1, offset + optionalLength + 1)
+        val result = runSearchWithRewriter(complexPatternAllowed)
+        if (complexPatternAllowed)
+          result.hasNoErrors
+        else
+          result.hasErrors(
+            SemanticError(
+              GqlHelper.getGql42001_42I71(offset + optionalLength, 1, offset + optionalLength + 1),
+              "In order to have a search clause, a MATCH statement can only have predicates on the bound variable.",
+              if (length.isDefined)
+                InputPosition.withLength(offset + optionalLength, 1, offset + optionalLength + 1, length.get)
+              else p(offset + optionalLength, 1, offset + optionalLength + 1)
+            )
           )
-        )
       }
     }
 
     val tooComplexMatchPatterns = Seq(
       ("(movie:Movie), ()", 21),
-      ("ANY SHORTEST ()-->(movie:Movie)", 6),
       ("(movie:Movie)-[]->{1,3}()", 6),
       ("()-[*]->(movie:Movie)", 8),
       ("()-[*..3]->(movie:Movie)", 8)
@@ -1257,16 +1352,41 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
            |    LIMIT 5
            |  )
            |RETURN movie.title AS title
+           |// complexPatternAllowed = $complexPatternAllowed
            |""".stripMargin
       ) {
-        runSearchWithRewriter().hasErrors(
-          SemanticError(
-            GqlHelper.getGql42001_42I72(offset + optionalLength, 1, offset + optionalLength + 1),
-            "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
-            p(offset + optionalLength, 1, offset + optionalLength + 1)
+        val result = runSearchWithRewriter(complexPatternAllowed)
+        if (complexPatternAllowed)
+          result.hasNoErrors
+        else
+          result.hasErrors(
+            SemanticError(
+              GqlHelper.getGql42001_42I72(offset + optionalLength, 1, offset + optionalLength + 1),
+              "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+              p(offset + optionalLength, 1, offset + optionalLength + 1)
+            )
           )
-        )
       }
+    }
+
+    test(
+      s"""${maybeOptional}MATCH ANY SHORTEST ()-->(movie:Movie)
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    LIMIT 5
+         |  )
+         |RETURN movie.title AS title
+         |// complexPatternAllowed = $complexPatternAllowed
+         |""".stripMargin
+    ) {
+      runSearchWithRewriter(complexPatternAllowed).hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42I72(6 + optionalLength, 1, 6 + optionalLength + 1),
+          "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
+          p(6 + optionalLength, 1, 6 + optionalLength + 1)
+        )
+      )
     }
   }
 }

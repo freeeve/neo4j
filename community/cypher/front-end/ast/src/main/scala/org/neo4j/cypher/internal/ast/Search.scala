@@ -248,39 +248,50 @@ case class Search(
     SemanticExpressionCheck.simple(rhs) chain expectTypeWithoutCoercion(validTypes, rhs)
   }
 
+  private def checkWhenComplexPatternNotAllowed(check: => SemanticCheck): SemanticCheck = {
+    whenState(!_.features.contains(SemanticFeature.VectorSearchWithComplexPattern)) {
+      check
+    }
+  }
+
   /*
    * Semantic checks that verify the pattern from the MATCH statement.
    * Most of the limitations here are expected to be lifted in later iterations of the feature
    */
   def patternChecks(pattern: Pattern.ForMatch): SemanticCheck = {
     // We only want to do these checks once, because later rewriters can have made the pattern more complex
-    SemanticCheck.fromState { state =>
-      if (state.semanticCheckHasRunOnce) {
-        SemanticCheck.success
-      } else {
-        val patternParts = pattern.patternParts
-        val patternVariables = patternParts.flatMap(p => p.allVariables).toSet
-        val patternPart = patternParts.head.part
-        val selectors = patternParts.collect(p => p.selector).filterNot(s => s.isInstanceOf[AllPaths])
+    whenState(!_.semanticCheckHasRunOnce) {
+      val patternParts = pattern.patternParts
+      val patternVariables = patternParts.flatMap(p => p.allVariables).toSet
+      val patternPart = patternParts.head.part
+      val selectors = patternParts.collect(p => p.selector).filterNot(s => s.isInstanceOf[AllPaths])
 
-        if (!patternVariables.contains(bindingVariable)) {
+      ifOkChainAll(
+        when(!patternVariables.contains(bindingVariable)) {
           SemanticError.searchWithVariableFromOutsideMatch(bindingVariable)
-        } else if (patternParts.size > 1) {
-          SemanticError.searchWithTooComplexMatch(patternParts(1).position)
-        } else if (!patternPart.isInstanceOf[NamedPatternPart] && patternVariables.size > 1) {
-          val firstUnrelatedVar = patternVariables.filterNot(v => v == bindingVariable).head
-          SemanticError.searchWithMultipleBoundVariables(firstUnrelatedVar.position)
-        } else if (patternPart.isInstanceOf[NamedPatternPart] && patternVariables.size > 2) {
-          val firstUnrelatedVar = patternVariables.filterNot(v =>
-            v == bindingVariable || v == patternPart.asInstanceOf[NamedPatternPart].variable
-          ).head
-          SemanticError.searchWithMultipleBoundVariables(firstUnrelatedVar.position)
-        } else if (selectors.nonEmpty) {
+        },
+        checkWhenComplexPatternNotAllowed {
+          if (patternParts.size > 1) {
+            SemanticError.searchWithTooComplexMatch(patternParts(1).position)
+          } else if (!patternPart.isInstanceOf[NamedPatternPart] && patternVariables.size > 1) {
+            val firstUnrelatedVar = patternVariables.filterNot(v => v == bindingVariable).head
+            SemanticError.searchWithMultipleBoundVariables(firstUnrelatedVar.position)
+          } else if (patternPart.isInstanceOf[NamedPatternPart] && patternVariables.size > 2) {
+            val firstUnrelatedVar = patternVariables.filterNot(v =>
+              v == bindingVariable || v == patternPart.asInstanceOf[NamedPatternPart].variable
+            ).head
+            SemanticError.searchWithMultipleBoundVariables(firstUnrelatedVar.position)
+          } else {
+            SemanticCheck.success
+          }
+        },
+        when(selectors.nonEmpty) {
           SemanticError.searchWithTooComplexMatch(selectors.head.position)
-        } else {
+        },
+        checkWhenComplexPatternNotAllowed {
           checkPatternElement(patternPart.element)
         }
-      }
+      )
     }
   }
 
