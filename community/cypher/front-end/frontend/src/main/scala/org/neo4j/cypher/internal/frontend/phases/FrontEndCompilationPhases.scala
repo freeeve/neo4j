@@ -101,7 +101,8 @@ trait FrontEndCompilationPhases {
     VectorSearch.productPrefix,
     VectorSingleStageFilteringEnabled.productPrefix,
     VariableChecking.productPrefix,
-    ShowDatabaseInterpretedRuntime.productPrefix
+    ShowDatabaseInterpretedRuntime.productPrefix,
+    AttributeBasedAccessControl.productPrefix
   )
 
   def enabledSemanticFeatures(features: Set[String]): Seq[SemanticFeature] =

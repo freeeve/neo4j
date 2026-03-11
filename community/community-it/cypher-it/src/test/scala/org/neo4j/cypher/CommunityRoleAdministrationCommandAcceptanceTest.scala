@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.CypherVersion.Cypher25
 import org.neo4j.configuration.GraphDatabaseSettings.auth_enabled
@@ -41,7 +40,6 @@ class CommunityRoleAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should fail on showing roles with auth rules from community") {
     restartWithConfig(databaseConfig() ++ Map(
-      GraphDatabaseInternalSettings.attribute_based_access_control -> java.lang.Boolean.TRUE,
       default_language -> Cypher25
     ))
     selectDatabase(GraphDatabaseSettings.SYSTEM_DATABASE_NAME)

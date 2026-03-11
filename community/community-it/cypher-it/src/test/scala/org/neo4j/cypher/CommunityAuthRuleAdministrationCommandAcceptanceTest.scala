@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings.attribute_based_access_control
 import org.neo4j.configuration.GraphDatabaseSettings.CypherVersion
 import org.neo4j.configuration.GraphDatabaseSettings.default_language
 import org.neo4j.graphdb.config.Setting
@@ -28,7 +27,6 @@ class CommunityAuthRuleAdministrationCommandAcceptanceTest extends CommunityAdmi
 
   override def databaseConfig(): Map[Setting[_], Object] =
     super.databaseConfig() ++ Map(
-      attribute_based_access_control -> java.lang.Boolean.TRUE,
       default_language -> CypherVersion.Cypher25
     )
 
