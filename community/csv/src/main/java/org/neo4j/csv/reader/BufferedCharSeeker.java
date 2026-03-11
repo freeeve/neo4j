@@ -80,13 +80,14 @@ public class BufferedCharSeeker implements CharSeeker {
 
     @Override
     public boolean seek(Mark mark, int untilChar) throws IOException {
-        if (eof) { // We're at the end
+        if (eof) {
             return eof(mark);
         }
 
         // Keep a start position in case we need to further fill the buffer in nextChar, a value can at maximum be the
         // whole buffer, so max one fill per value is supported.
-        seekStartPos = bufferPos; // seekStartPos updated in nextChar if buffer flips over, that's why it's a member
+        seekStartPos = bufferPos;
+        // seekStartPos updated in nextChar if buffer flips over, that's why it's a member
         int ch;
         int endOffset = 1;
         int skippedChars = 0;
@@ -96,64 +97,70 @@ public class BufferedCharSeeker implements CharSeeker {
 
         while (!eof) {
             ch = nextChar(skippedChars);
-            if (quoteDepth == 0) { // In normal mode, i.e. not within quotes
-                if (ch == untilChar) { // We found a delimiter, set marker and return true
+            if (quoteDepth == 0) {
+                // In normal mode, i.e. not within quotes
+                if (ch == untilChar) {
+                    // We found a delimiter, set marker and return true
                     return setMark(mark, endOffset, skippedChars, ch, isQuoted);
-                } else if (trim
-                        && isWhitespace(ch)) { // Only check for left+trim whitespace as long as we haven't found a
+                } else if (trim && isWhitespace(ch)) {
+                    // Only check for left+trim whitespace as long as we haven't found a
                     // non-whitespace character
-                    if (seekStartPos
-                            == bufferPos
-                                    - 1 /* -1 since we just advanced one */) { // We found a whitespace, which is before
+                    if (seekStartPos == bufferPos - 1 /* -1 since we just advanced one */) {
+                        // We found a whitespace, which is before
                         // the first non-whitespace of the value
                         // and we've been told to trim that off
                         seekStartPos++;
                     }
-                } else if (ch == quoteChar
-                        && seekStartPos
-                                == bufferPos
-                                        - 1 /* -1 since we just advanced one */) { // We found a quote, which was the
+                } else if (ch == quoteChar && seekStartPos == bufferPos - 1 /* -1 since we just advanced one */) {
+                    // We found a quote, which was the
                     // first of the value, skip it and
                     // switch mode
                     quoteDepth++;
                     isQuoted = true;
                     seekStartPos++;
                     quoteStartLine = lineNumber;
-                } else if (isNewLine(ch)) { // Encountered newline, done for now
-                    if (bufferPos - 1 == lineStartPos) { // We're at the start of this read so just skip it
+                } else if (isNewLine(ch)) {
+                    // Encountered newline, done for now
+                    if (bufferPos - 1 == lineStartPos) {
+                        // We're at the start of this read so just skip it
                         seekStartPos++;
                         lineStartPos++;
                         continue;
                     }
                     break;
-                } else if (isQuoted) { // This value is quoted, i.e. started with a quote and has also seen a quote
+                } else if (isQuoted) {
+                    // This value is quoted, i.e. started with a quote and has also seen a quote
                     throw new DataAfterQuoteException(this, new String(buffer, seekStartPos, bufferPos - seekStartPos));
                 }
                 // else this is a character to include as part of the current value
-            } else { // In quoted mode, i.e. within quotes
-                if (ch == quoteChar) { // Found a quote within a quote, peek at next char
+            } else {
+                // In quoted mode, i.e. within quotes
+                if (ch == quoteChar) {
+                    // Found a quote within a quote, peek at next char
                     int nextCh = peekChar(skippedChars);
-                    if (nextCh
-                            == quoteChar) { // Found a double quote, skip it and we're going down one more quote depth
-                        // (quote-in-quote)
+                    if (nextCh == quoteChar) {
+                        // Found a double quote, skip it
                         repositionChar(bufferPos++, ++skippedChars);
-                    } else { // Found an ending quote, skip it and switch mode
+                    } else {
+                        // Found an ending quote, skip it and switch mode
                         endOffset++;
                         quoteDepth--;
                     }
-                } else if (isNewLine(ch)) { // Found a new line inside a quotation...
-                    if (!(legacyMultilineFields
-                            || multilineDocuments.test(sourceDescription))) { // ...but we are configured to disallow it
+                } else if (isNewLine(ch)) {
+                    // Found a new line inside a quotation...
+                    if (!(legacyMultilineFields || multilineDocuments.test(sourceDescription))) {
+                        // ...but we are configured to disallow it
                         throw new IllegalMultilineFieldException(this);
                     }
                     // ... it's OK, just keep going
                     if (ch == EOL_CHAR) {
                         lineNumber++;
                     }
-                } else if (ch == BACK_SLASH
-                        && legacyStyleQuoting) { // Legacy concern, support java style quote encoding
+                } else if (ch == BACK_SLASH && legacyStyleQuoting) {
+                    // Legacy concern, support java style quote encoding
                     int nextCh = peekChar(skippedChars);
-                    if (nextCh == quoteChar || nextCh == BACK_SLASH) { // Found a slash encoded quote
+                    if (nextCh == quoteChar || nextCh == BACK_SLASH) {
+                        // Found a slash encoded quote
                         repositionChar(bufferPos++, ++skippedChars);
                     }
                 } else if (eof) {
@@ -164,9 +171,8 @@ public class BufferedCharSeeker implements CharSeeker {
         }
 
         int valueLength = bufferPos - seekStartPos - 1;
-        if (eof
-                && valueLength == 0
-                && seekStartPos == lineStartPos) { // We didn't find any of the characters sought for
+        if (eof && valueLength == 0 && seekStartPos == lineStartPos) {
+            // We didn't find any of the characters sought for
             return eof(mark);
         }
 
