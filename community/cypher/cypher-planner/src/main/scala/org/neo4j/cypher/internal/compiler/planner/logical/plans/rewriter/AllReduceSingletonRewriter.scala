@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.Repeat
+import org.neo4j.cypher.internal.logical.plans.RepeatAcyclic
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
@@ -92,20 +94,16 @@ case class AllReduceSingletonRewriter(
 
   val innerRewriter: Rewriter = topDown(
     Rewriter.lift {
-      case repeat @ RepeatWalk(_, rhs, _, _, _, _, _, _, _, _, _, _, accumulatorMappings)
-        if accumulatorMappings.nonEmpty =>
-        val (newRhs, newAccumulatorMappings) = newRepeatParameters(rhs, accumulatorMappings)
-        repeat.copy(
-          right = newRhs,
-          accumulatorMappings = newAccumulatorMappings
-        )(SameId(repeat.id))
-      case repeat @ RepeatTrail(_, rhs, _, _, _, _, _, _, _, _, _, _, _, _, accumulatorMappings)
-        if accumulatorMappings.nonEmpty =>
-        val (newRhs, newAccumulatorMappings) = newRepeatParameters(rhs, accumulatorMappings)
-        repeat.copy(
-          right = newRhs,
-          accumulatorMappings = newAccumulatorMappings
-        )(SameId(repeat.id))
+      case repeat: Repeat if repeat.accumulatorMappings.nonEmpty =>
+        val (newRhs, newAccumulatorMappings) = newRepeatParameters(repeat.right, repeat.accumulatorMappings)
+        repeat match {
+          case typedRepeat: RepeatTrail =>
+            typedRepeat.copy(right = newRhs, accumulatorMappings = newAccumulatorMappings)(SameId(repeat.id))
+          case typedRepeat: RepeatWalk =>
+            typedRepeat.copy(right = newRhs, accumulatorMappings = newAccumulatorMappings)(SameId(repeat.id))
+          case typedRepeat: RepeatAcyclic =>
+            typedRepeat.copy(right = newRhs, accumulatorMappings = newAccumulatorMappings)(SameId(repeat.id))
+        }
     },
     stopper = !_.isInstanceOf[LogicalPlan]
   )

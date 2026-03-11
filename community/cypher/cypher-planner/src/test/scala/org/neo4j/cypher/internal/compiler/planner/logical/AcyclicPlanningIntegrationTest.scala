@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
-import org.neo4j.cypher.internal.expressions.IsRepeatAcyclic
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
@@ -131,7 +130,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"anon_1")(pos), "NOT anon_0 = anon_1")
+      .|.filter(isRepeatAcyclic("anon_1"), "NOT anon_0 = anon_1")
       .|.expandAll("(anon_0)-[r1]->(anon_1)")
       .|.argument("anon_0")
       .nodeByLabelScan("n1", "S")
@@ -243,7 +242,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"anon_1")(pos), "NOT anon_0 = anon_1", isRepeatTrailUnique("r2"))
+      .|.filter(isRepeatAcyclic("anon_1"), "NOT anon_0 = anon_1", isRepeatTrailUnique("r2"))
       .|.expandAll("(anon_0)-[r2]->(anon_1)")
       .|.argument("anon_0")
       .expandExpr(
@@ -297,7 +296,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"anon_1")(pos), "NOT anon_0 = anon_1", isRepeatTrailUnique("r1"))
+      .|.filter(isRepeatAcyclic("anon_1"), "NOT anon_0 = anon_1", isRepeatTrailUnique("r1"))
       .|.expandAll("(anon_0)-[r1]->(anon_1)")
       .|.argument("anon_0")
       .nodeByLabelScan("n1", "S")
@@ -336,7 +335,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"anon_3")(pos), "NOT anon_2 = anon_3", isRepeatTrailUnique("r2"))
+      .|.filter(isRepeatAcyclic("anon_3"), "NOT anon_2 = anon_3", isRepeatTrailUnique("r2"))
       .|.expandAll("(anon_2)-[r2]->(anon_3)")
       .|.argument("anon_2")
       .repeatAcyclic(AcyclicParameters(
@@ -358,7 +357,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"anon_1")(pos), "NOT anon_0 = anon_1", isRepeatTrailUnique("r1"))
+      .|.filter(isRepeatAcyclic("anon_1"), "NOT anon_0 = anon_1", isRepeatTrailUnique("r1"))
       .|.expandAll("(anon_0)-[r1]->(anon_1)")
       .|.argument("anon_0")
       .nodeByLabelScan("n1", "S")
@@ -399,7 +398,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4")
+      .|.filter(isRepeatAcyclic("n4"), "NOT n3 = n4")
       .|.expandAll("(n3)-[r2]->(n4)")
       .|.argument("n3")
       .filter("NOT n1 = n2")
@@ -544,7 +543,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4")
+      .|.filter(isRepeatAcyclic("n4"), "NOT n3 = n4")
       .|.expandAll("(n3)-[r2]-(n4)")
       .|.filter("n3.p = 1")
       .|.argument("n3")
@@ -729,7 +728,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n3 = n4")
+      .|.filter(isRepeatAcyclic("n3"), "NOT n3 = n4")
       .|.expandAll("(n4)<-[r2]-(n3)")
       .|.filter("n4.p = 1")
       .|.argument("n4")
@@ -865,11 +864,11 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n5")(pos), "NOT n2 = n5", "NOT n4 = n5", "NOT n3 = n5")
+      .|.filter(isRepeatAcyclic("n5"), "NOT n2 = n5", "NOT n4 = n5", "NOT n3 = n5")
       .|.expandAll("(n4)-[r3]->(n5)")
-      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n2 = n4", "NOT n3 = n4")
+      .|.filter(isRepeatAcyclic("n4"), "NOT n2 = n4", "NOT n3 = n4")
       .|.expandAll("(n3)-[r2]->(n4)")
-      .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n2 = n3")
+      .|.filter(isRepeatAcyclic("n3"), "NOT n2 = n3")
       .|.expandAll("(n2)<-[r1]-(n3)")
       .|.argument("n2")
       .nodeByLabelScan("n1", "S", IndexOrderNone)
@@ -912,11 +911,11 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n2")(pos), "NOT n2 = n3", "NOT n2 = n4", "NOT n2 = n5")
+      .|.filter(isRepeatAcyclic("n2"), "NOT n2 = n3", "NOT n2 = n4", "NOT n2 = n5")
       .|.expandAll("(n3)-[r1]->(n2)")
-      .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n3 = n4", "NOT n3 = n5")
+      .|.filter(isRepeatAcyclic("n3"), "NOT n3 = n4", "NOT n3 = n5")
       .|.expandAll("(n4)<-[r2]-(n3)")
-      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n4 = n5")
+      .|.filter(isRepeatAcyclic("n4"), "NOT n4 = n5")
       .|.expandAll("(n5)<-[r3]-(n4)")
       .|.argument("n5")
       .nodeByLabelScan("n6", "S", IndexOrderNone)
@@ -960,7 +959,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n6")(pos), "NOT n5 = n6")
+      .|.filter(isRepeatAcyclic("n6"), "NOT n5 = n6")
       .|.expandAll("(n5)-[r2]->(n6)")
       .|.argument("n5")
       .repeatAcyclic(AcyclicParameters(
@@ -982,7 +981,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n2 = n3")
+      .|.filter(isRepeatAcyclic("n3"), "NOT n2 = n3")
       .|.expandAll("(n2)-[r1]->(n3)")
       .|.argument("n2")
       .nodeByLabelScan("n1", "S")
@@ -1024,7 +1023,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n7")(pos), "NOT n6 = n7")
+      .|.filter(isRepeatAcyclic("n7"), "NOT n6 = n7")
       .|.expandAll("(n6)-[r3]->(n7)")
       .|.argument("n6")
       .filter("NOT n5 IN n3 + n2", "NOT n1 = n5", "NOT n4 = n5")
@@ -1048,7 +1047,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n3")(pos), "NOT n2 = n3")
+      .|.filter(isRepeatAcyclic("n3"), "NOT n2 = n3")
       .|.expandAll("(n2)-[r1:R]->(n3)")
       .|.argument("n2")
       .nodeByLabelScan("n1", "S", IndexOrderNone)
@@ -1092,7 +1091,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n7")(pos), "NOT n6 = n7")
+      .|.filter(isRepeatAcyclic("n7"), "NOT n6 = n7")
       .|.expandAll("(n6)-[r3]->(n7)")
       .|.argument("n6")
       .filter("NOT n1 = n5")
@@ -1115,7 +1114,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n2")(pos), "NOT n2 = n3")
+      .|.filter(isRepeatAcyclic("n2"), "NOT n2 = n3")
       .|.expandAll("(n3)<-[r1]-(n2)")
       .|.argument("n3")
       .filter("NOT n4 = n5")
@@ -1158,9 +1157,9 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"e")(pos), "NOT d = e", "NOT c = e")
+      .|.filter(isRepeatAcyclic("e"), "NOT d = e", "NOT c = e")
       .|.expandAll("(d)-[s]->(e)")
-      .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT c = d")
+      .|.filter(isRepeatAcyclic("d"), "NOT c = d")
       .|.expandAll("(c)-[r]->(d)")
       .|.argument("c")
       .filter("NOT a = b")
@@ -1307,7 +1306,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n8")(pos), "NOT n7 = n8", isRepeatTrailUnique("r4"))
+      .|.filter(isRepeatAcyclic("n8"), "NOT n7 = n8", isRepeatTrailUnique("r4"))
       .|.expandAll("(n7)-[r4]->(n8)")
       .|.argument("n7")
       .filter("NOT r3 IN r2", "NOT n5 = n6", "NOT r1 = r3")
@@ -1332,7 +1331,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"n4")(pos), "NOT n3 = n4", isRepeatTrailUnique("r2"))
+      .|.filter(isRepeatAcyclic("n4"), "NOT n3 = n4", isRepeatTrailUnique("r2"))
       .|.expandAll("(n3)<-[r2]-(n4)")
       .|.argument("n3")
       .filter("NOT n1 = n2")
@@ -1438,7 +1437,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       // - NoneOfNodes(d, g_inner2+h_inner)
       // isRepeatTrailUnique(r6) with previouslyBoundRelationships = Set("r1") solves:
       // - NoneOfRelationships(r1, r6)
-      .|.filter(IsRepeatAcyclic(v"h_inner")(pos), "NOT g_inner2 = h_inner", isRepeatTrailUnique("r6"))
+      .|.filter(isRepeatAcyclic("h_inner"), "NOT g_inner2 = h_inner", isRepeatTrailUnique("r6"))
       .|.expandAll("(g_inner2)-[r6:R]->(h_inner)")
       .|.argument("g_inner2")
       .filter("NOT c = g", "NOT d = g") // DifferentNodes(c,g), DifferentNodes(d,g)
@@ -1469,13 +1468,13 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       // IsRepeatTrailUnique(r4), IsRepeatTrailUnique(r5) with previouslyBoundRelationships = Set("r1") solves:
       // - NoneOfRelationships(r1, r4+r5)
       .|.filter(
-        IsRepeatAcyclic(v"g_inner1")(pos),
+        isRepeatAcyclic("g_inner1"),
         "NOT f = g_inner1",
         "NOT e_inner = g_inner1",
         isRepeatTrailUnique("r5")
       )
       .|.expandAll("(f)<-[r5:R]-(g_inner1)")
-      .|.filter(IsRepeatAcyclic(v"f")(pos), "NOT e_inner = f", isRepeatTrailUnique("r4"))
+      .|.filter(isRepeatAcyclic("f"), "NOT e_inner = f", isRepeatTrailUnique("r4"))
       .|.expandAll("(e_inner)-[r4:R]->(f)")
       .|.argument("e_inner")
       .filter(
@@ -1533,7 +1532,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         pathMode = Acyclic
       )
       .|.|.argument("d", "c")
-      .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT c = d")
+      .|.filter(isRepeatAcyclic("d"), "NOT c = d")
       .|.expandAll("(c)-[s]-(d)")
       .|.argument("c")
       .filter("NOT a = b")
@@ -1596,7 +1595,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .|.|.|.argument("e")
       .|.|.filter("d:T")
       .|.|.argument("d", "c")
-      .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT c = d")
+      .|.filter(isRepeatAcyclic("d"), "NOT c = d")
       .|.expandAll("(c)-[s]-(d)")
       .|.argument("c")
       .filter("NOT a = b")
@@ -1637,9 +1636,9 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandInto,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT b = d", "NOT c = d")
+      .|.filter(isRepeatAcyclic("d"), "NOT b = d", "NOT c = d")
       .|.expandAll("(c)-[anon_1]-(d)")
-      .|.filter(IsRepeatAcyclic(v"c")(pos), "NOT b = c")
+      .|.filter(isRepeatAcyclic("c"), "NOT b = c")
       .|.expandAll("(b)-[anon_0]-(c)")
       .|.argument("b")
       .skip(0)
@@ -1679,13 +1678,58 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandInto,
         accumulators = Set()
       ))
-      .|.filter(IsRepeatAcyclic(v"d")(pos), "NOT b = d", "NOT c = d", isRepeatTrailUnique("anon_2"))
+      .|.filter(isRepeatAcyclic("d"), "NOT b = d", "NOT c = d", isRepeatTrailUnique("anon_2"))
       .|.expandAll("(c)-[anon_2]-(d)")
-      .|.filter(IsRepeatAcyclic(v"c")(pos), "NOT b = c", isRepeatTrailUnique("anon_1"))
+      .|.filter(isRepeatAcyclic("c"), "NOT b = c", isRepeatTrailUnique("anon_1"))
       .|.expandAll("(b)-[anon_1]-(c)")
       .|.argument("b")
       .filter("NOT a = e")
       .allRelationshipsScan("(a)-[anon_0]-(e)")
       .build()
+  }
+
+  test("should be able to combine ACYCLIC with allReduce") {
+    val planner = pb.build()
+
+    val query =
+      """
+        |MATCH ACYCLIC ()-[r]-+()
+        |  WHERE allReduce(acc = [], rel IN r | acc + rel, size(acc) < 10)
+        |RETURN count(*)
+        |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+    val acyclicParameters =
+      AcyclicParameters(
+        min = 1,
+        max = Unlimited,
+        start = "anon_0",
+        end = "anon_1",
+        innerStart = "anon_2",
+        innerEnd = "anon_3",
+        groupNodes = Set(),
+        innerNodes = Set("anon_2", "anon_3"),
+        previouslyBoundNodes = Set("anon_0"),
+        previouslyBoundNodeGroups = Set(),
+        groupRelationships = Set(),
+        innerRelationships = Set("r"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll,
+        // this comes from the allReduce
+        accumulators = Set(("[]", "acc", "acc"))
+      )
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`count(*)`")
+        .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
+        .repeatAcyclic(acyclicParameters)
+        .|.filter("size(acc) < 10", isRepeatAcyclic("anon_3"), "NOT anon_2 = anon_3")
+        .|.projection("acc + r AS acc")
+        .|.expandAll("(anon_2)-[r]-(anon_3)")
+        .|.argument("anon_2", "acc")
+        .allNodeScan("anon_0")
+        .build()
   }
 }
