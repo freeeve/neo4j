@@ -429,10 +429,10 @@ object expandSolverStep {
       case uniqueNodesPred @ UniqueNodes(VariableList(list), _) if list.subsetOf(groupingNodes) =>
         SolvedUniquenessPredicate(uniqueNodesPred)
 
-      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2))
+      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2), _, _)
         if list1.subsetOf(groupingNodes) && list2.forall(isBound) =>
         SolvedUniquenessPredicate(disjointNodesPred, previouslyBoundNodeGroups = list2)
-      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2))
+      case disjointNodesPred @ DisjointNodes(VariableList(list1), VariableList(list2), _, _)
         if list2.subsetOf(groupingNodes) && list1.forall(isBound) =>
         SolvedUniquenessPredicate(disjointNodesPred, previouslyBoundNodeGroups = list1)
 

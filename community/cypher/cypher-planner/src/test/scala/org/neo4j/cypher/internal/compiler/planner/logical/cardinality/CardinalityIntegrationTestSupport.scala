@@ -19,7 +19,9 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
@@ -67,14 +69,28 @@ trait CardinalityIntegrationTestSupport extends StatisticsBackedLogicalPlanningS
     )
   }
 
-  def planShouldHaveCardinality(
+  def queryShouldHaveCardinality(
     config: StatisticsBackedLogicalPlanningConfiguration,
+    cypherVersion: CypherVersion,
     query: String,
+    expectedCardinality: Double
+  ): Unit = {
+    planShouldHaveCardinality(
+      config,
+      cypherVersion,
+      query,
+      {
+        case _: ProduceResult => true
+      },
+      expectedCardinality
+    )
+  }
+
+  def checkPlanState(
+    planState: LogicalPlanState,
     findPlanId: PartialFunction[LogicalPlan, Boolean],
     expectedCardinality: Double
   ): Unit = {
-    val planState = config.planState(s"$query RETURN 1 AS result")
-
     val planId = planState.logicalPlan.flatten(CancellationChecker.neverCancelled()).collectFirst {
       case lp if findPlanId.applyOrElse(lp, (_: LogicalPlan) => false) => lp.id
     }.get
@@ -83,6 +99,27 @@ trait CardinalityIntegrationTestSupport extends StatisticsBackedLogicalPlanningS
     // used to handle double rounding errors in assertion
     import org.neo4j.cypher.internal.compiler.planner.logical.CardinalitySupport.EffectiveCardinalityEquality
     actualCardinality should equal(EffectiveCardinality(expectedCardinality))(EffectiveCardinalityEquality)
+  }
+
+  def planShouldHaveCardinality(
+    config: StatisticsBackedLogicalPlanningConfiguration,
+    query: String,
+    findPlanId: PartialFunction[LogicalPlan, Boolean],
+    expectedCardinality: Double
+  ): Unit = {
+    val planState = config.planState(s"$query RETURN 1 AS result")
+    checkPlanState(planState, findPlanId, expectedCardinality)
+  }
+
+  def planShouldHaveCardinality(
+    config: StatisticsBackedLogicalPlanningConfiguration,
+    cypherVersion: CypherVersion,
+    query: String,
+    findPlanId: PartialFunction[LogicalPlan, Boolean],
+    expectedCardinality: Double
+  ): Unit = {
+    val planState = config.planState(cypherVersion, s"$query RETURN 1 AS result")
+    checkPlanState(planState, findPlanId, expectedCardinality)
   }
 
   def queryShouldHaveCardinality(query: String, expectedCardinality: Double): Unit = {

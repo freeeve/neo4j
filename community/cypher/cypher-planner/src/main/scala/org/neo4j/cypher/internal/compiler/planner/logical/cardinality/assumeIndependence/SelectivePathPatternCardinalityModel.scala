@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.Selector
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Fby
 import org.neo4j.cypher.internal.util.Last
@@ -200,7 +201,10 @@ trait SelectivePathPatternCardinalityModel
           labelInfo,
           quantifiedPathPattern,
           uniqueRelationships,
-          boundaryNodePredicates
+          Set.empty, // Fixme: update when selective path patterns can be combined with explicit path modes like ACYCLIC
+          boundaryNodePredicates,
+          Set.empty,
+          Trail // Fixme: update when selective path patterns can be combined with explicit path modes like ACYCLIC
         )
     }
 }

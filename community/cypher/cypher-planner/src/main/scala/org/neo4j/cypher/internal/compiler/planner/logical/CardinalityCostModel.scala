@@ -115,7 +115,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
-import org.neo4j.cypher.internal.logical.plans.RepeatTrail
+import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.SingleFromRightLogicalPlan
@@ -304,11 +304,11 @@ case class CardinalityCostModel(
         val rhsExecutions = batchSize.numBatchesFor(lhsCardinality)
         lhsCost + rhsExecutions * rhsCost
 
-      case t: RepeatTrail =>
+      case r: Repeat =>
         val lhsCardinality = effectiveCardinalities.lhs
         val rhsCardinality = effectiveCardinalities.rhs
 
-        val qppRange = RepetitionCardinalityModel.quantifiedPathPatternRepetitionAsRange(t.repetition)
+        val qppRange = RepetitionCardinalityModel.quantifiedPathPatternRepetitionAsRange(r.repetition)
 
         // For iteration 1 the RHS executes with LHS cardinality.
         val iteration1Cost =
@@ -862,9 +862,9 @@ object CardinalityCostModel {
       // ForeachApply is an ApplyPlan, but only yields LHS rows, therefore we match this before matching ApplyPlan
       (parentWorkReduction, WorkReduction.NoReduction)
 
-    case t: RepeatTrail =>
-      // Trail is an ApplyPlan, but nestedLoopChildrenWorkReduction makes some assumptions that don't hold for Trail
-      trailChildrenWorkReduction(t, parentWorkReduction, cardinalities)
+    case r: Repeat =>
+      // Repeat is an ApplyPlan, but nestedLoopChildrenWorkReduction makes some assumptions that don't hold for Trail
+      repeatChildrenWorkReduction(r, parentWorkReduction, cardinalities)
 
     case a: ApplyPlan =>
       nestedLoopChildrenWorkReduction(a, parentWorkReduction, VolcanoBatchSize, cardinalities)
@@ -989,10 +989,10 @@ object CardinalityCostModel {
    * which is not true in [[nestedLoopChildrenWorkReduction]] if the RHS cardinality is < 1.0.
    *
    * [[nestedLoopChildrenWorkReduction]] also assumes that `lhsCardinality * rhsCardinality = parentCardinality`, 
-   * which is not true for Trail.
+   * which is not true for Repeat.
    */
-  private def trailChildrenWorkReduction(
-    plan: RepeatTrail,
+  private def repeatChildrenWorkReduction(
+    plan: Repeat,
     parentWorkReduction: WorkReduction,
     cardinalities: Cardinalities
   ): (WorkReduction, WorkReduction) = {

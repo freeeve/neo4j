@@ -806,7 +806,7 @@ private class DefaultExpressionStringifier(
       case Disjoint(rel1, rel2) =>
         noEagerConsumption(s"disjoint(${apply(rel1)}, ${apply(rel2)})")
 
-      case DisjointNodes(nodeList1, nodeList2) =>
+      case DisjointNodes(nodeList1, nodeList2, _, _) =>
         noEagerConsumption(s"disjoint(${apply(nodeList1)}, ${apply(nodeList2)})")
 
       case Unique(rel) =>

@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolv
 import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivityConfig
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -1017,6 +1018,54 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     TrailTestCase(builder, plan, lhsCardinality, rhsCardinality, lhsCost, rhsCost)
   }
 
+  def acyclicTestCase(min: Int, max: UpperBound): TrailTestCase = {
+    val lhsCardinality = Cardinality(10)
+    val rhsCardinality = Cardinality(1.5)
+    val acyclicParams = AcyclicParameters(
+      min = min,
+      max = max,
+      start = "a",
+      end = "b",
+      innerStart = "a",
+      innerEnd = "b",
+      groupNodes = Set(("a", "a"), ("b", "b")),
+      innerNodes = Set("a", "b"),
+      previouslyBoundNodes = Set("a"),
+      previouslyBoundNodeGroups = Set.empty,
+      groupRelationships = Set(("r", "r")),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .repeatAcyclic(acyclicParams)
+      .|.expand("(a)-[r]->(b)").withCardinality(rhsCardinality.amount)
+      .|.argument("a").withCardinality(1)
+      .argument("a").withCardinality(lhsCardinality.amount)
+      .build()
+
+    val lhsCost = costFor(
+      plan.lhs.get,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders
+    )
+    val rhsCost = costFor(
+      plan.rhs.get,
+      QueryGraphSolverInput.empty,
+      builder.getSemanticTable,
+      builder.cardinalities,
+      builder.providedOrders
+    )
+    TrailTestCase(builder, plan, lhsCardinality, rhsCardinality, lhsCost, rhsCost)
+  }
+
   def assertTrailHasExpectedCost(testCase: TrailTestCase, expectedCost: Cost): Assertion = {
     costFor(
       testCase.plan,
@@ -1036,10 +1085,32 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     assertTrailHasExpectedCost(testCase1_1, expected)
   }
 
+  test("acyclic cost {X, 1}") {
+    val testCase0_1 = acyclicTestCase(0, Limited(1))
+    val testCase1_1 = acyclicTestCase(1, Limited(1))
+
+    val expected = testCase0_1.lhsCost + testCase0_1.lhsCardinality * testCase0_1.rhsCost
+    assertTrailHasExpectedCost(testCase0_1, expected)
+    assertTrailHasExpectedCost(testCase1_1, expected)
+  }
+
   test("trail cost {X, 2}") {
     val testCase0_2 = trailTestCase(0, Limited(2))
     val testCase1_2 = trailTestCase(1, Limited(2))
     val testCase2_2 = trailTestCase(2, Limited(2))
+
+    val iter1Cost = testCase0_2.lhsCardinality * testCase0_2.rhsCost
+    val iter2Cost = testCase0_2.lhsCardinality * testCase0_2.rhsCardinality * testCase0_2.rhsCost
+    val expected = testCase0_2.lhsCost + iter1Cost + iter2Cost
+    assertTrailHasExpectedCost(testCase0_2, expected)
+    assertTrailHasExpectedCost(testCase1_2, expected)
+    assertTrailHasExpectedCost(testCase2_2, expected)
+  }
+
+  test("acyclic cost {X, 2}") {
+    val testCase0_2 = acyclicTestCase(0, Limited(2))
+    val testCase1_2 = acyclicTestCase(1, Limited(2))
+    val testCase2_2 = acyclicTestCase(2, Limited(2))
 
     val iter1Cost = testCase0_2.lhsCardinality * testCase0_2.rhsCost
     val iter2Cost = testCase0_2.lhsCardinality * testCase0_2.rhsCardinality * testCase0_2.rhsCost
@@ -1054,6 +1125,21 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     val testCase1_3 = trailTestCase(1, Limited(3))
     val testCase2_3 = trailTestCase(2, Limited(3))
     val testCase3_3 = trailTestCase(3, Limited(3))
+
+    val iter1Cost = testCase0_3.lhsCardinality * testCase0_3.rhsCost
+    val iterNCost = testCase0_3.lhsCardinality * testCase0_3.rhsCardinality * testCase0_3.rhsCost
+    val expected = testCase0_3.lhsCost + iter1Cost + iterNCost + iterNCost
+    assertTrailHasExpectedCost(testCase0_3, expected)
+    assertTrailHasExpectedCost(testCase1_3, expected)
+    assertTrailHasExpectedCost(testCase2_3, expected)
+    assertTrailHasExpectedCost(testCase3_3, expected)
+  }
+
+  test("acyclic cost {X, 3}") {
+    val testCase0_3 = acyclicTestCase(0, Limited(3))
+    val testCase1_3 = acyclicTestCase(1, Limited(3))
+    val testCase2_3 = acyclicTestCase(2, Limited(3))
+    val testCase3_3 = acyclicTestCase(3, Limited(3))
 
     val iter1Cost = testCase0_3.lhsCardinality * testCase0_3.rhsCost
     val iterNCost = testCase0_3.lhsCardinality * testCase0_3.rhsCardinality * testCase0_3.rhsCost

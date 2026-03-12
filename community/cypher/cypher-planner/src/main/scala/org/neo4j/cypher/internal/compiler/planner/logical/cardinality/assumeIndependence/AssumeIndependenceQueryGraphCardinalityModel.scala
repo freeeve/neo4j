@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInde
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
@@ -179,7 +180,8 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
               predicates,
               boundNodesAndArguments,
               nodeConnection,
-              queryGraph.coveredIdsForPatterns
+              queryGraph.coveredIdsForPatterns,
+              TraversalPathMode.getFromPredicates(queryGraph.selections.predicates.map(_.expr))
             )
         }
 

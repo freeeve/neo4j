@@ -553,7 +553,13 @@ case class Disjoint(lhs: Expression, rhs: Expression)(val position: InputPositio
   override def isConstantForQuery: Boolean = lhs.isConstantForQuery && rhs.isConstantForQuery
 }
 
-case class DisjointNodes(lhs: Expression, rhs: Expression)(val position: InputPosition)
+// The repetition bounds are only given to assist during cardinality estimation
+case class DisjointNodes(
+  lhs: Expression,
+  rhs: Expression,
+  lhsRepetitionLowerBound: Long,
+  lhsRepetitionUpperBound: Option[Long]
+)(val position: InputPosition)
     extends NodeUniquenessPredicate {
   override def isConstantForQuery: Boolean = lhs.isConstantForQuery && rhs.isConstantForQuery
 }

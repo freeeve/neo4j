@@ -26,6 +26,9 @@ import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
+import org.neo4j.cypher.internal.expressions.FixedQuantifier
+import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
+import org.neo4j.cypher.internal.expressions.IntervalQuantifier
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.MatchMode.MatchMode
@@ -36,6 +39,7 @@ import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
+import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PathMode
 import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
 import org.neo4j.cypher.internal.expressions.PathMode.Trail
@@ -46,6 +50,7 @@ import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
 import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
+import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.Range
@@ -54,6 +59,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ScopeExpression
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
+import org.neo4j.cypher.internal.expressions.StarQuantifier
 import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.expressions.UniqueNodes
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -219,6 +225,8 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
   private case class QppForNodeUniqueness(
     innerNodeVariables: Seq[LogicalVariable],
     innerRelationshipVariables: Seq[LogicalVariable],
+    repetitionLowerBound: Long,
+    maybeRepetitionUpperBound: Option[Long],
     equivalenceClass: Int
   ) extends PathElementForNodeUniqueness
 
@@ -231,6 +239,24 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
     nodeVars: Seq[LogicalVariable],
     relVars: Seq[LogicalVariable]
   )
+
+  private def getLowerBound(quantifier: GraphPatternQuantifier): Long = {
+    quantifier match {
+      case _: PlusQuantifier     => 1
+      case _: StarQuantifier     => 0
+      case f: FixedQuantifier    => f.value.value
+      case i: IntervalQuantifier => i.lower.getOrElse(PathLengthQuantifier("0")(i.position)).value
+    }
+  }
+
+  private def getUpperBound(quantifier: GraphPatternQuantifier): Option[Long] = {
+    quantifier match {
+      case _: PlusQuantifier     => None
+      case _: StarQuantifier     => None
+      case f: FixedQuantifier    => Some(f.value.value)
+      case i: IntervalQuantifier => i.upper.map(_.value)
+    }
+  }
 
   /**
    * Each node in a path pattern is assigned an 'equivalence class' which is used to determine the node uniqueness
@@ -314,6 +340,8 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
           QppForNodeUniqueness(
             nodeSingletonVariablesInQPP.nodeVars,
             nodeSingletonVariablesInQPP.relVars,
+            getLowerBound(qp.quantifier),
+            getUpperBound(qp.quantifier),
             currentEquivalenceClass
           ) +: currentPathElements,
           currentEquivalenceClass
@@ -460,7 +488,7 @@ case object AddElementUniquenessPredicates extends AddPathPredicates[NodeConnect
         val q1List = reduceLists(q1Nodes.map(_.copyId), pos)
         val q2List = reduceLists(q2Nodes.map(_.copyId), pos)
 
-        Seq(DisjointNodes(q1List, q2List)(pos))
+        Seq(DisjointNodes(q1List, q2List, q1.repetitionLowerBound, q1.maybeRepetitionUpperBound)(pos))
 
     }.flatten
   }

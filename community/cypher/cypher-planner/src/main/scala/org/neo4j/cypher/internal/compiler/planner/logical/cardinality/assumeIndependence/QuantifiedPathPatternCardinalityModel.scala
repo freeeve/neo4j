@@ -20,13 +20,18 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence
 
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_REL_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantLabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.PatternRelationshipCardinalityModel.extractRelevantRelTypeInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.VariableList
+import org.neo4j.cypher.internal.expressions.DifferentNodes
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
+import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.NodeBinding
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -34,6 +39,10 @@ import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.Multiplier
@@ -53,14 +62,20 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
     labelInfo: LabelInfo,
     quantifiedPathPattern: QuantifiedPathPattern,
     uniqueRelationships: Set[LogicalVariable],
-    boundaryNodePredicates: Set[Predicate]
+    uniqueNodes: Set[LogicalVariable],
+    boundaryNodePredicates: Set[Predicate],
+    otherPredicates: Set[Predicate],
+    pathMode: TraversalPathMode
   ): Cardinality = {
     cachedDoGetQuantifiedPathPatternCardinality(
       context.copy(relTypeInfo = extractRelevantRelTypeInfo(context.relTypeInfo, quantifiedPathPattern)),
       extractRelevantLabelInfo(labelInfo, quantifiedPathPattern),
       quantifiedPathPattern,
       uniqueRelationships,
-      boundaryNodePredicates
+      uniqueNodes,
+      boundaryNodePredicates,
+      otherPredicates,
+      pathMode
     )
   }
 
@@ -71,8 +86,59 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
     labelInfo: LabelInfo,
     quantifiedPathPattern: QuantifiedPathPattern,
     uniqueRelationships: Set[LogicalVariable],
-    boundaryNodePredicates: Set[Predicate]
+    uniqueNodes: Set[LogicalVariable],
+    boundaryNodePredicates: Set[Predicate],
+    outerOtherPredicates: Set[Predicate],
+    pathMode: TraversalPathMode
   ): Cardinality = {
+    val nodesOutsideTheQpp = pathMode match {
+      case Trail => 0
+      case Walk  => 0
+      case Acyclic =>
+        outerOtherPredicates.foldLeft(0) {
+          case (acc, Predicate(_, NoneOfNodes(_: Variable, VariableList(nodes))))
+            if nodes subsetOf quantifiedPathPattern.groupVariables =>
+            acc + 1
+          case (
+              acc,
+              Predicate(
+                _,
+                DisjointNodes(VariableList(nodes1), VariableList(nodes2), nodes1LowerBound, nodes1MaybeUpperBound)
+              )
+            )
+            if nodes2.subsetOf(quantifiedPathPattern.groupVariables) =>
+            // Let's say that nodes1 come from QPP1 with quantifier {3,6}.
+            // We assume here (while estimating the cardinality of QPP2 with nodes2) that QPP1 always performed 4 iterations.
+            // We take the middle between the lower and upper bound, rounded down.
+
+            val middleNumberOfIterations: Int = {
+              val upperBound = nodes1MaybeUpperBound match {
+                case Some(x) if x < RepetitionCardinalityModel.MAX_VAR_LENGTH => x.toInt
+                case _ => RepetitionCardinalityModel.MAX_VAR_LENGTH
+              }
+              val lowerBound = Math.min(nodes1LowerBound, upperBound).toInt
+              ((upperBound - lowerBound) / 2) + lowerBound
+            }
+
+            // On unrolling a QPP, the first node of the current iteration is the last node of the previous iteration.
+            val totalNodesInChain = middleNumberOfIterations match {
+              case 0 => 1
+              case i => nodes1.size * i - i + 1 // same as: nodes1.size + (nodes1.size - 1) * (i - 1)
+            }
+            // We also assume that both QPPs belong to different equivalent classes.
+            // In those cases there are NoneOfNodes-predicates for the boundary nodes.
+            // Therefore, we do not include the first and the last node of the full unrolled chain. This explains the -2.
+            val totalNodesInChainExpectStartAndEnd =
+              if (totalNodesInChain <= 2) {
+                0
+              } else {
+                totalNodesInChain - 2
+              }
+            acc + totalNodesInChainExpectStartAndEnd
+          case (acc, _) => acc
+        }
+    }
+
     val predicates = QuantifiedPathPatternPredicates.partitionSelections(labelInfo, quantifiedPathPattern.selections)
 
     lazy val labelsOnFirstNode =
@@ -191,7 +257,21 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
               predicates.allLabelInfo
                 .updated(quantifiedPathPattern.leftBinding.inner, labelsOnFirstNode)
                 .updated(quantifiedPathPattern.rightBinding.inner, labelsOnLastNode)
-            val uniquenessSelectivity = DEFAULT_REL_UNIQUENESS_SELECTIVITY ^ predicates.differentRelationships.size
+            val uniquenessSelectivity = pathMode match {
+              case Trail   => DEFAULT_REL_UNIQUENESS_SELECTIVITY ^ predicates.differentRelationships.size
+              case Walk    => Selectivity(1)
+              case Acyclic =>
+                // Node uniqueness between the nodes in the QPP
+                val differentNodesPredicatesWithinQpp = predicates.differentNodes.size
+
+                // Node uniqueness for the cases where one node is inside the QPP and one is outside the QPP.
+                // Do not include the first and last nodes from within the QPP. DifferentNodes-predicates for the
+                // outer-start and outer-end nodes of the QPP handle those, when needed.
+                val differentNodesPredicatesWithOneNodeInQppAndOneNodeOutsideQpp =
+                  (quantifiedPathPattern.patternNodes.size - 2) * nodesOutsideTheQpp
+
+                DEFAULT_NODES_UNIQUENESS_SELECTIVITY ^ (differentNodesPredicatesWithinQpp + differentNodesPredicatesWithOneNodeInQppAndOneNodeOutsideQpp)
+            }
             val patternCardinality =
               getPatternRelationshipsCardinality(
                 context,
@@ -228,14 +308,41 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
                   junctionNodeCardinality = junctionNodeCardinality
                 )
 
-                val uniqueRelationshipsInPattern =
-                  uniqueRelationships.intersect(quantifiedPathPattern.relationshipVariableGroupings.map(_.group))
-                val uniquenessSelectivity =
-                  RepetitionCardinalityModel.relationshipUniquenessSelectivity(
-                    differentRelationships = predicates.differentRelationships.size,
-                    uniqueRelationships = uniqueRelationshipsInPattern.size,
-                    repetitions = i
-                  )
+                val uniquenessSelectivity = pathMode match {
+                  case Trail => RepetitionCardinalityModel.relationshipUniquenessSelectivity(
+                      differentRelationships = predicates.differentRelationships.size,
+                      uniqueRelationships = uniqueRelationships.intersect(
+                        quantifiedPathPattern.relationshipVariableGroupings.map(_.group)
+                      ).size,
+                      repetitions = i
+                    )
+                  case Walk    => Selectivity(1)
+                  case Acyclic =>
+                    // innerQppNodeUniqueness takes care of the node uniqueness between the nodes in the QPP
+                    val innerQppNodeUniqueness = RepetitionCardinalityModel.nodeUniquenessSelectivity(
+                      uniqueNodes =
+                        uniqueNodes.intersect(quantifiedPathPattern.nodeVariableGroupings.map(_.group)).size,
+                      repetitions = i
+                    )
+                    // What is left is the node uniqueness between the node in the QPP to nodes outside the QPP
+                    // Example:
+                    //   MATCH ACYCLIC (n1)((a)--(b)){3,5}(n2)--(n3)((c)--(d)--(e)){2,3}(n4),
+                    //   while we are currently in the estimation of ()((c)--(d)){2,3}() for i=2
+                    // nbInnerNodes = 3 {c, d, e}
+                    // nbNodesInChainAtIterationI = 5 {c1, d1, e1_c2, d2, e2}
+                    // nodesOutsideTheQpp = 5 (assume 4 iteration of the QPP with quantifier {3,5}) {n1a1, b1_a2, b2_a3, b3_a4, b4}
+                    // For every node outside the QPP, we include a different nodes check for each of the `inner`
+                    // nodes of the chain at current iteration i, which leads to
+                    //   ((nbNodesInChainAtIterationI - 2) * nodesOutsideTheQpp) number of different nodes checks.
+                    // The `inner` nodes do not include the first and last node of the unrolled chain, which explain the `- 2`.
+                    // There are `DifferentNodes` and `NoneOfNodes` predicates for those (assuming that both QPP belong to different equivalent classes).
+                    val nbInnerNodes = quantifiedPathPattern.patternNodes.size
+                    val nbNodesInChainAtIterationI =
+                      nbInnerNodes * i - i + 1 // Same as: nbInnerNodes + ((nbInnerNodes - 1) * (i - 1))
+                    val nodeUniquenessBetweenNodesInsideAndOutsideQpp =
+                      DEFAULT_NODES_UNIQUENESS_SELECTIVITY ^ ((nbNodesInChainAtIterationI - 2) * nodesOutsideTheQpp)
+                    innerQppNodeUniqueness * nodeUniquenessBetweenNodesInsideAndOutsideQpp
+                }
 
                 firstIterationCardinality *
                   (intermediateIterationMultiplier ^ (i - 2)) *
@@ -316,6 +423,7 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
 case class QuantifiedPathPatternPredicates(
   allLabelInfo: LabelInfo,
   differentRelationships: Set[DifferentRelationships],
+  differentNodes: Set[DifferentNodes],
   otherPredicates: Set[Predicate]
 ) {
   def labelsOnNode(nodeName: LogicalVariable): Set[LabelName] = allLabelInfo.getOrElse(nodeName, Set.empty)
@@ -330,12 +438,15 @@ object QuantifiedPathPatternPredicates {
   def partitionSelections(labelInfo: LabelInfo, selections: Selections): QuantifiedPathPatternPredicates = {
     val labelsBuilder = mutable.Map.empty[LogicalVariable, mutable.Builder[LabelName, Set[LabelName]]]
     val differentRelationshipsBuilder = Set.newBuilder[DifferentRelationships]
+    val differentNodesBuilder = Set.newBuilder[DifferentNodes]
     val otherPredicatesBuilder = Set.newBuilder[Predicate]
     selections.predicates.foreach {
       case Predicate(_, HasLabels(v: Variable, labels)) =>
         labelsBuilder.updateWith(v)(builder => Some(builder.getOrElse(Set.newBuilder).addOne(labels.head)))
       case Predicate(_, differentRelationships: DifferentRelationships) =>
         differentRelationshipsBuilder.addOne(differentRelationships)
+      case Predicate(_, differentNodes: DifferentNodes) =>
+        differentNodesBuilder.addOne(differentNodes)
       case otherPredicate =>
         otherPredicatesBuilder.addOne(otherPredicate)
     }
@@ -346,6 +457,7 @@ object QuantifiedPathPatternPredicates {
     QuantifiedPathPatternPredicates(
       allLabelInfo = labelsBuilder.view.mapValues(_.result()).toMap,
       differentRelationships = differentRelationshipsBuilder.result(),
+      differentNodes = differentNodesBuilder.result(),
       otherPredicates = otherPredicatesBuilder.result()
     )
   }

@@ -1573,6 +1573,7 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
         expansionMode = ExpandAll,
         accumulators = Set()
       ))
+      .|.filter(isRepeatAcyclic("d"), "NOT c = d")
       .|.semiApply() // This prevents the rewrite to VarExpand for the Repeat in the outer query
       .|.|.repeatTrail(TrailParameters(
         min = 1,
@@ -1595,7 +1596,6 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .|.|.|.argument("e")
       .|.|.filter("d:T")
       .|.|.argument("d", "c")
-      .|.filter(isRepeatAcyclic("d"), "NOT c = d")
       .|.expandAll("(c)-[s]-(d)")
       .|.argument("c")
       .filter("NOT a = b")

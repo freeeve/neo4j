@@ -149,7 +149,7 @@ case class ElementUniquenessRewriter(anonymousVariableNameGenerator: AnonymousVa
     case d @ Disjoint(x, y) =>
       disjointPredicateToExpression(x, y, d.position)
 
-    case d @ DisjointNodes(x, y) =>
+    case d @ DisjointNodes(x, y, _, _) =>
       disjointPredicateToExpression(x, y, d.position)
 
     case u @ Unique(list) =>

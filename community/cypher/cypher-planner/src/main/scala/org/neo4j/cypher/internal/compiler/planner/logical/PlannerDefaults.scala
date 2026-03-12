@@ -40,6 +40,7 @@ object PlannerDefaults {
   val DEFAULT_LIMIT_ROW_COUNT = 75
   val DEFAULT_LIMIT_CARDINALITY = Cardinality(DEFAULT_LIMIT_ROW_COUNT)
   val DEFAULT_REL_UNIQUENESS_SELECTIVITY = Selectivity(0.99)
+  val DEFAULT_NODES_UNIQUENESS_SELECTIVITY = Selectivity(0.99)
 
   /** Default selectivity for `n.prop OP <range> | n.prop IS NOT NULL` */
   val DEFAULT_RANGE_SEEK_FACTOR = 0.03

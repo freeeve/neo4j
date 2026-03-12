@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence
 
+import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_REL_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.util.Repetition
@@ -103,5 +104,28 @@ object RepetitionCardinalityModel {
     // we also have `uniqueRelationships` predicates for each pair of iterations, for example: r1 <> r2, s1 <> s2, t1 <> t2
     val uniqueRelationshipsPredicates = repetitions * (repetitions - 1) / 2 * uniqueRelationships
     DEFAULT_REL_UNIQUENESS_SELECTIVITY ^ (differentRelationshipsPredicates + uniqueRelationshipsPredicates)
+  }
+
+  def nodeUniquenessSelectivity(
+    uniqueNodes: Int,
+    repetitions: Int
+  ): Selectivity = {
+    // The first repetition gives `uniqueNodes` new nodes, the remaining repetitions give `uniqueNodes`-1 new nodes,
+    // since the first node is already included in the previous iterations.
+    val totalNumberOfDifferentNodes =
+      uniqueNodes * repetitions - repetitions + 1 // Same as: uniqueNodes + (repetitions - 1) * (uniqueNodes - 1)
+    // The first node needs to be compared against `totalNumberOfDifferentNodes-1` other nodes,
+    // the second against `totalNumberOfDifferentNodes-2` other nodes,
+    // the third against `totalNumberOfDifferentNodes-3` other nodes, etc.
+    // Instead of summing a sequence like 5,4,3,2,1 in linear time, we can obtain the sum in constant time.
+    // Let's see what happens when we sum the sequence twice, once the original and once in reverse order: 1,2,3,4,5.
+    // The sum of the ith element of both sequences in 6 for every i.
+    // We can get the sum in constant time: 5 * 6
+    // Since we counted the sequence twice, we need to divide by 2.
+    // More general: (n * n+1) / 2
+    // For us, n = totalNumberOfDifferentNodes-1
+    val numberOfNodeInequalityComparisons =
+      ((totalNumberOfDifferentNodes - 1) * totalNumberOfDifferentNodes) / 2.0 // Same as: Range.inclusive(1, totalNumberOfDifferentNodes-1).sum
+    DEFAULT_NODES_UNIQUENESS_SELECTIVITY ^ (numberOfNodeInequalityComparisons)
   }
 }

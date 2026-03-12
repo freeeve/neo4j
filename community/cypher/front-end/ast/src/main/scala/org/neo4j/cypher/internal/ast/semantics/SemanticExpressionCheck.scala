@@ -398,7 +398,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           expectType(CTList(CTAny).covariant, rhs) chain
           specifyType(CTBoolean, x)
 
-      case x @ DisjointNodes(lhs, rhs) =>
+      case x @ DisjointNodes(lhs, rhs, _, _) =>
         check(ctx, x.arguments) chain
           expectType(CTList(CTNode).covariant, lhs) chain
           expectType(CTList(CTNode).covariant, rhs) chain

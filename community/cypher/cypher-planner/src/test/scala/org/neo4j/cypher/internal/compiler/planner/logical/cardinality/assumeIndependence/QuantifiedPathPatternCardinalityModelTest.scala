@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -125,7 +126,16 @@ class QuantifiedPathPatternCardinalityModelTest extends CypherFunSuite with Quan
       )
 
     val cardinality =
-      getQuantifiedPathPatternCardinality(context, labelInfo, quantifiedPathPattern = qpp, Set(v"r", v"s"), Set.empty)
+      getQuantifiedPathPatternCardinality(
+        context,
+        labelInfo,
+        quantifiedPathPattern = qpp,
+        Set(v"r", v"s"),
+        Set.empty,
+        Set.empty,
+        Set.empty,
+        Trail
+      )
 
     // (:A)(()-[r:R]->()<-[s:R]-() WHERE r <> s){2}(end:B)
     cardinality shouldEqual Cardinality(

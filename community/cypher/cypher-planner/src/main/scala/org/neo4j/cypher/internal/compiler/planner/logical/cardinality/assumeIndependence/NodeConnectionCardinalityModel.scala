@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ir.NodeConnection
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Multiplier
 
@@ -38,7 +39,8 @@ trait NodeConnectionCardinalityModel
     predicates: QueryGraphPredicates,
     boundNodesAndArguments: BoundNodesAndArguments,
     nodeConnection: NodeConnection,
-    coveredIdsForPattern: Set[LogicalVariable]
+    coveredIdsForPattern: Set[LogicalVariable],
+    pathMode: TraversalPathMode
   ): (BoundNodesAndArguments, Multiplier) =
     nodeConnection match {
       case relationship: PatternRelationship =>
@@ -91,7 +93,10 @@ trait NodeConnectionCardinalityModel
             predicates.allLabelInfo,
             qppWithExtractedPredicates,
             predicates.uniqueRelationships,
-            boundaryNodePredicates
+            predicates.uniqueNodes,
+            boundaryNodePredicates,
+            predicates.otherPredicates,
+            pathMode
           )
         boundNodesAndArguments.bindEndpoints(context, predicates, quantifiedPathPattern, cardinality)
 
