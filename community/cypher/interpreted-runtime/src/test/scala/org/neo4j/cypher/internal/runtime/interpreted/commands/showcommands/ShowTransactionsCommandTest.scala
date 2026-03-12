@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ShowTransactionsClause
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
 import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
+import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
@@ -192,6 +193,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     val query2 = mock[ExecutingQuery]
     when(txHandle2.executingQuery()).thenReturn(util.Optional.of(query2))
     val querySnapshot2 = mock[QuerySnapshot]
+    val queryStatistics2 = mock[QueryStatistics]
     when(query2.snapshot()).thenReturn(querySnapshot2)
     when(querySnapshot2.internalQueryId).thenReturn(2L)
     when(querySnapshot2.obfuscatedQueryText).thenReturn(
@@ -224,6 +226,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(querySnapshot2.allocatedBytes()).thenReturn(50L)
     when(querySnapshot2.pageHits()).thenReturn(5L)
     when(querySnapshot2.pageFaults()).thenReturn(1L)
+    when(querySnapshot2.queryStatistics()).thenReturn(queryStatistics2)
 
     // Transaction 3
 
@@ -266,6 +269,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     val query3 = mock[ExecutingQuery]
     when(txHandle3.executingQuery()).thenReturn(util.Optional.of(query3))
     val querySnapshot3 = mock[QuerySnapshot]
+    val queryStatistics3 = mock[QueryStatistics]
     when(query3.snapshot()).thenReturn(querySnapshot3)
     when(querySnapshot3.internalQueryId).thenReturn(3L)
     when(querySnapshot3.obfuscatedQueryText).thenReturn(util.Optional.of("CREATE ROLE $name"))
@@ -287,6 +291,7 @@ class ShowTransactionsCommandTest extends ShowCommandTestBase {
     when(querySnapshot3.allocatedBytes()).thenReturn(0L)
     when(querySnapshot3.pageHits()).thenReturn(0L)
     when(querySnapshot3.pageFaults()).thenReturn(0L)
+    when(querySnapshot3.queryStatistics()).thenReturn(queryStatistics3)
 
     (txHandle1, txHandle2, txHandle3)
   }

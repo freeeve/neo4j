@@ -3193,6 +3193,7 @@ object ShowTransactionsClause {
   val currentQueryPageHitsColumn = "currentQueryPageHits"
   val currentQueryPageFaultsColumn = "currentQueryPageFaults"
   val initializationStackTraceColumn = "initializationStackTrace"
+  val currentQueryProgressColumn = "currentQueryProgress"
 
   def apply(
     ids: Either[List[String], Expression],
@@ -3203,49 +3204,58 @@ object ShowTransactionsClause {
     returnCypher5Types: Boolean
   )(position: InputPosition): ShowTransactionsClause = {
     val columns = List(
-      // (column, brief)
-      (ShowAndTerminateColumn(databaseColumn), true),
-      (ShowAndTerminateColumn(transactionIdColumn), true),
-      (ShowAndTerminateColumn(currentQueryIdColumn), true),
-      (ShowAndTerminateColumn(outerTransactionIdColumn), false),
-      (ShowAndTerminateColumn(connectionIdColumn), true),
-      (ShowAndTerminateColumn(clientAddressColumn), true),
-      (ShowAndTerminateColumn(usernameColumn), true),
-      (ShowAndTerminateColumn(metaDataColumn, CTMap), false),
-      (ShowAndTerminateColumn(currentQueryColumn), true),
-      (ShowAndTerminateColumn(parametersColumn, CTMap), false),
-      (ShowAndTerminateColumn(plannerColumn), false),
-      (ShowAndTerminateColumn(runtimeColumn), false),
-      (ShowAndTerminateColumn(indexesColumn, CTList(CTMap)), false),
-      (ShowAndTerminateColumn(startTimeColumn, if (returnCypher5Types) CTString else CTDateTime), true),
-      (ShowAndTerminateColumn(currentQueryStartTimeColumn, if (returnCypher5Types) CTString else CTDateTime), false),
-      (ShowAndTerminateColumn(protocolColumn), false),
-      (ShowAndTerminateColumn(requestUriColumn), false),
-      (ShowAndTerminateColumn(statusColumn), true),
-      (ShowAndTerminateColumn(currentQueryStatusColumn), false),
-      (ShowAndTerminateColumn(statusDetailsColumn), false),
-      (ShowAndTerminateColumn(resourceInformationColumn, CTMap), false),
-      (ShowAndTerminateColumn(activeLockCountColumn, CTInteger), false),
-      (ShowAndTerminateColumn(currentQueryActiveLockCountColumn, CTInteger), false),
-      (ShowAndTerminateColumn(elapsedTimeColumn, CTDuration), true),
-      (ShowAndTerminateColumn(cpuTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(waitTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(idleTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(currentQueryElapsedTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(currentQueryCpuTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(currentQueryWaitTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(currentQueryIdleTimeColumn, CTDuration), false),
-      (ShowAndTerminateColumn(currentQueryAllocatedBytesColumn, CTInteger), false),
-      (ShowAndTerminateColumn(allocatedDirectBytesColumn, CTInteger), false),
-      (ShowAndTerminateColumn(estimatedUsedHeapMemoryColumn, CTInteger), false),
-      (ShowAndTerminateColumn(pageHitsColumn, CTInteger), false),
-      (ShowAndTerminateColumn(pageFaultsColumn, CTInteger), false),
-      (ShowAndTerminateColumn(currentQueryPageHitsColumn, CTInteger), false),
-      (ShowAndTerminateColumn(currentQueryPageFaultsColumn, CTInteger), false),
-      (ShowAndTerminateColumn(initializationStackTraceColumn), false)
+      // (column, brief, includedInCypher5)
+      (ShowAndTerminateColumn(databaseColumn), true, true),
+      (ShowAndTerminateColumn(transactionIdColumn), true, true),
+      (ShowAndTerminateColumn(currentQueryIdColumn), true, true),
+      (ShowAndTerminateColumn(outerTransactionIdColumn), false, true),
+      (ShowAndTerminateColumn(connectionIdColumn), true, true),
+      (ShowAndTerminateColumn(clientAddressColumn), true, true),
+      (ShowAndTerminateColumn(usernameColumn), true, true),
+      (ShowAndTerminateColumn(metaDataColumn, CTMap), false, true),
+      (ShowAndTerminateColumn(currentQueryColumn), true, true),
+      (ShowAndTerminateColumn(parametersColumn, CTMap), false, true),
+      (ShowAndTerminateColumn(plannerColumn), false, true),
+      (ShowAndTerminateColumn(runtimeColumn), false, true),
+      (ShowAndTerminateColumn(indexesColumn, CTList(CTMap)), false, true),
+      (ShowAndTerminateColumn(startTimeColumn, if (returnCypher5Types) CTString else CTDateTime), true, true),
+      (
+        ShowAndTerminateColumn(currentQueryStartTimeColumn, if (returnCypher5Types) CTString else CTDateTime),
+        false,
+        true
+      ),
+      (ShowAndTerminateColumn(protocolColumn), false, true),
+      (ShowAndTerminateColumn(requestUriColumn), false, true),
+      (ShowAndTerminateColumn(statusColumn), true, true),
+      (ShowAndTerminateColumn(currentQueryStatusColumn), false, true),
+      (ShowAndTerminateColumn(statusDetailsColumn), false, true),
+      (ShowAndTerminateColumn(resourceInformationColumn, CTMap), false, true),
+      (ShowAndTerminateColumn(activeLockCountColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(currentQueryActiveLockCountColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(elapsedTimeColumn, CTDuration), true, true),
+      (ShowAndTerminateColumn(cpuTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(waitTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(idleTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(currentQueryElapsedTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(currentQueryCpuTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(currentQueryWaitTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(currentQueryIdleTimeColumn, CTDuration), false, true),
+      (ShowAndTerminateColumn(currentQueryAllocatedBytesColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(allocatedDirectBytesColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(estimatedUsedHeapMemoryColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(pageHitsColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(pageFaultsColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(currentQueryPageHitsColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(currentQueryPageFaultsColumn, CTInteger), false, true),
+      (ShowAndTerminateColumn(initializationStackTraceColumn), false, true),
+      (ShowAndTerminateColumn(currentQueryProgressColumn), false, false)
     )
-    val briefColumns = columns.filter { case (_, brief) => brief }.map { case (column, _) => column }
-    val allColumns = columns.map { case (column, _) => column }
+    val showColumns = columns.filter { case (_, _, includedInCypher5) =>
+      // rename or create separate parameter
+      !returnCypher5Types || includedInCypher5
+    }.map { case (showColumn, brief, _) => (showColumn, brief) }
+    val briefColumns = showColumns.filter { case (_, brief) => brief }.map { case (column, _) => column }
+    val allColumns = showColumns.map { case (column, _) => column }
 
     ShowTransactionsClause(
       briefColumns,

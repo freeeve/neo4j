@@ -255,11 +255,11 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
         |YIELD database, transactionId, currentQueryId, outerTransactionId, connectionId, clientAddress, username, metaData, currentQuery, parameters, planner, runtime,
         |indexes, startTime, currentQueryStartTime, protocol, requestUri, status, currentQueryStatus, statusDetails, resourceInformation, activeLockCount, currentQueryActiveLockCount,
         |elapsedTime, cpuTime, waitTime, idleTime, currentQueryElapsedTime, currentQueryCpuTime, currentQueryWaitTime, currentQueryIdleTime, currentQueryAllocatedBytes, allocatedDirectBytes,
-        |estimatedUsedHeapMemory, pageHits, pageFaults, currentQueryPageHits, currentQueryPageFaults, initializationStackTrace
+        |estimatedUsedHeapMemory, pageHits, pageFaults, currentQueryPageHits, currentQueryPageFaults, initializationStackTrace, currentQueryProgress
         |RETURN database, transactionId, currentQueryId, outerTransactionId, connectionId, clientAddress, username, metaData, currentQuery, parameters, planner, runtime,
         |indexes, startTime, currentQueryStartTime, protocol, requestUri, status, currentQueryStatus, statusDetails, resourceInformation, activeLockCount, currentQueryActiveLockCount,
         |elapsedTime, cpuTime, waitTime, idleTime, currentQueryElapsedTime, currentQueryCpuTime, currentQueryWaitTime, currentQueryIdleTime, currentQueryAllocatedBytes, allocatedDirectBytes,
-        |estimatedUsedHeapMemory, pageHits, pageFaults, currentQueryPageHits, currentQueryPageFaults, initializationStackTrace""".stripMargin,
+        |estimatedUsedHeapMemory, pageHits, pageFaults, currentQueryPageHits, currentQueryPageFaults, initializationStackTrace, currentQueryProgress""".stripMargin,
       rewriteShowCommand = true,
       moveYieldToWith = true
     )
