@@ -77,7 +77,7 @@ class ImportContextTest {
 
     @Test
     void createContextDoesNotCreateDirectories() throws IOException {
-        try (var importContext = ImportContext.create(fs, DB, config, null, true, true)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, true, true)) {
             assertThat(importContext.baseDir()).doesNotExist();
             assertThat(importContext.logPath()).doesNotExist();
             assertThat(importContext.progressReportingPath()).doesNotExist();
@@ -101,7 +101,7 @@ class ImportContextTest {
 
     @Test
     void contextClearedIfNotVerboseAndNotRetained() {
-        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false, false)) {
             assertThat(importContext.baseDir()).doesNotExist();
             assertThat(importContext.logPath()).doesNotExist();
             assertThat(importContext.progressReportingPath()).doesNotExist();
@@ -132,7 +132,7 @@ class ImportContextTest {
                 "true,true,VIOLATION"
             })
     void contextNotClearedIfVerboseOrRetained(boolean retainForInstrumentation, boolean verbose, ContextAction action) {
-        try (var importContext = ImportContext.create(fs, DB, config, null, retainForInstrumentation, verbose)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, retainForInstrumentation, verbose)) {
             switch (action) {
                 case LOGGING -> importContext.getLog("testing").info("some content");
                 case REPORTING -> importContext.detailedProgressReport(progressReport());
@@ -151,7 +151,7 @@ class ImportContextTest {
     @MethodSource
     void contextNotClearedOnLoggedErrors(Exception error, Class<? extends Exception> expectedErrorType)
             throws IOException {
-        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false, false)) {
             try (var output = new ByteArrayOutputStream()) {
                 importContext.preamble(new PrintStream(output));
                 assertThat(output.toString())
@@ -179,7 +179,7 @@ class ImportContextTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void contextNotClearedOnCollectorOutput(boolean addViolation) {
-        try (var importContext = ImportContext.create(fs, DB, config, null, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, false, false)) {
             if (addViolation) {
                 new PrintStream(importContext.collectorOutputStream()).println("bad tings");
                 assertThat(importContext.baseDir()).exists();
@@ -199,7 +199,7 @@ class ImportContextTest {
     @Test
     void contextClearedWhenCollectorOutputOutside() {
         var reportFile = testDir.file("some.report");
-        try (var importContext = ImportContext.create(fs, DB, config, reportFile, false, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, reportFile, false, false, false)) {
             new PrintStream(importContext.collectorOutputStream()).println("bad tings");
             assertThat(importContext.baseDir()).doesNotExist();
         }
@@ -214,13 +214,13 @@ class ImportContextTest {
         var content2 = "content2";
 
         Path run1;
-        try (var importContext = ImportContext.create(fs, DB, config, null, true, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, true, false)) {
             importContext.getLog("testing").info(content1);
             run1 = importContext.logPath();
         }
 
         Path run2;
-        try (var importContext = ImportContext.create(fs, DB, config, null, true, false)) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, false, true, false)) {
             importContext.getLog("testing").info(content2);
             run2 = importContext.logPath();
         }
@@ -231,6 +231,33 @@ class ImportContextTest {
         assertThat(importsDir).exists().isNotEmptyDirectory().satisfies(dir -> assertThat(fs.listFiles(dir))
                 .hasSize(2)
                 .allSatisfy(ImportContextTest::assertIsImportContextDir));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void progressWithAndWithoutUpdates(boolean withUpdates) {
+        try (var importContext = ImportContext.create(fs, DB, config, null, withUpdates, false, true)) {
+            importContext.detailedProgressReport(progressReport());
+        }
+
+        assertThat(importsDir).exists().isNotEmptyDirectory().satisfies(dir -> assertThat(fs.listFiles(dir))
+                .hasSize(1)
+                .singleElement()
+                .satisfies(contextDir -> {
+                    assertIsImportContextDir(contextDir);
+
+                    assertThat(contextDir.resolve(ImportContext.PROGRESS_REPORTING_FILE_NAME))
+                            .exists()
+                            .isNotEmptyFile()
+                            .content()
+                            .satisfies(content -> {
+                                if (withUpdates) {
+                                    assertThat(content).contains("\"updated\"", "\"deleted\"");
+                                } else {
+                                    assertThat(content).doesNotContain("\"updated\"", "\"deleted\"");
+                                }
+                            });
+                }));
     }
 
     private static void assertIsImportContextDir(Path importDir) {
@@ -256,6 +283,8 @@ class ImportContextTest {
         var reportBase = new DetailedProgressReportBase(42, 69, true);
         reportBase.registerNodeStats(ApplicationMode.CREATE, IntSets.immutable.of(1, 2));
         reportBase.registerNodeStats(ApplicationMode.CREATE, IntSets.immutable.of(3, 4));
+        reportBase.registerNodeStats(ApplicationMode.UPDATE, IntSets.immutable.of(5));
+        reportBase.registerNodeStats(ApplicationMode.DELETE, IntSets.immutable.of(6));
         reportBase.registerRelationshipStats(ApplicationMode.CREATE, 5);
         return reportBase.snapshot();
     }

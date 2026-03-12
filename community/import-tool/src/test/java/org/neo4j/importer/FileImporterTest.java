@@ -90,6 +90,7 @@ class FileImporterTest {
                 config,
                 reportLocation,
                 false,
+                false,
                 true)) {
             var csvImporter = importerBuilder(databaseLayout.getNeo4jLayout().databaseLayout(databaseName))
                     .withDatabaseConfig(config)

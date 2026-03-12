@@ -630,6 +630,7 @@ public class ImportCommand {
                     database,
                     loadNeo4jConfig(format),
                     reportFile,
+                    includeUpdatesInProgress(),
                     !disableInstrumentation && captureProfile && captureProfileResultPath == null,
                     verbose)) {
                 var databaseConfig = importContext.config();
@@ -737,6 +738,8 @@ public class ImportCommand {
         public boolean isDistributed() {
             return isDistributedPropShard() || isDistributedGraphShard();
         }
+
+        protected abstract boolean includeUpdatesInProgress();
 
         protected abstract boolean requiresNodeParameter();
 
@@ -1122,6 +1125,11 @@ public class ImportCommand {
         @Override
         public String importType() {
             return "Full import";
+        }
+
+        @Override
+        protected boolean includeUpdatesInProgress() {
+            return false;
         }
 
         @Override

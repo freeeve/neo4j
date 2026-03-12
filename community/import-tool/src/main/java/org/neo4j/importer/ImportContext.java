@@ -76,10 +76,6 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     public static final String PROGRESS_REPORTING_FILE_NAME = "progress.json.log";
     public static final String DEFAULT_REPORT_FILE_NAME = "report.json.log";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
-            .registerModule(new SimpleModule().addSerializer(new DurationSerializer()));
-
     private final String dbName;
 
     private final String collectorPath;
@@ -93,6 +89,8 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     private final Supplier<OutputStream> collectorStreamFactory;
 
     private final Function<RetainCheck, Boolean> retainContextDir;
+
+    private final ObjectMapper objectMapper;
 
     private InternalLogProvider logProvider;
 
@@ -109,7 +107,8 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
             Function<Path, PrintStream> progressStreamFactory,
             String collectorPath,
             Supplier<OutputStream> collectorStreamFactory,
-            Function<RetainCheck, Boolean> retainContextDir) {
+            Function<RetainCheck, Boolean> retainContextDir,
+            boolean includeUpdatesInProgress) {
         super(Monitor.NO_MONITOR);
         this.dbName = dbName;
         this.databaseConfig = databaseConfig;
@@ -118,6 +117,11 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         this.collectorPath = collectorPath;
         this.collectorStreamFactory = collectorStreamFactory;
         this.retainContextDir = retainContextDir;
+        this.objectMapper = new ObjectMapper()
+                .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+                .registerModule(new SimpleModule()
+                        .addSerializer(new DurationSerializer())
+                        .addSerializer(new StatsSerializer(includeUpdatesInProgress)));
     }
 
     public static ImportContext create(
@@ -125,6 +129,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
             NormalizedDatabaseName database,
             Config databaseConfig,
             Path collectorReporting,
+            boolean includeUpdatesInProgress,
             boolean retainForInstrumentation,
             boolean verbose) {
         var baseDir = newContextDir(
@@ -155,7 +160,8 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
                     } catch (IOException ex) {
                         throw new UncheckedIOException(ex);
                     }
-                });
+                },
+                includeUpdatesInProgress);
     }
 
     public void preamble(PrintStream out) {
@@ -167,8 +173,8 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         if (!retainContextDir.apply(RetainCheck.PREAMBLE)) {
             out.println();
             out.println("NOTE this directory will be cleared on the completion of a successful import.");
-            out.println();
         }
+        out.println();
     }
 
     public Config config() {
@@ -241,7 +247,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     public void detailedProgressReport(DetailedProgressReport report) {
         try {
             var out = progressStream();
-            OBJECT_MAPPER.writeValue(out, report);
+            objectMapper.writeValue(out, report);
             out.println();
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
@@ -329,6 +335,30 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         public void serialize(Duration duration, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
                 throws IOException {
             jsonGenerator.writeNumber(duration.toMillis());
+        }
+    }
+
+    private static class StatsSerializer extends StdSerializer<DetailedProgressReport.Stats> {
+
+        private final boolean includeUpdatesInProgress;
+
+        private StatsSerializer(boolean includeUpdatesInProgress) {
+            super(DetailedProgressReport.Stats.class);
+            this.includeUpdatesInProgress = includeUpdatesInProgress;
+        }
+
+        @Override
+        public void serialize(
+                DetailedProgressReport.Stats stats, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+                throws IOException {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeNumberField("processed", stats.processed());
+            jsonGenerator.writeNumberField("created", stats.created());
+            if (includeUpdatesInProgress) {
+                jsonGenerator.writeNumberField("updated", stats.updated());
+                jsonGenerator.writeNumberField("deleted", stats.deleted());
+            }
+            jsonGenerator.writeEndObject();
         }
     }
 
