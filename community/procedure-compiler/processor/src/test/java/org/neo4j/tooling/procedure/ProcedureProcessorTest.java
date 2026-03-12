@@ -24,18 +24,13 @@ import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 import static java.util.Arrays.asList;
 
-import com.google.testing.compile.CompilationRule;
 import com.google.testing.compile.CompileTester.UnsuccessfulCompilationClause;
 import javax.annotation.processing.Processor;
 import javax.tools.JavaFileObject;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.neo4j.tooling.procedure.testutils.JavaFileObjectUtils;
 
 public class ProcedureProcessorTest extends ExtensionTestBase {
-
-    @Rule
-    public CompilationRule compilation = new CompilationRule();
 
     private final Processor processor = new ProcedureProcessor();
 

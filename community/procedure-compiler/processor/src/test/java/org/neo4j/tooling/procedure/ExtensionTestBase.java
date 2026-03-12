@@ -25,7 +25,7 @@ import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 import com.google.testing.compile.CompileTester;
 import javax.annotation.processing.Processor;
 import javax.tools.JavaFileObject;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;

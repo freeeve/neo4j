@@ -22,19 +22,14 @@ package org.neo4j.tooling.procedure;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.testing.compile.JavaSourceSubjectFactory.javaSource;
 
-import com.google.testing.compile.CompilationRule;
 import com.google.testing.compile.CompileTester;
 import javax.annotation.processing.Processor;
 import javax.tools.JavaFileObject;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.neo4j.tooling.procedure.testutils.JavaFileObjectUtils;
 
 public class UserAggregationFunctionProcessorTest extends ExtensionTestBase {
-
-    @Rule
-    public CompilationRule compilation = new CompilationRule();
 
     private Processor processor = new UserAggregationFunctionProcessor();
 
@@ -72,7 +67,8 @@ public class UserAggregationFunctionProcessorTest extends ExtensionTestBase {
     }
 
     @Test
-    @Ignore("javac fails to publish the deferred diagnostic of the second error to com.google.testing.compile.Compiler")
+    @Disabled(
+            "javac fails to publish the deferred diagnostic of the second error to com.google.testing.compile.Compiler")
     public void fails_if_aggregation_function_exposes_return_type_without_aggregation_methods() {
         JavaFileObject function = JavaFileObjectUtils.INSTANCE.procedureSource(
                 "invalid/aggregation/FunctionWithoutAggregationMethods.java");
