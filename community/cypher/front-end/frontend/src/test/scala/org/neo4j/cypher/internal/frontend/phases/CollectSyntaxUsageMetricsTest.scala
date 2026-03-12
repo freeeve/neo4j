@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -139,6 +141,19 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
         |""".stripMargin
     )
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS) should be(2)
+  }
+
+  testVersionsExcept5("should find ACYCLIC Path Mode") { version =>
+    val stats = runPipeline(
+      version,
+      query =
+        """
+          |MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+ (p)
+          |RETURN *
+          |""".stripMargin,
+      semanticFeatures = Seq(PathModes)
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(1)
   }
 
   testVersionsExcept5("should find LET clause") { version =>
@@ -487,10 +502,16 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SHOW_AUTH_RULES) should be(1)
   }
 
-  private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
+  private def runPipeline(
+    version: CypherVersion,
+    query: String,
+    semanticFeatures: Seq[SemanticFeature] = Seq.empty
+  ): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
+    val semanticFeaturesParam = semanticFeatures
     val context = new ErrorCollectingContext(version, query = query) {
       override val internalUsageStats: InternalUsageStats = InternalUsageStats.newImpl()
+      override val semanticFeatures: Seq[SemanticFeature] = semanticFeaturesParam
     }
     pipeline.transform(startState, context)
 

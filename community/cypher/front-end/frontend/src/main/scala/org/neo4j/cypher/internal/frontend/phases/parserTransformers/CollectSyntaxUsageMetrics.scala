@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
+import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -88,6 +89,8 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.COLLECT_SUBQUERY)
       case _: RepeatableElements =>
         increaseMetric(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS)
+      case _: Acyclic =>
+        increaseMetric(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE)
       case ParsedAsLet =>
         increaseMetric(SyntaxUsageMetricKey.LET_CLAUSE)
       case ParsedAsFilter =>
