@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package rg.neo4j.internal.schema;
+package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,9 +36,7 @@ import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.State;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
-import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
-import org.neo4j.internal.schema.KnownSettingRecords;
 import org.neo4j.internal.schema.KnownSettingRecords.RecordProcessor;
 import org.neo4j.values.storable.Values;
 
