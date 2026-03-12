@@ -19,22 +19,12 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlHelper
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
-
-  private def runWithPathModes(query: String = defaultQuery) =
-    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), features = PathModes)
-
-  private def runWithoutPathModes = runWith(disabledCypherVersions = Set(CypherVersion.Cypher5))
-
-  private val errFeatureFlagDisabled =
-    "Explicit use of path modes WALK, TRAIL and ACYCLIC is not available in " +
-      "this implementation of Cypher due to lack of support for path modes."
 
   private def errMatchModePathModeUnsupported(pathMode: String, pos: InputPosition): SemanticError =
     SemanticError(
@@ -88,56 +78,60 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
     )
 
   test("MATCH WALK (a)-->(b) RETURN *") {
-    runWithPathModes().hasNoErrors
-    runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH TRAIL (a)-->(b) RETURN *") {
-    runWithPathModes().hasNoErrors
-    runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH ACYCLIC (a)-->(b) RETURN *") {
-    runWithPathModes().hasNoErrors
-    runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH REPEATABLE ELEMENTS (a)-->(b) RETURN *") {
-    runWithPathModes().hasNoErrors
-    runWithoutPathModes.hasNoErrors
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH REPEATABLE ELEMENTS WALK (a)-->(b) RETURN *") {
-    runWithPathModes().hasNoErrors
-    runWithoutPathModes.hasErrorMessages(errFeatureFlagDisabled)
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH REPEATABLE ELEMENTS TRAIL (a)-->(b) RETURN *") {
-    runWithPathModes().hasErrors(errMatchModePathModeUnsupported("TRAIL", p(26, 1, 27)))
+    runWith(
+      defaultQuery,
+      disabledCypherVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(errMatchModePathModeUnsupported("TRAIL", p(26, 1, 27)))
   }
 
   test("MATCH REPEATABLE ELEMENTS ACYCLIC (a)-->(b) RETURN *") {
-    runWithPathModes().hasErrors(errMatchModePathModeUnsupported("ACYCLIC", p(26, 1, 27)))
+    runWith(
+      defaultQuery,
+      disabledCypherVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(errMatchModePathModeUnsupported("ACYCLIC", p(26, 1, 27)))
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = ACYCLIC (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes().hasNoErrors
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = TRAIL (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes()
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5))
       .hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "TRAIL"), p(6, 1, 7)))
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s), q = (s)-->+({i: 3}) RETURN p, q") {
-    runWithPathModes().hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "WALK"), p(6, 1, 7)))
+    runWith(
+      defaultQuery,
+      disabledCypherVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(errPathModeMixUnsupported(Set("ACYCLIC", "WALK"), p(6, 1, 7)))
   }
 
   test("MATCH REPEATABLE ELEMENTS p = WALK (s {i: 1})-->{,100}(s), q = (s)-->{,1}({i: 3}) RETURN p, q") {
-    runWithPathModes().hasNoErrors
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
-  val explicitPathModes = Seq(
+  val explicitPathModes: Seq[String] = Seq(
     "WALK",
     "TRAIL",
     "ACYCLIC"
@@ -150,7 +144,7 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
         s"""MATCH p = $pathMode allShortestPaths((s {i: 1})-[*1..100]->(t))
            |RETURN p""".stripMargin
       withClue(query) {
-        runWithPathModes(query).hasErrors(
+        runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
           errVarLengthWithPathMode("-[*1..100]->", pathMode, p(38 + modeLength, 1, 39 + modeLength)),
           errLegacyShortestWithPathMode("allShortestPaths", p(11 + modeLength, 1, 12 + modeLength))
         )
@@ -159,16 +153,19 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
   }
 
   test("MATCH p = allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p") {
-    runWithPathModes().hasNoErrors
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s) MATCH q = allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p, q") {
-    runWithPathModes().hasNoErrors
+    runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   // Temporary restriction
   test("doesn't allow mixing gpm shortest with explicit path modes") {
-    runWithPathModes("MATCH SHORTEST 25 ACYCLIC PATH GROUPS (n)-->(m) RETURN *").hasErrors(errGpmShortestWithPathMode(
+    runWith(
+      "MATCH SHORTEST 25 ACYCLIC PATH GROUPS (n)-->(m) RETURN *",
+      disabledCypherVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(errGpmShortestWithPathMode(
       "ACYCLIC",
       p(6, 1, 7)
     ))
@@ -176,7 +173,10 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
   // Temporary restriction
   test("doesn't allow mixing var-length with explicit path modes") {
-    runWithPathModes("MATCH ACYCLIC (n)-[*]->(m) RETURN *").hasErrors(errVarLengthWithPathMode(
+    runWith(
+      "MATCH ACYCLIC (n)-[*]->(m) RETURN *",
+      disabledCypherVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(errVarLengthWithPathMode(
       "-[*]->",
       "ACYCLIC",
       p(17, 1, 18)

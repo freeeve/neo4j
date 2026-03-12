@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -150,8 +149,7 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
         """
           |MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+ (p)
           |RETURN *
-          |""".stripMargin,
-      semanticFeatures = Seq(PathModes)
+          |""".stripMargin
     )
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(1)
   }

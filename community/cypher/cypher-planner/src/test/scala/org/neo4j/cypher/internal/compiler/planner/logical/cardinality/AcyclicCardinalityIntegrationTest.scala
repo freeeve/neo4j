@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -68,7 +67,6 @@ class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityI
       .enableGraphTypes()
       .setAllNodesCardinality(allNodes)
       .setAllRelationshipsCardinality(allRels)
-      .addSemanticFeature(PathModes)
 
   test("Single relationship") {
     queryShouldHaveCardinality(

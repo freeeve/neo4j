@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.label_expressions.BinaryLabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -482,7 +481,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - fixed path - one path pattern") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c)
         |RETURN *""".stripMargin,
@@ -492,11 +491,8 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
     )
   }
 
-  override protected def getFeatures(): Seq[SemanticFeature] =
-    Seq(SemanticFeature.PathModes)
-
   test("Should insert node uniqueness predicates - fixed path - two path patterns") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), ACYCLIC (d)-[t]-(e)
         |RETURN *""".stripMargin,
@@ -508,7 +504,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - fixed path - two path patterns - different path mode") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (a)-[r]-(b)-[s]-(c), (d)-[t]-(e)
         |RETURN *""".stripMargin,
@@ -519,7 +515,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - quantified path") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d))+
         |RETURN *""".stripMargin,
@@ -532,7 +528,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - quantified path - 2 relationships") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (a)-[r]-(b)((c)-[s]-(d)-[t]-(e))+
         |RETURN *""".stripMargin,
@@ -544,7 +540,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - quantified relationship") {
-    // assertRewriteWithFeatures would not work, because the QPP has only one element in variableGroupings:
+    // assertRewrite would not work, because the QPP has only one element in variableGroupings:
     // - (singletonName=s, groupName=s)
     // where in the expected version there will be three:
     // - (singletonName=  UNNAMED0, groupName=  UNNAMED0)
@@ -566,7 +562,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   test("Should insert node uniqueness predicates - var-length relationship") {
     // TODO: once there is no exception anymore, we should see the asserted result
     the[IllegalArgumentException] thrownBy
-      assertRewriteWithFeatures(
+      assertRewrite(
         CypherVersion.Cypher25,
         """MATCH ACYCLIC (a)-[r]-(b)-[s*]-(c)
           |RETURN *""".stripMargin,
@@ -579,7 +575,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates - shortest path") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH SHORTEST 1 ACYCLIC (a)-[r]-(b)-[s]-(c)
         |RETURN *""".stripMargin,
@@ -590,7 +586,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert uniqueness predicates for QPPs nodes for ACYCLIC path mode") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}
         |RETURN *""".stripMargin,
@@ -603,7 +599,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   test(
     "Should insert uniqueness predicates for QPPs nodes and should not insert noneOfNodes for boundary outer nodes for ACYCLIC path mode"
   ) {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (s)((a)-[r]->(b)-[s]->(c)){2,5}(e)
         |RETURN *""".stripMargin,
@@ -615,7 +611,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert uniqueness predicates for QPPs nodes and noneOfNodes for non QPP nodes for ACYCLIC path mode") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (n)-[:R]->(s)((a)-[r]->(b)-[s]->(c)){2,5}
         |RETURN *""".stripMargin,
@@ -630,7 +626,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   test(
     "Should insert uniqueness predicates for QPPs nodes and disjoint predicates for nodes adjacent QPPs for ACYCLIC path mode"
   ) {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}((d)<-[t]-(e)){1,2}
         |RETURN *""".stripMargin,
@@ -647,7 +643,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   test(
     "Should insert uniqueness predicates for QPPs nodes and disjoint predicates for nodes non-adjacent QPPs for ACYCLIC path mode"
   ) {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC ((a)-[r]->(b)-[s]->(c)){2,5}(start)-[t]->(end)((d)<-[u]-(e)){1,2}
         |RETURN *""".stripMargin,
@@ -665,7 +661,7 @@ class AddElementUniquenessPredicatesTest extends CypherFunSuite with RewriteTest
   }
 
   test("Should insert node uniqueness predicates for ACYCLIC path mode") {
-    assertRewriteWithFeatures(
+    assertRewrite(
       CypherVersion.Cypher25,
       """MATCH ACYCLIC (c)-[r2:R]->(d)<-[r3:R]-(e)
         |  ((e_inner)-[r4:R]->(f)<-[r5:R]-(g_inner1)){2,3}

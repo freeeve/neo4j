@@ -75,7 +75,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllowClauseWithMixedLabelSyntax
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -1104,14 +1103,10 @@ case class Match(
   }
 
   private def checkPathModes: SemanticCheck =
-    whenState(_.features.contains(PathModes))(
-      thenBranch =
-        checkMatchModePathModeCompatibility chain
-          checkNoPathModeMixing chain
-          checkNoPathModeVarLength chain
-          checkNoPathModeGpmShortest,
-      elseBranch = checkPathModeFeatureNotUsed
-    )
+    checkMatchModePathModeCompatibility chain
+      checkNoPathModeMixing chain
+      checkNoPathModeVarLength chain
+      checkNoPathModeGpmShortest
 
   private def checkMatchModePathModeCompatibility: SemanticCheck =
     matchMode match {
@@ -1165,23 +1160,6 @@ case class Match(
 
     SemanticCheck.error(errors)
   }
-
-  private def checkPathModeFeatureNotUsed =
-    if (explicitPathModeExists) {
-      requireFeatureSupport(
-        s"Explicit use of path modes WALK, TRAIL and ACYCLIC",
-        SemanticFeature.PathModes,
-        pattern.position
-      )
-    } else {
-      SemanticCheck.success
-    }
-
-  private def explicitPathModeExists: Boolean =
-    pattern.patternParts.exists {
-      case PrefixedPatternPart(_, pathMode, _) if !pathMode.implicitlyCreated => true
-      case _                                                                  => false
-    }
 
   private def checkHints: SemanticCheck = SemanticCheck.fromFunctionWithContext { (semanticState, context) =>
     def getMissingEntityKindError(variable: String, labelOrRelTypeName: String, hint: UserHint): String = {

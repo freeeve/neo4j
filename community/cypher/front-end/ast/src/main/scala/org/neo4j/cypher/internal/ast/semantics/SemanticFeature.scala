@@ -124,10 +124,6 @@ object SemanticFeature {
     override def name: String = "Allow mixing old and new label expression syntax in clauses"
   }
 
-  case object PathModes extends SemanticFeature with FeatureToString {
-    override def name: String = "path modes"
-  }
-
   case object AttributeBasedAccessControl extends SemanticFeature with FeatureToString {
     override def name: String = "Attribute based access control"
   }
@@ -153,7 +149,6 @@ object SemanticFeature {
     EnableParsingOfObfuscatedLiterals,
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
-    PathModes,
     AttributeBasedAccessControl,
     ShowDatabaseInterpretedRuntime
   )

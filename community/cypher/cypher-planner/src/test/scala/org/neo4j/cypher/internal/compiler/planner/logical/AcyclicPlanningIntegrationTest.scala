@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.PathModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
@@ -57,7 +56,6 @@ class AcyclicPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
     .setRelationshipCardinality("(:T)-[:R]->()", 250)
     .setRelationshipCardinality("()-[:R]->(:T)", 250)
     .setRelationshipCardinality("(:T)-[:R]->(:T)", 250)
-    .addSemanticFeature(PathModes)
 
   test("Unsatisfiable query") {
     val planner = pb.build()
