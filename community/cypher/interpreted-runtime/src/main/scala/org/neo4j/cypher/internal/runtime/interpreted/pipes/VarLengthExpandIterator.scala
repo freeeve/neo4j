@@ -58,10 +58,7 @@ case class VarLengthExpandIterator(
     new ClosingIterator[(VirtualNodeValue, TraversalContainer)] {
       def next(): (VirtualNodeValue, TraversalContainer) = {
         val (node, traversalContainer) = stack.pop()
-        if (
-          traversalContainer.size < maxDepth.getOrElse(Int.MaxValue) &&
-          filteringStep.filterNode(row, state, node)
-        ) {
+        if (traversalContainer.size < maxDepth.getOrElse(Int.MaxValue)) {
           val relationships = state.query.getRelationshipsForIds(node.id(), dir, types.types(state.query))
 
           // relationships get immediately exhausted. Therefore we do not need a ClosingIterator here.
