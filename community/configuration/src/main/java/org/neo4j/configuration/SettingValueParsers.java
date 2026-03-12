@@ -168,6 +168,11 @@ public final class SettingValueParsers {
         public String getDescription() {
             return "an unsigned byte";
         }
+
+        @Override
+        public String valueToString(Byte value) {
+            return Integer.toString(Byte.toUnsignedInt(value));
+        }
     };
 
     public static final SettingValueParser<Integer> INT = new SettingValueParser<>() {
@@ -887,6 +892,13 @@ public final class SettingValueParsers {
         @Override
         public Class<Map<String, String>> getType() {
             return (Class<Map<String, String>>) (Class) Map.class;
+        }
+
+        @Override
+        public String valueToString(Map<String, String> value) {
+            return value.entrySet().stream()
+                    .map(e -> e.getKey() + "=" + e.getValue())
+                    .collect(Collectors.joining(";"));
         }
     }
 

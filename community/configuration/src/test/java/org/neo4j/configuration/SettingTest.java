@@ -56,6 +56,7 @@ import static org.neo4j.configuration.SettingValueParsers.HOSTNAME_PORT;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.JVM_ADDITIONAL;
 import static org.neo4j.configuration.SettingValueParsers.LONG;
+import static org.neo4j.configuration.SettingValueParsers.MAP_PATTERN;
 import static org.neo4j.configuration.SettingValueParsers.NORMALIZED_RELATIVE_URI;
 import static org.neo4j.configuration.SettingValueParsers.PATH;
 import static org.neo4j.configuration.SettingValueParsers.SECURE_STRING;
@@ -63,6 +64,7 @@ import static org.neo4j.configuration.SettingValueParsers.SOCKET_ADDRESS;
 import static org.neo4j.configuration.SettingValueParsers.STRING;
 import static org.neo4j.configuration.SettingValueParsers.TIMEZONE;
 import static org.neo4j.configuration.SettingValueParsers.TRUE;
+import static org.neo4j.configuration.SettingValueParsers.UNSIGNED_BYTE;
 import static org.neo4j.configuration.SettingValueParsers.listOf;
 import static org.neo4j.configuration.SettingValueParsers.ofEnum;
 import static org.neo4j.configuration.SettingValueParsers.ofPartialEnum;
@@ -223,6 +225,38 @@ class SettingTest {
         assertTrue(setting.parse(" true "));
         assertFalse(setting.parse("  false"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("foo"));
+    }
+
+    @Test
+    void testUnsignedByte() {
+        var setting = setting("setting", UNSIGNED_BYTE);
+        assertEquals((byte) 0, setting.parse("0"));
+        assertEquals((byte) 127, setting.parse("127"));
+        assertEquals((byte) -128, setting.parse("128"));
+        assertEquals((byte) -1, setting.parse("255"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("-1"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("256"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("foo"));
+
+        assertEquals("0", setting.valueToString(setting.parse("0")));
+        assertEquals("127", setting.valueToString(setting.parse("127")));
+        assertEquals("128", setting.valueToString(setting.parse("128")));
+        assertEquals("255", setting.valueToString(setting.parse("255")));
+    }
+
+    @Test
+    void testMapPattern() {
+        var setting = setting("setting", MAP_PATTERN);
+        assertEquals(Map.of("a", "1"), setting.parse("a=1"));
+        assertEquals(Map.of("a", "1", "b", "2"), setting.parse("a=1;b=2"));
+        assertEquals(Map.of("a", "1"), setting.parse("a=1;a=1"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("a"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("1"));
+        assertThrows(IllegalArgumentException.class, () -> setting.parse("a=1;b"));
+
+        assertEquals("a=1", setting.valueToString(setting.parse("a=1")));
+        assertEquals("a=1;b=2", setting.valueToString(setting.parse("a=1;b=2")));
+        assertEquals("a=1", setting.valueToString(setting.parse("a=1;a=1")));
     }
 
     @Test
