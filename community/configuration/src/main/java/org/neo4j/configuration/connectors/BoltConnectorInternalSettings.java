@@ -24,17 +24,22 @@ import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.neo4j.configuration.SettingConstraints.any;
 import static org.neo4j.configuration.SettingConstraints.is;
+import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.min;
+import static org.neo4j.configuration.SettingConstraints.minSize;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.BYTES;
+import static org.neo4j.configuration.SettingValueParsers.CIDR_IP;
 import static org.neo4j.configuration.SettingValueParsers.DURATION;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 import static org.neo4j.configuration.SettingValueParsers.PATH;
 import static org.neo4j.configuration.SettingValueParsers.STRING;
+import static org.neo4j.configuration.SettingValueParsers.listOf;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 
+import inet.ipaddr.IPAddressString;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -287,6 +292,47 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
     @Description("Maximum Bolt Protocol version negotiated by the bolt connector.")
     public static final Setting<ConfiguredProtocolVersion> max_protocol_version = newBuilder(
                     "internal.dbms.bolt.max_protocol_version", PROTOCOL_VERSION, null)
+            .build();
+
+    @Internal
+    @Description("Enables fleet discovery on this instance.")
+    public static final Setting<Boolean> enable_discovery =
+            newBuilder("internal.dbms.fleet_discovery.enabled", BOOL, false).build();
+
+    @Internal
+    @Description("The port to listen for fleet discovery communication on (when set to zero a random port is bound).")
+    public static final Setting<Integer> discovery_listen_port = newBuilder(
+                    "internal.dbms.fleet_discovery.port", INT, 0)
+            .addConstraint(min(0))
+            .build();
+
+    @Internal
+    @Description("A list of masks permitted for use with the fleet discovery protocol.")
+    public static final Setting<List<IPAddressString>> discovery_network_masks = newBuilder(
+                    "internal.dbms.fleet_discovery.permitted_network_masks",
+                    listOf(CIDR_IP),
+                    List.of(
+                            new IPAddressString("10.0.0.0/8"),
+                            new IPAddressString("169.254.0.0/16"),
+                            new IPAddressString("172.16.0.0/12"),
+                            new IPAddressString("192.168.0.0/16")))
+            .addConstraint(minSize(1))
+            .build();
+
+    @Internal
+    @Description("The interval at which discovery broadcasts occur (base value to be adjusted by jitter interval).")
+    public static final Setting<Duration> discovery_broadcast_interval = newBuilder(
+                    "internal.dbms.fleet_discovery.broadcast_interval", DURATION, ofSeconds(30))
+            .addConstraint(min(ofSeconds(5)))
+            .build();
+
+    @Internal
+    @Description(
+            "The jitter to apply to the broadcast interval in percent (e.g. when set to 50 with broadcast interval of 30 then broadcasts repeat every 15 to 45 seconds).")
+    public static final Setting<Integer> discovery_broadcast_jitter = newBuilder(
+                    "internal.dbms.fleet_discovery.broadcast_interval_jitter", INT, 25)
+            .addConstraint(min(0))
+            .addConstraint(max(75))
             .build();
 
     public enum ProtocolLoggingMode {

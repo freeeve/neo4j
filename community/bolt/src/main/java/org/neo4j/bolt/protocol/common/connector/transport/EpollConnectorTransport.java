@@ -21,12 +21,15 @@ package org.neo4j.bolt.protocol.common.connector.transport;
 
 import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerDomainSocketChannel;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.SocketProtocolFamily;
 import io.netty.channel.unix.DomainSocketChannel;
 import org.neo4j.annotations.service.ServiceProvider;
 
@@ -79,5 +82,10 @@ public final class EpollConnectorTransport implements ConnectorTransport {
     @Override
     public Class<EpollServerDomainSocketChannel> serverDomainSocketChannelType() {
         return EpollServerDomainSocketChannel.class;
+    }
+
+    @Override
+    public DatagramChannel createDatagramChannel(SocketProtocolFamily protocolFamily) {
+        return new EpollDatagramChannel(protocolFamily);
     }
 }

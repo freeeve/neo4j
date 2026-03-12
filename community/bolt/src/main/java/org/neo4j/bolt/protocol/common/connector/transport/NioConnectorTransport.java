@@ -21,7 +21,10 @@ package org.neo4j.bolt.protocol.common.connector.transport;
 
 import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.nio.NioIoHandler;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.SocketProtocolFamily;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.neo4j.annotations.service.ServiceProvider;
@@ -58,6 +61,11 @@ public final class NioConnectorTransport implements ConnectorTransport {
     @Override
     public Class<NioServerSocketChannel> serverSocketChannelType() {
         return NioServerSocketChannel.class;
+    }
+
+    @Override
+    public DatagramChannel createDatagramChannel(SocketProtocolFamily protocolFamily) {
+        return new NioDatagramChannel(protocolFamily);
     }
 
     @Override

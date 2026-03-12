@@ -23,6 +23,7 @@ import static org.neo4j.configuration.ssl.SslPolicyScope.BOLT;
 import static org.neo4j.configuration.ssl.SslPolicyScope.CLUSTER;
 import static org.neo4j.function.Suppliers.lazySingleton;
 
+import inet.ipaddr.IPAddressNetwork.IPAddressGenerator;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
@@ -31,18 +32,26 @@ import io.netty.channel.local.LocalAddress;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import org.neo4j.bolt.discovery.DiscoveryConnector;
+import org.neo4j.bolt.discovery.config.DiscoveryConfiguration;
+import org.neo4j.bolt.discovery.info.InstanceDiscoveryInformationProvider;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
@@ -97,6 +106,8 @@ import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.connectors.CommonConnectorConfig;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.function.Suppliers;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
@@ -107,6 +118,7 @@ import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.Log;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.monitoring.Monitors;
@@ -126,6 +138,8 @@ public class BoltServer extends LifecycleAdapter {
             lazySingleton(() -> new PooledByteBufAllocator(PlatformDependent.directBufferPreferred()));
 
     private final DbmsInfo dbmsInfo;
+    private final DatabaseManagementService databaseManagementService;
+    private final ServerIdentity identityModule;
     private final JobScheduler jobScheduler;
     private final ConnectorPortRegister connectorPortRegister;
     private final NetworkConnectionTracker connectionTracker;
@@ -147,7 +161,8 @@ public class BoltServer extends LifecycleAdapter {
     private final AuthConfigProvider authConfigProvider;
     private final TransactionManager transactionManager;
     private final RoutingService routingService;
-    private final InternalLog log;
+    private final Log userLog;
+    private final InternalLog internalLog;
     private final ConnectionAdmissionControlTrackerFactory admissionControlTrackerFactory;
 
     private final List<Connector> connectors = new ArrayList<>();
@@ -204,6 +219,9 @@ public class BoltServer extends LifecycleAdapter {
                 .withProvider(new SeverSideRoutingHintProvider(config))
                 .build();
 
+        this.identityModule = dependencyResolver.resolveDependency(ServerIdentity.class);
+        this.databaseManagementService = dependencyResolver.resolveDependency(DatabaseManagementService.class);
+
         this.primaryExecutorServiceFactory = new ThreadPoolExecutorServiceFactory(
                 config.get(BoltConnector.thread_pool_min_size),
                 config.get(BoltConnector.thread_pool_max_size),
@@ -228,7 +246,8 @@ public class BoltServer extends LifecycleAdapter {
 
         this.sslPolicyProvider = dependencyResolver.resolveDependency(SslPolicyProvider.class);
         this.authConfigProvider = dependencyResolver.resolveDependency(AuthConfigProvider.class);
-        this.log = logService.getInternalLog(BoltServer.class);
+        this.userLog = logService.getUserLog(BoltServer.class);
+        this.internalLog = logService.getInternalLog(BoltServer.class);
         this.admissionControlTrackerFactory = admissionControlTrackerFactory;
         var minProtocolVersion = Optional.ofNullable(config.get(BoltConnectorInternalSettings.min_protocol_version))
                 .map(version -> new ProtocolVersion(version.major(), version.minor()));
@@ -275,7 +294,7 @@ public class BoltServer extends LifecycleAdapter {
 
         if (config.get(CommonConnectorConfig.ocsp_stapling_enabled)) {
             enableOcspStapling();
-            log.info("Enabled OCSP stapling support");
+            internalLog.info("Enabled OCSP stapling support");
         }
 
         jobScheduler.setThreadFactory(Group.BOLT_NETWORK_IO, NettyThreadFactory::new);
@@ -294,7 +313,7 @@ public class BoltServer extends LifecycleAdapter {
         var transport = ConnectorTransport.selectOptimal(filter)
                 .orElseThrow(() ->
                         new IllegalStateException("No transport implementations available within current environment"));
-        log.info("Using connector transport %s", transport.getName());
+        internalLog.info("Using connector transport %s", transport.getName());
 
         bossEventLoopGroup = createEventLoopGroup(transport);
         workerEventLoopGroup = createEventLoopGroup(transport);
@@ -329,7 +348,7 @@ public class BoltServer extends LifecycleAdapter {
                     createAuthentication(domainSocketAuthManager, securityLog),
                     allocator));
 
-            log.info("Configured Unix Domain Socket Bolt connector");
+            internalLog.info("Configured Unix Domain Socket Bolt connector");
         }
 
         var listenAddress = config.get(BoltConnector.listen_address).socketAddress();
@@ -337,7 +356,7 @@ public class BoltServer extends LifecycleAdapter {
         boolean encryptionRequired = encryptionLevel == EncryptionLevel.REQUIRED;
 
         if (encryptionLevel != EncryptionLevel.DISABLED && !sslPolicyProvider.hasPolicyForScope(BOLT)) {
-            log.warn("TLS policy must be provided for Bolt when tls_level is not DISABLED");
+            internalLog.warn("TLS policy must be provided for Bolt when tls_level is not DISABLED");
         }
 
         var boltSslPolicyProvider = encryptionLevel == EncryptionLevel.DISABLED
@@ -365,7 +384,7 @@ public class BoltServer extends LifecycleAdapter {
                     allocator));
         }
 
-        log.info("Configured external Bolt connector with listener address %s", listenAddress);
+        internalLog.info("Configured external Bolt connector with listener address %s", listenAddress);
 
         boolean isRoutingEnabled = config.get(GraphDatabaseSettings.routing_enabled);
         if (isRoutingEnabled && dbmsInfo == DbmsInfo.ENTERPRISE) {
@@ -391,7 +410,7 @@ public class BoltServer extends LifecycleAdapter {
                     createAuthentication(internalAuthManager, securityLog),
                     allocator));
 
-            log.info("Configured internal Bolt connector with listener address %s", internalListenAddress);
+            internalLog.info("Configured internal Bolt connector with listener address %s", internalListenAddress);
         }
 
         if (config.get(BoltConnectorInternalSettings.enable_local_connector)) {
@@ -406,7 +425,11 @@ public class BoltServer extends LifecycleAdapter {
                     allocator));
         }
 
-        log.info("Bolt server loaded");
+        if (config.get(BoltConnectorInternalSettings.enable_discovery)) {
+            createAndRegisterDiscoveryConnector(transport);
+        }
+
+        internalLog.info("Bolt server loaded");
         connectorLife.init();
     }
 
@@ -417,7 +440,7 @@ public class BoltServer extends LifecycleAdapter {
         }
 
         connectorLife.start();
-        log.info("Bolt server started");
+        internalLog.info("Bolt server started");
     }
 
     @Override
@@ -426,14 +449,14 @@ public class BoltServer extends LifecycleAdapter {
             return;
         }
 
-        log.info("Requested Bolt server shutdown");
+        internalLog.info("Requested Bolt server shutdown");
         connectorLife.stop();
     }
 
     @Override
     public void shutdown() {
         if (isEnabled()) {
-            log.info("Shutting down Bolt server");
+            internalLog.info("Shutting down Bolt server");
 
             // shutdown all accept threads prior to connection termination in order to prevent new
             // connections from being established to the server
@@ -455,10 +478,11 @@ public class BoltServer extends LifecycleAdapter {
             }
 
             if (!remainingJobs.isEmpty()) {
-                log.warn("Forcefully killed %d remaining Bolt jobs to fulfill shutdown request", remainingJobs.size());
+                internalLog.warn(
+                        "Forcefully killed %d remaining Bolt jobs to fulfill shutdown request", remainingJobs.size());
             }
 
-            log.info("Bolt server has been shut down");
+            internalLog.info("Bolt server has been shut down");
         }
 
         if (memoryPool != null) {
@@ -508,9 +532,9 @@ public class BoltServer extends LifecycleAdapter {
                         timeOut > 0 ? future.awaitUninterruptibly(timeOut, TimeUnit.NANOSECONDS) : future.isDone();
                 timeOut -= clock.nanos() - startTime;
                 if (!eventLoopTermination) {
-                    log.warn(unsuccessfulTerminationMessage);
+                    internalLog.warn(unsuccessfulTerminationMessage);
                 } else if (!future.isSuccess()) {
-                    log.warn(failedTerminationMessage, future.cause());
+                    internalLog.warn(failedTerminationMessage, future.cause());
                 }
             }
         }
@@ -805,6 +829,48 @@ public class BoltServer extends LifecycleAdapter {
                 logService.getInternalLogProvider(),
                 transport,
                 config);
+    }
+
+    private void createAndRegisterDiscoveryConnector(ConnectorTransport transport) {
+        var permittedMasks = this.config.get(BoltConnectorInternalSettings.discovery_network_masks);
+
+        List<InetAddress> broadcastAddresses;
+        try {
+            var generator = new IPAddressGenerator();
+
+            broadcastAddresses = NetworkInterface.networkInterfaces()
+                    .flatMap(iface -> iface.getInterfaceAddresses().stream())
+                    .map(InterfaceAddress::getBroadcast)
+                    .filter(Objects::nonNull)
+                    .filter(addr -> {
+                        var addrString = generator.from(addr).toAddressString();
+
+                        return permittedMasks.stream().anyMatch(mask -> mask.contains(addrString));
+                    })
+                    .toList();
+        } catch (SocketException ex) {
+            internalLog.warn("Failed to acquire list of viable broadcast addresses for discovery", ex);
+            broadcastAddresses = List.of();
+        }
+
+        if (broadcastAddresses.isEmpty()) {
+            userLog.warn(
+                    "Fleet discovery broadcasts are unavailable - No viable network addresses are available to this instance");
+            return;
+        }
+
+        var config = DiscoveryConfiguration.builder()
+                .fromConfig(this.config)
+                .withAddresses(broadcastAddresses)
+                .build(new InstanceDiscoveryInformationProvider(
+                        this.databaseManagementService,
+                        this.dbmsInfo,
+                        this.identityModule,
+                        this.config.get(BoltConnector.advertised_address)));
+
+        var connector = new DiscoveryConnector(this.bossEventLoopGroup, transport, config, this.logService);
+
+        connectorLife.add(connector);
     }
 
     private ErrorAccountant createErrorAccountant() {

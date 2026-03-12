@@ -21,13 +21,16 @@ package org.neo4j.bolt.protocol.common.connector.transport;
 
 import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueDatagramChannel;
 import io.netty.channel.kqueue.KQueueDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueIoHandler;
 import io.netty.channel.kqueue.KQueueServerDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.kqueue.KQueueSocketChannel;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.SocketProtocolFamily;
 import io.netty.channel.unix.DomainSocketChannel;
 import io.netty.channel.unix.ServerDomainSocketChannel;
 import org.neo4j.annotations.service.ServiceProvider;
@@ -81,5 +84,10 @@ public final class KqueueConnectorTransport implements ConnectorTransport {
     @Override
     public Class<? extends ServerDomainSocketChannel> serverDomainSocketChannelType() {
         return KQueueServerDomainSocketChannel.class;
+    }
+
+    @Override
+    public DatagramChannel createDatagramChannel(SocketProtocolFamily protocolFamily) {
+        return new KQueueDatagramChannel(protocolFamily);
     }
 }

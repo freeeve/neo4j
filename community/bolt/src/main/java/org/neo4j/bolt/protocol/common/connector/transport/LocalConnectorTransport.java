@@ -23,6 +23,8 @@ import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.local.LocalChannel;
 import io.netty.channel.local.LocalIoHandler;
 import io.netty.channel.local.LocalServerChannel;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.SocketProtocolFamily;
 
 public final class LocalConnectorTransport implements ConnectorTransport {
 
@@ -54,5 +56,10 @@ public final class LocalConnectorTransport implements ConnectorTransport {
     @Override
     public Class<LocalServerChannel> serverSocketChannelType() {
         return LocalServerChannel.class;
+    }
+
+    @Override
+    public DatagramChannel createDatagramChannel(SocketProtocolFamily protocolFamily) {
+        throw new UnsupportedOperationException("Datagram channels are not supported via Local Transport");
     }
 }

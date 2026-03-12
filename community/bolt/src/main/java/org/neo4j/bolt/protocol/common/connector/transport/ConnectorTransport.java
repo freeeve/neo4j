@@ -22,6 +22,8 @@ package org.neo4j.bolt.protocol.common.connector.transport;
 import io.netty.channel.Channel;
 import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.ServerChannel;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.SocketProtocolFamily;
 import io.netty.channel.unix.DomainSocketChannel;
 import io.netty.channel.unix.ServerDomainSocketChannel;
 import java.util.Comparator;
@@ -150,4 +152,6 @@ public sealed interface ConnectorTransport extends PrioritizedService
     default Class<? extends ServerDomainSocketChannel> serverDomainSocketChannelType() {
         return null;
     }
+
+    DatagramChannel createDatagramChannel(SocketProtocolFamily protocolFamily);
 }
