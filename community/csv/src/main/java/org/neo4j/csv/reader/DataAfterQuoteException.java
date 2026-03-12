@@ -44,17 +44,6 @@ public class DataAfterQuoteException extends GqlRuntimeException implements Obfu
         this.readValue = readValue;
     }
 
-    public DataAfterQuoteException(SourceTraceability source, String readValue, Throwable cause) {
-        super(
-                GqlHelper.get22NAC(source.sourceDescription(), source.position(), readValue),
-                messageTemplate.formatted(source.sourceDescription(), source.position(), readValue),
-                cause);
-        this.source = source;
-        this.sourceDescription = source.sourceDescription();
-        this.position = source.position();
-        this.readValue = readValue;
-    }
-
     public SourceTraceability source() {
         return source;
     }

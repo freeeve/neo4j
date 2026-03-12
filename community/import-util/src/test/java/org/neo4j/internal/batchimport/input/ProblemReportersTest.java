@@ -341,7 +341,46 @@ class ProblemReportersTest {
                                 "problem": "OtherRelationshipViolation",
                                 "message": "duff"
                             }
-                            """), DUFF));
+                            """), DUFF),
+                new Problem(ProblemReporters.dataAfterQuoteReporter(SOURCE, LINE, DUFF), formatJson("""
+                            {
+                                "problem": "DataAfterQuote",
+                                "message": "Characters after an ending quote in a CSV field are not supported.\\nsome.file: line 13\\nColumn content: `duff`.",
+                                "source":"some.file",
+                                "line":13,
+                                "value":"duff"
+                            }
+                            """), """
+                        Characters after an ending quote in a CSV field are not supported.
+                        some.file: line 13
+                        Column content: `duff`.
+                        """),
+                new Problem(ProblemReporters.illegalQuoteReporter(SOURCE, LINE, DUFF), formatJson("""
+                            {
+                                "problem": "IllegalQuote",
+                                "message": "Quotes are only allowed in quoted strings in a CSV field.\\nsome.file: line 13\\nColumn content: `duff`.",
+                                "source":"some.file",
+                                "line":13,
+                                "value":"duff"
+                            }
+                            """), """
+                        Quotes are only allowed in quoted strings in a CSV field.
+                        some.file: line 13
+                        Column content: `duff`.
+                        """),
+                new Problem(ProblemReporters.invalidIdReporter(SOURCE, LINE, DUFF), formatJson("""
+                            {
+                                "problem": "InvalidId",
+                                "message": "ID value is invalid for the id type specified.\\nsome.file: line 13\\nInvalid ID value: `duff`.",
+                                "source":"some.file",
+                                "line":13,
+                                "value":"duff"
+                            }
+                            """), """
+                        ID value is invalid for the id type specified.
+                        some.file: line 13
+                        Invalid ID value: `duff`.
+                        """));
     }
 
     private static String formatJson(String json) {

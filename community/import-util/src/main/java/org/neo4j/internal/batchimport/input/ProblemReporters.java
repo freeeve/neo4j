@@ -22,8 +22,11 @@ package org.neo4j.internal.batchimport.input;
 import static java.lang.String.format;
 import static org.neo4j.internal.batchimport.input.BadCollector.BAD_NODES;
 import static org.neo4j.internal.batchimport.input.BadCollector.BAD_RELATIONSHIPS;
+import static org.neo4j.internal.batchimport.input.BadCollector.DATA_AFTER_QUOTE;
 import static org.neo4j.internal.batchimport.input.BadCollector.DUPLICATE_NODES;
 import static org.neo4j.internal.batchimport.input.BadCollector.EXTRA_COLUMNS;
+import static org.neo4j.internal.batchimport.input.BadCollector.ILLEGAL_QUOTE;
+import static org.neo4j.internal.batchimport.input.BadCollector.INVALID_ID;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_NODE_VIOLATION;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_RELATIONSHIP_VIOLATION;
 import static org.neo4j.internal.batchimport.input.BadCollector.VIOLATING_NODES;
@@ -55,17 +58,20 @@ public class ProblemReporters {
     private static final int NODE_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES;
     private static final int REL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_RELATIONSHIPS;
 
-    private static final Map<Integer, String> PROBLEM_TYPES = Map.of(
-            BAD_RELATIONSHIPS, "BadRelationship",
-            DUPLICATE_NODES, "DuplicateNode",
-            EXTRA_COLUMNS, "ExtraColumn",
-            VIOLATING_NODES, "NodeViolation",
-            VIOLATING_SCHEMA, "RelationshipViolation",
-            OTHER_NODE_VIOLATION, "OtherNodeViolation",
-            OTHER_RELATIONSHIP_VIOLATION, "OtherRelationshipViolation",
-            ALL_SCHEMA_VIOLATIONS, "SchemaViolation",
-            NODE_SCHEMA_VIOLATIONS, "NodeSchemaViolation",
-            REL_SCHEMA_VIOLATIONS, "RelationshipSchemaViolation");
+    private static final Map<Integer, String> PROBLEM_TYPES = Map.ofEntries(
+            Map.entry(BAD_RELATIONSHIPS, "BadRelationship"),
+            Map.entry(DUPLICATE_NODES, "DuplicateNode"),
+            Map.entry(EXTRA_COLUMNS, "ExtraColumn"),
+            Map.entry(VIOLATING_NODES, "NodeViolation"),
+            Map.entry(VIOLATING_SCHEMA, "RelationshipViolation"),
+            Map.entry(OTHER_NODE_VIOLATION, "OtherNodeViolation"),
+            Map.entry(OTHER_RELATIONSHIP_VIOLATION, "OtherRelationshipViolation"),
+            Map.entry(ALL_SCHEMA_VIOLATIONS, "SchemaViolation"),
+            Map.entry(NODE_SCHEMA_VIOLATIONS, "NodeSchemaViolation"),
+            Map.entry(REL_SCHEMA_VIOLATIONS, "RelationshipSchemaViolation"),
+            Map.entry(DATA_AFTER_QUOTE, "DataAfterQuote"),
+            Map.entry(ILLEGAL_QUOTE, "IllegalQuote"),
+            Map.entry(INVALID_ID, "InvalidId"));
 
     private static final SimpleModule SERIALIZERS = new SimpleModule()
             .addSerializer(RelationshipsProblemReporter.SERIALIZER)
@@ -74,7 +80,10 @@ public class ProblemReporters {
             .addSerializer(EntityViolatingConstraintReporter.SERIALIZER)
             .addSerializer(RelationshipViolatingConstraintReporter.SERIALIZER)
             .addSerializer(SchemaCommandFailureReporter.SERIALIZER)
-            .addSerializer(OtherViolationReporter.SERIALIZER);
+            .addSerializer(OtherViolationReporter.SERIALIZER)
+            .addSerializer(DataAfterQuoteProblemReporter.SERIALIZER)
+            .addSerializer(IllegalQuoteProblemReporter.SERIALIZER)
+            .addSerializer(InvalidIdProblemReporter.SERIALIZER);
 
     /**
      * Prints the {@link ProblemReporter#message()} of any reported errors to the provided {@link OutputStream}
@@ -189,6 +198,18 @@ public class ProblemReporters {
 
     static ProblemReporter otherViolationReporter(EntityType entityType, String problem) {
         return new OtherViolationReporter(entityType, problem);
+    }
+
+    public static ProblemReporter dataAfterQuoteReporter(String source, long row, String value) {
+        return new DataAfterQuoteProblemReporter(source, row, value);
+    }
+
+    public static ProblemReporter illegalQuoteReporter(String source, long row, String value) {
+        return new IllegalQuoteProblemReporter(source, row, value);
+    }
+
+    public static ProblemReporter invalidIdReporter(String source, long row, String value) {
+        return new InvalidIdProblemReporter(source, row, value);
     }
 
     private static class RelationshipsProblemReporter extends ProblemReporter {
@@ -645,6 +666,138 @@ public class ProblemReporters {
 
         @Override
         InputException exception() {
+            return new InputException(message());
+        }
+    }
+
+    private static class DataAfterQuoteProblemReporter extends ProblemReporter {
+
+        private static final StdSerializer<DataAfterQuoteProblemReporter> SERIALIZER =
+                new StdSerializer<>(DataAfterQuoteProblemReporter.class) {
+                    @Override
+                    public void serialize(
+                            DataAfterQuoteProblemReporter reporter,
+                            JsonGenerator jsonGenerator,
+                            SerializerProvider serializerProvider)
+                            throws IOException {
+                        jsonGenerator.writeStartObject();
+                        startReport(jsonGenerator, reporter);
+                        writeSource(jsonGenerator, reporter.source, reporter.row);
+                        writeField(jsonGenerator, "value", reporter.value);
+                        jsonGenerator.writeEndObject();
+                    }
+                };
+
+        private final String source;
+        private final long row;
+        private final String value;
+
+        private DataAfterQuoteProblemReporter(String source, long row, String value) {
+            super(DATA_AFTER_QUOTE);
+            this.source = source;
+            this.row = row;
+            this.value = value;
+        }
+
+        @Override
+        public String message() {
+            return Collector.standardisedErrorMessage(
+                    "Characters after an ending quote in a CSV field are not supported.",
+                    source,
+                    row,
+                    "Column content: `%s`.".formatted(value));
+        }
+
+        @Override
+        public InputException exception() {
+            return new InputException(message());
+        }
+    }
+
+    private static class IllegalQuoteProblemReporter extends ProblemReporter {
+
+        private static final StdSerializer<IllegalQuoteProblemReporter> SERIALIZER =
+                new StdSerializer<>(IllegalQuoteProblemReporter.class) {
+                    @Override
+                    public void serialize(
+                            IllegalQuoteProblemReporter reporter,
+                            JsonGenerator jsonGenerator,
+                            SerializerProvider serializerProvider)
+                            throws IOException {
+                        jsonGenerator.writeStartObject();
+                        startReport(jsonGenerator, reporter);
+                        writeSource(jsonGenerator, reporter.source, reporter.row);
+                        writeField(jsonGenerator, "value", reporter.value);
+                        jsonGenerator.writeEndObject();
+                    }
+                };
+
+        private final String source;
+        private final long row;
+        private final String value;
+
+        private IllegalQuoteProblemReporter(String source, long row, String value) {
+            super(ILLEGAL_QUOTE);
+            this.source = source;
+            this.row = row;
+            this.value = value;
+        }
+
+        @Override
+        public String message() {
+            return Collector.standardisedErrorMessage(
+                    "Quotes are only allowed in quoted strings in a CSV field.",
+                    source,
+                    row,
+                    "Column content: `%s`.".formatted(value));
+        }
+
+        @Override
+        public InputException exception() {
+            return new InputException(message());
+        }
+    }
+
+    private static class InvalidIdProblemReporter extends ProblemReporter {
+
+        private static final StdSerializer<InvalidIdProblemReporter> SERIALIZER =
+                new StdSerializer<>(InvalidIdProblemReporter.class) {
+                    @Override
+                    public void serialize(
+                            InvalidIdProblemReporter reporter,
+                            JsonGenerator jsonGenerator,
+                            SerializerProvider serializerProvider)
+                            throws IOException {
+                        jsonGenerator.writeStartObject();
+                        startReport(jsonGenerator, reporter);
+                        writeSource(jsonGenerator, reporter.source, reporter.row);
+                        writeField(jsonGenerator, "value", reporter.value);
+                        jsonGenerator.writeEndObject();
+                    }
+                };
+
+        private final String source;
+        private final long row;
+        private final String value;
+
+        private InvalidIdProblemReporter(String source, long row, String value) {
+            super(INVALID_ID);
+            this.source = source;
+            this.row = row;
+            this.value = value;
+        }
+
+        @Override
+        public String message() {
+            return Collector.standardisedErrorMessage(
+                    "ID value is invalid for the id type specified.",
+                    source,
+                    row,
+                    "Invalid ID value: `%s`.".formatted(value));
+        }
+
+        @Override
+        public InputException exception() {
             return new InputException(message());
         }
     }

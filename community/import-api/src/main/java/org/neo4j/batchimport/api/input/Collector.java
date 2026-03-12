@@ -61,6 +61,12 @@ public interface Collector extends AutoCloseable {
             String source,
             long lineNumber);
 
+    void collectDataAfterQuote(String source, long row, String value);
+
+    void collectIllegalQuote(String source, long row, String value);
+
+    void collectInvalidID(String source, long row, String value);
+
     void collectExtraColumns(String source, long row, String value);
 
     /**
@@ -153,6 +159,15 @@ public interface Collector extends AutoCloseable {
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
 
         @Override
+        public void collectDataAfterQuote(String source, long row, String value) {}
+
+        @Override
+        public void collectIllegalQuote(String source, long row, String value) {}
+
+        @Override
+        public void collectInvalidID(String source, long row, String value) {}
+
+        @Override
         public void collectOtherNodeViolation(String problem) {}
 
         @Override
@@ -202,6 +217,33 @@ public interface Collector extends AutoCloseable {
         public void collectDuplicateNode(Object id, long actualId, Group group, String source, long lineNumber) {
             throw new IllegalStateException(standardisedErrorMessage(
                     "Duplicate node", source, lineNumber, format("%s:%s id:%d", id, group, actualId)));
+        }
+
+        @Override
+        public void collectDataAfterQuote(String source, long row, String value) {
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Characters after an ending quote in a CSV field are not supported.",
+                    source,
+                    row,
+                    "Column content: `%s`.".formatted(value)));
+        }
+
+        @Override
+        public void collectIllegalQuote(String source, long row, String value) {
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "Quotes are only allowed in quoted strings in a CSV field.",
+                    source,
+                    row,
+                    "Column content: `%s`.".formatted(value)));
+        }
+
+        @Override
+        public void collectInvalidID(String source, long row, String value) {
+            throw new IllegalStateException(standardisedErrorMessage(
+                    "ID value is invalid for the id type specified.",
+                    source,
+                    row,
+                    "Invalid ID value: `%s`.".formatted(value)));
         }
 
         @Override
@@ -308,6 +350,15 @@ public interface Collector extends AutoCloseable {
 
         @Override
         public void collectSchemaCommandFailure(EntityType entityType, String failureMessage) {}
+
+        @Override
+        public void collectDataAfterQuote(String source, long row, String value) {}
+
+        @Override
+        public void collectIllegalQuote(String source, long row, String value) {}
+
+        @Override
+        public void collectInvalidID(String source, long row, String value) {}
 
         @Override
         public void collectOtherNodeViolation(String problem) {}

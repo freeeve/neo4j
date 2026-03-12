@@ -83,6 +83,9 @@ public final class BadCollector implements Collector {
     static final int VIOLATING_SCHEMA = 0x10;
     static final int OTHER_NODE_VIOLATION = 0x20;
     static final int OTHER_RELATIONSHIP_VIOLATION = 0x40;
+    static final int DATA_AFTER_QUOTE = 0x80;
+    static final int ILLEGAL_QUOTE = 0x100;
+    static final int INVALID_ID = 0x200;
     static final int BAD_NODES = DUPLICATE_NODES | VIOLATING_NODES | OTHER_NODE_VIOLATION;
 
     static final int COLLECT_ALL = -1;
@@ -250,6 +253,21 @@ public final class BadCollector implements Collector {
     @Override
     public void collectOtherRelationshipViolation(String problem) {
         collect(ProblemReporters.otherViolationReporter(EntityType.RELATIONSHIP, problem));
+    }
+
+    @Override
+    public void collectDataAfterQuote(String source, long row, String value) {
+        collect(ProblemReporters.dataAfterQuoteReporter(source, row, value));
+    }
+
+    @Override
+    public void collectIllegalQuote(String source, long row, String value) {
+        collect(ProblemReporters.illegalQuoteReporter(source, row, value));
+    }
+
+    @Override
+    public void collectInvalidID(String source, long row, String value) {
+        collect(ProblemReporters.invalidIdReporter(source, row, value));
     }
 
     @Override
