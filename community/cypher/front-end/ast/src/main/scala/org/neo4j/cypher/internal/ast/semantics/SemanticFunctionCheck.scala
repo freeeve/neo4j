@@ -168,7 +168,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
 
         case CollFlatten =>
           checkFunctionTypeSignatures(semanticCheckContext, CollFlatten, invocation) ifOkChain {
-            specifyType(types(invocation.arguments.head), invocation)
+            specifyType(CTAny.covariant, invocation)
           }
 
         case CollIndexOf =>
