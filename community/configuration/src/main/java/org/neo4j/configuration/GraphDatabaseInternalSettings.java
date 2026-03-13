@@ -1998,6 +1998,14 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Graph Engine id cache size")
+    public static final Setting<Integer> graph_engine_id_cache_size = newBuilder(
+                    "internal.graphengine.id_cache_size", INT, 10_000)
+            .addConstraint(min(0))
+            .immutable()
+            .build();
+
+    @Internal
     @Description("Allowlist of logging prefixes for libraries that bind to SLF4J")
     public static final Setting<List<String>> slf4j_class_prefixes = newBuilder(
                     "internal.server.logs.filter.slf4j_class_prefixes",

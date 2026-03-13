@@ -21,11 +21,9 @@ package org.neo4j.cypher.internal.runtime.spec.interpreted
 
 import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunityRuntimeContext
-import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.COMMUNITY
-import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.interpreted.InterpretedSpecSuite.SIZE_HINT
 import org.neo4j.cypher.internal.runtime.spec.tests.AggregationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllNodeScanTestBase
