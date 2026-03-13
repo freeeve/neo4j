@@ -23,9 +23,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.neo4j.scheduler.JobMonitoringParams.NOT_MONITORED;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -35,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.neo4j.scheduler.FailedJobRun;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
@@ -77,9 +74,9 @@ final class ThreadPool {
         this.clock = clock;
         this.failedJobRunsStore = failedJobRunsStore;
         this.jobIdSupplier = jobIdSupplier;
-        threadFactory = parameters.providedThreadFactory.newSchedulerThreadFactory(group, parentThreadGroup);
-        executor = group.buildExecutorService(threadFactory, parameters.desiredParallelism);
-        registry = new ConcurrentHashMap<>();
+        this.threadFactory = parameters.providedThreadFactory.newSchedulerThreadFactory(group, parentThreadGroup);
+        this.executor = group.buildExecutorService(threadFactory, parameters.desiredParallelism);
+        this.registry = new ConcurrentHashMap<>();
     }
 
     ThreadFactory getThreadFactory() {
@@ -148,15 +145,6 @@ final class ThreadPool {
 
     int activeThreadCount() {
         return threadFactory.getThreadGroup().activeCount();
-    }
-
-    Stream<Thread> activeThreads() {
-        ThreadGroup threadGroup = threadFactory.getThreadGroup();
-        int activeCountEstimate = threadGroup.activeCount();
-        int activeCountFudge = Math.max((int) Math.sqrt(activeCountEstimate), 10);
-        Thread[] snapshot = new Thread[activeCountEstimate + activeCountFudge];
-        threadGroup.enumerate(snapshot);
-        return Arrays.stream(snapshot).filter(Objects::nonNull);
     }
 
     void cancelAllJobs() {

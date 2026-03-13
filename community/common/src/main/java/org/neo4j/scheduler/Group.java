@@ -22,7 +22,6 @@ package org.neo4j.scheduler;
 import java.util.OptionalInt;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.neo4j.function.Factory;
 import org.neo4j.util.FeatureToggles;
 
 /**
@@ -40,8 +39,7 @@ public enum Group {
     /** Watch out for, and report, external manipulation of store files. */
     FILE_WATCHER("FileWatcher", ExecutorServiceFactory.unschedulable()),
     /** Monitor and report system-wide pauses, in case they lead to service interruption. */
-    VM_PAUSE_MONITOR(
-            "VmPauseMonitor", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::cached)),
+    VM_PAUSE_MONITOR("VmPauseMonitor", true),
     LOG_ROTATION("LogRotation"),
     /** Checkpoint and store flush. */
     CHECKPOINT("CheckPoint"),
@@ -77,7 +75,7 @@ public enum Group {
     /** Threads that perform database manager operations necessary to bring databases to their desired states. */
     DATABASE_RECONCILER("DatabaseReconciler"),
 
-    UDC("UserDataCollector", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::singleThread)),
+    UDC("UserDataCollector", ExecutorServiceFactory.singleThread(), true),
 
     // CYPHER.
     /** Thread pool for parallel Cypher query execution. */
@@ -94,7 +92,7 @@ public enum Group {
     CDC("CDC"),
 
     // DATA COLLECTOR
-    DATA_COLLECTOR("DataCollector", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::cached)),
+    DATA_COLLECTOR("DataCollector", true),
 
     // BOLT.
     /** Network IO threads for the Bolt protocol. */
@@ -146,9 +144,9 @@ public enum Group {
 
     // FABRIC
     FABRIC_IDLE_DRIVER_MONITOR("FabricIdleDriverMonitor"),
-    FABRIC_WORKER("FabricWorker", ExecutorServiceFactory.newVirtualThreadPerTask()),
+    FABRIC_WORKER("FabricWorker", true),
 
-    QUERY_ROUTER_WORKER("QueryRouterWorker", ExecutorServiceFactory.newVirtualThreadPerTask()),
+    QUERY_ROUTER_WORKER("QueryRouterWorker", true),
 
     SPD_WORKER("SpdWorker"),
 
@@ -167,24 +165,41 @@ public enum Group {
     TESTING("TestingGroup", ExecutorServiceFactory.callingThread()),
 
     // Graph Engine
-    GRAPH_ENGINE_DATA_SOURCE_POOL(
-            "GraphEngineDataSourcePool",
-            ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::newVirtualThreadPerTask));
+    GRAPH_ENGINE_DATA_SOURCE_POOL("GraphEngineDataSourcePool", true);
 
     private final String name;
     private final ExecutorServiceFactory executorServiceFactory;
     private final Integer defaultParallelism;
     private final AtomicInteger threadCounter;
+    private final boolean virtual;
 
-    Group(String name, ExecutorServiceFactory executorServiceFactory, Integer defaultParallelism) {
+    Group(
+            String name,
+            ExecutorServiceFactory executorServiceFactory,
+            Integer defaultParallelism,
+            boolean virtualCandidate) {
         this.name = name;
-        this.executorServiceFactory = executorServiceFactory;
+        this.virtual = GroupSupport.USE_VIRTUAL_THREADS && virtualCandidate;
+        this.executorServiceFactory =
+                virtual ? ExecutorServiceFactory.newVirtualThreadPerTask() : executorServiceFactory;
         this.defaultParallelism = defaultParallelism;
         this.threadCounter = new AtomicInteger();
     }
 
+    Group(String name, boolean virtual) {
+        this(name, ExecutorServiceFactory.cached(), null, virtual);
+    }
+
+    Group(String name, ExecutorServiceFactory executorServiceFactory, boolean virtual) {
+        this(name, executorServiceFactory, null, virtual);
+    }
+
+    Group(String name, ExecutorServiceFactory executorServiceFactory, Integer defaultParallelism) {
+        this(name, executorServiceFactory, defaultParallelism, false);
+    }
+
     Group(String name, ExecutorServiceFactory executorServiceFactory) {
-        this(name, executorServiceFactory, null);
+        this(name, executorServiceFactory, null, false);
     }
 
     Group(String name) {
@@ -219,15 +234,11 @@ public enum Group {
         return defaultParallelism == null ? OptionalInt.empty() : OptionalInt.of(defaultParallelism);
     }
 
-    private static class ServiceFactorySelector {
-        private static final boolean USE_VIRTUAL_THREADS =
-                FeatureToggles.flag(Group.class, "enableVirtualThreads", true);
+    public boolean isVirtual() {
+        return virtual;
+    }
 
-        private static ExecutorServiceFactory selectGroupServiceFactory(
-                Factory<ExecutorServiceFactory> executorServiceFactoryFactory) {
-            return USE_VIRTUAL_THREADS
-                    ? ExecutorServiceFactory.newVirtualThreadPerTask()
-                    : executorServiceFactoryFactory.newInstance();
-        }
+    static final class GroupSupport {
+        static final boolean USE_VIRTUAL_THREADS = FeatureToggles.flag(Group.class, "enableVirtualThreads", true);
     }
 }

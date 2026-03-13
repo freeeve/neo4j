@@ -34,7 +34,6 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -120,13 +119,7 @@ interface ExecutorServiceFactory {
     }
 
     static ExecutorServiceFactory newVirtualThreadPerTask() {
-        return (group, factory, threadCount) -> {
-            // Both the factory and thread count provided by the scheduler framework are ignored
-            // as they don't make sense for virtual threads
-            ThreadFactory virtualThreadFactory =
-                    Thread.ofVirtual().name(group.threadNamePrefix()).factory();
-            return Executors.newThreadPerTaskExecutor(virtualThreadFactory);
-        };
+        return (group, factory, threadCount) -> Executors.newThreadPerTaskExecutor(factory);
     }
 
     abstract class ExecutorServiceAdapter extends AbstractExecutorService {

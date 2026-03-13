@@ -451,6 +451,24 @@ class CentralJobSchedulerTest {
     }
 
     @Test
+    void respectGroupVirtualThreadFactory() {
+        life.start();
+
+        Thread graphEngineThread =
+                scheduler.threadFactory(Group.GRAPH_ENGINE_DATA_SOURCE_POOL).newThread(() -> {});
+        assertThat(graphEngineThread.isVirtual()).isTrue();
+    }
+
+    @Test
+    void respectRealThreadFactory() {
+        life.start();
+
+        Thread evictionThread =
+                scheduler.threadFactory(Group.PAGE_CACHE_EVICTION).newThread(() -> {});
+        assertThat(evictionThread.isVirtual()).isFalse();
+    }
+
+    @Test
     void shouldThrowIfModifyingParametersAfterStart() {
         life.start();
 

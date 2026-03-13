@@ -22,10 +22,14 @@ package org.neo4j.kernel.impl.scheduler;
 import static java.util.Objects.requireNonNullElseGet;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.scheduler.Group;
+import org.neo4j.scheduler.SchedulerThreadFactory;
 import org.neo4j.time.SystemNanoClock;
 
 final class ThreadPoolManager {
@@ -76,6 +80,9 @@ final class ThreadPoolManager {
         ThreadPool.ThreadPoolParameters effectiveParameters = requireNonNullElseGet(parameters, () -> {
             ThreadPool.ThreadPoolParameters newParameters = new ThreadPool.ThreadPoolParameters();
             group.defaultParallelism().ifPresent(parallelism -> newParameters.desiredParallelism = parallelism);
+            newParameters.providedThreadFactory = group.isVirtual()
+                    ? (g, parentThreadGroup) -> new VirtualSchedulerThreadFactory(g)
+                    : GroupedDaemonThreadFactory::new;
             return newParameters;
         });
         return new ThreadPool(group, topLevelGroup, effectiveParameters, clock, failedJobRunsStore, jobIdSupplier);
@@ -92,5 +99,31 @@ final class ThreadPoolManager {
         pools.forEach((group, pool) -> pool.cancelAllJobs());
         pools.forEach((group, pool) -> pool.shutDown());
         return pools.values().stream().map(ThreadPool::getShutdownException).reduce(null, Exceptions::chain);
+    }
+
+    private static class VirtualSchedulerThreadFactory implements SchedulerThreadFactory {
+        private static final ThreadGroup VIRTUAL_THREAD_GROUP =
+                Thread.ofVirtual().unstarted(() -> {}).getThreadGroup();
+        private final ThreadFactory factory;
+
+        public VirtualSchedulerThreadFactory(Group group) {
+            factory = Thread.ofVirtual().name(group.threadNamePrefix()).factory();
+        }
+
+        @Override
+        public ThreadGroup getThreadGroup() {
+            return VIRTUAL_THREAD_GROUP;
+        }
+
+        @Override
+        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+            throw new UnsupportedOperationException(
+                    "Virtual thread factory does not support creation of ForkJoinWorkerThread.");
+        }
+
+        @Override
+        public Thread newThread(Runnable r) {
+            return factory.newThread(r);
+        }
     }
 }
