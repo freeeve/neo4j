@@ -18,7 +18,7 @@
     <properties>
         <moduleName>org.neo4j.server.slf4j</moduleName>
         <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
-        <dependencya.analyze.failOnWarning>true</dependencya.analyze.failOnWarning>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <scm>
