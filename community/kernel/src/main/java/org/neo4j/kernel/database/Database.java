@@ -272,6 +272,7 @@ public class Database extends AbstractDatabase {
     private boolean storageExists;
     private TransactionCommitmentFactory commitmentFactory;
     private VersionStorage versionStorage;
+    private LeaseMonitor leaseMonitor;
 
     public Database(DatabaseCreationContext context) {
         super(
@@ -363,6 +364,7 @@ public class Database extends AbstractDatabase {
                 namedDatabaseId, cursorContextFactory, databaseConfig, idGeneratorSettings, multiVersioned);
         this.idController = databaseIdContext.getIdController();
         this.idGeneratorFactory = databaseIdContext.getIdGeneratorFactory();
+        this.leaseMonitor = getMonitors().newMonitor(LeaseMonitor.class);
         life.add(onShutdown(() -> databaseLockManager.close()));
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
@@ -1334,6 +1336,24 @@ public class Database extends AbstractDatabase {
 
     public long estimateAvailableReservedSpace() {
         return storageEngine.estimateAvailableReservedSpace();
+    }
+
+    /**
+     * Called on the server that owns the new lease when a new lease is acquired in a cluster.
+     * This method must not perform any actions that can block for a long time. Any long-running
+     * actions must be run in other threads. Any transactions created as a result of a call to
+     * this method that fail to replicate should not be retried immediately. Instead, they should
+     * be retried on the next leaseholder after this method is called again on that next leaseholder.
+     * @param leaseId The ID of the newly acquired lease.
+     */
+    public void newLeaseAcquired(int leaseId) {
+        leaseMonitor.newLeaseAcquired(leaseId);
+    }
+
+    public void clearIdGeneratorCache(boolean allocationEnabled, String pageCursorTracerTag) {
+        try (var cursorContext = cursorContextFactory.create(pageCursorTracerTag)) {
+            idGeneratorFactory.clearCache(allocationEnabled, cursorContext);
+        }
     }
 
     private void prepareStop(Predicate<PagedFile> deleteFilePredicate) {
