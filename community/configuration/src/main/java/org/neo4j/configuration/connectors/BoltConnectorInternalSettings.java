@@ -276,6 +276,17 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
             newBuilder("internal.dbms.bolt.local_enabled", BOOL, true).build();
 
     @Internal
+    @Description("Enabled of disabled object messages on local bolt connector .")
+    public static final Setting<Boolean> enable_object_messages_local_connector =
+            newBuilder("internal.dbms.bolt.local_object_enabled", BOOL, false).build();
+
+    @Internal
+    @Description("Define protocol version of object messages on local bolt connector .")
+    public static final Setting<ConfiguredProtocolVersion> enable_object_messages_protocol_version_local_connector =
+            newBuilder("internal.dbms.bolt.local_object_protocol_version", PROTOCOL_VERSION, null)
+                    .build();
+
+    @Internal
     @Description(
             "Permits the use of user-databases (databases other than \"system\") via the Unix Domain Socket connector.")
     public static final Setting<Boolean> enable_unix_socket_user_database_access = newBuilder(

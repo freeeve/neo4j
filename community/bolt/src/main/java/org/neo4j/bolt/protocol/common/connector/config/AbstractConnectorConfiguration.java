@@ -46,6 +46,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
     private final boolean enableTransactionThreadBinding;
     private final Duration threadBindingTimeout;
     private final boolean isInternalConnector;
+    private final boolean enableJavaObjectMessages;
 
     protected AbstractConnectorConfiguration(AbstractFactory<?> builder) {
         this.enableProtocolCapture = builder.enableProtocolCapture;
@@ -67,6 +68,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         this.enableTransactionThreadBinding = builder.enableTransactionThreadBinding;
         this.threadBindingTimeout = builder.threadBindingTimeout;
         this.isInternalConnector = builder.isInternalConnector;
+        this.enableJavaObjectMessages = builder.enableJavaObjectMessages;
     }
 
     @Override
@@ -164,6 +166,11 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         return this.threadBindingTimeout;
     }
 
+    @Override
+    public boolean enableJavaObjectMessages() {
+        return this.enableJavaObjectMessages;
+    }
+
     @SuppressWarnings("unchecked")
     public abstract static class AbstractFactory<SELF extends AbstractFactory<SELF>>
             implements ConnectorConfiguration.Factory<SELF> {
@@ -187,6 +194,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         private boolean enableTransactionThreadBinding = true;
         private Duration threadBindingTimeout = Duration.ofMillis(100);
         private boolean isInternalConnector = false;
+        private boolean enableJavaObjectMessages = false;
 
         @Override
         public SELF fromConfig(Config config) {
@@ -336,6 +344,12 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         @Override
         public SELF isInternalConnector(boolean value) {
             this.isInternalConnector = value;
+            return (SELF) this;
+        }
+
+        @Override
+        public SELF enableJavaObjectMessages(boolean value) {
+            this.enableJavaObjectMessages = value;
             return (SELF) this;
         }
     }

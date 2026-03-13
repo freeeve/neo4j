@@ -29,9 +29,13 @@ import org.neo4j.bolt.protocol.common.BoltProtocol;
 
 public class DefaultBoltProtocolRegistry implements BoltProtocolRegistry {
     private final List<BoltProtocol> protocols;
+    private final BoltProtocol latest;
 
     private DefaultBoltProtocolRegistry(List<BoltProtocol> protocols) {
         this.protocols = protocols;
+        this.latest = this.protocols.stream()
+                .max(Comparator.comparing(BoltProtocol::version))
+                .orElse(null);
     }
 
     public static Builder builder() {
@@ -53,6 +57,11 @@ public class DefaultBoltProtocolRegistry implements BoltProtocolRegistry {
     @Override
     public List<ProtocolVersion> versionsAvailable() {
         return this.protocols.stream().map(BoltProtocol::version).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<BoltProtocol> getLatest() {
+        return Optional.ofNullable(this.latest);
     }
 
     public static class Builder implements BoltProtocolRegistry.Builder {

@@ -38,29 +38,25 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 
-public class NetworkResponseHandler extends AbstractMetadataAwareResponseHandler {
+public final class NetworkResponseHandler extends AbstractMetadataAwareResponseHandler {
     private static final Set<Status> CLIENT_MID_OP_DISCONNECT_ERRORS =
             new HashSet<>(Arrays.asList(Status.Transaction.Terminated, Status.Transaction.LockClientStopped));
 
     private final Connection connection;
-    private final int bufferSize;
-    private final int flushThreshold;
     private final Log log;
-
+    private final RecordHandler.Factory recordHandlerFactory;
     private MapValueBuilder metadataBuilder;
-    private NetworkRecordHandler recordHandler;
+    private RecordHandler recordHandler;
 
     public NetworkResponseHandler(
             ConnectionHandle connection,
             MetadataHandler metadataHandler,
-            int bufferSize,
-            int flushThreshold,
+            RecordHandler.Factory recordHandlerFactory,
             LogService logging) {
         super(metadataHandler, connection.notificationManager());
 
         this.connection = connection;
-        this.bufferSize = bufferSize;
-        this.flushThreshold = flushThreshold;
+        this.recordHandlerFactory = recordHandlerFactory;
         this.log = logging.getInternalLog(NetworkResponseHandler.class);
     }
 
@@ -75,8 +71,7 @@ public class NetworkResponseHandler extends AbstractMetadataAwareResponseHandler
 
     @Override
     public RecordHandler onBeginStreaming(List<String> fieldNames) {
-        return this.recordHandler =
-                new NetworkRecordHandler(this.connection, fieldNames.size(), this.bufferSize, this.flushThreshold);
+        return this.recordHandler = this.recordHandlerFactory.newInstance(fieldNames.size());
     }
 
     @Override

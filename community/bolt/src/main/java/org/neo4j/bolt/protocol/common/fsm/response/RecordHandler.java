@@ -19,12 +19,13 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.response;
 
+import java.io.Closeable;
 import org.neo4j.values.AnyValue;
 
 /**
  * Handles the conversion of records to their network representation.
  */
-public interface RecordHandler {
+public interface RecordHandler extends Closeable {
 
     /**
      * Handles the beginning of a new record.
@@ -53,4 +54,18 @@ public interface RecordHandler {
      * instance in this case.
      */
     void onFailure();
+
+    @Override
+    default void close() {}
+    ;
+
+    interface Factory {
+
+        /**
+         * Responsible for creating instances of RecordHandlers for a giver number of fields.
+         * @param numberOfFields The number of the fields present on the Records handled
+         * @return the new instance
+         */
+        RecordHandler newInstance(int numberOfFields);
+    }
 }

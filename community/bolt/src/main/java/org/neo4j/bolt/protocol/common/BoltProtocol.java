@@ -19,6 +19,7 @@
  */
 package org.neo4j.bolt.protocol.common;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -82,10 +83,12 @@ public interface BoltProtocol {
     }
 
     static String latestVersionInstalled() {
+        return latestInstalled().version().toString();
+    }
+
+    static BoltProtocol latestInstalled() {
         return installed().stream()
-                .map(BoltProtocol::version)
-                .max(ProtocolVersion::compareTo)
-                .map(ProtocolVersion::toString)
+                .max(Comparator.comparing(BoltProtocol::version))
                 .orElseThrow();
     }
 

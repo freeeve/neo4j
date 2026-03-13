@@ -45,6 +45,8 @@ import org.neo4j.bolt.protocol.common.connector.Connector;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
 import org.neo4j.bolt.protocol.common.connector.notification.NotificationManager;
+import org.neo4j.bolt.protocol.common.fsm.response.JavaObjectdRecordHandler;
+import org.neo4j.bolt.protocol.common.fsm.response.NetworkRecordHandler;
 import org.neo4j.bolt.protocol.common.fsm.response.NetworkResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.io.pipeline.PipelineContext;
@@ -288,14 +290,17 @@ public abstract class AbstractConnection implements ConnectionHandle {
         this.writerPipeline = pipeline;
         this.structRegistry.set(structRegistry.build());
 
+        var recordHandlerFactory = this.connector.configuration().enableJavaObjectMessages()
+                ? new JavaObjectdRecordHandler.Factory(this)
+                : new NetworkRecordHandler.Factory(
+                        this,
+                        this.connector.configuration().streamingBufferSize(),
+                        this.connector.configuration().streamingFlushThreshold());
+
         // allocate a new response handler which shall take care of communicating operation results
         // to the client
-        this.responseHandler = new NetworkResponseHandler(
-                this,
-                protocol().metadataHandler(),
-                this.connector.configuration().streamingBufferSize(),
-                this.connector.configuration().streamingFlushThreshold(),
-                this.logService);
+        this.responseHandler =
+                new NetworkResponseHandler(this, protocol.metadataHandler(), recordHandlerFactory, this.logService);
 
         // also enable any implicitly enabled features within the protocol version as we do not want these to be enabled
         // again if negotiated through one of the later mechanisms

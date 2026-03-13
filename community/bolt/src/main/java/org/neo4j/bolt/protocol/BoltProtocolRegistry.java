@@ -61,6 +61,12 @@ public interface BoltProtocolRegistry {
      */
     List<ProtocolVersion> versionsAvailable();
 
+    /**
+     * Returns the latest BoltProtocol version available in the server
+     * @return Empty if none
+     */
+    Optional<BoltProtocol> getLatest();
+
     interface Builder {
 
         /**

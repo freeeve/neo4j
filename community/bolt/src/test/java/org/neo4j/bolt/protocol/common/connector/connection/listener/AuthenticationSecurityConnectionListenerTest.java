@@ -26,6 +26,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoop;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +50,7 @@ class AuthenticationSecurityConnectionListenerTest {
 
     private static final String CONNECTION_ID = "bolt-authtimeout";
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
+    private static final List<String> CHANNEL_HANDLER_NAMES = List.of(ChunkFrameDecoder.NAME);
 
     private ConnectorConfiguration configuration;
     private Connector<?> connector;
@@ -78,6 +80,7 @@ class AuthenticationSecurityConnectionListenerTest {
         Mockito.doReturn(this.memoryTracker).when(this.connection).memoryTracker();
         Mockito.doReturn(this.eventLoop).when(this.channel).eventLoop();
         Mockito.doReturn(this.pipeline).when(this.channel).pipeline();
+        Mockito.doReturn(CHANNEL_HANDLER_NAMES).when(this.pipeline).names();
 
         Mockito.doAnswer(invocationOnMock -> {
                     var consumer = invocationOnMock.<Consumer<ChannelPipeline>>getArgument(0);
@@ -138,6 +141,23 @@ class AuthenticationSecurityConnectionListenerTest {
     }
 
     @Test
+    void shouldNotInstallLimiterOnProtocolSelectionWhenMessageIsNotChunked() {
+        Mockito.doReturn(List.of()).when(this.pipeline).names();
+
+        this.listener.onProtocolSelected(Mockito.mock(BoltProtocol.class));
+
+        var inOrder = Mockito.inOrder(this.memoryTracker, this.pipeline);
+
+        inOrder.verify(this.pipeline).names();
+        inOrder.verify(this.memoryTracker, Mockito.never())
+                .allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
+        inOrder.verify(this.pipeline, Mockito.never())
+                .addAfter(
+                        eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
     void shouldRemoveAuthenticationTimeoutHandlerOnAuthentication() {
         var loginContext = Mockito.mock(LoginContext.class);
 
@@ -152,6 +172,7 @@ class AuthenticationSecurityConnectionListenerTest {
         Mockito.verify(this.memoryTracker, Mockito.times(2)).allocateHeap(AuthenticationTimeoutHandler.SHALLOW_SIZE);
         //    Mockito.verify(this.memoryTracker)
         //        .allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
+        Mockito.verify(this.pipeline).names();
         Mockito.verify(this.pipeline).addLast(any(AuthenticationTimeoutHandler.class));
         Mockito.verify(this.pipeline)
                 .addAfter(
@@ -185,6 +206,32 @@ class AuthenticationSecurityConnectionListenerTest {
                         any(String.class),
                         any(AuthenticationTimeoutHandler.class));
         inOrder.verify(pipeline)
+                .addAfter(
+                        eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
+        inOrder.verifyNoMoreInteractions();
+
+        LogAssertions.assertThat(logProvider)
+                .forLevel(AssertableLogProvider.Level.DEBUG)
+                .forClass(AuthenticationSecurityConnectionListener.class)
+                .containsMessageWithArgumentsContaining("Re-adding authentication timeout handler", CONNECTION_ID);
+    }
+
+    @Test
+    void shouldNotInstallLimiterOnLogoffWhenMessageIsNotChunked() {
+        Mockito.doReturn(List.of()).when(this.pipeline).names();
+
+        listener.onNetworkPipelineInitialized(pipeline);
+        listener.onLogoff();
+
+        InOrder inOrder = Mockito.inOrder(connection, channel, pipeline);
+
+        inOrder.verify(pipeline)
+                .addBefore(
+                        eq(HouseKeeperHandler.HANDLER_NAME),
+                        any(String.class),
+                        any(AuthenticationTimeoutHandler.class));
+        inOrder.verify(pipeline).names();
+        inOrder.verify(pipeline, Mockito.never())
                 .addAfter(
                         eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
         inOrder.verifyNoMoreInteractions();

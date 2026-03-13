@@ -22,7 +22,6 @@ package org.neo4j.bolt.protocol.common.fsm.response;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.ReferenceCountUtil;
-import java.io.Closeable;
 import java.util.LinkedList;
 import java.util.List;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
@@ -32,7 +31,7 @@ import org.neo4j.packstream.signal.FrameSignal;
 import org.neo4j.packstream.struct.StructHeader;
 import org.neo4j.values.AnyValue;
 
-public class NetworkRecordHandler implements RecordHandler, Closeable {
+public final class NetworkRecordHandler implements RecordHandler {
     public static final short RECORD_TAG = 0x71;
 
     private final Connection connection;
@@ -122,5 +121,22 @@ public class NetworkRecordHandler implements RecordHandler, Closeable {
         // write any pending records to the pipeline without explicitly flushing - this will always
         // be followed by a result message and a flush call
         this.writePending();
+    }
+
+    public static class Factory implements RecordHandler.Factory {
+        private final Connection connection;
+        private final int bufferSize;
+        private final int flushThreshold;
+
+        public Factory(Connection connection, int bufferSize, int flushThreshold) {
+            this.connection = connection;
+            this.bufferSize = bufferSize;
+            this.flushThreshold = flushThreshold;
+        }
+
+        @Override
+        public NetworkRecordHandler newInstance(int numberOfFields) {
+            return new NetworkRecordHandler(connection, numberOfFields, bufferSize, flushThreshold);
+        }
     }
 }

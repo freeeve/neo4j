@@ -74,7 +74,11 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldPrepareRecordHandler() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(
+                this.connection,
+                this.metadataHandler,
+                new NetworkRecordHandler.Factory(this.connection, 512, 0),
+                this.logService);
 
         var recordHandler = handler.onBeginStreaming(List.of("foo", "bar"));
 
@@ -83,7 +87,7 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldAssembleSuccessResponse() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onMetadata("foo", Values.stringValue("bar"));
         handler.onMetadata("baz", Values.stringValue("foo"));
@@ -103,7 +107,7 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldUseEmptyMapValueInSuccessResponseWhenNoMetadataIsGiven() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onSuccess();
 
@@ -117,7 +121,7 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldAssembleIgnoredResponse() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onIgnored();
 
@@ -131,7 +135,7 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldAssembleFailureResponse() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onFailure(Error.from(BoltException.unknownError(new Exception("Something went wrong!"))));
 
@@ -146,7 +150,7 @@ class NetworkResponseHandlerTest {
 
     @Test
     void shouldAssembleFatalFailureResponse() {
-        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, 512, 0, this.logService);
+        var handler = new NetworkResponseHandler(this.connection, this.metadataHandler, null, this.logService);
 
         handler.onFailure(Error.fatalFrom(BoltException.unknownError(new Exception("Something went wrong!"))));
 

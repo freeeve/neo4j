@@ -43,6 +43,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -570,15 +571,18 @@ public class BoltServer extends LifecycleAdapter {
                     authenticationTimeout, logService.getInternalLogProvider()));
         }
 
-        // if keep-alive have been configured, we'll register a listener which appends the necessary handlers to the
-        // network pipelines upon connection negotiation
-        var keepAliveMechanism = config.get(BoltConnector.connection_keep_alive_type);
-        var keepAliveInterval = config.get(BoltConnector.connection_keep_alive).toMillis();
-        if (keepAliveMechanism != BoltConnector.KeepAliveRequestType.OFF) {
-            connector.registerListener(new KeepAliveConnectorListener(
-                    keepAliveMechanism != BoltConnector.KeepAliveRequestType.ALL,
-                    keepAliveInterval,
-                    logService.getInternalLogProvider()));
+        if (connector.supportsKeepAlive()) {
+            // if keep-alive have been configured, we'll register a listener which appends the necessary handlers to the
+            // network pipelines upon connection negotiation
+            var keepAliveMechanism = config.get(BoltConnector.connection_keep_alive_type);
+            var keepAliveInterval =
+                    config.get(BoltConnector.connection_keep_alive).toMillis();
+            if (keepAliveMechanism != BoltConnector.KeepAliveRequestType.OFF) {
+                connector.registerListener(new KeepAliveConnectorListener(
+                        keepAliveMechanism != BoltConnector.KeepAliveRequestType.ALL,
+                        keepAliveInterval,
+                        logService.getInternalLogProvider()));
+            }
         }
 
         // if read-limit has been configured, we'll register a listener which appends the necessary handlers to the
@@ -801,10 +805,26 @@ public class BoltServer extends LifecycleAdapter {
             ConnectorTransport transport,
             Authentication authentication,
             ByteBufAllocator allocator) {
-        var config =
-                LocalConnectorConfiguration.factory().fromConfig(this.config).build();
+        var config = LocalConnectorConfiguration.factory()
+                .fromConfig(this.config)
+                .enableJavaObjectMessages(
+                        this.config.get(BoltConnectorInternalSettings.enable_object_messages_local_connector))
+                .build();
 
         var bindAddress = new LocalAddress(this.config.get(BoltConnectorInternalSettings.local_channel_address));
+
+        var localConnectorProtocolRegistry = config.enableJavaObjectMessages()
+                ? Optional.ofNullable(this.config.get(
+                                BoltConnectorInternalSettings.enable_object_messages_protocol_version_local_connector))
+                        .map(version -> new ProtocolVersion(version.major(), version.minor()))
+                        .flatMap(version -> BoltProtocol.installed().stream()
+                                .filter(it -> version.matches(it.version()))
+                                .max(Comparator.comparing(BoltProtocol::version)))
+                        .map(protocolVersion -> BoltProtocolRegistry.builder()
+                                .register(protocolVersion)
+                                .build())
+                        .orElse(protocolRegistry)
+                : protocolRegistry;
 
         return new LocalNettyConnector(
                 BoltConnectorInternalSettings.LOCAL_NAME,
@@ -816,7 +836,7 @@ public class BoltServer extends LifecycleAdapter {
                 localWorkerEventLoopGroup,
                 connectionFactory,
                 connectionTracker,
-                protocolRegistry,
+                localConnectorProtocolRegistry,
                 authentication,
                 authConfigProvider,
                 defaultDatabaseResolver,

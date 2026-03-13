@@ -94,4 +94,9 @@ public class LocalNettyConnector extends AbstractNettyConnector<LocalConnectorCo
                 userLogProvider,
                 internalLogProvider);
     }
+
+    @Override
+    public boolean supportsKeepAlive() {
+        return !this.configuration().enableJavaObjectMessages();
+    }
 }

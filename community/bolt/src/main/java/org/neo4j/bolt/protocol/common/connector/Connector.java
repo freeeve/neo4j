@@ -214,6 +214,14 @@ public interface Connector<CFG extends ConnectorConfiguration> extends Lifecycle
         return false;
     }
 
+    /**
+     * Return whether this connection supports keep alive messages.
+     * @return true if connector allows keep alive messages
+     */
+    default boolean supportsKeepAlive() {
+        return true;
+    }
+
     @Override
     default void init() throws Exception {}
 

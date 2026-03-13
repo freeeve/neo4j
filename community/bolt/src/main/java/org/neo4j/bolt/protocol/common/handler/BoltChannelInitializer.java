@@ -27,6 +27,9 @@ import io.netty.handler.ssl.SslContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.Set;
+import org.neo4j.bolt.protocol.common.BoltProtocol;
+import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
@@ -108,8 +111,24 @@ public class BoltChannelInitializer extends ChannelInitializer<Channel> {
             }
         }
 
-        ch.pipeline().addLast(new TransportSelectionHandler(this.logging));
+        var protocol = initializeProtocolPipeline(ch, connection);
 
         connection.notifyListeners(listener -> listener.onNetworkPipelineInitialized(ch.pipeline()));
+        if (protocol != null) {
+            connection.notifyListeners(listener -> listener.onProtocolSelected(protocol));
+        }
+    }
+
+    private BoltProtocol initializeProtocolPipeline(Channel ch, Connection connection) {
+        if (this.connector.configuration().enableJavaObjectMessages()) {
+            var protocol = this.connector.protocolRegistry().getLatest().orElseThrow();
+            connection.selectProtocol(protocol, Set.of());
+
+            ch.pipeline().addLast("requestHandler", new RequestHandler(logging));
+            return protocol;
+        }
+
+        ch.pipeline().addLast(new TransportSelectionHandler(this.logging));
+        return null;
     }
 }

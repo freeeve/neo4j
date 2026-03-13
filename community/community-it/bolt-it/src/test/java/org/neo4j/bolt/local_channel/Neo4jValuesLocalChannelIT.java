@@ -1,0 +1,517 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.bolt.local_channel;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.bolt.test.annotation.BoltTestExtension;
+import org.neo4j.bolt.test.annotation.connection.initializer.Connected;
+import org.neo4j.bolt.test.annotation.connection.transport.IncludeTransport;
+import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
+import org.neo4j.bolt.test.annotation.test.TransportTest;
+import org.neo4j.bolt.testing.client.BoltTestConnection;
+import org.neo4j.bolt.testing.client.TransportType;
+import org.neo4j.bolt.testing.client.UnwiredTestConnection;
+import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
+import org.neo4j.boltmessages.AccessMode;
+import org.neo4j.boltmessages.notifications.DisabledNotificationsConfig;
+import org.neo4j.boltmessages.request.authentication.HelloMessage;
+import org.neo4j.boltmessages.request.authentication.LogonMessage;
+import org.neo4j.boltmessages.request.connection.RoutingContext;
+import org.neo4j.boltmessages.request.streaming.PullMessage;
+import org.neo4j.boltmessages.request.transaction.BeginMessage;
+import org.neo4j.boltmessages.request.transaction.CommitMessage;
+import org.neo4j.boltmessages.request.transaction.RollbackMessage;
+import org.neo4j.boltmessages.request.transaction.RunMessage;
+import org.neo4j.boltmessages.response.RecordMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
+import org.neo4j.boltmessages.response.SuccessMessage;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
+import org.neo4j.graphdb.config.Setting;
+import org.neo4j.notifications.StandardGqlStatusObject;
+import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
+import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
+import org.neo4j.values.storable.LongValue;
+import org.neo4j.values.storable.StringValue;
+import org.neo4j.values.storable.Values;
+import org.neo4j.values.virtual.ListValue;
+import org.neo4j.values.virtual.ListValueBuilder;
+import org.neo4j.values.virtual.MapValue;
+import org.neo4j.values.virtual.MapValueBuilder;
+import org.neo4j.values.virtual.NodeValue;
+import org.neo4j.values.virtual.PathValue;
+import org.neo4j.values.virtual.RelationshipValue;
+
+@EphemeralTestDirectoryExtension
+@Neo4jWithSocketExtension
+@BoltTestExtension
+@IncludeTransport({TransportType.LOCAL})
+@ParameterizedClass
+@MethodSource("values")
+public class Neo4jValuesLocalChannelIT {
+    private final AnyValue param;
+
+    public Neo4jValuesLocalChannelIT(AnyValue param) {
+        this.param = param;
+    }
+
+    @SettingsFunction
+    protected void customizeSettings(Map<Setting<?>, Object> settings) {
+        settings.put(BoltConnectorInternalSettings.enable_object_messages_local_connector, true);
+    }
+
+    @TransportTest
+    void shouldRunSimpleQuery(@Connected BoltTestConnection connection) throws Exception {
+        connection.unwired(unwired -> {
+            login(unwired);
+
+            var parametersBuilder = new MapValueBuilder();
+            parametersBuilder.add("param", param);
+            unwired.sendRequest(new RunMessage(
+                            "RETURN $param as value",
+                            parametersBuilder.build(),
+                            List.of(),
+                            Duration.of(10, ChronoUnit.SECONDS),
+                            AccessMode.READ,
+                            Map.of(),
+                            "neo4j",
+                            null,
+                            DisabledNotificationsConfig.getInstance()))
+                    .sendRequest(new PullMessage(1000, -1));
+
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasTFirst(), assertSuccessHasFields("value"));
+            assertRecord(unwired.receiveResponse(), param);
+            assertSuccess(
+                    unwired.receiveResponse(),
+                    assertSuccessDb("neo4j"),
+                    assertSuccessType("r"),
+                    assertSuccessHasTLast(),
+                    assertSuccessHasBookmark(),
+                    assertSuccessHasStatuses(status(
+                            StandardGqlStatusObject.SUCCESS.gqlStatus(),
+                            StandardGqlStatusObject.SUCCESS.statusDescription())));
+        });
+    }
+
+    @TransportTest
+    void shouldRunSingleQueryInTx(@Connected BoltTestConnection connection) throws Exception {
+        connection.unwired(unwired -> {
+            login(unwired);
+
+            var parametersBuilder = new MapValueBuilder();
+            parametersBuilder.add("param", param);
+
+            unwired.sendRequest(new BeginMessage(
+                            List.of(), Duration.of(10, ChronoUnit.SECONDS), AccessMode.READ, Map.of(), "neo4j"))
+                    .sendRequest(new RunMessage("RETURN $param as value", parametersBuilder.build()))
+                    .sendRequest(new PullMessage(1000, -1))
+                    .sendRequest(CommitMessage.getInstance());
+
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasTFirst(), assertSuccessHasFields("value"));
+
+            assertRecord(unwired.receiveResponse(), param);
+            assertSuccess(
+                    unwired.receiveResponse(),
+                    assertSuccessHasTLast(),
+                    assertSuccessDb("neo4j"),
+                    assertSuccessType("r"),
+                    assertSuccessHasStatuses(status(
+                            StandardGqlStatusObject.SUCCESS.gqlStatus(),
+                            StandardGqlStatusObject.SUCCESS.statusDescription())));
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasBookmark());
+        });
+    }
+
+    @TransportTest
+    void shouldEchoDataInNodeQueryInTx(@Connected BoltTestConnection connection) throws Exception {
+        assumeIsNotMapOrHeterogeneousList();
+
+        connection.unwired(unwired -> {
+            var expectedLabels = new String[] {"TheNodeLabel"};
+            var expectedProperties = Map.of("param", param);
+
+            login(unwired);
+
+            var parametersBuilder = new MapValueBuilder();
+            parametersBuilder.add("param", param);
+
+            unwired.sendRequest(new BeginMessage(
+                            List.of(), Duration.of(10, ChronoUnit.SECONDS), AccessMode.WRITE, Map.of(), "neo4j"))
+                    .sendRequest(new RunMessage(
+                            "CREATE (n:TheNodeLabel{ param:$param }) RETURN n as value", parametersBuilder.build()))
+                    .sendRequest(new PullMessage(1000, -1))
+                    .sendRequest(RollbackMessage.getInstance());
+
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasTFirst(), assertSuccessHasFields("value"));
+
+            assertRecord(unwired.receiveResponse(), assertNode(expectedLabels, expectedProperties));
+
+            assertSuccess(
+                    unwired.receiveResponse(),
+                    assertSuccessHasTLast(),
+                    assertSuccessDb("neo4j"),
+                    assertSuccessType("rw"),
+                    assertSuccessHasStatuses(status(
+                            StandardGqlStatusObject.SUCCESS.gqlStatus(),
+                            StandardGqlStatusObject.SUCCESS.statusDescription())));
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+        });
+    }
+
+    @TransportTest
+    void shouldEchoDataInRelQueryInTx(@Connected BoltTestConnection connection) throws Exception {
+        assumeIsNotMapOrHeterogeneousList();
+        var expectedType = "TheRelType";
+        var expectedProperties = Map.of("param", param);
+
+        connection.unwired(unwired -> {
+            login(unwired);
+
+            var parametersBuilder = new MapValueBuilder();
+            parametersBuilder.add("param", param);
+
+            unwired.sendRequest(new BeginMessage(
+                            List.of(), Duration.of(10, ChronoUnit.SECONDS), AccessMode.WRITE, Map.of(), "neo4j"))
+                    .sendRequest(new RunMessage(
+                            "CREATE (:Start)-[r:TheRelType{ param:$param }]->(:End) RETURN r as value",
+                            parametersBuilder.build()))
+                    .sendRequest(new PullMessage(1000, -1))
+                    .sendRequest(RollbackMessage.getInstance());
+
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasTFirst(), assertSuccessHasFields("value"));
+
+            assertRecord(unwired.receiveResponse(), assertRelationship(expectedType, expectedProperties));
+
+            assertSuccess(
+                    unwired.receiveResponse(),
+                    assertSuccessHasTLast(),
+                    assertSuccessDb("neo4j"),
+                    assertSuccessType("rw"),
+                    assertSuccessHasStatuses(status(
+                            StandardGqlStatusObject.SUCCESS.gqlStatus(),
+                            StandardGqlStatusObject.SUCCESS.statusDescription())));
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+        });
+    }
+
+    @TransportTest
+    void shouldEchoDataInPathQueryInTx(@Connected BoltTestConnection connection) throws Exception {
+        assumeIsNotMapOrHeterogeneousList();
+
+        connection.unwired(unwired -> {
+            login(unwired);
+
+            var parametersBuilder = new MapValueBuilder();
+            parametersBuilder.add("param", param);
+
+            unwired.sendRequest(new BeginMessage(
+                            List.of(), Duration.of(10, ChronoUnit.SECONDS), AccessMode.WRITE, Map.of(), "neo4j"))
+                    .sendRequest(new RunMessage(
+                            "CREATE p=(:Start)-[:TheRelType{ param:$param }]->(:End) RETURN p as value",
+                            parametersBuilder.build()))
+                    .sendRequest(new PullMessage(1000, -1))
+                    .sendRequest(RollbackMessage.getInstance());
+
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+            assertSuccess(unwired.receiveResponse(), assertSuccessHasTFirst(), assertSuccessHasFields("value"));
+
+            assertRecord(unwired.receiveResponse(), assertPathValue());
+
+            assertSuccess(
+                    unwired.receiveResponse(),
+                    assertSuccessHasTLast(),
+                    assertSuccessDb("neo4j"),
+                    assertSuccessType("rw"),
+                    assertSuccessHasStatuses(status(
+                            StandardGqlStatusObject.SUCCESS.gqlStatus(),
+                            StandardGqlStatusObject.SUCCESS.statusDescription())));
+            assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+        });
+    }
+
+    private void assumeIsNotMapOrHeterogeneousList() {
+        Assumptions.assumeTrue(
+                !(this.param instanceof MapValue) && !(param instanceof ListValue),
+                "Maps and heterogeneous lists are not supported as Node properties");
+    }
+
+    @SafeVarargs
+    private static void assertSuccess(ResponseMessage message, Consumer<SuccessMessage>... assertions) {
+        Assertions.assertInstanceOf(SuccessMessage.class, message);
+        SuccessMessage successMessage = (SuccessMessage) message;
+        for (Consumer<SuccessMessage> assertion : assertions) {
+            assertion.accept(successMessage);
+        }
+    }
+
+    @SafeVarargs
+    private static Consumer<SuccessMessage> assertSuccessHasFields(String... fields) {
+        return assertSuccessField("fields", anyValue -> {
+            Assertions.assertInstanceOf(ListValue.class, anyValue);
+            var fieldsList = (ListValue) anyValue;
+            Assertions.assertEquals(fields.length, fieldsList.intSize());
+            for (var i = 0; i < fields.length; i++) {
+                Assertions.assertInstanceOf(StringValue.class, fieldsList.value(i));
+                var field = ((StringValue) fieldsList.value(i)).stringValue();
+                Assertions.assertEquals(fields[i], field);
+            }
+        });
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessHasTFirst() {
+        return assertSuccessField("t_first", anyValue -> Assertions.assertInstanceOf(LongValue.class, anyValue));
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessHasTLast() {
+        return assertSuccessField("t_last", anyValue -> Assertions.assertInstanceOf(LongValue.class, anyValue));
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessDb(String database) {
+        return assertSuccessField("db", anyValue -> {
+            Assertions.assertInstanceOf(StringValue.class, anyValue);
+            Assertions.assertEquals(database, ((StringValue) anyValue).stringValue());
+        });
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessType(String type) {
+        return assertSuccessField("type", anyValue -> {
+            Assertions.assertInstanceOf(StringValue.class, anyValue);
+            Assertions.assertEquals(type, ((StringValue) anyValue).stringValue());
+        });
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessHasBookmark() {
+        return assertSuccessField("bookmark", anyValue -> {
+            Assertions.assertInstanceOf(StringValue.class, anyValue);
+            Assertions.assertFalse(((StringValue) anyValue).stringValue().isEmpty());
+        });
+    }
+
+    @SafeVarargs
+    private static Consumer<SuccessMessage> assertSuccessHasStatuses(Map<String, AnyValue>... statuses) {
+        return assertSuccessField("statuses", anyValue -> {
+            Assertions.assertInstanceOf(ListValue.class, anyValue);
+            var statusesList = (ListValue) anyValue;
+            Assertions.assertEquals(statuses.length, statusesList.intSize());
+            for (var i = 0; i < statuses.length; i++) {
+                Assertions.assertInstanceOf(MapValue.class, statusesList.value(i));
+                var actual = ((MapValue) statusesList.value(i));
+                for (var key : actual.keySet()) {
+                    Assertions.assertEquals(
+                            statuses[0].get(key),
+                            actual.get(key),
+                            String.format("statuses[%d][%s] is not equal to actual[%d][%s]", i, key, i, key));
+                }
+            }
+        });
+    }
+
+    private static Consumer<SuccessMessage> assertSuccessEmpty() {
+        return successMessage -> {
+            Assertions.assertTrue(successMessage.metadata().isEmpty());
+        };
+    }
+
+    @SafeVarargs
+    private static Consumer<SuccessMessage> assertSuccessFields(String... fields) {
+        Consumer<SuccessMessage> result = ignored -> {};
+
+        for (String field : fields) {
+            result = result.andThen(assertSuccessField(field));
+        }
+
+        return result;
+    }
+
+    @SafeVarargs
+    private static Consumer<SuccessMessage> assertSuccessField(String field, Consumer<AnyValue>... assertions) {
+        return successMessage -> {
+            Assertions.assertTrue(
+                    successMessage.metadata().containsKey(field),
+                    () -> String.format("Metadata should contain field %s but it doesn't", field));
+            for (Consumer<AnyValue> assertion : assertions) {
+                assertion.accept(successMessage.metadata().get(field));
+            }
+        };
+    }
+
+    private static void assertRecord(ResponseMessage firstRecord, AnyValue... expectedValues) {
+        Function<AnyValue, BiConsumer<Integer, AnyValue>> assertion = expectedValue ->
+                (i, actual) -> Assertions.assertEquals(expectedValue, actual, String.format("Value at index %d", i));
+
+        var assertions = Stream.of(expectedValues).map(assertion).toArray(BiConsumer[]::new);
+
+        assertRecord(firstRecord, assertions);
+    }
+
+    @SafeVarargs
+    private static void assertRecord(
+            ResponseMessage firstRecord, BiConsumer<Integer, AnyValue>... expectedValueAssertion) {
+        Assertions.assertInstanceOf(RecordMessage.class, firstRecord);
+        RecordMessage recordMessage = (RecordMessage) firstRecord;
+        Assertions.assertEquals(expectedValueAssertion.length, recordMessage.values.intSize());
+        for (int i = 0; i < expectedValueAssertion.length; i++) {
+            expectedValueAssertion[i].accept(i, recordMessage.values.value(i));
+        }
+    }
+
+    private static Map<String, AnyValue> status(String status, String statusDescription) {
+        return Map.of(
+                "gql_status", Values.stringValue(status),
+                "status_description", Values.stringValue(statusDescription));
+    }
+
+    private static void login(UnwiredTestConnection unwired) {
+        unwired.sendRequest(new HelloMessage("test/embedded", List.of(), new RoutingContext(false, Map.of()), null))
+                .sendRequest(new LogonMessage(Map.of("scheme", "none")));
+
+        assertSuccess(unwired.receiveResponse(), assertSuccessFields("server", "connection_id", "hints"));
+        assertSuccess(unwired.receiveResponse(), assertSuccessEmpty());
+    }
+
+    private static BiConsumer<Integer, AnyValue> assertNode(
+            String[] expectedLabels, Map<String, AnyValue> expectedProperties) {
+        return (i, anyValue) -> {
+            Assertions.assertInstanceOf(NodeValue.class, anyValue);
+            var nodeValue = (NodeValue) anyValue;
+
+            var labels = Stream.iterate(0, j -> j + 1)
+                    .limit(nodeValue.labels().intSize())
+                    .map(nodeValue.labels()::stringValue)
+                    .map(StringValue::stringValue)
+                    .toArray(String[]::new);
+
+            var properties = mapValueToMap(nodeValue.properties());
+
+            Assertions.assertFalse(
+                    nodeValue.elementId().isEmpty(), () -> "Node element id is empty for field %d".formatted(i));
+            Assertions.assertArrayEquals(expectedLabels, labels, () -> "Labels for field %d".formatted(i));
+            Assertions.assertEquals(expectedProperties, properties, () -> "Properties for field %d".formatted(i));
+        };
+    }
+
+    private static BiConsumer<Integer, AnyValue> assertRelationship(
+            String expectedTypeName, Map<String, AnyValue> expectedProperties) {
+        return (i, anyValue) -> {
+            Assertions.assertInstanceOf(RelationshipValue.class, anyValue);
+            var relationshipValue = (RelationshipValue) anyValue;
+
+            var properties = mapValueToMap(relationshipValue.properties());
+
+            Assertions.assertFalse(
+                    relationshipValue.elementId().isEmpty(),
+                    () -> "Relationship element id is empty for field %d".formatted(i));
+            Assertions.assertFalse(
+                    relationshipValue.startNodeElementId().isEmpty(),
+                    () -> "Relationship start node element id is empty for field %d".formatted(i));
+            Assertions.assertFalse(
+                    relationshipValue.endNodeElementId().isEmpty(),
+                    () -> "Relationship end node element id is empty for field %d".formatted(i));
+
+            Assertions.assertEquals(
+                    expectedTypeName, relationshipValue.type().asStringValue().stringValue(), () -> "Type for field %d"
+                            .formatted(i));
+            Assertions.assertEquals(expectedProperties, properties, () -> "Properties for field %d".formatted(i));
+        };
+    }
+
+    private static BiConsumer<Integer, AnyValue> assertPathValue() {
+        return (i, anyValue) -> {
+            Assertions.assertInstanceOf(PathValue.class, anyValue);
+            var pathValue = (PathValue) anyValue;
+
+            Assertions.assertFalse(
+                    pathValue.startNode().elementId().isEmpty(),
+                    () -> "Path start node element id is empty for field %d".formatted(i));
+            Assertions.assertFalse(
+                    pathValue.endNode().elementId().isEmpty(),
+                    () -> "Path end node element id is empty for field %d".formatted(i));
+
+            for (var node : pathValue.nodes()) {
+                Assertions.assertFalse(
+                        node.elementId().isEmpty(), () -> "Path node element id is empty for field %d".formatted(i));
+            }
+
+            for (var relationship : pathValue.relationships()) {
+                Assertions.assertFalse(
+                        relationship.elementId().isEmpty(),
+                        () -> "Path relationship element id is empty for field %d".formatted(i));
+            }
+        };
+    }
+
+    private static HashMap<String, AnyValue> mapValueToMap(MapValue mapValue) {
+        var properties = new HashMap<String, AnyValue>(mapValue.size());
+        for (var key : mapValue.keySet()) {
+            properties.put(key, mapValue.get(key));
+        }
+        return properties;
+    }
+
+    static Stream<Arguments> values() {
+        var listValueBuilder = ListValueBuilder.newListBuilder(3);
+        listValueBuilder.add(Values.stringValue("zero"));
+        listValueBuilder.add(Values.booleanValue(true));
+        listValueBuilder.add(Values.intValue(2));
+        var listValue = listValueBuilder.build();
+
+        var mapValueBuilder = new MapValueBuilder();
+        mapValueBuilder.add("key0", Values.stringValue("zero"));
+        mapValueBuilder.add("key1", listValue);
+        mapValueBuilder.add("key2", Values.booleanValue(false));
+        var mapValue = mapValueBuilder.build();
+
+        return Stream.of(
+                        Values.intValue(123),
+                        Values.doubleValue(-1345.6),
+                        Values.floatValue(-133.5f),
+                        Values.longValue(101199191211311L),
+                        Values.byteValue((byte) 0x60),
+                        Values.shortValue((short) -12),
+                        Values.booleanValue(false),
+                        Values.stringValue("GOGO, OBJECTS!"),
+                        Values.durationValue(Duration.ofMinutes(10)),
+                        Values.pointValue(CoordinateReferenceSystem.CARTESIAN_3D, 1, 2, -3),
+                        Values.uuidValue(UUID.randomUUID()),
+                        Values.int32Vector(1, 2, 4),
+                        Values.float32Vector(12, -12.2f, 3, -4246.6f),
+                        Values.stringArray("ada", "love", "lace"),
+                        listValue,
+                        mapValue)
+                .map(Arguments::of);
+    }
+}

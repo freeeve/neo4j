@@ -38,11 +38,14 @@ import java.net.SocketAddress;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
@@ -58,11 +61,14 @@ import org.neo4j.bolt.testing.client.error.BoltTestClientReadTimeoutException;
 import org.neo4j.bolt.testing.client.error.BoltTestClientStateException;
 import org.neo4j.bolt.testing.client.error.BoltTestClientWriteTimeoutException;
 import org.neo4j.bolt.testing.client.handler.NotifyingChannelInboundHandler;
+import org.neo4j.bolt.testing.client.handler.NotifyingChannelResponseMessageInboundHandler;
 import org.neo4j.bolt.testing.client.handler.TestChannelInitializer;
 import org.neo4j.bolt.testing.client.struct.ProtocolProposal;
+import org.neo4j.boltmessages.request.RequestMessage;
+import org.neo4j.boltmessages.response.ResponseMessage;
 import org.neo4j.internal.helpers.Exceptions;
 
-public abstract sealed class AbstractNettyConnection implements BoltTestConnection
+public abstract sealed class AbstractNettyConnection implements BoltTestConnection, UnwiredTestConnection
         permits LocalConnection, SocketConnection, UnixDomainSocketConnection {
 
     private static final int MAX_CHUNK_SIZE = 1 << 16 - 1;
@@ -76,6 +82,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
     private final EventLoopGroup eventLoopGroup;
     protected final Object readLock = new Object();
     protected final CompositeByteBuf readBuffer = Unpooled.compositeBuffer();
+    protected final List<ResponseMessage> responseMessageList;
 
     private Channel channel;
     protected volatile SSLEngine sslEngine;
@@ -89,6 +96,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
     public AbstractNettyConnection(ConnectorTransport transport) {
         this.transport = transport;
         this.eventLoopGroup = new MultiThreadIoEventLoopGroup(1, transport.createIoHandlerFactory());
+        this.responseMessageList = Collections.synchronizedList(new ArrayList<>());
     }
 
     protected abstract SocketAddress address();
@@ -121,7 +129,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
 
         ch.pipeline()
                 .addLast(LOGGING_HANDLER_NAME, new LoggingHandler(LogLevel.INFO))
-                .addLast(INBOUND_HANDLER_NAME, new NotifyingChannelInboundHandler(this.readBuffer, this.readLock));
+                .addLast(INBOUND_HANDLER_NAME, getNotifyingChannelInboundHandler());
 
         var promise = ch.newPromise();
         if (future == null) {
@@ -303,6 +311,100 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
         writeBitMask(buffer, ProtocolCapability.toBitMask(buffer.alloc(), capabilities));
 
         return this.sendRaw(buffer);
+    }
+
+    @Override
+    public void unwired(Consumer<UnwiredTestConnection> work) {
+        this.channel.pipeline().remove(INBOUND_HANDLER_NAME);
+        try {
+            this.channel
+                    .pipeline()
+                    .addLast(
+                            new NotifyingChannelResponseMessageInboundHandler(this.responseMessageList, this.readLock));
+            work.accept(this);
+        } finally {
+            this.channel.pipeline().removeLast();
+            this.channel.pipeline().addLast(INBOUND_HANDLER_NAME, getNotifyingChannelInboundHandler());
+        }
+    }
+
+    private NotifyingChannelInboundHandler getNotifyingChannelInboundHandler() {
+        return new NotifyingChannelInboundHandler(this.readBuffer, this.readLock);
+    }
+
+    @Override
+    public UnwiredTestConnection sendRequest(RequestMessage requestMessage) {
+        if (this.channel == null) {
+            throw new BoltTestClientStateException("No active connection");
+        }
+
+        this.ensureActive();
+
+        try {
+            var f = this.channel.writeAndFlush(requestMessage);
+            if (!f.await(30, TimeUnit.SECONDS)) {
+                f.cancel(true);
+
+                this.ensureActive();
+
+                throw new BoltTestClientWriteTimeoutException(
+                        "Failed to write message to " + this.channel.remoteAddress() + ": Timed out after 30 seconds");
+            }
+
+            if (!f.isSuccess()) {
+                var cause = f.cause();
+
+                var networkErrors = Exceptions.contains(cause, e -> {
+                    var simpleName = e.getClass().getSimpleName();
+                    if (simpleName.contains("StacklessClosedChannel") || simpleName.contains("NativeIoException")) {
+                        return true;
+                    }
+
+                    return e.getMessage() != null && e.getMessage().contains("Connection reset by peer");
+                });
+
+                if (networkErrors) {
+                    throw new BoltTestClientClosedException(cause);
+                }
+
+                throw new BoltTestClientClosedException(
+                        "Failed to write message to " + this.channel.remoteAddress(), f.cause());
+            }
+        } catch (InterruptedException ex) {
+            throw new BoltTestClientInterruptedException(ex);
+        }
+
+        return this;
+    }
+
+    @Override
+    public ResponseMessage receiveResponse() {
+        if (this.channel == null) {
+            throw new BoltTestClientStateException("No active connection");
+        }
+
+        synchronized (this.readLock) {
+            var readInitializedAt = System.nanoTime();
+            while (this.responseMessageList.isEmpty()) {
+                this.ensureActive();
+
+                try {
+                    this.readLock.wait(READ_LOCK_TIMEOUT);
+
+                    // abort if the message has not been made available within a reasonable amount
+                    // of time
+                    if (this.responseMessageList.isEmpty()) {
+                        var currentTime = System.nanoTime();
+                        if (currentTime - readInitializedAt > RECV_TIMEOUT) {
+                            throw new BoltTestClientReadTimeoutException("Timeout reading next message");
+                        }
+                    }
+                } catch (InterruptedException ex) {
+                    throw new BoltTestClientInterruptedException(ex);
+                }
+            }
+            return this.responseMessageList.removeFirst();
+        }
     }
 
     private static void writeBitMask(ByteBuf buf, BitMask mask) {

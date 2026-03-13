@@ -26,6 +26,8 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.pcap.PcapWriteHandler;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,9 @@ import org.junit.jupiter.api.condition.OS;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+import org.neo4j.bolt.protocol.BoltProtocolRegistry;
+import org.neo4j.bolt.protocol.common.BoltProtocol;
+import org.neo4j.bolt.protocol.common.connector.config.NettyConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
 import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector;
@@ -100,6 +105,7 @@ class BoltChannelInitializerTest {
         inOrder.verify(pipeline).addLast(ArgumentMatchers.any(TrafficAccountantHandler.class));
         inOrder.verify(pipeline).addLast(ArgumentMatchers.any(TransportSelectionHandler.class));
         inOrder.verifyNoMoreInteractions();
+        verifyProtocolNotSelected(pipeline);
     }
 
     @Test
@@ -126,6 +132,8 @@ class BoltChannelInitializerTest {
         notificationFunction.accept(listener);
 
         Mockito.verify(listener).onNetworkPipelineInitialized(pipeline);
+
+        verifyProtocolNotSelected(pipeline);
     }
 
     // disabled on Windows as file locking causes problems with temporary file deletion
@@ -172,5 +180,45 @@ class BoltChannelInitializerTest {
         } finally {
             FileUtils.deleteDirectory(path);
         }
+    }
+
+    @Test
+    void shouldSupportJavaObjectMessages() {
+        var listener = Mockito.mock(ConnectionListener.class);
+        var connection = ConnectionMockFactory.newInstance();
+        var pipeline = Mockito.mock(ChannelPipeline.class, Mockito.RETURNS_SELF);
+        var channel = Mockito.mock(Channel.class, Mockito.RETURNS_MOCKS);
+        var connectionConfiguration = Mockito.mock(NettyConnectorConfiguration.class, Mockito.RETURNS_MOCKS);
+        var protocolRegistry = Mockito.mock(BoltProtocolRegistry.class, Mockito.RETURNS_MOCKS);
+        var expectedProtocol = BoltProtocol.latestInstalled();
+
+        Mockito.doReturn(pipeline).when(channel).pipeline();
+        Mockito.doReturn(connection).when(this.connector).createConnection(channel);
+        Mockito.doReturn(connectionConfiguration).when(connector).configuration();
+        Mockito.doReturn(true).when(connectionConfiguration).enableJavaObjectMessages();
+        Mockito.doReturn(protocolRegistry).when(connector).protocolRegistry();
+        Mockito.doReturn(Optional.of(expectedProtocol)).when(protocolRegistry).getLatest();
+
+        this.initializer.initChannel(channel);
+
+        Mockito.verify(connection).selectProtocol(expectedProtocol, Set.of());
+        Mockito.verify(pipeline).addLast(Mockito.eq("requestHandler"), Mockito.any(RequestHandler.class));
+
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        ArgumentCaptor<Consumer<ConnectionListener>> captor = (ArgumentCaptor) ArgumentCaptor.forClass(Consumer.class);
+        Mockito.verify(connection, Mockito.times(2)).notifyListeners(captor.capture());
+        for (var notifier : captor.getAllValues()) {
+            Assertions.assertThat(notifier).isNotNull();
+            notifier.accept(listener);
+        }
+
+        Mockito.verify(listener).onNetworkPipelineInitialized(pipeline);
+        Mockito.verify(listener).onProtocolSelected(expectedProtocol);
+    }
+
+    private void verifyProtocolNotSelected(ChannelPipeline pipeline) {
+        Mockito.verify(connection, Mockito.never()).selectProtocol(Mockito.any(), Mockito.any());
+        Mockito.verify(pipeline, Mockito.never())
+                .addLast(Mockito.eq("requestHandler"), Mockito.any(RequestHandler.class));
     }
 }

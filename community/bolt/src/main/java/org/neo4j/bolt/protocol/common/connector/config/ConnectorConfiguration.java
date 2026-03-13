@@ -222,6 +222,16 @@ public interface ConnectorConfiguration {
      */
     Duration threadBindingTimeout();
 
+    /**
+     * Enables Bolt Messages being shared without being encoded in Packstream.
+     * <p>
+     * When enabled, the protocol version negotiation will be skipped. The lastest
+     * Bolt version will be used.
+     *
+     * @return the connection will talk plain bolt messages
+     */
+    boolean enableJavaObjectMessages();
+
     interface Factory<SELF extends Factory<SELF>> {
 
         ConnectorConfiguration build();
@@ -274,5 +284,7 @@ public interface ConnectorConfiguration {
         SELF threadBindingTimeout(Duration value);
 
         SELF isInternalConnector(boolean value);
+
+        SELF enableJavaObjectMessages(boolean embeddedMessages);
     }
 }

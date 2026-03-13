@@ -129,16 +129,19 @@ public class AuthenticationSecurityConnectionListener implements ConnectionListe
             return;
         }
 
-        this.log.debug(
-                "[%s] Imposing authentication structure limits of %d elements with a maximum depth of %d",
-                this.connection.id(), structureElementLimit, structureDepthLimit);
+        this.connection.modifyPipeline(pipeline -> {
+            // don't need to limit when protocol doesn't need chunking
+            if (pipeline.names().contains(ChunkFrameDecoder.NAME)) {
+                this.log.debug(
+                        "[%s] Imposing authentication structure limits of %d elements with a maximum depth of %d",
+                        this.connection.id(), structureElementLimit, structureDepthLimit);
 
-        connection.memoryTracker().allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
-        var protocolLimiterHandler =
-                new AuthenticationProtocolLimiterHandler(structureElementLimit, structureDepthLimit);
-        this.protocolLimiterHandler = protocolLimiterHandler;
-
-        this.connection.modifyPipeline(pipeline ->
-                pipeline.addAfter(ChunkFrameDecoder.NAME, "protocolLimiterHandler", protocolLimiterHandler));
+                connection.memoryTracker().allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
+                var protocolLimiterHandler =
+                        new AuthenticationProtocolLimiterHandler(structureElementLimit, structureDepthLimit);
+                this.protocolLimiterHandler = protocolLimiterHandler;
+                pipeline.addAfter(ChunkFrameDecoder.NAME, "protocolLimiterHandler", protocolLimiterHandler);
+            }
+        });
     }
 }

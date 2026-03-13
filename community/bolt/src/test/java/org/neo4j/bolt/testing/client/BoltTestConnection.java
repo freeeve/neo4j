@@ -27,6 +27,7 @@ import java.net.SocketAddress;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
@@ -165,6 +166,14 @@ public interface BoltTestConnection extends AutoCloseable {
      * @throws IOException when transmitting the payload fails.
      */
     BoltTestConnection send(ByteBuf buf);
+
+    /**
+     * Executes a function for running in memory messages with the Bolt Server.
+     * <p />
+     * @param work The work which will be executed. You should *NOT* access the connection object inside the
+     *             worker.
+     */
+    void unwired(Consumer<UnwiredTestConnection> work);
 
     /**
      * Transmits a chunked message via this connection.
