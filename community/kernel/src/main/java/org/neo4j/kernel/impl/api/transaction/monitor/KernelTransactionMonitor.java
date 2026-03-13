@@ -32,6 +32,7 @@ import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
+import org.neo4j.kernel.impl.api.index.IndexPopulationJob;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.logging.internal.LogService;
@@ -77,27 +78,43 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         // data before that point of history
         var oldestGapFreeClosedTransactionId = transactionIdStore.getHighestGapFreeClosedTransactionId();
         var executingTransactions = kernelTransactions.executingTransactions();
+        long previousHorizon = oldestVisibilityHorizon.getAcquire();
+        KernelTransactionHandle firstEncounteredIncorrectHandle = null;
+
         long minHighestGapFree = oldestGapFreeClosedTransactionId;
         long minCleanupHorizon = oldestGapFreeClosedTransactionId;
 
         for (var txHandle : executingTransactions) {
             if (txHandle.terminationMark().isEmpty()) {
                 minHighestGapFree = Math.min(minHighestGapFree, txHandle.getHighestGapFreeTxId());
+
+                if (minHighestGapFree < previousHorizon && firstEncounteredIncorrectHandle == null) {
+                    firstEncounteredIncorrectHandle = txHandle;
+                }
+
                 minCleanupHorizon = Math.min(minCleanupHorizon, txHandle.getTransactionHorizon());
             }
         }
         var populationJobs = indexingService.getPopulationJobs();
+        IndexPopulationJob firstEncounteredIncorrectJob = null;
         for (var job : populationJobs) {
             // for this purpose population job is read only transaction
             // so it's horizon is last closed transaction
             long populationHorizon = job.populationHorizon();
             minHighestGapFree = Math.min(minHighestGapFree, populationHorizon);
+
+            if (minHighestGapFree < previousHorizon && firstEncounteredIncorrectJob == null) {
+                firstEncounteredIncorrectJob = job;
+            }
+
             minCleanupHorizon = Math.min(minCleanupHorizon, populationHorizon);
         }
-        long previousHorizon = oldestVisibilityHorizon.getAcquire();
-        if (minHighestGapFree < previousHorizon && multiVersion) {
-            databaseHealth.panic(new Exception(
-                    "Global visibility horizon went backwards from " + previousHorizon + " to " + minHighestGapFree));
+        if (multiVersion && minHighestGapFree < previousHorizon) {
+            databaseHealth.panic(new Exception("Global visibility horizon went backwards from " + previousHorizon
+                    + " to " + minHighestGapFree + ". Gap free closed tx id: "
+                    + oldestGapFreeClosedTransactionId + ". Incorrect handle:"
+                    + firstEncounteredIncorrectHandle + ". Incorrect index job: "
+                    + firstEncounteredIncorrectJob));
             return;
         }
         oldestVisibilityHorizon.setRelease(minHighestGapFree);

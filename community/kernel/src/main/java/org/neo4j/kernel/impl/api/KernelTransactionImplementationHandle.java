@@ -234,8 +234,23 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
 
     @Override
     public String toString() {
-        return "KernelTransactionImplementationHandle{transactionSequenceNumber="
-                + transactionStamp.getTransactionSequenceNumber() + ", tx=" + tx + "}";
+        return "KernelTransactionImplementationHandle{" + "startTime="
+                + startTime + ", startTimeNanos="
+                + startTimeNanos + ", timeout="
+                + timeout + ", tx="
+                + tx + ", clock="
+                + clock + ", clientInfo="
+                + clientInfo + ", subject="
+                + subject + ", terminationMark="
+                + terminationMark + ", executingQuery="
+                + executingQuery + ", metaData="
+                + metaData + ", statusDetails='"
+                + statusDetails + '\'' + ", initializationTrace="
+                + initializationTrace + ", transactionStamp="
+                + transactionStamp + ", databaseName='"
+                + databaseName + '\'' + ", highestGapFreeTxId="
+                + highestGapFreeTxId + ", transactionHorizon="
+                + transactionHorizon + '}';
     }
 
     private long transactionHorizon(VersionContext versionContext) {
