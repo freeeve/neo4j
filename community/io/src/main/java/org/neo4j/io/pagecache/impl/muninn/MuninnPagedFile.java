@@ -1096,9 +1096,11 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         if (tt.length > chunkId) {
             markPagesAsFree(tt, chunkId, MuninnPagedFile.computeChunkIndex(pagesToKeep), pagesToKeep);
             int newLength = computeNewRootTableLength(chunkId);
-            int[][] ntt = new int[newLength][];
-            System.arraycopy(tt, 0, ntt, 0, ntt.length);
-            tt = ntt;
+            if (newLength < tt.length) {
+                int[][] ntt = new int[newLength][];
+                System.arraycopy(tt, 0, ntt, 0, ntt.length);
+                tt = ntt;
+            }
         }
         translationTable = tt;
     }
