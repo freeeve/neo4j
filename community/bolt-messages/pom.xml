@@ -26,6 +26,7 @@
 
     <properties>
         <moduleName>org.neo4j.boltmessages</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <dependencies>
@@ -52,9 +53,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>test-utils</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
