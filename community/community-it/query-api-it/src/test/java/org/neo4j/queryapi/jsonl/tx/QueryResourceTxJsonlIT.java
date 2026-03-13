@@ -532,7 +532,8 @@ public class QueryResourceTxJsonlIT {
     void shouldHaveExpectedTransactionIdLength() throws IOException, InterruptedException, QueryApiTestClientException {
         var txIdCapture = beginTxWithoutStatement();
 
-        Assertions.assertThat(txIdCapture.getCaptured().getFirst()).hasSize(4);
+        Assertions.assertThat(txIdCapture.getCaptured().getFirst())
+                .hasSize(ServerSettings.transaction_id_length.defaultValue());
 
         commitCaptured(txIdCapture);
     }
