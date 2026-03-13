@@ -44,8 +44,22 @@ public class EnvelopeLogFilesRangeReader implements EnvelopeLogRangeReader {
             return -1;
         }
         try (var readChannel = envelopedLogFiles.openReadChannel(index)) {
-            readChannel.goToEntry(index);
-            return readChannel.currentTerm();
+            if (readChannel != null) {
+                readChannel.goToEntry(index);
+                return readChannel.currentTerm();
+            }
         }
+        var logFilesMetadata = envelopedLogFiles.logFilesMetadata();
+        logFilesMetadata.next();
+        var logFileMetadata = logFilesMetadata.get();
+        if (logFileMetadata.logHeader().getLastAppendIndex() == index) {
+            return logFileMetadata.logHeader().getLastTerm();
+        }
+
+        // This should be unreachable under normal conditions: if we have index+1 (which is what we are about to send),
+        // then both the index and its corresponding term must be available in the log header.
+        // If we reach this point, it likely indicates a log pruning operation occurred concurrently with the catchup
+        // process.
+        throw new IOException("No log file found for index " + index + " unable to determine the term for the entry");
     }
 }
