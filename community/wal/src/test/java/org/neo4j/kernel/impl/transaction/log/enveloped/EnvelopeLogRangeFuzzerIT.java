@@ -206,7 +206,7 @@ public class EnvelopeLogRangeFuzzerIT {
     }
 
     EnvelopedLogFiles envelopedLogFiles() {
-        var baseFileName = "raft-log";
+        var baseFileName = "raft.log";
         var baseFolder = testDirectory.directory("logsFolder");
         return new EnvelopedLogFiles(
                 new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, baseFileName)),

@@ -84,7 +84,7 @@ class LogFileBinarySearchTest {
     }
 
     private void recreateEnvelopedLogFiles() {
-        var baseFileName = "raft-log";
+        var baseFileName = "raft.log";
         var baseFolder = testDirectory.directory("logsFolder");
         envelopedLogFiles = new EnvelopedLogFiles(
                 new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, baseFileName)),

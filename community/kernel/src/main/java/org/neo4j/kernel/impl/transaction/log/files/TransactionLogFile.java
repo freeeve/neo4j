@@ -1089,8 +1089,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         final var logHeader = extractHeader(channel.getLogVersion());
         try (var readAheadLogChannel =
                 ReadAheadUtils.newChannel(new UnclosableChannel(channel), logHeader, memoryTracker)) {
-            if (alignWithStart && readAheadLogChannel instanceof EnvelopeReadChannel envelopeReadChannel) {
-                envelopeReadChannel.alignWithStartEntry();
+            if (alignWithStart) {
+                readAheadLogChannel.alignWithStartEntry();
             }
             final var logEntryReader = new VersionAwareLogEntryReader(
                     context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);

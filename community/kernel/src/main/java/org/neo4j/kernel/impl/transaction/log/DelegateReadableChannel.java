@@ -125,19 +125,60 @@ public class DelegateReadableChannel implements ReadableLogPositionAwareChannel 
     }
 
     @Override
-    public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) {
+    public boolean supportsEntrySkipping() {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.supportsEntrySkipping();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isAtStartOfFullEntry() throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.isAtStartOfFullEntry();
+        }
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public long goToNextEntry() throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.goToNextEntry();
+        }
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public LogPosition goToEndOfEntry() throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.goToEndOfEntry();
+        }
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.getCurrentLogPosition(positionMarker);
+        }
         positionMarker.unspecified();
         return positionMarker;
     }
 
     @Override
-    public LogPosition getCurrentLogPosition() {
+    public LogPosition getCurrentLogPosition() throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            return positionAwareChannel.getCurrentLogPosition();
+        }
         return LogPosition.UNSPECIFIED;
     }
 
     @Override
-    public void setLogPosition(LogPositionMarker positionMarker) {
+    public void setLogPosition(LogPositionMarker positionMarker) throws IOException {
         assertAssigned();
+        if (delegate instanceof ReadableLogPositionAwareChannel positionAwareChannel) {
+            positionAwareChannel.setLogPosition(positionMarker);
+        }
     }
 
     @Override

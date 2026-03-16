@@ -552,6 +552,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return position() - HEADER_SIZE;
     }
 
+    @Override
+    public boolean supportsEntrySkipping() {
+        return true;
+    }
+
     /**
      * Move the channel to the next start of the next entry.
      *
@@ -559,6 +564,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      * @throws IOException          I/O error from channel.
      * @throws ReadPastEndException if the end is reached.
      */
+    @Override
     public long goToNextEntry() throws IOException {
         do {
             goToNextEnvelope();
@@ -584,6 +590,14 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return payloadType == EnvelopeType.FULL || payloadType == EnvelopeType.BEGIN;
     }
 
+    @Override
+    public boolean isAtStartOfFullEntry() throws IOException {
+        if (checkForEndOfEnvelope()) {
+            readEnvelopeHeader();
+        }
+        return (isStartEnvelope() && buffer.position() == payloadStartOffset);
+    }
+
     /**
      * If not already at the end of an entry then moves to the end of that entry
      * otherwise seeks to the end of the following entry
@@ -591,6 +605,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      * @throws IOException          I/O error from channel.
      * @throws ReadPastEndException if the end is reached.
      */
+    @Override
     public LogPosition goToEndOfEntry() throws IOException {
         if (buffer.position() == payloadEndOffset
                 || (payloadType != EnvelopeType.FULL && payloadType != EnvelopeType.END)) {

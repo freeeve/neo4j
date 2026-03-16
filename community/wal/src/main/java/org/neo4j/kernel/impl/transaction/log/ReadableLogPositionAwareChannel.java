@@ -64,4 +64,54 @@ public interface ReadableLogPositionAwareChannel extends ReadableChannel, LogPos
      * @throws IOException if unable to alter channel position
      */
     long alignWithStartEntry() throws IOException;
+
+    /**
+     * Allows delegates of enveloped channels to signal the ability to skip entries
+     * without parsing the payload bytes.
+     *
+     * @return true if entry skip methods can be used.
+     * If it returns false then the skip methods
+     * {@link ReadableLogPositionAwareChannel#isAtStartOfFullEntry()},
+     * {@link ReadableLogPositionAwareChannel#goToNextEntry()}
+     * and {@link ReadableLogPositionAwareChannel#goToEndOfEntry()} must not be called and will throw
+     */
+    boolean supportsEntrySkipping();
+
+    /**
+     * Determine if read position is on first full entry payload byte, or equivalently just
+     * before the envelope header which will be read as part of checking this
+     * @return true if byte is at start of entry data, else false
+     * @throws IOException if error in underlying channel
+     * @throws org.neo4j.io.fs.ReadPastEndException if positioned on last readable byte of the channel
+     * and unable to satisfy the envelope header read
+     * @throws IllegalStateException if called on a channel that returns false
+     * from {@link ReadableLogPositionAwareChannel#supportsEntrySkipping()}
+     */
+    boolean isAtStartOfFullEntry() throws IOException;
+
+    /**
+     * Jump to start of next full entry, skipping any intermediate envelopes and
+     * possibly entering into new files if on a bridged channel
+     * @return the byte offset of the envelope header beginning the new entry.
+     * Note this differs from the position after this call which will be  aligned on the first payload byte.
+     * @throws IOException if error in underlying channel
+     * @throws org.neo4j.io.fs.ReadPastEndException if the skip goes past the end of readable content
+     * @throws IllegalStateException if called on a channel that returns false
+     * from {@link ReadableLogPositionAwareChannel#supportsEntrySkipping()}
+     */
+    long goToNextEntry() throws IOException;
+
+    /**
+     * If the current position is located within an entry's payload jump to after the last payload byte of the entry as
+     * if the full entry data has been consumed by reads. This may involve skipping intermediate envelopes to reach the
+     * final envelope. If the current position is already after an entry's payload e.g. from a previous call to the
+     * method then the immediately following envelope header is read and the channel skips to the end of that succeeding
+     * entry.
+     * @return the full{@link LogPosition} of the channel just after the entry.
+     * @throws IOException if error in underlying channel
+     * @throws org.neo4j.io.fs.ReadPastEndException if the skip goes past the end of readable content
+     * @throws IllegalStateException if called on a channel that returns false
+     * from {@link ReadableLogPositionAwareChannel#supportsEntrySkipping()}
+     */
+    LogPosition goToEndOfEntry() throws IOException;
 }

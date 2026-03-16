@@ -380,6 +380,26 @@ public class InMemoryClosableChannel
         return writer.getAppendedBytes();
     }
 
+    @Override
+    public boolean supportsEntrySkipping() {
+        return false;
+    }
+
+    @Override
+    public boolean isAtStartOfFullEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public long goToNextEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public LogPosition goToEndOfEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
     ByteBufferBase getCurrentBuffer() {
         return isReader ? reader : writer;
     }
@@ -589,6 +609,26 @@ public class InMemoryClosableChannel
         @Override
         public boolean isOpen() {
             return !isClosed;
+        }
+
+        @Override
+        public boolean supportsEntrySkipping() {
+            return false;
+        }
+
+        @Override
+        public boolean isAtStartOfFullEntry() throws IOException {
+            throw new IllegalStateException("Skipping log entries not supported");
+        }
+
+        @Override
+        public long goToNextEntry() throws IOException {
+            throw new IllegalStateException("Skipping log entries not supported");
+        }
+
+        @Override
+        public LogPosition goToEndOfEntry() throws IOException {
+            throw new IllegalStateException("Skipping log entries not supported");
         }
     }
 

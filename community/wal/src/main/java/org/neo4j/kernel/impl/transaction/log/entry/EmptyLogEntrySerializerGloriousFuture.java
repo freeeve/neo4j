@@ -24,7 +24,7 @@ import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
-import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
@@ -41,13 +41,14 @@ public class EmptyLogEntrySerializerGloriousFuture extends LogEntrySerializer<Lo
             CommandReaderFactory commandReaderFactory,
             MemoryTracker memoryTracker)
             throws IOException {
-        if (channel instanceof EnvelopeReadChannel eChannel) {
+        if (channel instanceof ReadableLogPositionAwareChannel eChannel && eChannel.supportsEntrySkipping()) {
             long appendIndex = eChannel.getAppendIndex();
             eChannel.goToEndOfEntry();
             return new LogEntryEmpty(appendIndex, version);
         } else {
             throw new IllegalStateException(
-                    "LogEntryEmpty should only have been injected for an envelope channel, but channel was " + channel);
+                    "LogEntryEmpty should only have been injected for an envelope channel, or delegate to one, but channel was "
+                            + channel);
         }
     }
 

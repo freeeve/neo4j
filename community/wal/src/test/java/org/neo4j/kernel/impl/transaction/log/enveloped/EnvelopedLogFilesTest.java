@@ -111,7 +111,7 @@ class EnvelopedLogFilesTest {
     }
 
     private void recreateEnvelopedLogFiles() {
-        var baseFileName = "raft-log";
+        var baseFileName = "raft.log";
         var baseFolder = testDirectory.directory("logsFolder");
         var filesHelper = new SequentialFileNameHelper(baseFolder, baseFileName);
         mirroringRepository = new LogsRepository(fs, filesHelper);

@@ -100,6 +100,26 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public boolean supportsEntrySkipping() {
+        return delegate.supportsEntrySkipping();
+    }
+
+    @Override
+    public boolean isAtStartOfFullEntry() throws IOException {
+        return delegate.isAtStartOfFullEntry();
+    }
+
+    @Override
+    public long goToNextEntry() throws IOException {
+        return delegate.goToNextEntry();
+    }
+
+    @Override
+    public LogPosition goToEndOfEntry() throws IOException {
+        return delegate.goToEndOfEntry();
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) throws IOException {
         return delegate.getCurrentLogPosition(positionMarker);
     }

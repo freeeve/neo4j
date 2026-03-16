@@ -87,7 +87,7 @@ import org.neo4j.test.utils.TestDirectory;
 @RandomSupportExtension
 class EnvelopeReadChannelTest {
     private static final long START_INDEX = 0;
-    private static final byte CONTENT_TYPE = REPLICATED_TX_CONTENT_TYPE;
+    private static final byte CONTENT_TYPE = KERNEL_CONTENT_TYPE;
     private static final long TERM = 1L;
     private static final int TEST_DATA_SIZE = 32;
     private static final int TEST_ENTRY_SIZE = TEST_DATA_SIZE + HEADER_SIZE;

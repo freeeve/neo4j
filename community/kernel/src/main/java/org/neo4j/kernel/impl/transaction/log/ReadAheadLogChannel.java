@@ -117,6 +117,26 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
     }
 
     @Override
+    public boolean supportsEntrySkipping() {
+        return false;
+    }
+
+    @Override
+    public boolean isAtStartOfFullEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public long goToNextEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
+    public LogPosition goToEndOfEntry() throws IOException {
+        throw new IllegalStateException("Skipping log entries not supported");
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) throws IOException {
         positionMarker.mark(channel.getLogVersion(), position());
         return positionMarker;

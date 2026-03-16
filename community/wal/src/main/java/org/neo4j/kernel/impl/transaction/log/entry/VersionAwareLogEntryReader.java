@@ -19,13 +19,17 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.getKernelVersionFromMergeLog;
+import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.skipDistributedHeaderAndGetKernelVersion;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.EMPTY_TX;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkSmallChunkOfTail;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 
 import java.io.IOException;
 import org.neo4j.io.fs.ReadPastEndException;
-import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -61,27 +65,46 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
         try {
             while (true) {
-                byte versionCode = channel.markAndGetVersion(positionMarker);
-                if (versionCode == 0) {
-                    // we reached the end of available records but still have space available in pre-allocated file
-                    // we reset channel position to restore last read byte in case someone would like to re-read or
-                    // check it again if possible,
-                    // and we report that we reach end of record stream from our point of view.
-                    // Let's double-check that it isn't a corrupt byte by checking part of the tail first
-                    checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
-                    channel.position(positionMarker.getByteOffset());
-                    return null;
-                }
-                updateParserSet(channel, versionCode);
-
+                byte versionCode;
                 byte typeCode;
+                // Capture position in case we are at end of file and getContentType() reads off the end
+                channel.getCurrentLogPosition(positionMarker);
                 byte contentType = channel.getContentType();
-                if (contentType != ReadableChannel.UNSPECIFIED_CONTENT_TYPE
-                        && contentType != LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE
-                        && contentType != LogEnvelopeHeader.KERNEL_CONTENT_TYPE) {
-                    typeCode = EMPTY_TX;
-                } else {
-                    typeCode = channel.get();
+                switch (contentType) {
+                    case KERNEL_CONTENT_TYPE, UNSPECIFIED_CONTENT_TYPE -> {
+                        versionCode = channel.markAndGetVersion(positionMarker);
+                        if (versionCode == 0) {
+                            // We reached the end of available records,
+                            // but in pre-allocated file still have space available.
+                            // We reset channel position to restore last read byte in case someone would like to re-read
+                            // or check it again if possible,
+                            // and we report that we reach end of record stream from our point of view.
+                            // Let's double-check that it isn't a corrupt byte by checking part of the tail first
+                            checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
+                            channel.position(positionMarker.getByteOffset());
+                            return null;
+                        }
+
+                        updateParserSet(channel, versionCode);
+
+                        typeCode = channel.get();
+                    }
+
+                    case REPLICATED_TX_CONTENT_TYPE -> {
+                        versionCode = skipDistributedHeaderAndGetKernelVersion(channel);
+
+                        updateParserSet(channel, versionCode);
+
+                        typeCode = channel.get();
+                    }
+
+                    default -> {
+                        versionCode = getKernelVersionFromMergeLog(channel);
+
+                        updateParserSet(channel, versionCode);
+
+                        typeCode = EMPTY_TX;
+                    }
                 }
 
                 LogEntry logEntry = readEntry(channel, versionCode, typeCode, memoryTracker);
@@ -89,7 +112,6 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                     return logEntry;
                 }
             }
-
         } catch (ReadPastEndException e) {
             return null;
         } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {
