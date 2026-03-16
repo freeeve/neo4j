@@ -53,7 +53,7 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => :`Another`)
+        |  (:`Node` => :`Another`)
         |}""".stripMargin
     )
   }
@@ -62,84 +62,84 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | ()-[:`REL` => {`since` :: DATE}]->()
+        |  ()-[:`REL` => {`since` :: DATE}]->()
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | (n: Node => :Another),
-      | (n)-[:REL IMPLIES {}]->(:Node)
+      |  (n: Node => :Another),
+      |  (n)-[:REL IMPLIES {}]->(:Node)
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => :`Another`),
-        | (:`Node` =>)-[:`REL` =>]->(:`Node` =>)
+        |  (:`Node` => :`Another`),
+        |  (:`Node` =>)-[:`REL` =>]->(:`Node` =>)
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | (:`Node` => { name :: STRING } ),
-      | CONSTRAINT FOR (p:Node) REQUIRE p.name IS KEY
+      |  (:`Node` => { name :: STRING } ),
+      |  CONSTRAINT FOR (p:Node) REQUIRE p.name IS KEY
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => {`name` :: STRING}),
-        | CONSTRAINT FOR (`n`:`Node` =>) REQUIRE (`n`.`name`) IS KEY
+        |  (:`Node` => {`name` :: STRING}),
+        |  CONSTRAINT FOR (`n`:`Node` =>) REQUIRE (`n`.`name`) IS KEY
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | (n:`Node` => { name :: STRING}),
-      | (n)-[:REL IMPLIES { since :: DATE}]->(:Node),
-      | CONSTRAINT FOR ()-[rel:REL]->() REQUIRE p.since IS KEY
+      |  (n:`Node` => { name :: STRING}),
+      |  (n)-[:REL IMPLIES { since :: DATE}]->(:Node),
+      |  CONSTRAINT FOR ()-[rel:REL]->() REQUIRE p.since IS KEY
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`Node` => {`name` :: STRING}),
-        | (:`Node` =>)-[:`REL` => {`since` :: DATE}]->(:`Node` =>),
-        | CONSTRAINT FOR ()-[`r`:`REL` =>]->() REQUIRE (`r`.`since`) IS KEY
+        |  (:`Node` => {`name` :: STRING}),
+        |  (:`Node` =>)-[:`REL` => {`since` :: DATE}]->(:`Node` =>),
+        |  CONSTRAINT FOR ()-[`r`:`REL` =>]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | CONSTRAINT FOR ()-[rel:REL]->() REQUIRE p.since IS KEY,
-      | CONSTRAINT FOR (c:City) REQUIRE c.name IS UNIQUE
+      |  CONSTRAINT FOR ()-[rel:REL]->() REQUIRE p.since IS KEY,
+      |  CONSTRAINT FOR (c:City) REQUIRE c.name IS UNIQUE
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
-        | CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS KEY
+        |  CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
+        |  CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS KEY
         |}""".stripMargin
     )
   }
 
   test(
     """ALTER CURRENT GRAPH TYPE SET {
-      | CONSTRAINT FOR ()-[rel:REL]->() REQUIRE r.since :: ANY<LIST<INTEGER>>,
-      | CONSTRAINT FOR (c:City) REQUIRE c.name IS NOT NULL
+      |  CONSTRAINT FOR ()-[rel:REL]->() REQUIRE r.since :: ANY<LIST<INTEGER>>,
+      |  CONSTRAINT FOR (c:City) REQUIRE c.name IS NOT NULL
       |}""".stripMargin
   ) {
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS NOT NULL,
-        | CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS :: LIST<INTEGER>
+        |  CONSTRAINT FOR (`n`:`City`) REQUIRE (`n`.`name`) IS NOT NULL,
+        |  CONSTRAINT FOR ()-[`r`:`REL`]->() REQUIRE (`r`.`since`) IS :: LIST<INTEGER>
         |}""".stripMargin
     )
   }
@@ -156,17 +156,17 @@ class GraphTypeCanonicalizerTest extends CypherFunSuite with RewriteTest with Te
     assertRewrite(
       testName,
       """ALTER CURRENT GRAPH TYPE SET {
-        | (:`City` => :`Location` {`name` :: STRING}),
-        | (:`Site` => :`Location` {`name` :: STRING}),
-        | (:`Student` => :`Person` {`birthday` :: DATE, `name` :: STRING NOT NULL, `studId` :: INTEGER}),
-        | (:`Student` =>)-[:`LIVES_IN` =>]->(:`City` =>),
-        | (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
-        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
-        | CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
-        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
-        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
-        | CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
-        | CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
+        |  (:`City` => :`Location` {`name` :: STRING}),
+        |  (:`Site` => :`Location` {`name` :: STRING}),
+        |  (:`Student` => :`Person` {`birthday` :: DATE, `name` :: STRING NOT NULL, `studId` :: INTEGER}),
+        |  (:`Student` =>)-[:`LIVES_IN` =>]->(:`City` =>),
+        |  (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
+        |  CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        |  CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
+        |  CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
+        |  CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
+        |  CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
+        |  CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
         |}""".stripMargin
     )
   }

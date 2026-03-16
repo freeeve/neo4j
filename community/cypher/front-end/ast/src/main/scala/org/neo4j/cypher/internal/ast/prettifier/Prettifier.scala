@@ -259,6 +259,8 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.YieldOrWhere
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.BASE_INDENT
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.NL
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.authRuleSetClausesToString
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.escapeName
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.stringifyOptions
@@ -300,12 +302,6 @@ case class Prettifier(
   extension: Prettifier.ClausePrettifier = Prettifier.EmptyExtension,
   useInCommands: Boolean = true
 ) {
-
-  // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
-  val NL: String =
-    """
-      |""".stripMargin
-  val BASE_INDENT: String = "  "
 
   private val base = IndentingQueryPrettifier()
 
@@ -1592,6 +1588,12 @@ case class Prettifier(
 }
 
 object Prettifier {
+
+  // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
+  val NL: String =
+    """
+      |""".stripMargin
+  val BASE_INDENT: String = "  "
 
   trait QueryPrettifier {
     def INDENT: String

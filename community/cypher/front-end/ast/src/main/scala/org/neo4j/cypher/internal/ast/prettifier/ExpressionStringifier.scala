@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.VectorValueConstructor
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.BASE_INDENT
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.NL
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
@@ -276,11 +278,11 @@ private class DefaultExpressionStringifier(
   private def prettifySubqueryInBraces(q: Query): String = {
     // TODO: does this need shouldBacktickEmpty?
     val p = prettifier.asString(q)
-    if (p.contains(prettifier.NL)) {
-      val indented = p.split(prettifier.NL).map(l => s"${prettifier.BASE_INDENT}$l").mkString(
-        prettifier.NL,
-        prettifier.NL,
-        prettifier.NL
+    if (p.contains(NL)) {
+      val indented = p.split(NL).map(l => s"$BASE_INDENT$l").mkString(
+        NL,
+        NL,
+        NL
       )
       s"{$indented}"
     } else {
@@ -647,16 +649,16 @@ private class DefaultExpressionStringifier(
           for {
             (e1, e2) <- alternatives
             i <- Seq(
-              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast)(e1)} THEN ${delimitedInner(ast)(e2)}"
+              s"${BASE_INDENT}WHEN ${delimitedInner(ast)(e1)} THEN ${delimitedInner(ast)(e2)}"
             )
           } yield i,
           for {
             e <- default.toSeq
             i <-
-              Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
+              Seq(s"${BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
           } yield i,
           Seq("END")
-        ).flatten.mkString(prettifier.NL))
+        ).flatten.mkString(NL))
 
       case CaseExpression(Some(expression), alternatives, default) =>
         noEagerConsumption(Seq(
@@ -664,16 +666,16 @@ private class DefaultExpressionStringifier(
           for {
             (e1, e2) <- alternatives
             i <- Seq(
-              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast, isCaseExpression = true)(e1)} THEN ${delimitedInner(ast)(e2)}"
+              s"${BASE_INDENT}WHEN ${delimitedInner(ast, isCaseExpression = true)(e1)} THEN ${delimitedInner(ast)(e2)}"
             )
           } yield i,
           for {
             e <- default.toSeq
             i <-
-              Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
+              Seq(s"${BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
           } yield i,
           Seq("END")
-        ).flatten.mkString(prettifier.NL))
+        ).flatten.mkString(NL))
 
       case Ands(expressions) =>
         type ChainOp = Expression with ChainableBinaryOperatorExpression

@@ -67,17 +67,17 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | (:`City` => :`Location` {`name` :: STRING}),
-        | (:`Site` => :`Location` {`name` :: STRING}),
-        | (:`Student` => :`Person` {`birthday` :: DATE, `name` :: STRING NOT NULL, `studId` :: INTEGER}),
-        | (:`Student` =>)-[:`LIVES_IN` =>]->(:`City` =>),
-        | (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
-        | CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
-        | CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
-        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
-        | CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
-        | CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
-        | CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
+        |  (:`City` => :`Location` {`name` :: STRING}),
+        |  (:`Site` => :`Location` {`name` :: STRING}),
+        |  (:`Student` => :`Person` {`birthday` :: DATE, `name` :: STRING NOT NULL, `studId` :: INTEGER}),
+        |  (:`Student` =>)-[:`LIVES_IN` =>]->(:`City` =>),
+        |  (:`Student` =>)-[:`VISITED` =>]->(:`Location`),
+        |  CONSTRAINT FOR (`n`:`City` =>) REQUIRE (`n`.`name`) IS KEY,
+        |  CONSTRAINT `mySiteConstraint` FOR (`n`:`Site` =>) REQUIRE (`n`.`name`) IS KEY,
+        |  CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`name`, `n`.`birthday`) IS UNIQUE OPTIONS {`indexProvider`: "range-1.0"},
+        |  CONSTRAINT FOR (`n`:`Student` =>) REQUIRE (`n`.`studId`) IS KEY,
+        |  CONSTRAINT FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS :: INTEGER,
+        |  CONSTRAINT FOR ()-[`r`:`LegacyRel`]->() REQUIRE (`r`.`foo`) IS UNIQUE
         |}""".stripMargin
   }
 
@@ -93,10 +93,10 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | CONSTRAINT FOR (:`Person` =>) REQUIRE (`p`.`name`) IS KEY,
-        | CONSTRAINT FOR (:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
-        | CONSTRAINT FOR ()-[:`REL2` =>]->() REQUIRE (`r2`.`name`) IS UNIQUE,
-        | CONSTRAINT FOR ()-[:`REL1`]->() REQUIRE (`r`.`name`) IS KEY
+        |  CONSTRAINT FOR (:`Person` =>) REQUIRE (`p`.`name`) IS KEY,
+        |  CONSTRAINT FOR (:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
+        |  CONSTRAINT FOR ()-[:`REL2` =>]->() REQUIRE (`r2`.`name`) IS UNIQUE,
+        |  CONSTRAINT FOR ()-[:`REL1`]->() REQUIRE (`r`.`name`) IS KEY
         |}""".stripMargin
   }
 
@@ -110,9 +110,9 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | CONSTRAINT FOR (`Person`:`Person` =>) REQUIRE (`Person`.`name`) IS KEY,
-        | CONSTRAINT FOR (`Person`) REQUIRE (`Person`.`name`) IS KEY,
-        | CONSTRAINT FOR (`Person`:`Person`) REQUIRE (`Person`.`name`) IS KEY
+        |  CONSTRAINT FOR (`Person`:`Person` =>) REQUIRE (`Person`.`name`) IS KEY,
+        |  CONSTRAINT FOR (`Person`) REQUIRE (`Person`.`name`) IS KEY,
+        |  CONSTRAINT FOR (`Person`:`Person`) REQUIRE (`Person`.`name`) IS KEY
         |}""".stripMargin
   }
 
@@ -132,9 +132,9 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`) IS UNIQUE,
-        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`, `n`.`p3`) IS KEY,
-        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p2`, `n`.`p1`) IS KEY
+        |  CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`) IS UNIQUE,
+        |  CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`, `n`.`p3`) IS KEY,
+        |  CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p2`, `n`.`p1`) IS KEY
         |}""".stripMargin
   }
 
@@ -157,8 +157,8 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | (`p`:`Product` => {`feature` :: VECTOR<FLOAT NOT NULL>(4)}),
-        | CONSTRAINT `myVectorConstr` FOR ()-[`r`:`CONNECTION`]->() REQUIRE (`r`.`score`) IS :: VECTOR<INTEGER32 NOT NULL>(3)
+        |  (`p`:`Product` => {`feature` :: VECTOR<FLOAT NOT NULL>(4)}),
+        |  CONSTRAINT `myVectorConstr` FOR ()-[`r`:`CONNECTION`]->() REQUIRE (`r`.`score`) IS :: VECTOR<INTEGER32 NOT NULL>(3)
         |}""".stripMargin
   }
 
@@ -205,10 +205,10 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
       )
     ) shouldStringifyTo
       """{
-        | CONSTRAINT `cst3` FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS NOT NULL,
-        | CONSTRAINT `cst4` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS KEY,
-        | CONSTRAINT `cst2` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS UNIQUE,
-        | CONSTRAINT `cst1` FOR (`n`:`Person`) REQUIRE (`n`.`style`) IS UNIQUE
+        |  CONSTRAINT `cst3` FOR (`n`:`Person`) REQUIRE (`n`.`age`) IS NOT NULL,
+        |  CONSTRAINT `cst4` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS KEY,
+        |  CONSTRAINT `cst2` FOR (`n`:`Person`) REQUIRE (`n`.`id`) IS UNIQUE,
+        |  CONSTRAINT `cst1` FOR (`n`:`Person`) REQUIRE (`n`.`style`) IS UNIQUE
         |}""".stripMargin
   }
 

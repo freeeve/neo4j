@@ -4525,10 +4525,10 @@ class PrettifierIT extends AbstractPrettifierTest {
     FailsInCypher5(
       "ALTER CURRENT GRAPH TYPE SET { (``:`` => {`` :: STRING}), (:``)-[``:`` =>]->(:``), CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS KEY, CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL }",
       """ALTER CURRENT GRAPH TYPE SET {
-        | (``:`` => {`` :: STRING}),
-        | (:``)-[``:`` =>]->(:``),
-        | CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS KEY,
-        | CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL
+        |  (``:`` => {`` :: STRING}),
+        |  (:``)-[``:`` =>]->(:``),
+        |  CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS KEY,
+        |  CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL
         |}""".stripMargin
     ),
 

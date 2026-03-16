@@ -41,17 +41,14 @@ import org.neo4j.cypher.internal.ast.NodeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.BASE_INDENT
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier.NL
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.Variable
 
 import scala.math.Ordering.Implicits.seqOrdering
 
 object GraphTypeStringifier {
-
-  // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
-  private val NL: String =
-    """
-      |""".stripMargin
 
   private val es: ExpressionStringifier = ExpressionStringifier(alwaysBacktick = true, alwaysParens = true)
 
@@ -134,7 +131,7 @@ object GraphTypeStringifier {
     val graphTypeConstraints =
       graphType.constraints.toList.sorted.map(entry => stringifyGraphTypeConstraint(entry))
     s"""{
-       | ${(graphTypeEntries ++ graphTypeConstraints).mkString(s",$NL ")}
+       |$BASE_INDENT${(graphTypeEntries ++ graphTypeConstraints).mkString(s",$NL$BASE_INDENT")}
        |}""".stripMargin
   }
 

@@ -471,7 +471,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label` => :`Label2`)
+        |  (:`Label` => :`Label2`)
         |}""".stripMargin
     )
   }
@@ -494,7 +494,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label` => {`prop1` :: ANY NOT NULL, `prop2` :: INTEGER, `prop3` :: INTEGER NOT NULL})
+        |  (:`Label` => {`prop1` :: ANY NOT NULL, `prop2` :: INTEGER, `prop3` :: INTEGER NOT NULL})
         |}""".stripMargin
     )
   }
@@ -513,7 +513,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label` => :`Label2`&`Label3` {`prop` :: INTEGER NOT NULL})
+        |  (:`Label` => :`Label2`&`Label3` {`prop` :: INTEGER NOT NULL})
         |}""".stripMargin
     )
   }
@@ -533,7 +533,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label1`)-[:`REL_TYPE` =>]->(:`Label2` =>)
+        |  (:`Label1`)-[:`REL_TYPE` =>]->(:`Label2` =>)
         |}""".stripMargin
     )
   }
@@ -569,7 +569,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | ()-[:`REL_TYPE` => {`prop` :: INTEGER NOT NULL | FLOAT NOT NULL | VECTOR<INTEGER16 NOT NULL>(10) NOT NULL | LIST<INTEGER NOT NULL | FLOAT NOT NULL> NOT NULL}]->()
+        |  ()-[:`REL_TYPE` => {`prop` :: INTEGER NOT NULL | FLOAT NOT NULL | VECTOR<INTEGER16 NOT NULL>(10) NOT NULL | LIST<INTEGER NOT NULL | FLOAT NOT NULL> NOT NULL}]->()
         |}""".stripMargin
     )
   }
@@ -593,7 +593,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label1` =>)-[:`REL_TYPE` => {`prop1` :: STRING, `prop2` :: ANY NOT NULL, `prop3` :: STRING NOT NULL}]->(:`Label2`)
+        |  (:`Label1` =>)-[:`REL_TYPE` => {`prop1` :: STRING, `prop2` :: ANY NOT NULL, `prop3` :: STRING NOT NULL}]->(:`Label2`)
         |}""".stripMargin
     )
   }
@@ -625,7 +625,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
             val nameString = name.map(n => s" `$n`").getOrElse("")
             result should equal(
               s"""{
-                 | CONSTRAINT$nameString FOR $pattern REQUIRE ($variable.`prop`) $predicate
+                 |  CONSTRAINT$nameString FOR $pattern REQUIRE ($variable.`prop`) $predicate
                  |}""".stripMargin
             )
           }
@@ -672,7 +672,7 @@ class GraphTypeUnitTest extends CypherFunSuite {
                 val nameString = name.map(n => s" `$n`").getOrElse("")
                 result should equal(
                   s"""{
-                     | CONSTRAINT$nameString FOR $pattern REQUIRE $propertiesString $predicate$optionsString
+                     |  CONSTRAINT$nameString FOR $pattern REQUIRE $propertiesString $predicate$optionsString
                      |}""".stripMargin
                 )
               }
@@ -807,20 +807,20 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label1` => :`Label2`&`Label7` {`prop1` :: VECTOR<FLOAT NOT NULL>(42) | LIST<FLOAT NOT NULL>, `prop2` :: STRING NOT NULL}),
-        | (:`Label3` => {`prop` :: ANY NOT NULL}),
-        | (:`Label3` =>)-[:`REL_TYPE1` => {`prop` :: INTEGER NOT NULL}]->(:`Label4`),
-        | ()-[:`REL_TYPE2` => {`prop` :: INTEGER}]->(:`Label1` =>),
-        | CONSTRAINT `c1` FOR (`n`:`Label1` =>) REQUIRE (`n`.`prop`) IS KEY,
-        | CONSTRAINT `c2` FOR (`n`:`Label4`) REQUIRE (`n`.`prop`) IS NOT NULL,
-        | CONSTRAINT FOR (`n`:`Label5`) REQUIRE (`n`.`prop`) IS NOT NULL,
-        | CONSTRAINT FOR (`n`:`Label5`) REQUIRE (`n`.`prop2`) IS UNIQUE,
-        | CONSTRAINT `c3` FOR (`n`:`Label6`) REQUIRE (`n`.`prop`) IS :: DATE,
-        | CONSTRAINT `c5` FOR ()-[`r`:`REL_TYPE1` =>]->() REQUIRE (`r`.`prop`) IS UNIQUE,
-        | CONSTRAINT `c4` FOR ()-[`r`:`REL_TYPE3`]->() REQUIRE (`r`.`prop`) IS KEY,
-        | CONSTRAINT FOR ()-[`r`:`REL_TYPE3`]->() REQUIRE (`r`.`prop2`) IS KEY,
-        | CONSTRAINT `c7` FOR ()-[`r`:`REL_TYPE4`]->() REQUIRE (`r`.`prop`) IS NOT NULL,
-        | CONSTRAINT `c6` FOR ()-[`r`:`REL_TYPE4`]->() REQUIRE (`r`.`prop`) IS :: DATE
+        |  (:`Label1` => :`Label2`&`Label7` {`prop1` :: VECTOR<FLOAT NOT NULL>(42) | LIST<FLOAT NOT NULL>, `prop2` :: STRING NOT NULL}),
+        |  (:`Label3` => {`prop` :: ANY NOT NULL}),
+        |  (:`Label3` =>)-[:`REL_TYPE1` => {`prop` :: INTEGER NOT NULL}]->(:`Label4`),
+        |  ()-[:`REL_TYPE2` => {`prop` :: INTEGER}]->(:`Label1` =>),
+        |  CONSTRAINT `c1` FOR (`n`:`Label1` =>) REQUIRE (`n`.`prop`) IS KEY,
+        |  CONSTRAINT `c2` FOR (`n`:`Label4`) REQUIRE (`n`.`prop`) IS NOT NULL,
+        |  CONSTRAINT FOR (`n`:`Label5`) REQUIRE (`n`.`prop`) IS NOT NULL,
+        |  CONSTRAINT FOR (`n`:`Label5`) REQUIRE (`n`.`prop2`) IS UNIQUE,
+        |  CONSTRAINT `c3` FOR (`n`:`Label6`) REQUIRE (`n`.`prop`) IS :: DATE,
+        |  CONSTRAINT `c5` FOR ()-[`r`:`REL_TYPE1` =>]->() REQUIRE (`r`.`prop`) IS UNIQUE,
+        |  CONSTRAINT `c4` FOR ()-[`r`:`REL_TYPE3`]->() REQUIRE (`r`.`prop`) IS KEY,
+        |  CONSTRAINT FOR ()-[`r`:`REL_TYPE3`]->() REQUIRE (`r`.`prop2`) IS KEY,
+        |  CONSTRAINT `c7` FOR ()-[`r`:`REL_TYPE4`]->() REQUIRE (`r`.`prop`) IS NOT NULL,
+        |  CONSTRAINT `c6` FOR ()-[`r`:`REL_TYPE4`]->() REQUIRE (`r`.`prop`) IS :: DATE
         |}""".stripMargin
     )
   }
@@ -879,12 +879,12 @@ class GraphTypeUnitTest extends CypherFunSuite {
     // THEN
     result should equal(
       """{
-        | (:`Label````2` => :`Label!1`&`Label-3` {`prop-1` :: ANY NOT NULL, `prop``2` :: STRING}),
-        | (:`Label````2` =>)-[:`REL-TYPE1` => {`pr``op` :: INTEGER NOT NULL}]->(:`Label-4`),
-        | CONSTRAINT `c``2` FOR (`n`:`Label````2` =>) REQUIRE (`n`.`pr-op`) IS KEY,
-        | CONSTRAINT `c-1` FOR (`n`:`Label!1`) REQUIRE (`n`.`pr``op`) IS NOT NULL,
-        | CONSTRAINT `c``4` FOR ()-[`r`:`REL-TYPE2`]->() REQUIRE (`r`.`pr!op`) IS :: DATE,
-        | CONSTRAINT `c!3` FOR ()-[`r`:`REL``TYPE3`]->() REQUIRE (`r`.`pr%op`) IS UNIQUE
+        |  (:`Label````2` => :`Label!1`&`Label-3` {`prop-1` :: ANY NOT NULL, `prop``2` :: STRING}),
+        |  (:`Label````2` =>)-[:`REL-TYPE1` => {`pr``op` :: INTEGER NOT NULL}]->(:`Label-4`),
+        |  CONSTRAINT `c``2` FOR (`n`:`Label````2` =>) REQUIRE (`n`.`pr-op`) IS KEY,
+        |  CONSTRAINT `c-1` FOR (`n`:`Label!1`) REQUIRE (`n`.`pr``op`) IS NOT NULL,
+        |  CONSTRAINT `c``4` FOR ()-[`r`:`REL-TYPE2`]->() REQUIRE (`r`.`pr!op`) IS :: DATE,
+        |  CONSTRAINT `c!3` FOR ()-[`r`:`REL``TYPE3`]->() REQUIRE (`r`.`pr%op`) IS UNIQUE
         |}""".stripMargin
     )
   }
