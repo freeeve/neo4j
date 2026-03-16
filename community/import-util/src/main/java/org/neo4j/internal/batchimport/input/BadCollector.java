@@ -51,9 +51,18 @@ public final class BadCollector implements Collector {
             return type;
         }
 
+        String typeKey() {
+            return PROBLEM_TYPES.getOrDefault(type, "UnknownProblem");
+        }
+
         abstract String message();
 
         abstract InputException exception();
+
+        @Override
+        public String toString() {
+            return "ProblemReporter[%s]".formatted(typeKey());
+        }
     }
 
     /**
@@ -87,6 +96,25 @@ public final class BadCollector implements Collector {
     static final int ILLEGAL_QUOTE = 0x100;
     static final int INVALID_ID = 0x200;
     static final int BAD_NODES = DUPLICATE_NODES | VIOLATING_NODES | OTHER_NODE_VIOLATION;
+
+    static final int ALL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES | BAD_RELATIONSHIPS;
+    static final int NODE_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES;
+    static final int REL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_RELATIONSHIPS;
+
+    private static final Map<Integer, String> PROBLEM_TYPES = Map.ofEntries(
+            Map.entry(BAD_RELATIONSHIPS, "BadRelationship"),
+            Map.entry(DUPLICATE_NODES, "DuplicateNode"),
+            Map.entry(EXTRA_COLUMNS, "ExtraColumn"),
+            Map.entry(VIOLATING_NODES, "NodeViolation"),
+            Map.entry(VIOLATING_SCHEMA, "RelationshipViolation"),
+            Map.entry(OTHER_NODE_VIOLATION, "OtherNodeViolation"),
+            Map.entry(OTHER_RELATIONSHIP_VIOLATION, "OtherRelationshipViolation"),
+            Map.entry(ALL_SCHEMA_VIOLATIONS, "SchemaViolation"),
+            Map.entry(NODE_SCHEMA_VIOLATIONS, "NodeSchemaViolation"),
+            Map.entry(REL_SCHEMA_VIOLATIONS, "RelationshipSchemaViolation"),
+            Map.entry(DATA_AFTER_QUOTE, "DataAfterQuote"),
+            Map.entry(ILLEGAL_QUOTE, "IllegalQuote"),
+            Map.entry(INVALID_ID, "InvalidId"));
 
     static final int COLLECT_ALL = -1;
     public static final long UNLIMITED_TOLERANCE = -1;

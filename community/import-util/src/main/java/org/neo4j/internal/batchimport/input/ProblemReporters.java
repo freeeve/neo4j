@@ -20,17 +20,18 @@
 package org.neo4j.internal.batchimport.input;
 
 import static java.lang.String.format;
-import static org.neo4j.internal.batchimport.input.BadCollector.BAD_NODES;
+import static org.neo4j.internal.batchimport.input.BadCollector.ALL_SCHEMA_VIOLATIONS;
 import static org.neo4j.internal.batchimport.input.BadCollector.BAD_RELATIONSHIPS;
 import static org.neo4j.internal.batchimport.input.BadCollector.DATA_AFTER_QUOTE;
 import static org.neo4j.internal.batchimport.input.BadCollector.DUPLICATE_NODES;
 import static org.neo4j.internal.batchimport.input.BadCollector.EXTRA_COLUMNS;
 import static org.neo4j.internal.batchimport.input.BadCollector.ILLEGAL_QUOTE;
 import static org.neo4j.internal.batchimport.input.BadCollector.INVALID_ID;
+import static org.neo4j.internal.batchimport.input.BadCollector.NODE_SCHEMA_VIOLATIONS;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_NODE_VIOLATION;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_RELATIONSHIP_VIOLATION;
+import static org.neo4j.internal.batchimport.input.BadCollector.REL_SCHEMA_VIOLATIONS;
 import static org.neo4j.internal.batchimport.input.BadCollector.VIOLATING_NODES;
-import static org.neo4j.internal.batchimport.input.BadCollector.VIOLATING_SCHEMA;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,25 +54,6 @@ import org.neo4j.internal.batchimport.input.BadCollector.ProblemReporter;
 import org.neo4j.internal.batchimport.input.csv.Type;
 
 public class ProblemReporters {
-
-    private static final int ALL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES | BAD_RELATIONSHIPS;
-    private static final int NODE_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES;
-    private static final int REL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_RELATIONSHIPS;
-
-    private static final Map<Integer, String> PROBLEM_TYPES = Map.ofEntries(
-            Map.entry(BAD_RELATIONSHIPS, "BadRelationship"),
-            Map.entry(DUPLICATE_NODES, "DuplicateNode"),
-            Map.entry(EXTRA_COLUMNS, "ExtraColumn"),
-            Map.entry(VIOLATING_NODES, "NodeViolation"),
-            Map.entry(VIOLATING_SCHEMA, "RelationshipViolation"),
-            Map.entry(OTHER_NODE_VIOLATION, "OtherNodeViolation"),
-            Map.entry(OTHER_RELATIONSHIP_VIOLATION, "OtherRelationshipViolation"),
-            Map.entry(ALL_SCHEMA_VIOLATIONS, "SchemaViolation"),
-            Map.entry(NODE_SCHEMA_VIOLATIONS, "NodeSchemaViolation"),
-            Map.entry(REL_SCHEMA_VIOLATIONS, "RelationshipSchemaViolation"),
-            Map.entry(DATA_AFTER_QUOTE, "DataAfterQuote"),
-            Map.entry(ILLEGAL_QUOTE, "IllegalQuote"),
-            Map.entry(INVALID_ID, "InvalidId"));
 
     private static final SimpleModule SERIALIZERS = new SimpleModule()
             .addSerializer(RelationshipsProblemReporter.SERIALIZER)
@@ -803,8 +785,8 @@ public class ProblemReporters {
     }
 
     private static void startReport(JsonGenerator jsonGenerator, ProblemReporter reporter) throws IOException {
-        jsonGenerator.writeStringField("problem", PROBLEM_TYPES.get(reporter.type()));
-        jsonGenerator.writeStringField("message", reporter.message());
+        jsonGenerator.writeStringField("problem", reporter.typeKey());
+        jsonGenerator.writeStringField("message", reporter.message().replaceAll("\r\n", "\n"));
     }
 
     private static void writeSource(JsonGenerator jsonGenerator, String source, long line) throws IOException {
