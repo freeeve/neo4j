@@ -146,6 +146,30 @@ public class VectorIndexProcedures {
             The similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.
             """)
     @Procedure(name = "db.index.vector.queryNodes", mode = READ)
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
+    public Stream<NodeNeighbor> queryNodeVectorIndexCypher5(
+            @Name(value = "indexName", description = "The name of the vector index.") String name,
+            @Name(value = "numberOfNearestNeighbours", description = "The size of the vector neighbourhood.")
+                    Long numberOfNearestNeighbours,
+            @Name(value = "query", description = "The object to find approximate matches for.") AnyValue candidateQuery)
+            throws KernelException {
+        final var query = validateQueryArguments(name, numberOfNearestNeighbours, candidateQuery);
+        if (callContext.isSystemDatabase()) {
+            return Stream.empty();
+        }
+        return new NodeIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+                .query(Math.toIntExact(numberOfNearestNeighbours), query);
+    }
+
+    @Deprecated(since = "2026.04", forRemoval = true)
+    @Description("""
+            Query the given node vector index.
+            Returns requested number of nearest neighbors to the provided query vector,
+            and their similarity score to that query vector, based on the configured similarity function for the index.
+            The similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.
+            """)
+    @Procedure(name = "db.index.vector.queryNodes", mode = READ, deprecatedBy = "SEARCH")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Stream<NodeNeighbor> queryNodeVectorIndex(
             @Name(value = "indexName", description = "The name of the vector index.") String name,
             @Name(value = "numberOfNearestNeighbours", description = "The size of the vector neighbourhood.")
@@ -167,6 +191,30 @@ public class VectorIndexProcedures {
             The similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.
             """)
     @Procedure(name = "db.index.vector.queryRelationships", mode = READ)
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
+    public Stream<RelationshipNeighbor> queryRelationshipVectorIndexCypher5(
+            @Name(value = "indexName", description = "The name of the vector index.") String name,
+            @Name(value = "numberOfNearestNeighbours", description = "The size of the vector neighbourhood.")
+                    Long numberOfNearestNeighbours,
+            @Name(value = "query", description = "The object to find approximate matches for.") AnyValue candidateQuery)
+            throws KernelException {
+        final var query = validateQueryArguments(name, numberOfNearestNeighbours, candidateQuery);
+        if (callContext.isSystemDatabase()) {
+            return Stream.empty();
+        }
+        return new RelationshipIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+                .query(Math.toIntExact(numberOfNearestNeighbours), query);
+    }
+
+    @Deprecated(since = "2026.04", forRemoval = true)
+    @Description("""
+            Query the given relationship vector index.
+            Returns requested number of nearest neighbors to the provided query vector,
+            and their similarity score to that query vector, based on the configured similarity function for the index.
+            The similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.
+            """)
+    @Procedure(name = "db.index.vector.queryRelationships", mode = READ, deprecatedBy = "SEARCH")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
     public Stream<RelationshipNeighbor> queryRelationshipVectorIndex(
             @Name(value = "indexName", description = "The name of the vector index.") String name,
             @Name(value = "numberOfNearestNeighbours", description = "The size of the vector neighbourhood.")

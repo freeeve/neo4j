@@ -62,6 +62,7 @@ import org.neo4j.notifications.NotificationCodeWithDescription.deprecatedWhereVa
 import org.neo4j.notifications.NotificationCodeWithDescription.missingLabel
 import org.neo4j.notifications.NotificationCodeWithDescription.procedureWarning
 import org.neo4j.notifications.NotificationDetail
+import org.neo4j.notifications.NotificationDetail.deprecatedName
 import org.neo4j.notifications.NotificationDetail.deprecationNotificationDetail
 import org.scalatest.BeforeAndAfterAll
 
@@ -1541,6 +1542,94 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
         ),
         testOmittedResult
       )
+    )
+  }
+
+  test("db.index.vector.queryNodes should not be deprecated in Cypher 5") {
+    // create a vector index and wait until it is online to avoid procedure failure
+    val transaction1 = dbms.begin()
+    transaction1.execute("CREATE VECTOR INDEX nodeVectorIdx IF NOT EXISTS FOR (n:Label) ON n.prop")
+    transaction1.commit()
+    val transaction2 = dbms.begin()
+    transaction2.execute("CALL db.awaitIndexes()")
+    transaction2.commit()
+
+    val query = "CALL db.index.vector.queryNodes('nodeVectorIdx', 5, [1, 2, 3])"
+    assertNoDeprecations(Seq(query), Set(CypherVersionOption.cypher5))
+  }
+
+  test("db.index.vector.queryNodes should be deprecated in Cypher 25") {
+    // create a vector index and wait until it is online to avoid procedure failure
+    val transaction1 = dbms.begin()
+    transaction1.execute("CREATE VECTOR INDEX nodeVectorIdx IF NOT EXISTS FOR (n:Label) ON n.prop")
+    transaction1.commit()
+    val transaction2 = dbms.begin()
+    transaction2.execute("CALL db.awaitIndexes()")
+    transaction2.commit()
+
+    assertNotification(
+      Seq("CALL db.index.vector.queryNodes('nodeVectorIdx', 5, [1, 2, 3])"),
+      shouldContainNotification = true,
+      deprecatedProcedureWithReplacement(
+        _,
+        deprecatedName("db.index.vector.queryNodes", "SEARCH"),
+        "db.index.vector.queryNodes",
+        "SEARCH"
+      ),
+      List(
+        TestGqlStatusObject(
+          STATUS_01N01.getStatusString,
+          "warn: feature deprecated with replacement. db.index.vector.queryNodes is deprecated. It is replaced by SEARCH.",
+          SeverityLevel.WARNING,
+          NotificationClassification.DEPRECATION
+        ),
+        testOmittedResult
+      ),
+      Set(CypherVersionOption.cypher25)
+    )
+  }
+
+  test("db.index.vector.queryRelationships should not be deprecated in Cypher 5") {
+    // create a vector index and wait until it is online to avoid procedure failure
+    val transaction1 = dbms.begin()
+    transaction1.execute("CREATE VECTOR INDEX relVectorIdx IF NOT EXISTS FOR ()-[r:REL]->() ON r.prop")
+    transaction1.commit()
+    val transaction2 = dbms.begin()
+    transaction2.execute("CALL db.awaitIndexes()")
+    transaction2.commit()
+
+    val query = "CALL db.index.vector.queryRelationships('relVectorIdx', 5, [1, 2, 3])"
+    assertNoDeprecations(Seq(query), Set(CypherVersionOption.cypher5))
+  }
+
+  test("db.index.vector.queryRelationships should be deprecated in Cypher 25") {
+    // create a vector index and wait until it is online to avoid procedure failure
+    val transaction1 = dbms.begin()
+    transaction1.execute("CREATE VECTOR INDEX relVectorIdx IF NOT EXISTS FOR ()-[r:REL]->() ON r.prop")
+    transaction1.commit()
+    val transaction2 = dbms.begin()
+    transaction2.execute("CALL db.awaitIndexes()")
+    transaction2.commit()
+
+    assertNotification(
+      Seq("CALL db.index.vector.queryRelationships('relVectorIdx', 5, [1, 2, 3])"),
+      shouldContainNotification = true,
+      deprecatedProcedureWithReplacement(
+        _,
+        deprecatedName("db.index.vector.queryRelationships", "SEARCH"),
+        "db.index.vector.queryRelationships",
+        "SEARCH"
+      ),
+      List(
+        TestGqlStatusObject(
+          STATUS_01N01.getStatusString,
+          "warn: feature deprecated with replacement. db.index.vector.queryRelationships is deprecated. It is replaced by SEARCH.",
+          SeverityLevel.WARNING,
+          NotificationClassification.DEPRECATION
+        ),
+        testOmittedResult
+      ),
+      Set(CypherVersionOption.cypher25)
     )
   }
 }

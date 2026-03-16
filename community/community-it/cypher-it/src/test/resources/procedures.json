@@ -954,7 +954,63 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "cypherVersionScope": [5, 25]
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "db.index.vector.queryNodes",
+    "description": "Query the given node vector index.\nReturns requested number of nearest neighbors to the provided query vector,\nand their similarity score to that query vector, based on the configured similarity function for the index.\nThe similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.\n",
+    "mode": "READ",
+    "worksOnSystem": false,
+    "signature": "db.index.vector.queryNodes(indexName :: STRING, numberOfNearestNeighbours :: INTEGER, query :: ANY) :: (node :: NODE, score :: FLOAT)",
+    "argumentDescription": [
+      {
+        "name": "indexName",
+        "description": "The name of the vector index.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "numberOfNearestNeighbours",
+        "description": "The size of the vector neighbourhood.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "query",
+        "description": "The object to find approximate matches for.",
+        "type": "ANY",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "node",
+        "description": "A node which contains a vector property similar to the query object.",
+        "type": "NODE",
+        "isDeprecated": false
+      },
+      {
+        "name": "score",
+        "description": "The score measuring how similar the node property is to the query object.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "SEARCH",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [25]
   },
   {
     "name": "db.index.vector.queryRelationships",
@@ -1010,7 +1066,63 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "cypherVersionScope": [5, 25]
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "db.index.vector.queryRelationships",
+    "description": "Query the given relationship vector index.\nReturns requested number of nearest neighbors to the provided query vector,\nand their similarity score to that query vector, based on the configured similarity function for the index.\nThe similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.\n",
+    "mode": "READ",
+    "worksOnSystem": false,
+    "signature": "db.index.vector.queryRelationships(indexName :: STRING, numberOfNearestNeighbours :: INTEGER, query :: ANY) :: (relationship :: RELATIONSHIP, score :: FLOAT)",
+    "argumentDescription": [
+      {
+        "name": "indexName",
+        "description": "The name of the vector index.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "numberOfNearestNeighbours",
+        "description": "The size of the vector neighbourhood.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "query",
+        "description": "The object to find approximate matches for.",
+        "type": "ANY",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "relationship",
+        "description": "A relationship which contains a vector property similar to the query object.",
+        "type": "RELATIONSHIP",
+        "isDeprecated": false
+      },
+      {
+        "name": "score",
+        "description": "The score measuring how similar the relationship property is to the query object.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "SEARCH",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": false,
+    "cypherVersionScope": [25]
   },
   {
     "name": "db.info",
