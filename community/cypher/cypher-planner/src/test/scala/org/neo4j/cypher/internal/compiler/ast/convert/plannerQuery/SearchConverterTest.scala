@@ -24,7 +24,12 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
+import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.ir.QueryProjection
+import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.VectorSearchClause
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
@@ -130,7 +135,7 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
           .allPlannerQueries
           .map(_.queryGraph)
 
-      queryGraphs.size shouldEqual 4
+      queryGraphs.size shouldEqual 3
 
       val queryGraphsWithSearchClause = queryGraphs.filter(_.searchClause.nonEmpty)
 
@@ -207,6 +212,88 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
         where = Some(where(greaterThan(prop("movie", "rating"), literal(6)))),
         limit = literal(5),
         scoreVariable = None
+      )
+    }
+  }
+
+  test("should not insert an empty planner query before MATCH-SEARCH") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (movie:Movie)
+          |  SEARCH movie IN (
+          |    VECTOR INDEX moviePlots
+          |    FOR $param
+          |    LIMIT 5
+          |  )
+          |RETURN movie.title AS title """.stripMargin
+
+      val pq = buildSinglePlannerQuery(query, version)
+
+      pq shouldEqual
+        SinglePlannerQuery.empty
+          .withQueryGraph(
+            QueryGraph.empty
+              .addPatternNodes(v"movie")
+              .addPredicates(hasLabels(v"movie", "Movie"))
+              .addSearchClause(Some(VectorSearchClause(
+                resultVariable = v"movie",
+                indexName = "moviePlots",
+                embedding = parameter("param", CTAny),
+                where = None,
+                limit = literal(5),
+                scoreVariable = None
+              )))
+          )
+          .withHorizon(
+            QueryProjection.empty
+              .withAddedProjections(Map(v"title" -> prop(v"movie", "title")))
+              .markAsFinal
+          )
+    }
+  }
+
+  test("should not insert an empty planner query before MATCH-SEARCH inside CALL") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH (n)
+          |CALL (n) {
+          |  MATCH (movie:Movie)
+          |    SEARCH movie IN (
+          |      VECTOR INDEX moviePlots
+          |      FOR n.embedding
+          |      LIMIT 5
+          |    )
+          |  RETURN movie.title AS title
+          |}
+          |RETURN title""".stripMargin
+
+      val pq = buildSinglePlannerQuery(query, version)
+      pq.horizon shouldEqual CallSubqueryHorizon(
+        correlated = true,
+        yielding = true,
+        inTransactionsParameters = None,
+        optional = false,
+        importedVariables = Set(v"n"),
+        callSubquery = SinglePlannerQuery.empty
+          .withQueryGraph(
+            QueryGraph.empty
+              .addArgumentId(v"n")
+              .addPatternNodes(v"movie")
+              .addPredicates(hasLabels(v"movie", "Movie"))
+              .addSearchClause(Some(VectorSearchClause(
+                resultVariable = v"movie",
+                indexName = "moviePlots",
+                embedding = prop(v"n", "embedding"),
+                where = None,
+                limit = literal(5),
+                scoreVariable = None
+              )))
+          )
+          .withHorizon(
+            QueryProjection.empty
+              .withAddedProjections(Map(v"title" -> prop(v"movie", "title")))
+              .withImportedExposedSymbols(Set(v"n"))
+          )
       )
     }
   }

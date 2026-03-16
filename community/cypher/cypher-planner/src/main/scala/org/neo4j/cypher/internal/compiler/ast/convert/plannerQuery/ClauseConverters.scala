@@ -616,7 +616,10 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
         (addHorizon(accWithSelectionsSolvable), otherSelections)
       } else if (hasPatternOverlapOnInteriorVars || isPotentiallyUnsolvable) {
         (addHorizon(acc), selections)
-      } else if (clause.search.nonEmpty || acc.currentQueryGraph.searchClause.nonEmpty) {
+      } else if (
+        (clause.search.nonEmpty && acc.currentQueryGraph.removeArguments().nonEmpty)
+        || acc.currentQueryGraph.searchClause.nonEmpty
+      ) {
         (addHorizon(acc), selections)
       } else {
         (acc, selections)
