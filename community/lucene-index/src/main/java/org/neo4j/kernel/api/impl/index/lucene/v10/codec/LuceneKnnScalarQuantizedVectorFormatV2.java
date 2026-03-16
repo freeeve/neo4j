@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.KnnVectorsReader;
 import org.apache.lucene.codecs.KnnVectorsWriter;
-import org.apache.lucene.codecs.lucene99.Lucene99HnswScalarQuantizedVectorsFormat;
+import org.apache.lucene.codecs.lucene104.Lucene104HnswScalarQuantizedVectorsFormat;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig.HnswConfig;
@@ -41,7 +41,7 @@ public class LuceneKnnScalarQuantizedVectorFormatV2 extends KnnVectorsFormat {
     public LuceneKnnScalarQuantizedVectorFormatV2(int maxDimensions, HnswConfig hnswConfig) {
         super(FORMAT_NAME);
         this.maxDimensions = maxDimensions;
-        this.vectorsFormat = new Lucene99HnswScalarQuantizedVectorsFormat(hnswConfig.M(), hnswConfig.efConstruction());
+        this.vectorsFormat = new Lucene104HnswScalarQuantizedVectorsFormat(hnswConfig.M(), hnswConfig.efConstruction());
     }
 
     @Override
