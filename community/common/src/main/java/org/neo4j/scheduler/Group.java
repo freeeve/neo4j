@@ -40,7 +40,7 @@ public enum Group {
     FILE_WATCHER("FileWatcher", ExecutorServiceFactory.unschedulable()),
     /** Monitor and report system-wide pauses, in case they lead to service interruption. */
     VM_PAUSE_MONITOR("VmPauseMonitor", true),
-    LOG_ROTATION("LogRotation"),
+    LOG_ROTATION("LogRotation", true),
     /** Checkpoint and store flush. */
     CHECKPOINT("CheckPoint"),
     /** Various little periodic tasks that need to be done on a regular basis to keep the store in good shape. */
