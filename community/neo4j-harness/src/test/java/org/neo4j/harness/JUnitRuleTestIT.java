@@ -43,9 +43,13 @@ import org.neo4j.harness.junit.rule.Neo4jRule;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.logging.LogTimeZone;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.SuppressOutput;
 import org.neo4j.test.server.HTTP;
 
+@SkipOnSpd(
+        notes = SkipOnSpd.Note.incompatible,
+        reason = "This is a community test on test rule that does not have access to spd.")
 public class JUnitRuleTestIT {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
