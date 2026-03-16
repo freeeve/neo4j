@@ -26,6 +26,9 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.udc_network_
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.udc_report_interval_ms;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.GraphDatabaseSettings.udc_enabled;
+import static org.neo4j.cypher.internal.frontend.phases.SyntaxUsageMetricKey.LOAD_CSV;
+import static org.neo4j.cypher.internal.frontend.phases.SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX;
+import static org.neo4j.cypher.internal.frontend.phases.SyntaxUsageMetricKey.LOAD_CSV_CALL_IN_TX_CONCURRENT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -40,14 +43,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.common.Edition;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.kernel.api.database.DatabaseSizeService;
+import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.diagnostics.providers.PackagingDiagnostics;
 import org.neo4j.kernel.impl.api.TransactionIdSequence;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
@@ -143,10 +149,7 @@ public class UserDataCollector extends LifecycleAdapter {
             try {
                 data.putAll(source.getData(databaseManagementService, fs, config, log));
             } catch (Exception e) {
-                log.debug(
-                        "Failed to collect data from source "
-                                + source.getClass().getName(),
-                        e);
+                // Ignore failure to collect data from source
             }
         }
 
@@ -199,11 +202,25 @@ public class UserDataCollector extends LifecycleAdapter {
     }
 
     private Map<String, String> getDatabaseEntityCount() {
+        Map<String, String> result = new HashMap<>();
         GraphDatabaseAPI systemDatabase =
                 (GraphDatabaseAPI) databaseManagementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME);
-        DatabaseSizeService databaseSizeService =
-                systemDatabase.getDependencyResolver().resolveDependency(DatabaseSizeService.class);
+        DependencyResolver systemDependencies = systemDatabase.getDependencyResolver();
+        DatabaseSizeService databaseSizeService = systemDependencies.resolveDependency(DatabaseSizeService.class);
         List<String> databases = databaseManagementService.listDatabases();
+
+        try {
+            InternalUsageStats usageStats = systemDependencies.resolveDependency(InternalUsageStats.class);
+            result.put("loadCsv", String.valueOf(usageStats.getSyntaxUsageCount(LOAD_CSV)));
+            result.put(
+                    "loadCsvCallInTransactions", String.valueOf(usageStats.getSyntaxUsageCount(LOAD_CSV_CALL_IN_TX)));
+            result.put(
+                    "loadCsvCallInConcurrentTransactions",
+                    String.valueOf(usageStats.getSyntaxUsageCount(LOAD_CSV_CALL_IN_TX_CONCURRENT)));
+        } catch (Exception e) {
+            // Ignore failure to collect load_csv data
+        }
+
         long newReportTime = clock.nanos();
         long nodes = 0;
         long relationships = 0;
@@ -213,6 +230,9 @@ public class UserDataCollector extends LifecycleAdapter {
         int indexes = 0;
         int constraints = 0;
         long newTransactions = 0;
+        Map<String, Integer> formatCount = new HashMap<>();
+        long largestDbSize = 0;
+        String formatLargestDb = "";
         for (String database : databases) {
             try {
                 GraphDatabaseAPI db = (GraphDatabaseAPI) databaseManagementService.database(database);
@@ -223,15 +243,25 @@ public class UserDataCollector extends LifecycleAdapter {
                 nodes += storeEntityCounters.estimateNodes();
                 relationships += storeEntityCounters.estimateRelationships();
                 labels += storeEntityCounters.estimateLabels();
-                dataSize += databaseSizeService.getDatabaseDataSize(db.databaseId());
+                long dbSize = databaseSizeService.getDatabaseDataSize(db.databaseId());
+                dataSize += dbSize;
                 if (!db.databaseId().isSystemDatabase()) {
+                    String format =
+                            storageEngine.metadataProvider().getStoreId().getFormatName();
+                    if (dbSize > largestDbSize) {
+                        largestDbSize = dbSize;
+                        formatLargestDb = format;
+                    }
+                    if (!format.contains("spd") || DatabaseReferenceImpl.GraphShard.isGraphShardName(database)) {
+                        formatCount.merge(format, 1, Integer::sum);
+                    }
                     newTransactions += txSequence.currentValue();
                     indexes += storeEntityCounters.indexCountWithoutLookup();
                     constraints += storeEntityCounters.constraintCount();
                     databaseCount++;
                 }
             } catch (Exception e) {
-                log.debug("Failed to collect data from database " + database, e);
+                // Ignore failure to collect data from database, continue with others
             }
         }
         long txPerMin = 0;
@@ -242,17 +272,22 @@ public class UserDataCollector extends LifecycleAdapter {
             lastReportTime = newReportTime;
             lastTransactionCount = newTransactions;
         } catch (Exception e) {
-            log.debug("Failed to calculate queries per minute", e);
+            // Ignore failure to calculate queries per minute
         }
-        return Map.of(
-                "nodes", String.valueOf(nodes),
-                "relationships", String.valueOf(relationships),
-                "labels", String.valueOf(labels),
-                "indexes", String.valueOf(indexes),
-                "constraints", String.valueOf(constraints),
-                "storeSize", String.valueOf(dataSize),
-                "databaseCount", String.valueOf(databaseCount),
-                "queriesPerMinute", String.valueOf(txPerMin));
+
+        result.put("nodes", String.valueOf(nodes));
+        result.put("relationships", String.valueOf(relationships));
+        result.put("labels", String.valueOf(labels));
+        result.put("indexes", String.valueOf(indexes));
+        result.put("constraints", String.valueOf(constraints));
+        result.put("storeSize", String.valueOf(dataSize));
+        result.put("databaseCount", String.valueOf(databaseCount));
+        result.put("queriesPerMinute", String.valueOf(txPerMin));
+        result.put("format_largestDb", formatLargestDb);
+        for (Map.Entry<String, Integer> entry : formatCount.entrySet()) {
+            result.put("format_" + entry.getKey(), String.valueOf(entry.getValue()));
+        }
+        return result;
     }
 
     private String getPackagingInformation(Config config, FileSystemAbstraction fs) {
@@ -263,7 +298,6 @@ public class UserDataCollector extends LifecycleAdapter {
             }
         } catch (Exception e) {
             // Don't fail if we can't access environment variables, fallback to checking files
-            log.debug("Failed to collect packaging information from environment variable " + PACKAGING_VARIABLE, e);
         }
         Path packagingInfoFile = config.get(neo4j_home).resolve(PackagingDiagnostics.PACKAGING_INFO_FILENAME);
         try {
@@ -274,7 +308,6 @@ public class UserDataCollector extends LifecycleAdapter {
                 }
             }
         } catch (Exception e) {
-            log.debug("Failed while collecting packaging information", e);
             return "error";
         }
         return "unknown";
