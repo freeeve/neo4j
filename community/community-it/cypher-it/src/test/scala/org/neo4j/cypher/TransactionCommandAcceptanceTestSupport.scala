@@ -137,7 +137,10 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
   ): Unit = {
     val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
 
-    assertCorrectDefaultMap(resultMap, transactionId, username, query, database, numColumns = 39, cypherVersion)
+    // Cypher25 also has currentQueryProgress
+    val numCols = if (checkCypher5Values) 39 else 40
+
+    assertCorrectDefaultMap(resultMap, transactionId, username, query, database, numColumns = numCols, cypherVersion)
     withClue("planner") {
       resultMap("planner") should be(planner)
     }
@@ -237,6 +240,33 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     withClue("currentQueryIdleTime") {
       val currentQueryIdleTime = resultMap("currentQueryIdleTime")
       (currentQueryIdleTime == null || currentQueryIdleTime.isInstanceOf[DurationValue]) should be(true)
+    }
+    if (!checkCypher5Values) {
+      withClue("currentQueryProgress") {
+        val currentQueryProgress = resultMap("currentQueryProgress")
+        currentQueryProgress.isInstanceOf[Map[_, _]] should be(true)
+        val progressMap = currentQueryProgress.asInstanceOf[Map[String, AnyRef]]
+        val progressKeys = Seq(
+          "nodesCreated",
+          "nodesDeleted",
+          "relationshipsCreated",
+          "relationshipsDeleted",
+          "propertiesSet",
+          "labelsAdded",
+          "labelsRemoved",
+          "fileLinesRead",
+          "transactionsStarted",
+          "transactionsCommitted",
+          "transactionsRolledBack"
+        )
+        progressKeys.foreach { key =>
+          val value = progressMap.getOrElse(key, null)
+          withClue(s"currentQueryProgress.$key: ") {
+            value shouldBe a[Long]
+            value.asInstanceOf[Long] should be >= 0L
+          }
+        }
+      }
     }
   }
 
