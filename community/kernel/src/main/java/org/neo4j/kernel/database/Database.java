@@ -206,6 +206,7 @@ import org.neo4j.values.ElementIdMapper;
 
 public class Database extends AbstractDatabase {
     private static final String STORE_ID_VALIDATOR_TAG = "storeIdValidator";
+    private static final String ID_CACHE_CLUSTER_CLEANUP_TAG = "idCacheClusterCleanup";
 
     private final ServerIdentity serverIdentity;
     private final PageCache globalPageCache;
@@ -1346,13 +1347,12 @@ public class Database extends AbstractDatabase {
      * be retried on the next leaseholder after this method is called again on that next leaseholder.
      * @param leaseId The ID of the newly acquired lease.
      */
-    public void newLeaseAcquired(int leaseId) {
-        leaseMonitor.newLeaseAcquired(leaseId);
-    }
-
-    public void clearIdGeneratorCache(boolean allocationEnabled, String pageCursorTracerTag) {
-        try (var cursorContext = cursorContextFactory.create(pageCursorTracerTag)) {
-            idGeneratorFactory.clearCache(allocationEnabled, cursorContext);
+    public void newLeaseAcquired(int leaseId, boolean iAmLeaseOwner) {
+        try (var cursorContext = cursorContextFactory.create(ID_CACHE_CLUSTER_CLEANUP_TAG)) {
+            idGeneratorFactory.clearCache(iAmLeaseOwner, cursorContext);
+        }
+        if (iAmLeaseOwner) {
+            leaseMonitor.newLeaseAcquired(leaseId);
         }
     }
 
