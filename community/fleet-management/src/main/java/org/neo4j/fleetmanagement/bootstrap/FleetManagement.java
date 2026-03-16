@@ -103,8 +103,8 @@ public class FleetManagement extends LifecycleAdapter {
                 config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
         var reportingService = new TopologyService(
                 config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
-        var metricsService =
-                new MetricsService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
+        var metricsService = new MetricsService(
+                this.transactor, serverIdentity, upstream, config, this.state, this.configuration, dbmsInfo);
         this.configService =
                 new ConfigService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
         var pingService =

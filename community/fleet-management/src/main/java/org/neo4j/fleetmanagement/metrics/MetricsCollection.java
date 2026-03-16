@@ -19,19 +19,27 @@
  */
 package org.neo4j.fleetmanagement.metrics;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.neo4j.common.Edition;
 import org.neo4j.configuration.Config;
 import org.neo4j.fleetmanagement.communication.model.DataPoint;
 import org.neo4j.fleetmanagement.configuration.Configuration;
+import org.neo4j.kernel.impl.factory.DbmsInfo;
 
 public class MetricsCollection {
     private final List<ICollector> collectors;
 
-    public MetricsCollection(Config config, Configuration configuration) {
-        this.collectors =
-                List.of(new CpuCollector(), new MemoryCollector(), new Neo4jMetricsCollector(config, configuration));
+    public MetricsCollection(Config config, Configuration configuration, DbmsInfo dbmsInfo) {
+        var collectors = new ArrayList<>(List.of(new CpuCollector(), new MemoryCollector()));
+        if (Edition.COMMUNITY.equals(dbmsInfo.edition)) {
+            collectors.add(new CommunityEditionNeo4jMetricsCollector(config));
+        } else {
+            collectors.add(new Neo4jMetricsCollector(config, configuration));
+        }
+        this.collectors = collectors;
     }
 
     public void start() {

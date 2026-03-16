@@ -54,6 +54,7 @@ public class Neo4jMetricsCollector implements ICollector, PropertyChangeListener
         query = String.format("%s.metrics:*", getMetricsPrefix(config));
     }
 
+    @Override
     public void start() {
         configuration.addPropertyChangeListener(this);
     }

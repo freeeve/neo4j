@@ -33,6 +33,7 @@ import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.fleetmanagement.metrics.MetricsCollection;
 import org.neo4j.fleetmanagement.topology.TopologyMapper;
 import org.neo4j.fleetmanagement.transactions.ITransactor;
+import org.neo4j.kernel.impl.factory.DbmsInfo;
 
 public class MetricsService extends AbstractReportingService {
     private final ServerIdentity serverIdentity;
@@ -45,10 +46,11 @@ public class MetricsService extends AbstractReportingService {
             Upstream upstream,
             Config config,
             State state,
-            Configuration configuration) {
+            Configuration configuration,
+            DbmsInfo dbmsInfo) {
         super(transactor, upstream, state, configuration);
 
-        this.metricsCollection = new MetricsCollection(config, configuration);
+        this.metricsCollection = new MetricsCollection(config, configuration, dbmsInfo);
         this.serverIdentity = serverIdentity;
     }
 
