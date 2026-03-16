@@ -99,7 +99,11 @@ class CaretPositionTest extends CypherFunSuite with TestName {
     lineTerminationPrefixSums: IndexedSeq[Int]
   ): InputPositionFromCaret = {
     val ltLength = lineTerminationPrefixSums(pos.line - 1)
-    InputPositionFromCaret(pos.offset - ltLength, pos.line, pos.column)
+    pos match {
+      case p: InputPositionFromCaret.Simple => p.copy(offset = p.offset - ltLength)
+      case p: InputPositionFromCaret.Range  => p.copy(offset = p.offset - ltLength)
+    }
+
   }
 
   test(""" 0 """.stripMargin) {
@@ -118,7 +122,15 @@ class CaretPositionTest extends CypherFunSuite with TestName {
          | ^""".stripMargin) {
     hasCorrectPositionIngoringLineTerminationCharactersInOffset(
       """001""".stripMargin,
-      InputPositionFromCaret(1, 1, 2)
+      InputPositionFromCaret.Simple(1, 1, 2)
+    )
+  }
+
+  test("""001
+         | ^-""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """001""".stripMargin,
+      InputPositionFromCaret.Range(1, 1, 2, 2)
     )
   }
 
@@ -126,9 +138,35 @@ class CaretPositionTest extends CypherFunSuite with TestName {
          |^^^""".stripMargin) {
     hasCorrectPositionIngoringLineTerminationCharactersInOffset(
       """001""".stripMargin,
-      InputPositionFromCaret(0, 1, 1),
-      InputPositionFromCaret(1, 1, 2),
-      InputPositionFromCaret(2, 1, 3)
+      InputPositionFromCaret.Simple(0, 1, 1),
+      InputPositionFromCaret.Simple(1, 1, 2),
+      InputPositionFromCaret.Simple(2, 1, 3)
+    )
+  }
+
+  test("""001
+         |^-^""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """001""".stripMargin,
+      InputPositionFromCaret.Range(0, 1, 1, 2),
+      InputPositionFromCaret.Simple(2, 1, 3)
+    )
+  }
+
+  test("""001
+         |^^-""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """001""".stripMargin,
+      InputPositionFromCaret.Simple(0, 1, 1),
+      InputPositionFromCaret.Range(1, 1, 2, 2)
+    )
+  }
+
+  test("""001
+         |^--""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """001""".stripMargin,
+      InputPositionFromCaret.Range(0, 1, 1, 3)
     )
   }
 
@@ -138,9 +176,20 @@ class CaretPositionTest extends CypherFunSuite with TestName {
     hasCorrectPositionIngoringLineTerminationCharactersInOffset(
       """002
         |""".stripMargin,
-      InputPositionFromCaret(0, 1, 1),
-      InputPositionFromCaret(1, 1, 2),
-      InputPositionFromCaret(2, 1, 3)
+      InputPositionFromCaret.Simple(0, 1, 1),
+      InputPositionFromCaret.Simple(1, 1, 2),
+      InputPositionFromCaret.Simple(2, 1, 3)
+    )
+  }
+
+  test("""002
+         |^-^
+         |""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """002
+        |""".stripMargin,
+      InputPositionFromCaret.Range(0, 1, 1, 2),
+      InputPositionFromCaret.Simple(2, 1, 3)
     )
   }
 
@@ -166,7 +215,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(0, 1, 1)
+      InputPositionFromCaret.Simple(0, 1, 1)
     )
   }
 
@@ -180,7 +229,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(3, 2, 1)
+      InputPositionFromCaret.Simple(3, 2, 1)
     )
   }
 
@@ -194,7 +243,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(2, 1, 3)
+      InputPositionFromCaret.Simple(2, 1, 3)
     )
   }
 
@@ -208,7 +257,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(5, 2, 3)
+      InputPositionFromCaret.Simple(5, 2, 3)
     )
   }
 
@@ -222,7 +271,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(8, 3, 3)
+      InputPositionFromCaret.Simple(8, 3, 3)
     )
   }
 
@@ -237,8 +286,8 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(0, 1, 1),
-      InputPositionFromCaret(8, 3, 3)
+      InputPositionFromCaret.Simple(0, 1, 1),
+      InputPositionFromCaret.Simple(8, 3, 3)
     )
   }
 
@@ -252,9 +301,22 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |abc
         |def
         |""".stripMargin,
-      InputPositionFromCaret(6, 3, 1),
-      InputPositionFromCaret(7, 3, 2),
-      InputPositionFromCaret(8, 3, 3)
+      InputPositionFromCaret.Simple(6, 3, 1),
+      InputPositionFromCaret.Simple(7, 3, 2),
+      InputPositionFromCaret.Simple(8, 3, 3)
+    )
+  }
+
+  test("""007
+         |abcdefghi
+         |^-- ^---
+         |""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """007
+        |abcdefghi
+        |""".stripMargin,
+      InputPositionFromCaret.Range(3, 2, 1, 3),
+      InputPositionFromCaret.Range(7, 2, 5, 4)
     )
   }
 
@@ -272,7 +334,7 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |ghi
         |jmn
         |""".stripMargin,
-      InputPositionFromCaret(9, 4, 3)
+      InputPositionFromCaret.Simple(9, 4, 3)
     )
   }
 
@@ -292,10 +354,33 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |ghi
         |jmn
         |""".stripMargin,
-      InputPositionFromCaret(5, 3, 2),
-      InputPositionFromCaret(8, 4, 2),
-      InputPositionFromCaret(9, 4, 3),
-      InputPositionFromCaret(10, 5, 1)
+      InputPositionFromCaret.Simple(5, 3, 2),
+      InputPositionFromCaret.Simple(8, 4, 2),
+      InputPositionFromCaret.Simple(9, 4, 3),
+      InputPositionFromCaret.Simple(10, 5, 1)
+    )
+  }
+
+  test("""1
+         |abc
+         |def
+         | ^
+         |ghi
+         |^^-
+         |jmn
+         |^-
+         |""".stripMargin) {
+    hasCorrectPositionIngoringLineTerminationCharactersInOffset(
+      """1
+        |abc
+        |def
+        |ghi
+        |jmn
+        |""".stripMargin,
+      InputPositionFromCaret.Simple(5, 3, 2),
+      InputPositionFromCaret.Simple(7, 4, 1),
+      InputPositionFromCaret.Range(8, 4, 2, 2),
+      InputPositionFromCaret.Range(10, 5, 1, 2)
     )
   }
 
@@ -317,18 +402,18 @@ class CaretPositionTest extends CypherFunSuite with TestName {
         |CALL foo.a() YIELD a AS x
         |RETURN x
         |""".stripMargin,
-      InputPositionFromCaret(29, 1, 30),
-      InputPositionFromCaret(56, 2, 17),
-      InputPositionFromCaret(90, 6, 8)
+      InputPositionFromCaret.Simple(29, 1, 30),
+      InputPositionFromCaret.Simple(56, 2, 17),
+      InputPositionFromCaret.Simple(90, 6, 8)
     )
   }
 
   test("007\nabc\r\ndef\r^^^\n") {
     hasCorrectPositionIngoringLineTerminationCharactersInOffset(
       "007\nabc\r\ndef\n",
-      InputPositionFromCaret(6, 3, 1),
-      InputPositionFromCaret(7, 3, 2),
-      InputPositionFromCaret(8, 3, 3)
+      InputPositionFromCaret.Simple(6, 3, 1),
+      InputPositionFromCaret.Simple(7, 3, 2),
+      InputPositionFromCaret.Simple(8, 3, 3)
     )
   }
 
@@ -395,5 +480,31 @@ class CaretPositionTest extends CypherFunSuite with TestName {
       CaretPosition(in)
     }
     ex.getMessage should include("Caret column 10 exceeds length of preceding line (3).")
+  }
+
+  test("caret must be of valid length in the preceding line (1)") {
+    val in =
+      s"""one
+         | ^--
+         |two
+         |""".stripMargin
+
+    val ex = intercept[IllegalArgumentException] {
+      CaretPosition(in)
+    }
+    ex.getMessage should include("Range starting at column 2 with length 3 exceeds length of preceding line (3).")
+  }
+
+  test("caret must be of valid length in the preceding line (2)") {
+    val in =
+      s"""one
+         |^------
+         |two
+         |""".stripMargin
+
+    val ex = intercept[IllegalArgumentException] {
+      CaretPosition(in)
+    }
+    ex.getMessage should include("Range starting at column 1 with length 7 exceeds length of preceding line (3).")
   }
 }

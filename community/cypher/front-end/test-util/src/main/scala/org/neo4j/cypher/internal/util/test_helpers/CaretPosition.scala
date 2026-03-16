@@ -21,12 +21,16 @@ package org.neo4j.cypher.internal.util.test_helpers
  *
  * A caret line is defined as:
  *  - containing at least one '^'
- *  - containing only whitespace or '^' characters
+ *  - containing only whitespace, '^' and '-' characters
  *
  * Any line that does not satisfy these rules is treated as normal input and
  * remains part of the cleaned input.
  *
- * Each '^' character on a caret line defines one InputPositionFromCaret.
+ * Markers on a caret line:
+ *  - Simple position: '^'
+ *  - Range position:  '^---' (one '^' followed by one or more uninterrupted '-' characters)
+ *    The range length is 1 + number of following '-' characters.
+ *
  * A caret line refers to the immediately preceding non-caret line.
  *
  * Position rules (relative to the cleaned input, i.e. with all caret lines removed):
@@ -41,6 +45,7 @@ package org.neo4j.cypher.internal.util.test_helpers
  *  - A caret line cannot follow another caret line.
  *  - The column of each '^' must not exceed the length of the referenced line content
  *    (line breaks are not part of a line's content).
+ *  - For ranges, (column - 1) + length must not exceed the length of the referenced line content.
  *
  * Returns:
  *  - cleanInput: the input string with all caret lines removed, preserving original line breaks
@@ -48,6 +53,7 @@ package org.neo4j.cypher.internal.util.test_helpers
  */
 case class CaretPosition(input: String) {
   final private val caret = '^'
+  final private val hyphen = '-'
 
   /**
    * One logical line, represented as:
@@ -64,8 +70,35 @@ case class CaretPosition(input: String) {
     def fullLength: Int = prefix.length + content.length
 
     lazy val isCaretLine: Boolean =
-      content.nonEmpty && content.forall(ch => ch.isWhitespace || ch == caret) && content.exists(_ == caret)
-    lazy val caretIndexes: Seq[Int] = content.zipWithIndex.collect { case (c, i) if c == caret => i }
+      content.nonEmpty &&
+        content.forall(ch => ch.isWhitespace || ch == caret || ch == hyphen) &&
+        content.exists(_ == caret)
+
+    /**
+     * Extract markers from this caret line in left-to-right order.
+     * Each marker starts at a '^' and may be followed by uninterrupted '-' to form a range.
+     * Returns (caretIndex0Based, lengthInChars)
+     */
+    lazy val markers: Seq[(Int, Int)] = {
+      if (!isCaretLine) Seq.empty
+      else {
+        val buf = Vector.newBuilder[(Int, Int)]
+        var i = 0
+
+        while (i < content.length) {
+          if (content.charAt(i) == caret) {
+            var j = i + 1
+            while (j < content.length && content.charAt(j) == hyphen) j += 1
+            val len = 1 + (j - (i + 1)) // caret + uninterrupted hyphens
+            buf += ((i, len))
+          }
+          i += 1
+        }
+        buf.result()
+      }
+    }
+
+    lazy val caretIndexes: Seq[Int] = markers.map(_._1)
   }
 
   private object CleanLine {
@@ -131,7 +164,7 @@ case class CaretPosition(input: String) {
         i += 1
       }
 
-      // If the input ends right after a terminator, we must preserve the trailing empty line.
+      // If the input ends right after a terminator, preserve the trailing empty line.
       if (i == n) {
         out += Segment(prefix, "")
         return out.result()
@@ -152,6 +185,13 @@ case class CaretPosition(input: String) {
       s"Caret column ${caretLine.caretIndexes.find(_ >= line.content.length).get + 1} exceeds length of preceding line (${line.content.length})."
     )
 
+  private def rangeTooLong(line: Segment, caretIndex: Int, length: Int): Nothing = {
+    val column = caretIndex + 1
+    throw new IllegalArgumentException(
+      s"Range starting at column $column with length $length exceeds length of preceding line (${line.content.length})."
+    )
+  }
+
   val (cleanInput: String, positions: Seq[InputPositionFromCaret]) = {
     val segments: Vector[Segment] = splitIntoPrefixedLines(input) :+ Segment("", "")
 
@@ -162,9 +202,13 @@ case class CaretPosition(input: String) {
     val (_, cleanInput: Vector[Segment], _, positions: Seq[InputPositionFromCaret]) = segments match {
       case Seq() =>
         (false, Vector.empty[Segment], 0, Seq.empty[InputPositionFromCaret])
-      case Seq(CaretLine(_)) => caretInFirstLine()
+
+      case Seq(CaretLine(_)) =>
+        caretInFirstLine()
+
       case Seq(CleanLine(line)) =>
         (false, Vector(line), 0, Seq.empty[InputPositionFromCaret])
+
       case _ =>
         segments.sliding(2).foldLeft((
           Head.asInstanceOf[SegmentPair],
@@ -181,20 +225,27 @@ case class CaretPosition(input: String) {
           case ((_, cleanInput, prefixLen, positions), Seq(CleanLine(line), CleanLine(_))) =>
             (Tail, cleanInput :+ line, prefixLen + line.fullLength, positions) // accumulate line
           case ((_, cleanInput, prefixLen, positions), Seq(CleanLine(line), CaretLine(caretLine))) =>
-            // collect positions
-            val position = {
+            // collect positions (simple + ranges)
+            val newPositions: Seq[InputPositionFromCaret] = {
+              // First, basic caret column validation (start column must be within line)
               if (caretLine.caretIndexes.exists(_ >= line.content.length))
                 caretTooFarRight(line, caretLine)
               else {
-                caretLine.caretIndexes.map { caretIndex =>
-                  val offset = prefixLen + line.prefix.length + caretIndex
-                  val lineNo = cleanInput.size + 1
-                  val columnNo = caretIndex + 1
-                  InputPositionFromCaret(offset, lineNo, columnNo)
+                caretLine.markers.map {
+                  case (caretIndex, length) =>
+                    // Then validate range length if applicable
+                    if (caretIndex + length > line.content.length) rangeTooLong(line, caretIndex, length)
+
+                    val offset = prefixLen + line.prefix.length + caretIndex
+                    val lineNo = cleanInput.size + 1
+                    val columnNo = caretIndex + 1
+
+                    if (length == 1) InputPositionFromCaret.Simple(offset, lineNo, columnNo)
+                    else InputPositionFromCaret.Range(offset, lineNo, columnNo, length)
                 }
               }
             }
-            (Tail, cleanInput :+ line, prefixLen + line.fullLength, positions ++ position)
+            (Tail, cleanInput :+ line, prefixLen + line.fullLength, positions ++ newPositions)
           // catch all case to make the compiler happy
           case _ => throw new IllegalArgumentException(s"Internal error: unexpected match case")
         }
@@ -203,4 +254,33 @@ case class CaretPosition(input: String) {
   }
 }
 
-case class InputPositionFromCaret(offset: Int, line: Int, column: Int)
+sealed trait InputPositionFromCaret {
+
+  /** The offset in characters (not codepoints!) from the beginning of the query string */
+  def offset: Int
+
+  /** The line in the query string */
+  def line: Int
+
+  /** The column in the query string */
+  def column: Int
+
+  /** Length in characters in the query string. */
+  def length: Option[Int]
+}
+
+object InputPositionFromCaret {
+
+  case class Simple(offset: Int, line: Int, column: Int) extends InputPositionFromCaret {
+    override def length: Option[Int] = None
+  }
+
+  case class Range(offset: Int, line: Int, column: Int, inputLength: Int) extends InputPositionFromCaret {
+    override def length: Option[Int] = Some(inputLength)
+  }
+
+  def apply(offset: Int, line: Int, column: Int): InputPositionFromCaret = Simple(offset, line, column)
+
+  def withLength(offset: Int, line: Int, column: Int, length: Int): InputPositionFromCaret =
+    Range(offset, line, column, length)
+}

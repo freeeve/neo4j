@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.InputPositionFromCaret
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.cypher.internal.util.test_helpers.TestNameWithCaretPosition
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -447,7 +448,10 @@ trait NameWithPositionCaretBasedSemanticAnalysisTestSuite extends CheckGqlDisjun
   override def defaultQuery: String = testName
 
   override def defaultPositions: Option[Seq[InputPosition]] =
-    Some(testPositions.map(cp => InputPosition(cp.offset, cp.line, cp.column)))
+    Some(testPositions.map {
+      case cp: InputPositionFromCaret.Simple => InputPosition.Simple(cp.offset, cp.line, cp.column)
+      case cp: InputPositionFromCaret.Range  => InputPosition.Range(cp.offset, cp.line, cp.column, cp.inputLength)
+    })
 }
 
 trait ErrorMessageProviderAdapter extends ErrorMessageProvider {
