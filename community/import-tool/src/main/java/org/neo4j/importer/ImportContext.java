@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -65,7 +66,6 @@ import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.logging.log4j.LoggerTarget;
 import picocli.CommandLine.ParameterException;
 
-@SuppressWarnings("resource")
 public class ImportContext extends Monitor.Delegate implements InternalLogProvider {
 
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
@@ -82,21 +82,15 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     private final Config databaseConfig;
 
-    private final Function<Path, InternalLogProvider> logProviderFactory;
+    private final LazyIO<InternalLogProvider> logProvider;
 
-    private final Function<Path, PrintStream> progressStreamFactory;
+    private final LazyIO<PrintStream> progressStream;
 
-    private final Supplier<OutputStream> collectorStreamFactory;
+    private final LazyIO<OutputStream> collectorStream;
 
     private final Function<RetainCheck, Boolean> retainContextDir;
 
     private final ObjectMapper objectMapper;
-
-    private InternalLogProvider logProvider;
-
-    private PrintStream progressStream;
-
-    private OutputStream collectorStream;
 
     private boolean hasErrors;
 
@@ -112,10 +106,10 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         super(Monitor.NO_MONITOR);
         this.dbName = dbName;
         this.databaseConfig = databaseConfig;
-        this.logProviderFactory = logProviderFactory;
-        this.progressStreamFactory = progressStreamFactory;
         this.collectorPath = collectorPath;
-        this.collectorStreamFactory = collectorStreamFactory;
+        this.logProvider = new LazyIO<>(() -> logProviderFactory.apply(logPath()));
+        this.progressStream = new LazyIO<>(() -> progressStreamFactory.apply(progressReportingPath()));
+        this.collectorStream = new LazyIO<>(collectorStreamFactory);
         this.retainContextDir = retainContextDir;
         this.objectMapper = new ObjectMapper()
                 .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
@@ -144,7 +138,8 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
                         .fromConfig(databaseConfig)
                         .set(import_context_directory, baseDir)
                         .build(),
-                loggingPath -> new Log4jLogProvider(output(fs, loggingPath), verbose ? DEBUG : INFO),
+                loggingPath ->
+                        new Log4jLogProvider(new BufferedOutputStream(output(fs, loggingPath)), verbose ? DEBUG : INFO),
                 progressPath -> new PrintStream(output(fs, progressPath), true),
                 collectorReporting == null ? DEFAULT_REPORT_FILE_NAME : collectorReporting.toString(),
                 () -> output(fs, resolvedCollectorPath),
@@ -194,10 +189,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     }
 
     public OutputStream collectorOutputStream() {
-        if (collectorStream == null) {
-            collectorStream = collectorStreamFactory.get();
-        }
-        return collectorStream;
+        return collectorStream.get();
     }
 
     public Exception captureError(Exception error) {
@@ -225,17 +217,17 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
 
     @Override
     public InternalLog getLog(Class<?> loggingClass) {
-        return logProvider().getLog(loggingClass);
+        return logProvider.get().getLog(loggingClass);
     }
 
     @Override
     public InternalLog getLog(String name) {
-        return logProvider().getLog(name);
+        return logProvider.get().getLog(name);
     }
 
     @Override
     public InternalLog getLog(LoggerTarget target) {
-        return logProvider().getLog(target);
+        return logProvider.get().getLog(target);
     }
 
     @Override
@@ -246,7 +238,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     @Override
     public void detailedProgressReport(DetailedProgressReport report) {
         try {
-            var out = progressStream();
+            var out = progressStream.get();
             objectMapper.writeValue(out, report);
             out.println();
         } catch (IOException ex) {
@@ -261,20 +253,6 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         } finally {
             clearBaseDir();
         }
-    }
-
-    private InternalLogProvider logProvider() {
-        if (logProvider == null) {
-            logProvider = logProviderFactory.apply(logPath());
-        }
-        return logProvider;
-    }
-
-    private PrintStream progressStream() {
-        if (progressStream == null) {
-            progressStream = progressStreamFactory.apply(progressReportingPath());
-        }
-        return progressStream;
     }
 
     private void clearBaseDir() {
@@ -319,7 +297,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
         try {
             fs.mkdirs(path.getParent());
             // NOTE collector needs to be appending when we switch to resumable imports
-            return new BufferedOutputStream(fs.openAsOutputStream(path, false));
+            return fs.openAsOutputStream(path, false);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
@@ -365,5 +343,37 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
     private enum RetainCheck {
         PREAMBLE,
         CLEARING
+    }
+
+    private static class LazyIO<T extends Closeable> implements Supplier<T>, Closeable {
+
+        private final Supplier<T> supplier;
+
+        private T resource;
+
+        private boolean initialized;
+
+        private LazyIO(Supplier<T> supplier) {
+            this.supplier = supplier;
+        }
+
+        @Override
+        public T get() {
+            if (resource == null) {
+                synchronized (this) {
+                    if (!initialized) {
+                        initialized = true;
+                        resource = supplier.get();
+                    }
+                }
+            }
+
+            return resource;
+        }
+
+        @Override
+        public void close() {
+            IOUtils.closeUnchecked(resource);
+        }
     }
 }
