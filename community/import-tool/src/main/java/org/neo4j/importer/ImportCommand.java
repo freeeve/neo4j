@@ -87,9 +87,7 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
@@ -745,9 +743,6 @@ public class ImportCommand {
 
         protected abstract String importFormat();
 
-        protected abstract SchemaCommandReader.ReaderConfig schemaCommandsReaderConfig(
-                VectorIndexVersion latestVectorIndexVersion);
-
         protected abstract FileImporter.Builder configureFileImporterBuilder(FileImporter.Builder builder)
                 throws IOException;
 
@@ -857,11 +852,7 @@ public class ImportCommand {
 
             final var schemaPath = schemaCommandsPath(fileSystem);
 
-            final var reader = schemaCommandReader(
-                    fileSystem,
-                    config,
-                    schemaCommandsReaderConfig(
-                            VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config))));
+            final var reader = schemaCommandReader(fileSystem, config);
             try {
                 return reader.parse(schemaPath);
             } catch (SchemaCommandReaderException ex) {
@@ -872,7 +863,7 @@ public class ImportCommand {
         }
 
         protected abstract SchemaCommandReader schemaCommandReader(
-                SchemeFileSystemAbstraction fileSystem, Config config, SchemaCommandReader.ReaderConfig readerConfig);
+                SchemeFileSystemAbstraction fileSystem, Config config);
 
         private Path schemaCommandsPath(SchemeFileSystemAbstraction fileSystem) throws IOException {
             assert schemaCommands != null;
@@ -1148,11 +1139,6 @@ public class ImportCommand {
         }
 
         @Override
-        protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
-            return new ReaderConfig(false, false, latestVectorIndexVersion);
-        }
-
-        @Override
         protected FileImporter.Builder configureFileImporterBuilder(FileImporter.Builder builder) {
             return withStorageEngineFactory(builder.withForce(overwriteDestination)
                     .withCursorContextFactory(new CursorContextFactory(
@@ -1260,10 +1246,11 @@ public class ImportCommand {
         }
 
         @Override
-        protected SchemaCommandReader schemaCommandReader(
-                SchemeFileSystemAbstraction fileSystem, Config config, ReaderConfig readerConfig) {
+        protected SchemaCommandReader schemaCommandReader(SchemeFileSystemAbstraction fileSystem, Config config) {
             return new SchemaCommandReader(
-                    fileSystem, SchemaCommandParser.create(CypherConfiguration.fromConfig(config)), readerConfig);
+                    fileSystem,
+                    SchemaCommandParser.create(CypherConfiguration.fromConfig(config)),
+                    ReaderConfig.communityImporter(config));
         }
 
         protected FileImporter.Builder withStorageEngineFactory(FileImporter.Builder builder) {

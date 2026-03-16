@@ -34,7 +34,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
-import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.schema.IndexConfig;
@@ -73,7 +72,7 @@ import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
-public class SchemaCommandReaderTest {
+public abstract class SchemaCommandReaderTest {
     private static final String INVALID_OPTION_CYPHER_5 =
             "Invalid option provided, valid options are `indexProvider` and `indexConfig`";
     private static final IndexConfig VECTOR_CONFIG_V1 =
@@ -100,19 +99,20 @@ public class SchemaCommandReaderTest {
             VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(Config.defaults()));
 
     @Inject
-    private TestDirectory directory;
-
-    @Inject
     private FileSystemAbstraction fs;
 
+    @Inject
+    private TestDirectory directory;
+
+    public abstract SchemaCommandReader createReader(FileSystemAbstraction fs, ReaderConfig readerConfig);
+
     public SchemaCommandReader createReader(ReaderConfig readerConfig) {
-        return new SchemaCommandReader(
-                fs, SchemaCommandParser.create(CypherConfiguration.fromConfig(Config.defaults())), readerConfig);
+        return createReader(fs, readerConfig);
     }
 
     @Test
     void requiresValidCypherPath() throws IOException {
-        final var changeReader = createReader(new ReaderConfig(false, false, VECTOR_INDEX_VERSION));
+        final var changeReader = createReader(ReaderConfig.forTesting(false, false, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> changeReader.parse((Path) null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("The path to the Cypher schema commands must exist");
@@ -131,10 +131,9 @@ public class SchemaCommandReaderTest {
     @ParameterizedTest()
     @MethodSource
     void createsCorrectChanges(String cypherText, List<SchemaCommand> expectedChanges) throws IOException {
-        final var config = Config.defaults();
         // Might need to be enabled when the next experimental version appear:
         // config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
-        final var reader = createReader(new ReaderConfig(true, true, VECTOR_INDEX_VERSION));
+        final var reader = createReader(ReaderConfig.forTesting(true, true, VECTOR_INDEX_VERSION));
         assertThat(reader.parse(createCypher(cypherText))).isEqualTo(expectedChanges);
     }
 
@@ -142,10 +141,9 @@ public class SchemaCommandReaderTest {
     @MethodSource
     void handlesIncorrectChanges(String cypherText, String... errors) throws IOException {
         final var cypher = createCypher(cypherText);
-        final var config = Config.defaults();
         // Might need to be enabled when the next experimental version appear:
         // config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
-        final var reader = createReader(new ReaderConfig(true, true, VECTOR_INDEX_VERSION));
+        final var reader = createReader(ReaderConfig.forTesting(true, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher)).hasMessageContainingAll(errors);
     }
 
@@ -165,7 +163,7 @@ public class SchemaCommandReaderTest {
                    FOR (n:LabelName2)
                    ON (n2.propertyName);
                 """);
-        final var reader = createReader(new ReaderConfig(true, true, VECTOR_INDEX_VERSION));
+        final var reader = createReader(ReaderConfig.forTesting(true, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher))
                 .hasMessageContainingAll(
                         "Unable to parse the Cypher in import change commands.",
@@ -179,7 +177,7 @@ public class SchemaCommandReaderTest {
     @MethodSource
     void disallowDropIfConfigDenies(String cypherText) throws IOException {
         final var cypher = createCypher(cypherText);
-        final var reader = createReader(new ReaderConfig(true, false, VECTOR_INDEX_VERSION));
+        final var reader = createReader(ReaderConfig.forTesting(true, false, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher))
                 .hasMessageContainingAll("Dropping indexes or constraints is not currently supported");
     }
@@ -188,12 +186,12 @@ public class SchemaCommandReaderTest {
     @MethodSource
     void disallowEnterpriseFeaturesIfConfigDenies(String cypherText) throws IOException {
         final var cypher = createCypher(cypherText);
-        final var reader = createReader(new ReaderConfig(false, true, VECTOR_INDEX_VERSION));
+        final var reader = createReader(ReaderConfig.forTesting(false, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher))
                 .hasMessageContainingAll("Enterprise features are not currently supported");
     }
 
-    private Path createCypher(String cypherText) throws IOException {
+    public Path createCypher(String cypherText) throws IOException {
         final var changes = directory.file("changes");
         Files.writeString(changes, cypherText, StandardCharsets.UTF_8);
         return changes;

@@ -22,6 +22,9 @@ package org.neo4j.cypher.internal.schema
 import org.eclipse.collections.api.factory.Lists
 import org.eclipse.collections.api.factory.Sets
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateFulltextIndex
 import org.neo4j.cypher.internal.ast.CreateLookupIndex
@@ -29,16 +32,13 @@ import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
 import org.neo4j.cypher.internal.ast.CreateVectorIndex
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
+import org.neo4j.cypher.internal.ast.GraphType
 import org.neo4j.cypher.internal.ast.IfExistsDo
 import org.neo4j.cypher.internal.ast.IfExistsDoNothing
-import org.neo4j.cypher.internal.ast.NodePropertyExistence
-import org.neo4j.cypher.internal.ast.NodePropertyUniqueness
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.PointCreateIndex
 import org.neo4j.cypher.internal.ast.RangeCreateIndex
-import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
-import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
 import org.neo4j.cypher.internal.ast.TextCreateIndex
 import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.Expression
@@ -255,7 +255,7 @@ class SchemaCommandConverter {
       val name = constraintName.map(n => checkName(n, desc + " name")).orNull
       val entityName = tokenName(elementName)
       constraintType match {
-        case _: org.neo4j.cypher.internal.ast.NodeKey =>
+        case _: ast.NodeKey =>
           validateOptions(
             options,
             IndexBackedConstraintsOptionsConverter("range index", providerContext),
@@ -267,7 +267,7 @@ class SchemaCommandConverter {
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case _: org.neo4j.cypher.internal.ast.RelationshipKey =>
+        case _: ast.RelationshipKey =>
           validateOptions(
             options,
             IndexBackedConstraintsOptionsConverter("range index", providerContext),
@@ -279,7 +279,7 @@ class SchemaCommandConverter {
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case _: NodePropertyUniqueness =>
+        case _: ast.NodePropertyUniqueness =>
           validateOptions(
             options,
             IndexBackedConstraintsOptionsConverter("range index", providerContext),
@@ -291,7 +291,7 @@ class SchemaCommandConverter {
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case _: RelationshipPropertyUniqueness =>
+        case _: ast.RelationshipPropertyUniqueness =>
           validateOptions(
             options,
             IndexBackedConstraintsOptionsConverter("range index", providerContext),
@@ -303,21 +303,21 @@ class SchemaCommandConverter {
             asList(properties.map(p => p.propertyKey.name)),
             ifNotExists(ifExistsDo)
           )
-        case NodePropertyExistence =>
+        case ast.NodePropertyExistence =>
           validateOptions(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("node", "existence", providerContext),
             cypherVersion
           )
           new NodeExistence(name, entityName, singleProperty(properties), false, ifNotExists(ifExistsDo))
-        case RelationshipPropertyExistence =>
+        case ast.RelationshipPropertyExistence =>
           validateOptions(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "existence", providerContext),
             cypherVersion
           )
           new RelationshipExistence(name, entityName, singleProperty(properties), false, ifNotExists(ifExistsDo))
-        case org.neo4j.cypher.internal.ast.NodePropertyType(propType) =>
+        case ast.NodePropertyType(propType) =>
           validateOptions(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("node", "type", providerContext),
@@ -331,7 +331,7 @@ class SchemaCommandConverter {
             false,
             ifNotExists(ifExistsDo)
           )
-        case org.neo4j.cypher.internal.ast.RelationshipPropertyType(propType) =>
+        case ast.RelationshipPropertyType(propType) =>
           validateOptions(
             options,
             PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "type", providerContext),
@@ -346,6 +346,8 @@ class SchemaCommandConverter {
             ifNotExists(ifExistsDo)
           )
       }
+    case AlterCurrentGraphType(gt, operation, _) =>
+      graphType(gt, operation)
     case _ =>
       throw new SchemaCommandReaderException("Unrecognised schema change found: " + command.getClass.getSimpleName)
   }
@@ -405,6 +407,10 @@ class SchemaCommandConverter {
     }
     values
   }
+
+  @throws[SchemaCommandReaderException]
+  protected def graphType(gt: GraphType, operation: AlterOperation): SchemaCommand.GraphType =
+    throw new SchemaCommandReaderException("Graph type requires Enterprise Edition")
 
   private def singleProperty(properties: Seq[Property]): String =
     singleItem(properties, (p: Property) => p.propertyKey.name)

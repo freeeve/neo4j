@@ -24,15 +24,18 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import org.neo4j.configuration.Config;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.schema.SchemaCommandConverter;
 import org.neo4j.internal.schema.SchemaCommand;
 import org.neo4j.internal.schema.SchemaCommand.SchemaCommandReaderException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.Preconditions;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * Reads a file that contains Cypher schema commands and converts them into the appropriate {@link SchemaCommand}s.
@@ -96,8 +99,38 @@ public class SchemaCommandReader {
         }
     }
 
-    public record ReaderConfig(
-            boolean allowEnterpriseFeatures,
-            boolean allowDropOperations,
-            VectorIndexVersion latestVectorIndexVersion) {}
+    public sealed interface ReaderConfig {
+        boolean allowEnterpriseFeatures();
+
+        boolean allowDropOperations();
+
+        VectorIndexVersion latestVectorIndexVersion();
+
+        static ReaderConfig communityImporter(Config config) {
+            return new ReaderConfigImpl(
+                    false, false, VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config)));
+        }
+
+        static ReaderConfig enterpriseImporter(Config config) {
+            return new ReaderConfigImpl(
+                    true, false, VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config)));
+        }
+
+        static ReaderConfig enterpriseIncrementalImporter(Config config) {
+            return new ReaderConfigImpl(
+                    true, true, VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config)));
+        }
+
+        @VisibleForTesting
+        static ReaderConfig forTesting(
+                boolean allowEnterpriseFeatures,
+                boolean allowDropOperations,
+                VectorIndexVersion latestVectorIndexVersion) {
+            return new ReaderConfigImpl(allowEnterpriseFeatures, allowDropOperations, latestVectorIndexVersion);
+        }
+    }
+
+    private record ReaderConfigImpl(
+            boolean allowEnterpriseFeatures, boolean allowDropOperations, VectorIndexVersion latestVectorIndexVersion)
+            implements ReaderConfig {}
 }

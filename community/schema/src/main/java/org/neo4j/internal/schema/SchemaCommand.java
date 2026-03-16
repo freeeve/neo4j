@@ -31,6 +31,7 @@ import static org.neo4j.internal.schema.SchemaCommandUtils.withName;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
@@ -714,6 +715,41 @@ public sealed interface SchemaCommand extends Serializable {
                     return new ConstraintPrototype(constraintDescriptor);
                 }
             }
+        }
+    }
+
+    record GraphType(
+            Set<? extends ConstraintCommand.Create> addedConstraints,
+            Set<? extends SchemaCommand.ConstraintCommand.Drop> droppedConstraints,
+            Operation op)
+            implements SchemaCommand.ConstraintCommand {
+        @Override
+        public String name() {
+            return op.name() + " "
+                    + String.join(
+                            ",",
+                            addedConstraints.stream().map(SchemaCommand::name).toList()) + ";"
+                    + String.join(
+                            ",",
+                            droppedConstraints.stream().map(SchemaCommand::name).toList());
+        }
+
+        @Override
+        public String toString() {
+            return "GraphType[addedConstraints="
+                    + String.join(
+                            ",\n",
+                            addedConstraints.stream().map(Object::toString).toList()) + ",\n droppedConstraints="
+                    + String.join(
+                            ",\n",
+                            droppedConstraints.stream().map(Object::toString).toList()) + ", op=" + op + "]";
+        }
+
+        public enum Operation {
+            ADD,
+            DROP,
+            SET,
+            ALTER
         }
     }
 
