@@ -597,6 +597,8 @@ public abstract class GraphStoreFixture implements AutoCloseable {
                             NO_NEXT_RELATIONSHIP.longValue(),
                             NO_NEXT_RELATIONSHIP.longValue(),
                             true,
+                            false,
+                            false,
                             false);
         }
 

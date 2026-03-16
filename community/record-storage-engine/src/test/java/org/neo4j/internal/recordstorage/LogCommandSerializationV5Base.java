@@ -46,6 +46,7 @@ import org.neo4j.kernel.impl.store.DynamicRecordAllocator;
 import org.neo4j.kernel.impl.store.NodeLabelsField;
 import org.neo4j.kernel.impl.store.PropertyStore;
 import org.neo4j.kernel.impl.store.PropertyType;
+import org.neo4j.kernel.impl.store.format.standard.StandardFormatSettings;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -62,6 +63,7 @@ import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
+import org.neo4j.storageengine.api.StoreFormatLimits;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -214,7 +216,7 @@ abstract class LogCommandSerializationV5Base {
         RelationshipRecord before = new RelationshipRecord(42);
         before.setLinks(-1, -1, -1);
         RelationshipRecord after = new RelationshipRecord(42);
-        after.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true);
+        after.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true, false, false);
         after.setCreated();
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
@@ -233,10 +235,10 @@ abstract class LogCommandSerializationV5Base {
     void readRelationshipCommandWithSecondaryUnit() throws IOException {
         InMemoryClosableChannel channel = new InMemoryClosableChannel();
         RelationshipRecord before = new RelationshipRecord(42);
-        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true);
+        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true, false, false);
         before.setSecondaryUnitIdOnLoad(47);
         RelationshipRecord after = new RelationshipRecord(42);
-        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true);
+        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true, false, false);
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
@@ -251,10 +253,10 @@ abstract class LogCommandSerializationV5Base {
     void readRelationshipCommandWithNonRequiredSecondaryUnit() throws IOException {
         InMemoryClosableChannel channel = new InMemoryClosableChannel();
         RelationshipRecord before = new RelationshipRecord(42);
-        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true);
+        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true, false, false);
         before.setSecondaryUnitIdOnLoad(52);
         RelationshipRecord after = new RelationshipRecord(42);
-        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true);
+        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true, false, false);
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
@@ -269,10 +271,10 @@ abstract class LogCommandSerializationV5Base {
     void readRelationshipCommandWithFixedReferenceFormat() throws IOException {
         InMemoryClosableChannel channel = new InMemoryClosableChannel();
         RelationshipRecord before = new RelationshipRecord(42);
-        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true);
+        before.initialize(true, 0, 1, 2, 3, 4, 5, 6, 7, true, true, false, false);
         before.setUseFixedReferences(true);
         RelationshipRecord after = new RelationshipRecord(42);
-        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true);
+        after.initialize(true, 0, 1, 8, 3, 4, 5, 6, 7, true, true, false, false);
         after.setUseFixedReferences(true);
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
@@ -745,7 +747,10 @@ abstract class LogCommandSerializationV5Base {
         return emptyList();
     }
 
-    RelationshipRecord createRandomRelationshipRecord(long id) {
+    // Respects id limits (>= 0 and max id)
+    public static RelationshipRecord createRandomRelationshipRecord(RandomSupport random, long id) {
+        StoreFormatLimits limits = StandardFormatSettings.LIMITS;
+
         var record = new RelationshipRecord(id);
         var inUse = random.nextBoolean();
         if (random.nextBoolean()) {
@@ -754,16 +759,21 @@ abstract class LogCommandSerializationV5Base {
         if (inUse) {
             record.initialize(
                     inUse,
-                    random.nextLong(),
-                    random.nextLong(),
-                    random.nextLong(),
-                    random.nextInt(),
-                    random.nextLong(),
-                    random.nextLong(),
-                    random.nextLong(),
-                    random.nextLong(),
+                    random.nextLong(limits.maxPropertyKeyId()),
+                    random.nextLong(limits.maxNodeId()),
+                    random.nextLong(limits.maxNodeId()),
+                    random.nextInt((int) limits.maxRelationshipTypeId()),
+                    random.nextLong(limits.maxRelationshipId()),
+                    random.nextLong(limits.maxRelationshipId()),
+                    random.nextLong(limits.maxRelationshipId()),
+                    random.nextLong(limits.maxRelationshipId()),
+                    random.nextBoolean(),
+                    random.nextBoolean(),
                     random.nextBoolean(),
                     random.nextBoolean());
+            if (random.nextBoolean()) {
+                record.setNextProp(random.nextLong(limits.maxPropertyKeyId()));
+            }
         }
 
         if (random.nextBoolean()) {
