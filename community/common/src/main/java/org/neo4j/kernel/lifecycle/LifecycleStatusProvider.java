@@ -25,8 +25,4 @@ package org.neo4j.kernel.lifecycle;
 @FunctionalInterface
 public interface LifecycleStatusProvider {
     LifecycleStatus getStatus();
-
-    default boolean statusIs(LifecycleStatus status) {
-        return status == getStatus();
-    }
 }
