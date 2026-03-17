@@ -21,7 +21,9 @@ package org.neo4j.harness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
 import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
 
 import java.nio.file.Path;
@@ -43,13 +45,9 @@ import org.neo4j.harness.junit.rule.Neo4jRule;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.logging.LogTimeZone;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.SuppressOutput;
 import org.neo4j.test.server.HTTP;
 
-@SkipOnSpd(
-        notes = SkipOnSpd.Note.incompatible,
-        reason = "This is a community test on test rule that does not have access to spd.")
 public class JUnitRuleTestIT {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -124,6 +122,7 @@ public class JUnitRuleTestIT {
 
     @Test
     public void shouldRuleWorkWithExistingDirectory() throws Throwable {
+        assumeFalse("spd".equalsIgnoreCase(System.getProperty(FACTORY_SUPPLIER_KEY)));
         // given a root folder, create /databases/neo4j folders.
         Path oldLayout = folder.newFolder("old").toPath();
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(oldLayout).build();
