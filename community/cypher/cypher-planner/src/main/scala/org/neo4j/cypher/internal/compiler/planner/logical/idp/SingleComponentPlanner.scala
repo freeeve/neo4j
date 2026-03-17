@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.InterestingOrderSelect
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningSupport.RichHint
+import org.neo4j.cypher.internal.compiler.planner.logical.PrioritizeVectorSearchLeafPlannerFeature
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver.extraRequirementForInterestingOrder
@@ -253,11 +254,20 @@ case class SingleComponentPlanner(
             bestWithoutPrefetchedProperties ++ bestWithPrefetchedProperties ++ bestOverallSorted
           }
 
-        if (result.isEmpty)
-          throw InternalException.internalError(
-            this.getClass.getSimpleName,
-            "Found no access plan for a pattern relationship in a connected component. This must not happen."
-          )
+        if (result.isEmpty) {
+          // If SEARCH is present, we only generate leaf plans for vector search, so it's expected that
+          // with a more complex pattern some relationships might not have a leaf plan to expand from.
+          val hasSearchClause = PrioritizeVectorSearchLeafPlannerFeature {
+            qg.searchClause.nonEmpty
+          }
+
+          if (!hasSearchClause) {
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              "Found no access plan for a pattern relationship in a connected component. This must not happen."
+            )
+          }
+        }
 
         result
       }

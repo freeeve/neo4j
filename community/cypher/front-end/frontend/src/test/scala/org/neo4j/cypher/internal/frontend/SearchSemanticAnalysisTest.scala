@@ -1385,5 +1385,61 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
         )
       )
     }
+
+    test(
+      s"""${maybeOptional}MATCH () (()-->(movie:Movie)){1,4} ()
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    LIMIT 5
+         |  )
+         |RETURN 1 AS result
+         |// complexPatternAllowed = $complexPatternAllowed
+         |""".stripMargin
+    ) {
+      val position = p(47 + optionalLength, 2, 10)
+      runSearchWithRewriter(complexPatternAllowed).hasAtLeastErrors(
+        SemanticError(
+          GqlHelper.getGql22G03_22N27(
+            "LIST<NODE>",
+            "`movie`",
+            java.util.List.of("NODE", "RELATIONSHIP"),
+            position.offset,
+            position.line,
+            position.column
+          ),
+          "Type mismatch: expected Node or Relationship but was List<Node>",
+          position
+        )
+      )
+    }
+
+    test(
+      s"""${maybeOptional}MATCH ()-[movie*1..3]->()
+         |  SEARCH movie IN (
+         |    VECTOR INDEX moviePlots
+         |    FOR [1, 2, 3]
+         |    LIMIT 5
+         |  )
+         |RETURN 1 AS result
+         |// complexPatternAllowed = $complexPatternAllowed
+         |""".stripMargin
+    ) {
+      val position = p(35 + optionalLength, 2, 10)
+      runSearchWithRewriter(complexPatternAllowed).hasAtLeastErrors(
+        SemanticError(
+          GqlHelper.getGql22G03_22N27(
+            "LIST<RELATIONSHIP>",
+            "`movie`",
+            java.util.List.of("NODE", "RELATIONSHIP"),
+            position.offset,
+            position.line,
+            position.column
+          ),
+          "Type mismatch: expected Node or Relationship but was List<Relationship>",
+          position
+        )
+      )
+    }
   }
 }

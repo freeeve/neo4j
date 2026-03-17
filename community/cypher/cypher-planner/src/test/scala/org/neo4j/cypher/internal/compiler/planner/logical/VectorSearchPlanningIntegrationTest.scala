@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
@@ -28,26 +29,35 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTest
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.util.Selectivity
+import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.VectorIndexSearchException
 
-class VectorSearchPlanningIntegrationTest extends CypherFunSuite
+class VectorSearchPlanningIntegrationTest
+    extends VectorSearchPlanningIntegrationTestBase
+
+class VectorSearchWithComplexPatternPlanningIntegrationTest
+    extends VectorSearchWithComplexPatternPlanningIntegrationTestBase
+
+abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
     with LogicalPlanConstructionTestSupport
     with QueryExpressionConstructionTestSupport
     with LogicalPlanningAttributesTestSupport {
 
-  private def movieLabelCardinality: Double = 80.0
+  protected def movieLabelCardinality: Double = 80.0
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()
@@ -76,8 +86,8 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
       .addRelationshipVectorIndex("contributed", Seq("CONTRIBUTED"), "embedding")
       .addRelationshipVectorIndex("actsOrContributedInScript", Seq("ACTS_IN", "CONTRIBUTED"), "script")
 
-  private val moviePlotsProperties = Seq("plot", "imdbRating", "releaseYear")
-  private val actsInScriptProperties = Seq("script", "workingDays")
+  protected val moviePlotsProperties = Seq("plot", "imdbRating", "releaseYear")
+  protected val actsInScriptProperties = Seq("script", "workingDays")
 
   test("plan node vector index search") {
     val planner = plannerBuilder().build()
@@ -1672,5 +1682,256 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
         actualPlanState should haveSamePlanAndCardinalitiesAsBuilder(expectedPlanBuilder)
       }
     }
+  }
+}
+
+abstract class VectorSearchWithComplexPatternPlanningIntegrationTestBase
+    extends VectorSearchPlanningIntegrationTestBase {
+
+  override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
+    super.plannerBuilder()
+      .addSemanticFeature(VectorSearchWithComplexPattern)
+
+  test("plan node vector index search with pattern containing multiple variable declarations") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)<-[rel:DIRECTED]-(director:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot, director.name as name""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot", "director.name AS name")
+      .filter("director:Person")
+      .expandAll("(movie)<-[:DIRECTED]-(director)")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with pattern containing multiple relationships") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (a)-[r]->(b)-[p]->(movie:Movie)-[q]->(c)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("NOT q = r", "NOT p = r")
+      .expandAll("(b)<-[r]-()")
+      .filter("NOT q = p")
+      .expandAll("(movie)<-[p]-(b)")
+      .expandAll("(movie)-[q]->()")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with comma-separated pattern, single component") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (a)-[p:CONTRIBUTED]->(movie:Movie)-[q]->(b), (movie)<-[r:ACTS_IN]-(c)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("NOT q = r")
+      .expandAll("(movie)<-[r:ACTS_IN]-()")
+      .filter("NOT q = p")
+      .expandAll("(movie)-[q]->()")
+      .expandAll("(movie)<-[p:CONTRIBUTED]-()")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with comma-separated pattern, multiple components") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (a)-[p:CONTRIBUTED]->(movie:Movie)-[q]->(b), (otherMovie)<-[r:ACTS_IN]-(c)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |WHERE movie.year = otherMovie.year
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("NOT q = r")
+      .valueHashJoin("movie.year = otherMovie.year")
+      .|.relationshipTypeScan("()-[r:ACTS_IN]->(otherMovie)")
+      .filter("NOT q = p")
+      .expandAll("(movie)-[q]->()")
+      .expandAll("(movie)<-[p:CONTRIBUTED]-()")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with QPP") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie) ((x:Movie)<-[p:DIRECTED]-(dir)-[q:DIRECTED]->(y:Movie)){1, 4} (otherMovie)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |WHERE movie.year = otherMovie.year
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val trailParameters = TrailParameters(
+      min = 1,
+      max = UpperBound.Limited(4),
+      start = "movie",
+      end = "otherMovie",
+      innerStart = "x",
+      innerEnd = "y",
+      groupNodes = Set(),
+      groupRelationships = Set(),
+      innerRelationships = Set("p", "q"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set()
+    )
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("movie.year = otherMovie.year", "otherMovie:Movie")
+      .repeatTrail(trailParameters)
+      .|.filter("NOT q = p", isRepeatTrailUnique("q"), "y:Movie")
+      .|.expandAll("(dir)-[q:DIRECTED]->(y)")
+      .|.filter(isRepeatTrailUnique("p"))
+      .|.expandAll("(x)<-[p:DIRECTED]-(dir)")
+      .|.filter("x:Movie")
+      .|.argument("x")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with var-length relationship") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)-[r*2..4]->(endNode)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .expand("(movie)-[*2..4]->()")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
+  }
+
+  test("plan node vector index search with node pattern predicate") {
+    val planner = plannerBuilder().build()
+
+    val query =
+      """MATCH (movie:Movie)<-[rel:DIRECTED]-(director:Person WHERE director.name = 'Alice')
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("director:Person", "director.name = 'Alice'")
+      .expandAll("(movie)<-[:DIRECTED]-(director)")
+      .nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = "$embedding",
+        limit = "10",
+        argumentIds = Set(),
+        getValueFromIndex = { case "plot" => GetValue; case _ => DoNotGetValue }
+      )
+      .build()
   }
 }

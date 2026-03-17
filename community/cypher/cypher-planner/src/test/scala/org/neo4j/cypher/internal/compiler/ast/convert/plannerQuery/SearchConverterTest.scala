@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -32,9 +33,12 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
-class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport with OptionValues {
+class SearchConverterTest extends SearchConverterTestBase
+class SearchWithComplexPatternConverterTest extends SearchWithComplexPatternConverterTestBase
 
-  private def buildSinglePlannerQuery(query: String, version: CypherVersion) =
+abstract class SearchConverterTestBase extends CypherFunSuite with LogicalPlanningTestSupport with OptionValues {
+
+  protected def buildSinglePlannerQuery(query: String, version: CypherVersion): SinglePlannerQuery =
     buildPlannerQuery(
       version = version,
       query = query,
@@ -289,6 +293,69 @@ class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport
               .withImportedExposedSymbols(Set(v"n"))
           )
       )
+    }
+  }
+}
+
+abstract class SearchWithComplexPatternConverterTestBase extends SearchConverterTestBase {
+
+  override def semanticFeatures: List[SemanticFeature] =
+    super.semanticFeatures.prepended(SemanticFeature.VectorSearchWithComplexPattern)
+
+  test("should convert MATCH-SEARCH with complex pattern") {
+    val complexPatterns = Seq(
+      // multiple variable declarations
+      "(movie:Movie)<-[rel:DIRECTED]-(director:Person)",
+      // multiple relationship patterns
+      "()-->()-->(movie:Movie)-->()",
+      // graph patterns
+      "()-->(movie:Movie)-->(), (movie)-->()",
+      "()-->(movie:Movie)-->(), (a)-->(b)",
+      // QPP
+      "(start) ((x)-->(y) WHERE x.prop > y.prop){1, 4} (movie:Movie)-->()",
+      // var-length
+      "(movie)-[r*1..4]->(person:Person)",
+      // node pattern predicate
+      "(movie)-[r]->(person:Person WHERE person.name = 'Alice')"
+    )
+
+    for {
+      version <- versionsExcept5Iterable
+      pattern <- complexPatterns
+    } withClue(s"CYPHER $version\npattern: $pattern\n") {
+      val noSearchQuery =
+        s"""
+           |MATCH $pattern
+           |RETURN movie.title AS title
+           |""".stripMargin
+
+      val searchQuery =
+        s"""
+           |MATCH $pattern
+           |  SEARCH movie IN (
+           |    VECTOR INDEX moviePlots
+           |    FOR $$param
+           |    LIMIT 5
+           |  )
+           |RETURN movie.title AS title
+           |""".stripMargin
+
+      val noSearchPlannerQuery = buildSinglePlannerQuery(noSearchQuery, version)
+      val searchPlannerQuery = buildSinglePlannerQuery(searchQuery, version)
+
+      noSearchPlannerQuery.queryGraph.searchClause shouldEqual None
+
+      searchPlannerQuery.queryGraph.searchClause.value shouldEqual
+        VectorSearchClause(
+          resultVariable = v"movie",
+          indexName = "moviePlots",
+          embedding = parameter("param", CTAny),
+          where = None,
+          limit = literal(5),
+          scoreVariable = None
+        )
+
+      searchPlannerQuery.amendQueryGraph(_.withoutSearchClause) shouldEqual noSearchPlannerQuery
     }
   }
 }

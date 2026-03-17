@@ -66,15 +66,17 @@ trait CypherVersionTestSupport {
   def testVersionsExcept5(testName: String)(f: CypherVersion => Any)(implicit
     pos: org.scalactic.source.Position): Unit =
     test(testName) {
-      CypherVersion.values().filter(version => version != CypherVersion.Cypher5).foreach(v =>
+      versionsExcept5Iterable.foreach(v =>
         withClue(s"CYPHER $v\n")(f(v))
       )
     }
 
   def versionsExcept5(f: CypherVersion => Any): Unit =
-    CypherVersion.values().filter(version => version != CypherVersion.Cypher5).foreach(v =>
-      withClue(s"CYPHER $v\n")(f(v))
-    )
+    versionsExcept5Iterable.foreach(v => withClue(s"CYPHER $v\n")(f(v)))
+
+  def versionsExcept5Iterable: Iterable[CypherVersion] = {
+    CypherVersion.values().filter(version => version != CypherVersion.Cypher5)
+  }
 }
 
 class CypherFunSuiteWithVersionTestSupport extends CypherFunSuite with CypherVersionTestSupport

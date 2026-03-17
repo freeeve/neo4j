@@ -244,10 +244,7 @@ final case class QueryGraph private (
     copy(shortestRelationshipPatterns = shortestRelationshipPatterns -- toRemove)
   }
 
-  def removeSearchClause(toRemove: Option[SearchClause]): QueryGraph = toRemove match {
-    case Some(nonEmptySearchClause) => copy(searchClause = searchClause.filterNot(_ == nonEmptySearchClause))
-    case None                       => this
-  }
+  def withoutSearchClause: QueryGraph = copy(searchClause = None)
 
   /**
    * Returns a copy of the query graph, with an additional selective path pattern added.
