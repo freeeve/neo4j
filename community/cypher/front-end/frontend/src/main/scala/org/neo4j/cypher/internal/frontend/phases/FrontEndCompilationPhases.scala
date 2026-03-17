@@ -35,8 +35,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowDatabaseInterpretedRuntime
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -80,8 +78,6 @@ trait FrontEndCompilationPhases {
     GraphDatabaseInternalSettings.graph_type_enabled -> GraphTypes.productPrefix,
     GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> ExperimentalCypherVersions.productPrefix,
     GraphDatabaseInternalSettings.relationship_property_value_access_rules -> RelationshipPropertyValueAccessRules.productPrefix,
-    GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled -> VectorSingleStageFilteringEnabled.productPrefix,
-    GraphDatabaseInternalSettings.cypher_vector_search_enabled -> VectorSearch.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_local_callables -> LocalCallables.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_scope_queries -> ScopeQueries.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_variable_checker -> VariableChecking.productPrefix,
@@ -98,8 +94,6 @@ trait FrontEndCompilationPhases {
     OidcCredentialForwarding.productPrefix,
     GraphTypes.productPrefix,
     RelationshipPropertyValueAccessRules.productPrefix,
-    VectorSearch.productPrefix,
-    VectorSingleStageFilteringEnabled.productPrefix,
     VariableChecking.productPrefix,
     ShowDatabaseInterpretedRuntime.productPrefix,
     AttributeBasedAccessControl.productPrefix

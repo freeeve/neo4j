@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -34,11 +33,6 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.OptionValues
 
 class SearchConverterTest extends CypherFunSuite with LogicalPlanningTestSupport with OptionValues {
-
-  override val semanticFeatures: List[SemanticFeature] = List(
-    SemanticFeature.VectorSearch,
-    SemanticFeature.VectorSingleStageFilteringEnabled
-  )
 
   private def buildSinglePlannerQuery(query: String, version: CypherVersion) =
     buildPlannerQuery(

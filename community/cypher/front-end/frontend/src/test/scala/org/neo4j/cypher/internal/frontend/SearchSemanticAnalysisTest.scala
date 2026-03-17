@@ -20,9 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
@@ -47,8 +45,7 @@ class SearchSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAn
       SemanticTypeCheck
 
   private def semanticFeatures(complexPatternAllowed: Boolean): Seq[SemanticFeature] = {
-    Seq(VectorSearch, VectorSingleStageFilteringEnabled) ++
-      Option.when(complexPatternAllowed)(VectorSearchWithComplexPattern)
+    Seq() ++ Option.when(complexPatternAllowed)(VectorSearchWithComplexPattern)
   }
 
   private def runSearchWithRewriter(complexPatternAllowed: Boolean): AnalysisAssertions = {

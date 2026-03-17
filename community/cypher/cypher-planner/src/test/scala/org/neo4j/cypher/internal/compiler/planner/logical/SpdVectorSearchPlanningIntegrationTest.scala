@@ -23,7 +23,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -46,7 +45,6 @@ class SpdVectorSearchPlanningIntegrationTest extends CypherFunSuite
 
   // Graph counts based on a subset of LDBC SF 1
   final protected val planBuilder = spdPlanner
-    .addSemanticFeature(VectorSearch)
     .addNodeVectorIndex("messageContent", Seq("Message"), "content")
     .addRelationshipVectorIndex("knowsDescr", Seq("KNOWS"), "description")
     .addNodeVectorIndex("messageOrInfoContent", Seq("Message", "Info"), "content")

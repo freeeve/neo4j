@@ -21,8 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearch
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
@@ -53,8 +51,6 @@ class VectorSearchPlanningIntegrationTest extends CypherFunSuite
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()
-      .addSemanticFeature(VectorSearch)
-      .addSemanticFeature(VectorSingleStageFilteringEnabled)
       .setAllNodesCardinality(120)
       .setLabelCardinality("Movie", movieLabelCardinality)
       .setLabelCardinality("Actor", 40)

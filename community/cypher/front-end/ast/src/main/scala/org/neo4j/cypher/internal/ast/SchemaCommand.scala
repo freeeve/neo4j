@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSingleStageFilteringEnabled
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -422,25 +421,8 @@ sealed trait CreateVectorIndex extends CreateIndex {
     case Right(_) => (false, indexType.relDescription)
   }
 
-  private def checkMultiLabelAdditionalPropertyFeatureFlag: SemanticCheck = {
-
-    def checkFlag = requireFeatureSupport(
-      "Vector indexes with multiple labels, relationship types or properties",
-      VectorSingleStageFilteringEnabled,
-      position
-    )
-
-    entityNames match {
-      case Left(labels) if labels.size > 1      => checkFlag
-      case Right(relTypes) if relTypes.size > 1 => checkFlag
-      case _ if additionalProperties.nonEmpty   => checkFlag
-      case _                                    => SemanticCheck.success
-    }
-  }
-
   override def semanticCheck: SemanticCheck =
-    checkMultiLabelAdditionalPropertyFeatureFlag chain
-      options.checkOptionsForSchema(entityIndexDescription) chain
+    options.checkOptionsForSchema(entityIndexDescription) chain
       checkSingleProperty(indexType.allDescription, properties) chain
       super.semanticCheck
 }

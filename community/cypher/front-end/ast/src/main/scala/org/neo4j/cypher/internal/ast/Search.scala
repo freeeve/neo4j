@@ -70,28 +70,13 @@ case class Search(
     extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
 
   def semanticCheck: SemanticCheck = {
-    checkSearchFeatureFlag() ifOkChain
-      checkBindingVariable() chain
+    checkBindingVariable() chain
       checkScore() chain
       checkIndexName() chain
       checkEmbedding() chain
       checkLimit() chain
       checkWhere()
   }
-
-  private def checkSearchFeatureFlag(): SemanticCheck =
-    requireFeatureSupport(
-      "The SEARCH keyword",
-      SemanticFeature.VectorSearch,
-      position
-    )
-
-  private def checkSingleStageFeatureFlag(): SemanticCheck =
-    requireFeatureSupport(
-      "Vector search filtering",
-      SemanticFeature.VectorSingleStageFilteringEnabled,
-      position
-    )
 
   private def checkIndexName(): SemanticCheck = {
     indexName match {
@@ -157,8 +142,7 @@ case class Search(
        * This also means that type checking for e.g. unresolved functions like date() needs to happen at runtime.
        */
       if (where.isDefined && !state.semanticCheckHasRunOnce) {
-        checkSingleStageFeatureFlag() ifOkChain
-          where.semanticCheck ifOkChain
+        where.semanticCheck ifOkChain
           checkExpressionsRangeOrExact(where.get.expression)
       } else {
         where.semanticCheck
