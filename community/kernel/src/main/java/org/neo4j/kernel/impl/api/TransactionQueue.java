@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.api;
 
+import java.util.function.Supplier;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
 /**
@@ -81,9 +82,11 @@ public class TransactionQueue {
     }
 
     /**
+     * @param transactionSupplier supplier for a {@link StorageEngineTransaction}. We create it lazily to avoid trying
+     *                            to call the Kernel components needed to do so before they are guaranteed to exist.
      * @return true if not ignored
      */
-    public boolean queueNonTx(StorageEngineTransaction transaction) throws Exception {
+    public boolean queueNonTx(Supplier<StorageEngineTransaction> transactionSupplier) throws Exception {
         // Only interested in non-tx things that happen after kernel store has been created.
         // For first start up SeedStoreEntry block until kernel is up to guarantee we don't miss non tx of interest
         // For subsequent starts kernel should be up before processing begins
@@ -91,7 +94,7 @@ public class TransactionQueue {
             return false;
         }
 
-        queue(transaction);
+        queue(transactionSupplier.get());
         return true;
     }
 
