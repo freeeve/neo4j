@@ -27,6 +27,7 @@ import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
+import org.neo4j.genai.ai.text.tokenCount.TextTokenCount;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.provider.GlobalProviders;
 import org.neo4j.genai.util.provider.NamedProvider;
@@ -70,6 +71,7 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
                 registerSafe(HttpService.class, httpService);
                 registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
                 registerSafe(TextChat.Providers.class, TxtChatProv.from(httpService, providers));
+                registerSafe(TextTokenCount.Providers.class, TxtTokenCountProv.from(httpService, providers));
                 registerSafe(TextStructuredCompletion.Providers.class, TxtCompStructProv.from(httpService, providers));
                 registerSafe(VectorEmbedding.Providers.class, VectorEmbeddingProv.from(httpService, providers));
 
@@ -137,6 +139,17 @@ record TxtChatProv(HttpServiceProvider httpService, ImmutableList<TextChat.Provi
 
     public static TxtChatProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
         return new TxtChatProv(httpService, globalProviders.providers(TextChat.Provider.class));
+    }
+}
+
+record TxtTokenCountProv(HttpServiceProvider httpService, ImmutableList<TextTokenCount.Provider> providers)
+        implements ProcedureProvider<TextTokenCount.Providers> {
+    public TextTokenCount.Providers apply(Context context) throws ProcedureException {
+        return new TextTokenCount.Providers.Impl(providers, httpService.apply(context));
+    }
+
+    public static TxtTokenCountProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new TxtTokenCountProv(httpService, globalProviders.providers(TextTokenCount.Provider.class));
     }
 }
 

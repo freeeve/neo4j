@@ -222,6 +222,39 @@
     ]
   },
   {
+    "isDeprecated": false,
+    "aggregating": false,
+    "signature": "ai.text.tokenCount(input :: STRING, provider = OpenAI :: STRING, configuration = {} :: MAP) :: INTEGER",
+    "name": "ai.text.tokenCount",
+    "description": "Retrieve the token count for given input using the specified provider.",
+    "returnDescription": "INTEGER",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "The input to generate token count for.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Bedrock', 'OpenAI', 'VertexAI'. The default is 'OpenAI'.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=OpenAI, type=STRING}",
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.tokenCount.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      }
+    ]
+  },
+  {
     "isDeprecated": true,
     "aggregating": false,
     "signature": "genai.vector.encode(resource :: STRING, provider :: STRING, configuration = {} :: ANY) :: ANY",

@@ -1751,6 +1751,7 @@ MIT License
   json-schema-traverse
   jsonic
   jsprim
+  JTokkit
   lcid
   lodash
   lodash-es

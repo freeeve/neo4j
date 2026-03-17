@@ -32,9 +32,9 @@ import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
+import org.neo4j.genai.ai.text.tokenCount.TextTokenCount;
 import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding;
-import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.ResultTransformer;
 import org.neo4j.test.jar.JarBuilder;
 import org.neo4j.test.utils.TestDirectory;
@@ -52,17 +52,13 @@ public interface GenAITestExtension {
                 TextStructuredCompletion.class,
                 TextAggregateCompletion.class,
                 TextAggregateStructuredCompletion.class,
+                TextTokenCount.class,
                 TextChat.class,
                 VectorEmbedding.class);
     }
 
     default ResultTransformer<List<Map<String, Object>>> consume() {
-        return new ResultTransformer<List<Map<String, Object>>>() {
-            @Override
-            public List<Map<String, Object>> apply(Result result) {
-                return result.stream().toList();
-            }
-        };
+        return result -> result.stream().toList();
     }
 
     default InstanceOfAssertFactory<Map, MapAssert<String, Object>> resultMap() {

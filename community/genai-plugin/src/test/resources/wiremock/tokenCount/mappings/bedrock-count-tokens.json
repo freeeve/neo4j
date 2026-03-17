@@ -1,0 +1,33 @@
+{
+  "request": {
+    "urlPattern": "/model/.*/count-tokens",
+    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "input": {
+            "converse": {
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello!"
+                    }
+                  ],
+                  "role": "user"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "bedrock-v1-count-tokens-response.json"
+  }
+}

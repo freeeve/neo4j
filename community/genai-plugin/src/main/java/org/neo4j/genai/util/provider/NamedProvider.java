@@ -35,7 +35,7 @@ public interface NamedProvider {
         return name();
     }
 
-    /* Returns the type of configuration options for this provder. */
+    /* Returns the type of configuration options for this provider. */
     Class<?> paramType();
 
     /** Provider implementation. */

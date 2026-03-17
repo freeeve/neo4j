@@ -1,0 +1,28 @@
+{
+  "request": {
+    "urlPattern": "/v1/projects/.*/locations/.*/publishers/google/models/.*:countTokens(\\?key=.*)?",    "method": "POST",
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "Hello!"
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "vertexai-v1-count-tokens-response.json"
+  }
+}
