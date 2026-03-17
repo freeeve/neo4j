@@ -29,6 +29,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait CypherExceptionFactory {
   def syntaxException(gqlStatusObject: ErrorGqlStatusObject, message: String, pos: InputPosition): RuntimeException
+  def syntaxException(gqlStatusObject: ErrorGqlStatusObject, pos: InputPosition, cause: Throwable): RuntimeException
 
   def internalError(message: String, pos: InputPosition): RuntimeException = {
     syntaxException(GqlHelper.get50N00(this.getClass.getSimpleName, message), message, pos)
@@ -442,6 +443,21 @@ case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Optio
     gqlStatusObject: ErrorGqlStatusObject,
     message: String,
     pos: InputPosition
+  ): Neo4jException =
+    syntaxException(gqlStatusObject, message, pos, None)
+
+  override def syntaxException(
+    gqlStatusObject: ErrorGqlStatusObject,
+    pos: InputPosition,
+    cause: Throwable
+  ): Neo4jException =
+    syntaxException(gqlStatusObject, cause.getMessage, pos, Some(cause))
+
+  private def syntaxException(
+    gqlStatusObject: ErrorGqlStatusObject,
+    message: String,
+    pos: InputPosition,
+    cause: Option[Throwable]
   ): Neo4jException = {
     val adjustedPosition = pos.withOffset(preParserOffset)
 
@@ -467,7 +483,8 @@ case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Optio
       message,
       queryText,
       adjustedPosition.toString,
-      adjustedPosition.offset
+      adjustedPosition.offset,
+      cause.orNull
     )
   }
 

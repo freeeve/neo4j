@@ -302,6 +302,7 @@ class GqlStatusInfoCodesTest {
     void verifyConditionSubconditionIsUnique() {
         var whiteList = EnumSet.noneOf(GqlStatusInfoCodes.class);
         whiteList.add(GqlStatusInfoCodes.STATUS_22N12);
+        whiteList.add(GqlStatusInfoCodes.STATUS_42NG1);
         var errorMessages = new ArrayList<String>();
         var knownCombinations = new HashMap<TotalCondition, GqlStatusInfoCodes>();
         for (var gqlCode : GqlStatusInfoCodes.values()) {

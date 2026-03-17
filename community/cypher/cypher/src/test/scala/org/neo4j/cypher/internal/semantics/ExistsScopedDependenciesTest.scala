@@ -62,6 +62,11 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
       pos: InputPosition
     ): RuntimeException = new DummyException
 
+    override def syntaxException(
+      gqlStatusObject: ErrorGqlStatusObject,
+      pos: InputPosition,
+      cause: Throwable
+    ): RuntimeException = ???
   }
 
   def context(version: CypherVersion): BaseContext = new BaseContext {

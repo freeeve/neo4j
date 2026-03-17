@@ -113,6 +113,11 @@ class FabricParsingPropertyTest extends CypherFunSuite
       pos: InputPosition
     ): RuntimeException = new DummyException
 
+    override def syntaxException(
+      gqlStatusObject: ErrorGqlStatusObject,
+      pos: InputPosition,
+      cause: Throwable
+    ): RuntimeException = ???
   }
 
   // The result of fabricParsing gets prettified later on in FabricStitcher.

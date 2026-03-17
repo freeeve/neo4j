@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
@@ -36,12 +37,14 @@ import org.neo4j.cypher.internal.rewriting.conditions.NoInlineConstraints
 import org.neo4j.cypher.internal.rewriting.conditions.NoReferenceEqualityAmongVariables
 import org.neo4j.cypher.internal.util.CancellationChecker.NeverCancelled
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 
 import scala.collection.immutable.ArraySeq
 
@@ -405,7 +408,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite invalid inline constraint should generate invalid constraint") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(nodeTypeWithConstraints(
       "Person",
       "p",
@@ -469,7 +476,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
   // Negative
   test("Rewrite invalid edge type should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       edgeType(nodeTypeRefByVar("p"), "EDGE", EmptyNodeTypeReference()(pos))
     ))
@@ -487,7 +498,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite invalid identifying node reference in constraint should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       Seq(),
       Seq(keyConstraint(identifyingNodeTypeRef("Node", "n"), ArraySeq(prop(varFor("n"), "name"))))
@@ -506,7 +521,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite invalid node reference in constraint should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       Seq(),
       Seq(keyConstraint(nodeTypeRefByVar("n"), ArraySeq(prop(varFor("n"), "name"))))
@@ -525,7 +544,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite invalid edge reference in constraint should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       Seq(),
       Seq(keyConstraint(edgeTypeRefByVar("r"), ArraySeq(prop(varFor("r"), "name"))))
@@ -544,7 +567,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite constraint into duplicate constraint should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       Seq(nodeTypeWithConstraints("Node", "n", Set(KeyConstraint(ArraySeq(prop(varFor("n"), "name")))(defaultPos)))),
       Seq(keyConstraint(nodeTypeRefByVar("n"), ArraySeq(prop(varFor("n"), "name"))))
@@ -563,7 +590,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
 
   test("Rewrite constraint into clashing constraint should throw exception") {
     // Given
-    when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
+    when(mockExceptionFactory.syntaxException(
+      any[ErrorGqlStatusObject](),
+      anyString(),
+      any[InputPosition]()
+    )).thenReturn(new RuntimeException())
     val gt = alterCurrentGraphTypeSet(graphType(
       Seq(nodeTypeWithConstraints(
         "Node",

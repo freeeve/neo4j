@@ -55,8 +55,13 @@ public class SyntaxException extends Neo4jException {
     }
 
     public SyntaxException(
-            ErrorGqlStatusObject gqlStatusObject, String message, String query, String adjustedPosition, int offset) {
-        this(gqlStatusObject, message, query, offset, null);
+            ErrorGqlStatusObject gqlStatusObject,
+            String message,
+            String query,
+            String adjustedPosition,
+            int offset,
+            Throwable cause) {
+        this(gqlStatusObject, message, query, offset, cause);
         if (nonNull(adjustedPosition)) {
             this.positionString = String.format(" (%s)", adjustedPosition);
         }

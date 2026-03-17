@@ -4679,6 +4679,35 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "permission/access denied",
             ErrorClassification.CLIENT_ERROR),
+    // Start reserved block: 42NG0 - 42NGX
+    // ###################################
+    STATUS_42NG0(
+            new GqlStatus("42NG0"),
+            "Unsupported syntax.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported syntax",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42NG1(
+            new GqlStatus("42NG1"),
+            "Unsupported syntax: { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported syntax",
+            ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
+    STATUS_42NGA(
+            new GqlStatus("42NGA"),
+            "The query has no valid solution.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "bad query",
+            ErrorClassification.CLIENT_ERROR),
+    // End reserved block: 42NG0 - 42NGX
+    // #################################
     STATUS_50N00(
             new GqlStatus("50N00"),
             "Internal exception raised { %s }: { %s }",
