@@ -39,7 +39,7 @@
         <executions>
           <execution>
             <id>ban-test-dependencies-in-compile</id>
-            <phase></phase>
+            <phase>none</phase>
           </execution>
         </executions>
       </plugin>
