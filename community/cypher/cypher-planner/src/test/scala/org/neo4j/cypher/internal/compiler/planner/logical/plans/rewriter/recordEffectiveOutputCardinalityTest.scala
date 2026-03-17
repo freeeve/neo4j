@@ -26,7 +26,9 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -321,7 +323,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
     (plan, cardinalities).should(haveSamePlanAndEffectiveCardinalitiesAs((expectedPlan, expectedCards)))
   }
 
-  test("Should multiply RHS cardinality of Trail") {
+  test("Should multiply RHS cardinality of RepeatTrail") {
     val lhsCardinality = 10
     val expandCardinality = 2
     val upperBound = 5
@@ -357,6 +359,99 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
     // THEN
     val expected = new LogicalPlanBuilder(false)
       .repeatTrail(trailParameters).withEffectiveCardinality(20)
+      .|.expandAll("(n)-[r]->(m)").withEffectiveCardinality(expandCardinality * expectedRHS)
+      .|.argument("n").withEffectiveCardinality(expectedRHS)
+      .allNodeScan("u").withEffectiveCardinality(lhsCardinality)
+
+    val expectedPlan = expected.build()
+    val expectedCards = expected.effectiveCardinalities
+
+    (plan, cardinalities).should(haveSamePlanAndEffectiveCardinalitiesAs((expectedPlan, expectedCards)))
+  }
+
+  test("Should multiply RHS cardinality of RepeatAcyclic") {
+    val lhsCardinality = 10
+    val expandCardinality = 2
+    val upperBound = 5
+
+    // GIVEN
+    val acyclicParameters = AcyclicParameters(
+      min = 0,
+      max = Limited(upperBound),
+      start = "u",
+      end = "v",
+      innerStart = "n",
+      innerEnd = "m",
+      groupNodes = Set(("n", "n"), ("m", "m")),
+      innerNodes = Set("n", "m"),
+      previouslyBoundNodes = Set("u"),
+      previouslyBoundNodeGroups = Set.empty,
+      groupRelationships = Set(("r", "r")),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val initial = new LogicalPlanBuilder(false)
+      .repeatAcyclic(acyclicParameters).withCardinality(20)
+      .|.expandAll("(n)-[r]->(m)").withCardinality(expandCardinality)
+      .|.argument("n").withCardinality(1)
+      .allNodeScan("u").withCardinality(lhsCardinality)
+
+    // WHEN
+    val (plan, cardinalities) = rewrite(initial, Volcano)
+
+    val expectedRHS = (0 until upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
+    // THEN
+    val expected = new LogicalPlanBuilder(false)
+      .repeatAcyclic(acyclicParameters).withEffectiveCardinality(20)
+      .|.expandAll("(n)-[r]->(m)").withEffectiveCardinality(expandCardinality * expectedRHS)
+      .|.argument("n").withEffectiveCardinality(expectedRHS)
+      .allNodeScan("u").withEffectiveCardinality(lhsCardinality)
+
+    val expectedPlan = expected.build()
+    val expectedCards = expected.effectiveCardinalities
+
+    (plan, cardinalities).should(haveSamePlanAndEffectiveCardinalitiesAs((expectedPlan, expectedCards)))
+  }
+
+  test("Should multiply RHS cardinality of RepeatWalk") {
+    val lhsCardinality = 10
+    val expandCardinality = 2
+    val upperBound = 5
+
+    // GIVEN
+    val walkParameters = WalkParameters(
+      min = 0,
+      max = Limited(upperBound),
+      start = "u",
+      end = "v",
+      innerStart = "n",
+      innerEnd = "m",
+      groupNodes = Set(("n", "n"), ("m", "m")),
+      groupRelationships = Set(("r", "r")),
+      reverseGroupVariableProjections = false,
+      innerRelationships = Set("r"),
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val initial = new LogicalPlanBuilder(false)
+      .repeatWalk(walkParameters).withCardinality(20)
+      .|.expandAll("(n)-[r]->(m)").withCardinality(expandCardinality)
+      .|.argument("n").withCardinality(1)
+      .allNodeScan("u").withCardinality(lhsCardinality)
+
+    // WHEN
+    val (plan, cardinalities) = rewrite(initial, Volcano)
+
+    val expectedRHS = (0 until upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
+    // THEN
+    val expected = new LogicalPlanBuilder(false)
+      .repeatWalk(walkParameters).withEffectiveCardinality(20)
       .|.expandAll("(n)-[r]->(m)").withEffectiveCardinality(expandCardinality * expectedRHS)
       .|.argument("n").withEffectiveCardinality(expectedRHS)
       .allNodeScan("u").withEffectiveCardinality(lhsCardinality)

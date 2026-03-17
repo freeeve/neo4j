@@ -50,6 +50,9 @@ import org.neo4j.cypher.internal.ir.EagernessReason.UnknownPropertyReadSetConfli
 import org.neo4j.cypher.internal.ir.EagernessReason.UpdateStrategyEager
 import org.neo4j.cypher.internal.ir.EagernessReason.WriteAfterCallInTransactions
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.AcyclicParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createPattern
@@ -76,6 +79,7 @@ import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -9210,6 +9214,192 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
           Set("m")
         )
         .allRelationshipsScan("(a1)-[r1]->(b1)")
+        .build()
+    )
+  }
+
+  test(
+    "repeatTrail"
+  ) {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("`size(x)`")
+      .projection("size(x) AS `size(x)`")
+      .create(createNode("a", "A"))
+      .repeatTrail(TrailParameters(
+        min = 4,
+        max = Limited(5),
+        start = "n1",
+        end = "n2",
+        innerStart = "x",
+        innerEnd = "anon_0",
+        groupNodes = Set(("x", "x")),
+        groupRelationships = Set(),
+        innerRelationships = Set("r1"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll,
+        accumulators = Set()
+      ))
+      .|.filter(isRepeatTrailUnique("r1"))
+      .|.expandAll("(x)-[r1]->(anon_0)")
+      .|.argument("x")
+      .nodeByLabelScan("n1", "S")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("`size(x)`")
+        .projection("size(x) AS `size(x)`")
+        .create(createNode("a", "A"))
+        .eager(ListSet(
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(3))),
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(5)))
+        ))
+        .repeatTrail(TrailParameters(
+          min = 4,
+          max = Limited(5),
+          start = "n1",
+          end = "n2",
+          innerStart = "x",
+          innerEnd = "anon_0",
+          groupNodes = Set(("x", "x")),
+          groupRelationships = Set(),
+          innerRelationships = Set("r1"),
+          previouslyBoundRelationships = Set(),
+          previouslyBoundRelationshipGroups = Set(),
+          reverseGroupVariableProjections = false,
+          expansionMode = ExpandAll,
+          accumulators = Set()
+        ))
+        .|.filter(isRepeatTrailUnique("r1"))
+        .|.expandAll("(x)-[r1]->(anon_0)")
+        .|.argument("x")
+        .nodeByLabelScan("n1", "S")
+        .build()
+    )
+  }
+
+  test(
+    "repeatWalk"
+  ) {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("`size(x)`")
+      .projection("size(x) AS `size(x)`")
+      .create(createNode("a", "A"))
+      .repeatWalk(WalkParameters(
+        min = 4,
+        max = Limited(5),
+        start = "n1",
+        end = "n2",
+        innerStart = "x",
+        innerEnd = "anon_0",
+        groupNodes = Set(("x", "x")),
+        groupRelationships = Set(),
+        reverseGroupVariableProjections = false,
+        innerRelationships = Set("r1"),
+        expansionMode = ExpandAll,
+        accumulators = Set()
+      ))
+      .|.expandAll("(x)-[r1]->(anon_0)")
+      .|.argument("x")
+      .nodeByLabelScan("n1", "S")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("`size(x)`")
+        .projection("size(x) AS `size(x)`")
+        .create(createNode("a", "A"))
+        .eager(ListSet(
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(3))),
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(4)))
+        ))
+        .repeatWalk(WalkParameters(
+          min = 4,
+          max = Limited(5),
+          start = "n1",
+          end = "n2",
+          innerStart = "x",
+          innerEnd = "anon_0",
+          groupNodes = Set(("x", "x")),
+          groupRelationships = Set(),
+          reverseGroupVariableProjections = false,
+          innerRelationships = Set("r1"),
+          expansionMode = ExpandAll,
+          accumulators = Set()
+        ))
+        .|.expandAll("(x)-[r1]->(anon_0)")
+        .|.argument("x")
+        .nodeByLabelScan("n1", "S")
+        .build()
+    )
+  }
+
+  test(
+    "repeatAcyclic"
+  ) {
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults("`size(x)`")
+      .projection("size(x) AS `size(x)`")
+      .create(createNode("a", "A"))
+      .repeatAcyclic(AcyclicParameters(
+        min = 4,
+        max = Limited(5),
+        start = "n1",
+        end = "n2",
+        innerStart = "x",
+        innerEnd = "anon_0",
+        groupNodes = Set(("x", "x")),
+        innerNodes = Set("x", "anon_0"),
+        previouslyBoundNodes = Set("n1"),
+        previouslyBoundNodeGroups = Set(),
+        groupRelationships = Set(),
+        innerRelationships = Set("r1"),
+        previouslyBoundRelationships = Set(),
+        previouslyBoundRelationshipGroups = Set(),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll,
+        accumulators = Set()
+      ))
+      .|.filter(isRepeatAcyclic("anon_0"))
+      .|.expandAll("(x)-[r1]->(anon_0)")
+      .|.argument("x")
+      .nodeByLabelScan("n1", "S")
+    val plan = planBuilder.build()
+    val result = eagerizePlan(planBuilder, plan)
+    result should equal(
+      new LogicalPlanBuilder()
+        .produceResults("`size(x)`")
+        .projection("size(x) AS `size(x)`")
+        .create(createNode("a", "A"))
+        .eager(ListSet(
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(3))),
+          LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(2), Id(5)))
+        ))
+        .repeatAcyclic(AcyclicParameters(
+          min = 4,
+          max = Limited(5),
+          start = "n1",
+          end = "n2",
+          innerStart = "x",
+          innerEnd = "anon_0",
+          groupNodes = Set(("x", "x")),
+          innerNodes = Set("x", "anon_0"),
+          previouslyBoundNodes = Set("n1"),
+          previouslyBoundNodeGroups = Set(),
+          groupRelationships = Set(),
+          innerRelationships = Set("r1"),
+          previouslyBoundRelationships = Set(),
+          previouslyBoundRelationshipGroups = Set(),
+          reverseGroupVariableProjections = false,
+          expansionMode = ExpandAll,
+          accumulators = Set()
+        ))
+        .|.filter(isRepeatAcyclic("anon_0"))
+        .|.expandAll("(x)-[r1]->(anon_0)")
+        .|.argument("x")
+        .nodeByLabelScan("n1", "S")
         .build()
     )
   }
