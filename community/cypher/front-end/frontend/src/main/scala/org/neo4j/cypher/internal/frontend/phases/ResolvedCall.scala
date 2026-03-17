@@ -54,6 +54,8 @@ trait ResolvedCall[IMPL <: ResolvedCall[IMPL]] extends CallClause {
   def withArguments(arguments: Seq[Expression]): IMPL
   def withFakedFullDeclarations: IMPL
 
+  def asUnresolvedCall: UnresolvedCall
+
   def coerceArguments: IMPL = {
     val optInputFields = inputFieldSignatures.map(Some(_))
     val coercedArguments =
@@ -268,7 +270,7 @@ case class ResolvedNonLocalCall(
     case _                       => false
   }
 
-  def asUnresolvedCall: UnresolvedCall = UnresolvedCall(
+  override def asUnresolvedCall: UnresolvedCall = UnresolvedCall(
     procedureName = signature.name,
     declaredArguments = if (declaredArguments) Some(callArguments) else None,
     declaredResult = if (declaredResults) Some(ProcedureResult(callResults)(position)) else None,
@@ -369,7 +371,7 @@ case class ResolvedLocalCall(
 
   override def containsNoUpdates: Boolean = !bodyContainsUpdates
 
-  def asUnresolvedCall: UnresolvedCall = UnresolvedCall(
+  override def asUnresolvedCall: UnresolvedCall = UnresolvedCall(
     procedureName = procedureName,
     declaredArguments = if (declaredArguments) Some(callArguments) else None,
     declaredResult = if (declaredResults) Some(ProcedureResult(callResults)(position)) else None,
