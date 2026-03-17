@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.ir.AbstractProcedureCallProjection
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
@@ -59,7 +60,9 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.Multiplier
 import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.WithSizeHint
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
+import org.neo4j.cypher.internal.util.symbols.ListType
 
 class StatisticsBackedCardinalityModel(
   queryGraphCardinalityModel: QueryGraphCardinalityModel,
@@ -204,7 +207,8 @@ class StatisticsBackedCardinalityModel(
           val diff = to.value - from.value
           val steps = diff / step.value + 1
           Multiplier(Math.max(0, steps))
-        case _ => DEFAULT_MULTIPLIER
+        case Parameter(_, _: ListType, WithSizeHint(sizeHint)) => Multiplier(sizeHint)
+        case _                                                 => DEFAULT_MULTIPLIER
       }
       cardinalityAndInput.copy(cardinality = cardinalityAndInput.cardinality * multiplier)
 
