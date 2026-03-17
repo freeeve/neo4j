@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.distributed;
 
+import static org.neo4j.kernel.impl.transaction.log.distributed.BatchType.STORAGE_ENGINE_ID_ONLY_HEADER;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.DISTRIBUTED_OPERATION_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
 
@@ -42,7 +43,7 @@ public class ReplicatedTransactionHelper {
         if (channel.isAtStartOfFullEntry()) {
             byte contentCode = channel.get();
             if (contentCode != DISTRIBUTED_OPERATION_CONTENT_TYPE) { // ContentCode.DISTRIBUTED_OPERATION
-                throw new IllegalStateException("Parsing error on REPLICATED_TX_CONTENT_TYPE at position="
+                throw new IllegalStateException("Parsing error on DISTRIBUTED_OPERATION_CONTENT_TYPE at position="
                         + parseProgress.newPosition() + " unexpected contentCode=" + contentCode);
             }
             DistributedOperationInfo.parse(channel);
@@ -54,9 +55,15 @@ public class ReplicatedTransactionHelper {
             }
             channel.getCurrentLogPosition(parseProgress);
             byte headerByte = channel.get();
-            if (headerByte != BatchType.NO_HEADER.byteValue()) { // BatchType.NO_HEADER
-                throw new IllegalStateException("Parsing error on REPLICATED_TX_CONTENT_TYPE at position="
+            if (headerByte != STORAGE_ENGINE_ID_ONLY_HEADER.byteValue()) { // BatchType.STORAGE_ENGINE_ID_ONLY_HEADER
+                throw new IllegalStateException("Parsing error on STORAGE_ENGINE_ID_ONLY_HEADER at position="
                         + parseProgress.newPosition() + " unexpected headerByte=" + headerByte);
+            }
+            channel.getCurrentLogPosition(parseProgress);
+            byte storageEngineId = channel.get(); // Storage engine ID is stored even when there's no header
+            if (storageEngineId < 0) {
+                throw new IllegalStateException("Storage engine ID should never be negative at position="
+                        + parseProgress.newPosition() + " unexpected storageEngineId=" + storageEngineId);
             }
             channel.getCurrentLogPosition(parseProgress);
         }

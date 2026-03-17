@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.distributed;
 public enum BatchType {
     COMPLETE((byte) 0),
     CHUNKED((byte) 1),
-    NO_HEADER((byte) 2);
+    STORAGE_ENGINE_ID_ONLY_HEADER((byte) 2);
 
     private final byte byteValue;
 
@@ -38,7 +38,7 @@ public enum BatchType {
         return switch (value) {
             case 0 -> COMPLETE;
             case 1 -> CHUNKED;
-            case 2 -> NO_HEADER;
+            case 2 -> STORAGE_ENGINE_ID_ONLY_HEADER;
             default -> throw new IllegalStateException("Unexpected value: " + value);
         };
     }
