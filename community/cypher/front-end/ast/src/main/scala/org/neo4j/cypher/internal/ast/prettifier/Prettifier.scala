@@ -684,7 +684,7 @@ case class Prettifier(
         s"${x.name}$asCmd$y$r"
 
       case x @ CreateAuthRule(authRuleName, ifExistsDo, setClauses) =>
-        val setClausesString = authRuleSetClausesToString(setClauses)
+        val setClausesString = authRuleSetClausesToString(setClauses)(expr)
 
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
@@ -694,7 +694,7 @@ case class Prettifier(
 
       case x @ AlterAuthRule(authRuleName, ifExists, setClauses) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""
-        s"${x.name} ${Prettifier.escapeName(authRuleName)}$ifExistsString ${authRuleSetClausesToString(setClauses)}"
+        s"${x.name} ${Prettifier.escapeName(authRuleName)}$ifExistsString ${authRuleSetClausesToString(setClauses)(expr)}"
 
       case x @ RenameAuthRule(fromAuthRuleName, toAuthRuleName, ifExists) =>
         Prettifier.prettifyRename(x.name, fromAuthRuleName, toAuthRuleName, ifExists)
@@ -1938,14 +1938,16 @@ object Prettifier {
 
   def maybeImmutable(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""
 
-  private def authRuleSetClausesToString(setClauses: List[AuthRuleSetClause]): String =
+  private def authRuleSetClausesToString(setClauses: List[AuthRuleSetClause])(implicit
+    expr: ExpressionStringifier): String =
     setClauses
       .map(clause =>
         (
           clause.name,
           clause match {
-            case condition: AuthRuleCondition => ExpressionStringifier().apply(condition.expression)
-            case enabled: AuthRuleEnabled     => enabled.enabled.toString
+            case condition: AuthRuleCondition =>
+              expr(condition.expression)
+            case enabled: AuthRuleEnabled => enabled.enabled.toString
           }
         )
       ).map { case (name, value) => s"$name $value" }
