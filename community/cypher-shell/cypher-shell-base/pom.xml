@@ -1,43 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.neo4j</groupId>
-        <artifactId>cypher-shell-parent</artifactId>
-        <version>2026.03.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-    <artifactId>cypher-shell-base</artifactId>
-    <name>Neo4j - Cypher Shell Base</name>
-    <packaging>jar</packaging>
-    <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
-    <description>Cypher Shell boot check for unsupported Java versions</description>
-    <properties>
-        <moduleName>org.neo4j.shell.base</moduleName>
-        <maven.compiler.release>8</maven.compiler.release>
-        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
-    </properties>
-    <scm>
-        <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
-        <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
-        <url>https://github.com/neo4j/neo4j</url>
-    </scm>
-    <dependencies>
-        <dependency>
-            <groupId>org.eclipse.collections</groupId>
-            <artifactId>eclipse-collections-api</artifactId>
-        </dependency>
-    </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <release>8</release>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.neo4j</groupId>
+    <artifactId>cypher-shell-parent</artifactId>
+    <version>2026.03.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <artifactId>cypher-shell-base</artifactId>
+  <packaging>jar</packaging>
+  <name>Neo4j - Cypher Shell Base</name>
+  <description>Cypher Shell boot check for unsupported Java versions</description>
+  <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
+  <scm>
+    <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+    <url>https://github.com/neo4j/neo4j</url>
+  </scm>
+  <properties>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <maven.compiler.release>8</maven.compiler.release>
+    <moduleName>org.neo4j.shell.base</moduleName>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.eclipse.collections</groupId>
+      <artifactId>eclipse-collections-api</artifactId>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>8</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

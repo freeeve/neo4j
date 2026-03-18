@@ -1,14 +1,13 @@
-<?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.neo4j</groupId>
     <artifactId>cypher-v25-parser-parent</artifactId>
     <version>2026.03.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-
-  <modelVersion>4.0.0</modelVersion>
   <artifactId>cypher-v25-antlr-parser</artifactId>
   <packaging>jar</packaging>
   <name>Cypher 25 ANTLR based parser</name>
@@ -16,9 +15,9 @@
   <description>Cypher 25 ANTLR based parser</description>
 
   <properties>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.cypher.internal.parser.antlr4</moduleName>
     <spotless.check.skip>true</spotless.check.skip>
-    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
   </properties>
 
   <dependencies>
@@ -27,23 +26,23 @@
       <artifactId>antlr4-runtime</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>cypher-antlr-common</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -54,24 +53,25 @@
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-maven-plugin</artifactId>
         <version>${antlr.version}</version>
-        <executions>
-          <execution>
-            <id>antlr</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>antlr4</goal>
-            </goals>
-          </execution>
-        </executions>
         <configuration>
           <options>
             <contextSuperClass>org.neo4j.cypher.internal.parser.AstRuleCtx</contextSuperClass>
           </options>
-          <listener>false</listener> <!-- We have our own optimised listener -->
+          <listener>false</listener>
+          <!-- We have our own optimised listener -->
           <visitor>false</visitor>
           <outputDirectory>${basedir}/src/main/java/</outputDirectory>
           <treatWarningsAsErrors>true</treatWarningsAsErrors>
         </configuration>
+        <executions>
+          <execution>
+            <id>antlr</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <phase>generate-sources</phase>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>com.mycila</groupId>
@@ -84,7 +84,8 @@
             </goals>
             <phase>process-sources</phase>
             <configuration>
-              <skip>false</skip> <!-- Never skip license:format here since these files are generated -->
+              <skip>false</skip>
+              <!-- Never skip license:format here since these files are generated -->
             </configuration>
           </execution>
         </executions>
@@ -105,15 +106,15 @@
         <!-- disable scala-maven-plugin, because we have no scala -->
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
         <executions>
           <execution>
             <id>scala-compile</id>
             <phase>none</phase>
           </execution>
         </executions>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -144,11 +145,11 @@
         </configuration>
         <executions>
           <execution>
-            <phase>package</phase>
             <id>grammar</id>
             <goals>
               <goal>single</goal>
             </goals>
+            <phase>package</phase>
             <configuration>
               <descriptors>
                 <descriptor>src/main/assembly/grammar.xml</descriptor>
@@ -172,22 +173,22 @@
       <build>
         <plugins>
           <plugin>
-            <inherited>false</inherited>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-antrun-plugin</artifactId>
+            <inherited>false</inherited>
             <executions>
               <execution>
                 <!-- Copy the old generated parser files to target, see next step. -->
                 <id>copy-generated-antlr</id>
-                <phase>initialize</phase>
                 <goals>
                   <goal>run</goal>
                 </goals>
+                <phase>initialize</phase>
                 <configuration>
                   <target>
-                    <delete dir="${basedir}/target/old-generated-antlr"/>
+                    <delete dir="${basedir}/target/old-generated-antlr" />
                     <copy todir="${basedir}/target/old-generated-antlr">
-                      <fileset dir="${basedir}/src/main/java" includes="**/*.java"/>
+                      <fileset dir="${basedir}/src/main/java" includes="**/*.java" />
                     </copy>
                   </target>
                 </configuration>
@@ -197,20 +198,16 @@
                      To prevent changes to grammar or antlr version without re-generating and checking in the generated files.
                      Needed because we check in the generated parser in VCS. -->
                 <id>check-generated-antlr</id>
-                <phase>verify</phase>
                 <goals>
                   <goal>run</goal>
                 </goals>
+                <phase>verify</phase>
                 <configuration>
                   <target>
-                    <property name="parser-old-path"
-                              value="${basedir}/target/old-generated-antlr/org/neo4j/cypher/internal/parser/v25/Cypher25Parser.java"/>
-                    <property name="parser-new-path"
-                              value="${basedir}/src/main/java/org/neo4j/cypher/internal/parser/v25/Cypher25Parser.java"/>
-                    <property name="lexer-old-path"
-                              value="${basedir}/target/old-generated-antlr/org/neo4j/cypher/internal/parser/v25/Cypher25Lexer.java"/>
-                    <property name="lexer-new-path"
-                              value="${basedir}/src/main/java/org/neo4j/cypher/internal/parser/v25/Cypher25Lexer.java"/>
+                    <property name="parser-old-path" value="${basedir}/target/old-generated-antlr/org/neo4j/cypher/internal/parser/v25/Cypher25Parser.java" />
+                    <property name="parser-new-path" value="${basedir}/src/main/java/org/neo4j/cypher/internal/parser/v25/Cypher25Parser.java" />
+                    <property name="lexer-old-path" value="${basedir}/target/old-generated-antlr/org/neo4j/cypher/internal/parser/v25/Cypher25Lexer.java" />
+                    <property name="lexer-new-path" value="${basedir}/src/main/java/org/neo4j/cypher/internal/parser/v25/Cypher25Lexer.java" />
 
                     <!-- Uncomment to debug failures
 
@@ -235,13 +232,12 @@
                     <echo>${lexer-diff}</echo>
                     -->
 
-                    <fail
-                        message="Generated parser files have changed, please re-generate the parser (build with -Dgenerate.antlr) and commit changes to git.">
+                    <fail message="Generated parser files have changed, please re-generate the parser (build with -Dgenerate.antlr) and commit changes to git.">
                       <condition>
                         <not>
                           <and>
-                            <filesmatch textfile="true" file1="${parser-old-path}" file2="${parser-new-path}"/>
-                            <filesmatch textfile="true" file1="${lexer-old-path}" file2="${lexer-new-path}"/>
+                            <filesmatch file1="${parser-old-path}" file2="${parser-new-path}" textfile="true" />
+                            <filesmatch file1="${lexer-old-path}" file2="${lexer-new-path}" textfile="true" />
                           </and>
                         </not>
                       </condition>

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.neo4j</groupId>
@@ -11,17 +9,10 @@
   </parent>
 
   <artifactId>cypher-shell-integration-test</artifactId>
-  <name>Neo4j - Cypher Shell Integration Test</name>
   <packaging>jar</packaging>
+  <name>Neo4j - Cypher Shell Integration Test</name>
   <description>Project that runs Cypher Shell integration tests. Disabled by default, run with
-    -DenableCypherShellIntegrationTest to enable.
-  </description>
-
-  <properties>
-    <moduleName>org.neo4j.shell.it</moduleName>
-    <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
-    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
-  </properties>
+    -DenableCypherShellIntegrationTest to enable.</description>
 
   <scm>
     <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
@@ -29,15 +20,33 @@
     <url>https://github.com/neo4j/neo4j</url>
   </scm>
 
+  <properties>
+    <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <moduleName>org.neo4j.shell.it</moduleName>
+  </properties>
+
   <dependencies>
+    <dependency>
+      <groupId>net.sourceforge.argparse4j</groupId>
+      <artifactId>argparse4j</artifactId>
+      <version>0.9.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -60,31 +69,19 @@
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>test-utils</artifactId>
+      <artifactId>neo4j-common</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>net.sourceforge.argparse4j</groupId>
-      <artifactId>argparse4j</artifactId>
-      <version>0.9.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-common</artifactId>
+      <artifactId>test-utils</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j.driver</groupId>
       <artifactId>neo4j-java-driver</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

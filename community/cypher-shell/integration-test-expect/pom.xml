@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.neo4j</groupId>
@@ -11,21 +9,10 @@
   </parent>
 
   <artifactId>cypher-shell-integration-test-expect</artifactId>
-  <name>Neo4j - Cypher Shell Integration Test 2</name>
   <packaging>jar</packaging>
+  <name>Neo4j - Cypher Shell Integration Test 2</name>
   <description>Project that runs Cypher Shell integration tests. Disabled by default, run with
-    -DenableCypherShellIntegrationTest to enable.
-  </description>
-
-  <properties>
-    <moduleName>org.neo4j.shell.it</moduleName>
-    <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
-    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
-    <cypher.shell.zip.dir>${project.build.directory}/cypher-shell/dist</cypher.shell.zip.dir>
-    <test.runner.jvm.settings.additional>
-      -Dorg.neo4j.cypher.shell.zip=${cypher.shell.zip.dir}/cypher-shell.zip
-    </test.runner.jvm.settings.additional>
-  </properties>
+    -DenableCypherShellIntegrationTest to enable.</description>
 
   <scm>
     <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
@@ -33,31 +20,19 @@
     <url>https://github.com/neo4j/neo4j</url>
   </scm>
 
+  <properties>
+    <cypher.shell.zip.dir>${project.build.directory}/cypher-shell/dist</cypher.shell.zip.dir>
+    <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <moduleName>org.neo4j.shell.it</moduleName>
+    <test.runner.jvm.settings.additional>-Dorg.neo4j.cypher.shell.zip=${cypher.shell.zip.dir}/cypher-shell.zip</test.runner.jvm.settings.additional>
+  </properties>
+
   <dependencies>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>cypher-shell</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-neo4j</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -67,14 +42,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>${logback.version}</version>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -91,8 +65,29 @@
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
+      <artifactId>cypher-shell</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
       <artifactId>neo4j-common</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-neo4j</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -119,10 +114,10 @@
         <executions>
           <execution>
             <id>copy-cypher-shell-zip</id>
-            <phase>pre-integration-test</phase>
             <goals>
               <goal>copy</goal>
             </goals>
+            <phase>pre-integration-test</phase>
           </execution>
           <execution>
             <id>analyze</id>

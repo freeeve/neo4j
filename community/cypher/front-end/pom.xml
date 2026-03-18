@@ -1,32 +1,18 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.neo4j</groupId>
     <artifactId>cypher-parent</artifactId>
     <version>2026.03.0-SNAPSHOT</version>
   </parent>
 
-  <modelVersion>4.0.0</modelVersion>
-
   <artifactId>neo4j-front-end-parent</artifactId>
   <packaging>pom</packaging>
   <name>openCypher Front End Parent</name>
   <description>Project that builds the openCypher front end modules</description>
   <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
-
-  <properties>
-    <license.id>neo4j_apache_v2</license.id>
-    <licensing.prepend.text>license/neo4j_apache_v2/notice.txt</licensing.prepend.text>
-    <license-text.header>license/neo4j_apache_v2/header.txt</license-text.header>
-    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
-  </properties>
-
-  <scm>
-    <connection>scm:git:git://github.com/openCypher/front-end.git</connection>
-    <developerConnection>scm:git:git://github.com/openCypher/front-end.git</developerConnection>
-    <url>https://github.com/openCypher/front-end</url>
-  </scm>
 
   <licenses>
     <license>
@@ -50,6 +36,19 @@
     <module>ast-generator</module>
     <module>parser</module>
   </modules>
+
+  <scm>
+    <connection>scm:git:git://github.com/openCypher/front-end.git</connection>
+    <developerConnection>scm:git:git://github.com/openCypher/front-end.git</developerConnection>
+    <url>https://github.com/openCypher/front-end</url>
+  </scm>
+
+  <properties>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <license-text.header>license/neo4j_apache_v2/header.txt</license-text.header>
+    <license.id>neo4j_apache_v2</license.id>
+    <licensing.prepend.text>license/neo4j_apache_v2/notice.txt</licensing.prepend.text>
+  </properties>
 
   <profiles>
     <profile>

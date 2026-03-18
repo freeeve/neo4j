@@ -1,6 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                      http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.neo4j</groupId>
@@ -9,27 +8,20 @@
   <packaging>pom</packaging>
   <name>Neo4j - Parent</name>
   <description>Neo4j Graph Database</description>
-  <inceptionYear>2002</inceptionYear>
   <url>https://neo4j.com/</url>
+  <inceptionYear>2002</inceptionYear>
 
   <organization>
     <name>The Neo4j Graph Database Project</name>
     <url>https://neo4j.com/</url>
   </organization>
 
-  <scm>
-    <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
-    <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
-    <url>https://github.com/neo4j/neo4j</url>
-  </scm>
-
   <licenses>
     <license>
       <name>GPL-3.0-or-later</name>
       <url>https://www.gnu.org/licenses/gpl-3.0-standalone.html</url>
       <distribution>repo</distribution>
-      <comments>
-        The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
+      <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
         licensed under the GNU GENERAL PUBLIC LICENSE Version 3 to all third
         parties and that license is included below.
 
@@ -39,8 +31,7 @@
         affiliates (each, a "Commercial Agreement"), the terms of the license in
         such Commercial Agreement will supersede the GNU GENERAL PUBLIC LICENSE
         Version 3 and you may use the Software solely pursuant to the terms of
-        the relevant Commercial Agreement.
-      </comments>
+        the relevant Commercial Agreement.</comments>
     </license>
   </licenses>
 
@@ -61,6 +52,18 @@
     </mailingList>
   </mailingLists>
 
+  <modules>
+    <module>annotations</module>
+    <module>community</module>
+    <module>packaging</module>
+  </modules>
+
+  <scm>
+    <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+    <url>https://github.com/neo4j/neo4j</url>
+  </scm>
+
   <issueManagement>
     <system>GitHub</system>
     <url>https://github.com/neo4j/neo4j/issues</url>
@@ -75,30 +78,92 @@
   </distributionManagement>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vm.target.version>21</vm.target.version>
-    <maven.compiler.release>${vm.target.version}</maven.compiler.release>
+    <amazon-sdk.version>1.12.791</amazon-sdk.version>
+    <antlr.version>4.13.2</antlr.version>
+    <asm.version>9.9.1</asm.version>
+    <awaitility.version>4.3.0</awaitility.version>
+    <awssdk-crt.version>0.43.8</awssdk-crt.version>
+    <awssdk.version>2.42.13</awssdk.version>
+    <bouncycastle.version>1.83</bouncycastle.version>
+    <build-resources.version>2026.02.5</build-resources.version>
+    <caffeine.version>3.2.3</caffeine.version>
+    <cucumber.scala.version>8.36.0</cucumber.scala.version>
+    <cucumber.version>7.34.3</cucumber.version>
+    <cursor.counters.check>true</cursor.counters.check>
+    <cypherdsl.version>2025.2.4</cypherdsl.version>
+    <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
+    <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
+    <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
+    <dependency.analyze.skip>false</dependency.analyze.skip>
+    <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
+    <eclipse-collections.version>11.1.0</eclipse-collections.version>
+    <!-- You MUST re-generate the parsers after changing this value! -->
+    <error_prone.version>2.48.0</error_prone.version>
+    <excludedTestGroups />
+    <forkCounts>1</forkCounts>
     <generate-config-docs-phase>prepare-package</generate-config-docs-phase>
-    <test.runner.mockito.agent>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</test.runner.mockito.agent>
-    <jdk25.custom.options/>
-    <jdk.custom.options>
-      --add-opens=java.base/java.nio=ALL-UNNAMED
+    <grpc.version>1.78.0</grpc.version>
+    <gson.version>2.13.2</gson.version>
+    <guava.version>33.5.0-jre</guava.version>
+    <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
+    <jackson.annotations.version>2.21</jackson.annotations.version>
+    <jackson.version>2.21.1</jackson.version>
+    <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
+    <jakarta.inject.version>2.0.1</jakarta.inject.version>
+    <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
+
+    <jamm.version>0.4.0</jamm.version>
+    <java-jwt.version>4.5.1</java-jwt.version>
+    <javapoet.version>1.13.0</javapoet.version>
+    <jdk.custom.options>--add-opens=java.base/java.nio=ALL-UNNAMED
       --add-opens=java.base/java.io=ALL-UNNAMED
       --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
       --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
       --enable-native-access=ALL-UNNAMED
       --add-modules=jdk.incubator.vector
-      ${jdk25.custom.options}
-    </jdk.custom.options>
-    <test.runner.jvm/>
-    <test.runner.jvm.settings.additional/>
-    <test.runner.jvm.settings.db.format/>
-    <test.runner.jvm.settings.log.format/>
-    <test.runner.jvm.settings.dbms.factory/>
-    <test.runner.jvm.settings.raft.log/>
-    <test.runner.jvm.settings.query.language/>
-    <test.runner.jvm.settings>
-      ${test.runner.mockito.agent}
+      ${jdk25.custom.options}</jdk.custom.options>
+    <jdk25.custom.options />
+    <jersey.version>2.46</jersey.version>
+    <jetty.version>12.0.33</jetty.version>
+    <json4s.version>3.6.11</json4s.version>
+    <jsr305.version>3.0.2</jsr305.version>
+    <junit.version>6.0.3</junit.version>
+    <license-text.header>license/neo4j_gpl_v3/header.txt</license-text.header>
+
+    <license.id>neo4j_gpl_v3</license.id>
+    <licensing.prepend.text>license/neo4j_gpl_v3/notice.txt</licensing.prepend.text>
+    <log4j.version>2.25.3</log4j.version>
+    <logback.version>1.5.32</logback.version>
+    <lucene.version>10.4.0</lucene.version>
+    <lucene9.version>9.12.2</lucene9.version>
+    <lz4.version>1.10.4</lz4.version>
+    <maven.build.timestamp.format>yyMMddHHmmssSSS</maven.build.timestamp.format>
+    <maven.compiler.release>${vm.target.version}</maven.compiler.release>
+    <metrics.version>4.2.38</metrics.version>
+    <mockito.version>5.23.0</mockito.version>
+    <neo4j-java-driver.version>6.0.3</neo4j-java-driver.version>
+    <opencypher.version>1.0.0-M23</opencypher.version>
+    <parallel.tests>false</parallel.tests>
+    <parquet-floor.version>1.62</parquet-floor.version>
+    <parquet.version>1.17.0</parquet.version>
+    <picocli.version>4.7.7</picocli.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <protobuf.version>4.34.0</protobuf.version>
+    <required.maven.version>3.9.11</required.maven.version>
+    <s3mock.version>4.11.0</s3mock.version>
+    <scala-maven-plugin.version>4.9.9</scala-maven-plugin.version>
+    <scala.binary.version>2.13</scala.binary.version>
+    <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
+    <scala.target.vm>${vm.target.version}</scala.target.vm>
+    <scala.test.version>3.2.13</scala.test.version>
+    <scala.version>2.13.17</scala.version>
+    <shiro.version>2.1.0</shiro.version>
+    <skip-scalastyle>false</skip-scalastyle>
+    <slf4j.version>2.0.17</slf4j.version>
+    <sqlite-jdbc.version>3.51.2.0</sqlite-jdbc.version>
+    <teavm.version>0.13.1</teavm.version>
+    <test.runner.jvm />
+    <test.runner.jvm.settings>${test.runner.mockito.agent}
       -Xmx${test.vm.heap.size}
       -XX:+UseG1GC
       -XX:-OmitStackTraceInFastThrow
@@ -147,90 +212,991 @@
       ${test.runner.jvm.settings.log.format}
       ${test.runner.jvm.settings.dbms.factory}
       ${test.runner.jvm.settings.raft.log}
-      ${test.runner.jvm.settings.query.language}
-    </test.runner.jvm.settings>
-    <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
-    <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
-    <excludedTestGroups/>
+      ${test.runner.jvm.settings.query.language}</test.runner.jvm.settings>
+    <test.runner.jvm.settings.additional />
+    <test.runner.jvm.settings.db.format />
+    <test.runner.jvm.settings.dbms.factory />
+    <test.runner.jvm.settings.log.format />
+    <test.runner.jvm.settings.query.language />
+    <test.runner.jvm.settings.raft.log />
+    <test.runner.mockito.agent>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</test.runner.mockito.agent>
     <test.vm.heap.size>2G</test.vm.heap.size>
     <test.vm.maxmetaspace>550m</test.vm.maxmetaspace>
     <test.vm.netty.leakDetection.level>PARANOID</test.vm.netty.leakDetection.level>
-    <forkCounts>1</forkCounts>
-    <parallel.tests>false</parallel.tests>
-    <maven.build.timestamp.format>yyMMddHHmmssSSS</maven.build.timestamp.format>
-    <cursor.counters.check>true</cursor.counters.check>
-    <skip-scalastyle>false</skip-scalastyle>
-
-    <license.id>neo4j_gpl_v3</license.id>
-    <license-text.header>license/neo4j_gpl_v3/header.txt</license-text.header>
-    <licensing.prepend.text>license/neo4j_gpl_v3/notice.txt</licensing.prepend.text>
-
-    <jamm.version>0.4.0</jamm.version>
-    <lucene9.version>9.12.2</lucene9.version>
-    <lucene.version>10.4.0</lucene.version>
-    <bouncycastle.version>1.83</bouncycastle.version>
-    <jetty.version>12.0.33</jetty.version>
-    <scala-maven-plugin.version>4.9.9</scala-maven-plugin.version>
-    <scala.version>2.13.17</scala.version>
-    <scala.binary.version>2.13</scala.binary.version>
-    <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
-    <scala.test.version>3.2.13</scala.test.version>
-    <asm.version>9.9.1</asm.version>
-    <metrics.version>4.2.38</metrics.version>
-    <scala.target.vm>${vm.target.version}</scala.target.vm>
-    <jersey.version>2.46</jersey.version>
-    <junit.version>6.0.3</junit.version>
-    <mockito.version>5.23.0</mockito.version>
-    <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.34.3</cucumber.version>
-    <cucumber.scala.version>8.36.0</cucumber.scala.version>
-    <caffeine.version>3.2.3</caffeine.version>
-    <required.maven.version>3.9.11</required.maven.version>
-    <jackson.version>2.21.1</jackson.version>
-    <!-- no more patch releases for jackson-annotations so different versioning from jackson -->
-    <jackson.annotations.version>2.21</jackson.annotations.version>
-    <jakarta.inject.version>2.0.1</jakarta.inject.version>
-    <amazon-sdk.version>1.12.791</amazon-sdk.version>
-    <awssdk.version>2.42.13</awssdk.version>
-    <awssdk-crt.version>0.43.8</awssdk-crt.version>
-    <guava.version>33.5.0-jre</guava.version>
-    <awaitility.version>4.3.0</awaitility.version>
-    <log4j.version>2.25.3</log4j.version>
-    <slf4j.version>2.0.17</slf4j.version>
-    <logback.version>1.5.32</logback.version>
-    <neo4j-java-driver.version>6.0.3</neo4j-java-driver.version>
-    <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
-    <eclipse-collections.version>11.1.0</eclipse-collections.version>
-    <parquet-floor.version>1.62</parquet-floor.version>
-    <parquet.version>1.17.0</parquet.version>
-    <picocli.version>4.7.7</picocli.version>
-    <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
-    <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
-    <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
-    <error_prone.version>2.48.0</error_prone.version>
-    <protobuf.version>4.34.0</protobuf.version>
-    <teavm.version>0.13.1</teavm.version>
-    <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.78.0</grpc.version>
     <testcontainers.version>2.0.3</testcontainers.version>
-    <build-resources.version>2026.02.5</build-resources.version>
-    <s3mock.version>4.11.0</s3mock.version>
-    <shiro.version>2.1.0</shiro.version>
-    <cypherdsl.version>2025.2.4</cypherdsl.version>
-    <jsr305.version>3.0.2</jsr305.version>
-    <json4s.version>3.6.11</json4s.version>
-    <java-jwt.version>4.5.1</java-jwt.version>
-    <lz4.version>1.10.4</lz4.version>
-    <sqlite-jdbc.version>3.51.2.0</sqlite-jdbc.version>
-    <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
-    <dependency.analyze.skip>false</dependency.analyze.skip>
+    <vm.target.version>21</vm.target.version>
   </properties>
 
-  <modules>
-    <module>annotations</module>
-    <module>community</module>
-    <module>packaging</module>
-  </modules>
+  <dependencyManagement>
+    <dependencies>
+
+      <!--
+       - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
+       - needs updating.
+       -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.2.10.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!--
+       - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
+       - needs updating.
+       -->
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-bom</artifactId>
+        <version>2025.0.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${lz4.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>blue.strategic.parquet</groupId>
+        <artifactId>parquet-floor</artifactId>
+        <version>${parquet-floor.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>${jackson.annotations.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.jaxrs</groupId>
+        <artifactId>jackson-jaxrs-json-provider</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.github.jbellis</groupId>
+        <artifactId>jamm</artifactId>
+        <version>${jamm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.luben</groupId>
+        <artifactId>zstd-jni</artifactId>
+        <version>1.5.7-7</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.seancfoley</groupId>
+        <artifactId>ipaddress</artifactId>
+        <version>5.6.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto</groupId>
+        <artifactId>auto-common</artifactId>
+        <version>1.2.2</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.service</groupId>
+        <artifactId>auto-service</artifactId>
+        <version>1.1.1</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.auto</groupId>
+            <artifactId>auto-common</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>${gson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${error_prone.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${protobuf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${protobuf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.truth</groupId>
+        <artifactId>truth</artifactId>
+        <version>1.4.5</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>sourcecode_${scala.binary.version}</artifactId>
+        <version>0.4.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.21.0</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.21.0</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>1.3.6</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.airlift</groupId>
+        <artifactId>airline</artifactId>
+        <version>0.9</version>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-core</artifactId>
+        <version>${metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>${metrics.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-jmx</artifactId>
+        <version>${metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-api</artifactId>
+        <version>${grpc.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-context</artifactId>
+        <version>${grpc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-core</artifactId>
+        <version>${grpc.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.android</groupId>
+            <artifactId>annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-netty</artifactId>
+        <version>${grpc.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-annotations</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-protobuf</artifactId>
+        <version>${grpc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-stub</artifactId>
+        <version>${grpc.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-annotations</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>${jakarta.activation-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.inject</groupId>
+        <artifactId>jakarta.inject-api</artifactId>
+        <version>1.0</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
+        <version>${jakarta.ws.rs-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.xml.bind</groupId>
+        <artifactId>jakarta.xml.bind-api</artifactId>
+        <version>2.3.2</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>1.18.7</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.18.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.javacrumbs.json-unit</groupId>
+        <artifactId>json-unit-assertj</artifactId>
+        <version>5.1.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-runtime</artifactId>
+        <version>${antlr.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.28.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-configuration2</artifactId>
+        <version>2.13.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.20.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.15.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-layout-template-json</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-analysis-common</artifactId>
+        <version>${lucene.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-backward-codecs</artifactId>
+        <version>${lucene.version}</version>
+        <!--
+          although dependency believes this is not needed, it is for shading
+          usually a scope of provided would be idiomatic; however, doing so will remove licenses and notices
+          remove this note, and the exclusion when we require the use of backward-codecs with Lucene 10
+         -->
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-core</artifactId>
+        <version>${lucene.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-queryparser</artifactId>
+        <version>${lucene.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queries</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-sandbox</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-column</artifactId>
+        <version>${parquet.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-common</artifactId>
+        <version>${parquet.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-hadoop</artifactId>
+        <version>${parquet.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.airlift</groupId>
+            <artifactId>aircompressor</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-cache</artifactId>
+        <version>${shiro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-core</artifactId>
+        <version>${shiro.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>*</groupId>
+            <artifactId>shiro-config-ogdl</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-crypto-hash</artifactId>
+        <version>${shiro.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-lang</artifactId>
+        <version>${shiro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bitbucket.b_c</groupId>
+        <artifactId>jose4j</artifactId>
+        <version>0.9.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.jettison</groupId>
+        <artifactId>jettison</artifactId>
+        <version>1.5.4</version>
+      </dependency>
+
+      <!-- other -->
+      <dependency>
+        <groupId>org.eclipse.collections</groupId>
+        <artifactId>eclipse-collections</artifactId>
+        <version>${eclipse-collections.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.collections</groupId>
+        <artifactId>eclipse-collections-api</artifactId>
+        <version>${eclipse-collections.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-alpn-java-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-alpn-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.ee8</groupId>
+        <artifactId>jetty-ee8-servlet</artifactId>
+        <version>${jetty.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util-ajax</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.ee8</groupId>
+        <artifactId>jetty-ee8-webapp</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.http2</groupId>
+        <artifactId>jetty-http2-server</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.websocket</groupId>
+        <artifactId>jetty-websocket-jetty-client</artifactId>
+        <version>${jetty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>2.3.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.glassfish.jersey.containers</groupId>
+        <artifactId>jersey-container-servlet</artifactId>
+        <version>${jersey.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.glassfish.hk2.external</groupId>
+            <artifactId>javax.inject</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.inject</groupId>
+        <artifactId>jersey-hk2</artifactId>
+        <version>${jersey.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.glassfish.hk2.external</groupId>
+            <artifactId>aopalliance-repackaged</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.glassfish.hk2.external</groupId>
+            <artifactId>javax.inject</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.glassfish.hk2</groupId>
+            <artifactId>osgi-resource-locator</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.hdrhistogram</groupId>
+        <artifactId>HdrHistogram</artifactId>
+        <version>2.2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jctools</groupId>
+        <artifactId>jctools-core</artifactId>
+        <version>4.0.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jprocesses</groupId>
+        <artifactId>jProcesses</artifactId>
+        <version>1.6.5</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.neo4j</groupId>
+        <artifactId>annotations</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.neo4j.driver</groupId>
+        <artifactId>neo4j-java-driver</artifactId>
+        <version>${neo4j-java-driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>1.0.4</version>
+      </dependency>
+
+      <!-- scala -->
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${scala.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-reflect</artifactId>
+        <version>${scala.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scalap</artifactId>
+        <version>${scala.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang.modules</groupId>
+        <artifactId>scala-collection-contrib_2.13</artifactId>
+        <version>0.3.0</version>
+      </dependency>
+
+      <!-- scala test dependencies -->
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.13.2</version>
+        <scope>provided</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>co.helmethair</groupId>
+        <artifactId>scalatest-junit-runner</artifactId>
+        <version>0.2.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>co.unruly</groupId>
+        <artifactId>java-8-matchers</artifactId>
+        <version>1.6</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava-testlib</artifactId>
+        <version>${guava.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.testing.compile</groupId>
+        <artifactId>compile-testing</artifactId>
+        <version>0.23.0</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>com.google.truth</groupId>
+            <artifactId>truth</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.truth.extensions</groupId>
+            <artifactId>truth-java8-extension</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.auto</groupId>
+            <artifactId>auto-common</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>fansi_${scala.binary.version}</artifactId>
+        <version>0.2.9</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>pprint_${scala.binary.version}</artifactId>
+        <version>0.6.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.circe</groupId>
+        <artifactId>circe-core_${scala.binary.version}</artifactId>
+        <version>0.14.1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.circe</groupId>
+        <artifactId>circe-generic_${scala.binary.version}</artifactId>
+        <version>0.14.1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.circe</groupId>
+        <artifactId>circe-parser_${scala.binary.version}</artifactId>
+        <version>0.14.1</version>
+        <scope>test</scope>
+      </dependency>
+
+      <!-- testing -->
+      <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-server-integ</artifactId>
+        <version>2.0.0.AM27</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>ldapsdk</groupId>
+            <artifactId>ldapsdk</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-memory</artifactId>
+        <version>${lucene.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>3.27.7</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>${awaitility.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>3.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.json4s</groupId>
+        <artifactId>json4s-native_${scala.binary.version}</artifactId>
+        <version>${json4s.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.platform</groupId>
+        <artifactId>junit-platform-testkit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockftpserver</groupId>
+        <artifactId>MockFtpServer</artifactId>
+        <version>3.2.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.netbeans.modules</groupId>
+        <artifactId>org-netbeans-lib-profiler</artifactId>
+        <version>RELEASE270</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.openjdk.jol</groupId>
+        <artifactId>jol-core</artifactId>
+        <version>0.17</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalacheck</groupId>
+        <artifactId>scalacheck_${scala.binary.version}</artifactId>
+        <version>1.16.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalactic</groupId>
+        <artifactId>scalactic_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-compatible</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-mustmatchers_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatestplus</groupId>
+        <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatestplus</groupId>
+        <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalautils</groupId>
+        <artifactId>scalautils_${scala.binary.version}</artifactId>
+        <version>2.1.7</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <!-- Define project structure -->
@@ -239,12 +1205,12 @@
         <directory>${basedir}/src/main/resources</directory>
       </resource>
       <resource>
-        <directory>${basedir}/src/main/resources/META-INF/</directory>
         <targetPath>META-INF</targetPath>
+        <directory>${basedir}/src/main/resources/META-INF/</directory>
       </resource>
       <resource>
-        <directory>${basedir}</directory>
         <targetPath>META-INF</targetPath>
+        <directory>${basedir}</directory>
         <includes>
           <include>COPYRIGHT.txt</include>
           <include>LICENSE.txt</include>
@@ -259,8 +1225,8 @@
         <directory>${basedir}/src/test/resources</directory>
       </testResource>
       <testResource>
-        <directory>${basedir}</directory>
         <targetPath>META-INF</targetPath>
+        <directory>${basedir}</directory>
         <includes>
           <include>COPYRIGHT.txt</include>
           <include>LICENSE.txt</include>
@@ -280,23 +1246,14 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>3.1.1</version>
-          <executions>
-            <execution>
-              <id>generate-javadocs</id>
-              <goals>
-                <goal>javadoc-no-fork</goal>
-              </goals>
-              <phase>prepare-package</phase>
-            </execution>
-          </executions>
           <configuration>
-              <additionalDependencies>
-                  <additionalDependency>
-                      <groupId>org.neo4j</groupId>
-                      <artifactId>lucene9-shaded</artifactId>
-                      <version>${project.version}</version>
-                  </additionalDependency>
-              </additionalDependencies>
+            <additionalDependencies>
+              <additionalDependency>
+                <groupId>org.neo4j</groupId>
+                <artifactId>lucene9-shaded</artifactId>
+                <version>${project.version}</version>
+              </additionalDependency>
+            </additionalDependencies>
             <additionalJOptions>
               <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
               <additionalJOption>--allow-script-in-comments</additionalJOption>
@@ -341,30 +1298,33 @@
             </groups>
 
             <!-- Include the following packages... (yes, has to be one line) -->
-            <subpackages>
-              org.neo4j.graphalgo:org.neo4j.graphdb:org.neo4j.dbms.api:org.neo4j.server.helpers:org.neo4j.server.rest.repr:org.neo4j.server.rest.web:org.neo4j.logging:org.neo4j.procedure:org.neo4j.harness.junit:org.neo4j.configuration
-            </subpackages>
+            <subpackages>org.neo4j.graphalgo:org.neo4j.graphdb:org.neo4j.dbms.api:org.neo4j.server.helpers:org.neo4j.server.rest.repr:org.neo4j.server.rest.web:org.neo4j.logging:org.neo4j.procedure:org.neo4j.harness.junit:org.neo4j.configuration</subpackages>
             <!-- ...unless the package contains -->
-            <excludePackageNames>
-              *.impl.*:*.internal.*
-            </excludePackageNames>
-            <bottom>
-              <![CDATA[
+            <excludePackageNames>*.impl.*:*.internal.*</excludePackageNames>
+            <bottom><![CDATA[
                 <script>
                   if (typeof useModuleDirectories !== 'undefined') {
                     useModuleDirectories = false;
                   }
                 </script>
-              ]]>
-            </bottom>
+              ]]></bottom>
           </configuration>
+          <executions>
+            <execution>
+              <id>generate-javadocs</id>
+              <goals>
+                <goal>javadoc-no-fork</goal>
+              </goals>
+              <phase>prepare-package</phase>
+            </execution>
+          </executions>
         </plugin>
 
         <!-- Testing setup -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-        <!-- We can't bump to more recent versions atm because of:
+          <!-- We can't bump to more recent versions atm because of:
               https://issues.apache.org/jira/browse/SUREFIRE-2299
               https://issues.apache.org/jira/browse/SUREFIRE-2298
          -->
@@ -382,7 +1342,7 @@
             <trimStackTrace>false</trimStackTrace>
             <argLine>${test.runner.jvm.settings}</argLine>
             <runOrder>random</runOrder>
-            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
+            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
             <systemPropertyVariables>
               <port.authority.directory>${user.dir}/target/port-authority-${maven.build.timestamp}</port.authority.directory>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
@@ -413,8 +1373,7 @@
          -->
           <version>3.5.2</version>
           <configuration>
-            <statelessTestsetReporter
-                    implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
+            <statelessTestsetReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5Xml30StatelessReporter">
               <disable>false</disable>
               <usePhrasedFileName>false</usePhrasedFileName>
               <usePhrasedTestSuiteClassName>false</usePhrasedTestSuiteClassName>
@@ -426,7 +1385,7 @@
             <trimStackTrace>false</trimStackTrace>
             <reuseForks>true</reuseForks>
             <runOrder>random</runOrder>
-            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
+            <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
             <includes>
               <include>**/IT*.class</include>
               <include>**/*IT.class</include>
@@ -496,10 +1455,10 @@
             <!-- Create javadoc jar, will be empty if javadoc generation is skipped -->
             <execution>
               <id>create-javadoc-jar</id>
-              <phase>package</phase>
               <goals>
                 <goal>jar</goal>
               </goals>
+              <phase>package</phase>
               <configuration>
                 <classifier>javadoc</classifier>
                 <classesDirectory>${project.build.directory}/apidocs/</classesDirectory>
@@ -531,16 +1490,24 @@
             <failIfMissing>true</failIfMissing>
             <plainTextReport>true</plainTextReport>
             <prependText>${licensing.prepend.text}</prependText>
-            <excludedGroups>
-              ^((org.neo4j){1}|(org.neo4j.community){1}|(org.neo4j.app){1}|(org.neo4j.server.plugin){1}|(org.neo4j.assembly){1}|(org.neo4j.bolt){1}|(org.neo4j.build){1}|(org.neo4j.test){1})$
-            </excludedGroups>
+            <excludedGroups>^((org.neo4j){1}|(org.neo4j.community){1}|(org.neo4j.app){1}|(org.neo4j.server.plugin){1}|(org.neo4j.assembly){1}|(org.neo4j.bolt){1}|(org.neo4j.build){1}|(org.neo4j.test){1})$</excludedGroups>
             <!-- temporaily disabling netty-tcnative-classes whilst licence issue is corrected-->
             <excludedArtifacts>^((neo4j-browser)|(netty-tcnative-classes))$</excludedArtifacts>
             <includedScopes>compile</includedScopes>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.neo4j.build</groupId>
+              <artifactId>resources</artifactId>
+              <version>${build-resources.version}</version>
+            </dependency>
+          </dependencies>
           <executions>
             <execution>
               <id>list-all-licenses</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
               <!--
                 The licensing-maven-plugin's check goal is annotated with `@requiresDependencyResolution test`, which
                 forces Maven to resolve all project dependencies, including those with test scope.
@@ -550,9 +1517,6 @@
                 This phase is also semantically correct, as its purpose is to prepare files for the final package.
               -->
               <phase>prepare-package</phase>
-              <goals>
-                <goal>check</goal>
-              </goals>
               <configuration>
                 <licensingRequirementFiles>
                   <licensingRequirementFile>licensing/licensing-requirements-base.xml</licensingRequirementFile>
@@ -563,29 +1527,12 @@
               </configuration>
             </execution>
           </executions>
-          <dependencies>
-            <dependency>
-              <groupId>org.neo4j.build</groupId>
-              <artifactId>resources</artifactId>
-              <version>${build-resources.version}</version>
-            </dependency>
-          </dependencies>
         </plugin>
         <plugin>
           <!-- Updates and validates source code headers -->
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>4.6</version>
-          <executions>
-            <execution>
-              <id>check-licenses</id>
-              <!-- fail as early as possible -->
-              <phase>initialize</phase>
-              <goals>
-                <goal>check</goal>
-              </goals>
-            </execution>
-          </executions>
           <configuration>
             <strictCheck>true</strictCheck>
             <licenseSets>
@@ -615,6 +1562,16 @@
               <version>${build-resources.version}</version>
             </dependency>
           </dependencies>
+          <executions>
+            <execution>
+              <id>check-licenses</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <!-- fail as early as possible -->
+              <phase>initialize</phase>
+            </execution>
+          </executions>
         </plugin>
 
         <plugin>
@@ -626,6 +1583,13 @@
             <licenseResolver>classpath://license</licenseResolver>
             <licenseName>${license.id}</licenseName>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.neo4j.build</groupId>
+              <artifactId>resources</artifactId>
+              <version>${build-resources.version}</version>
+            </dependency>
+          </dependencies>
           <executions>
             <execution>
               <id>update-project-license</id>
@@ -634,13 +1598,6 @@
               </goals>
             </execution>
           </executions>
-          <dependencies>
-            <dependency>
-              <groupId>org.neo4j.build</groupId>
-              <artifactId>resources</artifactId>
-              <version>${build-resources.version}</version>
-            </dependency>
-          </dependencies>
         </plugin>
 
         <!-- Default scala compile settings -->
@@ -675,18 +1632,18 @@
           <executions>
             <execution>
               <id>scala-compile</id>
-              <phase>process-resources</phase>
               <goals>
                 <goal>add-source</goal>
                 <goal>compile</goal>
               </goals>
+              <phase>process-resources</phase>
             </execution>
             <execution>
               <id>scala-test-compile</id>
-              <phase>process-test-resources</phase>
               <goals>
                 <goal>testCompile</goal>
               </goals>
+              <phase>process-test-resources</phase>
             </execution>
           </executions>
         </plugin>
@@ -711,8 +1668,8 @@
               </goals>
               <configuration>
                 <rules>
-                  <dependencyConvergence/>
-                  <banDuplicatePomDependencyVersions/>
+                  <dependencyConvergence />
+                  <banDuplicatePomDependencyVersions />
                   <evaluateBeanshell>
                     <message>Maven module has to be in a "groupId" beginning with "org.neo4j"</message>
                     <condition>{String s = "${project.groupId}"; s.startsWith("org.neo4j");}</condition>
@@ -734,61 +1691,60 @@
                   </requireMavenVersion>
                   <RestrictImports>
                     <reason>Star imports are not allowed, please configure your editor to substitute them with fully
-                      qualified imports.
-                    </reason>
+                      qualified imports.</reason>
                     <bannedImport>**.'*'</bannedImport>
                   </RestrictImports>
                 </rules>
                 <fail>true</fail>
               </configuration>
             </execution>
-              <execution>
-                  <!-- Ban messing up the build by depending on test-jars from non-test scope -->
-                  <id>ban-test-dependencies-in-compile</id>
-                  <goals>
-                      <goal>enforce</goal>
-                  </goals>
-                  <configuration>
-                      <rules>
-                          <bannedDependencies>
-                              <excludes>
-                                  <exclude>org.junit.*:*:*:*:compile</exclude>
-                                  <!-- ban all neo4j modules with test in the artifact name -->
-                                  <exclude>org.neo4j:*test*:*:*:compile</exclude>
-                                  <exclude>com.neo4j:*test*:*:*:compile</exclude>
-                                  <!-- ban all neo4j modules under org/com.neo4j.test -->
-                                  <exclude>org.neo4j.test*:*:*:*:compile</exclude>
-                                  <exclude>com.neo4j.test*:*:*:*:compile</exclude>
-                                  <!-- ban neo4j-harness dependencies -->
-                                  <exclude>com.neo4j.test:neo4j-harness-enterprise:*:compile</exclude>
-                                  <exclude>org.neo4j.test:neo4j-harness:*:compile</exclude>
-                                  <!-- ban neo4j modules we definitely know are internal only -->
-                                  <exclude>com.neo4j.bench:*:*:*:compile</exclude>
-                                  <!-- ban public/community/testing utilities -->
-                                  <exclude>com.neo4j:enterprise-integration-tests:*:*:compile</exclude>
-                                  <exclude>com.neo4j:neo4j-net-test-utils:*:*:compile</exclude>
-                                  <exclude>com.neo4j:lighthouse-testbed:*:*:compile</exclude>
-                                  <exclude>com.neo4j:lighthouse-common-test:*:*:compile</exclude>
-                                  <exclude>com.neo4j:neo4j-tools:*:*:compile</exclude>
-                                  <exclude>org.neo4j:*-test-util:*:*:compile</exclude>
-                                  <exclude>org.neo4j:*-test-utils:*:*:compile</exclude>
-                                  <exclude>org.neo4j:neo4j-cypher-spec-suite-tools:*:*:compile</exclude>
-                                  <exclude>org.neo4j:neo4j-cypher-testing:*:*:compile</exclude>
-                                  <exclude>org.neo4j:neo4j-random-values:*:*:compile</exclude>
-                                  <exclude>org.neo4j:neo4j-test-util:*:*:compile</exclude>
-                                  <exclude>org.neo4j:test-proxy:*:*:compile</exclude>
-                                  <exclude>org.neo4j:test-utils:*:*:compile</exclude>
-                                  <exclude>org.neo4j:testing-parent:*:*:compile</exclude>
-                                  <exclude>org.neo4j.app:neo4j-server-test-utils:*:*:compile</exclude>
-                                  <exclude>org.neo4j.community:it-test-support:*:*:compile</exclude>
-                              </excludes>
-                              <searchTransitive>true</searchTransitive>
-                              <message>Depending on test jars in compile scope is banned</message>
-                          </bannedDependencies>
-                      </rules>
-                      <fail>true</fail>
-                  </configuration>
-              </execution>
+            <execution>
+              <!-- Ban messing up the build by depending on test-jars from non-test scope -->
+              <id>ban-test-dependencies-in-compile</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <bannedDependencies>
+                    <excludes>
+                      <exclude>org.junit.*:*:*:*:compile</exclude>
+                      <!-- ban all neo4j modules with test in the artifact name -->
+                      <exclude>org.neo4j:*test*:*:*:compile</exclude>
+                      <exclude>com.neo4j:*test*:*:*:compile</exclude>
+                      <!-- ban all neo4j modules under org/com.neo4j.test -->
+                      <exclude>org.neo4j.test*:*:*:*:compile</exclude>
+                      <exclude>com.neo4j.test*:*:*:*:compile</exclude>
+                      <!-- ban neo4j-harness dependencies -->
+                      <exclude>com.neo4j.test:neo4j-harness-enterprise:*:compile</exclude>
+                      <exclude>org.neo4j.test:neo4j-harness:*:compile</exclude>
+                      <!-- ban neo4j modules we definitely know are internal only -->
+                      <exclude>com.neo4j.bench:*:*:*:compile</exclude>
+                      <!-- ban public/community/testing utilities -->
+                      <exclude>com.neo4j:enterprise-integration-tests:*:*:compile</exclude>
+                      <exclude>com.neo4j:neo4j-net-test-utils:*:*:compile</exclude>
+                      <exclude>com.neo4j:lighthouse-testbed:*:*:compile</exclude>
+                      <exclude>com.neo4j:lighthouse-common-test:*:*:compile</exclude>
+                      <exclude>com.neo4j:neo4j-tools:*:*:compile</exclude>
+                      <exclude>org.neo4j:*-test-util:*:*:compile</exclude>
+                      <exclude>org.neo4j:*-test-utils:*:*:compile</exclude>
+                      <exclude>org.neo4j:neo4j-cypher-spec-suite-tools:*:*:compile</exclude>
+                      <exclude>org.neo4j:neo4j-cypher-testing:*:*:compile</exclude>
+                      <exclude>org.neo4j:neo4j-random-values:*:*:compile</exclude>
+                      <exclude>org.neo4j:neo4j-test-util:*:*:compile</exclude>
+                      <exclude>org.neo4j:test-proxy:*:*:compile</exclude>
+                      <exclude>org.neo4j:test-utils:*:*:compile</exclude>
+                      <exclude>org.neo4j:testing-parent:*:*:compile</exclude>
+                      <exclude>org.neo4j.app:neo4j-server-test-utils:*:*:compile</exclude>
+                      <exclude>org.neo4j.community:it-test-support:*:*:compile</exclude>
+                    </excludes>
+                    <searchTransitive>true</searchTransitive>
+                    <message>Depending on test jars in compile scope is banned</message>
+                  </bannedDependencies>
+                </rules>
+                <fail>true</fail>
+              </configuration>
+            </execution>
           </executions>
         </plugin>
 
@@ -896,7 +1852,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>
-            <skip>${dependency.analyze.skip}</skip>
+          <skip>${dependency.analyze.skip}</skip>
         </configuration>
         <executions>
           <!--
@@ -962,13 +1918,6 @@
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <version>3.0.0</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
         <configuration>
           <upToDateChecking>
             <enabled>true</enabled>
@@ -985,13 +1934,27 @@
               <file>scalafmt/scalafmt.conf</file>
             </scalafmt>
           </scala>
-            <antlr4>
-              <!-- These are the defaults, you can override if you want -->
-              <includes>
-                <include>src/*/antlr4/**/*.g4</include>
-              </includes>
-<!--              <antlr4Formatter /> &lt;!&ndash; has its own section below &ndash;&gt;-->
-            </antlr4>
+          <antlr4>
+            <!-- These are the defaults, you can override if you want -->
+            <includes>
+              <include>src/*/antlr4/**/*.g4</include>
+            </includes>
+            <!--              <antlr4Formatter /> &lt;!&ndash; has its own section below &ndash;&gt;-->
+          </antlr4>
+          <pom>
+            <!-- These are the defaults, you can override if you want -->
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+            <sortPom>
+              <encoding>${project.build.sourceEncoding}</encoding>
+              <keepBlankLines>true</keepBlankLines>
+              <sortProperties>true</sortProperties>
+              <sortDependencies>scope,groupId,artifactId</sortDependencies>
+              <expandEmptyElements>false</expandEmptyElements>
+              <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
+            </sortPom>
+          </pom>
         </configuration>
         <dependencies>
           <dependency>
@@ -1000,6 +1963,13 @@
             <version>${build-resources.version}</version>
           </dependency>
         </dependencies>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- Creates source jar if source exits -->
@@ -1009,10 +1979,10 @@
         <executions>
           <execution>
             <id>attach-sources</id>
-            <phase>verify</phase>
             <goals>
               <goal>jar-no-fork</goal>
             </goals>
+            <phase>verify</phase>
           </execution>
         </executions>
       </plugin>
@@ -1051,11 +2021,11 @@
     <profile>
       <id>jdk-25</id>
       <activation>
-          <jdk>25</jdk>
+        <jdk>25</jdk>
       </activation>
-        <properties>
-            <jdk25.custom.options>-XX:+UseCompactObjectHeaders --sun-misc-unsafe-memory-access=allow</jdk25.custom.options>
-        </properties>
+      <properties>
+        <jdk25.custom.options>-XX:+UseCompactObjectHeaders --sun-misc-unsafe-memory-access=allow</jdk25.custom.options>
+      </properties>
     </profile>
     <profile>
       <id>errorprone</id>
@@ -1144,7 +2114,7 @@
         </property>
       </activation>
       <properties>
-          <vm.target.version>${env.VM_TARGET_VERSION}</vm.target.version>
+        <vm.target.version>${env.VM_TARGET_VERSION}</vm.target.version>
       </properties>
     </profile>
 
@@ -1158,8 +2128,8 @@
       </activation>
       <properties>
         <forkCounts>1C</forkCounts>
-        <reuseForks>true</reuseForks>
         <parallel.tests>true</parallel.tests>
+        <reuseForks>true</reuseForks>
       </properties>
     </profile>
     <profile>
@@ -1172,10 +2142,8 @@
         </property>
       </activation>
       <properties>
-        <test.runner.jvm.settings.db.format>
-          -DNEO4J_OVERRIDE_STORE_FORMAT=multiversion
-        </test.runner.jvm.settings.db.format>
         <excludedTestGroups>recordformatoverride</excludedTestGroups>
+        <test.runner.jvm.settings.db.format>-DNEO4J_OVERRIDE_STORE_FORMAT=multiversion</test.runner.jvm.settings.db.format>
       </properties>
     </profile>
     <profile>
@@ -1188,10 +2156,8 @@
         </property>
       </activation>
       <properties>
-        <test.runner.jvm.settings.db.format>
-          -DNEO4J_OVERRIDE_STORE_FORMAT=multiversion_block
-        </test.runner.jvm.settings.db.format>
         <excludedTestGroups>recordformatoverride</excludedTestGroups>
+        <test.runner.jvm.settings.db.format>-DNEO4J_OVERRIDE_STORE_FORMAT=multiversion_block</test.runner.jvm.settings.db.format>
       </properties>
     </profile>
     <profile>
@@ -1204,9 +2170,7 @@
         </property>
       </activation>
       <properties>
-        <test.runner.jvm.settings.db.format>
-          -DNEO4J_OVERRIDE_STORE_FORMAT=block
-        </test.runner.jvm.settings.db.format>
+        <test.runner.jvm.settings.db.format>-DNEO4J_OVERRIDE_STORE_FORMAT=block</test.runner.jvm.settings.db.format>
       </properties>
     </profile>
     <profile>
@@ -1215,9 +2179,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <test.runner.jvm.settings.log.format>
-          -DNEO4J_OVERRIDE_LOG_FORMAT=envelopes
-        </test.runner.jvm.settings.log.format>
+        <test.runner.jvm.settings.log.format>-DNEO4J_OVERRIDE_LOG_FORMAT=envelopes</test.runner.jvm.settings.log.format>
       </properties>
     </profile>
     <profile>
@@ -1226,12 +2188,10 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <test.runner.jvm.settings.dbms.factory>
-          -DNEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER=spd
-          -Dorg.neo4j.ByteBuffers.TRACK_BUFFERS=false
-        </test.runner.jvm.settings.dbms.factory>
-        <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
         <excludedTestGroups>exclude-spd-override</excludedTestGroups>
+        <test.runner.jvm.settings.dbms.factory>-DNEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER=spd
+          -Dorg.neo4j.ByteBuffers.TRACK_BUFFERS=false</test.runner.jvm.settings.dbms.factory>
+        <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
       </properties>
 
       <dependencies>
@@ -1273,978 +2233,9 @@
         </property>
       </activation>
       <properties>
-        <test.runner.jvm.settings.query.language>
-          -DNEO4J_OVERRIDE_QUERY_LANGUAGE=cypher_25
-        </test.runner.jvm.settings.query.language>
         <excludedTestGroups>exclude-default-query-lang-override</excludedTestGroups>
+        <test.runner.jvm.settings.query.language>-DNEO4J_OVERRIDE_QUERY_LANGUAGE=cypher_25</test.runner.jvm.settings.query.language>
       </properties>
     </profile>
   </profiles>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>at.yawk.lz4</groupId>
-        <artifactId>lz4-java</artifactId>
-        <version>${lz4.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-api</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-layout-template-json</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.codehaus.jettison</groupId>
-        <artifactId>jettison</artifactId>
-        <version>1.5.4</version>
-      </dependency>
-      <dependency>
-        <groupId>net.java.dev.jna</groupId>
-        <artifactId>jna</artifactId>
-        <version>5.18.1</version>
-      </dependency>
-      <dependency>
-        <groupId>net.javacrumbs.json-unit</groupId>
-        <artifactId>json-unit-assertj</artifactId>
-        <version>5.1.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-analysis-common</artifactId>
-        <version>${lucene.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-core</artifactId>
-        <version>${lucene.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-backward-codecs</artifactId>
-        <version>${lucene.version}</version>
-        <!--
-          although dependency believes this is not needed, it is for shading
-          usually a scope of provided would be idiomatic; however, doing so will remove licenses and notices
-          remove this note, and the exclusion when we require the use of backward-codecs with Lucene 10
-         -->
-      </dependency>
-      <dependency>
-        <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-queryparser</artifactId>
-        <version>${lucene.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-queries</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-sandbox</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-memory</artifactId>
-        <version>${lucene.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.shiro</groupId>
-        <artifactId>shiro-core</artifactId>
-        <version>${shiro.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>*</groupId>
-            <artifactId>shiro-config-ogdl</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.shiro</groupId>
-        <artifactId>shiro-cache</artifactId>
-        <version>${shiro.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.shiro</groupId>
-        <artifactId>shiro-crypto-hash</artifactId>
-        <version>${shiro.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.shiro</groupId>
-        <artifactId>shiro-lang</artifactId>
-        <version>${shiro.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.ben-manes.caffeine</groupId>
-        <artifactId>caffeine</artifactId>
-        <version>${caffeine.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.jspecify</groupId>
-            <artifactId>jspecify</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.github.seancfoley</groupId>
-        <artifactId>ipaddress</artifactId>
-        <version>5.6.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.airlift</groupId>
-        <artifactId>airline</artifactId>
-        <version>0.9</version>
-        <exclusions>
-          <exclusion>
-            <groupId>javax.inject</groupId>
-            <artifactId>javax.inject</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.hdrhistogram</groupId>
-        <artifactId>HdrHistogram</artifactId>
-        <version>2.2.2</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.jbellis</groupId>
-        <artifactId>jamm</artifactId>
-        <version>${jamm.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bitbucket.b_c</groupId>
-        <artifactId>jose4j</artifactId>
-        <version>0.9.6</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-configuration2</artifactId>
-        <version>2.13.0</version>
-      </dependency>
-      <!--
-       - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
-       - needs updating.
-       -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-bom</artifactId>
-        <version>2025.0.4</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.reactivestreams</groupId>
-        <artifactId>reactive-streams</artifactId>
-        <version>1.0.4</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.neo4j.driver</groupId>
-        <artifactId>neo4j-java-driver</artifactId>
-        <version>${neo4j-java-driver.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>blue.strategic.parquet</groupId>
-        <artifactId>parquet-floor</artifactId>
-        <version>${parquet-floor.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.parquet</groupId>
-        <artifactId>parquet-column</artifactId>
-        <version>${parquet.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.parquet</groupId>
-        <artifactId>parquet-hadoop</artifactId>
-        <version>${parquet.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>io.airlift</groupId>
-            <artifactId>aircompressor</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.parquet</groupId>
-        <artifactId>parquet-common</artifactId>
-        <version>${parquet.version}</version>
-      </dependency>
-
-      <!-- testing -->
-      <dependency>
-        <groupId>org.apache.directory.server</groupId>
-        <artifactId>apacheds-server-integ</artifactId>
-        <version>2.0.0.AM27</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>ldapsdk</groupId>
-            <artifactId>ldapsdk</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava-testlib</artifactId>
-        <version>${guava.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.jspecify</groupId>
-            <artifactId>jspecify</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.junit.platform</groupId>
-        <artifactId>junit-platform-testkit</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>3.27.7</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest</artifactId>
-        <version>3.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>co.unruly</groupId>
-        <artifactId>java-8-matchers</artifactId>
-        <version>1.6</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${mockito.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-junit-jupiter</artifactId>
-        <version>${mockito.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.awaitility</groupId>
-        <artifactId>awaitility</artifactId>
-        <version>${awaitility.version}</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>commons-codec</groupId>
-        <artifactId>commons-codec</artifactId>
-        <version>1.21.0</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.netbeans.modules</groupId>
-        <artifactId>org-netbeans-lib-profiler</artifactId>
-        <version>RELEASE270</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.openjdk.jol</groupId>
-        <artifactId>jol-core</artifactId>
-        <version>0.17</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockftpserver</groupId>
-        <artifactId>MockFtpServer</artifactId>
-        <version>3.2.0</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-runtime</artifactId>
-        <version>${antlr.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers-bom</artifactId>
-        <version>${testcontainers.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <!-- scala -->
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scala-library</artifactId>
-        <version>${scala.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scala-reflect</artifactId>
-        <version>${scala.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scalap</artifactId>
-        <version>${scala.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scala-lang.modules</groupId>
-        <artifactId>scala-collection-contrib_2.13</artifactId>
-        <version>0.3.0</version>
-      </dependency>
-
-
-      <!-- scala test dependencies -->
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <exclusions>
-          <exclusion>
-            <artifactId>scala-library</artifactId>
-            <groupId>org.scala-lang</groupId>
-          </exclusion>
-          <exclusion>
-            <artifactId>scala-reflect</artifactId>
-            <groupId>org.scala-lang</groupId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-core_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-mustmatchers_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-compatible</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatestplus</groupId>
-        <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalactic</groupId>
-        <artifactId>scalactic_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>co.helmethair</groupId>
-        <artifactId>scalatest-junit-runner</artifactId>
-        <version>0.2.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalautils</groupId>
-        <artifactId>scalautils_${scala.binary.version}</artifactId>
-        <version>2.1.7</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <artifactId>scala-library</artifactId>
-            <groupId>org.scala-lang</groupId>
-          </exclusion>
-          <exclusion>
-            <artifactId>scala-reflect</artifactId>
-            <groupId>org.scala-lang</groupId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.scalatestplus</groupId>
-        <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.scalacheck</groupId>
-        <artifactId>scalacheck_${scala.binary.version}</artifactId>
-        <version>1.16.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.json4s</groupId>
-        <artifactId>json4s-native_${scala.binary.version}</artifactId>
-        <version>${json4s.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.lihaoyi</groupId>
-        <artifactId>pprint_${scala.binary.version}</artifactId>
-        <version>0.6.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.lihaoyi</groupId>
-        <artifactId>fansi_${scala.binary.version}</artifactId>
-        <version>0.2.9</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.circe</groupId>
-        <artifactId>circe-core_${scala.binary.version}</artifactId>
-        <version>0.14.1</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.circe</groupId>
-        <artifactId>circe-generic_${scala.binary.version}</artifactId>
-        <version>0.14.1</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.circe</groupId>
-        <artifactId>circe-parser_${scala.binary.version}</artifactId>
-        <version>0.14.1</version>
-        <scope>test</scope>
-      </dependency>
-
-      <!-- other -->
-      <dependency>
-        <groupId>org.eclipse.collections</groupId>
-        <artifactId>eclipse-collections</artifactId>
-        <version>${eclipse-collections.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.collections</groupId>
-        <artifactId>eclipse-collections-api</artifactId>
-        <version>${eclipse-collections.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jctools</groupId>
-        <artifactId>jctools-core</artifactId>
-        <version>4.0.6</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-        <version>2.21.0</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-logging</groupId>
-        <artifactId>commons-logging</artifactId>
-        <version>1.3.6</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.20.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-text</artifactId>
-        <version>1.15.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-compress</artifactId>
-        <version>1.28.0</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.luben</groupId>
-        <artifactId>zstd-jni</artifactId>
-        <version>1.5.7-7</version>
-      </dependency>
-
-      <!--
-       - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
-       - needs updating.
-       -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>4.2.10.Final</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.jersey.containers</groupId>
-        <artifactId>jersey-container-servlet</artifactId>
-        <version>${jersey.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>javax.ws.rs</groupId>
-            <artifactId>javax.ws.rs-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.glassfish.hk2.external</groupId>
-            <artifactId>javax.inject</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.glassfish.jersey.inject</groupId>
-        <artifactId>jersey-hk2</artifactId>
-        <version>${jersey.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.glassfish.hk2.external</groupId>
-            <artifactId>aopalliance-repackaged</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.glassfish.hk2.external</groupId>
-            <artifactId>javax.inject</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.glassfish.hk2</groupId>
-            <artifactId>osgi-resource-locator</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>jakarta.ws.rs</groupId>
-        <artifactId>jakarta.ws.rs-api</artifactId>
-        <version>${jakarta.ws.rs-api.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>jakarta.activation</groupId>
-        <artifactId>jakarta.activation-api</artifactId>
-        <version>${jakarta.activation-api.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.jaxrs</groupId>
-        <artifactId>jackson-jaxrs-json-provider</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-server</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty.http2</groupId>
-        <artifactId>jetty-http2-server</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-alpn-server</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-alpn-java-server</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty.ee8</groupId>
-        <artifactId>jetty-ee8-webapp</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty.ee8</groupId>
-        <artifactId>jetty-ee8-servlet</artifactId>
-        <version>${jetty.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-util-ajax</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty.websocket</groupId>
-        <artifactId>jetty-websocket-jetty-client</artifactId>
-        <version>${jetty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk18on</artifactId>
-        <version>${bouncycastle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk18on</artifactId>
-        <version>${bouncycastle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-jmx</artifactId>
-        <version>${metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-graphite</artifactId>
-        <version>${metrics.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>amqp-client</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.jprocesses</groupId>
-        <artifactId>jProcesses</artifactId>
-        <version>1.6.5</version>
-      </dependency>
-
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-        <scope>provided</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.testing.compile</groupId>
-        <artifactId>compile-testing</artifactId>
-        <version>0.23.0</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.truth</groupId>
-            <artifactId>truth</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.truth.extensions</groupId>
-            <artifactId>truth-java8-extension</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.auto</groupId>
-            <artifactId>auto-common</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auto.service</groupId>
-        <artifactId>auto-service</artifactId>
-        <version>1.1.1</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.auto</groupId>
-            <artifactId>auto-common</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auto</groupId>
-        <artifactId>auto-common</artifactId>
-        <version>1.2.2</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.google.truth</groupId>
-        <artifactId>truth</artifactId>
-        <version>1.4.5</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.jspecify</groupId>
-            <artifactId>jspecify</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.glassfish.jaxb</groupId>
-        <artifactId>jaxb-runtime</artifactId>
-        <version>2.3.2</version>
-      </dependency>
-      <dependency>
-        <groupId>jakarta.xml.bind</groupId>
-        <artifactId>jakarta.xml.bind-api</artifactId>
-        <version>2.3.2</version>
-      </dependency>
-      <dependency>
-        <groupId>jakarta.inject</groupId>
-        <artifactId>jakarta.inject-api</artifactId>
-        <version>1.0</version>
-      </dependency>
-      <dependency>
-        <groupId>info.picocli</groupId>
-        <artifactId>picocli</artifactId>
-        <version>${picocli.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.neo4j</groupId>
-        <artifactId>annotations</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>${protobuf.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java-util</artifactId>
-        <version>${protobuf.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>${error_prone.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.annotations.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>net.bytebuddy</groupId>
-        <artifactId>byte-buddy</artifactId>
-        <version>1.18.7</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bom</artifactId>
-        <version>${awssdk.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-api</artifactId>
-        <version>${grpc.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-context</artifactId>
-        <version>${grpc.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-protobuf</artifactId>
-        <version>${grpc.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-core</artifactId>
-        <version>${grpc.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>animal-sniffer-annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.android</groupId>
-            <artifactId>annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-netty</artifactId>
-        <version>${grpc.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>animal-sniffer-annotations</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-stub</artifactId>
-        <version>${grpc.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>animal-sniffer-annotations</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>com.lihaoyi</groupId>
-        <artifactId>sourcecode_${scala.binary.version}</artifactId>
-        <version>0.4.2</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 </project>

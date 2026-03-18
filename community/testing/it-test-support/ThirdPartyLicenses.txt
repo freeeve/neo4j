@@ -931,6 +931,7 @@ Eclipse Public License v2.0
   jersey-inject-hk2
   JUnit Jupiter Engine
   JUnit Platform Launcher
+  OSGi resource locator
   ServiceLocator Default Implementation
 ------------------------------------------------------------------------------
 
@@ -1228,6 +1229,7 @@ GNU General Public License, version 2 with the Classpath Exception
   jersey-core-common
   jersey-core-server
   jersey-inject-hk2
+  OSGi resource locator
   ServiceLocator Default Implementation
 ------------------------------------------------------------------------------
 
@@ -2097,6 +2099,10 @@ Jakarta Annotations API
 
 Java Architecture for XML Binding
   Common Development and Distribution License Version 1.1
+  GNU General Public License, version 2 with the Classpath Exception
+
+OSGi resource locator
+  Eclipse Public License v2.0
   GNU General Public License, version 2 with the Classpath Exception
 
 ServiceLocator Default Implementation
