@@ -114,6 +114,7 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
 import org.neo4j.cypher.internal.expressions.Xor
 import org.neo4j.cypher.internal.expressions.functions.Trim
+import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.notification.DeprecatedIdentifierUnicode
@@ -499,7 +500,10 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       case indexCtx: Cypher5Parser.IndexPostfixContext =>
         ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(p)
       case labelCtx: Cypher5Parser.LabelPostfixContext =>
-        LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(p, isParenthesized = false, isPostfix = true)
+        LabelExpressionPredicate(
+          lhs,
+          ctxChild(labelCtx, 0).ast[LabelExpression]()
+        )(p, isParenthesized = false, isPostfix = true)
       case rangeCtx: Cypher5Parser.RangePostfixContext =>
         ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(p)
       case _ => throw new IllegalStateException(s"Unexpected rhs $rhs")
@@ -695,9 +699,10 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.ParenthesizedExpressionContext
   ): Unit = {
     ctx.ast = ctxChild(ctx, 1).ast match {
-      case lep: LabelExpressionPredicate => lep.copy()(lep.position, isParenthesized = true, lep.isPostfix)
-      case v: Variable if !v.isIsolated  => v.copy()(v.position, isIsolated = true)
-      case x                             => x
+      case lep: LabelExpressionPredicate =>
+        lep.copy()(lep.position, isParenthesized = true, lep.isPostfix, lep.hasLabeledKeyword, lep.hasNotKeyword)
+      case v: Variable if !v.isIsolated => v.copy()(v.position, isIsolated = true)
+      case x                            => x
     }
   }
 

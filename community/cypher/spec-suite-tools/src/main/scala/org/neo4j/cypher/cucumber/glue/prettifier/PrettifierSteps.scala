@@ -43,8 +43,14 @@ import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
@@ -118,8 +124,14 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
        * that causes "query" and "prettified" to have different ASTs.
        * This is rewrite removes the tracking.
        */
-      case lel: Leaf if lel.containsIs        => lel.copy(containsIs = false)
-      case lel: DynamicLeaf if lel.containsIs => lel.copy(containsIs = false)
+      case lel: Leaf if lel.containsIs           => lel.copy(containsIs = false)
+      case lel: DynamicLeaf if lel.containsIs    => lel.copy(containsIs = false)
+      case neg: Negation if neg.containsIs       => neg.copy(containsIs = false)(neg.position)
+      case conj: Conjunctions if conj.containsIs => conj.copy(containsIs = false)(conj.position)
+      case disj: Disjunctions if disj.containsIs => disj.copy(containsIs = false)(disj.position)
+      case cc: ColonConjunction if cc.containsIs => cc.copy(containsIs = false)(cc.position)
+      case cd: ColonDisjunction if cd.containsIs => cd.copy(containsIs = false)(cd.position)
+      case wc: Wildcard if wc.containsIs         => wc.copy(containsIs = false)(wc.position)
     })
   }
 

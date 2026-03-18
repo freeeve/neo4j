@@ -225,6 +225,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.JOIN -> "'JOIN'",
     Cypher25Parser.KEY -> "'KEY'",
     Cypher25Parser.LABEL -> "'LABEL'",
+    Cypher25Parser.LABELED -> "'LABELED'",
     Cypher25Parser.LABELS -> "'LABELS'",
     Cypher25Parser.AMPERSAND -> "'&'",
     Cypher25Parser.EXCLAMATION_MARK -> "'!'",

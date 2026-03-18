@@ -559,7 +559,7 @@ comparisonExpression6
    | IS NOT? NULL                                     # NullComparison
    | (IS NOT? (TYPED | COLONCOLON) | COLONCOLON) type # TypeComparison
    | IS NOT? normalForm? NORMALIZED                   # NormalFormComparison
-   | labelExpression                                  # LabelComparison
+   | (IS NOT? LABELED? | COLON) labelExpression4      # LabelComparison
    ;
 
 normalForm
@@ -2293,6 +2293,7 @@ unescapedSymbolicNameString_
    | JOIN
    | KEY
    | LABEL
+   | LABELED
    | LABELS
    | LANGUAGE
    | LEADING

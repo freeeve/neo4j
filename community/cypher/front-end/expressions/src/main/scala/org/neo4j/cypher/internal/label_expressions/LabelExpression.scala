@@ -38,11 +38,14 @@ import org.neo4j.cypher.internal.util.bottomUp
 import scala.annotation.tailrec
 
 /**
- * @param entity          expression to evaluate to the entity we want to check
- * @param isParenthesized indicator if the label expression predicate was parenthesized, e.g. (n:L)
- *                        Note that isParenthesized may be false, even if the predicate was parenthesized.
- *                        Currently, isParenthesized is only set to true for parenthesized
- *                        label expression predicate in the Cypher5 parser.
+ * @param entity             expression to evaluate to the entity we want to check
+ * @param isParenthesized    indicator if the label expression predicate was parenthesized, e.g. (n:L)
+ *                           Note that isParenthesized may be false, even if the predicate was parenthesized.
+ *                           Currently, isParenthesized is only set to true for parenthesized
+ *                           label expression predicate in the Cypher5 parser.
+ * @param hasLabeledKeyword  true when the LABELED keyword was in the original input (e.g. n IS LABELED A)
+ * @param hasNotKeyword      true when IS NOT was used (e.g. n IS NOT A, n IS NOT LABELED A),
+ *                           as opposed to IS !(A) where negation is inside the label expression
  */
 case class LabelExpressionPredicate(
   entity: Expression,
@@ -50,7 +53,9 @@ case class LabelExpressionPredicate(
 )(
   val position: InputPosition,
   val isParenthesized: Boolean,
-  val isPostfix: Boolean = LabelExpressionPredicate.isPostfixDefault
+  val isPostfix: Boolean = LabelExpressionPredicate.isPostfixDefault,
+  val hasLabeledKeyword: Boolean = LabelExpressionPredicate.hasLabeledKeywordDefault,
+  val hasNotKeyword: Boolean = LabelExpressionPredicate.hasNotKeywordDefault
 ) extends BooleanExpression with Part2OperatorExpression {
   override def lhs: Expression = entity
 
@@ -62,7 +67,7 @@ case class LabelExpressionPredicate(
         LabelExpressionPredicate(
           children.head.asInstanceOf[Expression],
           children(1).asInstanceOf[LabelExpression]
-        )(position, isParenthesized, isPostfix).asInstanceOf[this.type]
+        )(position, isParenthesized, isPostfix, hasLabeledKeyword, hasNotKeyword).asInstanceOf[this.type]
       case 3 =>
         LabelExpressionPredicate(
           children.head.asInstanceOf[Expression],
@@ -70,7 +75,9 @@ case class LabelExpressionPredicate(
         )(
           children(2).asInstanceOf[InputPosition],
           isParenthesized,
-          isPostfix
+          isPostfix,
+          hasLabeledKeyword,
+          hasNotKeyword
         ).asInstanceOf[this.type]
       case 4 =>
         LabelExpressionPredicate(
@@ -79,7 +86,9 @@ case class LabelExpressionPredicate(
         )(
           children(2).asInstanceOf[InputPosition],
           children(3).asInstanceOf[Boolean],
-          isPostfix
+          isPostfix,
+          hasLabeledKeyword,
+          hasNotKeyword
         ).asInstanceOf[this.type]
       case 5 =>
         LabelExpressionPredicate(
@@ -88,9 +97,33 @@ case class LabelExpressionPredicate(
         )(
           children(2).asInstanceOf[InputPosition],
           children(3).asInstanceOf[Boolean],
-          children(4).asInstanceOf[Boolean]
+          children(4).asInstanceOf[Boolean],
+          hasLabeledKeyword,
+          hasNotKeyword
         ).asInstanceOf[this.type]
-      case _ => throw new IllegalStateException("LabelExpressionPredicate has at least 2 and at most 5 children.")
+      case 6 =>
+        LabelExpressionPredicate(
+          children.head.asInstanceOf[Expression],
+          children(1).asInstanceOf[LabelExpression]
+        )(
+          children(2).asInstanceOf[InputPosition],
+          children(3).asInstanceOf[Boolean],
+          children(4).asInstanceOf[Boolean],
+          children(5).asInstanceOf[Boolean],
+          hasNotKeyword
+        ).asInstanceOf[this.type]
+      case 7 =>
+        LabelExpressionPredicate(
+          children.head.asInstanceOf[Expression],
+          children(1).asInstanceOf[LabelExpression]
+        )(
+          children(2).asInstanceOf[InputPosition],
+          children(3).asInstanceOf[Boolean],
+          children(4).asInstanceOf[Boolean],
+          children(5).asInstanceOf[Boolean],
+          children(6).asInstanceOf[Boolean]
+        ).asInstanceOf[this.type]
+      case _ => throw new IllegalStateException("LabelExpressionPredicate has at least 2 and at most 7 children.")
     }
 }
 
@@ -98,6 +131,8 @@ object LabelExpressionPredicate {
 
   val isParenthesizedDefault: Boolean = false
   val isPostfixDefault: Boolean = false
+  val hasLabeledKeywordDefault: Boolean = false
+  val hasNotKeywordDefault: Boolean = false
 
   // ... + n:P
   //       ^

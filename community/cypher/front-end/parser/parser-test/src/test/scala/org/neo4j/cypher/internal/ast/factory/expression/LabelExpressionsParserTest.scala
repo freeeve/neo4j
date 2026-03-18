@@ -1081,3 +1081,201 @@ class ExpressionLabelNameReservationParserTest extends AstParsingTestBase {
     }
   }
 }
+
+class IsLabeledPredicateParserTest extends AstParsingTestBase {
+
+  // IS LABELED - basic form
+  test("n IS LABELED A") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(varFor("n"), labelOrRelTypeLeaf("A", containsIs = true))
+        )
+    }
+  }
+
+  // IS LABELED - conjunction
+  test("n IS LABELED A&B") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelConjunctions(
+              Seq(labelOrRelTypeLeaf("A", containsIs = true), labelOrRelTypeLeaf("B", containsIs = true)),
+              containsIs = true
+            )
+          )
+        )
+    }
+  }
+
+  // IS LABELED - disjunction
+  test("n IS LABELED A|B") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelDisjunctions(
+              Seq(labelOrRelTypeLeaf("A", containsIs = true), labelOrRelTypeLeaf("B", containsIs = true)),
+              containsIs = true
+            )
+          )
+        )
+    }
+  }
+
+  // IS LABELED - mixed precedence (& binds tighter than |)
+  test("n IS LABELED A&B|C") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelDisjunctions(
+              Seq(
+                labelConjunctions(
+                  Seq(labelOrRelTypeLeaf("A", containsIs = true), labelOrRelTypeLeaf("B", containsIs = true)),
+                  containsIs = true
+                ),
+                labelOrRelTypeLeaf("C", containsIs = true)
+              ),
+              containsIs = true
+            )
+          )
+        )
+    }
+  }
+
+  // IS LABELED - with parentheses
+  test("n IS LABELED A&(B|C)") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelConjunctions(
+              Seq(
+                labelOrRelTypeLeaf("A", containsIs = true),
+                labelDisjunctions(
+                  Seq(labelOrRelTypeLeaf("B", containsIs = true), labelOrRelTypeLeaf("C", containsIs = true)),
+                  containsIs = true
+                )
+              ),
+              containsIs = true
+            )
+          )
+        )
+    }
+  }
+
+  // IS LABELED - negation inside expression
+  test("n IS LABELED !A") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelNegation(labelOrRelTypeLeaf("A", containsIs = true), containsIs = true)
+          )
+        )
+    }
+  }
+
+  // IS NOT LABELED - negates entire predicate
+  test("n IS NOT LABELED A") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelNegation(labelOrRelTypeLeaf("A", containsIs = true), containsIs = true)
+          )
+        )
+    }
+  }
+
+  // IS NOT LABELED - conjunction (negates the whole conjunction)
+  test("n IS NOT LABELED A&B") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          labelExpressionPredicate(
+            varFor("n"),
+            labelNegation(
+              labelConjunctions(
+                Seq(labelOrRelTypeLeaf("A", containsIs = true), labelOrRelTypeLeaf("B", containsIs = true)),
+                containsIs = true
+              ),
+              containsIs = true
+            )
+          )
+        )
+    }
+  }
+
+  // IS NOT shorthand - equivalent to IS NOT LABELED
+  test("RETURN n IS NOT A") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(returnItem(
+              labelExpressionPredicate(
+                varFor("n"),
+                labelNegation(labelOrRelTypeLeaf("A", containsIs = true), containsIs = true)
+              ),
+              "n IS NOT A"
+            ))
+          )))
+        )
+    }
+  }
+
+  // IS NOT shorthand - conjunction
+  test("RETURN n IS NOT A&B") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(returnItem(
+              labelExpressionPredicate(
+                varFor("n"),
+                labelNegation(
+                  labelConjunctions(
+                    Seq(labelOrRelTypeLeaf("A", containsIs = true), labelOrRelTypeLeaf("B", containsIs = true)),
+                    containsIs = true
+                  ),
+                  containsIs = true
+                )
+              ),
+              "n IS NOT A&B"
+            ))
+          )))
+        )
+    }
+  }
+
+  // LABELED as identifier (label name)
+  test("n IS LABELED") {
+    parses[Expression].toAst(
+      labelExpressionPredicate(varFor("n"), labelOrRelTypeLeaf("LABELED", containsIs = true))
+    )
+  }
+
+  // IS LABELED in RETURN clause with alias
+  test("RETURN n IS LABELED A AS hasA") {
+    parsesIn[Statements] {
+      case Cypher5 => _.withAnyFailure
+      case _ => _.toAst(
+          Statements(Seq(singleQuery(
+            return_(aliasedReturnItem(
+              labelExpressionPredicate(varFor("n"), labelOrRelTypeLeaf("A", containsIs = true)),
+              "hasA"
+            ))
+          )))
+        )
+    }
+  }
+}

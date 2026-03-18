@@ -142,6 +142,63 @@ class PrettifierIT extends AbstractPrettifierTest {
       """MATCH (n)
         |  WHERE n:A|B""".stripMargin,
     FailsInCypher5(
+      "MATCH (n) WHERE n IS LABELED A",
+      """MATCH (n)
+        |  WHERE n IS LABELED A""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) WHERE n IS NOT LABELED A",
+      """MATCH (n)
+        |  WHERE n IS NOT LABELED A""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) WHERE n IS LABELED A&B",
+      """MATCH (n)
+        |  WHERE n IS LABELED A&B""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) WHERE n IS NOT LABELED A|B",
+      """MATCH (n)
+        |  WHERE n IS NOT LABELED A|B""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) WHERE n IS LABELED A&(B|C)",
+      """MATCH (n)
+        |  WHERE n IS LABELED A&(B|C)""".stripMargin
+    ),
+    FailsInCypher5(
+      "RETURN n IS LABELED A",
+      "RETURN n IS LABELED A"
+    ),
+    FailsInCypher5(
+      "RETURN n IS NOT LABELED A",
+      "RETURN n IS NOT LABELED A"
+    ),
+    FailsInCypher5(
+      "MATCH (n) RETURN CASE WHEN n IS LABELED A THEN 'yes' ELSE 'no' END",
+      """MATCH (n)
+        |RETURN CASE
+        |  WHEN n IS LABELED A THEN "yes"
+        |  ELSE "no"
+        |END""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) RETURN CASE n WHEN IS LABELED A THEN 'yes' ELSE 'no' END",
+      """MATCH (n)
+        |RETURN CASE n
+        |  WHEN IS LABELED A THEN "yes"
+        |  ELSE "no"
+        |END""".stripMargin
+    ),
+    FailsInCypher5(
+      "MATCH (n) RETURN CASE n WHEN IS NOT LABELED A THEN 'yes' ELSE 'no' END",
+      """MATCH (n)
+        |RETURN CASE n
+        |  WHEN IS NOT LABELED A THEN "yes"
+        |  ELSE "no"
+        |END""".stripMargin
+    ),
+    FailsInCypher5(
       "MATCH (n)     search n IN (vECToR InDEX iDx For $vector LIMiT 2)",
       """MATCH (n)
         |  SEARCH n IN (

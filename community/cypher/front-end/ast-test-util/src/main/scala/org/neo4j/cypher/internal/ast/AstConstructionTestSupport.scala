@@ -984,6 +984,22 @@ trait AstConstructionTestSupport {
   ): LabelExpressionPredicate =
     LabelExpressionPredicate(subject, labelExpression)(pos, isParenthesized, isPostfix)
 
+  def labelExpressionPredicate(
+    subject: Expression,
+    labelExpression: LabelExpression,
+    hasLabeledKeyword: Boolean,
+    hasNotKeyword: Boolean,
+    isParenthesized: Boolean,
+    isPostfix: Boolean
+  ): LabelExpressionPredicate =
+    LabelExpressionPredicate(subject, labelExpression)(
+      pos,
+      isParenthesized,
+      isPostfix,
+      hasLabeledKeyword,
+      hasNotKeyword
+    )
+
   def ands(expressions: Expression*): Ands = Ands(expressions)(pos)
 
   def ands(expressions: ListSet[Expression]): Ands = Ands(expressions)(pos)

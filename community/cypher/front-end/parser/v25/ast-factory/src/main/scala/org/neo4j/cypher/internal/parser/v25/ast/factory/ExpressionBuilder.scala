@@ -24,6 +24,15 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordere
 import org.neo4j.cypher.internal.expressions._
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.expressions.functions.Trim
+import org.neo4j.cypher.internal.label_expressions.LabelExpression
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonConjunction
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Conjunctions
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Disjunctions
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
@@ -345,11 +354,34 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     lhs: Expression,
     labelCtx: Cypher25Parser.LabelComparisonContext
   ): Expression = {
-    LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(
+    val hasIs = labelCtx.IS() != null
+    val hasNot = labelCtx.NOT() != null
+    val hasLabeled = labelCtx.LABELED() != null
+    val rawLabelExpr = labelCtx.labelExpression4().ast[LabelExpression]()
+    val labelExpr = if (hasIs) setContainsIs(rawLabelExpr) else rawLabelExpr
+    val finalExpr = if (hasNot) Negation(labelExpr, containsIs = true)(pos(labelCtx)) else labelExpr
+    LabelExpressionPredicate(lhs, finalExpr)(
       pos(labelCtx),
       isParenthesized = LabelExpressionPredicate.isParenthesizedDefault,
-      isPostfix = LabelExpressionPredicate.isPostfixDefault
+      isPostfix = LabelExpressionPredicate.isPostfixDefault,
+      hasLabeledKeyword = hasLabeled,
+      hasNotKeyword = hasNot
     )
+  }
+
+  private def setContainsIs(labelExpression: LabelExpression): LabelExpression = labelExpression match {
+    case sl: Leaf           => sl.copy(containsIs = true)
+    case dl: DynamicLeaf    => dl.copy(containsIs = true)
+    case wc: Wildcard       => wc.copy(containsIs = true)(labelExpression.position)
+    case Negation(child, _) => Negation(setContainsIs(child), containsIs = true)(labelExpression.position)
+    case Conjunctions(children, _) =>
+      Conjunctions(children.map(setContainsIs), containsIs = true)(labelExpression.position)
+    case ColonConjunction(lhsExpr, rhs, _) =>
+      ColonConjunction(setContainsIs(lhsExpr), setContainsIs(rhs), containsIs = true)(labelExpression.position)
+    case Disjunctions(children, _) =>
+      Disjunctions(children.map(setContainsIs), containsIs = true)(labelExpression.position)
+    case ColonDisjunction(lhsExpr, rhs, _) =>
+      ColonDisjunction(setContainsIs(lhsExpr), setContainsIs(rhs), containsIs = true)(labelExpression.position)
   }
 
   private def nullComparisonExpression(lhs: Expression, nullCtx: Cypher25Parser.NullComparisonContext): Expression = {
@@ -664,9 +696,10 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.ParenthesizedExpressionContext
   ): Unit = {
     ctx.ast = ctxChild(ctx, 1).ast match {
-      case lep: LabelExpressionPredicate => lep.copy()(lep.position, isParenthesized = true, lep.isPostfix)
-      case v: Variable if !v.isIsolated  => v.copy()(v.position, isIsolated = true)
-      case x                             => x
+      case lep: LabelExpressionPredicate =>
+        lep.copy()(lep.position, isParenthesized = true, lep.isPostfix, lep.hasLabeledKeyword, lep.hasNotKeyword)
+      case v: Variable if !v.isIsolated => v.copy()(v.position, isIsolated = true)
+      case x                            => x
     }
   }
 

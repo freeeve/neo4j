@@ -704,6 +704,10 @@ LABEL
    : L A B E L
    ;
 
+LABELED
+   : L A B E L E D
+   ;
+
 LABELS
    : L A B E L S
    ;

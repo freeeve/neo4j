@@ -251,7 +251,13 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
       case lep: LabelExpressionPredicate if lep.isParenthesized =>
         // Label expression predicates that are parenthesized, e.g. "(n:L)", are tracked in the AST by the Cypher5 parser.
         // This is rewrite removes the difference.
-        lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault, lep.isPostfix)
+        lep.copy()(
+          lep.position,
+          LabelExpressionPredicate.isParenthesizedDefault,
+          lep.isPostfix,
+          lep.hasLabeledKeyword,
+          lep.hasNotKeyword
+        )
     }))
   }
 }

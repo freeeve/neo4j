@@ -506,11 +506,20 @@ private class DefaultExpressionStringifier(
           s"vector(${delimitedInner(ast)(vectorCandidateType)}, ${delimitedInner(ast)(dimension)}, ${candidateType.description})"
         )
 
+      case lep: LabelExpressionPredicate if !isCaseExpression && (lep.hasLabeledKeyword || lep.hasNotKeyword) =>
+        (
+          s"${nonLastInner(ast)(lep.entity)} ${stringifyIsLabeledPredicate(lep)}",
+          EagerlyConsuming("|")
+        )
+
       case lep: LabelExpressionPredicate if !isCaseExpression =>
         (
           s"${nonLastInner(ast)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}",
           EagerlyConsuming("|")
         )
+
+      case lep: LabelExpressionPredicate if lep.hasLabeledKeyword || lep.hasNotKeyword =>
+        (stringifyIsLabeledPredicate(lep), EagerlyConsuming("|"))
 
       case lep: LabelExpressionPredicate =>
         (s":${stringifyLabelExpression(lep.labelExpression)}", EagerlyConsuming("|"))
@@ -955,6 +964,18 @@ private class DefaultExpressionStringifier(
     case _: SensitiveLiteral                                   => "'******'"
     case param: Parameter                                      => s"$$${Stringifier.backtickEmpty(param.name)}"
     case _                                                     => throw new InternalError("illegal password expression")
+  }
+
+  private def stringifyIsLabeledPredicate(lep: LabelExpressionPredicate): String = {
+    val notStr = if (lep.hasNotKeyword) " NOT" else ""
+    val labeledStr = if (lep.hasLabeledKeyword) " LABELED" else ""
+    val innerExpr = if (lep.hasNotKeyword) {
+      lep.labelExpression match {
+        case Negation(inner, _) => inner
+        case other              => other
+      }
+    } else lep.labelExpression
+    s"IS${notStr}${labeledStr} ${stringifyLabelExpression(innerExpr)}"
   }
 
   // TODO: pass the shouldBacktickEmpty along here as well
