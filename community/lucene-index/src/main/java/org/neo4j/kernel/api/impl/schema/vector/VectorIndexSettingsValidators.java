@@ -38,19 +38,20 @@ import org.neo4j.internal.schema.IndexSettingsValidator;
 import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
-import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;
-import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.ReadDefaultOnly;
+import org.neo4j.kernel.api.impl.schema.vector.LegacyIndexSettingValidators.LegacyIndexSettingValidator;
+import org.neo4j.kernel.api.impl.schema.vector.LegacyIndexSettingValidators.LegacyReadDefaultOnly;
 import org.neo4j.values.storable.Value;
 
 class VectorIndexSettingsValidators {
     private VectorIndexSettingsValidators() {}
 
-    public static class VersionedValidator extends TypedIndexSettingsValidator<VectorIndexConfig> {
+    public static class LegacyVersionedValidator extends TypedIndexSettingsValidator<VectorIndexConfig> {
         private final VectorIndexVersion version;
 
         @SafeVarargs
-        VersionedValidator(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
-            super(version.descriptor(), new Validator(validators));
+        LegacyVersionedValidator(
+                VectorIndexVersion version, LegacyIndexSettingValidator<? extends Value, ?>... validators) {
+            super(version.descriptor(), new LegacyValidator(validators));
             this.version = version;
         }
 
@@ -60,34 +61,34 @@ class VectorIndexSettingsValidators {
         }
     }
 
-    private static class Validator implements IndexSettingsValidator {
-        private final SortedSet<IndexSettingValidator<? extends Value, ?>> validators;
+    private static class LegacyValidator implements IndexSettingsValidator {
+        private final SortedSet<LegacyIndexSettingValidator<? extends Value, ?>> validators;
         private final SortedSet<IndexSetting> acceptedSettings;
         private final SortedSet<String> handledSettingNames;
 
         @SafeVarargs
-        Validator(IndexSettingValidator<? extends Value, ?>... validators) {
+        LegacyValidator(LegacyIndexSettingValidator<? extends Value, ?>... validators) {
             // check we've not passed multiple validators for the same setting
             final Set<String> seenSettingNames = new HashSet<>(validators.length);
-            final List<IndexSettingValidator<? extends Value, ?>> checkedValidators =
+            final List<LegacyIndexSettingValidator<? extends Value, ?>> checkedValidators =
                     new ArrayList<>(validators.length);
-            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : validators) {
                 if (!seenSettingNames.add(validator.setting().getSettingName())) {
                     throw new IllegalStateException("Expected a single %s to be provided for '%s', multiple given."
                             .formatted(
-                                    IndexSettingValidator.class.getSimpleName(),
+                                    LegacyIndexSettingValidator.class.getSimpleName(),
                                     validator.setting().getSettingName()));
                 }
                 checkedValidators.add(validator);
             }
-            final SortedSet<IndexSettingValidator<? extends Value, ?>> sortedValidators = new TreeSet<>(
+            final SortedSet<LegacyIndexSettingValidator<? extends Value, ?>> sortedValidators = new TreeSet<>(
                     Comparator.comparing(validator -> validator.setting().getSettingName(), CASE_INSENSITIVE_ORDER));
             sortedValidators.addAll(checkedValidators);
             this.validators = Collections.unmodifiableSortedSet(sortedValidators);
 
             final Set<IndexSetting> handledSettings = new HashSet<>(this.validators.size());
             final SortedSet<String> handledSettingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
-            for (final IndexSettingValidator<? extends Value, ?> validator : this.validators) {
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : this.validators) {
                 final IndexSetting setting = validator.setting();
                 handledSettings.add(setting);
                 handledSettingNames.add(setting.getSettingName());
@@ -95,8 +96,8 @@ class VectorIndexSettingsValidators {
             this.handledSettingNames = Collections.unmodifiableSortedSet(handledSettingNames);
 
             final Set<IndexSetting> readDefaultOnlySettings = new HashSet<>();
-            for (final IndexSettingValidator<? extends Value, ?> validator : this.validators) {
-                if (validator instanceof final ReadDefaultOnly<?> readDefaultOnly) {
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : this.validators) {
+                if (validator instanceof final LegacyReadDefaultOnly<?> readDefaultOnly) {
                     readDefaultOnlySettings.add(readDefaultOnly.setting());
                 }
             }
@@ -120,7 +121,7 @@ class VectorIndexSettingsValidators {
                 }
             }
 
-            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : validators) {
                 validationRecords.with(validator.validate(accessor));
             }
             return validationRecords.toUnmodifiable();
@@ -129,7 +130,7 @@ class VectorIndexSettingsValidators {
         @Override
         public Iterable<Valid> interpretAuthoritative(SettingsAccessor accessor) {
             final List<Valid> records = new ArrayList<>(validators.size());
-            for (final IndexSettingValidator<? extends Value, ?> validator : validators) {
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : validators) {
                 records.add(validator.trustIsValid(accessor));
             }
             return records;

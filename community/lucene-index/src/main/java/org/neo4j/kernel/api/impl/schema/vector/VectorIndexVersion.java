@@ -19,14 +19,14 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.dimensionsValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.hnswEfConstructionValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.hnswMValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.quantizationEnabledValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.similarityFunctionValidator;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.EUCLIDEAN;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.L2_NORM_COSINE;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.SIMPLE_COSINE;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingValidators.dimensionsValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingValidators.hnswEfConstructionValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingValidators.hnswMValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingValidators.quantizationEnabledValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingValidators.similarityFunctionValidator;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -48,7 +48,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.NotFoundTypedIndexSettingsValidator;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidators.VersionedValidator;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidators.LegacyVersionedValidator;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.VectorCandidate;
@@ -95,7 +95,7 @@ public enum VectorIndexVersion {
             return Map.ofEntries(
                     Map.entry(
                             KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED,
-                            new VersionedValidator(
+                            new LegacyVersionedValidator(
                                     this,
                                     dimensionsValidator(1, Integer.MAX_VALUE), // this was a bug
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -104,7 +104,7 @@ public enum VectorIndexVersion {
                                     hnswEfConstructionValidator(100))),
                     Map.entry(
                             KernelVersion.V5_12,
-                            new VersionedValidator(
+                            new LegacyVersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions()),
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -132,7 +132,7 @@ public enum VectorIndexVersion {
             return Map.ofEntries(
                     Map.entry(
                             KernelVersion.VERSION_VECTOR_2_INTRODUCED,
-                            new VersionedValidator(
+                            new LegacyVersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions()),
                                     similarityFunctionValidator(nameToSimilarityFunction()),
@@ -141,7 +141,7 @@ public enum VectorIndexVersion {
                                     hnswEfConstructionValidator(100))),
                     Map.entry(
                             KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS,
-                            new VersionedValidator(
+                            new LegacyVersionedValidator(
                                     this,
                                     dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
                                     similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
@@ -167,7 +167,7 @@ public enum VectorIndexVersion {
         protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(Map.entry(
                     KernelVersion.VERSION_LUCENE_10_INTRODUCED,
-                    new VersionedValidator(
+                    new LegacyVersionedValidator(
                             this,
                             dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
                             similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),

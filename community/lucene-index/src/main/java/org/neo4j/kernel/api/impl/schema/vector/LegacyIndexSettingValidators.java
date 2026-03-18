@@ -42,21 +42,21 @@ import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
-class IndexSettingValidators {
-    abstract static class IndexSettingValidator<VALUE extends Value, TYPE> {
+class LegacyIndexSettingValidators {
+    abstract static class LegacyIndexSettingValidator<VALUE extends Value, TYPE> {
         protected final IndexSetting setting;
         protected final TYPE createDefault;
         protected final TYPE readDefault;
 
-        protected IndexSettingValidator(IndexSetting setting) {
+        protected LegacyIndexSettingValidator(IndexSetting setting) {
             this(setting, null);
         }
 
-        protected IndexSettingValidator(IndexSetting setting, TYPE defaultValue) {
+        protected LegacyIndexSettingValidator(IndexSetting setting, TYPE defaultValue) {
             this(setting, defaultValue, defaultValue);
         }
 
-        protected IndexSettingValidator(IndexSetting setting, TYPE readDefault, TYPE createDefault) {
+        protected LegacyIndexSettingValidator(IndexSetting setting, TYPE readDefault, TYPE createDefault) {
             this.setting = setting;
             this.readDefault = readDefault;
             this.createDefault = createDefault;
@@ -88,8 +88,8 @@ class IndexSettingValidators {
         }
     }
 
-    static class ReadDefaultOnly<TYPE> extends IndexSettingValidator<NoValue, TYPE> {
-        protected ReadDefaultOnly(IndexSetting setting, TYPE readDefault) {
+    static class LegacyReadDefaultOnly<TYPE> extends LegacyIndexSettingValidator<NoValue, TYPE> {
+        protected LegacyReadDefaultOnly(IndexSetting setting, TYPE readDefault) {
             super(setting, readDefault, null);
         }
 
@@ -112,10 +112,10 @@ class IndexSettingValidators {
         }
     }
 
-    static final class BooleanValidator extends IndexSettingValidator<BooleanValue, Boolean> {
+    static final class LegacyBooleanValidator extends LegacyIndexSettingValidator<BooleanValue, Boolean> {
         private final Set<Boolean> booleans;
 
-        BooleanValidator(
+        LegacyBooleanValidator(
                 IndexSetting setting, Set<Boolean> supportedBooleans, boolean readDefault, boolean writeDefault) {
             super(setting, readDefault, writeDefault);
             this.booleans = Collections.unmodifiableSet(supportedBooleans);
@@ -154,10 +154,10 @@ class IndexSettingValidators {
         }
     }
 
-    static final class IntegerValidator extends IndexSettingValidator<IntegralValue, Integer> {
+    static final class LegacyIntegerValidator extends LegacyIndexSettingValidator<IntegralValue, Integer> {
         private final InclusiveRange<Integer> supportedRange;
 
-        IntegerValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange, Integer defaultValue) {
+        LegacyIntegerValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange, Integer defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null || this.supportedRange.contains(defaultValue);
@@ -195,10 +195,11 @@ class IndexSettingValidators {
         }
     }
 
-    static final class OptionalIntValidator extends IndexSettingValidator<IntegralValue, OptionalInt> {
+    static final class LegacyOptionalIntValidator extends LegacyIndexSettingValidator<IntegralValue, OptionalInt> {
         private final InclusiveRange<Integer> supportedRange;
 
-        OptionalIntValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange, OptionalInt defaultValue) {
+        LegacyOptionalIntValidator(
+                IndexSetting setting, InclusiveRange<Integer> supportedRange, OptionalInt defaultValue) {
             super(setting, defaultValue);
             this.supportedRange = supportedRange;
             assert defaultValue == null
@@ -239,10 +240,10 @@ class IndexSettingValidators {
         }
     }
 
-    abstract static class StringLookupValidator<TYPE> extends IndexSettingValidator<TextValue, TYPE> {
+    abstract static class LegacyStringLookupValidator<TYPE> extends LegacyIndexSettingValidator<TextValue, TYPE> {
         private final Map<String, TYPE> lookup;
 
-        StringLookupValidator(IndexSetting setting, Map<String, TYPE> supported, TYPE defaultValue) {
+        LegacyStringLookupValidator(IndexSetting setting, Map<String, TYPE> supported, TYPE defaultValue) {
             super(setting, defaultValue);
             this.lookup = Collections.unmodifiableMap(supported);
             assert defaultValue == null || this.lookup.containsValue(defaultValue);

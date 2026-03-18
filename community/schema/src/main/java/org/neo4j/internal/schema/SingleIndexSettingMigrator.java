@@ -22,32 +22,36 @@ package org.neo4j.internal.schema;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 
 /// A [SingleIndexSettingProcessor] that transforms a valid value from one [IndexSetting] to another
-public abstract class SingleIndexSettingMigrator<FROM> extends SingleIndexSettingProcessor {
-    protected final Class<FROM> fromType;
+public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSettingProcessor {
     protected final IndexSetting fromSetting;
+    protected final Class<FROM> fromType;
     protected final IndexSetting toSetting;
+    protected final Class<TO> toType;
 
-    protected SingleIndexSettingMigrator(IndexSetting fromSetting, Class<FROM> fromType, IndexSetting toSetting) {
+    protected SingleIndexSettingMigrator(
+            IndexSetting fromSetting, Class<FROM> fromType, IndexSetting toSetting, Class<TO> toType) {
         super(fromSetting);
-        this.fromType = fromType;
         this.fromSetting = fromSetting;
+        this.fromType = fromType;
         this.toSetting = toSetting;
+        this.toType = toType;
     }
 
-    protected abstract Object migrate(FROM value);
+    protected abstract TO migrate(FROM value);
 
     /// Migrates the value from one [Valid] record to a [Pending] record of a new setting using [#migrate(FROM)].
-    /// If a non-valid [RecordWithSetting] is provided a [MissingSetting] will be returned.
+    /// If a non-valid [RecordWithSetting] is provided an [InvalidValue] will be returned.
     @Override
     public RecordWithSetting processForVerification(RecordWithSetting record) {
         if (!(record instanceof final Valid valid)) {
-            return new MissingSetting(toSetting);
+            return new InvalidValue(toSetting, null, toType);
         }
         if (!fromType.isInstance(valid.value())) {
             return new IncorrectType(toSetting, null, fromType);

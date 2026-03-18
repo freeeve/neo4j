@@ -65,6 +65,11 @@ public abstract class SingleIndexSettingProcessor implements IndexSettingsProces
         return Collections.singleton(setting);
     }
 
+    @Override
+    public String toString() {
+        return "%s[%s]".formatted(getClass().getSimpleName(), setting);
+    }
+
     // =================
     //  Implementations
     // =================
@@ -72,27 +77,35 @@ public abstract class SingleIndexSettingProcessor implements IndexSettingsProces
     public static final class MissingSettingMaterializer extends SingleIndexSettingProcessor {
         private final Object valueForAuthoritativeRead;
         private final Object valueForVerification;
-        private final Value storable;
+        private final Value storableForVerification;
 
         public static MissingSettingMaterializer forVerification(IndexSetting setting, Object value) {
             return forVerification(setting, value, Values.unsafeOf(value, true));
         }
 
-        public static MissingSettingMaterializer forVerification(IndexSetting setting, Object value, Value storable) {
-            return of(setting, null, value, storable);
+        public static MissingSettingMaterializer forVerification(
+                IndexSetting setting, Object value, Value storableForVerification) {
+            return of(setting, null, value, storableForVerification);
         }
 
         public static MissingSettingMaterializer of(
-                IndexSetting setting, Object valueForAuthoritativeRead, Object valueForVerification, Value storable) {
-            return new MissingSettingMaterializer(setting, valueForAuthoritativeRead, valueForVerification, storable);
+                IndexSetting setting,
+                Object valueForAuthoritativeRead,
+                Object valueForVerification,
+                Value storableForVerification) {
+            return new MissingSettingMaterializer(
+                    setting, valueForAuthoritativeRead, valueForVerification, storableForVerification);
         }
 
         private MissingSettingMaterializer(
-                IndexSetting setting, Object valueForAuthoritativeRead, Object valueForVerification, Value storable) {
+                IndexSetting setting,
+                Object valueForAuthoritativeRead,
+                Object valueForVerification,
+                Value storableForVerification) {
             super(setting);
             this.valueForAuthoritativeRead = valueForAuthoritativeRead;
             this.valueForVerification = valueForVerification;
-            this.storable = Objects.requireNonNullElse(storable, Values.NO_VALUE);
+            this.storableForVerification = Objects.requireNonNullElse(storableForVerification, Values.NO_VALUE);
         }
 
         @Override
@@ -101,7 +114,7 @@ public abstract class SingleIndexSettingProcessor implements IndexSettingsProces
                 return record;
             }
 
-            return new Pending(missing, valueForVerification, storable);
+            return new Pending(missing, valueForVerification, storableForVerification);
         }
 
         @Override
@@ -110,7 +123,7 @@ public abstract class SingleIndexSettingProcessor implements IndexSettingsProces
                 return record;
             }
 
-            return new Valid(missing, valueForAuthoritativeRead, storable);
+            return new Valid(missing, valueForAuthoritativeRead, Values.NO_VALUE);
         }
     }
 

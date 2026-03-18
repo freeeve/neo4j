@@ -138,13 +138,17 @@ public class SingleIndexSettingProcessorTest {
     abstract static class MissingSettingMaterializerTestBase extends SingleProcessorTestBase {
         protected static final String VALUE_FOR_AUTHORITATIVE_READ = "default authoritative value";
         protected static final String VALUE_FOR_VERIFICATION = "default verification value";
+        protected static final Value STORABLE_FOR_VERIFICATION = Values.utf8Value(VALUE_FOR_VERIFICATION);
 
-        protected final Value storable;
+        protected final Value storableForVerification;
 
-        protected MissingSettingMaterializerTestBase(Value storable) {
+        protected MissingSettingMaterializerTestBase(Value storableForVerification) {
             super(MissingSettingMaterializer.of(
-                    TestIndexSetting.STRING, VALUE_FOR_AUTHORITATIVE_READ, VALUE_FOR_VERIFICATION, storable));
-            this.storable = storable;
+                    TestIndexSetting.STRING,
+                    VALUE_FOR_AUTHORITATIVE_READ,
+                    VALUE_FOR_VERIFICATION,
+                    storableForVerification));
+            this.storableForVerification = storableForVerification;
         }
 
         @Test
@@ -175,11 +179,11 @@ public class SingleIndexSettingProcessorTest {
 
             processForVerificationAndAssertRecord(record, Pending.class)
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(VALUE_FOR_VERIFICATION, storable);
+                    .containsExactly(VALUE_FOR_VERIFICATION, storableForVerification);
 
             processForAuthoritativeReadAndAssertRecord(record)
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(VALUE_FOR_AUTHORITATIVE_READ, storable);
+                    .containsExactly(VALUE_FOR_AUTHORITATIVE_READ, Values.NO_VALUE);
         }
     }
 
@@ -193,7 +197,7 @@ public class SingleIndexSettingProcessorTest {
     @Nested
     class MissingSettingMaterializerWithStorableTest extends MissingSettingMaterializerTestBase {
         protected MissingSettingMaterializerWithStorableTest() {
-            super(Values.utf8Value("some storable"));
+            super(STORABLE_FOR_VERIFICATION);
         }
     }
 
