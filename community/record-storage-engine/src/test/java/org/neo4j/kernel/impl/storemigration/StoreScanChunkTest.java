@@ -34,10 +34,10 @@ import org.neo4j.internal.recordstorage.RecordStorageReader;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -71,7 +71,7 @@ class StoreScanChunkTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openAllNeoStores()) {
             RecordStorageReader storageReader = new RecordStorageReader(neoStores);
             TestStoreScanChunk scanChunk1 = new TestStoreScanChunk(storageReader, false);

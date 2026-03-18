@@ -70,6 +70,7 @@ import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.store.CountsComputer;
@@ -81,7 +82,6 @@ import org.neo4j.kernel.impl.store.format.FormatFamily;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -595,7 +595,7 @@ class CountsComputerTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             NodeStore nodeStore = neoStores.getNodeStore();

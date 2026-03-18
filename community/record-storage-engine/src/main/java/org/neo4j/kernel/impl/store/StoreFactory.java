@@ -38,11 +38,11 @@ import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.format.FormatFamily;
 import org.neo4j.kernel.impl.store.format.PageCacheOptionsSelector;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.logging.InternalLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
 
 /**
  * Factory for Store implementations. Can also be used to create empty stores.
@@ -58,7 +58,7 @@ public class StoreFactory {
     private final RecordFormats recordFormats;
     private final CursorContextFactory contextFactory;
     private final boolean readOnly;
-    private final StoreIdGenerator storeIdGenerator;
+    private final DatabaseCreationOptions databaseCreationOptions;
     private final ImmutableSet<OpenOption> openOptions;
 
     public StoreFactory(
@@ -71,7 +71,7 @@ public class StoreFactory {
             InternalLogProvider logProvider,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            StoreIdGenerator storeIdGenerator) {
+            DatabaseCreationOptions databaseCreationOptions) {
         this(
                 directoryStructure,
                 config,
@@ -89,7 +89,7 @@ public class StoreFactory {
                 logProvider,
                 contextFactory,
                 readOnly,
-                storeIdGenerator);
+                databaseCreationOptions);
     }
 
     public StoreFactory(
@@ -103,7 +103,7 @@ public class StoreFactory {
             InternalLogProvider logProvider,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            StoreIdGenerator storeIdGenerator) {
+            DatabaseCreationOptions databaseCreationOptions) {
         this.databaseLayout = RecordDatabaseLayout.convert(databaseLayout);
         this.config = config;
         this.idGeneratorFactory = idGeneratorFactory;
@@ -111,7 +111,7 @@ public class StoreFactory {
         this.recordFormats = recordFormats;
         this.contextFactory = contextFactory;
         this.readOnly = readOnly;
-        this.storeIdGenerator = storeIdGenerator;
+        this.databaseCreationOptions = databaseCreationOptions;
         this.openOptions = buildOpenOptions(config, recordFormats, immutable.empty());
         this.logProvider = logProvider;
         this.pageCache = pageCache;
@@ -155,7 +155,7 @@ public class StoreFactory {
                 readOnly,
                 storeTypes,
                 openOptions,
-                storeIdGenerator);
+                databaseCreationOptions);
     }
 
     private static ImmutableSet<OpenOption> buildOpenOptions(

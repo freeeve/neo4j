@@ -45,6 +45,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProvider;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProviders;
@@ -63,7 +64,6 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.lock.ResourceLocker;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
@@ -106,7 +106,7 @@ class PropertyCreatorTest {
                         logProvider,
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
 

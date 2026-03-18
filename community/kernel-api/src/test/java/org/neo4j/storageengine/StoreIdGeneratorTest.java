@@ -21,7 +21,10 @@ package org.neo4j.storageengine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.ZonedDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.neo4j.kernel.DatabaseCreationOptions;
 
 class StoreIdGeneratorTest {
     @Test
@@ -31,8 +34,12 @@ class StoreIdGeneratorTest {
         var majorVersion = 1;
         var minorVersion = 2;
 
-        var storeIds = StoreIdGenerator.UNIQUE_ID.generateNewStoreId(
-                storageEngineName, formatName, majorVersion, minorVersion);
+        var storeIds = StoreIds.generateNewStoreId(
+                storageEngineName,
+                formatName,
+                majorVersion,
+                minorVersion,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         var storeId = storeIds.storeId();
         assertThat(storeId.getStorageEngineName()).isEqualTo(storageEngineName);
@@ -47,13 +54,37 @@ class StoreIdGeneratorTest {
         var formatName = "b";
         var majorVersion = 1;
         var minorVersion = 2;
-        var first = StoreIdGenerator.UNIQUE_ID.generateNewStoreId(
-                storageEngineName, formatName, majorVersion, minorVersion);
+        var first = StoreIds.generateNewStoreId(
+                storageEngineName,
+                formatName,
+                majorVersion,
+                minorVersion,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
-        var second = StoreIdGenerator.UNIQUE_ID.generateNewStoreId(
-                storageEngineName, formatName, majorVersion, minorVersion);
+        var second = StoreIds.generateNewStoreId(
+                storageEngineName,
+                formatName,
+                majorVersion,
+                minorVersion,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         assertThat(first.storeId()).isNotEqualTo(second.storeId());
         assertThat(first.externalStoreId()).isNotEqualTo(second.externalStoreId());
+    }
+
+    @Test
+    void shouldGenerateWithOptionsIfGiven() {
+        var storageEngineName = "a";
+        var formatName = "b";
+        var majorVersion = 1;
+        var minorVersion = 2;
+        DatabaseCreationOptions options =
+                new DatabaseCreationOptions(Optional.empty(), Optional.of(1L), Optional.of(ZonedDateTime.now()));
+        var first = StoreIds.generateNewStoreId(storageEngineName, formatName, majorVersion, minorVersion, options);
+
+        var second = StoreIds.generateNewStoreId(storageEngineName, formatName, majorVersion, minorVersion, options);
+
+        assertThat(first.storeId()).isEqualTo(second.storeId());
+        assertThat(first.externalStoreId()).isEqualTo(second.externalStoreId());
     }
 }

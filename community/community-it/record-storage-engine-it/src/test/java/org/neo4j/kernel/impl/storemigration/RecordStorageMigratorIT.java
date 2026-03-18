@@ -72,6 +72,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -92,7 +93,6 @@ import org.neo4j.logging.internal.SimpleLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ExternalStoreId;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -197,7 +197,7 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
             assertEquals(
@@ -254,7 +254,7 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
             StoreId storeId = metaDataStore.getStoreId();
@@ -328,7 +328,7 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
             StoreId newStoreId = metaDataStore.getStoreId();
@@ -444,7 +444,7 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         storeFactory.openAllNeoStores().close();
         assertThat(logProvider).forLevel(ERROR).doesNotHaveAnyLogs();
     }
@@ -597,7 +597,7 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         storeFactory.openAllNeoStores().close();
     }
 

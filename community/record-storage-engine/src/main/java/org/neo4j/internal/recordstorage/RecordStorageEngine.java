@@ -90,6 +90,7 @@ import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.store.CountsComputer;
 import org.neo4j.kernel.impl.store.MetaDataStore;
@@ -110,7 +111,6 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -205,7 +205,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
-            StoreIdGenerator storeIdGenerator) {
+            DatabaseCreationOptions databaseCreationOptions) {
         this.databaseLayout = databaseLayout;
         this.config = config;
         this.internalLogProvider = internalLogProvider;
@@ -230,7 +230,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         internalLogProvider,
                         contextFactory,
                         false,
-                        storeIdGenerator)
+                        databaseCreationOptions)
                 .openAllNeoStores();
         this.format = this.neoStores.getRecordFormats().name();
         this.lockVerificationFactory = LockVerificationFactory.select(config);

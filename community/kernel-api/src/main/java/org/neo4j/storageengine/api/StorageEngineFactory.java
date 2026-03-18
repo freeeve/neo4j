@@ -66,6 +66,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
@@ -84,7 +85,6 @@ import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.OperationMode;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -182,11 +182,11 @@ public interface StorageEngineFactory {
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
-            StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
             ExceptionHandlerService exceptionHandlerService,
             OperationMode mode,
-            VectorStoreCreator vectorStoreCreator)
+            VectorStoreCreator vectorStoreCreator,
+            DatabaseCreationOptions databaseCreationOptions)
             throws IOException;
 
     /**

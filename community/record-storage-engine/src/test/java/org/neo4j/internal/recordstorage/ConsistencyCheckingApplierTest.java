@@ -40,6 +40,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -49,7 +50,6 @@ import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandVersion;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.test.LatestVersions;
@@ -93,7 +93,7 @@ class ConsistencyCheckingApplierTest {
                         NullLogProvider.getInstance(),
                         new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                         false,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openAllNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, CursorContext.NULL_CONTEXT);
         checker = new ConsistencyCheckingApplier(neoStores, CursorContext.NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);

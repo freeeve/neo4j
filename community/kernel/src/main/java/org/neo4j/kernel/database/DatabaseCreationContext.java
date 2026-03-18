@@ -35,6 +35,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.extension.ExtensionFactory;
@@ -45,7 +46,6 @@ import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
-import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
@@ -62,7 +62,6 @@ import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.time.SystemNanoClock;
@@ -165,8 +164,6 @@ public interface DatabaseCreationContext {
     PagePrefetcher getPagePrefetcher();
 
     DatabaseMonitorsFactory getDatabaseMonitorsFactory();
-
-    StoreIdGenerator storeIdGenerator();
 
     ExceptionHandlerService getExceptionHandlerService();
 

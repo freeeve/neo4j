@@ -41,10 +41,10 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
@@ -93,7 +93,7 @@ class StoreFactoryTest {
                 logProvider,
                 contextFactory,
                 readOnly,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 
     @AfterEach

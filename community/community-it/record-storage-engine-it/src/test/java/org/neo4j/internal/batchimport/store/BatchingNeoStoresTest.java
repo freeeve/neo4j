@@ -74,6 +74,7 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
@@ -113,7 +114,6 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.Leases;
@@ -629,7 +629,7 @@ class BatchingNeoStoresTest {
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,
                     PagePrefetcher.DISABLED,
-                    StoreIdGenerator.UNIQUE_ID));
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS));
             storageEngine.addIndexUpdateListener(new IndexUpdateListener.Adapter());
             // Create the relationship type token
             TxState txState = new TxState();

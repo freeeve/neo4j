@@ -43,6 +43,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -53,7 +54,6 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
@@ -97,7 +97,7 @@ public class RecordStorageEngineTestUtils {
                 cacheTracer,
                 VersionStorage.EMPTY_STORAGE,
                 PagePrefetcher.DISABLED,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         storageEngine.addIndexUpdateListener(new IndexUpdateListener.Adapter());
         return storageEngine;
     }

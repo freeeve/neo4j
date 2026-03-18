@@ -43,6 +43,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.kernel.impl.store.StoreType;
@@ -50,7 +51,6 @@ import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.format.aligned.PageAligned;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreVersionCheck;
 import org.neo4j.string.UTF8;
@@ -270,7 +270,7 @@ class RecordStoreVersionCheckTest {
                 logProvider,
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (var metaDataStore = storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore()) {
             return metaDataStore.getStorageFile();
         }

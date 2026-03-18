@@ -53,6 +53,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
@@ -65,7 +66,6 @@ import org.neo4j.lock.LockService;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
@@ -131,7 +131,7 @@ class PreAllocationOfStoreFilesTest {
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,
                 PagePrefetcher.DISABLED,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 
     @AfterEach

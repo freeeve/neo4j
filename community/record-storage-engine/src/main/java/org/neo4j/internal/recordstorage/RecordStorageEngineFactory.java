@@ -98,6 +98,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
@@ -142,7 +143,6 @@ import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.DefaultRecoveryBehavior;
 import org.neo4j.storageengine.OperationMode;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
@@ -274,11 +274,11 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
-            StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
             ExceptionHandlerService exceptionHandlerService,
             OperationMode mode,
-            VectorStoreCreator vectorStoreCreator) {
+            VectorStoreCreator vectorStoreCreator,
+            DatabaseCreationOptions databaseCreationOptions) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
                 config,
@@ -300,7 +300,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 pageCacheTracer,
                 versionStorage,
                 pagePrefetcher,
-                storeIdGenerator);
+                databaseCreationOptions);
     }
 
     @Override
@@ -374,7 +374,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         readOnlyChecker.isReadOnly(),
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openNeoStores(META_DATA)
                 .getMetaDataStore();
     }
@@ -426,7 +426,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openNeoStores(
                         StoreType.SCHEMA,
@@ -491,7 +491,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openAllNeoStores();
                 var storeCursors = new CachedStoreCursors(stores, cursorContext)) {
@@ -532,7 +532,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         try (NeoStores stores = factory.openNeoStores(
                 StoreType.PROPERTY_KEY_TOKEN,
                 StoreType.PROPERTY_KEY_TOKEN_NAME,
@@ -567,7 +567,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         CursorContext cursorContext = contextFactory.create("schemaStoreMigration");
         NeoStores dstStore = dstFactory.openNeoStores(
@@ -795,7 +795,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openNeoStores(storesToOpen);
         return new LenientStoreInput(
                 neoStores,
@@ -875,7 +875,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openNeoStores(StoreType.NODE_LABEL, StoreType.NODE, StoreType.RELATIONSHIP)) {
             var highId = Math.max(
                     neoStores.getNodeStore().getIdGenerator().getHighId(),
@@ -917,7 +917,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openAllNeoStores()) {
             neoStores.start(CursorContext.NULL_CONTEXT);
             ProgressMonitorFactory progressMonitorFactory = progressOutput != null

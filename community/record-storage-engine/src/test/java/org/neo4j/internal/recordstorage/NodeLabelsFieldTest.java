@@ -58,6 +58,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProvider;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProviders;
 import org.neo4j.kernel.impl.store.DynamicArrayStore;
@@ -74,7 +75,6 @@ import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.test.RandomSupport;
@@ -120,7 +120,7 @@ class NodeLabelsFieldTest {
                 NullLogProvider.getInstance(),
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         neoStores = storeFactory.openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
 

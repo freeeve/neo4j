@@ -53,7 +53,7 @@ import org.neo4j.kernel.impl.store.record.MetaDataRecord;
 import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.StoreFileClosedException;
-import org.neo4j.storageengine.StoreIdGenerator.StoreIds;
+import org.neo4j.storageengine.StoreIds;
 import org.neo4j.storageengine.api.ExternalStoreId;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StoreId;

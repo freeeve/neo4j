@@ -49,6 +49,7 @@ import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.api.FlatRelationshipModifications;
 import org.neo4j.kernel.impl.api.FlatRelationshipModifications.RelationshipData;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -62,7 +63,6 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -188,7 +188,7 @@ class DegreesRebuildFromStoreTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openAllNeoStores()) {
             DegreesRebuildFromStore rebuild = new DegreesRebuildFromStore(
                     neoStores,

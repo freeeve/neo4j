@@ -76,6 +76,7 @@ import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.AvailabilityListener;
@@ -139,7 +140,6 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.OperationMode;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -682,11 +682,11 @@ public final class Recovery {
                 tracers.getPageCacheTracer(),
                 recoveryVersionStorage,
                 PagePrefetcher.DISABLED,
-                StoreIdGenerator.UNIQUE_ID,
                 dependenciesOf(recoveryVersionStorage),
                 new ExceptionHandlerService(logService.getInternalLogProvider()),
                 OperationMode.RECOVERY,
-                VectorStoreCreator.FAILING);
+                VectorStoreCreator.FAILING,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         dependencies.satisfyDependency(storageEngine.metadataProvider());
 

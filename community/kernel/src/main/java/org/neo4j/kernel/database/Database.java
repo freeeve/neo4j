@@ -87,6 +87,7 @@ import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -120,7 +121,6 @@ import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitorScheduler
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
-import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.FacadeKernelTransactionFactory;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
@@ -186,7 +186,6 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.OperationMode;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
@@ -233,7 +232,6 @@ public class Database extends AbstractDatabase {
     private final StorageEngineFactorySupplier storageEngineFactorySupplier;
     private final KernelTransactionsFactory kernelTransactionsFactory;
     private final PagePrefetcher pagePrefetcher;
-    private final StoreIdGenerator storeIdGenerator;
     private final DatabaseCreationOptions databaseCreationOptions;
     private final LogPruneStrategyFactory logPruneStrategyFactory;
 
@@ -327,7 +325,6 @@ public class Database extends AbstractDatabase {
         this.commandCommitListeners = context.getCommandCommitListeners();
         this.kernelTransactionsFactory = transactionsFactory.kernelTransactionsFactory();
         this.pagePrefetcher = context.getPagePrefetcher();
-        this.storeIdGenerator = context.storeIdGenerator();
         this.vectorStoreCreator = context.getVectorStoreCreator();
         this.databaseCreationOptions = context.getDatabaseCreationOptions();
         this.logPruneStrategyFactory = context.logPruneStrategyFactory();
@@ -513,11 +510,11 @@ public class Database extends AbstractDatabase {
                 tracers.getPageCacheTracer(),
                 versionStorage,
                 pagePrefetcher,
-                storeIdGenerator,
                 databaseDependencies,
                 exceptionHandlerService,
                 OperationMode.DEFAULT,
-                vectorStoreCreator);
+                vectorStoreCreator,
+                databaseCreationOptions);
         // Satisfy the StoreIdProvider needed by logFiles. Logfiles doesn't need it until started by lifecycle.
         databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 

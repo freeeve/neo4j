@@ -77,6 +77,7 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.CommonAbstractStore;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.NoStoreHeader;
@@ -88,7 +89,6 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -192,7 +192,7 @@ class CsvInputEstimateCalculationIT {
                                     NullLogProvider.getInstance(),
                                     NULL_CONTEXT_FACTORY,
                                     false,
-                                    StoreIdGenerator.UNIQUE_ID)
+                                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                             .openAllNeoStores()) {
                 var nodeStore = stores.getNodeStore();
                 assertRoughlyEqual(

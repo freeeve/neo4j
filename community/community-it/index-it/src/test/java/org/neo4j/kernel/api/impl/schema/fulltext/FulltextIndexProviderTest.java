@@ -99,6 +99,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.StandalonePageCacheFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.impl.api.KernelImpl;
@@ -116,7 +117,6 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.test.extension.DbmsController;
@@ -553,7 +553,7 @@ class FulltextIndexProviderTest {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         false,
-                        StoreIdGenerator.UNIQUE_ID);
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
                 var cursorContext = CursorContext.NULL_CONTEXT;
                 try (NeoStores neoStores = factory.openAllNeoStores();
                         var storeCursors = new CachedStoreCursors(neoStores, cursorContext)) {

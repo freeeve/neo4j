@@ -42,6 +42,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.kernel.impl.store.StoreType;
@@ -49,7 +50,6 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccess;
 import org.neo4j.token.TokenHolders;
 
@@ -233,6 +233,6 @@ public class SchemaStoreMigration {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 }

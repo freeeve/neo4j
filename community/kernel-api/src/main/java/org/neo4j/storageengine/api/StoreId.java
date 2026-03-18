@@ -21,6 +21,8 @@ package org.neo4j.storageengine.api;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadableChannel;
@@ -28,6 +30,7 @@ import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.DatabaseCreationOptions;
 
 /**
  * A representation of store ID.
@@ -71,6 +74,24 @@ public class StoreId extends StoreVersionIdentifier {
         return new StoreId(
                 System.currentTimeMillis(),
                 new SecureRandom().nextLong(),
+                storageEngineName,
+                formatName,
+                majorVersion,
+                minorVersion);
+    }
+
+    public static StoreId generateNew(
+            String storageEngineName,
+            String formatName,
+            int majorVersion,
+            int minorVersion,
+            DatabaseCreationOptions options) {
+        return new StoreId(
+                options.creationTime()
+                        .map(ZonedDateTime::toInstant)
+                        .map(Instant::toEpochMilli)
+                        .orElse(System.currentTimeMillis()),
+                options.randomId().orElse(new SecureRandom().nextLong()),
                 storageEngineName,
                 formatName,
                 majorVersion,

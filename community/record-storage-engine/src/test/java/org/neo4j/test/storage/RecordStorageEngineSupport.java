@@ -47,6 +47,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -58,7 +59,6 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
@@ -289,7 +289,7 @@ public class RecordStorageEngineSupport {
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,
                     PagePrefetcher.DISABLED,
-                    StoreIdGenerator.UNIQUE_ID);
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             this.transactionApplierTransformer = transactionApplierTransformer;
         }
 

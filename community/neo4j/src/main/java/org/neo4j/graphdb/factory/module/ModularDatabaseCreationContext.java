@@ -41,6 +41,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.CursorContextFactorySupplier;
@@ -60,7 +61,6 @@ import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
-import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
@@ -83,7 +83,6 @@ import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
@@ -132,7 +131,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final GlobalMemoryGroupTracker otherMemoryPool;
     private final VectorStoreCreator vectorStoreCreator;
     private final DatabaseMonitorsFactory databaseMonitorsFactory;
-    private final StoreIdGenerator storeIdGenerator;
     private final ReadOnlyDatabases readOnlyDatabases;
     private final CommandCommitListeners commandCommitListeners;
     private final TransactionsFactory transactionsFactory;
@@ -173,7 +171,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             CommandCommitListeners commandCommitListeners,
             TransactionsFactory transactionsFactory,
             DatabaseMonitorsFactory databaseMonitorsFactory,
-            StoreIdGenerator storeIdGenerator,
             ExceptionHandlerService exceptionHandlerService,
             DatabaseCreationOptions databaseCreationOptions,
             LogPruneStrategyFactory logPruneStrategyFactory) {
@@ -191,7 +188,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
         this.vectorStoreCreator = vectorStoreCreator;
         this.databaseMonitorsFactory = databaseMonitorsFactory;
-        this.storeIdGenerator = storeIdGenerator;
         this.exceptionHandlerService = exceptionHandlerService;
         this.databaseCreationOptions = databaseCreationOptions;
         this.logPruneStrategyFactory = logPruneStrategyFactory;
@@ -458,11 +454,6 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public DatabaseMonitorsFactory getDatabaseMonitorsFactory() {
         return databaseMonitorsFactory;
-    }
-
-    @Override
-    public StoreIdGenerator storeIdGenerator() {
-        return storeIdGenerator;
     }
 
     @Override

@@ -17,10 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.factory;
+package org.neo4j.kernel;
 
 import java.util.Optional;
 
-public record DatabaseCreationOptions(Optional<String> externalId) {
-    public static final DatabaseCreationOptions EMPTY_CREATION_OPTIONS = new DatabaseCreationOptions(Optional.empty());
+public record DatabaseCreationOptions(
+        Optional<String> externalId, Optional<Long> randomId, Optional<java.time.ZonedDateTime> creationTime) {
+    public static final DatabaseCreationOptions EMPTY_CREATION_OPTIONS =
+            new DatabaseCreationOptions(Optional.empty(), Optional.empty(), Optional.empty());
 }

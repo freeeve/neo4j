@@ -59,12 +59,12 @@ import org.neo4j.io.pagecache.impl.DelegatingPageCursor;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.format.aligned.PageAligned;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.StoreFileClosedException;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -324,7 +324,7 @@ public class MetaDataStoreTest {
                 logProvider,
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         return storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore();
     }
 
@@ -342,7 +342,7 @@ public class MetaDataStoreTest {
                 logProvider,
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         return storeFactory.openNeoStores(StoreType.META_DATA).getMetaDataStore();
     }
 }

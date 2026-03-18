@@ -19,7 +19,7 @@
  */
 package org.neo4j.dbms.database;
 
-import static org.neo4j.kernel.impl.factory.DatabaseCreationOptions.EMPTY_CREATION_OPTIONS;
+import static org.neo4j.kernel.DatabaseCreationOptions.EMPTY_CREATION_OPTIONS;
 
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.cypher.internal.javacompat.CommunityCypherEngineProvider;
@@ -53,7 +53,6 @@ import org.neo4j.kernel.impl.transaction.log.pruning.LogPruneStrategyFactory;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
 import org.neo4j.logging.internal.DatabaseLogIdentifier;
 import org.neo4j.logging.internal.DatabaseLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
 
 public class DefaultDatabaseContextFactory
         extends AbstractDatabaseContextFactory<StandaloneDatabaseContext, NamedDatabaseId> {
@@ -134,7 +133,6 @@ public class DefaultDatabaseContextFactory
                     globalModule.getDefaultCommandCommitListeners(),
                     TransactionsFactory.DEFAULT,
                     databaseMonitorsFactory(databaseLogIdentifier),
-                    StoreIdGenerator.UNIQUE_ID,
                     globalModule.getExceptionHandlerService(),
                     EMPTY_CREATION_OPTIONS,
                     new LogPruneStrategyFactory());

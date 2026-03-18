@@ -44,11 +44,12 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.StoreIds;
 
 /**
  * This class contains the references to the "NodeStore,RelationshipStore,
@@ -75,7 +76,7 @@ public class NeoStores implements AutoCloseable {
     private final RecordFormats recordFormats;
     private final CommonAbstractStore[] stores;
     private final ImmutableSet<OpenOption> openOptions;
-    private final StoreIdGenerator storeIdGenerator;
+    private final DatabaseCreationOptions databaseCreationOptions;
     private final boolean readOnly;
     private final InternalLog log;
 
@@ -92,7 +93,7 @@ public class NeoStores implements AutoCloseable {
             boolean readOnly,
             StoreType[] storeTypes,
             ImmutableSet<OpenOption> openOptions,
-            StoreIdGenerator storeIdGenerator) {
+            DatabaseCreationOptions databaseCreationOptions) {
         this.fileSystem = fileSystem;
         this.layout = layout;
         this.config = config;
@@ -105,7 +106,7 @@ public class NeoStores implements AutoCloseable {
         this.contextFactory = contextFactory;
         this.readOnly = readOnly;
         this.openOptions = openOptions;
-        this.storeIdGenerator = storeIdGenerator;
+        this.databaseCreationOptions = databaseCreationOptions;
 
         stores = new CommonAbstractStore[StoreType.STORE_TYPES.length];
         // First open the meta data store so that we can verify the record format. We know that this store is of the
@@ -541,11 +542,12 @@ public class NeoStores implements AutoCloseable {
                         readOnly,
                         layout.getDatabaseName(),
                         openOptions,
-                        () -> storeIdGenerator.generateNewStoreId(
+                        () -> StoreIds.generateNewStoreId(
                                 RecordStorageEngineFactory.NAME,
                                 recordFormats.getFormatFamily().name(),
                                 recordFormats.majorVersion(),
-                                recordFormats.minorVersion())),
+                                recordFormats.minorVersion(),
+                                databaseCreationOptions)),
                 contextFactory);
     }
 

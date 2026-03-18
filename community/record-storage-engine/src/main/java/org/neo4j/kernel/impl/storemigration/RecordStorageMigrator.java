@@ -95,6 +95,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.impl.store.CommonAbstractStore;
 import org.neo4j.kernel.impl.store.LegacyMetadataHandler;
@@ -117,7 +118,6 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.LogFilesInitializer;
 import org.neo4j.storageengine.api.SchemaRule44;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
@@ -462,7 +462,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        StoreIdGenerator.UNIQUE_ID)
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                 .openNeoStores(storesToOpen);
     }
 
@@ -560,7 +560,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 
     private static AdditionalInitialIds readAdditionalIds(

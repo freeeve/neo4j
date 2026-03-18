@@ -43,6 +43,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -52,7 +53,6 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockType;
 import org.neo4j.logging.NullLogProvider;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.test.LatestVersions;
@@ -94,7 +94,7 @@ class ApplyRecoveredTransactionsTest {
                 NullLogProvider.getInstance(),
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         neoStores = storeFactory.openAllNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, NULL_CONTEXT);
     }

@@ -79,6 +79,7 @@ import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
@@ -97,7 +98,6 @@ import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
-import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.Leases;
@@ -367,7 +367,7 @@ class NeoStoresTest {
                 NullLogProvider.getInstance(),
                 CONTEXT_FACTORY,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         NeoStores neoStore = factory.openAllNeoStores();
 
         var ex = assertThrows(UnderlyingStorageException.class, neoStore::close);
@@ -390,7 +390,7 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         // when
         try (NeoStores ignore = factory.openAllNeoStores()) {
@@ -415,7 +415,7 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         StoreType[] allStoreTypes = StoreType.STORE_TYPES;
         StoreType[] allButLastStoreTypes = Arrays.copyOf(allStoreTypes, allStoreTypes.length - 1);
 
@@ -459,7 +459,7 @@ class NeoStoresTest {
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,
                 PagePrefetcher.DISABLED,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         life = new LifeSupport();
         life.add(storageEngine);
         life.add(storageEngine.schemaAndTokensLifecycle(false));
@@ -632,7 +632,7 @@ class NeoStoresTest {
                 logProvider,
                 CONTEXT_FACTORY,
                 readOnly,
-                StoreIdGenerator.UNIQUE_ID);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 
     private static class CloseFailingDefaultIdGeneratorFactory extends DefaultIdGeneratorFactory {
