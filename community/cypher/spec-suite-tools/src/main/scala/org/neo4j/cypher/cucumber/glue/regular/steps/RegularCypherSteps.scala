@@ -142,9 +142,14 @@ final class RegularCypherSteps @Inject() (
         registeredProcedures =
           registeredProcedures ++ Seq(new QualifiedName("test", "seededRand"), new QualifiedName("test", "setSeed"))
         db.registerFunction(classOf[SeededRandFunction])
-      case "test.nodeHash" =>
-        registeredProcedures = registeredProcedures.appended(new QualifiedName("test", "nodeHash"))
+      case hashFunc if hashFunc.startsWith("test.hash.") =>
+        registeredProcedures = registeredProcedures.appendedAll(Seq(
+          new QualifiedName("test", "hash", "node"),
+          new QualifiedName("test", "hash", "nodeAggregation"),
+          new QualifiedName("test", "hash", "tx", "allNodes")
+        ))
         db.registerFunction(classOf[NodeHashFunction])
+        db.registerAggregationFunction(classOf[NodeHashFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")
     }

@@ -19,29 +19,70 @@
  */
 package org.neo4j.cypher.cucumber.user.function;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
+import org.neo4j.procedure.UserAggregationFunction;
+import org.neo4j.procedure.UserAggregationResult;
+import org.neo4j.procedure.UserAggregationUpdate;
 import org.neo4j.procedure.UserFunction;
 
 public class NodeHashFunction {
 
-    @UserFunction("test.nodeHash")
+    @Context
+    public Transaction transaction;
+
+    @UserFunction("test.hash.node")
     @Description("Node hash")
     public long nodeHash(@Name("node") Object input) {
         if (input instanceof Node node) {
-            final var sortedLabelNamesHash = StreamSupport.stream(
-                            node.getLabels().spliterator(), false)
-                    .map(Label::name)
-                    .sorted()
-                    .toList()
-                    .hashCode();
-            final var propsHash = node.getAllProperties().hashCode();
-            return ((long) sortedLabelNamesHash) + propsHash;
+            return calculateNodeHash(node);
         } else {
             return 0;
         }
+    }
+
+    @UserAggregationFunction(name = "test.hash.nodeAggregation")
+    public NodeHashAggregator nodeHashAggregation() {
+        return new NodeHashAggregator();
+    }
+
+    @UserFunction("test.hash.tx.allNodes")
+    @Description("All nodes hash")
+    public long txAllNodesDegreeHash(@Name("node") Node node) {
+        return transaction.getAllNodes().stream().count()
+                + node.getAllProperties().size();
+    }
+
+    public static class NodeHashAggregator {
+        private final AtomicInteger accumulatedHash = new AtomicInteger(0);
+
+        @UserAggregationUpdate
+        public void update(@Name("node") Object input) {
+            if (input instanceof Node node) {
+                accumulatedHash.addAndGet(calculateNodeHash(node));
+            }
+        }
+
+        @UserAggregationResult
+        public long result() {
+            return accumulatedHash.get();
+        }
+    }
+
+    private static int calculateNodeHash(Node node) {
+        final var sortedLabelNamesHash = StreamSupport.stream(node.getLabels().spliterator(), false)
+                .map(Label::name)
+                .sorted()
+                .toList()
+                .hashCode();
+        final var propsHash = node.getAllProperties().hashCode();
+        return Objects.hash(sortedLabelNamesHash, propsHash);
     }
 }
