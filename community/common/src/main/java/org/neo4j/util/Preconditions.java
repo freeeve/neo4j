@@ -248,6 +248,14 @@ public final class Preconditions {
         }
     }
 
+    public static void requireBetween(long value, long lowInclusive, long highExclusive) {
+        if (value < lowInclusive || value >= highExclusive) {
+            throw new IllegalArgumentException(String.format(
+                    "Expected long value between %d (inclusive) and %d (exclusive), got %d.",
+                    lowInclusive, highExclusive, value));
+        }
+    }
+
     public static void requireNoLongAddOverflow(long a, long b, String message) {
         long result = a + b;
         // Same Hackers Delight algorithm as is used in Math.addExact.
