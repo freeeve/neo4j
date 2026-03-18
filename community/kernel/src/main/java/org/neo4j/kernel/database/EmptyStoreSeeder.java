@@ -156,6 +156,12 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 .build();
     }
 
+    private boolean createForMergedLog() {
+        var isSystem = databaseLayout.getDatabaseName().equalsIgnoreCase(GraphDatabaseSettings.SYSTEM_DATABASE_NAME);
+        return updateConfigVersion(config, kernelVersionForSeed).get(GraphDatabaseInternalSettings.merged_log)
+                && !isSystem;
+    }
+
     /**
      * @return a {@code byte[]} representation of the created empty store seed.
      * @throws IOException on I/O error.
@@ -170,6 +176,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
             var batchImporter =
                     batchImporter(storageEngineFactory, tempDatabaseLayout, pageCache, indexProvidersAccess);
             batchImporter.doImport(new NoInput());
+            if (createForMergedLog()) {
+                // when creating an initial store seed for merged log we need to make sure there are no logs in the
+                // archive as Raft will create the logs already and expanding these would overwrite the log.
+                fs.deleteRecursively(tempDatabaseLayout.getTransactionLogsDirectory());
+            }
             storeAugmenter.augmentStore(tempDatabaseLayout);
             var storeId =
                     storageEngineFactory.retrieveStoreId(fs, tempDatabaseLayout, pageCache, CursorContext.NULL_CONTEXT);
