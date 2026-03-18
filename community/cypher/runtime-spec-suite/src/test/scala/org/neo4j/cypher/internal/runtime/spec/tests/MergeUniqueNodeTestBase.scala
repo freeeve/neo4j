@@ -23,8 +23,11 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
+import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder.nestedPlanCollectExpression
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.helpers.collection.Iterators
 import org.neo4j.lock.LockType.EXCLUSIVE
@@ -496,6 +499,77 @@ abstract class MergeUniqueNodeTestBase[CONTEXT <: RuntimeContext](
       labelsAdded = 720,
       propertiesSet = 720 * 5
     )
+  }
+
+  test("mergeUnique should handle complicated nested expression in onCreate/onMatch") {
+    // we expect fusing to fail since we don't support NestedPlanExpression
+    assume(!canFuse)
+
+    // given
+    givenGraph {
+      uniqueNodeIndex(IndexType.RANGE, "Label", "prop")
+      val Seq(a) = nodeGraph(1, "A")
+      nodeGraph(1, "B")
+      val Seq(c1, c2, c3) = nodeGraph(3, "C")
+      a.createRelationshipTo(c1, RelationshipType.withName("NOT_NEXT"))
+      a.createRelationshipTo(c2, RelationshipType.withName("NOT_NEXT"))
+      a.createRelationshipTo(c3, RelationshipType.withName("NOT_NEXT"))
+      c1.setProperty("p1", "Just")
+      c1.setProperty("p2", "It's")
+      c2.setProperty("p1", "got")
+      c2.setProperty("p2", "me")
+      c3.setProperty("p1", "here")
+      c3.setProperty("p2", "again")
+    }
+    // NOTE: we must use the same idGen in subplans, otherwise we will try to
+    //      change attributes multiple times in
+    val idGen = new SequentialIdGen()
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this, idGen = idGen)
+      .produceResults("res")
+      .projection("x.newProp AS res")
+      .apply()
+      .|.mergeUniqueNodeExpression(
+        "x",
+        "Label",
+        Seq("prop" -> "42"),
+        onCreate = Seq("newProp" -> nestedPlanCollectExpression(
+          new LogicalQueryBuilder(this, wholePlan = false, idGen = idGen)
+            .expand("(a)-[:NOT_NEXT]->(c)")
+            .nodeByLabelScan("a", "A"),
+          prop("c", "p1")
+        )),
+        onMatch = Seq("newProp" -> nestedPlanCollectExpression(
+          new LogicalQueryBuilder(this, wholePlan = false, idGen = idGen)
+            .expand("(a)-[:NOT_NEXT]->(c)")
+            .nodeByLabelScan("a", "A"),
+          prop("c", "p2")
+        )),
+        args = Set("x", "y", "ONE", "TWO")
+      )
+      .projection("x AS x", "y AS y", "1 AS ONE", "2 AS TWO")
+      .cartesianProduct()
+      .|.nodeByLabelScan("y", "B")
+      .nodeByLabelScan("x", "A")
+      .build(readOnly = false)
+
+    // then
+    execute(
+      logicalQuery,
+      runtime
+    ) should beColumns("res").withRows(Seq(Array(Array("Just", "got", "here"))), listInAnyOrder = true).withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 2
+    )
+
+    execute(
+      logicalQuery,
+      runtime
+    ) should beColumns("res").withRows(
+      Seq(Array(Array("It's", "me", "again"))),
+      listInAnyOrder = true
+    ).withStatistics(propertiesSet = 1)
   }
 }
 

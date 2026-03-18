@@ -1076,12 +1076,45 @@ class LogicalPlanToPlanBuilderStringTest
   )
 
   testPlan(
+    "mergeUniqueNodeExpression",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .apply()
+      .|.mergeUniqueNodeExpression(
+        "x",
+        "L",
+        Seq("p1" -> "i", "p2" -> "true"),
+        onMatch = Seq("created" -> literalBoolean(false)),
+        onCreate = Seq("created" -> literalBoolean(true)),
+        args = Set("i"),
+        indexType = IndexType.POINT
+      )
+      .unwind("[1, 2, 3] AS i")
+      .argument()
+      .build()
+  )
+
+  testPlan(
     "mergeInto",
     new TestPlanBuilder()
       .produceResults("x")
       .mergeInto(
         "(x)-[r:R]->(y)",
         onCreate = Seq("p1" -> "42", "p2" -> "false")
+      )
+      .cartesianProduct()
+      .|.allNodeScan("y")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
+    "mergeIntoExpression",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .mergeIntoExpression(
+        "(x)-[r:R]->(y)",
+        onCreate = Seq("p1" -> literalInt(42), "p2" -> literalBoolean(false))
       )
       .cartesianProduct()
       .|.allNodeScan("y")

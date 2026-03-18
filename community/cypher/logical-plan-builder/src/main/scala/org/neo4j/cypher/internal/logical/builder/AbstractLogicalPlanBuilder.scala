@@ -3066,6 +3066,28 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     indexType: IndexType = IndexType.RANGE,
     cacheValues: Boolean = false
   ): IMPL = {
+    mergeUniqueNodeExpression(
+      node,
+      labelName,
+      predicates,
+      onMatch.map(e => e._1 -> parseExpression(e._2)),
+      onCreate.map(e => e._1 -> parseExpression(e._2)),
+      args,
+      indexType,
+      cacheValues
+    )
+  }
+
+  def mergeUniqueNodeExpression(
+    node: String,
+    labelName: String,
+    predicates: Seq[(String, String)],
+    onMatch: Seq[(String, Expression)] = Seq.empty,
+    onCreate: Seq[(String, Expression)] = Seq.empty,
+    args: Set[String] = Set.empty,
+    indexType: IndexType = IndexType.RANGE,
+    cacheValues: Boolean = false
+  ): IMPL = {
 
     val n = varFor(VariableParser.unescaped(node))
     newNode(n)
@@ -3092,10 +3114,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       IndexOrderNone,
       indexType,
       onMatch.map {
-        case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+        case (k, v) => PropertyKeyName(k)(pos) -> v
       },
       onCreate.map {
-        case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
+        case (k, v) => PropertyKeyName(k)(pos) -> v
       }
     )(_)))
   }
@@ -3104,6 +3126,18 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     pattern: String,
     onMatch: Seq[(String, String)] = Seq.empty,
     onCreate: Seq[(String, String)] = Seq.empty
+  ): IMPL = {
+    mergeIntoExpression(
+      pattern,
+      onMatch = onMatch.map(e => e._1 -> parseExpression(e._2)),
+      onCreate = onCreate.map(e => e._1 -> parseExpression(e._2))
+    )
+  }
+
+  def mergeIntoExpression(
+    pattern: String,
+    onMatch: Seq[(String, Expression)] = Seq.empty,
+    onCreate: Seq[(String, Expression)] = Seq.empty
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -3121,12 +3155,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         p.dir,
         p.relTypes.head,
         varFor(p.to),
-        onMatch.map {
-          case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
-        },
-        onCreate.map {
-          case (k, v) => PropertyKeyName(k)(pos) -> parseExpression(v)
-        }
+        onMatch.map(e => PropertyKeyName(e._1)(pos) -> e._2),
+        onCreate.map(e => PropertyKeyName(e._1)(pos) -> e._2)
       )(_)
     ))
   }

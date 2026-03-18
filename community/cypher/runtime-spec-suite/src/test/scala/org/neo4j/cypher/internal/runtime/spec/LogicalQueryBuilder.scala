@@ -32,10 +32,12 @@ import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.pos
 import org.neo4j.cypher.internal.logical.builder.Resolver
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.NestedPlanCollectExpression
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
@@ -163,5 +165,13 @@ object LogicalQueryBuilder {
       None,
       Some(InTransactionsRetryParameters(Some(DecimalDoubleLiteral(timeout.toString)(pos)))(pos))
     ))
+  }
+
+  def nestedPlanCollectExpression(innerPlan: LogicalQueryBuilder, e: Expression): NestedPlanCollectExpression = {
+    NestedPlanCollectExpression(
+      innerPlan.buildLogicalPlan(),
+      e,
+      "collect(...)"
+    )(pos)
   }
 }
