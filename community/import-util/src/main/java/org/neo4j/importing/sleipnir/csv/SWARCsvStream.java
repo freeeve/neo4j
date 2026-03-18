@@ -118,6 +118,12 @@ public class SWARCsvStream implements CsvStream {
         }
     }
 
+    @Override
+    public void reset() {
+        nextIsEscaped = 0;
+        prevIterInsideQuote = 0;
+    }
+
     protected int processTail(ByteBuffer buffer, long baseOffset, int indexCursor, long[] destination) {
         while (buffer.hasRemaining()) {
             byte b = buffer.get();

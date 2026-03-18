@@ -44,4 +44,9 @@ public interface CsvStream {
      * @throws IllegalStateException if there are unclosed quotes and unmatched escape.
      */
     void validateEnd();
+
+    /**
+     * Reset all internal state kept between invocations of {@link #indexSeparators(ByteBuffer, long, long[])}.
+     */
+    void reset();
 }
