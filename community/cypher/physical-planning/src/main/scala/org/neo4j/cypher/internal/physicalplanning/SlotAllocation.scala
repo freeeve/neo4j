@@ -109,6 +109,7 @@ import org.neo4j.cypher.internal.logical.plans.OrderedUnion
 import org.neo4j.cypher.internal.logical.plans.PartialSort
 import org.neo4j.cypher.internal.logical.plans.PartialTop
 import org.neo4j.cypher.internal.logical.plans.PartitionedUnwindCollection
+import org.neo4j.cypher.internal.logical.plans.PipelineBreaker
 import org.neo4j.cypher.internal.logical.plans.PreserveOrder
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
@@ -898,6 +899,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         _: InjectCompilationError |
         _: NonPipelined |
         _: NonPipelinedStreaming |
+        _: PipelineBreaker |
         _: Prober |
         _: TriadicBuild |
         _: TriadicFilter |

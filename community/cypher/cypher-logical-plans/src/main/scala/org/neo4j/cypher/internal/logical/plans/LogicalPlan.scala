@@ -63,6 +63,8 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNod
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan.VERBOSE_TO_STRING
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan.safeGet
+import org.neo4j.cypher.internal.logical.plans.Prober.FlowProbe
+import org.neo4j.cypher.internal.logical.plans.Prober.NoopFlowProbe
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
@@ -4249,6 +4251,22 @@ case class PreserveOrder(override val source: LogicalPlan)(implicit idGen: IdGen
  *
  * NOTE: This plan is only for testing
  */
+case class PipelineBreaker(override val source: LogicalPlan, flowProbe: FlowProbe = NoopFlowProbe)(implicit
+  idGen: IdGen)
+    extends LogicalUnaryPlan(idGen) with TestOnlyPlan {
+
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
+
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
+
+  override val distinctness: Distinctness = source.distinctness
+}
+
+/**
+ * Install a probe to observe data flowing through the query
+ *
+ * NOTE: This plan is only for testing
+ */
 case class Prober(override val source: LogicalPlan, probe: Probe)(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) with TestOnlyPlan {
 
@@ -4283,6 +4301,30 @@ object Prober {
 
   object NoopProbe extends Probe {
     override def onRow(row: AnyRef, state: AnyRef): Unit = {}
+  }
+
+  trait FlowProbe {
+    // Sink
+    def onCanPut(canPut: Boolean): Boolean
+    def onPut(batch: AnyRef, state: AnyRef): AnyRef
+
+    // Source
+    def onHasData(hasData: Boolean): Boolean
+    def onTake(batch: AnyRef, state: AnyRef): AnyRef
+  }
+
+  object NoopFlowProbe extends FlowProbe {
+    override def onCanPut(canPut: Boolean): Boolean = canPut
+    override def onPut(batch: AnyRef, state: AnyRef): AnyRef = batch
+    override def onHasData(hasData: Boolean): Boolean = hasData
+    override def onTake(batch: AnyRef, state: AnyRef): AnyRef = batch
+  }
+
+  object UnlimitedBufferFlowProbe extends FlowProbe {
+    override def onCanPut(canPut: Boolean): Boolean = true
+    override def onPut(batch: AnyRef, state: AnyRef): AnyRef = batch
+    override def onHasData(hasData: Boolean): Boolean = hasData
+    override def onTake(batch: AnyRef, state: AnyRef): AnyRef = batch
   }
 }
 

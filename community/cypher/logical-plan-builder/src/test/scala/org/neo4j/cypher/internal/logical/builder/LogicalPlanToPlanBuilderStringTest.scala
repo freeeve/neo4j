@@ -3454,6 +3454,15 @@ class LogicalPlanToPlanBuilderStringTest
       .build()
   )
 
+  testPlan(
+    "pipelineBreaker",
+    new TestPlanBuilder()
+      .produceResults()
+      .pipelineBreaker()
+      .argument()
+      .build()
+  )
+
   private def interpretPlanBuilder(code: String): LogicalPlan = {
     val completeCode =
       s"""

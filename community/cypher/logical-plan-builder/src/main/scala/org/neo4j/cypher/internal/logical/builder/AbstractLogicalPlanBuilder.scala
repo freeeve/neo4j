@@ -220,11 +220,14 @@ import org.neo4j.cypher.internal.logical.plans.PartitionedUndirectedUnionRelatio
 import org.neo4j.cypher.internal.logical.plans.PartitionedUnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.PartitionedUnwindCollection
 import org.neo4j.cypher.internal.logical.plans.PathPropagatingBFS
+import org.neo4j.cypher.internal.logical.plans.PipelineBreaker
 import org.neo4j.cypher.internal.logical.plans.PointBoundingBoxRange
 import org.neo4j.cypher.internal.logical.plans.PointBoundingBoxSeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.PointDistanceRange
 import org.neo4j.cypher.internal.logical.plans.PointDistanceSeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.Prober
+import org.neo4j.cypher.internal.logical.plans.Prober.FlowProbe
+import org.neo4j.cypher.internal.logical.plans.Prober.NoopFlowProbe
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
@@ -2856,6 +2859,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   def nonPipelinedStreaming(expandFactor: Long = 1L): IMPL =
     appendAtCurrentIndent(UnaryOperator(lp => NonPipelinedStreaming(lp, expandFactor)(_)))
+
+  def pipelineBreaker(flowProbe: FlowProbe = NoopFlowProbe): IMPL =
+    appendAtCurrentIndent(UnaryOperator(lp => PipelineBreaker(lp, flowProbe)(_)))
 
   def prober(probe: Prober.Probe): IMPL =
     appendAtCurrentIndent(UnaryOperator(lp => Prober(lp, probe)(_)))
