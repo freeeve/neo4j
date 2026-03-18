@@ -34,6 +34,7 @@ import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.IndexSettingsValidator;
 import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
@@ -46,15 +47,26 @@ class VectorIndexSettingsValidators {
 
     public static class VersionedValidator extends TypedIndexSettingsValidator<VectorIndexConfig> {
         private final VectorIndexVersion version;
+
+        @SafeVarargs
+        VersionedValidator(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
+            super(version.descriptor(), new Validator(validators));
+            this.version = version;
+        }
+
+        @Override
+        public VectorIndexConfig toTypedConfig(Iterable<Valid> records) {
+            return new VectorIndexConfig(version, acceptedSettings(), records);
+        }
+    }
+
+    private static class Validator implements IndexSettingsValidator {
         private final SortedSet<IndexSettingValidator<? extends Value, ?>> validators;
         private final SortedSet<IndexSetting> acceptedSettings;
         private final SortedSet<String> handledSettingNames;
 
         @SafeVarargs
-        VersionedValidator(VectorIndexVersion version, IndexSettingValidator<? extends Value, ?>... validators) {
-            super(version.descriptor());
-            this.version = version;
-
+        Validator(IndexSettingValidator<? extends Value, ?>... validators) {
             // check we've not passed multiple validators for the same setting
             final Set<String> seenSettingNames = new HashSet<>(validators.length);
             final List<IndexSettingValidator<? extends Value, ?>> checkedValidators =
@@ -121,11 +133,6 @@ class VectorIndexSettingsValidators {
                 records.add(validator.trustIsValid(accessor));
             }
             return records;
-        }
-
-        @Override
-        public VectorIndexConfig toTypedConfig(Iterable<Valid> records) {
-            return new VectorIndexConfig(version, acceptedSettings, records);
         }
 
         @Override

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
 import org.neo4j.exceptions.InvalidArgumentException;
@@ -44,6 +45,6 @@ public class NotFoundIndexSettingsValidator implements IndexSettingsValidator {
 
     @Override
     public Set<IndexSetting> acceptedSettings() {
-        throw exception;
+        return Collections.emptySet();
     }
 }

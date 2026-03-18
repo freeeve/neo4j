@@ -23,11 +23,13 @@ import static org.neo4j.internal.schema.IndexConfigUtils.assertValidRecords;
 
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 
-public abstract class TypedIndexSettingsValidator<CONFIG extends TypedIndexConfig> implements IndexSettingsValidator {
+public abstract class TypedIndexSettingsValidator<CONFIG extends TypedIndexConfig>
+        extends IndexSettingsValidator.Delegate {
 
     private final IndexProviderDescriptor descriptor;
 
-    protected TypedIndexSettingsValidator(IndexProviderDescriptor descriptor) {
+    protected TypedIndexSettingsValidator(IndexProviderDescriptor descriptor, IndexSettingsValidator delegate) {
+        super(delegate);
         this.descriptor = descriptor;
     }
 

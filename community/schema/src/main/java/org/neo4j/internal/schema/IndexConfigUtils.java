@@ -138,4 +138,14 @@ public class IndexConfigUtils {
         }
         return InvalidArgumentException.invalidIndexConfig(settingName, settingNames);
     }
+
+    public static IllegalArgumentException duplicateSettings(
+            String providedType, String discriminatingType, Set<String> duplicateSettingNames) {
+        return new IllegalArgumentException(
+                "Expected a single %s to be provided for each %s. Provided duplicates for: %s"
+                        .formatted(
+                                providedType,
+                                discriminatingType,
+                                Iterables.toString(duplicateSettingNames, ", ", "[", "]")));
+    }
 }

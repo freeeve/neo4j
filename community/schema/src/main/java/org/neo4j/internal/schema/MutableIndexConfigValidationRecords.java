@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.State;
 
 /// A collection of [IndexConfigValidationRecord]s grouped by [State].
@@ -123,12 +122,10 @@ public class MutableIndexConfigValidationRecords extends IndexConfigValidationRe
         }
     }
 
-    private static IllegalArgumentException duplicateSettings(Set<String> duplicateSettingNames) {
-        return new IllegalArgumentException(
-                "Expected a single %s to be provided for each %s. Provided duplicates for: %s"
-                        .formatted(
-                                IndexConfigValidationRecord.class.getSimpleName(),
-                                IndexSetting.class.getSimpleName(),
-                                Iterables.toString(duplicateSettingNames, ", ", "[", "]")));
+    private static IllegalArgumentException duplicateSettings(Set<String> duplicateSettings) {
+        return IndexConfigUtils.duplicateSettings(
+                IndexConfigValidationRecord.class.getSimpleName(),
+                IndexSetting.class.getSimpleName(),
+                duplicateSettings);
     }
 }

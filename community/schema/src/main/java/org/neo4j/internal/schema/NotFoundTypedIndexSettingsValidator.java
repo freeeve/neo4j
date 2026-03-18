@@ -19,36 +19,16 @@
  */
 package org.neo4j.internal.schema;
 
-import java.util.Collections;
-import java.util.Set;
 import org.neo4j.exceptions.InvalidArgumentException;
-import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 
 public class NotFoundTypedIndexSettingsValidator<CONFIG extends TypedIndexConfig>
         extends TypedIndexSettingsValidator<CONFIG> {
-    private final IndexSettingsValidator delegate;
     protected final InvalidArgumentException exception;
 
     public NotFoundTypedIndexSettingsValidator(IndexProviderDescriptor descriptor, InvalidArgumentException exception) {
-        super(descriptor);
-        this.delegate = new NotFoundIndexSettingsValidator(exception);
+        super(descriptor, new NotFoundIndexSettingsValidator(exception));
         this.exception = exception;
-    }
-
-    @Override
-    public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
-        return delegate.validate(accessor);
-    }
-
-    @Override
-    public Iterable<Valid> interpretAuthoritative(SettingsAccessor accessor) {
-        return delegate.interpretAuthoritative(accessor);
-    }
-
-    @Override
-    public Set<IndexSetting> acceptedSettings() {
-        return Collections.emptySet();
     }
 
     @Override

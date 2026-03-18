@@ -72,10 +72,8 @@ public enum VectorIndexVersion {
                             AllIndexProviderDescriptors.UNDECIDED,
                             InvalidArgumentException.internalError(
                                     "Validator Not Found",
-                                    "%s not found for '%s'"
-                                            .formatted(
-                                                    TypedIndexSettingsValidator.class.getSimpleName(),
-                                                    descriptor().name())))));
+                                    "Validator not found for '%s'"
+                                            .formatted(descriptor().name())))));
         }
 
         @Override

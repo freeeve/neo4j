@@ -19,9 +19,21 @@
  */
 package org.neo4j.internal.schema;
 
+import static java.lang.String.CASE_INSENSITIVE_ORDER;
+import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
+import static org.neo4j.internal.schema.IndexConfigUtils.duplicateSettings;
+
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
@@ -35,8 +47,68 @@ import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
+/// A collection of [IndexSettingExtractor]s
 public class IndexSettingExtractors {
-    private IndexSettingExtractors() {}
+    private final Map<IndexSetting, IndexSettingExtractor> extractors;
+    private final Set<String> settingNames;
+
+    public IndexSettingExtractors(IndexSettingExtractor... extractors) {
+        final SortedMap<IndexSetting, IndexSettingExtractor> sortedExtractors = new TreeMap<>(INDEX_SETTING_COMPARATOR);
+        final SortedSet<String> settingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
+        final SortedSet<String> duplicateSettings = new TreeSet<>(CASE_INSENSITIVE_ORDER);
+        for (final IndexSettingExtractor extractor : extractors) {
+            final IndexSetting setting = extractor.setting();
+            final String settingName = setting.getSettingName();
+            if (!settingNames.add(settingName)) {
+                duplicateSettings.add(settingName);
+            }
+            sortedExtractors.put(setting, extractor);
+        }
+        if (!duplicateSettings.isEmpty()) {
+            throw duplicateSettings(
+                    IndexSettingExtractor.class.getSimpleName(), IndexSetting.class.getSimpleName(), duplicateSettings);
+        }
+
+        this.extractors = Collections.unmodifiableSortedMap(sortedExtractors);
+        this.settingNames = Collections.unmodifiableSortedSet(settingNames);
+    }
+
+    /// Extracts the values from the [SettingsAccessor] into a mutable collection
+    /// @see IndexSettingExtractor#extractForValidation(SettingsAccessor)
+    public KnownSettingRecords extractForValidation(SettingsAccessor accessor) {
+        final KnownSettingRecords records = new KnownSettingRecords();
+        for (final IndexSettingExtractor extractor : extractors.values()) {
+            records.upsert(extractor.extractForValidation(accessor));
+        }
+        return records;
+    }
+
+    /// Extracts the values from the [SettingsAccessor] into a mutable collection
+    /// @see IndexSettingExtractor#extractForAuthoritativeRead(SettingsAccessor)
+    public KnownSettingRecords extractForAuthoritativeRead(SettingsAccessor accessor) {
+        final KnownSettingRecords records = new KnownSettingRecords();
+        for (final IndexSettingExtractor extractor : extractors.values()) {
+            records.upsert(extractor.extractForAuthoritativeRead(accessor));
+        }
+        return records;
+    }
+
+    Set<IndexSetting> settings() {
+        return extractors.keySet();
+    }
+
+    Set<String> settingNames() {
+        return settingNames;
+    }
+
+    @Override
+    public String toString() {
+        return Iterables.toString(extractors.values(), ", ", getClass().getSimpleName() + "[", "]");
+    }
+
+    // =======================================
+    // IndexSettingExtractor implementations:
+    // =======================================
 
     private abstract static class RawIndexSettingExtractor implements IndexSettingExtractor {
         private final IndexSetting setting;
