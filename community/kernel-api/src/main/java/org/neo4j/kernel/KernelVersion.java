@@ -76,7 +76,7 @@ public enum KernelVersion {
     // An unreleased future version.
     // This version is meant to be used when developing a new feature
     // and it is not sure which version the feature will land in.
-    GLORIOUS_FUTURE(254);
+    GLORIOUS_FUTURE(254, 7);
     // 255(or -1) is typically used as a non-existing value, so we don't use that here
 
     public static final KernelVersion EARLIEST = V4_2;
@@ -140,6 +140,7 @@ public enum KernelVersion {
             new ByteToEnum<>(KernelVersion.class, KernelVersion::version);
 
     private final byte version;
+    private final int contentMarshallerVersion;
 
     public static KernelVersion getLatestVersion(Configuration config) {
         Byte version = config.get(GraphDatabaseInternalSettings.latest_kernel_version);
@@ -149,6 +150,13 @@ public enum KernelVersion {
     KernelVersion(int version) {
         checkArgument((version & ~0xFF) == 0, "Byte overflow");
         this.version = (byte) version;
+        this.contentMarshallerVersion = 0;
+    }
+
+    KernelVersion(int version, int contentMarshallerVersion) {
+        checkArgument((version & ~0xFF) == 0, "Byte overflow");
+        this.version = (byte) version;
+        this.contentMarshallerVersion = contentMarshallerVersion;
     }
 
     /**
@@ -216,5 +224,9 @@ public enum KernelVersion {
         checkArgument(index != -1, "Unknown kernel version " + kernelVersion);
         checkArgument(index > 0, "There's no kernel version preceding " + kernelVersion);
         return VERSIONS.get(index - 1);
+    }
+
+    public int contentMarshallerVersion() {
+        return contentMarshallerVersion;
     }
 }

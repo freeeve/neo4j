@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.fs.filename.SequentialFileNameHelper;
-import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.enveloped.PruneStrategy.PruneConstraint;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -130,7 +130,7 @@ class LogPruningByEntryStrategyTest {
 
             LogFormat.writeLogHeader(
                     channel.channel(),
-                    LogFormat.V11.newRaftHeader(version, prevIndex, 0, StoreId.UNKNOWN, 246, 1, DatabaseVersion.V1),
+                    LogFormat.V11.newHeader(version, prevIndex, 0, StoreId.UNKNOWN, 246, 1, KernelVersion.V2026_01),
                     EmptyMemoryTracker.INSTANCE);
             channel.channel().flush();
         }

@@ -35,7 +35,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.fs.filename.SequentialFileNameHelper;
-import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
@@ -199,7 +199,7 @@ public class EnvelopeLogRangeFuzzerIT {
         if (term >= 0) {
             writeChannel.putTerm(term);
         }
-        writeChannel.putVersion(DatabaseVersion.V2.identifier());
+        writeChannel.putVersion(KernelVersion.GLORIOUS_FUTURE.version());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
@@ -210,16 +210,16 @@ public class EnvelopeLogRangeFuzzerIT {
         var baseFolder = testDirectory.directory("logsFolder");
         return new EnvelopedLogFiles(
                 new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, baseFileName)),
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
-                                DatabaseVersion.V2.getLogFormatHeader())
-                        .newRaftHeader(
+                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromKernelVersion(
+                                KernelVersion.GLORIOUS_FUTURE)
+                        .newHeader(
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
-                                DatabaseVersion.V2),
+                                KernelVersion.GLORIOUS_FUTURE),
                 SEGMENT_BLOCK_SIZE,
                 4,
                 8,

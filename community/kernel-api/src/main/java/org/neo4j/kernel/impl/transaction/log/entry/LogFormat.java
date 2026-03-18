@@ -35,7 +35,6 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.NativeScopedBuffer;
-import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
@@ -61,7 +60,6 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
         }
 
@@ -79,18 +77,6 @@ public enum LogFormat {
                 int segmentBlockSize,
                 int previousLogFileChecksum,
                 KernelVersion kernelVersion) {
-            throw new UnsupportedOperationException("Cannot write log format V6");
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
             throw new UnsupportedOperationException("Cannot write log format V6");
         }
     },
@@ -126,7 +112,6 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
         }
 
@@ -144,18 +129,6 @@ public enum LogFormat {
                 int segmentBlockSize,
                 int previousLogFileChecksum,
                 KernelVersion kernelVersion) {
-            throw new UnsupportedOperationException("Cannot write log format V7");
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
             throw new UnsupportedOperationException("Cannot write log format V7");
         }
     },
@@ -188,7 +161,6 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
         }
 
@@ -230,20 +202,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
-            throw new UnsupportedOperationException("Cannot write raft log format V8");
         }
     },
 
@@ -269,7 +228,6 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
         }
 
@@ -312,20 +270,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
                     BASE_TX_CHECKSUM,
-                    null,
                     null);
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
-            throw new UnsupportedOperationException("Cannot write raft log format V9");
         }
     },
 
@@ -371,8 +316,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousChecksum,
-                    KernelVersion.getForVersion(kernelVersion),
-                    null);
+                    KernelVersion.getForVersion(kernelVersion));
         }
 
         @Override
@@ -418,20 +362,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousLogFileChecksum,
-                    kernelVersion,
-                    null);
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
-            throw new UnsupportedOperationException("Cannot write raft log format V10");
+                    kernelVersion);
         }
     },
     /**
@@ -466,10 +397,8 @@ public enum LogFormat {
             int segmentBlockSize = buffer.getInt();
             int previousChecksum = buffer.getInt();
             long lastTerm = buffer.getLong();
-            byte databaseVersionByte = buffer.get();
             byte kernelVersionByte = buffer.get();
             buffer.position(getHeaderSize()); // rest is reserved
-            var databaseVersion = DatabaseVersion.fromVersionNumber(databaseVersionByte);
             return new LogHeader(
                     getVersionByte(),
                     logVersion,
@@ -479,8 +408,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousChecksum,
-                    KernelVersion.getForVersion(kernelVersionByte),
-                    databaseVersion);
+                    KernelVersion.getForVersion(kernelVersionByte));
         }
 
         @Override
@@ -496,7 +424,6 @@ public enum LogFormat {
                 buffer.putInt(logHeader.getSegmentBlockSize());
                 buffer.putInt(logHeader.getPreviousLogFileChecksum());
                 buffer.putLong(logHeader.getLastTerm());
-                buffer.put(logHeader.getDatabaseVersion().identifier());
                 buffer.put(logHeader.getKernelVersion().version());
 
                 // Pad rest with zeroes
@@ -527,30 +454,7 @@ public enum LogFormat {
                     getHeaderSize(),
                     segmentBlockSize,
                     previousLogFileChecksum,
-                    kernelVersion, // for now allow overriding the kernel version
-                    DatabaseVersion.V1);
-        }
-
-        @Override
-        public LogHeader newRaftHeader(
-                long logVersion,
-                long lastAppendIndex,
-                long lastTerm,
-                StoreId storeId,
-                int segmentBlockSize,
-                int previousLogFileChecksum,
-                DatabaseVersion databaseVersion) {
-            return new LogHeader(
-                    getVersionByte(),
-                    logVersion,
-                    lastAppendIndex,
-                    lastTerm,
-                    storeId,
-                    getHeaderSize(),
-                    segmentBlockSize,
-                    previousLogFileChecksum,
-                    null,
-                    databaseVersion);
+                    kernelVersion);
         }
     };
 
@@ -611,15 +515,6 @@ public enum LogFormat {
             int segmentBlockSize,
             int previousLogFileChecksum,
             KernelVersion kernelVersion);
-
-    public abstract LogHeader newRaftHeader(
-            long logVersion,
-            long lastAppendIndex,
-            long lastTerm,
-            StoreId storeId,
-            int segmentBlockSize,
-            int previousLogFileChecksum,
-            DatabaseVersion databaseVersion);
 
     public byte getVersionByte() {
         return versionByte;

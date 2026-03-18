@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
-import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.getKernelVersionFromMergeLog;
 import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.skipDistributedHeaderAndGetKernelVersion;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.EMPTY_TX;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
@@ -99,7 +98,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                     }
 
                     default -> {
-                        versionCode = getKernelVersionFromMergeLog(channel);
+                        versionCode = channel.getVersion();
 
                         updateParserSet(channel, versionCode);
 

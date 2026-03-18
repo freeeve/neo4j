@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 
 import java.util.Objects;
-import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.StoreId;
@@ -42,7 +41,6 @@ public class LogHeader {
     private final LogPosition startPosition;
     private final int segmentBlockSize;
     private final long lastTerm;
-    private final DatabaseVersion databaseVersion;
     private final int previousLogFileChecksum;
     private final KernelVersion kernelVersion;
 
@@ -55,15 +53,13 @@ public class LogHeader {
             long headerSize,
             int segmentBlockSize,
             int previousLogFileChecksum,
-            KernelVersion kernelVersion,
-            DatabaseVersion databaseVersion) {
+            KernelVersion kernelVersion) {
         this.logFormatVersion = LogFormat.fromByteVersion(logFormatVersion);
         this.logVersion = logVersion;
         this.lastAppendIndex = lastAppendIndex;
         this.storeId = storeId;
         this.segmentBlockSize = segmentBlockSize;
         this.lastTerm = lastTerm;
-        this.databaseVersion = databaseVersion;
         if (segmentBlockSize != UNKNOWN_LOG_SEGMENT_SIZE) {
             // If we have a segmented file we should start reading after the first segment
             this.startPosition = new LogPosition(logVersion, segmentBlockSize);
@@ -71,8 +67,7 @@ public class LogHeader {
             this.startPosition = new LogPosition(logVersion, headerSize);
         }
         this.previousLogFileChecksum = previousLogFileChecksum;
-        this.kernelVersion =
-                databaseVersion == null ? kernelVersion : KernelVersion.getForVersion(databaseVersion.kernelVersion());
+        this.kernelVersion = kernelVersion;
     }
 
     public LogHeader(LogHeader logHeader, long version) {
@@ -85,7 +80,6 @@ public class LogHeader {
         previousLogFileChecksum = logHeader.previousLogFileChecksum;
         kernelVersion = logHeader.kernelVersion;
         lastTerm = logHeader.lastTerm;
-        databaseVersion = logHeader.databaseVersion;
     }
 
     public LogHeader(LogHeader logHeader, long version, long newLastAppendIndex, int checksum) {
@@ -98,7 +92,6 @@ public class LogHeader {
         previousLogFileChecksum = checksum;
         kernelVersion = logHeader.kernelVersion;
         lastTerm = logHeader.lastTerm;
-        databaseVersion = logHeader.databaseVersion;
     }
 
     public LogPosition getStartPosition() {
@@ -154,8 +147,7 @@ public class LogHeader {
                 && segmentBlockSize == logHeader.segmentBlockSize
                 && previousLogFileChecksum == logHeader.previousLogFileChecksum
                 && kernelVersion == logHeader.kernelVersion
-                && lastTerm == logHeader.lastTerm
-                && databaseVersion == logHeader.databaseVersion;
+                && lastTerm == logHeader.lastTerm;
     }
 
     @Override
@@ -169,8 +161,7 @@ public class LogHeader {
                 segmentBlockSize,
                 previousLogFileChecksum,
                 kernelVersion,
-                lastTerm,
-                databaseVersion);
+                lastTerm);
     }
 
     @Override
@@ -180,10 +171,6 @@ public class LogHeader {
                 + lastTerm + ", storeId=" + storeId + ", startPosition=" + startPosition
                 + ", segmentBlockSize="
                 + segmentBlockSize + ", previousLogFileChecksum=" + previousLogFileChecksum + ", kernelVersion="
-                + kernelVersion + ", databaseVersion=" + databaseVersion + '}';
-    }
-
-    public DatabaseVersion getDatabaseVersion() {
-        return databaseVersion;
+                + kernelVersion + '}';
     }
 }

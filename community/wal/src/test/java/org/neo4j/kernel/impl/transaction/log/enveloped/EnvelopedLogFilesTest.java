@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -47,7 +48,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.memory.HeapScopedBuffer;
-import org.neo4j.kernel.DatabaseVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
@@ -99,7 +99,7 @@ class EnvelopedLogFilesTest {
         if (term >= 0) {
             writeChannel.putTerm(term);
         }
-        writeChannel.putVersion(DatabaseVersion.V1.identifier());
+        writeChannel.putVersion(KernelVersion.V2026_01.version());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
@@ -117,16 +117,16 @@ class EnvelopedLogFilesTest {
         mirroringRepository = new LogsRepository(fs, filesHelper);
         envelopedLogFiles = new EnvelopedLogFiles(
                 mirroringRepository,
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
-                                DatabaseVersion.V1.getLogFormatHeader())
-                        .newRaftHeader(
+                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromKernelVersion(
+                                KernelVersion.GLORIOUS_FUTURE)
+                        .newHeader(
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
-                                DatabaseVersion.V1),
+                                KernelVersion.GLORIOUS_FUTURE),
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,
@@ -1237,7 +1237,7 @@ class EnvelopedLogFilesTest {
         writeData(writeChannel, new byte[] {'a'});
         writeData(writeChannel, new byte[] {'b'});
         writeChannel.prepareForFlush().flush();
-
+        Assertions.setMaxStackTraceElementsDisplayed(100);
         assertThatThrownBy(() -> envelopedLogFiles.storeChannels(0, 3)).isInstanceOf(ReadPastEndException.class);
     }
 
@@ -1382,14 +1382,14 @@ class EnvelopedLogFilesTest {
         try (var channel = mirroringRepository.openWriteChannel(2L).channel()) {
             LogHeader newHeader = headerOfLastFile
                     .getLogFormatVersion()
-                    .newRaftHeader(
+                    .newHeader(
                             headerOfLastFile.getLogVersion(),
                             2, // out of order as previous file is on appendIndex 11
                             headerOfLastFile.getLastTerm(),
                             headerOfLastFile.getStoreId(),
                             segmentBlockSize,
                             headerOfLastFile.getPreviousLogFileChecksum(),
-                            headerOfLastFile.getDatabaseVersion());
+                            headerOfLastFile.getKernelVersion());
             channel.position(0);
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
         }
@@ -1425,14 +1425,14 @@ class EnvelopedLogFilesTest {
         try (var channel = mirroringRepository.openWriteChannel(2L).channel()) {
             LogHeader newHeader = headerOfLastFile
                     .getLogFormatVersion()
-                    .newRaftHeader(
+                    .newHeader(
                             headerOfLastFile.getLogVersion(),
                             headerOfLastFile.getLastTerm(), // out of order as previous file is on appendIndex 11
                             2L,
                             headerOfLastFile.getStoreId(),
                             segmentBlockSize,
                             headerOfLastFile.getPreviousLogFileChecksum(),
-                            headerOfLastFile.getDatabaseVersion());
+                            headerOfLastFile.getKernelVersion());
             channel.position(0);
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
         }
@@ -1877,19 +1877,19 @@ class EnvelopedLogFilesTest {
         var writer = envelopedLogFiles.currentWriteChannel();
         writer.beginChecksumForWriting();
         writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
         writer.putTerm(80L);
         writer.write(ByteBuffer.wrap(data));
         writer.putChecksum();
         writer.beginChecksumForWriting();
         writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
         writer.putTerm(81L);
         writer.write(ByteBuffer.wrap(data));
         writer.putChecksum();
         writer.beginChecksumForWriting();
         writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
         writer.putTerm(82L);
         writer.write(ByteBuffer.wrap(data));
         writer.putChecksum();
@@ -1898,7 +1898,7 @@ class EnvelopedLogFilesTest {
         writer = envelopedLogFiles.currentWriteChannel();
         writer.beginChecksumForWriting();
         writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-        writer.putVersion(DatabaseVersion.getLatestVersion().identifier());
+        writer.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
         writer.putTerm(83L);
         writer.write(ByteBuffer.wrap(data));
         writer.putChecksum();

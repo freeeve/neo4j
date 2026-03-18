@@ -24,8 +24,6 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.DIST
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
 
 import java.io.IOException;
-import org.neo4j.kernel.DatabaseVersion;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 
@@ -70,22 +68,5 @@ public class ReplicatedTransactionHelper {
         // TODO MERGELOG - currently KernelVersion is inlined rather than in the envelope header
         // Note also this is also used for envelope only marshalling, but the header will have been separately skipped
         return channel.get();
-    }
-
-    public static byte getKernelVersionFromMergeLog(ReadableLogPositionAwareChannel channel) throws IOException {
-        if (!channel.supportsEntrySkipping()) {
-            throw new IllegalStateException(
-                    "Reading version from stream only expected on entry skippable/envelope channels.");
-        }
-        byte versionCode;
-        byte headerCode = channel.getVersion();
-        if (Byte.toUnsignedInt(headerCode)
-                < KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM.versionAsInt()) {
-            DatabaseVersion databaseVersion = DatabaseVersion.fromVersionNumber(headerCode);
-            versionCode = databaseVersion.kernelVersion();
-        } else {
-            versionCode = headerCode;
-        }
-        return versionCode;
     }
 }

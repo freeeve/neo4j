@@ -32,7 +32,7 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.filename.SequentialFileNameHelper;
-import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
@@ -70,7 +70,7 @@ class SegmentBinarySearchTest {
         if (term >= 0) {
             writeChannel.putTerm(term);
         }
-        writeChannel.putVersion(DatabaseVersion.V1.identifier());
+        writeChannel.putVersion(KernelVersion.V2026_01.version());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
         writeChannel.endCurrentEntry();
@@ -85,16 +85,16 @@ class SegmentBinarySearchTest {
         var baseFolder = testDirectory.directory("logsFolder");
         envelopedLogFiles = new EnvelopedLogFiles(
                 new LogsRepository(fs, new SequentialFileNameHelper(baseFolder, "enveloped-log-file")),
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromByteVersion(
-                                DatabaseVersion.V1.getLogFormatHeader())
-                        .newRaftHeader(
+                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromKernelVersion(
+                                KernelVersion.GLORIOUS_FUTURE)
+                        .newHeader(
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
-                                DatabaseVersion.V1),
+                                KernelVersion.GLORIOUS_FUTURE),
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,

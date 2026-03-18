@@ -206,7 +206,6 @@ class LogHeaderReaderTest {
                                 LogFormat.V6.getHeaderSize(),
                                 UNKNOWN_LOG_SEGMENT_SIZE,
                                 BASE_TX_CHECKSUM,
-                                null,
                                 null);
                     }
                 },
@@ -249,7 +248,6 @@ class LogHeaderReaderTest {
                                 LogFormat.V7.getHeaderSize(),
                                 UNKNOWN_LOG_SEGMENT_SIZE,
                                 BASE_TX_CHECKSUM,
-                                null,
                                 null);
                     }
                 },

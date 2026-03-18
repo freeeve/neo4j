@@ -19,16 +19,16 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
-import org.neo4j.kernel.DatabaseVersion;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.storageengine.api.StoreId;
 
 public class BaseLogHeaderFactory implements LogHeaderFactory {
 
-    private volatile DatabaseVersion currentAppendedDatabaseVersion;
+    private volatile KernelVersion currentAppendedDatabaseVersion;
 
-    public BaseLogHeaderFactory(DatabaseVersion currentAppendedDatabaseVersion) {
+    public BaseLogHeaderFactory(KernelVersion currentAppendedDatabaseVersion) {
         this.currentAppendedDatabaseVersion = currentAppendedDatabaseVersion;
     }
 
@@ -36,8 +36,8 @@ public class BaseLogHeaderFactory implements LogHeaderFactory {
     public LogHeader createLogHeader(
             long newFileVersion, long lastAppendIndex, int lastChecksum, int segmentSize, long preFileTerm) {
         var version = getCurrentDatabaseVersion();
-        return LogFormat.fromByteVersion(version.getLogFormatHeader())
-                .newRaftHeader(
+        return LogFormat.fromKernelVersion(version)
+                .newHeader(
                         newFileVersion,
                         lastAppendIndex,
                         preFileTerm,
@@ -47,11 +47,11 @@ public class BaseLogHeaderFactory implements LogHeaderFactory {
                         version);
     }
 
-    public void setVersion(DatabaseVersion databaseVersion) {
+    public void setVersion(KernelVersion databaseVersion) {
         this.currentAppendedDatabaseVersion = databaseVersion;
     }
 
-    public DatabaseVersion getCurrentDatabaseVersion() {
+    public KernelVersion getCurrentDatabaseVersion() {
         if (currentAppendedDatabaseVersion == null) {
             throw new IllegalStateException("No version has been set for the current log");
         }
