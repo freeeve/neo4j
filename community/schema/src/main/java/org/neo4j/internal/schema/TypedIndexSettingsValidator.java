@@ -21,7 +21,7 @@ package org.neo4j.internal.schema;
 
 import static org.neo4j.internal.schema.IndexConfigUtils.assertValidRecords;
 
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 public abstract class TypedIndexSettingsValidator<CONFIG extends TypedIndexConfig>
         extends IndexSettingsValidator.Delegate {
@@ -39,9 +39,9 @@ public abstract class TypedIndexSettingsValidator<CONFIG extends TypedIndexConfi
         return validateToTypedConfig(validate(accessor));
     }
 
-    /// Intermediate method for optimization purposes, if the [IndexConfigValidationRecords] are precomputed
+    /// Intermediate method for optimization purposes, if the [IndexSettingRecordsByState] are precomputed
     /// @see #validateToTypedConfig(SettingsAccessor)
-    public CONFIG validateToTypedConfig(IndexConfigValidationRecords records) {
+    public CONFIG validateToTypedConfig(IndexSettingRecordsByState records) {
         assertValidRecords(records, descriptor, acceptedSettings());
         return toTypedConfig(records.validRecords());
     }
@@ -52,7 +52,7 @@ public abstract class TypedIndexSettingsValidator<CONFIG extends TypedIndexConfi
         return interpretAuthoritativeToTypedConfig(interpretAuthoritative(accessor));
     }
 
-    /// Intermediate method for optimization purposes, if the [IndexConfigValidationRecords] are precomputed
+    /// Intermediate method for optimization purposes, if the [IndexSettingRecordsByState] are precomputed
     /// @see #interpretAuthoritative(SettingsAccessor)
     public CONFIG interpretAuthoritativeToTypedConfig(Iterable<Valid> records) {
         return toTypedConfig(records);

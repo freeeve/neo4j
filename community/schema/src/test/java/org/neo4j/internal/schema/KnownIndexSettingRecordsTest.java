@@ -24,28 +24,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.FAKE_VALUE;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
-import org.neo4j.internal.schema.KnownSettingRecords.RecordProcessor;
+import org.neo4j.internal.schema.KnownIndexSettingRecords.RecordProcessor;
 import org.neo4j.values.storable.Values;
 
-class KnownSettingRecordsTest {
-    private KnownSettingRecords records;
+class KnownIndexSettingRecordsTest {
+    private KnownIndexSettingRecords records;
 
     @BeforeEach
     void setup() {
-        records = new KnownSettingRecords();
+        records = new KnownIndexSettingRecords();
     }
 
     @Test
@@ -57,7 +55,6 @@ class KnownSettingRecordsTest {
     void upsertRecord() {
         final RecordWithSetting record = new MissingSetting(TestIndexSetting.STRING);
         assertThat(record).isSameAs(records.upsert(record)).isSameAs(records.get(TestIndexSetting.STRING));
-
         assertThat(records).containsExactly(record);
     }
 
@@ -66,13 +63,6 @@ class KnownSettingRecordsTest {
         assertThatThrownBy(() -> records.upsert(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("record must not be null");
-    }
-
-    @Test
-    void upsertKnownSettingRecord() {
-        final MissingSetting record = new MissingSetting(TestIndexSetting.STRING);
-        assertThat(record).isSameAs(records.upsert(record)).isSameAs(records.get(TestIndexSetting.STRING));
-        assertThat(records).containsExactly(record);
     }
 
     @Test
@@ -129,25 +119,15 @@ class KnownSettingRecordsTest {
     }
 
     @Test
-    void groupByState() {
-        final Collection<MissingSetting> missingSetting =
-                List.of(records.upsert(new MissingSetting(TestIndexSetting.OBJECT)));
-
-        final Collection<InvalidValue> invalidValue =
-                List.of(records.upsert(new InvalidValue(TestIndexSetting.STRING, "foo", Set.of("bar", "baz"))));
-
-        final Collection<Pending> pending = List.of(
+    void toIndexSettings() {
+        final Iterable<RecordWithSetting> provided = Iterables.asIterable(
+                records.upsert(new MissingSetting(TestIndexSetting.OBJECT)),
+                records.upsert(new InvalidValue(TestIndexSetting.STRING, "foo", Set.of("bar", "baz"))),
                 records.upsert(new Pending(TestIndexSetting.INTEGER, 42, Values.intValue(42))),
-                records.upsert(new Pending(TestIndexSetting.BOOLEAN, false, Values.NO_VALUE)));
+                records.upsert(new Pending(TestIndexSetting.BOOLEAN, false, Values.NO_VALUE)),
+                records.upsert(new Valid(TestIndexSetting.DOUBLE, Math.PI, Values.doubleValue(Math.PI))));
 
-        final Collection<Valid> valid =
-                List.of(records.upsert(new Valid(TestIndexSetting.DOUBLE, Math.PI, Values.doubleValue(Math.PI))));
-
-        final IndexConfigValidationRecords recordsByState = records.groupByState();
-        assertThat(recordsByState).containsExactlyInAnyOrderElementsOf(records);
-        assertThat(recordsByState.get(State.MISSING_SETTING)).containsExactlyInAnyOrderElementsOf(missingSetting);
-        assertThat(recordsByState.get(State.INVALID_VALUE)).containsExactlyInAnyOrderElementsOf(invalidValue);
-        assertThat(recordsByState.get(State.PENDING)).containsExactlyInAnyOrderElementsOf(pending);
-        assertThat(recordsByState.get(State.VALID)).containsExactlyInAnyOrderElementsOf(valid);
+        final IndexSettingRecords indexSettingRecords = records.toIndexSettingRecords();
+        assertThat(indexSettingRecords).containsExactlyInAnyOrderElementsOf(provided);
     }
 }

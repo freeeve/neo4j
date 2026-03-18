@@ -36,19 +36,19 @@ import java.util.function.BiPredicate;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
 import org.neo4j.internal.schema.InternalIndexSetting;
-import org.neo4j.internal.schema.KnownSettingRecords;
+import org.neo4j.internal.schema.KnownIndexSettingRecords;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.IntegerToOptionalIntConverter;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.TypeToOptionalConverter;
 import org.neo4j.internal.schema.SingleIndexSettingLookup.NameToEnumLookup;
@@ -249,7 +249,7 @@ public class VectorIndexConfigUtils {
         }
 
         @Override
-        public void updateForVerification(KnownSettingRecords records) {
+        public void updateForVerification(KnownIndexSettingRecords records) {
             independentSettingsValidator.updateForVerification(records);
             final RecordWithSetting enabledRecord = records.get(QUANTIZATION_ENABLED);
             final RecordWithSetting typeRecord = records.get(QUANTIZATION_TYPE);
@@ -267,7 +267,7 @@ public class VectorIndexConfigUtils {
         }
 
         @Override
-        public void updateForAuthoritativeRead(KnownSettingRecords records) {
+        public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
             independentSettingsValidator.updateForAuthoritativeRead(records);
             final RecordWithSetting enabledRecord = records.get(QUANTIZATION_ENABLED);
             if (enabledRecord instanceof final Valid validEnabled) {

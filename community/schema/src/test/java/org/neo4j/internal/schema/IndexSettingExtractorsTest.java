@@ -102,11 +102,11 @@ class IndexSettingExtractorsTest {
                 entry(TestIndexSetting.BOOLEAN, false),
                 entry(TestIndexSetting.STRING, "foo"));
 
-        private KnownSettingRecords records;
+        private KnownIndexSettingRecords records;
 
         @BeforeEach
         void setup() {
-            records = new KnownSettingRecords();
+            records = new KnownIndexSettingRecords();
         }
 
         @Test
@@ -115,7 +115,7 @@ class IndexSettingExtractorsTest {
                 records.upsert(extractor.extractForValidation(ACCESSOR));
             }
 
-            final KnownSettingRecords extractedRecords = EXTRACTORS.extractForValidation(ACCESSOR);
+            final KnownIndexSettingRecords extractedRecords = EXTRACTORS.extractForValidation(ACCESSOR);
             assertThat(extractedRecords).containsExactlyInAnyOrderElementsOf(records);
         }
 
@@ -125,7 +125,7 @@ class IndexSettingExtractorsTest {
                 records.upsert(extractor.extractForAuthoritativeRead(ACCESSOR));
             }
 
-            final KnownSettingRecords extractedRecords = EXTRACTORS.extractForAuthoritativeRead(ACCESSOR);
+            final KnownIndexSettingRecords extractedRecords = EXTRACTORS.extractForAuthoritativeRead(ACCESSOR);
             assertThat(extractedRecords).containsExactlyInAnyOrderElementsOf(records);
         }
     }

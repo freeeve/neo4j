@@ -34,13 +34,13 @@ import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Invalid;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Unprocessed;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.Invalid;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
+import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
 import org.neo4j.values.utils.PrettyPrinter;
 
 public class IndexConfigUtils {
@@ -48,7 +48,7 @@ public class IndexConfigUtils {
             Comparator.comparing(IndexSetting::getSettingName, CASE_INSENSITIVE_ORDER);
 
     public static void assertValidRecords(
-            IndexConfigValidationRecords validationRecords,
+            IndexSettingRecordsByState validationRecords,
             IndexProviderDescriptor descriptor,
             Set<IndexSetting> acceptedSettings) {
         // fail on first
@@ -125,7 +125,7 @@ public class IndexConfigUtils {
     }
 
     private static InternalException incompleteValidation(
-            IndexProviderDescriptor descriptor, IndexConfigValidationRecord record) {
+            IndexProviderDescriptor descriptor, IndexSettingRecord record) {
         return InternalException.indexNotApplicable(
                 descriptor.name(),
                 "Validation for '%s' is incomplete. Provided: %s".formatted(record.settingName(), record));

@@ -34,13 +34,13 @@ import java.util.TreeSet;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Unprocessed;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -75,8 +75,8 @@ public class IndexSettingExtractors {
 
     /// Extracts the values from the [SettingsAccessor] into a mutable collection
     /// @see IndexSettingExtractor#extractForValidation(SettingsAccessor)
-    public KnownSettingRecords extractForValidation(SettingsAccessor accessor) {
-        final KnownSettingRecords records = new KnownSettingRecords();
+    public KnownIndexSettingRecords extractForValidation(SettingsAccessor accessor) {
+        final KnownIndexSettingRecords records = new KnownIndexSettingRecords();
         for (final IndexSettingExtractor extractor : extractors.values()) {
             records.upsert(extractor.extractForValidation(accessor));
         }
@@ -85,8 +85,8 @@ public class IndexSettingExtractors {
 
     /// Extracts the values from the [SettingsAccessor] into a mutable collection
     /// @see IndexSettingExtractor#extractForAuthoritativeRead(SettingsAccessor)
-    public KnownSettingRecords extractForAuthoritativeRead(SettingsAccessor accessor) {
-        final KnownSettingRecords records = new KnownSettingRecords();
+    public KnownIndexSettingRecords extractForAuthoritativeRead(SettingsAccessor accessor) {
+        final KnownIndexSettingRecords records = new KnownIndexSettingRecords();
         for (final IndexSettingExtractor extractor : extractors.values()) {
             records.upsert(extractor.extractForAuthoritativeRead(accessor));
         }

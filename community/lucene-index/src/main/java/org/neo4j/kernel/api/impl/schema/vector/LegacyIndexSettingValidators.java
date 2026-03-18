@@ -26,13 +26,13 @@ import java.util.OptionalInt;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
-import org.neo4j.internal.schema.IndexConfigValidationRecord;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Unprocessed;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
+import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
@@ -66,9 +66,9 @@ class LegacyIndexSettingValidators {
 
         abstract Value map(TYPE value);
 
-        abstract IndexConfigValidationRecord validate(SettingsAccessor accessor);
+        abstract IndexSettingRecord validate(SettingsAccessor accessor);
 
-        protected IndexConfigValidationRecord extractOrDefault(SettingsAccessor accessor) {
+        protected IndexSettingRecord extractOrDefault(SettingsAccessor accessor) {
             if (accessor.containsSetting(setting)) {
                 return new Unprocessed(setting, accessor.get(setting));
             }
@@ -104,7 +104,7 @@ class LegacyIndexSettingValidators {
         }
 
         @Override
-        IndexConfigValidationRecord validate(SettingsAccessor accessor) {
+        IndexSettingRecord validate(SettingsAccessor accessor) {
             if (accessor.containsSetting(setting)) {
                 return new UnrecognizedSetting(setting.getSettingName());
             }
@@ -133,8 +133,8 @@ class LegacyIndexSettingValidators {
         }
 
         @Override
-        public IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final IndexConfigValidationRecord record = extractOrDefault(accessor);
+        public IndexSettingRecord validate(SettingsAccessor accessor) {
+            final IndexSettingRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
@@ -174,8 +174,8 @@ class LegacyIndexSettingValidators {
         }
 
         @Override
-        IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final IndexConfigValidationRecord record = extractOrDefault(accessor);
+        IndexSettingRecord validate(SettingsAccessor accessor) {
+            final IndexSettingRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
@@ -218,8 +218,8 @@ class LegacyIndexSettingValidators {
         }
 
         @Override
-        IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final IndexConfigValidationRecord record = extractOrDefault(accessor);
+        IndexSettingRecord validate(SettingsAccessor accessor) {
+            final IndexSettingRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }
@@ -266,8 +266,8 @@ class LegacyIndexSettingValidators {
         }
 
         @Override
-        IndexConfigValidationRecord validate(SettingsAccessor accessor) {
-            final IndexConfigValidationRecord record = extractOrDefault(accessor);
+        IndexSettingRecord validate(SettingsAccessor accessor) {
+            final IndexSettingRecord record = extractOrDefault(accessor);
             if (!(record instanceof final Unprocessed unprocessed)) {
                 return record;
             }

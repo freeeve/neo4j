@@ -37,16 +37,16 @@ import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithStorable;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor;
-import org.neo4j.internal.schema.KnownSettingRecords;
+import org.neo4j.internal.schema.KnownIndexSettingRecords;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QuantizationTypeLookup;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SimpleQuantizationEnabledToTypeMigrator;
@@ -55,11 +55,11 @@ import org.neo4j.values.storable.Values;
 
 class VectorIndexSettingsProcessorsTest {
     abstract static class TestBase {
-        protected KnownSettingRecords records;
+        protected KnownIndexSettingRecords records;
 
         @BeforeEach
         void setup() {
-            records = new KnownSettingRecords();
+            records = new KnownIndexSettingRecords();
         }
     }
 

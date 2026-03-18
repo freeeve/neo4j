@@ -22,12 +22,12 @@ package org.neo4j.internal.schema;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithStorable;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 /// A [SingleIndexSettingProcessor] which converts/transforms a value to another with the same [IndexSetting]
 public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSettingProcessor {

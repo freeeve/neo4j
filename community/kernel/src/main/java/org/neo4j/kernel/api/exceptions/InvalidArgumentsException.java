@@ -34,7 +34,7 @@ import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.internal.schema.IndexConfigValidationRecord;
+import org.neo4j.internal.schema.IndexSettingRecord;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.utils.PrettyPrinter;
@@ -375,7 +375,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     public static InvalidArgumentsException unrecognizedIndexConfigSetting(
             PrettyPrinter pp,
             MapValue itemsMap,
-            IndexConfigValidationRecord unrecognized,
+            IndexSettingRecord unrecognized,
             String schemaType,
             java.util.List<String> validConfigSettingNames) {
         var gql = getIdxGql(itemsMap, validConfigSettingNames);

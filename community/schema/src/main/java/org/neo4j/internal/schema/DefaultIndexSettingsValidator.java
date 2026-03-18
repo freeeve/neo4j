@@ -35,8 +35,8 @@ import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.ImmutableMapEntry;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
 
 public class DefaultIndexSettingsValidator implements IndexSettingsValidator {
@@ -118,37 +118,34 @@ public class DefaultIndexSettingsValidator implements IndexSettingsValidator {
         }
     }
 
-    public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
+    public IndexSettingRecordsByState validate(SettingsAccessor accessor) {
         final Set<String> expectedSettingNames = extractors.settingNames();
         final Collection<UnrecognizedSetting> unrecognizedSettings = new ArrayList<>();
-        final Set<String> unrecognizedSettingNames = new TreeSet<>(CASE_INSENSITIVE_ORDER);
         for (final String settingName : accessor.settingNames()) {
             if (!expectedSettingNames.contains(settingName)) {
                 unrecognizedSettings.add(new UnrecognizedSetting(settingName));
-                unrecognizedSettingNames.add(settingName);
             }
         }
 
-        final KnownSettingRecords records = extractors.extractForValidation(accessor);
-        processor.updateForVerification(records);
+        final KnownIndexSettingRecords recordWithSettings = extractors.extractForValidation(accessor);
+        processor.updateForVerification(recordWithSettings);
 
-        // inject implicit settings iff they are not already part of the provided settings
-        // which is an error state, and they should remain as unrecognised
         for (final IndexSettingEntry entry : implicitSettings) {
-            if (!unrecognizedSettingNames.contains(entry.settingName())) {
-                records.upsert(new Valid(entry.setting(), entry.value(), null));
-            }
+            recordWithSettings.upsert(new Valid(entry.setting(), entry.value(), null));
         }
-        return records.groupByState().with(unrecognizedSettings);
+
+        final IndexSettingRecords records = recordWithSettings.toIndexSettingRecords();
+        records.upsertAll(unrecognizedSettings); // unrecognized settings should overwrite and take precedence
+        return records.groupByState();
     }
 
     @Override
     public Iterable<Valid> interpretAuthoritative(SettingsAccessor accessor) {
-        final KnownSettingRecords records = extractors.extractForAuthoritativeRead(accessor);
+        final KnownIndexSettingRecords records = extractors.extractForAuthoritativeRead(accessor);
         processor.updateForAuthoritativeRead(records);
 
         final SortedSet<Valid> validRecords = new TreeSet<>();
-        for (final IndexConfigValidationRecord record : records) {
+        for (final IndexSettingRecord record : records) {
             switch (record) {
                 case Valid valid -> validRecords.add(valid);
                 case null, default ->

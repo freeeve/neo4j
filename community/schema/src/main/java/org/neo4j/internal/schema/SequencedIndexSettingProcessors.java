@@ -74,12 +74,12 @@ public class SequencedIndexSettingProcessors implements IndexSettingsProcessor {
         final IndexSettingsProcessor delegate = new SequencedIndexSettingProcessors(sequencedProcessors, settings);
         return new ValidatingIndexSettingsProcessor() {
             @Override
-            public void updateForVerification(KnownSettingRecords records) {
+            public void updateForVerification(KnownIndexSettingRecords records) {
                 delegate.updateForVerification(records);
             }
 
             @Override
-            public void updateForAuthoritativeRead(KnownSettingRecords records) {
+            public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
                 delegate.updateForAuthoritativeRead(records);
             }
 
@@ -97,14 +97,14 @@ public class SequencedIndexSettingProcessors implements IndexSettingsProcessor {
     }
 
     @Override
-    public void updateForVerification(KnownSettingRecords records) {
+    public void updateForVerification(KnownIndexSettingRecords records) {
         for (final IndexSettingsProcessor processor : processors) {
             processor.updateForVerification(records);
         }
     }
 
     @Override
-    public void updateForAuthoritativeRead(KnownSettingRecords records) {
+    public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
         for (final IndexSettingsProcessor processor : processors) {
             processor.updateForAuthoritativeRead(records);
         }

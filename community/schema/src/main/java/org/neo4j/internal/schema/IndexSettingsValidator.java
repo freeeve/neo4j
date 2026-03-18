@@ -21,12 +21,12 @@ package org.neo4j.internal.schema;
 
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 public interface IndexSettingsValidator {
 
     /// Validate the provided provisional settings into validation records
-    IndexConfigValidationRecords validate(SettingsAccessor accessor);
+    IndexSettingRecordsByState validate(SettingsAccessor accessor);
 
     /// Interpret an existing authoritative settings into valid records
     Iterable<Valid> interpretAuthoritative(SettingsAccessor accessor);
@@ -42,7 +42,7 @@ public interface IndexSettingsValidator {
         }
 
         @Override
-        public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
+        public IndexSettingRecordsByState validate(SettingsAccessor accessor) {
             return delegate.validate(accessor);
         }
 

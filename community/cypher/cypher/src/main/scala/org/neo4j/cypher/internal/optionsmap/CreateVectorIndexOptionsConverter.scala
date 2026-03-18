@@ -26,14 +26,14 @@ import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.helpers.InclusiveRange
 import org.neo4j.internal.schema.IndexConfig
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State.INCORRECT_TYPE
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State.INVALID_VALUE
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State.MISSING_SETTING
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State.UNRECOGNIZED_SETTING
-import org.neo4j.internal.schema.IndexConfigValidationRecords
 import org.neo4j.internal.schema.IndexProviderDescriptor
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue
+import org.neo4j.internal.schema.IndexSettingRecord.State.INCORRECT_TYPE
+import org.neo4j.internal.schema.IndexSettingRecord.State.INVALID_VALUE
+import org.neo4j.internal.schema.IndexSettingRecord.State.MISSING_SETTING
+import org.neo4j.internal.schema.IndexSettingRecord.State.UNRECOGNIZED_SETTING
+import org.neo4j.internal.schema.IndexSettingRecordsByState
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SettingsAccessor.MapValueAccessor
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
@@ -81,7 +81,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
 
     def assertInvalidConfigValues(
       pp: PrettyPrinter,
-      validationRecords: IndexConfigValidationRecords,
+      validationRecords: IndexSettingRecordsByState,
       itemsMap: MapValue,
       schemaType: String,
       validSettingNames: Iterable[String]
@@ -101,7 +101,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
       }
     }
 
-    def assertMandatoryConfigSettingsExists(validationRecords: IndexConfigValidationRecords): Unit = {
+    def assertMandatoryConfigSettingsExists(validationRecords: IndexSettingRecordsByState): Unit = {
       val missingSettings = validationRecords.get(MISSING_SETTING).asScala
       if (missingSettings.nonEmpty) {
         val missingQuoted =
@@ -115,7 +115,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
       }
     }
 
-    def assertConfigSettingsCorrectTypes(validationRecords: IndexConfigValidationRecords, itemsMap: MapValue): Unit = {
+    def assertConfigSettingsCorrectTypes(validationRecords: IndexSettingRecordsByState, itemsMap: MapValue): Unit = {
       val legacyExceptionValidTypes: Map[Class[_], String] =
         Map(
           classOf[IntegralValue] -> "an Integer",
@@ -140,7 +140,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
       }
     }
 
-    def assertValidConfigValues(validationRecords: IndexConfigValidationRecords): Unit = {
+    def assertValidConfigValues(validationRecords: IndexSettingRecordsByState): Unit = {
       validationRecords.get(INVALID_VALUE).asScala.map(_.asInstanceOf[InvalidValue]).foreach {
         invalidValue =>
           val value = invalidValue.value match {

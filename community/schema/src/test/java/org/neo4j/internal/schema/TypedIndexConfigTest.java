@@ -36,7 +36,7 @@ import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.Lookup;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.values.storable.Value;

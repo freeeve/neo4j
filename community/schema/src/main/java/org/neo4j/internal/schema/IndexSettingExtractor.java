@@ -20,7 +20,7 @@
 package org.neo4j.internal.schema;
 
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 
 /// An extractor of setting values from a [SettingsAccessor]
 public interface IndexSettingExtractor extends HasSetting {
@@ -29,7 +29,7 @@ public interface IndexSettingExtractor extends HasSetting {
     /// If the [SettingsAccessor] does not contain that [org.neo4j.graphdb.schema.IndexSetting], or its extracted
     // value
     /// is `null` or [org.neo4j.values.storable.Values#NO_VALUE], a
-    /// [org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting] should be returned.
+    /// [IndexSettingRecord.MissingSetting] should be returned.
     /// @return a [RecordWithSetting] wrapping the extracted result.
     RecordWithSetting extractForValidation(SettingsAccessor accessor);
 

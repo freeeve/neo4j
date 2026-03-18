@@ -20,7 +20,7 @@
 package org.neo4j.internal.schema;
 
 import org.neo4j.exceptions.InvalidArgumentException;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 public class NotFoundTypedIndexSettingsValidator<CONFIG extends TypedIndexConfig>
         extends TypedIndexSettingsValidator<CONFIG> {
@@ -37,7 +37,7 @@ public class NotFoundTypedIndexSettingsValidator<CONFIG extends TypedIndexConfig
     }
 
     @Override
-    public CONFIG validateToTypedConfig(IndexConfigValidationRecords records) {
+    public CONFIG validateToTypedConfig(IndexSettingRecordsByState records) {
         throw exception;
     }
 

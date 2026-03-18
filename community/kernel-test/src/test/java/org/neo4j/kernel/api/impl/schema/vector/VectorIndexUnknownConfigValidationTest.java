@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.neo4j.exceptions.InvalidArgumentException;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
-import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecordsByState;
 import org.neo4j.internal.schema.NotFoundTypedIndexSettingsValidator;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
@@ -62,7 +62,7 @@ public class VectorIndexUnknownConfigValidationTest {
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name());
 
-        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexSettingRecordsByState.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name());
@@ -97,7 +97,7 @@ public class VectorIndexUnknownConfigValidationTest {
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexSettingRecordsByState.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
@@ -130,7 +130,7 @@ public class VectorIndexUnknownConfigValidationTest {
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
-        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexConfigValidationRecords.class)))
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexSettingRecordsByState.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());

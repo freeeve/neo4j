@@ -24,10 +24,10 @@ import java.util.Objects;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -46,12 +46,12 @@ public abstract class SingleIndexSettingProcessor implements IndexSettingsProces
     public abstract RecordWithSetting processForAuthoritativeRead(RecordWithSetting record);
 
     @Override
-    public void updateForVerification(KnownSettingRecords records) {
+    public void updateForVerification(KnownIndexSettingRecords records) {
         records.upsertWith(setting, this::processForVerification);
     }
 
     @Override
-    public void updateForAuthoritativeRead(KnownSettingRecords records) {
+    public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
         records.upsertWith(setting, this::processForAuthoritativeRead);
     }
 

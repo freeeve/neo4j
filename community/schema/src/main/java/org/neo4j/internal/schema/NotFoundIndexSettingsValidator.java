@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 public class NotFoundIndexSettingsValidator implements IndexSettingsValidator {
     protected final InvalidArgumentException exception;
@@ -34,7 +34,7 @@ public class NotFoundIndexSettingsValidator implements IndexSettingsValidator {
     }
 
     @Override
-    public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
+    public IndexSettingRecordsByState validate(SettingsAccessor accessor) {
         throw exception;
     }
 

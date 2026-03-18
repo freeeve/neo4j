@@ -30,16 +30,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithStorable;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -83,7 +83,7 @@ class IndexSettingExtractorTest {
             return settings(setting, value);
         }
 
-        protected <RECORD extends IndexConfigValidationRecord> ObjectAssert<RECORD> extractForValidationAndAssertRecord(
+        protected <RECORD extends IndexSettingRecord> ObjectAssert<RECORD> extractForValidationAndAssertRecord(
                 SettingsAccessor accessor, Class<RECORD> type) {
             return assertThat(extractor.extractForValidation(accessor)).asInstanceOf(type(type));
         }
@@ -92,9 +92,8 @@ class IndexSettingExtractorTest {
             return extractForAuthoritativeReadAndAssertRecord(accessor, Valid.class);
         }
 
-        protected <RECORD extends IndexConfigValidationRecord>
-                ObjectAssert<RECORD> extractForAuthoritativeReadAndAssertRecord(
-                        SettingsAccessor accessor, Class<RECORD> type) {
+        protected <RECORD extends IndexSettingRecord> ObjectAssert<RECORD> extractForAuthoritativeReadAndAssertRecord(
+                SettingsAccessor accessor, Class<RECORD> type) {
             return assertThat(extractor.extractForAuthoritativeRead(accessor)).asInstanceOf(type(type));
         }
 

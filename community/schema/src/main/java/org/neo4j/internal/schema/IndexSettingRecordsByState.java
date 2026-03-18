@@ -24,21 +24,30 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Invalid;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.State;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Invalid;
+import org.neo4j.internal.schema.IndexSettingRecord.State;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
-public class IndexConfigValidationRecords implements Iterable<IndexConfigValidationRecord> {
-    protected final SortedMap<State, SortedSet<IndexConfigValidationRecord>> records;
+public class IndexSettingRecordsByState implements Iterable<IndexSettingRecord> {
+    private static final Function<State, SortedSet<IndexSettingRecord>> NEW_RECORD_SORTED_SET =
+            ignored -> new TreeSet<>();
 
-    protected IndexConfigValidationRecords(SortedMap<State, SortedSet<IndexConfigValidationRecord>> records) {
-        this.records = records;
+    protected final SortedMap<State, SortedSet<IndexSettingRecord>> records;
+
+    IndexSettingRecordsByState(IndexSettingRecords records) {
+        final SortedMap<State, SortedSet<IndexSettingRecord>> sortedRecords = new TreeMap<>();
+        for (final IndexSettingRecord record : records) {
+            sortedRecords.computeIfAbsent(record.state(), NEW_RECORD_SORTED_SET).add(record);
+        }
+        this.records = Collections.unmodifiableSortedMap(sortedRecords);
     }
 
-    public Iterable<IndexConfigValidationRecord> get(State state) {
-        final SortedSet<IndexConfigValidationRecord> recordsForState = records.get(state);
+    public Iterable<IndexSettingRecord> get(State state) {
+        final SortedSet<IndexSettingRecord> recordsForState = records.get(state);
         return recordsForState != null ? Collections.unmodifiableSortedSet(recordsForState) : Iterables.empty();
     }
 
@@ -56,12 +65,12 @@ public class IndexConfigValidationRecords implements Iterable<IndexConfigValidat
     }
 
     public Invalid getFirstInvalidRecordOrNull() {
-        for (final Entry<State, SortedSet<IndexConfigValidationRecord>> entry : records.entrySet()) {
+        for (final Entry<State, SortedSet<IndexSettingRecord>> entry : records.entrySet()) {
             if (entry.getKey() == State.VALID) {
                 continue;
             }
 
-            final IndexConfigValidationRecord record = entry.getValue().getFirst();
+            final IndexSettingRecord record = entry.getValue().getFirst();
             if (!(record instanceof final Invalid invalid)) {
                 throw new IllegalStateException("%s has %s state but was not an instance of %s"
                         .formatted(record, record.state(), Invalid.class.getSimpleName()));
@@ -73,12 +82,12 @@ public class IndexConfigValidationRecords implements Iterable<IndexConfigValidat
 
     public Iterable<Invalid> invalidRecords() {
         final SortedSet<Invalid> invalidRecords = new TreeSet<>();
-        for (final Entry<State, SortedSet<IndexConfigValidationRecord>> entry : records.entrySet()) {
+        for (final Entry<State, SortedSet<IndexSettingRecord>> entry : records.entrySet()) {
             if (entry.getKey() == State.VALID) {
                 continue;
             }
 
-            for (final IndexConfigValidationRecord record : entry.getValue()) {
+            for (final IndexSettingRecord record : entry.getValue()) {
                 if (!(record instanceof final Invalid invalid)) {
                     throw new IllegalStateException("%s has %s state but was not an instance of %s"
                             .formatted(record, record.state(), Invalid.class.getSimpleName()));
@@ -90,13 +99,13 @@ public class IndexConfigValidationRecords implements Iterable<IndexConfigValidat
     }
 
     public Iterable<Valid> validRecords() {
-        final SortedSet<IndexConfigValidationRecord> shouldBeValidRecords = records.get(State.VALID);
+        final SortedSet<IndexSettingRecord> shouldBeValidRecords = records.get(State.VALID);
         if (shouldBeValidRecords == null) {
             return Iterables.empty();
         }
 
         final SortedSet<Valid> validRecords = new TreeSet<>();
-        for (final IndexConfigValidationRecord record : shouldBeValidRecords) {
+        for (final IndexSettingRecord record : shouldBeValidRecords) {
             if (!(record instanceof final Valid valid)) {
                 throw new IllegalStateException("%s has %s state but was not an instance of %s"
                         .formatted(record, State.VALID, Valid.class.getSimpleName()));
@@ -107,7 +116,7 @@ public class IndexConfigValidationRecords implements Iterable<IndexConfigValidat
     }
 
     @Override
-    public Iterator<IndexConfigValidationRecord> iterator() {
+    public Iterator<IndexSettingRecord> iterator() {
         return Iterables.concat(records.values()).iterator();
     }
 

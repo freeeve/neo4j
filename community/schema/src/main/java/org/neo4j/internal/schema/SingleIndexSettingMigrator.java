@@ -21,12 +21,12 @@ package org.neo4j.internal.schema;
 
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 
 /// A [SingleIndexSettingProcessor] that transforms a valid value from one [IndexSetting] to another
 public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSettingProcessor {
@@ -70,12 +70,12 @@ public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSe
     }
 
     @Override
-    public void updateForVerification(KnownSettingRecords records) {
+    public void updateForVerification(KnownIndexSettingRecords records) {
         records.upsert(processForVerification(records.get(setting)));
     }
 
     @Override
-    public void updateForAuthoritativeRead(KnownSettingRecords records) {
+    public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
         records.upsert(processForAuthoritativeRead(records.get(setting)));
     }
 

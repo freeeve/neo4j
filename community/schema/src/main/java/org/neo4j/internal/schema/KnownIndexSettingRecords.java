@@ -27,13 +27,14 @@ import java.util.Objects;
 import java.util.TreeMap;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.util.Preconditions;
 
-/// A mutable collection of [RecordWithSetting]s for building up state with the intent to create a
-/// [MutableIndexConfigValidationRecords]
-public class KnownSettingRecords implements Iterable<RecordWithSetting> {
+/// A mutable collection like [IndexSettingRecords], but typed to work with known settings,
+/// mapping [IndexSetting]s to [RecordWithSetting]s.
+/// @see IndexSettingRecords
+public class KnownIndexSettingRecords implements Iterable<RecordWithSetting> {
     private final Map<IndexSetting, RecordWithSetting> records = new TreeMap<>(INDEX_SETTING_COMPARATOR);
 
     public <RECORD extends RecordWithSetting> RECORD upsert(RECORD record) {
@@ -57,8 +58,10 @@ public class KnownSettingRecords implements Iterable<RecordWithSetting> {
                 Preconditions.requireNonNull(setting, "setting must not be null"), MissingSetting::new);
     }
 
-    public MutableIndexConfigValidationRecords groupByState() {
-        return new MutableIndexConfigValidationRecords().with(this);
+    public IndexSettingRecords toIndexSettingRecords() {
+        final IndexSettingRecords records = new IndexSettingRecords();
+        records.upsertAll(this);
+        return records;
     }
 
     @Override

@@ -32,14 +32,14 @@ import org.neo4j.util.MarkerInterface;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Value;
 
-public sealed interface IndexConfigValidationRecord extends NamedSetting, Comparable<IndexConfigValidationRecord> {
-    Comparator<IndexConfigValidationRecord> COMPARATOR = Comparator.comparing(IndexConfigValidationRecord::state)
+public sealed interface IndexSettingRecord extends NamedSetting, Comparable<IndexSettingRecord> {
+    Comparator<IndexSettingRecord> COMPARATOR = Comparator.comparing(IndexSettingRecord::state)
             .thenComparing(NamedSetting::settingName, CASE_INSENSITIVE_ORDER);
 
     State state();
 
     @Override
-    default int compareTo(IndexConfigValidationRecord other) {
+    default int compareTo(IndexSettingRecord other) {
         return COMPARATOR.compare(this, other);
     }
 
@@ -65,7 +65,7 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
         }
     }
 
-    sealed interface RecordWithSetting extends IndexConfigValidationRecord, HasSetting {}
+    sealed interface RecordWithSetting extends IndexSettingRecord, HasSetting {}
 
     sealed interface RecordWithValue extends RecordWithSetting {
         Object value();
@@ -109,7 +109,7 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
     }
 
     @MarkerInterface
-    sealed interface Invalid extends IndexConfigValidationRecord {}
+    sealed interface Invalid extends IndexSettingRecord {}
 
     record Unprocessed(IndexSetting setting, AnyValue rawValue) implements RecordWithSetting, Invalid {
         @Override
@@ -142,6 +142,10 @@ public sealed interface IndexConfigValidationRecord extends NamedSetting, Compar
     }
 
     record UnrecognizedSetting(String settingName) implements Invalid {
+        public UnrecognizedSetting(IndexSetting setting) {
+            this(setting.getSettingName());
+        }
+
         public UnrecognizedSetting(NamedSetting namedSetting) {
             this(namedSetting.settingName());
         }

@@ -27,14 +27,14 @@ import org.neo4j.util.MarkerInterface;
 public interface IndexSettingsProcessor {
 
     /// Inplace mutation of the collection of records needing verification
-    void updateForVerification(KnownSettingRecords records);
+    void updateForVerification(KnownIndexSettingRecords records);
 
     /// Inplace mutation of the collection of records
-    void updateForAuthoritativeRead(KnownSettingRecords records);
+    void updateForAuthoritativeRead(KnownIndexSettingRecords records);
 
     Set<IndexSetting> settings();
 
-    /// An [IndexSettingsProcessor] that can produce an [org.neo4j.internal.schema.IndexConfigValidationRecord.Valid]
+    /// An [IndexSettingsProcessor] that can produce an [IndexSettingRecord.Valid]
     /// record for all [#settings()]
     @MarkerInterface
     interface ValidatingIndexSettingsProcessor extends IndexSettingsProcessor {}

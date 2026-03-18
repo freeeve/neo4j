@@ -31,11 +31,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.UnrecognizedSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
-import org.neo4j.internal.schema.IndexConfigValidationRecords;
+import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecords;
+import org.neo4j.internal.schema.IndexSettingRecordsByState;
 import org.neo4j.internal.schema.IndexSettingsValidator;
-import org.neo4j.internal.schema.MutableIndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.api.impl.schema.vector.LegacyIndexSettingValidators.LegacyIndexSettingValidator;
@@ -112,19 +112,20 @@ class VectorIndexSettingsValidators {
         }
 
         @Override
-        public IndexConfigValidationRecords validate(SettingsAccessor accessor) {
+        public IndexSettingRecordsByState validate(SettingsAccessor accessor) {
             Set<String> settingNames = accessor.settingNames();
-            final MutableIndexConfigValidationRecords validationRecords = new MutableIndexConfigValidationRecords();
+            final IndexSettingRecords validationRecords = new IndexSettingRecords();
+            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : validators) {
+                validationRecords.upsert(validator.validate(accessor));
+            }
+
             for (final String settingName : settingNames) {
                 if (!handledSettingNames.contains(settingName)) {
-                    validationRecords.with(new UnrecognizedSetting(settingName));
+                    validationRecords.upsert(new UnrecognizedSetting(settingName));
                 }
             }
 
-            for (final LegacyIndexSettingValidator<? extends Value, ?> validator : validators) {
-                validationRecords.with(validator.validate(accessor));
-            }
-            return validationRecords.toUnmodifiable();
+            return validationRecords.groupByState();
         }
 
         @Override

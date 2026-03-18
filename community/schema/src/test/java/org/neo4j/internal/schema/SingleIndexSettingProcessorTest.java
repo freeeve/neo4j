@@ -32,14 +32,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.graphdb.schema.IndexSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.IncorrectType;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithStorable;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.FinalizePending;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.MissingSettingMaterializer;
@@ -68,8 +68,8 @@ public class SingleIndexSettingProcessorTest {
 
             @ParameterizedTest
             @MethodSource("records")
-            void verification(KnownSettingRecords records) {
-                final KnownSettingRecords copy = new KnownSettingRecords();
+            void verification(KnownIndexSettingRecords records) {
+                final KnownIndexSettingRecords copy = new KnownIndexSettingRecords();
                 records.forEach(copy::upsert);
                 assertThat(records).containsExactlyInAnyOrderElementsOf(copy);
 
@@ -80,8 +80,8 @@ public class SingleIndexSettingProcessorTest {
 
             @ParameterizedTest
             @MethodSource("records")
-            void authoritativeRead(KnownSettingRecords records) {
-                final KnownSettingRecords copy = new KnownSettingRecords();
+            void authoritativeRead(KnownIndexSettingRecords records) {
+                final KnownIndexSettingRecords copy = new KnownIndexSettingRecords();
                 records.forEach(copy::upsert);
                 assertThat(records).containsExactlyInAnyOrderElementsOf(copy);
 
@@ -90,13 +90,13 @@ public class SingleIndexSettingProcessorTest {
                 assertThat(records).containsExactlyInAnyOrderElementsOf(copy);
             }
 
-            private static Stream<KnownSettingRecords> records() {
-                final KnownSettingRecords empty = new KnownSettingRecords();
-                final KnownSettingRecords missingSetting = new KnownSettingRecords();
-                final KnownSettingRecords incorrectType = new KnownSettingRecords();
-                final KnownSettingRecords invalidValue = new KnownSettingRecords();
-                final KnownSettingRecords pending = new KnownSettingRecords();
-                final KnownSettingRecords valid = new KnownSettingRecords();
+            private static Stream<KnownIndexSettingRecords> records() {
+                final KnownIndexSettingRecords empty = new KnownIndexSettingRecords();
+                final KnownIndexSettingRecords missingSetting = new KnownIndexSettingRecords();
+                final KnownIndexSettingRecords incorrectType = new KnownIndexSettingRecords();
+                final KnownIndexSettingRecords invalidValue = new KnownIndexSettingRecords();
+                final KnownIndexSettingRecords pending = new KnownIndexSettingRecords();
+                final KnownIndexSettingRecords valid = new KnownIndexSettingRecords();
                 for (final TestIndexSetting setting : TestIndexSetting.values()) {
                     final Object value = value(setting);
                     final Value storable = Objects.requireNonNullElse(Values.unsafeOf(value, true), Values.NO_VALUE);

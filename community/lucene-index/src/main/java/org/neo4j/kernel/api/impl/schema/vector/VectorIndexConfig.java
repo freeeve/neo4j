@@ -31,7 +31,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.TypedIndexConfig;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 

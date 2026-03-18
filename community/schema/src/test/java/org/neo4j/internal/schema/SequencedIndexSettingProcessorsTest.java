@@ -32,13 +32,13 @@ import java.util.function.BiConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.InvalidValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.MissingSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Pending;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithStorable;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.RecordWithValue;
-import org.neo4j.internal.schema.IndexConfigValidationRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.Pending;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
+import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.IntegerToOptionalIntConverter;
@@ -92,11 +92,11 @@ class SequencedIndexSettingProcessorsTest {
 
     @Nested
     class ValidatingProcessTest {
-        private KnownSettingRecords records;
+        private KnownIndexSettingRecords records;
 
         @BeforeEach
         void setup() {
-            records = new KnownSettingRecords();
+            records = new KnownIndexSettingRecords();
         }
 
         @Test
@@ -159,13 +159,13 @@ class SequencedIndexSettingProcessorsTest {
                 IntegerToOptionalIntConverter.of(TestIndexSetting.INTEGER),
                 OptionalIntRangeValidator.of(TestIndexSetting.INTEGER, 23, 69));
 
-        private KnownSettingRecords intRecords;
-        private KnownSettingRecords optionaIntRecords;
+        private KnownIndexSettingRecords intRecords;
+        private KnownIndexSettingRecords optionaIntRecords;
 
         @BeforeEach
         void setup() {
-            intRecords = new KnownSettingRecords();
-            optionaIntRecords = new KnownSettingRecords();
+            intRecords = new KnownIndexSettingRecords();
+            optionaIntRecords = new KnownIndexSettingRecords();
         }
 
         @Test
@@ -247,7 +247,8 @@ class SequencedIndexSettingProcessorsTest {
             process(IndexSettingsProcessor::updateForAuthoritativeRead, records);
         }
 
-        void process(BiConsumer<IndexSettingsProcessor, KnownSettingRecords> update, RecordWithSetting... records) {
+        void process(
+                BiConsumer<IndexSettingsProcessor, KnownIndexSettingRecords> update, RecordWithSetting... records) {
             for (final RecordWithSetting record : records) {
                 intRecords.upsert(record);
                 optionaIntRecords.upsert(record);
