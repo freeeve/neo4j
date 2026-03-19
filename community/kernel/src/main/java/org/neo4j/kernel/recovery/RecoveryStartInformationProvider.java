@@ -24,6 +24,8 @@ import static org.neo4j.kernel.recovery.RecoveryStartInformation.NO_RECOVERY_REQ
 import static org.neo4j.storageengine.api.LogVersionRepository.INITIAL_LOG_VERSION;
 
 import java.io.IOException;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
@@ -71,10 +73,12 @@ public class RecoveryStartInformationProvider implements ThrowingSupplier<Recove
 
     private final LogFiles logFiles;
     private final Monitor monitor;
+    private final Config config;
 
-    RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor) {
+    RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor, Config config) {
         this.logFiles = logFiles;
         this.monitor = monitor;
+        this.config = config;
     }
 
     @Override
@@ -124,20 +128,23 @@ public class RecoveryStartInformationProvider implements ThrowingSupplier<Recove
 
     private RecoveryStartInformation noCheckpointRecordRecoveryInfo(long appendIndexAfterLastCheckPoint) {
         long lowestLogVersion = logFiles.getLogFile().getLogRangeInfo().lowestVersion();
-        if (lowestLogVersion != INITIAL_LOG_VERSION) {
+        if (lowestLogVersion != INITIAL_LOG_VERSION
+                // TODO MERGELOG For now merged log starts on 1, let's allow that to be able to create an
+                //  initial checkpoint. To be removed or altered later
+                && !(config.get(GraphDatabaseInternalSettings.merged_log) && lowestLogVersion == 1)) {
             throw new UnderlyingStorageException("No check point found in any log file and transaction log "
                     + "files do not exist from expected version " + INITIAL_LOG_VERSION
                     + ". Lowest found log file is "
                     + lowestLogVersion + ".");
         }
         monitor.noCheckPointFound();
-        LogPosition position = tryExtractHeaderAndGetStartPosition();
+        LogPosition position = tryExtractHeaderAndGetStartPosition(lowestLogVersion);
         return new RecoveryStartInformation(position, position, null, appendIndexAfterLastCheckPoint);
     }
 
-    private LogPosition tryExtractHeaderAndGetStartPosition() {
+    private LogPosition tryExtractHeaderAndGetStartPosition(long lowestLogVersion) {
         try {
-            return logFiles.getLogFile().extractHeader(INITIAL_LOG_VERSION).getStartPosition();
+            return logFiles.getLogFile().extractHeader(lowestLogVersion).getStartPosition();
         } catch (IOException e) {
             monitor.failToExtractInitialFileHeader(e);
             throw new UnderlyingStorageException(

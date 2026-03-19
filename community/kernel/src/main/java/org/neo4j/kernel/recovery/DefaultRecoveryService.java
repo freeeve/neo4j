@@ -26,6 +26,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 
 import java.io.IOException;
 import java.nio.file.Path;
+import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
@@ -72,7 +73,8 @@ public class DefaultRecoveryService implements RecoveryService {
             InternalLog log,
             boolean doParallelRecovery,
             CursorContextFactory contextFactory,
-            StoreFileChecker storeFileChecker) {
+            StoreFileChecker storeFileChecker,
+            Config config) {
         this.storageEngine = storageEngine;
         this.transactionIdStore = transactionIdStore;
         this.logicalTransactionStore = logicalTransactionStore;
@@ -84,7 +86,7 @@ public class DefaultRecoveryService implements RecoveryService {
         this.doParallelRecovery = doParallelRecovery;
         this.contextFactory = contextFactory;
         this.storeFileChecker = storeFileChecker;
-        this.recoveryStartInformationProvider = new RecoveryStartInformationProvider(logFiles, monitor);
+        this.recoveryStartInformationProvider = new RecoveryStartInformationProvider(logFiles, monitor, config);
     }
 
     @Override

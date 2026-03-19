@@ -246,7 +246,8 @@ class TransactionLogsRecoveryTest {
                             mock(InternalLog.class),
                             false,
                             contextFactory,
-                            recovering -> StorageFilesState.recoveredState()) {
+                            recovering -> StorageFilesState.recoveredState(),
+                            config) {
                         private int nr;
 
                         @Override
@@ -378,7 +379,8 @@ class TransactionLogsRecoveryTest {
                             mock(InternalLog.class),
                             false,
                             contextFactory,
-                            recovering -> StorageFilesState.recoveredState()),
+                            recovering -> StorageFilesState.recoveredState(),
+                            config),
                     logPruner,
                     schemaLife,
                     monitor,
@@ -487,8 +489,9 @@ class TransactionLogsRecoveryTest {
                             mock(InternalLog.class),
                             false,
                             contextFactory,
-                            recovering -> StorageFilesState.unrecoverableState(
-                                    List.of(Path.of("store_file_should_be_here")))),
+                            recovering ->
+                                    StorageFilesState.unrecoverableState(List.of(Path.of("store_file_should_be_here"))),
+                            config),
                     logPruner,
                     schemaLife,
                     monitor,
@@ -578,8 +581,9 @@ class TransactionLogsRecoveryTest {
                             mock(InternalLog.class),
                             false,
                             contextFactory,
-                            recovering -> StorageFilesState.unrecoverableState(
-                                    List.of(Path.of("store_file_should_be_here")))),
+                            recovering ->
+                                    StorageFilesState.unrecoverableState(List.of(Path.of("store_file_should_be_here"))),
+                            config),
                     logPruner,
                     schemaLife,
                     monitor,
@@ -918,7 +922,8 @@ class TransactionLogsRecoveryTest {
                             mock(InternalLog.class),
                             false,
                             contextFactory,
-                            recovering -> StorageFilesState.recoveredState()),
+                            recovering -> StorageFilesState.recoveredState(),
+                            config),
                     logPruner,
                     schemaLife,
                     monitor,
