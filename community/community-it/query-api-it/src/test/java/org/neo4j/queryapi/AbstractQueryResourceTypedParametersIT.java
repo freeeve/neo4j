@@ -90,6 +90,8 @@ public abstract class AbstractQueryResourceTypedParametersIT {
                 Arguments.of("Base64", "YmFuYW5hcw=="),
                 Arguments.of("OffsetDateTime", "2015-06-24T12:50:35.556+01:00"),
                 Arguments.of("ZonedDateTime", "2015-11-21T21:40:32.142Z[Antarctica/Troll]"),
+                Arguments.of("ZonedDateTime", "2025-12-01T12:30:00+01:00[Europe/Berlin]"),
+                Arguments.of("ZonedDateTime", "0800-01-01T00:00:00Z[Etc/GMT]"),
                 Arguments.of("LocalDateTime", "2015-07-04T19:32:24"),
                 Arguments.of("Date", "2015-03-26"),
                 Arguments.of("Time", "12:50:35.556+01:00"),
@@ -99,6 +101,15 @@ public abstract class AbstractQueryResourceTypedParametersIT {
                 Arguments.of("Point", "SRID=9157;POINT Z (2.3 4.5 6.7)"),
                 Arguments.of("Point", "SRID=4326;POINT (2.3 4.5)"),
                 Arguments.of("Point", "SRID=4979;POINT Z (2.3 4.5 6.7)"));
+    }
+
+    public static Stream<Arguments> malformedParamTypes() {
+        return Stream.of(
+                Arguments.of("ZonedDateTime", "2025-12-01T12:30:00[Europe/Berlin]"),
+                Arguments.of("ZonedDateTime", "2025-12-01T12:30:00+01:00"),
+                Arguments.of("ZonedDateTime", "2015-11-21T21:40:32.142Z"),
+                Arguments.of("OffsetDateTime", "2015-06-24T12:50:35.556+01:00[Europe/Berlin]"),
+                Arguments.of("OffsetDateTime", "2015-06-24T12:50:35.556[Europe/Berlin]"));
     }
 
     @ParameterizedTest
@@ -119,6 +130,17 @@ public abstract class AbstractQueryResourceTypedParametersIT {
                 .isEqualTo(value.toString());
         assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_TYPE).asText())
                 .isEqualTo(typeString);
+    }
+
+    @ParameterizedTest
+    @MethodSource("malformedParamTypes")
+    void shouldRejectMalformedParamTypes(String typeString, Object value) throws IOException, InterruptedException {
+        var response = testClient.sendRaw(format(
+                "{\"statement\": \"RETURN $parameter\","
+                        + "\"parameters\": {\"parameter\": {\"$type\":\"%s\",\"_value\": \"%s\"}}}}}",
+                typeString, value));
+
+        QueryResponseAssertions.assertThat(response).hasErrorStatus(400, Status.Request.Invalid);
     }
 
     @Test

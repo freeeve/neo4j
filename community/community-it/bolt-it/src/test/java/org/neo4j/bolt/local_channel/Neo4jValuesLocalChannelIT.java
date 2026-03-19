@@ -20,6 +20,7 @@
 package org.neo4j.bolt.local_channel;
 
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -510,6 +511,8 @@ public class Neo4jValuesLocalChannelIT {
                         Values.int32Vector(1, 2, 4),
                         Values.float32Vector(12, -12.2f, 3, -4246.6f),
                         Values.stringArray("ada", "love", "lace"),
+                        Values.of(java.time.ZonedDateTime.parse(
+                                "0800-01-01T00:00:00Z[Etc/GMT]", DateTimeFormatter.ISO_ZONED_DATE_TIME)),
                         listValue,
                         mapValue)
                 .map(Arguments::of);

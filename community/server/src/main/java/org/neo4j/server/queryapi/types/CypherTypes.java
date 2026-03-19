@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -72,7 +73,7 @@ public enum CypherTypes {
             v -> DateTimeFormatter.ISO_LOCAL_TIME.format(v.asLocalTime())),
 
     DateTime(v -> java.time.ZonedDateTime.parse(v, DateTimeFormatter.ISO_ZONED_DATE_TIME), v -> {
-        if (v.asZonedDateTime().getZone().normalized() instanceof ZoneOffset) {
+        if (v.asZonedDateTime().getZone() instanceof ZoneOffset) {
             return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(v.asOffsetDateTime());
         } else {
             return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(v.asZonedDateTime());
@@ -83,7 +84,13 @@ public enum CypherTypes {
             v -> java.time.OffsetDateTime.parse(v, DateTimeFormatter.ISO_OFFSET_DATE_TIME),
             v -> DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(v.asOffsetDateTime())),
     ZonedDateTime(
-            v -> java.time.ZonedDateTime.parse(v, DateTimeFormatter.ISO_ZONED_DATE_TIME),
+            v -> {
+                var dt = java.time.ZonedDateTime.parse(v, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+                if (dt.getZone() instanceof ZoneOffset) {
+                    throw new DateTimeParseException("ZoneId required (region-based)", v, 0);
+                }
+                return dt;
+            },
             v -> DateTimeFormatter.ISO_ZONED_DATE_TIME.format(v.asZonedDateTime())),
 
     LocalDateTime(

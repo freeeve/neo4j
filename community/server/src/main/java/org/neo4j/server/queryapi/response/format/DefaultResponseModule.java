@@ -365,7 +365,7 @@ public final class DefaultResponseModule extends SimpleModule {
                 var cypherType = stringTypes.get(value.type());
                 json.writeStartObject();
                 if (value.hasType(typeSystem.DATE_TIME())) {
-                    if (value.asZonedDateTime().getZone().normalized() instanceof ZoneOffset) {
+                    if (value.asZonedDateTime().getZone() instanceof ZoneOffset) {
                         json.writeStringField(Fieldnames.CYPHER_TYPE, "OffsetDateTime");
                     } else {
                         json.writeStringField(Fieldnames.CYPHER_TYPE, "ZonedDateTime");
