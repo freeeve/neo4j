@@ -72,12 +72,6 @@ public class QueryInterceptor implements QueryExecutionMonitor {
             return;
         }
 
-        var maybeObfuscatedQuery = query.obfuscatedQueryText();
-        if (maybeObfuscatedQuery.isEmpty()) {
-            userLog.error("QueryInterceptor obfuscated query text not available");
-            return;
-        }
-
         queryService.add(query, errorGqlStatusObject);
     }
 }

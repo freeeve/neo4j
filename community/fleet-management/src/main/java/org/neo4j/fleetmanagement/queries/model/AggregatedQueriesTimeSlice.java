@@ -41,15 +41,14 @@ public class AggregatedQueriesTimeSlice {
     }
 
     public void add(ExecutingQuery query, ErrorGqlStatusObject errorGqlStatusObject) {
-        query.obfuscatedQueryText().ifPresent(obfuscatedText -> {
-            var key = new UniqueKey(obfuscatedText, errorGqlStatusObject, query.queryLanguage());
-            aggregations
-                    .computeIfAbsent(key, k -> {
-                        cumulativeQueryTextSize += obfuscatedText.length() + META_JSON_SIZE;
-                        return new QueryAggregationMeta();
-                    })
-                    .addFromExecutingQuery(query);
-        });
+        var obfuscatedText = query.obfuscatedQueryText().orElse("");
+        var key = new UniqueKey(obfuscatedText, errorGqlStatusObject, query.queryLanguage());
+        aggregations
+                .computeIfAbsent(key, k -> {
+                    cumulativeQueryTextSize += obfuscatedText.length() + META_JSON_SIZE;
+                    return new QueryAggregationMeta();
+                })
+                .addFromExecutingQuery(query);
     }
 
     public int size() {
