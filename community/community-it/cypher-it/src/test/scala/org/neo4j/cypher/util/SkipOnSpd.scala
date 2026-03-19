@@ -34,5 +34,5 @@ object Reason extends Enumeration {
   type Reason = Value
 
   val SetTopology, TooOldDatabase, PBAC, AwaitEventuallyConsistentIndexRefresh, DifferentPlan, LegacyTextIndex,
-    AuraProfile, DropDatabaseDumpData = Value
+    AuraProfile, DropDatabaseDumpData, IncorrectGqlStatus = Value
 }
