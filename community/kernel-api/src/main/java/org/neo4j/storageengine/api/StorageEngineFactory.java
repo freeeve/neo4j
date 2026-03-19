@@ -421,7 +421,8 @@ public interface StorageEngineFactory {
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            DependencyResolver storageSpecificArguments);
+            DependencyResolver storageSpecificArguments,
+            DatabaseCreationOptions databaseCreationOptions);
 
     Input asBatchImporterInput(
             DatabaseLayout databaseLayout,

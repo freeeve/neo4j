@@ -52,6 +52,7 @@ import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.LogMetadataProviderImpl;
@@ -231,7 +232,8 @@ class ImportLogicTest {
                 defaults(),
                 new JobSchedulerAdapter(),
                 INSTANCE,
-                CONTEXT_FACTORY);
+                CONTEXT_FACTORY,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         assertEquals(10, logMetadataProvider.getLastCommittedTransactionId());
         assertEquals(14, logMetadataProvider.getCheckpointLogVersion());

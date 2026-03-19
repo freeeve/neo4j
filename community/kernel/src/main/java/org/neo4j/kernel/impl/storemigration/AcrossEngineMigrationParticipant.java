@@ -49,6 +49,7 @@ import org.neo4j.io.pagecache.ExternallyManagedPageCache;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
@@ -209,7 +210,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 contextFactory,
                 indexProviders,
                 0,
-                null);
+                null,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
 
         // Do the copy
         try (Input fromInput = srcStorageEngine.asBatchImporterInput(

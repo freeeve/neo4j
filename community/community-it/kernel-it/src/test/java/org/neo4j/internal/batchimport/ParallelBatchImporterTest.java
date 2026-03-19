@@ -95,6 +95,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
@@ -208,7 +209,8 @@ public class ParallelBatchImporterTest {
                 TransactionLogInitializer.getLogFilesInitializer(),
                 indexImporterFactory,
                 INSTANCE,
-                contextFactory);
+                contextFactory,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         LongAdder propertyCount = new LongAdder();
         LongAdder relationshipCount = new LongAdder();
         try {

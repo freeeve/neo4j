@@ -57,6 +57,7 @@ import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.NodeStore;
 import org.neo4j.kernel.impl.store.RelationshipStore;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
@@ -128,7 +129,8 @@ class HumanUnderstandableExecutionMonitorIT {
                             LogFilesInitializer.NULL,
                             IndexImporterFactory.EMPTY,
                             EmptyMemoryTracker.INSTANCE,
-                            NULL_CONTEXT_FACTORY)
+                            NULL_CONTEXT_FACTORY,
+                            DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                     .doImport(input);
 
             // then

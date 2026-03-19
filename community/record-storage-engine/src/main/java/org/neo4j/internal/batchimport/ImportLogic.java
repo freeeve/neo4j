@@ -74,6 +74,7 @@ import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.RecordStore;
 import org.neo4j.kernel.impl.store.RelationshipStore;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -701,7 +702,8 @@ public class ImportLogic implements Closeable {
             Config dbConfig,
             JobScheduler scheduler,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            DatabaseCreationOptions databaseCreationOptions) {
         logMetadataProvider.setLastCommittedAndClosedTransactionId(
                 additionalInitialIds.lastCommittedTransactionId(),
                 additionalInitialIds.lastCommittedTransactionAppendIndex(),
@@ -722,7 +724,8 @@ public class ImportLogic implements Closeable {
                 scheduler,
                 cacheTracer,
                 contextFactory,
-                memoryTracker);
+                memoryTracker,
+                databaseCreationOptions);
     }
 
     private static long totalMemoryUsageOf(MemoryStatsVisitor.Visitable... users) {

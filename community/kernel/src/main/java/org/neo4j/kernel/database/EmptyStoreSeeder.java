@@ -64,6 +64,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
@@ -92,6 +93,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
     private final JobScheduler jobScheduler;
     private final int numShards;
     private final KernelVersion kernelVersionForSeed;
+    private final DatabaseCreationOptions databaseCreationOptions;
 
     /**
      * Creates the empty database seed, returning the generated contents packaged up as a byte[].
@@ -114,7 +116,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 databaseLayout,
                 jobScheduler,
                 numShards,
-                null);
+                null,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
     }
 
     /**
@@ -126,6 +129,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
      * @param fs                           the file system in which the empty database gets created.
      * @param jobScheduler                 scheduler to use in the temporarily created {@link PageCache} backing the import.
      * @param kernelVersionForSeed         the version used when generating a store seed.
+     * @param databaseCreationOptions      options to affect store creation of a new database
      */
     public EmptyStoreSeeder(
             StoreAugmenter storeAugmenter,
@@ -135,7 +139,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
             DatabaseLayout databaseLayout,
             JobScheduler jobScheduler,
             int numShards,
-            KernelVersion kernelVersionForSeed) {
+            KernelVersion kernelVersionForSeed,
+            DatabaseCreationOptions databaseCreationOptions) {
         this.storeAugmenter = storeAugmenter;
         this.storageEngineFactorySupplier = storageEngineFactorySupplier;
         this.config = config;
@@ -144,6 +149,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
         this.jobScheduler = jobScheduler;
         this.numShards = numShards;
         this.kernelVersionForSeed = kernelVersionForSeed;
+        this.databaseCreationOptions = databaseCreationOptions;
     }
 
     private static Config updateConfigVersion(Config config, KernelVersion kernelVersionForSeed) {
@@ -282,7 +288,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 NULL_CONTEXT_FACTORY,
                 indexProvidersAccess,
                 numShards,
-                null);
+                null,
+                databaseCreationOptions);
     }
 
     private DefaultIndexProvidersAccess indexProviders(StorageEngineFactory storageEngineFactory) {

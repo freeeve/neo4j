@@ -384,7 +384,8 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                     LogFilesInitializer.NULL,
                     indexImporterFactory,
                     memoryTracker,
-                    contextFactory);
+                    contextFactory,
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             InputIterable nodes =
                     () -> legacyNodesAsInput(legacyStore, requiresPropertyMigration, contextFactory, memoryTracker);
             InputIterable relationships = () ->

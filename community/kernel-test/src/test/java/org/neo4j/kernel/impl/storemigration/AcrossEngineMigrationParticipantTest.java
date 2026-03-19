@@ -119,6 +119,7 @@ class AcrossEngineMigrationParticipantTest {
                         any(),
                         any(),
                         anyInt(),
+                        any(),
                         any()))
                 .thenReturn(importer);
         var input = mock(Input.class);

@@ -76,6 +76,7 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.api.index.MultipleIndexPopulator;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
@@ -395,7 +396,8 @@ class MultipleIndexPopulationStressIT {
                     TransactionLogInitializer.getLogFilesInitializer(),
                     indexImporterFactory,
                     INSTANCE,
-                    NULL_CONTEXT_FACTORY);
+                    NULL_CONTEXT_FACTORY,
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             importer.doImport(input);
         }
     }

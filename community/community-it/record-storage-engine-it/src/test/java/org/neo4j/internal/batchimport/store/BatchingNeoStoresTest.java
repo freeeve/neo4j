@@ -170,7 +170,8 @@ class BatchingNeoStoresTest {
                         jobScheduler,
                         PageCacheTracer.NULL,
                         CONTEXT_FACTORY,
-                        INSTANCE)) {
+                        INSTANCE,
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
                     store.createNew();
                 }
             }
@@ -200,7 +201,8 @@ class BatchingNeoStoresTest {
                         jobScheduler,
                         PageCacheTracer.NULL,
                         CONTEXT_FACTORY,
-                        INSTANCE)) {
+                        INSTANCE,
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
                     store.createNew();
                 }
             }
@@ -233,7 +235,8 @@ class BatchingNeoStoresTest {
                         jobScheduler,
                         PageCacheTracer.NULL,
                         CONTEXT_FACTORY,
-                        INSTANCE)) {
+                        INSTANCE,
+                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
             store.createNew();
 
             // THEN
@@ -478,7 +481,8 @@ class BatchingNeoStoresTest {
                 Mockito.mock(JobScheduler.class),
                 PageCacheTracer.NULL,
                 NULL_CONTEXT_FACTORY,
-                INSTANCE)) {
+                INSTANCE,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
             // THEN
             assertThat(stores.getPageCache().maxCachedPages()
                             * stores.getPageCache().pageSize())
@@ -502,7 +506,8 @@ class BatchingNeoStoresTest {
                 Mockito.mock(JobScheduler.class),
                 PageCacheTracer.NULL,
                 NULL_CONTEXT_FACTORY,
-                INSTANCE)) {
+                INSTANCE,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
             // THEN
             assertThat(stores.getPageCache().maxCachedPages()
                             * stores.getPageCache().pageSize())
@@ -530,7 +535,8 @@ class BatchingNeoStoresTest {
                 Mockito.mock(JobScheduler.class),
                 PageCacheTracer.NULL,
                 NULL_CONTEXT_FACTORY,
-                INSTANCE)) {
+                INSTANCE,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
             stores.createNew();
 
             // THEN

@@ -112,6 +112,7 @@ import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.TokenStore;
@@ -182,7 +183,8 @@ class ParquetInputBatchImportIT {
                     TransactionLogInitializer.getLogFilesInitializer(),
                     new IndexImporterFactoryImpl(),
                     INSTANCE,
-                    NULL_CONTEXT_FACTORY);
+                    NULL_CONTEXT_FACTORY,
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             Groups groups = new Groups();
             var group = groups.getOrCreate(null);
             List<InputEntity> nodeData = randomNodeData(group);
@@ -223,7 +225,8 @@ class ParquetInputBatchImportIT {
                     TransactionLogInitializer.getLogFilesInitializer(),
                     new IndexImporterFactoryImpl(),
                     INSTANCE,
-                    NULL_CONTEXT_FACTORY);
+                    NULL_CONTEXT_FACTORY,
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             Groups groups = new Groups();
             groups.getOrCreate(null);
             groups.getOrCreate("EndGroup");

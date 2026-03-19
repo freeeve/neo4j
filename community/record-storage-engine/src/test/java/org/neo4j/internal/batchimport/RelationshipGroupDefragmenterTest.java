@@ -58,6 +58,7 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.RecordStore;
 import org.neo4j.kernel.impl.store.RelationshipGroupStore;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
@@ -120,7 +121,8 @@ class RelationshipGroupDefragmenterTest {
                 jobScheduler,
                 PageCacheTracer.NULL,
                 CONTEXT_FACTORY,
-                INSTANCE);
+                INSTANCE,
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
         stores.createNew();
         storeCursors = new CachedStoreCursors(stores.getNeoStores(), NULL_CONTEXT);
     }

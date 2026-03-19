@@ -37,6 +37,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
@@ -73,6 +74,7 @@ public class ParallelBatchImporter implements BatchImporter {
     private final IndexImporterFactory indexImporterFactory;
     private final MemoryTracker memoryTracker;
     private final CursorContextFactory contextFactory;
+    private final DatabaseCreationOptions databaseCreationOptions;
 
     public ParallelBatchImporter(
             DatabaseLayout databaseLayout,
@@ -90,7 +92,8 @@ public class ParallelBatchImporter implements BatchImporter {
             LogFilesInitializer logFilesInitializer,
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            DatabaseCreationOptions databaseCreationOptions) {
         this.databaseLayout = RecordDatabaseLayout.convert(databaseLayout);
         this.fileSystem = fileSystem;
         this.pageCacheTracer = pageCacheTracer;
@@ -107,6 +110,7 @@ public class ParallelBatchImporter implements BatchImporter {
         this.indexImporterFactory = indexImporterFactory;
         this.memoryTracker = memoryTracker;
         this.contextFactory = contextFactory;
+        this.databaseCreationOptions = databaseCreationOptions;
     }
 
     public static void outputEstimates(Input input, int numberOfThreads, PrintStream output) throws IOException {
@@ -144,7 +148,8 @@ public class ParallelBatchImporter implements BatchImporter {
                         dbConfig,
                         jobScheduler,
                         memoryTracker,
-                        contextFactory);
+                        contextFactory,
+                        databaseCreationOptions);
                 ImportLogic logic = new ImportLogic(
                         databaseLayout,
                         store,

@@ -87,6 +87,7 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.api.exceptions.ConsoleFriendlyException;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -1191,7 +1192,8 @@ public class ImportCommand {
                     contextFactory,
                     indexProvidersAccess,
                     shardingArguments == null ? 0 : shardingArguments.numShards(),
-                    shardingArguments == null ? null : shardingArguments.additionalArguments());
+                    shardingArguments == null ? null : shardingArguments.additionalArguments(),
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             batchImporter.doDryRun(input, stdOut);
         }
 
@@ -1240,7 +1242,8 @@ public class ImportCommand {
                             contextFactory,
                             indexProvidersAccess,
                             shardingArguments == null ? 0 : shardingArguments.numShards,
-                            shardingArguments == null ? null : shardingArguments.additionalArguments)
+                            shardingArguments == null ? null : shardingArguments.additionalArguments,
+                            DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                     .doImport(input);
         }
 

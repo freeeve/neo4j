@@ -55,6 +55,7 @@ import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.store.format.FormatFamily;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.logging.internal.NullLogService;
@@ -106,7 +107,8 @@ class ImportPanicIT {
                     LogFilesInitializer.NULL,
                     IndexImporterFactory.EMPTY,
                     EmptyMemoryTracker.INSTANCE,
-                    new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER));
+                    new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER),
+                    DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             Iterable<DataFactory> nodeData = DataFactories.datas(DataFactories.data(
                     InputEntityDecorators.NO_DECORATOR, fileAsCharReadable(nodeCsvFileWithBrokenEntries())));
             Input brokenCsvInput = new CsvInput(

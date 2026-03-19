@@ -392,7 +392,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            DependencyResolver storageSpecificArguments) {
+            DependencyResolver storageSpecificArguments,
+            DatabaseCreationOptions databaseCreationOptions) {
         return delegate.batchImporter(
                 databaseLayout,
                 fileSystem,
@@ -414,7 +415,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 indexProvidersAccess,
                 numShards,
-                storageSpecificArguments);
+                storageSpecificArguments,
+                databaseCreationOptions);
     }
 
     @Override

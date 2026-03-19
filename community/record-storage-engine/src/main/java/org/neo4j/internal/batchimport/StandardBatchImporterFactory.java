@@ -32,6 +32,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
@@ -66,7 +67,8 @@ public class StandardBatchImporterFactory extends BatchImporterFactory {
             LogFilesInitializer logFilesInitializer,
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            DatabaseCreationOptions databaseCreationOptions) {
         return new ParallelBatchImporter(
                 directoryStructure,
                 fileSystem,
@@ -83,6 +85,7 @@ public class StandardBatchImporterFactory extends BatchImporterFactory {
                 logFilesInitializer,
                 indexImporterFactory,
                 memoryTracker,
-                contextFactory);
+                contextFactory,
+                databaseCreationOptions);
     }
 }

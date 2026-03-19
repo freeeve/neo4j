@@ -744,7 +744,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            DependencyResolver storageSpecificArguments) {
+            DependencyResolver storageSpecificArguments,
+            DatabaseCreationOptions databaseCreationOptions) {
         ExecutionMonitor executionMonitor = progressOutput != null
                 ? verboseProgressOutput
                         ? new SpectrumExecutionMonitor(progressOutput)
@@ -767,7 +768,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         logFilesInitializer,
                         indexImporterFactory,
                         memoryTracker,
-                        contextFactory);
+                        contextFactory,
+                        databaseCreationOptions);
     }
 
     @Override

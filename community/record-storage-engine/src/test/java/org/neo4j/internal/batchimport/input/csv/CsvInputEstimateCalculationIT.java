@@ -175,7 +175,8 @@ class CsvInputEstimateCalculationIT {
                             LogFilesInitializer.NULL,
                             IndexImporterFactory.EMPTY,
                             EmptyMemoryTracker.INSTANCE,
-                            NULL_CONTEXT_FACTORY)
+                            NULL_CONTEXT_FACTORY,
+                            DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
                     .doImport(input);
 
             // then compare estimates with actual disk sizes
