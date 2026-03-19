@@ -22,9 +22,9 @@ package org.neo4j.kernel.impl.core;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.graphdb.RelationshipType.withName;
 import static org.neo4j.internal.helpers.collection.Iterables.addAll;
 import static org.neo4j.kernel.impl.MyRelTypes.TEST;
@@ -404,9 +404,7 @@ class TestRelationship extends AbstractNeo4jTestCase {
             Relationship rel1 = node1.createRelationshipTo(node2, TEST);
             Relationship rel2 = node2.createRelationshipTo(node1, TEST);
             // verify that we can rely on PL to remove non existing properties
-            if (rel1.removeProperty(key1) != null) {
-                fail("Remove of non existing property should return null");
-            }
+            assertNull(rel1.removeProperty(key1), () -> "Remove of non existing property should return null");
 
             rel1.setProperty(key1, int1);
             rel2.setProperty(key1, string1);
@@ -417,9 +415,7 @@ class TestRelationship extends AbstractNeo4jTestCase {
             assertEquals(int1, rel1.removeProperty(key1));
             assertEquals(string1, rel2.removeProperty(key1));
             // test remove of non existing property
-            if (rel2.removeProperty(key1) != null) {
-                fail("Remove of non existing property should return null");
-            }
+            assertNull(rel2.removeProperty(key1), () -> "Remove of non existing property should return null");
 
             rel1.delete();
             rel2.delete();
@@ -538,7 +534,6 @@ class TestRelationship extends AbstractNeo4jTestCase {
             assertThrows(NullPointerException.class, () -> {
                 String[] names = new String[] {null};
                 node1.getProperties(names);
-                fail();
             });
 
             assertDoesNotThrow(() -> rel1.removeProperty(key3), "Remove of property failed.");

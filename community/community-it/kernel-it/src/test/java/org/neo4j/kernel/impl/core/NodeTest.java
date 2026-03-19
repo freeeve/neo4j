@@ -22,9 +22,9 @@ package org.neo4j.kernel.impl.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -159,9 +159,7 @@ class NodeTest {
             Node node1 = transaction.createNode();
             Node node2 = transaction.createNode();
 
-            if (node1.removeProperty(key1) != null) {
-                fail("Remove of non existing property should return null");
-            }
+            assertNull(node1.removeProperty(key1), () -> "Remove of non existing property should return null");
 
             node1.setProperty(key1, int1);
             node2.setProperty(key1, string1);
@@ -173,9 +171,7 @@ class NodeTest {
             assertEquals(string1, node2.removeProperty(key1));
             // test remove of non existing property
 
-            if (node2.removeProperty(key1) != null) {
-                fail("Remove of non existing property return null.");
-            }
+            assertNull(node2.removeProperty(key1), () -> "Remove of non existing property return null.");
         }
     }
 
@@ -277,7 +273,6 @@ class NodeTest {
             assertThrows(NullPointerException.class, () -> {
                 String[] names = null;
                 node1.getProperties(names);
-                fail();
             });
 
             assertThrows(NullPointerException.class, () -> {

@@ -19,13 +19,14 @@
  */
 package org.neo4j.io.pagecache.impl.muninn;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.io.ByteUnit.MebiByte;
 
 import java.io.IOException;
@@ -1457,12 +1458,14 @@ public class AbstractPageMetadataTest {
         long address = PageMetadata.getAddress(pageRef);
         assertThat(address).isNotEqualTo(0L);
         for (int i = 0; i < pageSize; i++) {
-            byte actualByteContents = UnsafeUtil.getByte(address + i);
-            if (actualByteContents != pageByteContents) {
-                fail(String.format(
-                        "Page contents where different at address %x + %s, expected %x but was %x",
-                        address, i, pageByteContents, actualByteContents));
-            }
+            int index = i;
+            byte actualByteContents = UnsafeUtil.getByte(address + index);
+            assertEquals(
+                    pageByteContents,
+                    actualByteContents,
+                    () -> format(
+                            "Page contents where different at address %x + %s, expected %x but was %x",
+                            address, index, pageByteContents, actualByteContents));
         }
     }
 
@@ -1515,13 +1518,12 @@ public class AbstractPageMetadataTest {
         int swapperId = 1;
         long filePageId = 42;
         MuninnPageCache.ensurePageAllocated(pageRef, mman, pageSize, ALIGNMENT);
-        try {
-            MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
-            MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
-            fail();
-        } catch (IOException e) {
-            assertThat(e.getMessage()).isEqualTo("boo");
-        }
+        assertThatThrownBy(() -> {
+                    MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
+                    MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
+                })
+                .isInstanceOf(IOException.class)
+                .hasMessage("boo");
         assertThat(PageMetadata.getFilePageId(pageRef)).isEqualTo(filePageId);
         assertThat(PageMetadata.getSwapperId(pageRef)).isEqualTo(0); // 0 means not bound
         assertTrue(PageMetadata.isLoaded(pageRef));
@@ -1571,13 +1573,12 @@ public class AbstractPageMetadataTest {
                 throw new IOException("boom");
             }
         };
-        try {
-            MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
-            MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
-            fail("fault should have thrown");
-        } catch (IOException e) {
-            assertThat(e.getMessage()).isEqualTo("boom");
-        }
+        assertThatThrownBy(() -> {
+                    MuninnPagedFile.validatePageRefAndSetFilePageId(pageRef, swapper, swapperId, filePageId);
+                    MuninnPageCursor.fault(pageRef, swapper, swapperId, filePageId, PinPageFaultEvent.NULL);
+                })
+                .isInstanceOf(IOException.class)
+                .hasMessage("boom");
     }
 
     @ParameterizedTest(name = "pageRef = {0}")
