@@ -22,14 +22,15 @@ package org.neo4j.tooling.procedure.visitors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.stream.Stream;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -39,6 +40,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.procedure.TerminationGuard;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.messages.CompilationMessage;
 import org.neo4j.tooling.procedure.testutils.ElementTestUtils;
 import org.neo4j.tooling.procedure.visitors.examples.FinalContextMisuse;
@@ -47,6 +49,7 @@ import org.neo4j.tooling.procedure.visitors.examples.RestrictedContextTypes;
 import org.neo4j.tooling.procedure.visitors.examples.StaticContextMisuse;
 import org.neo4j.tooling.procedure.visitors.examples.UnknownContextType;
 
+@ExtendWith(CompilationExtension.class)
 public class ContextFieldVisitorTest {
     private static final org.assertj.core.groups.Tuple UNKNOWN_CONTEXT_ERROR_MSG = tuple(
             Diagnostic.Kind.ERROR,
@@ -60,16 +63,17 @@ public class ContextFieldVisitorTest {
                     + ">, <" + URLAccessChecker.class.getName()
                     + ">");
 
-    @Rule
-    public CompilationRule compilationRule = new CompilationRule();
-
+    private Types types;
+    private Elements elements;
     private ElementTestUtils elementTestUtils;
     private ElementVisitor<Stream<CompilationMessage>, Void> contextFieldVisitor;
 
-    @Before
-    public void prepare() {
-        elementTestUtils = new ElementTestUtils(compilationRule);
-        contextFieldVisitor = new ContextFieldVisitor(compilationRule.getTypes(), compilationRule.getElements(), false);
+    @BeforeEach
+    public void prepare(Elements elements, Types types) {
+        this.types = types;
+        this.elements = elements;
+        elementTestUtils = new ElementTestUtils(elements, types);
+        contextFieldVisitor = new ContextFieldVisitor(types, elements, false);
     }
 
     @Test
@@ -138,8 +142,7 @@ public class ContextFieldVisitorTest {
 
     @Test
     public void does_not_warn_against_restricted_injected_types_when_warnings_are_suppressed() {
-        ContextFieldVisitor contextFieldVisitor =
-                new ContextFieldVisitor(compilationRule.getTypes(), compilationRule.getElements(), true);
+        ContextFieldVisitor contextFieldVisitor = new ContextFieldVisitor(types, elements, true);
         Stream<VariableElement> fields = elementTestUtils.getFields(RestrictedContextTypes.class);
 
         Stream<CompilationMessage> result = fields.flatMap(contextFieldVisitor::visit);
@@ -160,8 +163,7 @@ public class ContextFieldVisitorTest {
 
     @Test
     public void rejects_unsupported_injected_type_when_warnings_are_suppressed() {
-        ContextFieldVisitor contextFieldVisitor =
-                new ContextFieldVisitor(compilationRule.getTypes(), compilationRule.getElements(), true);
+        ContextFieldVisitor contextFieldVisitor = new ContextFieldVisitor(types, elements, true);
         Stream<VariableElement> fields = elementTestUtils.getFields(UnknownContextType.class);
 
         Stream<CompilationMessage> result = fields.flatMap(contextFieldVisitor::visit);

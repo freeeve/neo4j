@@ -21,7 +21,6 @@ package org.neo4j.tooling.procedure.testutils;
 
 import static javax.lang.model.util.ElementFilter.fieldsIn;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -37,8 +36,8 @@ public class ElementTestUtils {
     private final Types types;
     private final TypeMirrorTestUtils typeMirrorTestUtils;
 
-    public ElementTestUtils(CompilationRule rule) {
-        this(rule.getElements(), rule.getTypes(), new TypeMirrorTestUtils(rule));
+    public ElementTestUtils(Elements elements, Types types) {
+        this(elements, types, new TypeMirrorTestUtils(types, elements));
     }
 
     private ElementTestUtils(Elements elements, Types types, TypeMirrorTestUtils typeMirrorTestUtils) {

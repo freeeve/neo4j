@@ -21,7 +21,6 @@ package org.neo4j.tooling.procedure.testutils;
 
 import static java.util.Arrays.stream;
 
-import com.google.testing.compile.CompilationRule;
 import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -35,8 +34,8 @@ public class TypeMirrorTestUtils {
     private final Elements elements;
     private final TypeMirrorUtils typeMirrors;
 
-    public TypeMirrorTestUtils(CompilationRule rule) {
-        this(rule.getTypes(), rule.getElements(), new TypeMirrorUtils(rule.getTypes(), rule.getElements()));
+    public TypeMirrorTestUtils(Types types, Elements elements) {
+        this(types, elements, new TypeMirrorUtils(types, elements));
     }
 
     private TypeMirrorTestUtils(Types types, Elements elements, TypeMirrorUtils typeMirrors) {

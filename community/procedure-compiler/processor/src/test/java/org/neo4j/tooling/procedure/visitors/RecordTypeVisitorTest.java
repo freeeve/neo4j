@@ -22,36 +22,32 @@ package org.neo4j.tooling.procedure.visitors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.stream.Stream;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.tooling.procedure.compilerutils.TypeMirrorUtils;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.messages.CompilationMessage;
 import org.neo4j.tooling.procedure.testutils.TypeMirrorTestUtils;
 import org.neo4j.tooling.procedure.visitors.examples.InvalidRecord;
 import org.neo4j.tooling.procedure.visitors.examples.ValidRecord;
 
+@ExtendWith(CompilationExtension.class)
 public class RecordTypeVisitorTest {
-
-    @Rule
-    public CompilationRule compilation = new CompilationRule();
 
     private TypeMirrorTestUtils typeMirrorTestUtils;
     private RecordTypeVisitor visitor;
 
-    @Before
-    public void prepare() {
-        Types types = compilation.getTypes();
-        Elements elements = compilation.getElements();
+    @BeforeEach
+    public void prepare(Types types, Elements elements) {
         TypeMirrorUtils typeMirrors = new TypeMirrorUtils(types, elements);
 
-        typeMirrorTestUtils = new TypeMirrorTestUtils(compilation);
+        typeMirrorTestUtils = new TypeMirrorTestUtils(types, elements);
         visitor = new RecordTypeVisitor(types, typeMirrors);
     }
 

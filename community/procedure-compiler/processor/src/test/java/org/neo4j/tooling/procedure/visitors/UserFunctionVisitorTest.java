@@ -22,36 +22,31 @@ package org.neo4j.tooling.procedure.visitors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.procedure.UserFunction;
 import org.neo4j.tooling.procedure.compilerutils.CustomNameExtractor;
 import org.neo4j.tooling.procedure.compilerutils.TypeMirrorUtils;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.messages.CompilationMessage;
 import org.neo4j.tooling.procedure.testutils.ElementTestUtils;
 import org.neo4j.tooling.procedure.visitors.examples.UserFunctionsExamples;
 
+@ExtendWith(CompilationExtension.class)
 public class UserFunctionVisitorTest {
-    @Rule
-    public CompilationRule compilationRule = new CompilationRule();
-
     private ElementTestUtils elementTestUtils;
     private ElementVisitor<Stream<CompilationMessage>, Void> visitor;
 
-    @Before
-    public void prepare() {
-        Types types = compilationRule.getTypes();
-        Elements elements = compilationRule.getElements();
-
-        elementTestUtils = new ElementTestUtils(compilationRule);
+    @BeforeEach
+    public void prepare(Types types, Elements elements) {
+        elementTestUtils = new ElementTestUtils(elements, types);
         final TypeMirrorUtils typeMirrorUtils = new TypeMirrorUtils(types, elements);
         visitor = new UserFunctionVisitor(new FunctionVisitor<>(
                 UserFunction.class,

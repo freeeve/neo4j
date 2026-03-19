@@ -24,37 +24,33 @@ import static javax.lang.model.type.TypeKind.DOUBLE;
 import static javax.lang.model.type.TypeKind.LONG;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.tooling.procedure.compilerutils.TypeMirrorUtils;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.testutils.TypeMirrorTestUtils;
 
+@ExtendWith(CompilationExtension.class)
 public class AllowedTypesValidatorTest {
-
-    @Rule
-    public CompilationRule compilation = new CompilationRule();
 
     private TypeMirrorTestUtils typeMirrorTestUtils;
     private Predicate<TypeMirror> validator;
 
-    @Before
-    public void prepare() {
-        Types types = compilation.getTypes();
-        Elements elements = compilation.getElements();
+    @BeforeEach
+    public void prepare(Types types, Elements elements) {
         TypeMirrorUtils typeMirrors = new TypeMirrorUtils(types, elements);
 
-        typeMirrorTestUtils = new TypeMirrorTestUtils(compilation);
+        typeMirrorTestUtils = new TypeMirrorTestUtils(types, elements);
         validator = new AllowedTypesValidator(typeMirrors, types);
     }
 

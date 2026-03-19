@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeVisitor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;

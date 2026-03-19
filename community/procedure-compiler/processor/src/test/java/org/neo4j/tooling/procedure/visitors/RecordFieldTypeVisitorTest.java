@@ -19,30 +19,27 @@
  */
 package org.neo4j.tooling.procedure.visitors;
 
-import com.google.testing.compile.CompilationRule;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.tooling.procedure.compilerutils.TypeMirrorUtils;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.testutils.TypeMirrorTestUtils;
 
+@ExtendWith(CompilationExtension.class)
 public class RecordFieldTypeVisitorTest extends TypeValidationTestSuite {
-
-    @Rule
-    public CompilationRule compilationRule = new CompilationRule();
 
     private Types types;
     private TypeMirrorUtils typeMirrorUtils;
     private TypeMirrorTestUtils typeMirrorTestUtils;
 
-    @Before
-    public void prepare() {
-        Elements elements = compilationRule.getElements();
-        types = compilationRule.getTypes();
+    @BeforeEach
+    public void prepare(Elements elements, Types types) {
+        this.types = types;
         typeMirrorUtils = new TypeMirrorUtils(types, elements);
-        typeMirrorTestUtils = new TypeMirrorTestUtils(compilationRule);
+        typeMirrorTestUtils = new TypeMirrorTestUtils(types, elements);
     }
 
     @Override

@@ -23,7 +23,6 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.Collection;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,28 +31,27 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.tooling.procedure.compilerutils.CustomNameExtractor;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.messages.CompilationMessage;
 import org.neo4j.tooling.procedure.validators.examples.DefaultProcedureA;
 import org.neo4j.tooling.procedure.validators.examples.DefaultProcedureB;
 import org.neo4j.tooling.procedure.validators.examples.OverriddenProcedureB;
 import org.neo4j.tooling.procedure.validators.examples.override.OverriddenProcedureA;
 
+@ExtendWith(CompilationExtension.class)
 public class DuplicatedExtensionValidatorTest {
-
-    @Rule
-    public CompilationRule compilation = new CompilationRule();
 
     private Elements elements;
     private Function<Collection<Element>, Stream<CompilationMessage>> validator;
 
-    @Before
-    public void prepare() {
-        elements = compilation.getElements();
+    @BeforeEach
+    public void prepare(Elements elements) {
+        this.elements = elements;
         validator = new DuplicatedExtensionValidator<>(
                 elements, Procedure.class, proc -> CustomNameExtractor.getName(proc::name, proc::value));
     }

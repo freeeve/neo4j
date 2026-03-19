@@ -22,31 +22,31 @@ package org.neo4j.tooling.procedure.visitors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import com.google.testing.compile.CompilationRule;
 import java.util.stream.Stream;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.neo4j.tooling.procedure.extension.CompilationExtension;
 import org.neo4j.tooling.procedure.messages.CompilationMessage;
 import org.neo4j.tooling.procedure.testutils.ElementTestUtils;
 import org.neo4j.tooling.procedure.visitors.examples.GoodContextUse;
 import org.neo4j.tooling.procedure.visitors.examples.StaticNonContextMisuse;
 
+@ExtendWith(CompilationExtension.class)
 public class FieldVisitorTest {
-
-    @Rule
-    public CompilationRule compilationRule = new CompilationRule();
 
     private ElementVisitor<Stream<CompilationMessage>, Void> fieldVisitor;
     private ElementTestUtils elementTestUtils;
 
-    @Before
-    public void prepare() {
-        elementTestUtils = new ElementTestUtils(compilationRule);
-        fieldVisitor = new FieldVisitor(compilationRule.getTypes(), compilationRule.getElements(), true);
+    @BeforeEach
+    public void prepare(Elements elements, Types types) {
+        elementTestUtils = new ElementTestUtils(elements, types);
+        fieldVisitor = new FieldVisitor(types, elements, true);
     }
 
     @Test
