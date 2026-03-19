@@ -48,7 +48,7 @@ public class GraphDatabaseCypherTestService extends GraphDatabaseCypherService {
     public InternalTransaction beginTransaction(KernelTransaction.Type type, LoginContext loginContext) {
         awaitSystemUpToDate();
         return new SystemLastTransactionIdTrackingWrapper(
-                graph.beginTransaction(type, loginContext), id -> systemTransactionId = id);
+                graph.beginTransaction(type, loginContext), id -> systemTransactionId = id, graph);
     }
 
     /*

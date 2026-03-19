@@ -45,7 +45,9 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.monitoring.ExceptionHandlerService;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.values.ElementIdMapper;
 
 public class SystemLastTransactionIdTrackingWrapper
@@ -53,11 +55,13 @@ public class SystemLastTransactionIdTrackingWrapper
 
     private final InternalTransaction internalTransaction;
     private final Consumer<Long> systemTransactionIdSetter;
+    private final GraphDatabaseAPI db;
 
     public SystemLastTransactionIdTrackingWrapper(
-            InternalTransaction internalTransaction, Consumer<Long> systemTransactionIdSetter) {
+            InternalTransaction internalTransaction, Consumer<Long> systemTransactionIdSetter, GraphDatabaseAPI db) {
         this.internalTransaction = internalTransaction;
         this.systemTransactionIdSetter = systemTransactionIdSetter;
+        this.db = db;
     }
 
     @Override
@@ -150,7 +154,9 @@ public class SystemLastTransactionIdTrackingWrapper
         var kernelTx = internalTransaction.kernelTransaction();
         internalTransaction.commit(monitor);
         if (kernelTx.getDatabaseName().equalsIgnoreCase("SYSTEM")) {
-            systemTransactionIdSetter.accept(kernelTx.getTransactionId());
+            systemTransactionIdSetter.accept(db.getDependencyResolver()
+                    .resolveDependency(TransactionIdStore.class)
+                    .getLastCommittedTransactionId());
         }
     }
 
@@ -351,7 +357,9 @@ public class SystemLastTransactionIdTrackingWrapper
         var kernelTx = internalTransaction.kernelTransaction();
         internalTransaction.commit();
         if (kernelTx.getDatabaseName().equalsIgnoreCase("SYSTEM")) {
-            systemTransactionIdSetter.accept(kernelTx.getTransactionId());
+            systemTransactionIdSetter.accept(db.getDependencyResolver()
+                    .resolveDependency(TransactionIdStore.class)
+                    .getLastCommittedTransactionId());
         }
     }
 
