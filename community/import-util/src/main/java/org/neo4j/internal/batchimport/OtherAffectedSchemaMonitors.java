@@ -28,10 +28,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.map.primitive.IntObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
@@ -42,6 +48,7 @@ import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.internal.schema.constraints.NodeLabelExistenceConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -80,6 +87,9 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     private final boolean generateNonUniqueIndexUpdates;
     private final ImportPropertyConstraintEnforcer propertyConstraints;
     private final ImportIndexBuilder indexBuilder;
+    private final TokenNameLookup tokenNameLookup;
+
+    private final IntObjectMap<IntSet> requiredNodeLabels;
 
     public OtherAffectedSchemaMonitors(
             FileSystemAbstraction fileSystem,
@@ -104,6 +114,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
         this.indexedEntityIdConverter = indexedEntityIdConverter;
         this.generateNonUniqueIndexUpdates = generateNonUniqueIndexUpdates;
         this.propertyConstraints = new ImportPropertyConstraintEnforcer(schemaCache, entityType);
+        this.requiredNodeLabels = buildRequiredNodeLabels(schemaCache);
         this.indexBuilder = new ImportIndexBuilder(
                 fileSystem,
                 indexProviderMap,
@@ -120,6 +131,25 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 excludedIndexes,
                 config,
                 indexPopulatorConfiguration);
+        this.tokenNameLookup = tokenNameLookup;
+    }
+
+    private IntObjectMap<IntSet> buildRequiredNodeLabels(SchemaCache schemaCache) {
+        MutableIntObjectMap<MutableIntSet> build = IntObjectMaps.mutable.empty();
+        for (var constraint : schemaCache.constraints()) {
+            if (constraint.isNodeLabelExistenceConstraint()
+                    && constraint instanceof NodeLabelExistenceConstraintDescriptor desc) {
+                int labelId = desc.schemaLabelId();
+                var requirements = build.getIfAbsentPut(labelId, IntSets.mutable::empty);
+                requirements.add(desc.requiredLabelId());
+            }
+        }
+
+        // Finalize the construction, by making the map immutable.
+        MutableIntObjectMap<IntSet> finalize = IntObjectMaps.mutable.ofInitialCapacity(build.size());
+        build.forEachKey(key -> finalize.put(key, build.get(key).asUnmodifiable()));
+
+        return finalize.asUnmodifiable();
     }
 
     /**
@@ -184,18 +214,29 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
 
                     boolean propertyExistenceOk = checkPropertyExistenceConstraintsOnCreate(entity, violationVisitor);
                     boolean propertyTypesOk = checkPropertyTypeConstraints(entity, violationVisitor);
-                    if (propertyExistenceOk && propertyTypesOk && generateNonUniqueIndexUpdates) {
+                    boolean nodeLabelsOk = entity instanceof Relationship
+                            || checkNodeLabelExistence(entity, entity.entityTokens, violationVisitor);
+                    boolean constraintsOk = propertyExistenceOk && propertyTypesOk && nodeLabelsOk;
+
+                    if (constraintsOk && generateNonUniqueIndexUpdates) {
                         // For CREATE all index updates are simply added to each respective index populator
                         // and uniqueness violations will be sorted out afterward, where violating entities
                         // are deleted.
                         generateIndexUpdatesForCreatedEntity(entity);
                     }
-                    return propertyExistenceOk && propertyTypesOk;
+                    return constraintsOk;
                 } else if (mode == ApplicationMode.UPDATE) {
                     boolean propertyExistenceOk = checkPropertyExistenceConstraintsOnUpdate(
                             entity, existingPropertyKeysLookup, violationVisitor);
                     boolean propertyTypesOk = checkPropertyTypeConstraints(entity, violationVisitor);
-                    if (propertyExistenceOk && propertyTypesOk) {
+                    IntSet labels = entity.existingEntityTokens
+                            .union(entity.entityTokens)
+                            .difference(entity.removedEntityTokens);
+                    boolean nodeLabelsOk =
+                            entity instanceof Relationship || checkNodeLabelExistence(entity, labels, violationVisitor);
+                    boolean constraintsOk = propertyExistenceOk && propertyTypesOk && nodeLabelsOk;
+
+                    if (constraintsOk) {
                         // For UPDATE at least uniqueness index updates needs to be generated so that their
                         // ADD part can be written to the indexes and validated right here.
                         return generateAndValidateUniquenessIndexUpdates(
@@ -282,6 +323,28 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
         @Override
         public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
             return indexBuilder.checkUniqueness(checks);
+        }
+
+        @Override
+        public boolean checkNodeLabelExistence(
+                SchemaMonitor.Entity entity, IntSet nodeLabels, ViolationVisitor violationVisitor) {
+            MutableBoolean success = new MutableBoolean(true);
+            nodeLabels.forEach(nodeLabel -> {
+                var requiredLabels = requiredNodeLabels.getIfAbsent(nodeLabel, IntSets.immutable::empty);
+                IntSet missingLabels = requiredLabels.difference(nodeLabels);
+                if (!missingLabels.isEmpty()) {
+                    success.setFalse();
+                    // Report violations
+                    missingLabels.forEach(missing -> violationVisitor.accept(
+                            entity,
+                            "Node(%d) with label %s is required to have label %s"
+                                    .formatted(
+                                            entity.entityId,
+                                            tokenNameLookup.labelGetName(nodeLabel),
+                                            tokenNameLookup.labelGetName(missing))));
+                }
+            });
+            return success.get();
         }
 
         @Override
