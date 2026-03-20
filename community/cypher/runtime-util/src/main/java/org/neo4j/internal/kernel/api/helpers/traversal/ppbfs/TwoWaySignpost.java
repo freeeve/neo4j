@@ -51,6 +51,11 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     protected int minTargetDistance = NO_TARGET_DISTANCE;
     public final BitSet cycleLengths;
 
+    // The source length assigned during BFS expansion (-1 if none).
+    // This length must never be pruned because it represents a ground-truth reachability fact
+    // needed by the tracer to reach signposts and set their minTargetDistance for the first time.
+    private int bfsSourceLength = -1;
+
     protected TwoWaySignpost(NodeState prevNode, NodeState forwardNode, Lengths lengths) {
         this.prevNode = prevNode;
         this.forwardNode = forwardNode;
@@ -61,6 +66,7 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     protected TwoWaySignpost(NodeState prevNode, NodeState forwardNode, int sourceLength, Lengths lengths) {
         this(prevNode, forwardNode, lengths);
         this.lengths.markAsSeen(sourceLength);
+        this.bfsSourceLength = sourceLength;
     }
 
     public static RelSignpost fromRelExpansion(
@@ -172,6 +178,15 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     }
 
     public void pruneSourceLength(int sourceLength) {
+        // In trail mode, never prune the BFS-discovered source length. This length represents a
+        // ground-truth reachability fact from BFS expansion. Pruning it would prevent the tracer
+        // from ever reaching downstream signposts to set their minTargetDistance, which in turn
+        // prevents propagation from creating longer source lengths needed for valid trails at
+        // greater depths. This only applies to trail mode; walk mode has no trail uniqueness
+        // constraint and pruning is always safe there.
+        if (!lengths.isWalkMode() && sourceLength == bfsSourceLength) {
+            return;
+        }
         prevNode.globalState.hooks.pruneSourceLength(this, sourceLength);
         this.lengths.clearSeen(sourceLength);
         this.forwardNode.synchronizeLengthAfterPrune(sourceLength);

@@ -1386,6 +1386,155 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     lengths shouldBe Seq(5, 6, 8, 15)
   }
 
+  // Regression test: trail-mode pruning must not destroy BFS-discovered source lengths.
+  // In trail mode, pruning can destroy BFS-discovered source lengths at signposts, which
+  // prevents valid trails from being found at greater depths. Without the fix (protecting
+  // BFS source lengths from pruning in trail mode), the signpost chain to the target at n6
+  // becomes permanently broken and the target is never found.
+  //
+  // Graph structure (13 nodes, 14 rels):
+  //   n0(S) --OUT--> n4 --OUT--> n5 --OUT--> n6(T)    (spoke A: source to target)
+  //   n0(S) --OUT--> n7 --OUT--> n8                    (spoke B)
+  //   n9 --OUT--> n10 --OUT--> n11                     (spoke C, disconnected from source)
+  //   n1 --OUT--> n2 --OUT--> n3(T)                    (spoke D, disconnected from source)
+  //   Cross links (SIDEWAYS): n7->n9, n1->n5, n5->n8, n11->n2, n2->n4, n1->n7
+  //
+  // NFA: (s:S) ((a) -[R|S]-> (b) -[S]- (c) -[R|S]-> (d))+ (t:T)
+  test("trail pruning preserves BFS source lengths in cobweb graph") {
+    val R = 2 // "regular" directed rel type
+    val S = 3 // "sideways" undirected rel type
+
+    val S_LABEL = 1L
+    val T_LABEL = 2L
+
+    val g = InMemoryGraph.builder
+
+    // Source
+    val n0 = g.node(S_LABEL)
+
+    // Chain D: n1 -> n2 -> n3(T) (not directly connected to source)
+    val n1 = g.node()
+    val n2 = g.node()
+    val n3 = g.node(T_LABEL)
+    g.rel(n1, n2, R)
+    g.rel(n2, n3, R)
+
+    // Spoke A: n0 -> n4 -> n5 -> n6(T)
+    val n4 = g.node()
+    val n5 = g.node()
+    val n6 = g.node(T_LABEL)
+    g.rel(n0, n4, R)
+    g.rel(n4, n5, R)
+    g.rel(n5, n6, R)
+
+    // Spoke B: n0 -> n7 -> n8
+    val n7 = g.node()
+    val n8 = g.node()
+    g.rel(n0, n7, R)
+    g.rel(n7, n8, R)
+
+    // Chain C: n9 -> n10 -> n11 (not directly connected to source)
+    val n9 = g.node()
+    val n10 = g.node()
+    val n11 = g.node()
+    g.rel(n9, n10, R)
+    g.rel(n10, n11, R)
+
+    // Cross links (sideways)
+    g.rel(n7, n9, S)
+    g.rel(n1, n5, S)
+    g.rel(n5, n8, S)
+    g.rel(n11, n2, S)
+    g.rel(n2, n4, S)
+    g.rel(n1, n7, S)
+
+    val graph = g.build()
+
+    val isSource: LongPredicate = n => n == n0
+    val isTarget: LongPredicate = n => n == n3 || n == n6
+
+    import NfaDsl.Implicits._
+    // NFA: (s:S) ((a) -[R|S]-> (b) -[S]- (c) -[R|S]-> (d))+ (t:T)
+    val n: Nfa = nfa(
+      ("s" where isSource) |>
+        ("a" - (R :| S) -> "b" - S - "c" - (R :| S) -> "d" +) |>
+        ("t" where isTarget)
+    )
+
+    fixture()
+      .withGraph(graph)
+      .from(n0)
+      .withNfa(n)
+      .withK(1)
+      .assertExpected()
+  }
+
+  // Same graph and NFA as above but in walk mode. Verifies that the BFS source length
+  // protection does not interfere with walk mode (where pruning should remain unrestricted).
+  test("walk mode on cobweb graph") {
+    val R = 2
+    val S = 3
+
+    val S_LABEL = 1L
+    val T_LABEL = 2L
+
+    val g = InMemoryGraph.builder
+
+    val n0 = g.node(S_LABEL)
+
+    val n1 = g.node()
+    val n2 = g.node()
+    val n3 = g.node(T_LABEL)
+    g.rel(n1, n2, R)
+    g.rel(n2, n3, R)
+
+    val n4 = g.node()
+    val n5 = g.node()
+    val n6 = g.node(T_LABEL)
+    g.rel(n0, n4, R)
+    g.rel(n4, n5, R)
+    g.rel(n5, n6, R)
+
+    val n7 = g.node()
+    val n8 = g.node()
+    g.rel(n0, n7, R)
+    g.rel(n7, n8, R)
+
+    val n9 = g.node()
+    val n10 = g.node()
+    val n11 = g.node()
+    g.rel(n9, n10, R)
+    g.rel(n10, n11, R)
+
+    g.rel(n7, n9, S)
+    g.rel(n1, n5, S)
+    g.rel(n5, n8, S)
+    g.rel(n11, n2, S)
+    g.rel(n2, n4, S)
+    g.rel(n1, n7, S)
+
+    val graph = g.build()
+
+    val isSource: LongPredicate = n => n == n0
+    val isTarget: LongPredicate = n => n == n3 || n == n6
+
+    import NfaDsl.Implicits._
+    val n: Nfa = nfa(
+      ("s" where isSource) |>
+        ("a" - (R :| S) -> "b" - S - "c" - (R :| S) -> "d" +) |>
+        ("t" where isTarget)
+    )
+
+    fixture()
+      .withGraph(graph)
+      .from(n0)
+      .withNfa(n)
+      .withK(1)
+      .withPathMode(TraversalPathMode.Walk)
+      .withMaxDepth(15)
+      .assertExpected()
+  }
+
   /**
   Walk mode
    */
