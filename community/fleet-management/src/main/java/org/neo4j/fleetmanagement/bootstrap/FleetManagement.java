@@ -32,6 +32,7 @@ import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
 import org.neo4j.fleetmanagement.communication.PingService;
 import org.neo4j.fleetmanagement.communication.QueryService;
+import org.neo4j.fleetmanagement.communication.SecurityLogsService;
 import org.neo4j.fleetmanagement.communication.TopologyService;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
@@ -49,12 +50,9 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.monitoring.Monitors;
 
 public class FleetManagement extends LifecycleAdapter {
-    private ITransactor transactor;
     private MainService mainService;
-    private Log log;
     private ScheduledExecutorService scheduler;
     private State state;
-    private Configuration configuration;
     private ConfigService configService;
 
     public FleetManagement(
@@ -72,19 +70,22 @@ public class FleetManagement extends LifecycleAdapter {
             return;
         }
 
+        ITransactor transactor;
+        Log log;
+        Configuration configuration;
         try {
             var neo4jLog = logService.getUserLog(FleetManagement.class);
             Logger.initLogger(neo4jLog);
-            this.log = Logger.getNeo4jLogger();
+            log = Logger.getNeo4jLogger();
             this.state = state;
-            this.configuration = new Configuration();
-            MetricNamesSupplier.setConfiguration(this.configuration);
-            Neo4jConfigNamesSupplier.setConfiguration(this.configuration);
+            configuration = new Configuration();
+            MetricNamesSupplier.setConfiguration(configuration);
+            Neo4jConfigNamesSupplier.setConfiguration(configuration);
             // Need to explicitly specify constructor arg types because reflection will not pick the interface type
-            this.transactor = Reflection.getConstructorOfImplementationOf(
+            transactor = Reflection.getConstructorOfImplementationOf(
                             ITransactor.class, DbmsInfo.class, ServerIdentity.class, State.class)
                     .newInstance(dbmsInfo, serverIdentity, this.state);
-            this.transactor.init(databaseManagementService);
+            transactor.init(databaseManagementService);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -98,25 +99,22 @@ public class FleetManagement extends LifecycleAdapter {
             return thread;
         });
 
-        var upstream = new Upstream(this.transactor, this.log, config, this.state);
-        var connectService = new ConnectService(
-                config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
-        var reportingService = new TopologyService(
-                config, fs, this.transactor, serverIdentity, upstream, this.state, this.configuration);
-        var metricsService = new MetricsService(
-                this.transactor, serverIdentity, upstream, config, this.state, this.configuration, dbmsInfo);
-        this.configService =
-                new ConfigService(this.transactor, serverIdentity, upstream, config, this.state, this.configuration);
-        var pingService =
-                new PingService(config, fs, this.transactor, upstream, serverIdentity, this.state, this.configuration);
-        var queryService =
-                new QueryService(this.transactor, serverIdentity, upstream, this.state, config, this.configuration);
+        var upstream = new Upstream(transactor, log, config, this.state);
+        var connectService =
+                new ConnectService(config, fs, transactor, serverIdentity, upstream, this.state, configuration);
+        var reportingService =
+                new TopologyService(config, fs, transactor, serverIdentity, upstream, this.state, configuration);
+        var metricsService =
+                new MetricsService(transactor, serverIdentity, upstream, config, this.state, configuration, dbmsInfo);
+        this.configService = new ConfigService(transactor, serverIdentity, upstream, config, this.state, configuration);
+        var pingService = new PingService(config, fs, transactor, upstream, serverIdentity, this.state, configuration);
+        var queryService = new QueryService(transactor, serverIdentity, upstream, this.state, configuration);
+        var securityLogsService =
+                new SecurityLogsService(transactor, upstream, this.state, serverIdentity, configuration);
 
-        var clusterSync = new ClusterSync(this.transactor, upstream, this.state);
+        var clusterSync = new ClusterSync(transactor, upstream, this.state);
 
         this.mainService = new MainService(
-                this.transactor,
-                upstream,
                 reportingService,
                 metricsService,
                 queryService,
@@ -124,8 +122,9 @@ public class FleetManagement extends LifecycleAdapter {
                 scheduler,
                 connectService,
                 pingService,
+                securityLogsService,
                 this.state,
-                this.configuration,
+                configuration,
                 monitoring,
                 config);
     }

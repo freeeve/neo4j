@@ -36,13 +36,13 @@ import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
 import org.neo4j.fleetmanagement.communication.PingService;
 import org.neo4j.fleetmanagement.communication.QueryService;
+import org.neo4j.fleetmanagement.communication.SecurityLogsService;
 import org.neo4j.fleetmanagement.communication.TopologyService;
-import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.ClusterSync;
 import org.neo4j.fleetmanagement.configuration.Configuration;
 import org.neo4j.fleetmanagement.configuration.State;
+import org.neo4j.fleetmanagement.logs.SecurityLogInterceptor;
 import org.neo4j.fleetmanagement.queries.QueryInterceptor;
-import org.neo4j.fleetmanagement.transactions.ITransactor;
 import org.neo4j.fleetmanagement.utils.Logger;
 import org.neo4j.logging.Log;
 import org.neo4j.monitoring.Monitors;
@@ -57,6 +57,7 @@ public class MainService implements PropertyChangeListener {
     private final ClusterSync clusterSync;
     private final ScheduledExecutorService scheduler;
     private final ConnectService connectService;
+    private final SecurityLogsService securityLogsService;
     private final State state;
     private final Configuration configuration;
     private final Monitors monitoring;
@@ -68,13 +69,13 @@ public class MainService implements PropertyChangeListener {
     private Boolean lastConnectedState = null;
     private Boolean lastTokenRotatingState = null;
     private boolean queryMonitorAdded = false;
-    private QueryInterceptor queryInterceptor;
+    private boolean securityLogMonitorAdded = false;
+    private final QueryInterceptor queryInterceptor;
+    private final SecurityLogInterceptor securityLogInterceptor;
 
     private final CopyOnWriteArrayList<ScheduledFuture<?>> jobHandles;
 
     public MainService(
-            ITransactor transactor,
-            Upstream upstream,
             TopologyService topologyService,
             MetricsService metricsService,
             QueryService queryService,
@@ -82,6 +83,7 @@ public class MainService implements PropertyChangeListener {
             ScheduledExecutorService scheduler,
             ConnectService connectService,
             PingService pingService,
+            SecurityLogsService securityLogsService,
             State state,
             Configuration configuration,
             Monitors monitoring,
@@ -91,6 +93,7 @@ public class MainService implements PropertyChangeListener {
         this.topologyService = topologyService;
         this.metricsService = metricsService;
         this.queryService = queryService;
+        this.securityLogsService = securityLogsService;
         this.pingService = pingService;
         this.clusterSync = clusterSync;
         this.scheduler = scheduler;
@@ -101,6 +104,7 @@ public class MainService implements PropertyChangeListener {
         this.state = state;
         this.jobHandles = new CopyOnWriteArrayList<>();
         this.queryInterceptor = new QueryInterceptor(queryService, config);
+        this.securityLogInterceptor = new SecurityLogInterceptor(securityLogsService);
     }
 
     public void start() {
@@ -236,6 +240,17 @@ public class MainService implements PropertyChangeListener {
                             interval,
                             TimeUnit.SECONDS));
                     break;
+                case SECURITY_LOGS:
+                    if (!securityLogMonitorAdded) {
+                        monitoring.addMonitorListener(securityLogInterceptor);
+                        securityLogMonitorAdded = true;
+                    }
+                    jobHandles.add(scheduler.scheduleAtFixedRate(
+                            new SecurityLogsService.SecurityLogsReportingTask(state, clusterSync, securityLogsService),
+                            1,
+                            interval,
+                            TimeUnit.SECONDS));
+                    break;
                 case PING:
                     jobHandles.add(scheduler.scheduleAtFixedRate(
                             new PingService.PingTask(state, clusterSync, pingService),
@@ -259,6 +274,11 @@ public class MainService implements PropertyChangeListener {
         if (queryMonitorAdded) {
             monitoring.removeMonitorListener(this.queryInterceptor);
             queryMonitorAdded = false;
+        }
+
+        if (securityLogMonitorAdded) {
+            monitoring.removeMonitorListener(securityLogInterceptor);
+            securityLogMonitorAdded = false;
         }
     }
 

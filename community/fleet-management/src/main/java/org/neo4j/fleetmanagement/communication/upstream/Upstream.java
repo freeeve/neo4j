@@ -48,7 +48,8 @@ public class Upstream {
         METRICS,
         CONNECT,
         CONFIG,
-        PING
+        PING,
+        SECURITY_LOGS
     }
 
     private static long maxTokenAge = 59 * 60 * 1000L; // 59 minutes
@@ -125,6 +126,8 @@ public class Upstream {
                 return postTo("plugin/config");
             case PING:
                 return postTo("plugin/ping");
+            case SECURITY_LOGS:
+                return postTo("plugin/security-logs");
         }
 
         return null;

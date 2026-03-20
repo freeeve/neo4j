@@ -19,9 +19,7 @@
  */
 package org.neo4j.fleetmanagement.communication;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.neo4j.configuration.Config;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
 import org.neo4j.fleetmanagement.communication.model.QueryReportMessage;
@@ -37,57 +35,48 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.query.ExecutingQuery;
 import org.neo4j.logging.Log;
 
-public class QueryService extends AbstractReportingService {
-    // Maximum number of missed reports before pausing log collection
-    private static final int MAX_CACHED_REPORTS = 3;
-
+public class QueryService extends BufferedReportingService<AggregatedQueriesTimeSlice> {
     private static final int MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10 MiB
 
     private final ServerIdentity serverIdentity;
-    private final AtomicReference<AggregatedQueriesTimeSlice> current =
-            new AtomicReference<>(new AggregatedQueriesTimeSlice());
     private final Log userLog;
-    private int missedReports;
 
     public QueryService(
             ITransactor transactor,
             ServerIdentity serverIdentity,
             Upstream upstream,
             State state,
-            Config config,
             Configuration configuration) {
-        super(transactor, upstream, state, configuration);
+        super(transactor, upstream, state, configuration, new AggregatedQueriesTimeSlice());
         this.serverIdentity = serverIdentity;
         this.userLog = Logger.getNeo4jLogger();
-        missedReports = 0;
     }
 
     public void add(ExecutingQuery query, ErrorGqlStatusObject errorGqlStatusObject) {
-        if (missedReports < MAX_CACHED_REPORTS) {
-            var currentSlice = current.get();
-            if (currentSlice.cumulativeQueryTextSize() < MAX_PAYLOAD_SIZE) {
-                currentSlice.add(query, errorGqlStatusObject);
-            } else {
-                // This limit normally shouldn't be reached, but it's here to print an error and cap the
-                // current slice rather than rejecting the entire message on the service-side.
-                userLog.warn(
-                        "Fleet Manager: current query text volume (%s bytes) limit reached",
-                        currentSlice.cumulativeQueryTextSize());
-            }
+        if (isBufferLimitReached()) {
+            // drop queries until the current buffer is cleared to avoid extra memory consumption
+            return;
         }
-    }
 
-    public AggregatedQueriesTimeSlice getCurrent() {
-        return current.get();
+        var currentSlice = getCurrent();
+        if (currentSlice.cumulativeQueryTextSize() < MAX_PAYLOAD_SIZE) {
+            currentSlice.add(query, errorGqlStatusObject);
+        } else {
+            // This limit normally shouldn't be reached, but it's here to print an error and cap the
+            // current slice rather than rejecting the entire message on the service-side.
+            userLog.warn(
+                    "Fleet Manager: current query text volume (%s bytes) limit reached",
+                    currentSlice.cumulativeQueryTextSize());
+        }
     }
 
     @Override
     public void report() {
         if (!this.state.isConnected()) {
-            missedReports++;
+            this.updateBufferSize();
         }
 
-        var oldQueries = current.getAndSet(new AggregatedQueriesTimeSlice());
+        var oldQueries = getPrevious(new AggregatedQueriesTimeSlice());
         if (oldQueries.getAggregations().isEmpty()) {
             return;
         }
@@ -101,7 +90,7 @@ public class QueryService extends AbstractReportingService {
                 .collect(Collectors.toList());
 
         transmitReport(msg, Upstream.Endpoint.QUERIES);
-        missedReports = 0;
+        this.resetBuffer();
     }
 
     public static class QueryReportingTask extends FleetManagerTask {

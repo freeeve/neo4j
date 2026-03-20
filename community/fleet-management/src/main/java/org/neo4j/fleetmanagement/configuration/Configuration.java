@@ -88,6 +88,7 @@ public class Configuration {
         METRICS,
         PING,
         QUERIES,
+        SECURITY_LOGS,
         UNKNOWN;
 
         public static TaskType fromString(String type) {

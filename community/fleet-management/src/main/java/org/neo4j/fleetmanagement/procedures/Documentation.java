@@ -39,6 +39,7 @@ import org.neo4j.fleetmanagement.communication.model.Neo4jConfigMessage;
 import org.neo4j.fleetmanagement.communication.model.PingMessage;
 import org.neo4j.fleetmanagement.communication.model.QueryReportMessage;
 import org.neo4j.fleetmanagement.communication.model.ReportingMessage;
+import org.neo4j.fleetmanagement.communication.model.SecurityLogsReportMessage;
 import org.neo4j.kernel.api.procedure.SystemProcedure;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Mode;
@@ -89,6 +90,7 @@ public class Documentation {
         documentClass(ReportingMessage.class, "ReportingMessage", "", results);
         documentClass(PingMessage.class, "PingMessage", "", results);
         documentClass(QueryReportMessage.class, "QueryReportMessage", "", results);
+        documentClass(SecurityLogsReportMessage.class, "SecurityLogsReportMessage", "", results);
         return results.stream();
     }
 
@@ -102,6 +104,13 @@ public class Documentation {
 
         for (Field field : clazz.getDeclaredFields()) {
             documentField(messageType, prefix, results, field, clazz);
+        }
+
+        if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
+            var superClassFields = clazz.getSuperclass().getDeclaredFields();
+            for (Field field : superClassFields) {
+                documentField(messageType, prefix, results, field, clazz);
+            }
         }
 
         for (Method method : clazz.getDeclaredMethods()) {
