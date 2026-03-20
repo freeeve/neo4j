@@ -164,7 +164,11 @@ public class Lucene9QueryContext implements LuceneQueryContext {
 
     @Override
     public LuceneQueryContext approximateNearestNeighbors(
-            VectorDocumentStructure documentStructure, float[] query, int k, PropertyIndexQuery... filterQueries) {
+            VectorDocumentStructure documentStructure,
+            float[] query,
+            int k,
+            PropertyIndexQuery.EntityFilterPredicate entityFilter,
+            PropertyIndexQuery... filterQueries) {
         throw InternalException.internalError(
                 getClass().getSimpleName(), "Single stage filter is not supported in this index");
     }

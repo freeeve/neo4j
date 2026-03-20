@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.exceptions.QueryExecutionTimeoutException
-import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.graphdb.Transaction
 import org.neo4j.kernel.api.query.ExtendedQueryStatistics
 import org.neo4j.kernel.impl.query.QuerySubscriber

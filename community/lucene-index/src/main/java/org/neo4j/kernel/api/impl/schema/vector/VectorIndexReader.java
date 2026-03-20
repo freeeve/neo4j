@@ -19,6 +19,9 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static org.neo4j.kernel.api.impl.schema.LuceneQueryFactory.propertyFiltersForAll;
+import static org.neo4j.kernel.api.impl.schema.LuceneQueryFactory.propertyFiltersForEach;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -112,15 +115,12 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     @Override
     public void reportIndexQueried(QueryContext context, PropertyIndexQuery... predicates) {
         context.monitor().queried(descriptor);
-
-        for (int i = 1; i < predicates.length; i++) {
-            final PropertyIndexQuery predicate = predicates[i];
-            if (predicate.type() != IndexQueryType.ALL) {
-                usageTracker.queriedWithFilter();
-                return;
-            }
+        boolean queriedWitFilter = propertyFiltersForAll(predicates, p -> p.type() != IndexQueryType.ALL);
+        if (queriedWitFilter) {
+            usageTracker.queriedWithFilter();
+        } else {
+            usageTracker.queried();
         }
-        usageTracker.queried();
     }
 
     @Override
@@ -146,15 +146,12 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
 
     private void validateFilteredQueryPredicates(PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
-
-        for (int i = 1; i < predicates.length; i++) {
-            PropertyIndexQuery predicate = predicates[i];
+        propertyFiltersForEach(predicates, predicate -> {
             if (predicate == null) {
                 throw nullVectorQueryFilter(
                         msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
                         predicates);
             }
-
             IndexQueryType type = predicate.type();
             switch (type) {
                 case ALL, EXISTS, NOT_EXISTS, EXACT, RANGE -> {
@@ -167,7 +164,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
                             predicate,
                             predicates);
             }
-        }
+        });
     }
 
     private IndexQueryConstraints adjustedConstraints(

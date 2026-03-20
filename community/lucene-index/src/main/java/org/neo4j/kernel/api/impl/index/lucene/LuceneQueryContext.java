@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.index.lucene;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.storable.Value;
 
@@ -134,8 +135,13 @@ public interface LuceneQueryContext {
      * @param documentStructure The documents structure to use.
      * @param query Vector to search around.
      * @param k Number of documents to find.
+     * @param entityFilter an entityFilter to .
      * @param filterQueries the queries with which to filter the search.
      */
     LuceneQueryContext approximateNearestNeighbors(
-            VectorDocumentStructure documentStructure, float[] query, int k, PropertyIndexQuery... filterQueries);
+            VectorDocumentStructure documentStructure,
+            float[] query,
+            int k,
+            EntityFilterPredicate entityFilter,
+            PropertyIndexQuery... filterQueries);
 }

@@ -88,7 +88,9 @@ public class Lucene10FilterQueryBuilderTest {
 
     PropertyIndexQuery[] queries = new PropertyIndexQuery[10 /*enough*/];
 
-    private void addField(int fieldPosition, Value value) {
+    private void addField(int position, Value value) {
+        // position 0 is reserved by the vector embedding
+        int fieldPosition = position + 1;
         if (value == null) {
             return;
         }
@@ -111,7 +113,8 @@ public class Lucene10FilterQueryBuilderTest {
                 this.queries[queryPosition++] = query;
             }
         }
-        var luceneQuery = Lucene10FilterQueryBuilder.build(documentStructure, 0, this.queries);
+        var luceneQuery = Lucene10FilterQueryBuilder.build(
+                documentStructure, PropertyIndexQuery.matchAllEntityFilter(), this.queries);
         return index.search(new ConstantScoreQuery(luceneQuery));
     }
 
@@ -133,8 +136,6 @@ public class Lucene10FilterQueryBuilderTest {
         assertThat(scoreForQuery(noValuePropertyIndex, PropertyIndexQuery.exists(3)))
                 .isEqualTo(0.0f);
     }
-
-    record MyRecord(long l) {}
 
     @Test
     void propertyNotExists() {
@@ -613,6 +614,22 @@ public class Lucene10FilterQueryBuilderTest {
         addField(KEY_INDEX, mid);
         assertInRangeTT(before, mid);
         assertInRangeTT(before, after);
+    }
+
+    @Test
+    void filterOnNodes() {
+        int indexablePropertyIndex = 3;
+        addField(indexablePropertyIndex, Values.utf8Value("indexed"));
+
+        int nonIndexablePropertyIndex = 4;
+        addField(nonIndexablePropertyIndex, Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 0.f, 1.f));
+
+        int noValuePropertyIndex = 5;
+        addField(noValuePropertyIndex, null);
+        assertThat(scoreForQuery(nonIndexablePropertyIndex, PropertyIndexQuery.notExists(2)))
+                .isEqualTo(0.0f);
+        assertThat(scoreForQuery(noValuePropertyIndex, PropertyIndexQuery.notExists(3)))
+                .isEqualTo(1.0f);
     }
 
     private void checkRangeUpperExists(TemporalValue<?, ?> lower, TemporalValue<?, ?> upper) {

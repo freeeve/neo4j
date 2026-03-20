@@ -19,14 +19,20 @@
  */
 package org.neo4j.kernel.api.impl.schema;
 
+import java.util.Arrays;
+import org.neo4j.function.ThrowingConsumer;
+import org.neo4j.function.ThrowingPredicate;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 
 public abstract class LuceneQueryFactory {
+
+    private static final PropertyIndexQuery[] NO_QUERIES = new PropertyIndexQuery[0];
 
     protected LuceneQueryFactory() {}
 
@@ -139,7 +145,8 @@ public abstract class LuceneQueryFactory {
                                         documentStructure,
                                         nearestNeighborsPredicate.query(),
                                         Math.toIntExact(effectiveK),
-                                        predicates);
+                                        extractEntityFilter(predicates),
+                                        extractPropertyFilters(predicates));
                     } else {
                         yield searcher.newQueryContext()
                                 .approximateNearestNeighbors(
@@ -150,6 +157,49 @@ public abstract class LuceneQueryFactory {
                 }
                 default -> throw invalidQuery(descriptor, predicate);
             };
+        }
+    }
+
+    static PropertyIndexQuery[] extractPropertyFilters(PropertyIndexQuery[] predicates) {
+        if (hasEntityFilter(predicates)) {
+            return predicates.length > 1
+                    ? Arrays.copyOfRange(predicates, 2, predicates.length, PropertyIndexQuery[].class)
+                    : NO_QUERIES;
+        } else {
+            return predicates.length > 0
+                    ? Arrays.copyOfRange(predicates, 1, predicates.length, PropertyIndexQuery[].class)
+                    : NO_QUERIES;
+        }
+    }
+
+    static EntityFilterPredicate extractEntityFilter(PropertyIndexQuery[] predicates) {
+        if (hasEntityFilter(predicates)) {
+            return (EntityFilterPredicate) predicates[1];
+        } else {
+            return PropertyIndexQuery.matchAllEntityFilter();
+        }
+    }
+
+    static boolean hasEntityFilter(PropertyIndexQuery[] predicates) {
+        return predicates.length > 1 && predicates[1] instanceof EntityFilterPredicate;
+    }
+
+    public static <E extends Exception> boolean propertyFiltersForAll(
+            PropertyIndexQuery[] predicates, ThrowingPredicate<PropertyIndexQuery, E> consumer) throws E {
+        int i = hasEntityFilter(predicates) ? 2 : 1;
+        for (; i < predicates.length; i++) {
+            if (!consumer.test(predicates[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static <E extends Exception> void propertyFiltersForEach(
+            PropertyIndexQuery[] predicates, ThrowingConsumer<PropertyIndexQuery, E> consumer) throws E {
+        int i = hasEntityFilter(predicates) ? 2 : 1;
+        for (; i < predicates.length; i++) {
+            consumer.accept(predicates[i]);
         }
     }
 

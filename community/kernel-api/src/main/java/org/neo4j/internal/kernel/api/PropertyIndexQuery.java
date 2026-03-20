@@ -225,6 +225,14 @@ public abstract class PropertyIndexQuery implements IndexQuery {
         return new NearestNeighborsPredicate(k, query);
     }
 
+    public static EntityFilterPredicate entityFilter(long... entities) {
+        return new EntityFilterPredicate.MatchEntitySet(entities);
+    }
+
+    public static EntityFilterPredicate matchAllEntityFilter() {
+        return EntityFilterPredicate.MatchAll.INSTANCE;
+    }
+
     public static ValueTuple asValueTuple(PropertyIndexQuery.ExactPredicate... query) {
         Value[] values = new Value[query.length];
         for (int i = 0; i < query.length; i++) {
@@ -948,6 +956,63 @@ public abstract class PropertyIndexQuery implements IndexQuery {
             int result = Objects.hash(super.hashCode(), k);
             result = 31 * result + Arrays.hashCode(query);
             return result;
+        }
+    }
+
+    public abstract static sealed class EntityFilterPredicate extends PropertyIndexQuery {
+        protected EntityFilterPredicate() {
+            super(TokenConstants.NO_TOKEN);
+        }
+
+        public static final class MatchAll extends EntityFilterPredicate {
+            public static final MatchAll INSTANCE = new MatchAll();
+
+            private MatchAll() {}
+        }
+
+        public static final class MatchEntitySet extends EntityFilterPredicate {
+
+            private final long[] entities;
+
+            private MatchEntitySet(long[] entities) {
+                this.entities = entities;
+            }
+
+            public long[] entities() {
+                return entities;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) {
+                    return true;
+                }
+                if (o == null || getClass() != o.getClass()) {
+                    return false;
+                }
+                MatchEntitySet that = (MatchEntitySet) o;
+                return Arrays.equals(entities, that.entities);
+            }
+
+            @Override
+            public int hashCode() {
+                return Arrays.hashCode(entities);
+            }
+        }
+
+        @Override
+        public boolean acceptsValue(Value value) {
+            throw new UnsupportedOperationException("EntityFilterPredicates do not know how to evaluate themselves.");
+        }
+
+        @Override
+        public ValueGroup valueGroup() {
+            return ValueGroup.UNKNOWN;
+        }
+
+        @Override
+        public IndexQueryType type() {
+            return IndexQueryType.ENTITY_FILTER;
         }
     }
 }

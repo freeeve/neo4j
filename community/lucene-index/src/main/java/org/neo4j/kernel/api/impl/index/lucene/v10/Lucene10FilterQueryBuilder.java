@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.EXISTS_KEY;
 
 import java.time.Instant;
@@ -35,11 +36,13 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExistsPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableExactPredicate;
@@ -78,13 +81,13 @@ final class Lucene10FilterQueryBuilder {
 
     private Query queryForPredicate(int propertyIndex, PropertyIndexQuery predicate) {
         return switch (predicate) {
-            case ExistsPredicate ignored when propertyIndex == 0 -> new MatchAllDocsQuery();
+            case ExistsPredicate ignored when propertyIndex == 0 -> MatchAllDocsQuery.INSTANCE;
             case ExistsPredicate ignored -> queryForExists(propertyIndex);
-            case NotExistsPredicate ignored when propertyIndex == 0 -> new MatchNoDocsQuery();
+            case NotExistsPredicate ignored when propertyIndex == 0 -> MatchNoDocsQuery.INSTANCE;
             case NotExistsPredicate ignored -> queryForNotExists(propertyIndex);
-            case IncomparableExactPredicate ignored -> new MatchNoDocsQuery();
+            case IncomparableExactPredicate ignored -> MatchNoDocsQuery.INSTANCE;
             case ExactPredicate exactPredicate -> queryForExact(propertyIndex, exactPredicate);
-            case IncomparableRangePredicate<?> ignored -> new MatchNoDocsQuery();
+            case IncomparableRangePredicate<?> ignored -> MatchNoDocsQuery.INSTANCE;
             case RangePredicate<?> rangePredicate -> queryForRange(propertyIndex, rangePredicate);
             case null, default ->
                 throw new IllegalArgumentException("Unexpected filter query predicate. Expected one of ["
@@ -95,6 +98,8 @@ final class Lucene10FilterQueryBuilder {
                         + IndexQueryType.EXACT
                         + ", "
                         + IndexQueryType.RANGE
+                        + ", "
+                        + IndexQueryType.ENTITY_FILTER
                         + "]. Provided: "
                         + predicate);
         };
@@ -106,14 +111,24 @@ final class Lucene10FilterQueryBuilder {
 
     private Query queryForNotExists(int propertyIndex) {
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
-        queryBuilder.add(new MatchAllDocsQuery(), Occur.FILTER);
+        queryBuilder.add(MatchAllDocsQuery.INSTANCE, Occur.FILTER);
         queryBuilder.add(queryForExists(propertyIndex), Occur.MUST_NOT);
         return queryBuilder.build();
     }
 
+    private Query entityFilterPredicate(long[] validEntities) {
+        // We should be using something like LongPoint.newSetQuery(ENTITY_ID_KEY, validEntities), however that would
+        // require changing the type of ENTITY_KEY_ID to something like a SingleLongField instead of a String
+        List<BytesRef> idStrings = new ArrayList<>(validEntities.length);
+        for (long validEntity : validEntities) {
+            idStrings.add(new BytesRef(Long.toString(validEntity)));
+        }
+        return new TermInSetQuery(ENTITY_ID_KEY, idStrings);
+    }
+
     private Query queryForExact(int propertyIndex, ExactPredicate predicate) {
         return switch (predicate.value()) {
-            case NoValue ignore -> new MatchNoDocsQuery();
+            case NoValue ignore -> MatchNoDocsQuery.INSTANCE;
             case BooleanValue b ->
                 Lucene10ValueFields.BooleanField.newExactQuery(
                         vectorDocumentStructure.booleanValueKeyFor(propertyIndex), b.booleanValue());
@@ -128,7 +143,7 @@ final class Lucene10FilterQueryBuilder {
                         vectorDocumentStructure.floatingValueKeyFor(propertyIndex), i.doubleValue());
                 yield anyQuery(integralQuery, floatingPointQuery);
             }
-            case FloatingPointValue f when !Double.isFinite(f.doubleValue()) -> new MatchNoDocsQuery();
+            case FloatingPointValue f when !Double.isFinite(f.doubleValue()) -> MatchNoDocsQuery.INSTANCE;
             case FloatingPointValue f -> {
                 double doubleValue = f.doubleValue();
                 Query floatingPointQuery = Lucene10ValueFields.SingleDoubleField.newExactQuery(
@@ -260,7 +275,7 @@ final class Lucene10FilterQueryBuilder {
         boolean fromInclusive = predicate.fromInclusive();
         boolean toInclusive = predicate.toInclusive();
         return switch (new RangeRecord(predicate.fromValue(), predicate.toValue())) {
-            case RangeRecord(NoValue ignored, NoValue toNoValue) -> new MatchNoDocsQuery();
+            case RangeRecord(NoValue ignored, NoValue toNoValue) -> MatchNoDocsQuery.INSTANCE;
             case RangeRecord(NoValue ignored, Value to) -> rangeWithOpenStart(to, toInclusive, propertyIndex);
             case RangeRecord(Value from, NoValue ignored) -> rangeWithOpenEnd(from, fromInclusive, propertyIndex);
             case RangeRecord(BooleanValue from, BooleanValue to) ->
@@ -285,7 +300,7 @@ final class Lucene10FilterQueryBuilder {
             case RangeRecord(DurationValue from, DurationValue to) ->
                 fromInclusive && toInclusive && from.equals(to)
                         ? exactDurationQuery(from, propertyIndex)
-                        : new MatchNoDocsQuery();
+                        : MatchNoDocsQuery.INSTANCE;
             case RangeRecord(Value from, Value ignored) when from == null -> null;
             case RangeRecord(Value ignored, Value to) when to == null -> null;
             case RangeRecord(Value from, Value ignored) -> throw typeNotSupported(from);
@@ -457,7 +472,7 @@ final class Lucene10FilterQueryBuilder {
 
         if (twzFrom != null && twzTo != null) {
             if (TemporalWithZone.compare(twzFrom, twzTo) > 0) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
 
             if (maxInstant.compareTo(minInstant) == 0) {
@@ -474,7 +489,7 @@ final class Lucene10FilterQueryBuilder {
                     return SingleInstantField.newExactQuery(
                             vectorDocumentStructure.temporalValueKeyFor(propertyIndex, valueGroup), minInstant);
                 } else {
-                    return new MatchNoDocsQuery();
+                    return MatchNoDocsQuery.INSTANCE;
                 }
             }
         }
@@ -540,7 +555,7 @@ final class Lucene10FilterQueryBuilder {
             BooleanValue from, boolean fromInclusive, BooleanValue to, boolean toInclusive, int propertyIndex) {
         // empty range, x > true or x < false
         if ((from.booleanValue() && !fromInclusive) || (!to.booleanValue() && !toInclusive)) {
-            return new MatchNoDocsQuery();
+            return MatchNoDocsQuery.INSTANCE;
         }
 
         return Lucene10ValueFields.BooleanField.newRangeQuery(
@@ -552,7 +567,7 @@ final class Lucene10FilterQueryBuilder {
     private Query rangeWithOpenStart(Value to, boolean toInclusive, int propertyIndex) {
         return switch (to) {
             // empty boolean range, x < false
-            case BooleanValue bTo when !bTo.booleanValue() && !toInclusive -> new MatchNoDocsQuery();
+            case BooleanValue bTo when !bTo.booleanValue() && !toInclusive -> MatchNoDocsQuery.INSTANCE;
             case BooleanValue bTo ->
                 Lucene10ValueFields.BooleanField.newRangeQuery(
                         vectorDocumentStructure.booleanValueKeyFor(propertyIndex),
@@ -576,7 +591,7 @@ final class Lucene10FilterQueryBuilder {
                         toInclusive,
                         propertyIndex);
             case DurationValue dTo when toInclusive -> exactDurationQuery(dTo, propertyIndex);
-            case DurationValue ignored -> new MatchNoDocsQuery();
+            case DurationValue ignored -> MatchNoDocsQuery.INSTANCE;
             case null -> null;
             default -> throw typeNotSupported(to);
         };
@@ -585,7 +600,7 @@ final class Lucene10FilterQueryBuilder {
     private Query rangeWithOpenEnd(Value from, boolean fromInclusive, int propertyIndex) {
         return switch (from) {
             // empty boolean range, x > true
-            case BooleanValue bFrom when bFrom.booleanValue() && !fromInclusive -> new MatchNoDocsQuery();
+            case BooleanValue bFrom when bFrom.booleanValue() && !fromInclusive -> MatchNoDocsQuery.INSTANCE;
             case BooleanValue bFrom ->
                 Lucene10ValueFields.BooleanField.newRangeQuery(
                         vectorDocumentStructure.booleanValueKeyFor(propertyIndex),
@@ -609,7 +624,7 @@ final class Lucene10FilterQueryBuilder {
                         true,
                         propertyIndex);
             case DurationValue dFrom when fromInclusive -> exactDurationQuery(dFrom, propertyIndex);
-            case DurationValue ignored -> new MatchNoDocsQuery();
+            case DurationValue ignored -> MatchNoDocsQuery.INSTANCE;
 
             case null -> null;
             default -> throw typeNotSupported(from);
@@ -643,22 +658,31 @@ final class Lucene10FilterQueryBuilder {
     /**
      *
      * @param documentStructure how to map field indexes to Lucene document key values
-     * @param filterQueryFrom first query which is a filter query (e.g. 1 when preceded by a vector query)
      * @param filterQueries list of queries
      * @return A Lucene 10 query restricting document search to documents matching all the `filterQueries`
      */
     static Query build(
-            VectorDocumentStructure documentStructure, int filterQueryFrom, PropertyIndexQuery... filterQueries) {
+            VectorDocumentStructure documentStructure,
+            EntityFilterPredicate entityFilter,
+            PropertyIndexQuery... filterQueries) {
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         Lucene10FilterQueryBuilder filterQueryFactory = new Lucene10FilterQueryBuilder(documentStructure);
-        for (int i = filterQueryFrom; i < filterQueries.length; i++) {
+        switch (entityFilter) {
+            case EntityFilterPredicate.MatchAll ignored -> {
+                /*Do nothing*/
+            }
+            case EntityFilterPredicate.MatchEntitySet set ->
+                queryBuilder.add(filterQueryFactory.entityFilterPredicate(set.entities()), Occur.FILTER);
+        }
+
+        for (int i = 0; i < filterQueries.length; i++) {
             PropertyIndexQuery filterQuery = filterQueries[i];
             if (filterQuery.type() != IndexQueryType.ALL) {
-                queryBuilder.add(filterQueryFactory.queryForPredicate(i, filterQuery), Occur.FILTER);
+                queryBuilder.add(filterQueryFactory.queryForPredicate(i + 1, filterQuery), Occur.FILTER);
             }
         }
 
         BooleanQuery query = queryBuilder.build();
-        return !query.clauses().isEmpty() ? query : new MatchAllDocsQuery();
+        return !query.clauses().isEmpty() ? query : MatchAllDocsQuery.INSTANCE;
     }
 }
