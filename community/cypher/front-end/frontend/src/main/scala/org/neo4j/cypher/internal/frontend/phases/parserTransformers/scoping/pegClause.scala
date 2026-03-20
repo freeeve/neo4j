@@ -524,13 +524,17 @@ object pegClause {
   }
 
   private def getProjectionReferenced(
-    children: Seq[WorkingScope],
+    itemScopes: Seq[WorkingScope],
+    subclauseScopes: Seq[WorkingScope],
+    introducedVariables: Seq[LogicalVariable],
     includedIncomingVariables: Set[LogicalVariable],
     incomingConstants: Set[LogicalVariable],
     clauseType: ClauseType,
     hasSideEffect: Boolean
   ): Set[LogicalVariable] = {
-    val referencedInChildren = WorkingScope.referencedInChildren(children)
+    val referencedInItems = WorkingScope.referencedInChildren(itemScopes)
+    val referencedInSubclauses = WorkingScope.referencedInChildren(subclauseScopes) -- introducedVariables.toSet
+    val referencedInChildren = referencedInItems union referencedInSubclauses
     (clauseType, hasSideEffect) match {
       case (_: WithType, false) => referencedInChildren
       case (_: WithType, true)  => referencedInChildren union includedIncomingVariables union incomingConstants
@@ -575,8 +579,15 @@ object pegClause {
       getProjectionOutgoing(incoming.constants, resultingVariables, constantItems, clauseType, incoming.localCallables)
     val result = getProjectionResult(resultingVariables, clauseType)
     val declared = getProjectionDeclared(introducedVariables, clauseType)
-    val referenced =
-      getProjectionReferenced(children, includedIncomingVariables, incoming.constants, clauseType, hasSideEffects)
+    val referenced = getProjectionReferenced(
+      itemScopes,
+      subclauseScopes,
+      introducedVariables,
+      includedIncomingVariables,
+      incoming.constants,
+      clauseType,
+      hasSideEffects
+    )
 
     StatementScope(astNode, incoming, referenced, declared, outgoing, result, children)
 

@@ -1123,7 +1123,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("RETURN x * x AS x2 ORDER BY x2 ASCENDING"),
           Incoming(variables = Set("x")),
-          Referenced(Set("x", "x2")),
+          Referenced(Set("x")),
           Outgoing(variables = Set("x2")),
           ExpectedResult.TableResult("x2"),
           ExpectedWorkingScope(
@@ -1165,7 +1165,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("RETURN x * -1 AS a ORDER BY a ASCENDING"),
           Incoming(variables = Set("a", "x")),
-          Referenced(Set("x", "a")),
+          Referenced(Set("x")),
           Outgoing(variables = Set("a")),
           ExpectedResult.TableResult("a"),
           ExpectedWorkingScope(
@@ -1175,6 +1175,97 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             ExpectedWorkingScope.varExp("x", Set("a", "x"))
           ),
           ExpectedWorkingScope.varProjExp("a", Set("a", "x"), incomingItems = Set("a"))
+        )
+      )
+    )
+  }
+
+  test("""UNWIND [1, 2, 3] AS x
+         |WITH x * x AS x2 ORDER BY x2 ASCENDING
+         |RETURN x2""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""UNWIND [1, 2, 3] AS x
+              |WITH x * x AS x2 ORDER BY x2 ASCENDING
+              |RETURN x2""".stripMargin),
+        Outgoing(variables = Set("x2")),
+        ExpectedResult.TableResult("x2"),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]")
+        ),
+        ExpectedWorkingScope(
+          Ast("WITH x * x AS x2 ORDER BY x2 ASCENDING"),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("x2")),
+          Outgoing(variables = Set("x2")),
+          ExpectedWorkingScope(
+            Ast("x * x"),
+            Incoming(constants = Set("x")),
+            Referenced(Set("x")),
+            ExpectedWorkingScope.varExp("x", Set("x")),
+            ExpectedWorkingScope.varExp("x", Set("x"))
+          ),
+          ExpectedWorkingScope.varProjExp("x2", Set("x", "x2"), incomingItems = Set("x2"))
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x2"),
+          Incoming(variables = Set("x2")),
+          Referenced(Set("x2")),
+          Outgoing(variables = Set("x2")),
+          ExpectedResult.TableResult("x2"),
+          ExpectedWorkingScope.varExp("x2", Set("x2"))
+        )
+      )
+    )
+  }
+
+  test("""UNWIND [1, 2, 3] AS x
+         |WITH x * x AS x2 WHERE x2 > 5
+         |RETURN x2""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""UNWIND [1, 2, 3] AS x
+              |WITH x * x AS x2 WHERE x2 > 5
+              |RETURN x2""".stripMargin),
+        Outgoing(variables = Set("x2")),
+        ExpectedResult.TableResult("x2"),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS x"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]")
+        ),
+        ExpectedWorkingScope(
+          Ast("WITH x * x AS x2 WHERE x2 > 5"),
+          Incoming(variables = Set("x")),
+          Referenced(Set("x")),
+          Declared(variables = Seq("x2")),
+          Outgoing(variables = Set("x2")),
+          ExpectedWorkingScope(
+            Ast("x * x"),
+            Incoming(constants = Set("x")),
+            Referenced(Set("x")),
+            ExpectedWorkingScope.varExp("x", Set("x")),
+            ExpectedWorkingScope.varExp("x", Set("x"))
+          ),
+          ExpectedWorkingScope(
+            Ast("x2 > 5"),
+            AggregationIncoming(constants = Set("x", "x2"), items = Set("x2")),
+            Referenced(Set("x2")),
+            ExpectedWorkingScope.varProjExp("x2", Set("x", "x2"), incomingItems = Set("x2"))
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN x2"),
+          Incoming(variables = Set("x2")),
+          Referenced(Set("x2")),
+          Outgoing(variables = Set("x2")),
+          ExpectedResult.TableResult("x2"),
+          ExpectedWorkingScope.varExp("x2", Set("x2"))
         )
       )
     )
@@ -3455,7 +3546,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Ast("""RETURN SUM(x) AS s
                 |  ORDER BY s ASCENDING""".stripMargin),
           Incoming(variables = Set("x")),
-          Referenced(Set("x", "s")),
+          Referenced(Set("x")),
           Outgoing(variables = Set("s")),
           ExpectedResult.TableResult("s"),
           ExpectedWorkingScope(
@@ -3673,7 +3764,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Ast("""RETURN a, SUM(x / a) + a * 5 AS s
                 |  ORDER BY s * MAX(a * x) - a ASCENDING""".stripMargin),
           Incoming(variables = Set("a", "x")),
-          Referenced(Set("a", "x", "s")),
+          Referenced(Set("a", "x")),
           Outgoing(variables = Set("a", "s")),
           ExpectedResult.TableResult("a", "s"),
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
@@ -3749,7 +3840,7 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           Ast("""RETURN a AS g, SUM(x / a) + a * 5 AS s
                 |  ORDER BY s * MAX(g * x) - a ASCENDING""".stripMargin),
           Incoming(variables = Set("a", "x")),
-          Referenced(Set("a", "x", "s", "g")),
+          Referenced(Set("a", "x")),
           Outgoing(variables = Set("g", "s")),
           ExpectedResult.TableResult("g", "s"),
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
