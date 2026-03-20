@@ -27,7 +27,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -46,13 +45,12 @@ class LargePropertiesIT {
         String stringValue = RandomStringUtils.randomAlphanumeric(10000);
         byte[] arrayValue = RandomStringUtils.randomAlphanumeric(10000).getBytes();
 
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder()
+        try (var managementService = new TestDatabaseManagementServiceBuilder()
                 .setFileSystem(fs)
                 .setConfig(GraphDatabaseInternalSettings.string_block_size, 1024)
                 .setConfig(GraphDatabaseInternalSettings.array_block_size, 2048)
-                .build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+                .build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
             long nodeId;
             try (Transaction tx = db.beginTx()) {
                 Node node = tx.createNode();
@@ -68,8 +66,6 @@ class LargePropertiesIT {
                 assertArrayEquals(arrayValue, (byte[]) node.getProperty("array"));
                 tx.commit();
             }
-        } finally {
-            managementService.shutdown();
         }
     }
 }

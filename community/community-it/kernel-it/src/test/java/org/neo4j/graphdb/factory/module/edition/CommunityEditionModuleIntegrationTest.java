@@ -52,18 +52,15 @@ class CommunityEditionModuleIntegrationTest {
 
     @Test
     void createBufferedIdComponentsByDefault() {
-        DatabaseManagementService managementService =
-                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+        try (DatabaseManagementService managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             DependencyResolver dependencyResolver = database.getDependencyResolver();
             IdController idController = dependencyResolver.resolveDependency(IdController.class);
             IdGeneratorFactory idGeneratorFactory = dependencyResolver.resolveDependency(IdGeneratorFactory.class);
 
             assertThat(idController).isInstanceOf(BufferedIdController.class);
             assertThat(idGeneratorFactory).isInstanceOf(BufferingIdGeneratorFactory.class);
-        } finally {
-            managementService.shutdown();
         }
     }
 

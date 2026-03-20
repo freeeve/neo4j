@@ -35,7 +35,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.neo4j.configuration.GraphDatabaseSettings;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Result;
@@ -125,14 +124,13 @@ public class JUnitRuleTestIT {
         assumeFalse("spd".equalsIgnoreCase(System.getProperty(FACTORY_SUPPLIER_KEY)));
         // given a root folder, create /databases/neo4j folders.
         Path oldLayout = folder.newFolder("old").toPath();
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(oldLayout).build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        try (var managementService = new TestDatabaseManagementServiceBuilder(oldLayout).build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        try (Transaction transaction = db.beginTx()) {
-            transaction.execute("CREATE ()");
-            transaction.commit();
-        } finally {
-            managementService.shutdown();
+            try (Transaction transaction = db.beginTx()) {
+                transaction.execute("CREATE ()");
+                transaction.commit();
+            }
         }
 
         // When a rule with an pre-populated graph db directory is used

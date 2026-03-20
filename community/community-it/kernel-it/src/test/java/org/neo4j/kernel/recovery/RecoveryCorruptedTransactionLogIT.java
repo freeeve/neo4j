@@ -310,35 +310,37 @@ class RecoveryCorruptedTransactionLogIT {
 
     @Test
     void recoverFromLastCorruptedBrokenCheckpointRecordButNotReachingEndOfFile() throws IOException {
-        DatabaseManagementService managementService = databaseFactory.build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        logFiles = buildDefaultLogFiles(getStoreId(database));
+        long numberOfClosedTransactions;
+        try (DatabaseManagementService managementService = databaseFactory.build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+            logFiles = buildDefaultLogFiles(getStoreId(database));
 
-        TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        LogPosition logOffsetBeforeTestTransactions =
-                transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
-        long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
-        for (int i = 0; i < 10; i++) {
-            generateTransaction(database);
+            TransactionIdStore transactionIdStore = getTransactionIdStore(database);
+            LogPosition logOffsetBeforeTestTransactions =
+                    transactionIdStore.getHighestGapFreeClosedTransaction().logPosition();
+            long lastClosedTransactionBeforeStart = transactionIdStore.getHighestGapFreeClosedTransactionId();
+            for (int i = 0; i < 10; i++) {
+                generateTransaction(database);
+            }
+            numberOfClosedTransactions =
+                    transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
+
+            DependencyResolver dependencyResolver = database.getDependencyResolver();
+            var databaseCheckpointer = dependencyResolver
+                    .resolveDependency(TransactionLogFiles.class)
+                    .getCheckpointFile();
+            databaseCheckpointer
+                    .getCheckpointAppender()
+                    .checkPoint(
+                            LogCheckPointEvent.NULL,
+                            transactionIdStore.getLastCommittedTransaction(),
+                            transactionIdStore.getLastCommittedTransaction().id() + 1,
+                            kernelVersion(),
+                            logOffsetBeforeTestTransactions,
+                            logOffsetBeforeTestTransactions,
+                            Instant.now(),
+                            "Fallback checkpoint.");
         }
-        long numberOfClosedTransactions =
-                transactionIdStore.getHighestGapFreeClosedTransactionId() - lastClosedTransactionBeforeStart;
-
-        DependencyResolver dependencyResolver = database.getDependencyResolver();
-        var databaseCheckpointer =
-                dependencyResolver.resolveDependency(TransactionLogFiles.class).getCheckpointFile();
-        databaseCheckpointer
-                .getCheckpointAppender()
-                .checkPoint(
-                        LogCheckPointEvent.NULL,
-                        transactionIdStore.getLastCommittedTransaction(),
-                        transactionIdStore.getLastCommittedTransaction().id() + 1,
-                        kernelVersion(),
-                        logOffsetBeforeTestTransactions,
-                        logOffsetBeforeTestTransactions,
-                        Instant.now(),
-                        "Fallback checkpoint.");
-        managementService.shutdown();
 
         replacePartOfCheckpointWithZeroes();
         startStopDbRecoveryOfCorruptedLogs();
@@ -353,17 +355,18 @@ class RecoveryCorruptedTransactionLogIT {
 
     @Test
     void recoverWithNoValidCheckpoints() throws IOException {
-        DatabaseManagementService managementService = databaseFactory.build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        logFiles = buildDefaultLogFiles(getStoreId(database));
+        long numberOfClosedTransactions;
+        try (DatabaseManagementService managementService = databaseFactory.build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+            logFiles = buildDefaultLogFiles(getStoreId(database));
 
-        TransactionIdStore transactionIdStore = getTransactionIdStore(database);
-        for (int i = 0; i < 10; i++) {
-            generateTransaction(database);
+            TransactionIdStore transactionIdStore = getTransactionIdStore(database);
+            for (int i = 0; i < 10; i++) {
+                generateTransaction(database);
+            }
+            numberOfClosedTransactions =
+                    transactionIdStore.getHighestGapFreeClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
         }
-        long numberOfClosedTransactions =
-                transactionIdStore.getHighestGapFreeClosedTransactionId() - TransactionIdStore.BASE_TX_ID;
-        managementService.shutdown();
 
         replacePartOfFirstCheckpointAndRestOfFileWithZeroes();
         startStopDbRecoveryOfCorruptedLogs();

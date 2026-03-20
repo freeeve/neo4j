@@ -39,26 +39,21 @@ class TestDatabaseManagementServiceBuilderTest {
 
     @Test
     void databaseStartsWithSystemAndDefaultDatabase() {
-        DatabaseManagementService managementService =
-                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+        try (DatabaseManagementService managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             checkAvailableDatabases(database);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void impermanentDatabaseStartsWithSystemAndDefaultDatabase() {
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(
+                        testDirectory.homePath())
                 .impermanent()
-                .build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+                .build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             checkAvailableDatabases(database);
-        } finally {
-            managementService.shutdown();
         }
     }
 

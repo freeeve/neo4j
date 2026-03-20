@@ -39,20 +39,19 @@ class RestartIT {
         // Given an existing store
         testDir.cleanup();
         var storeDir = testDir.absolutePath();
-        var oldManagementService = new TestDatabaseManagementServiceBuilder(storeDir).build();
-        oldManagementService.shutdown();
+        try (var oldManagementService = new TestDatabaseManagementServiceBuilder(storeDir).build()) {
+            // Just creating and shutting down
+        }
 
         // When start with that store
-        var managementService = new TestDatabaseManagementServiceBuilder(storeDir).build();
+        try (var managementService = new TestDatabaseManagementServiceBuilder(storeDir).build()) {
+            // Then should be able to access it
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        // Then should be able to access it
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-
-        try (var tx = db.beginTx();
-                ResourceIterable<Node> allNodes = tx.getAllNodes()) {
-            assertThat(allNodes).isEmpty();
-        } finally {
-            managementService.shutdown();
+            try (var tx = db.beginTx();
+                    ResourceIterable<Node> allNodes = tx.getAllNodes()) {
+                assertThat(allNodes).isEmpty();
+            }
         }
     }
 }

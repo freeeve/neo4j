@@ -46,32 +46,26 @@ class DatabaseSizeServiceIT {
 
     @Test
     void sizeOfDatabaseWithDifferentDataAndLogFolder() throws IOException {
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build();
-        try {
+        try (var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build()) {
             var database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var databaseLayout = database.databaseLayout();
             assertNotEquals(databaseLayout.getTransactionLogsDirectory(), databaseLayout.databaseDirectory());
 
             verifyDatabaseSize(database);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void sizeOfDatabaseWithSameDataAndLogFolder() throws IOException {
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
+        try (var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
                 .setConfig(transaction_logs_root_path, testDirectory.homePath())
                 .setConfig(databases_root_path, testDirectory.homePath())
-                .build();
-        try {
+                .build()) {
             var database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var databaseLayout = database.databaseLayout();
             assertEquals(databaseLayout.getTransactionLogsDirectory(), databaseLayout.databaseDirectory());
 
             verifyDatabaseSize(database);
-        } finally {
-            managementService.shutdown();
         }
     }
 

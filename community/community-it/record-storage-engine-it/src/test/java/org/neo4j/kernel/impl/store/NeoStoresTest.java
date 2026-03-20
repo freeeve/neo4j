@@ -308,8 +308,7 @@ class NeoStoresTest {
     @Test
     void logVersionUpdate() throws Exception {
         Path storeDir = dir.directory("logVersion");
-        DatabaseManagementService managementService = startDatabase(storeDir);
-        try {
+        try (var managementService = startDatabase(storeDir)) {
             var database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var logVersionRepository = database.getDependencyResolver().resolveDependency(LogVersionRepository.class);
             assertEquals(0, logVersionRepository.getCurrentLogVersion());
@@ -318,17 +317,12 @@ class NeoStoresTest {
                 logFiles.getLogFile().rotate();
                 assertEquals(i + 1, logVersionRepository.getCurrentLogVersion());
             }
-        } finally {
-            managementService.shutdown();
         }
 
-        managementService = startDatabase(storeDir);
-        try {
+        try (var managementService = startDatabase(storeDir)) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var logVersionRepository = db.getDependencyResolver().resolveDependency(LogVersionRepository.class);
             assertEquals(12, logVersionRepository.getCurrentLogVersion());
-        } finally {
-            managementService.shutdown();
         }
     }
 

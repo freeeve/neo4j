@@ -59,7 +59,6 @@ import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.configuration.ssl.ClientAuth;
 import org.neo4j.configuration.ssl.SslPolicyConfig;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -201,13 +200,12 @@ class InProcessServerBuilderIT {
         // create graph db with one node upfront
         Path existingHomeDir = directory.homePath("existingStore");
 
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(existingHomeDir).build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        try (Transaction transaction = db.beginTx()) {
-            transaction.execute("create ()");
-            transaction.commit();
-        } finally {
-            managementService.shutdown();
+        try (var managementService = new TestDatabaseManagementServiceBuilder(existingHomeDir).build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            try (Transaction transaction = db.beginTx()) {
+                transaction.execute("create ()");
+                transaction.commit();
+            }
         }
 
         try (Neo4j neo4j =
@@ -224,15 +222,12 @@ class InProcessServerBuilderIT {
         }
 
         // Then: we still only have one node since the server is supposed to work on a copy
-        managementService = new TestDatabaseManagementServiceBuilder(existingHomeDir).build();
-        db = managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+        try (var managementService = new TestDatabaseManagementServiceBuilder(existingHomeDir).build()) {
+            var db = managementService.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 assertEquals(1, Iterables.count(tx.getAllNodes()));
                 tx.commit();
             }
-        } finally {
-            managementService.shutdown();
         }
     }
 

@@ -57,10 +57,9 @@ class DatabaseManagementServiceBuilderIT {
 
     @Test
     void startSystemAndDefaultDatabase() {
-        DatabaseManagementService managementService =
-                getDbmsBuilderWithLimitedTxLogSize(testDirectory.homePath()).build();
-        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        try {
+        try (DatabaseManagementService managementService =
+                getDbmsBuilderWithLimitedTxLogSize(testDirectory.homePath()).build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             DependencyResolver dependencyResolver = database.getDependencyResolver();
             DatabaseContextProvider<?> databaseContextProvider =
                     dependencyResolver.resolveDependency(DatabaseContextProvider.class);
@@ -68,8 +67,6 @@ class DatabaseManagementServiceBuilderIT {
                     .isNotEmpty();
             assertThat(databaseContextProvider.getDatabaseContext(NAMED_SYSTEM_DATABASE_ID))
                     .isNotEmpty();
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -79,17 +76,14 @@ class DatabaseManagementServiceBuilderIT {
         Path storeDir = testDirectory.homePath();
         Path databasesDir = testDirectory.directory("my_databases");
 
-        DatabaseManagementService managementService = getDbmsBuilderWithLimitedTxLogSize(homeDir)
+        try (DatabaseManagementService managementService = getDbmsBuilderWithLimitedTxLogSize(homeDir)
                 .setConfig(databases_root_path, databasesDir)
-                .build();
-        try {
+                .build()) {
             assertTrue(isEmptyOrNonExistingDirectory(fs, storeDir.resolve(DEFAULT_DATABASE_NAME)));
             assertTrue(isEmptyOrNonExistingDirectory(fs, storeDir.resolve(SYSTEM_DATABASE_NAME)));
 
             assertFalse(isEmptyOrNonExistingDirectory(fs, databasesDir.resolve(DEFAULT_DATABASE_NAME)));
             assertFalse(isEmptyOrNonExistingDirectory(fs, databasesDir.resolve(SYSTEM_DATABASE_NAME)));
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -97,15 +91,12 @@ class DatabaseManagementServiceBuilderIT {
     void notConfiguredDatabasesRootPath() throws IOException {
         Neo4jLayout layout = neo4jLayout;
 
-        DatabaseManagementService managementService =
-                getDbmsBuilderWithLimitedTxLogSize(layout.homeDirectory()).build();
-        try {
+        try (DatabaseManagementService managementService =
+                getDbmsBuilderWithLimitedTxLogSize(layout.homeDirectory()).build()) {
             assertFalse(isEmptyOrNonExistingDirectory(
                     fs, layout.databaseLayout(DEFAULT_DATABASE_NAME).databaseDirectory()));
             assertFalse(isEmptyOrNonExistingDirectory(
                     fs, layout.databaseLayout(SYSTEM_DATABASE_NAME).databaseDirectory()));
-        } finally {
-            managementService.shutdown();
         }
     }
 

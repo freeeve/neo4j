@@ -349,80 +349,81 @@ class CsvInputBatchImportIT {
                 expectedRelationshipCounts);
 
         // Do the verification
-        DatabaseManagementService managementService =
-                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        try (Transaction tx = db.beginTx();
-                ResourceIterable<Node> allNodes = tx.getAllNodes()) {
-            // Verify nodes
-            for (Node node : allNodes) {
-                String name = (String) node.getProperty("name");
-                String[] labels = expectedNodeNames.remove(name);
-                assertEquals(asSet(labels), names(node.getLabels()));
+        try (DatabaseManagementService managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.homePath()).build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            try (Transaction tx = db.beginTx();
+                    ResourceIterable<Node> allNodes = tx.getAllNodes()) {
+                // Verify nodes
+                for (Node node : allNodes) {
+                    String name = (String) node.getProperty("name");
+                    String[] labels = expectedNodeNames.remove(name);
+                    assertEquals(asSet(labels), names(node.getLabels()));
 
-                // Verify node properties
-                Map<String, Consumer<Object>> expectedPropertyVerifiers = expectedNodePropertyVerifiers.remove(name);
-                Map<String, Object> actualProperties = node.getAllProperties();
-                actualProperties.remove("id"); // The id does not exist in expected properties
-                for (Map.Entry actualProperty : actualProperties.entrySet()) {
-                    Consumer v = expectedPropertyVerifiers.get(actualProperty.getKey());
-                    if (v != null) {
-                        v.accept(actualProperty.getValue());
+                    // Verify node properties
+                    Map<String, Consumer<Object>> expectedPropertyVerifiers =
+                            expectedNodePropertyVerifiers.remove(name);
+                    Map<String, Object> actualProperties = node.getAllProperties();
+                    actualProperties.remove("id"); // The id does not exist in expected properties
+                    for (Map.Entry actualProperty : actualProperties.entrySet()) {
+                        Consumer v = expectedPropertyVerifiers.get(actualProperty.getKey());
+                        if (v != null) {
+                            v.accept(actualProperty.getValue());
+                        }
                     }
                 }
-            }
-            assertEquals(0, expectedNodeNames.size());
+                assertEquals(0, expectedNodeNames.size());
 
-            // Verify relationships
-            try (ResourceIterable<Relationship> allRelationships = tx.getAllRelationships()) {
-                for (Relationship relationship : allRelationships) {
-                    String startNodeName = (String) relationship.getStartNode().getProperty("name");
-                    Map<String, Map<String, AtomicInteger>> inner = expectedRelationships.get(startNodeName);
-                    String endNodeName = (String) relationship.getEndNode().getProperty("name");
-                    Map<String, AtomicInteger> innerInner = inner.get(endNodeName);
-                    String type = relationship.getType().name();
-                    int countAfterwards = innerInner.get(type).decrementAndGet();
-                    assertThat(countAfterwards).isGreaterThanOrEqualTo(0);
-                    if (countAfterwards == 0) {
-                        innerInner.remove(type);
-                        if (innerInner.isEmpty()) {
-                            inner.remove(endNodeName);
-                            if (inner.isEmpty()) {
-                                expectedRelationships.remove(startNodeName);
+                // Verify relationships
+                try (ResourceIterable<Relationship> allRelationships = tx.getAllRelationships()) {
+                    for (Relationship relationship : allRelationships) {
+                        String startNodeName =
+                                (String) relationship.getStartNode().getProperty("name");
+                        Map<String, Map<String, AtomicInteger>> inner = expectedRelationships.get(startNodeName);
+                        String endNodeName = (String) relationship.getEndNode().getProperty("name");
+                        Map<String, AtomicInteger> innerInner = inner.get(endNodeName);
+                        String type = relationship.getType().name();
+                        int countAfterwards = innerInner.get(type).decrementAndGet();
+                        assertThat(countAfterwards).isGreaterThanOrEqualTo(0);
+                        if (countAfterwards == 0) {
+                            innerInner.remove(type);
+                            if (innerInner.isEmpty()) {
+                                inner.remove(endNodeName);
+                                if (inner.isEmpty()) {
+                                    expectedRelationships.remove(startNodeName);
+                                }
                             }
                         }
                     }
                 }
-            }
-            assertEquals(0, expectedRelationships.size());
+                assertEquals(0, expectedRelationships.size());
 
-            RecordStorageEngine storageEngine =
-                    ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(RecordStorageEngine.class);
-            NeoStores neoStores = storageEngine.testAccessNeoStores();
-            var counts = storageEngine.countsAccessor();
-            Function<String, Integer> labelTranslationTable =
-                    translationTable(neoStores.getLabelTokenStore(), TokenConstants.ANY_LABEL, storageEngine);
-            for (Pair<Integer, Long> count : allNodeCounts(labelTranslationTable, expectedNodeCounts)) {
-                assertEquals(
-                        count.other().longValue(),
-                        counts.nodeCount(count.first(), NULL_CONTEXT),
-                        "Label count mismatch for label " + count.first());
-            }
+                RecordStorageEngine storageEngine =
+                        ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(RecordStorageEngine.class);
+                NeoStores neoStores = storageEngine.testAccessNeoStores();
+                var counts = storageEngine.countsAccessor();
+                Function<String, Integer> labelTranslationTable =
+                        translationTable(neoStores.getLabelTokenStore(), TokenConstants.ANY_LABEL, storageEngine);
+                for (Pair<Integer, Long> count : allNodeCounts(labelTranslationTable, expectedNodeCounts)) {
+                    assertEquals(
+                            count.other().longValue(),
+                            counts.nodeCount(count.first(), NULL_CONTEXT),
+                            "Label count mismatch for label " + count.first());
+                }
 
-            Function<String, Integer> relationshipTypeTranslationTable = translationTable(
-                    neoStores.getRelationshipTypeTokenStore(), TokenConstants.ANY_RELATIONSHIP_TYPE, storageEngine);
-            for (Pair<RelationshipCountKey, Long> count : allRelationshipCounts(
-                    labelTranslationTable, relationshipTypeTranslationTable, expectedRelationshipCounts)) {
-                RelationshipCountKey key = count.first();
-                assertEquals(
-                        count.other().longValue(),
-                        counts.relationshipCount(key.startLabel, key.type, key.endLabel, NULL_CONTEXT),
-                        "Label count mismatch for label " + key);
-            }
+                Function<String, Integer> relationshipTypeTranslationTable = translationTable(
+                        neoStores.getRelationshipTypeTokenStore(), TokenConstants.ANY_RELATIONSHIP_TYPE, storageEngine);
+                for (Pair<RelationshipCountKey, Long> count : allRelationshipCounts(
+                        labelTranslationTable, relationshipTypeTranslationTable, expectedRelationshipCounts)) {
+                    RelationshipCountKey key = count.first();
+                    assertEquals(
+                            count.other().longValue(),
+                            counts.relationshipCount(key.startLabel, key.type, key.endLabel, NULL_CONTEXT),
+                            "Label count mismatch for label " + key);
+                }
 
-            tx.commit();
-        } finally {
-            managementService.shutdown();
+                tx.commit();
+            }
         }
     }
 

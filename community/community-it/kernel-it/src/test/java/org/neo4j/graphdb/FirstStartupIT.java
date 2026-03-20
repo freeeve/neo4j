@@ -39,18 +39,17 @@ class FirstStartupIT {
     void shouldBeEmptyWhenFirstStarted() {
         // When
         var storeDir = testDir.absolutePath();
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        // Then
-        try (Transaction transaction = db.beginTx()) {
-            assertEquals(0, count(transaction.getAllNodes()));
-            assertEquals(0, count(transaction.getAllRelationships()));
-            assertEquals(0, count(transaction.getAllRelationshipTypes()));
-            assertEquals(0, count(transaction.getAllLabels()));
-            assertEquals(0, count(transaction.getAllPropertyKeys()));
-        } finally {
-            managementService.shutdown();
+            // Then
+            try (Transaction transaction = db.beginTx()) {
+                assertEquals(0, count(transaction.getAllNodes()));
+                assertEquals(0, count(transaction.getAllRelationships()));
+                assertEquals(0, count(transaction.getAllRelationshipTypes()));
+                assertEquals(0, count(transaction.getAllLabels()));
+                assertEquals(0, count(transaction.getAllPropertyKeys()));
+            }
         }
     }
 }

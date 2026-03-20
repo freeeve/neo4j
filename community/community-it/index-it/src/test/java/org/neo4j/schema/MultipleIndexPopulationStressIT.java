@@ -55,7 +55,6 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.SettingValueParsers;
 import org.neo4j.consistency.ConsistencyCheckService;
 import org.neo4j.consistency.ConsistencyCheckService.Result;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -198,17 +197,15 @@ class MultipleIndexPopulationStressIT {
     }
 
     private void populateDbAndIndexes(long nodeCount, long relCount) throws InterruptedException {
-        DatabaseManagementService managementService =
-                new TestDatabaseManagementServiceBuilder(directory.homePath()).build();
-        final GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        // The database was created by the importer in record format.
-        assert ((GraphDatabaseAPI) db)
-                .getDependencyResolver()
-                .resolveOptionalDependency(StorageEngineFactory.class)
-                .map(e -> e.name())
-                .orElseThrow()
-                .equals(RecordStorageEngineFactory.NAME);
-        try {
+        try (var managementService = new TestDatabaseManagementServiceBuilder(directory.homePath()).build()) {
+            final GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            // The database was created by the importer in record format.
+            assert ((GraphDatabaseAPI) db)
+                    .getDependencyResolver()
+                    .resolveOptionalDependency(StorageEngineFactory.class)
+                    .map(e -> e.name())
+                    .orElseThrow()
+                    .equals(RecordStorageEngineFactory.NAME);
             try (var tx = db.beginTx();
                     var softly = new AutoCloseableSoftAssertions()) {
                 softly.assertThat(Iterables.count(tx.getAllNodes()))
@@ -242,21 +239,18 @@ class MultipleIndexPopulationStressIT {
             executor.shutdown();
             executor.awaitTermination(10, SECONDS);
             executor = null;
-        } finally {
-            managementService.shutdown();
         }
     }
 
     private void dropIndexes() {
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(directory.homePath())
+        try (var managementService = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setConfig(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(8))
-                .build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        try (Transaction tx = db.beginTx()) {
-            tx.schema().getIndexes().forEach(IndexDefinition::drop);
-            tx.commit();
-        } finally {
-            managementService.shutdown();
+                .build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            try (Transaction tx = db.beginTx()) {
+                tx.schema().getIndexes().forEach(IndexDefinition::drop);
+                tx.commit();
+            }
         }
 
         expectingNLI = false;

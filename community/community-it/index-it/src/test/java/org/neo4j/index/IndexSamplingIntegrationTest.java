@@ -150,14 +150,11 @@ class IndexSamplingIntegrationTest {
 
     private void populateDatabaseThenTriggerIndexResamplingOnNextStartup(Consumer<GraphDatabaseService> consumer)
             throws IOException {
-        final var managementService = new TestDatabaseManagementServiceBuilder(layout).build();
         final DatabaseLayout databaseLayout;
-        try {
+        try (final var managementService = new TestDatabaseManagementServiceBuilder(layout).build()) {
             final var db = managementService.database(DEFAULT_DATABASE_NAME);
             consumer.accept(db);
             databaseLayout = ((GraphDatabaseAPI) db).databaseLayout();
-        } finally {
-            managementService.shutdown();
         }
 
         triggerIndexResamplingOnNextStartup(databaseLayout);

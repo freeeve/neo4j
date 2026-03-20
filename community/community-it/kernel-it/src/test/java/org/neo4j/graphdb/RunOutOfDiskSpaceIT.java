@@ -103,15 +103,12 @@ class RunOutOfDiskSpaceIT {
         managementService.shutdown();
 
         limitedFs.runOutOfDiskSpace(false);
-        managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        try (var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setFileSystem(limitedFs)
-                .build();
-        try {
-            database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+                .build()) {
+            database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             var metadataProvider = database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
             assertEquals(logVersion, metadataProvider.getCurrentLogVersion());
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -147,15 +144,12 @@ class RunOutOfDiskSpaceIT {
         managementService.shutdown();
 
         limitedFs.runOutOfDiskSpace(false);
-        managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        try (var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setFileSystem(limitedFs)
-                .build();
-        try {
-            database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+                .build()) {
+            database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             var metadataProvider = database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
             assertEquals(logVersion, metadataProvider.getCurrentLogVersion());
-        } finally {
-            managementService.shutdown();
         }
     }
 }

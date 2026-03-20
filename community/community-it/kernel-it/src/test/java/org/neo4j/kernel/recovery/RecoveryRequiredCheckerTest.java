@@ -189,8 +189,8 @@ class RecoveryRequiredCheckerTest {
 
     @Test
     void doNotRequireCheckpointWhenOldestNotCompletedPositionIsEqualToCheckpointedPosition() throws IOException {
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
-        try {
+        try (var managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build()) {
             var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
             databaseLayout = db.databaseLayout();
@@ -211,8 +211,6 @@ class RecoveryRequiredCheckerTest {
             assertEquals(
                     latestCheckpoint.transactionLogPosition(),
                     latestCheckpoint.oldestNotVisibleTransactionLogPosition());
-        } finally {
-            managementService.shutdown();
         }
 
         try (PageCache pageCache = pageCacheExtension.getPageCache(fileSystem)) {
@@ -315,8 +313,8 @@ class RecoveryRequiredCheckerTest {
     @Test
     void recoveryRequiredWithMaxLogPositionIfNoCheckpointAtMaxLogPosition() throws Exception {
         LogPosition logPositionAfterCheckpoint;
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
-        try {
+        try (var managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build()) {
             var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
             databaseLayout = db.databaseLayout();
@@ -335,8 +333,6 @@ class RecoveryRequiredCheckerTest {
             logPositionAfterCheckpoint = logFiles.logMetadataProvider()
                     .getHighestGapFreeClosedTransaction()
                     .logPosition();
-        } finally {
-            managementService.shutdown();
         }
         RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
 
@@ -355,8 +351,8 @@ class RecoveryRequiredCheckerTest {
     @Test
     void recoveryNotRequiredWhenAtMaxLogPosition() throws Exception {
         CheckpointInfo latestCheckpoint;
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
-        try {
+        try (var managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build()) {
             var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
             databaseLayout = db.databaseLayout();
@@ -379,9 +375,6 @@ class RecoveryRequiredCheckerTest {
                 tx.createNode();
                 tx.commit();
             }
-
-        } finally {
-            managementService.shutdown();
         }
         RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
 
@@ -400,8 +393,8 @@ class RecoveryRequiredCheckerTest {
     @Test
     void recoveryRequiredWhenCheckpointAtMaxLogPositionButSeveralStoreFilesAreMissing() throws Exception {
         CheckpointInfo latestCheckpoint;
-        var managementService = new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build();
-        try {
+        try (var managementService =
+                new TestDatabaseManagementServiceBuilder(testDirectory.directory("test")).build()) {
             var db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
             databaseLayout = db.databaseLayout();
@@ -424,9 +417,6 @@ class RecoveryRequiredCheckerTest {
                 tx.createNode();
                 tx.commit();
             }
-
-        } finally {
-            managementService.shutdown();
         }
         RecoveryHelpers.removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
 

@@ -54,16 +54,15 @@ class TestRecoveryRelationshipTypes {
         assertEquals(0, process.waitFor());
 
         // When
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        // Then
-        try (Transaction transaction = db.beginTx()) {
-            Iterator<RelationshipType> typeResourceIterator =
-                    transaction.getAllRelationshipTypes().iterator();
-            assertEquals(MyRelTypes.TEST.name(), typeResourceIterator.next().name());
-        } finally {
-            managementService.shutdown();
+            // Then
+            try (Transaction transaction = db.beginTx()) {
+                Iterator<RelationshipType> typeResourceIterator =
+                        transaction.getAllRelationshipTypes().iterator();
+                assertEquals(MyRelTypes.TEST.name(), typeResourceIterator.next().name());
+            }
         }
     }
 

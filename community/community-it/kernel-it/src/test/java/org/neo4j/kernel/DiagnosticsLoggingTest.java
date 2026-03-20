@@ -24,7 +24,6 @@ import static org.neo4j.logging.LogAssertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -33,14 +32,13 @@ class DiagnosticsLoggingTest {
     @Test
     void shouldSeeExpectedDiagnostics() {
         AssertableLogProvider logProvider = new AssertableLogProvider();
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder()
+        try (var managementService = new TestDatabaseManagementServiceBuilder()
                 .setInternalLogProvider(logProvider)
                 .impermanent()
                 .setConfig(GraphDatabaseInternalSettings.dump_configuration, true)
                 .setConfig(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(4))
                 .setConfig(GraphDatabaseInternalSettings.dump_diagnostics, true)
-                .build();
-        try {
+                .build()) {
             // THEN we should have logged
             assertThat(logProvider).containsMessages("Network information", "Local timezone", "Page cache: 4.00MiB");
             // Metadata records
@@ -51,8 +49,6 @@ class DiagnosticsLoggingTest {
                     .containsMessages("STORE_ID");
             // transaction log info
             assertThat(logProvider).containsMessages("Transaction log", "TimeZone version: ");
-        } finally {
-            managementService.shutdown();
         }
     }
 }

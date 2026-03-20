@@ -80,30 +80,27 @@ class CheckPointerIntegrationTest {
 
     @Test
     void databaseShutdownDuringConstantCheckPointing() throws InterruptedException {
-        DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
+        try (DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-        try (Transaction tx = db.beginTx()) {
-            tx.createNode();
-            tx.commit();
+                .build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+            Thread.sleep(10);
         }
-        Thread.sleep(10);
-        managementService.shutdown();
     }
 
     @Test
     void latestKernelVersionInCheckpointByDefault() throws Exception {
-        DatabaseManagementService managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             getCheckPointer(db).forceCheckPoint(new SimpleTriggerInfo("test"));
             List<CheckpointInfo> checkpointInfos = checkPointsInTxLog(db);
             assertEquals(
                     LatestVersions.LATEST_KERNEL_VERSION,
                     checkpointInfos.getLast().kernelVersion());
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -111,47 +108,44 @@ class CheckPointerIntegrationTest {
     void shouldCheckPointBasedOnTime() throws Throwable {
         // given
         long millis = 200;
-        DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(millis))
+        try (DatabaseManagementService managementService = builder.setConfig(
+                        check_point_interval_time, ofMillis(millis))
                 .setConfig(check_point_interval_tx, 10000)
-                .build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+                .build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        // when
-        try (Transaction tx = db.beginTx()) {
-            tx.createNode();
-            tx.commit();
+            // when
+            try (Transaction tx = db.beginTx()) {
+                tx.createNode();
+                tx.commit();
+            }
+
+            // The scheduled job checking whether or not checkpoints are needed runs more frequently
+            // now that we've set the time interval so low, so we can simply wait for it here
+            long endTime = currentTimeMillis() + SECONDS.toMillis(30);
+            while (checkPointsInTxLog(db).isEmpty()) {
+                Thread.sleep(millis);
+                assertTrue(currentTimeMillis() < endTime, "Took too long to produce a checkpoint");
+            }
         }
 
-        // The scheduled job checking whether or not checkpoints are needed runs more frequently
-        // now that we've set the time interval so low, so we can simply wait for it here
-        long endTime = currentTimeMillis() + SECONDS.toMillis(30);
-        while (checkPointsInTxLog(db).isEmpty()) {
-            Thread.sleep(millis);
-            assertTrue(currentTimeMillis() < endTime, "Took too long to produce a checkpoint");
-        }
-        managementService.shutdown();
-
-        managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             // then - 2 check points have been written in the log
             List<CheckpointInfo> checkPoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME));
 
             assertTrue(
                     checkPoints.size() >= 2,
                     "Expected at least two (at least one for time interval and one for shutdown), was " + checkPoints);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void shouldCheckPointBasedOnTxCount() throws Throwable {
         // given
-        DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(300))
-                .setConfig(check_point_interval_tx, 1)
-                .build();
         int counter;
-        try {
+        try (DatabaseManagementService managementService = builder.setConfig(check_point_interval_time, ofMillis(300))
+                .setConfig(check_point_interval_tx, 1)
+                .build()) {
             GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
             // when
@@ -166,12 +160,9 @@ class CheckPointerIntegrationTest {
             List<CheckpointInfo> checkpoints = checkPointsInTxLog(db);
             assertThat(checkpoints).isNotEmpty();
             counter = checkpoints.size();
-        } finally {
-            managementService.shutdown();
         }
 
-        managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             // then - checkpoints + shutdown checkpoint have been written in the log
             var checkpointInfos = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME));
 
@@ -188,39 +179,35 @@ class CheckPointerIntegrationTest {
             // the log when there
             // are actually two.
             assertThat(checkpointInfos.size()).isGreaterThanOrEqualTo(counter + 1);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void shouldNotCheckPointWhenThereAreNoCommits() throws Throwable {
         // given
-        DatabaseManagementService managementService = builder.setConfig(
+        int checkPointsBefore;
+        try (DatabaseManagementService managementService = builder.setConfig(
                         check_point_interval_time, Duration.ofSeconds(1))
                 .setConfig(check_point_interval_tx, 10000)
-                .build();
-        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+                .build()) {
+            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
-        GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
-        getCheckPointer(databaseAPI).forceCheckPoint(new SimpleTriggerInfo("given"));
+            GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+            getCheckPointer(databaseAPI).forceCheckPoint(new SimpleTriggerInfo("given"));
 
-        var checkPointsBefore = checkPointsInTxLog(db).size();
-        // when
+            checkPointsBefore = checkPointsInTxLog(db).size();
+            // when
 
-        // nothing happens
+            // nothing happens
 
-        triggerCheckPointAttempt(db);
-        assertThat(checkPointsInTxLog(db)).hasSize(checkPointsBefore);
-        managementService.shutdown();
+            triggerCheckPointAttempt(db);
+            assertThat(checkPointsInTxLog(db)).hasSize(checkPointsBefore);
+        }
 
-        managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             // then - 1 check point has been written in the log
             var checkPoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME));
             assertEquals(checkPointsBefore + 1, checkPoints.size());
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -232,29 +219,27 @@ class CheckPointerIntegrationTest {
                 .setConfig(check_point_interval_tx, 10000);
 
         // when
-        DatabaseManagementService managementService = databaseManagementServiceBuilder.build();
-        int initialCheckpoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME))
-                .size();
-        managementService.shutdown();
-        managementService = databaseManagementServiceBuilder.build();
-        managementService.shutdown();
+        int initialCheckpoints;
+        try (DatabaseManagementService managementService = databaseManagementServiceBuilder.build()) {
+            initialCheckpoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME))
+                    .size();
+        }
+        try (DatabaseManagementService managementService = databaseManagementServiceBuilder.build()) {
+            // Just starting and shutting down
+        }
 
         // then - 2 check points have been written in the log + 1 checkpoint after init on db creation
-        managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             var checkpoints = checkPointsInTxLog(managementService.database(DEFAULT_DATABASE_NAME));
             assertEquals(initialCheckpoints + 2, checkpoints.size());
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void readTransactionInfoFromCheckpointRecord() throws IOException {
-        var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
+        try (var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .build();
-        try {
+                .build()) {
             var databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             for (int i = 0; i < 10; i++) {
                 try (Transaction transaction = databaseAPI.beginTx()) {
@@ -269,24 +254,19 @@ class CheckPointerIntegrationTest {
             var checkpointInfos = checkPointsInTxLog(databaseAPI);
             TransactionId lastCheckpointTxId = checkpointInfos.getLast().transactionId();
             assertEquals(lastClosedTxId, lastCheckpointTxId);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void oldestNotVisibleTransactionIsTheSameAsTransactionPositionOnTheDatabaseWithoutExplicitTransactions()
             throws IOException {
-        DatabaseManagementService managementService = builder.build();
-        try {
+        try (DatabaseManagementService managementService = builder.build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             getCheckPointer(db).forceCheckPoint(new SimpleTriggerInfo("test"));
             List<CheckpointInfo> checkpointInfos = checkPointsInTxLog(db);
             CheckpointInfo lastCheckpoint = checkpointInfos.getLast();
             assertEquals(
                     lastCheckpoint.oldestNotVisibleTransactionLogPosition(), lastCheckpoint.transactionLogPosition());
-        } finally {
-            managementService.shutdown();
         }
     }
 

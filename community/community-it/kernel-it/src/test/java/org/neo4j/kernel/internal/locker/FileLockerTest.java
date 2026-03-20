@@ -226,8 +226,7 @@ class FileLockerTest {
     @Test
     void mustPreventMultipleInstancesFromStartingOnSameStore() {
         Path storeDir = testDirectory.homePath();
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build();
-        try {
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir).build()) {
             GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 tx.createNode();
@@ -237,8 +236,6 @@ class FileLockerTest {
             assertThrows(Exception.class, () -> {
                 new TestDatabaseManagementServiceBuilder(storeDir).build();
             });
-        } finally {
-            managementService.shutdown();
         }
     }
 
