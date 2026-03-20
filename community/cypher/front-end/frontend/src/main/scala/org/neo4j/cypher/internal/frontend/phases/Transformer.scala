@@ -406,3 +406,21 @@ case class NoOp[-C <: BaseContext, FROM, STATE <: FROM]() extends Transformer[C,
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
 }
+
+case class OptionalTransformer[
+  -C <: BaseContext,
+  FROM,
+  STATE <: FROM
+](transformer: Option[Transformer[C, STATE, STATE]]) extends Transformer[C, STATE, STATE] {
+  val actual: Transformer[C, STATE, STATE] = transformer.getOrElse(NoOp())
+
+  override def transform(from: STATE, context: C): STATE = actual.transform(from, context)
+
+  override def name: String = actual.name
+
+  override def toString: String = actual.toString
+
+  override def postConditions: Set[StepSequencer.Condition] = actual.postConditions
+
+  override def invalidatedConditions: Set[StepSequencer.Condition] = actual.invalidatedConditions
+}

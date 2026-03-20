@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeZipper
 import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.expressions.Expression
@@ -77,6 +78,16 @@ sealed trait QueryUtils {
    * looks up the final scope after the last clause
    */
   def finalScope(scope: Scope): Scope
+
+  /**
+   * Semantic check for when this `Query` is the body of local callable, and imports
+   * local callable parameters as variables from the `outer` scope
+   */
+  def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck
 
   /**
    * Semantic check for when this `Query` is in a subquery, and might import
@@ -374,10 +385,23 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       ) // resetWorkingGraph
   }
 
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = false)
+
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
     current: SemanticState,
     optional: Boolean
+  ): SemanticCheck = semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = true)
+
+  private def semanticCheckInSubqueryAbstract(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean,
+    withShadowedCheck: Boolean
   ): SemanticCheck = {
     val workingGraph = outer.workingGraph
 
@@ -387,7 +411,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         checkClauses(_, Some(outer.currentScope.scope), ScopeClauseSubqueryCall),
         context = ScopeClauseSubqueryCall
       ) chain
-      errorOnShadowedImportVariables(outer) chain
+      (if (withShadowedCheck) errorOnShadowedImportVariables(outer) else success) chain
       warnOnPotentiallyShadowVariables(current, optional) chain
       SemanticCheck.fromState(state =>
         SemanticCheck.setState(state.recordWorkingGraph(workingGraph))
@@ -1007,6 +1031,13 @@ case class TopLevelBraces(
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    query.semanticCheckInLocalCallableBodyContext(outer, current, optional) chain recordCurrentScope(this)
+
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
     current: SemanticState,
@@ -1153,6 +1184,17 @@ sealed trait Union extends Query {
   override def isReturning: Boolean = rhs.isReturning // we assume lhs has the same value
 
   override def endsWithFinish: Boolean = rhs.endsWithFinish || lhs.endsWithFinish
+
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = {
+    checkRecursively(innerQuery =>
+      importValuesFromScope(outer.currentScope.scope) chain
+        innerQuery.semanticCheckInLocalCallableBodyContext(outer, current, optional)
+    )
+  }
 
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
@@ -1425,6 +1467,15 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck = {
+    importValuesFromScope(outer.currentScope.scope) chain
+      semanticCheckAbstract(_.semanticCheckInLocalCallableBodyContext(outer, current, optional))
+  }
+
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
     current: SemanticState,
@@ -1503,6 +1554,13 @@ case class ConditionalQueryWhen(
   override def finalScope(scope: Scope): Scope = {
     if (scope.children.size < 1) Scope.empty else scope.children.last
   }
+
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInLocalCallableBodyContext(outer, current, optional))
 
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
@@ -1718,6 +1776,13 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   override def semanticCheck: SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInContext(NextStatement), None)
 
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInLocalCallableBodyContext(outer, current, optional), Some(outer))
+
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
     current: SemanticState,
@@ -1825,7 +1890,25 @@ case class QueryWithLocalDefinitions(
       SemanticFeature.LocalCallables,
       position
     ) ifOkChain
-      definitions.foldSemanticCheck(definition => definition.semanticCheck) chain
+      SemanticCheck.fromState { outer =>
+        // Detached base: no parent chain => no variables visible
+        val defsBase =
+          outer.copy(currentScope = Scope.empty.location).newChildScope
+        // (newChildScope is optional here, but it avoids “Top” issues if any code wants to insert siblings.)
+
+        SemanticCheck.setState(defsBase) chain
+          definitions.foldSemanticCheck(_.semanticCheck) chain
+          SemanticCheck.fromState { defsState =>
+            val outerWithGraphs = updateRecordedGraphs(outer, defsState)
+            val mergedOuter =
+              outerWithGraphs.copy(
+                recordedScopes = outerWithGraphs.recordedScopes ++ defsState.recordedScopes,
+                typeTable = outerWithGraphs.typeTable ++ defsState.typeTable,
+                notifications = outerWithGraphs.notifications ++ defsState.notifications
+              )
+            SemanticCheck.setState(mergedOuter)
+          }
+      } ifOkChain
       check(query)
   }
 
@@ -1837,6 +1920,17 @@ case class QueryWithLocalDefinitions(
    */
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInContext(context))
+
+  /**
+   * Semantic check for when this `Query` is the body of local callable, and imports
+   * local callable parameters as variables from the `outer` scope
+   */
+  override def semanticCheckInLocalCallableBodyContext(
+    outer: SemanticState,
+    current: SemanticState,
+    optional: Boolean
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInLocalCallableBodyContext(outer, current, optional))
 
   /**
    * Semantic check for when this `Query` is in a subquery, and might import

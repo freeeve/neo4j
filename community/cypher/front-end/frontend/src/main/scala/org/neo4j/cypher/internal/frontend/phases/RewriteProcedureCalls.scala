@@ -80,9 +80,9 @@ trait RewriteProcedureCalls {
       if (context.semanticFeatures contains LocalCallables)
         from.scopeState().recordedScopes(unresolved).incoming.localCallables.collectFirst(Function.unlift {
           case sig if sig.name.fullNameEqual(procedureName) =>
-            definitions.get(procedureName).map(definition =>
-              ResolvedLocalCall(unresolved, definition)
-            )
+            definitions.get(procedureName).map { definition =>
+              ResolvedLocalCall(unresolved, definition, definition.inferredOutputSignature(from.semantics()))
+            }
           case _ => None
         })
       else None

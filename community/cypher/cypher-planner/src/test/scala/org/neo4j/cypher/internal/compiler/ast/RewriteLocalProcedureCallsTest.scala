@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
@@ -57,6 +58,8 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
@@ -71,17 +74,23 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.exceptions.Neo4jException
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
+import org.scalatest.Assertions
 
 import scala.util.Random
 
 class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with AstConstructionTestSupport {
+
+  // Note that the may be fewer tests actually executed, since equal fuzz tests are executed only once
+  private val numberOfFuzzTests = 500
 
   private val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
@@ -102,7 +111,33 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         foo
       )(
         resolveLocalCall(
-          procedureName("foo")
+          procedureName("foo"),
+          declaredResults = false
+        )
+      )
+    )
+  }
+
+  test(
+    s"""DEFINE PROCEDURE foo() {
+       |  CREATE (:Bar)
+       |}
+       |
+       |CALL foo()""".stripMargin
+  ) {
+    val createLabel = localProcedureDefinition("foo").body(
+      create(nodePat(labelExpression = Some(labelLeaf("Bar"))))
+    )
+    cypher25testName.hasExtractedLocalProcedures(
+      procedureName("foo") -> createLabel
+    ).isRewrittenTo(
+      singleQueryWithLocalDefinitions(
+        createLabel
+      )(
+        resolveLocalCall(
+          procedureName("foo"),
+          bodyContainsUpdates = true,
+          declaredResults = false
         )
       )
     )
@@ -113,7 +148,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
        |  RETURN 1 AS x
        |}
        |
-       |CALL foo()
+       |CALL foo() YIELD x
        |RETURN x""".stripMargin
   ) {
     val foo = localProcedureDefinition("foo").body(
@@ -128,9 +163,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         foo
       )(
         resolveLocalCall(
-          procedureName("foo")
+          procedureName("foo"),
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
       )
     )
   }
@@ -140,7 +178,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
        |  RETURN 1 AS x
        |}
        |
-       |CALL foo(1)
+       |CALL foo(1) YIELD x
        |RETURN x""".stripMargin
   ) {
     val foo = localProcedureDefinition("foo", localFieldSignature("a")).body(
@@ -157,9 +195,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         resolveLocalCall(
           procedureName("foo"),
           inputSignature = Seq(localFieldSignature("a")),
-          callArguments = Seq(literalInt(1))
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callArguments = Seq(literalInt(1)),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
       )
     )
   }
@@ -169,7 +210,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
        |  RETURN 1 AS x
        |}
        |
-       |CALL foo(1)
+       |CALL foo(1) YIELD x
        |RETURN x""".stripMargin
   ) {
     val foo = localProcedureDefinition("foo", localFieldSignature("a", symbols.CTInteger)).body(
@@ -186,9 +227,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         resolveLocalCall(
           procedureName("foo"),
           inputSignature = Seq(localFieldSignature("a", symbols.CTInteger)),
-          callArguments = Seq(coerceTo(literalInt(1), symbols.CTInteger))
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callArguments = Seq(coerceTo(literalInt(1), symbols.CTInteger)),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
       )
     )
   }
@@ -198,7 +242,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
        |  RETURN 1 AS x
        |}
        |
-       |CALL bar()
+       |CALL bar() YIELD x
        |RETURN x""".stripMargin
   ) {
     val foo = localProcedureDefinition("foo").body(
@@ -217,9 +261,11 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
          * see `PlanContextMock.procedureSignature` below
          */
         resolveNonLocalCall(
-          procedureName("bar")
+          procedureName("bar"),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
       )
     )
   }
@@ -254,7 +300,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
          |  RETURN 1 AS x
          |}
          |
-         |CALL foo($argsCypher)
+         |CALL foo($argsCypher) YIELD x
          |RETURN x""".stripMargin
     ) {
       val foo = localProcedureDefinition("foo", sig: _*).body(
@@ -275,9 +321,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
           resolveLocalCall(
             procedureName("foo"),
             inputSignature = sig,
-            callArguments = argsCoercedOpt.getOrElse(args)
+            outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+            callArguments = argsCoercedOpt.getOrElse(args),
+            callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+            declaredResults = true
           ),
-          return_(returnItem(v"x", "x"))
+          return_(aliasedReturnItem(v"x", "x"))
         )
       )
     }
@@ -291,11 +340,13 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
       ('a' to 'z').map(_.toString)
     )
     (fieldsSeq, fieldDefs) <- Seq(
-      (parameters, parameters.map(v => localFieldSignature(v))),
-      (parameters.map(v => s"$v :: INT"), parameters.map(v => localFieldSignature(v, symbols.CTInteger))),
       (
-        parameters.map(v => s"$v :: INT NOT NULL"),
-        parameters.map(v => localFieldSignature(v, symbols.CTInteger.withIsNullable(false)))
+        parameters,
+        parameters.map(v => localFieldSignature(v))
+      ),
+      (
+        parameters.map(v => s"$v :: INT"),
+        parameters.map(v => localFieldSignature(v, symbols.CTInteger))
       )
     )
     fields = fieldsSeq.mkString(", ")
@@ -317,7 +368,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
          |  RETURN $innerReturnStr AS x
          |}
          |
-         |CALL foo($args)
+         |CALL foo($args) YIELD x
          |RETURN x""".stripMargin
     ) {
       val foo = localProcedureDefinition(
@@ -337,9 +388,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
           resolveLocalCall(
             procedureName("foo"),
             inputSignature = fieldDefs,
-            callArguments = callArguments
+            outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+            callArguments = callArguments,
+            callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+            declaredResults = true
           ),
-          return_(returnItem(v"x", "x"))
+          return_(aliasedReturnItem(v"x", "x"))
         )
       )
     }
@@ -354,17 +408,14 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
     )
     (fieldsSeq, fieldDefs) <- Seq(
       (returnVars, returnVars.map(v => localFieldSignature(v))),
-      (returnVars.map(v => s"$v :: INT"), returnVars.map(v => localFieldSignature(v, symbols.CTInteger))),
-      (
-        returnVars.map(v => s"$v :: INT NOT NULL"),
-        returnVars.map(v => localFieldSignature(v, symbols.CTInteger.withIsNullable(false)))
-      )
+      (returnVars.map(v => s"$v :: INT"), returnVars.map(v => localFieldSignature(v, symbols.CTInteger)))
     )
     fields = fieldsSeq.mkString(", ")
     indexedReturnVars = returnVars.zipWithIndex
     returns = indexedReturnVars.map { case (v, i) => s"$i AS $v" }.mkString(",")
     returnItems = indexedReturnVars.map { case (v, i) => aliasedReturnItem(literalInt(i), v) }
     procedureResultItems = returnVars.map(v => ProcedureResultItem(varFor(v))(pos))
+    yields = returnVars.mkString(", ")
     outerReturnStr = returnVars.mkString(" + ")
     outerReturnAst = {
       val vars = returnVars.map(v => varFor(v))
@@ -378,7 +429,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
          |  RETURN $returns
          |}
          |
-         |CALL foo()
+         |CALL foo() YIELD $yields
          |RETURN $outerReturnStr AS res""".stripMargin
     ) {
       val foo = localProcedureDefinition(
@@ -399,7 +450,8 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
           resolveLocalCall(
             procedureName("foo"),
             outputSignature = Some(fieldDefs),
-            callResults = procedureResultItems
+            callResults = procedureResultItems,
+            declaredResults = true
           ),
           return_(aliasedReturnItem(outerReturnAst, "res"))
         )
@@ -412,11 +464,11 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
        |  DEFINE PROCEDURE bar() {
        |    RETURN 1 AS x
        |  }
-       |  CALL bar()
+       |  CALL bar() YIELD x
        |  RETURN 1 AS x
        |}
        |
-       |CALL foo()
+       |CALL foo() YIELD x
        |RETURN x""".stripMargin
   ) {
     val bar = localProcedureDefinition("bar").body(
@@ -428,7 +480,17 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
       singleQueryWithLocalDefinitions(
         bar
       )(
-        if (resolved) resolveLocalCall(procedureName("bar")) else call(Seq.empty, "bar"),
+        if (resolved) resolveLocalCall(
+          procedureName("bar"),
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
+        )
+        else call(
+          Seq.empty,
+          "bar",
+          yields = Some(Seq(varFor("x")))
+        ),
         return_(
           aliasedReturnItem(literalInt(1), "x")
         )
@@ -442,9 +504,12 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         foo(resolved = true)
       )(
         resolveLocalCall(
-          procedureName("foo")
+          procedureName("foo"),
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
       )
     )
   }
@@ -452,22 +517,22 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
   test(
     s"""DEFINE PROCEDURE foo() {
        |  DEFINE PROCEDURE bar1() {
-       |    RETURN 1 AS x
+       |    RETURN 1 AS x1
        |  }
        |  DEFINE PROCEDURE bar2() {
-       |    RETURN 2 AS x
+       |    RETURN 2 AS x2
        |  }
-       |  CALL bar2()
-       |  CALL bar1()
+       |  CALL bar2() YIELD x2
+       |  CALL bar1() YIELD x1
        |  RETURN 1 AS x
        |}
        |
-       |CALL foo()
+       |CALL foo() YIELD x
        |RETURN x""".stripMargin
   ) {
     def bar(i: Int) = localProcedureDefinition(s"bar$i").body(
       return_(
-        aliasedReturnItem(literalInt(i), "x")
+        aliasedReturnItem(literalInt(i), s"x$i")
       )
     )
     def foo(resolved: Boolean) = localProcedureDefinition("foo").body(
@@ -475,8 +540,28 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         bar(1),
         bar(2)
       )(
-        if (resolved) resolveLocalCall(procedureName("bar2")) else call(Seq.empty, "bar2"),
-        if (resolved) resolveLocalCall(procedureName("bar1")) else call(Seq.empty, "bar1"),
+        if (resolved) resolveLocalCall(
+          procedureName("bar2"),
+          outputSignature = Some(Seq(localFieldSignature("x2", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x2"))(pos)),
+          declaredResults = true
+        )
+        else call(
+          Seq.empty,
+          "bar2",
+          yields = Some(Seq(varFor("x2")))
+        ),
+        if (resolved) resolveLocalCall(
+          procedureName("bar1"),
+          outputSignature = Some(Seq(localFieldSignature("x1", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x1"))(pos)),
+          declaredResults = true
+        )
+        else call(
+          Seq.empty,
+          "bar1",
+          yields = Some(Seq(varFor("x1")))
+        ),
         return_(
           aliasedReturnItem(literalInt(1), "x")
         )
@@ -491,19 +576,51 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
         foo(resolved = true)
       )(
         resolveLocalCall(
-          procedureName("foo")
+          procedureName("foo"),
+          outputSignature = Some(Seq(localFieldSignature("x", symbols.CTAny))),
+          callResults = Seq(ProcedureResultItem(varFor("x"))(pos)),
+          declaredResults = true
         ),
-        return_(returnItem(v"x", "x"))
+        return_(aliasedReturnItem(v"x", "x"))
+      )
+    )
+  }
+
+  test(
+    s"""DEFINE PROCEDURE db.createLabel(newLabel :: STRING) {
+       |  CREATE (:Label {name: newLabel})
+       |  FINISH
+       |}
+       |
+       |CALL db.createLabel("Foo")""".stripMargin
+  ) {
+    val fieldDef = localFieldSignature("newLabel", symbols.CTString)
+    val createLabel = localProcedureDefinition("db.createLabel", fieldDef).body(
+      create(nodePat(
+        labelExpression = Some(labelLeaf("Label")),
+        properties = Some(mapOf("name" -> varFor("newLabel")))
+      )),
+      finish()
+    )
+    cypher25testName.hasExtractedLocalProcedures(
+      procedureName("db", "createLabel") -> createLabel
+    ).isRewrittenTo(
+      singleQueryWithLocalDefinitions(
+        createLabel
+      )(
+        resolveLocalCall(
+          procedureName("db", "createLabel"),
+          inputSignature = Seq(fieldDef),
+          bodyContainsUpdates = true,
+          callArguments = Seq(coerceTo(literalString("Foo"), symbols.CTString)),
+          declaredResults = false
+        )
       )
     )
   }
 
   { // generated test cases
     val rand = new Random(0)
-
-//    def pickN[T](list: Seq[T], n: Int): Seq[T] = {
-//      (1 to n).map(_ => list(rand.nextInt(list.size)))
-//    }
 
     def pickOne[T](list: Seq[T]): T = {
       list(rand.nextInt(list.size))
@@ -529,7 +646,8 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
       availableProc: Seq[GenLocalProc] = Seq.empty,
       requestedReturnCol: Option[String] = None,
       counter: Counter = new Counter(),
-      depth: Int = 0
+      depth: Int = 0,
+      inImportingWithSubquery: Boolean = false
     ) {
       def depthLimited(w: Int): Int = if (depth < depthLimit) w else 0
 
@@ -585,6 +703,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
     case class GenLocalProc(ctx: GenCtx) extends GenPart {
       val name: ProcedureName = procedureName("local", s"proc${ctx.counter.next()}")
       private val body: GenQuery = genQuery(ctx)
+      val procedureResultCol = body.actualReturnCol
       override def ast(resolved: Boolean): LocalProcedureDefinition =
         localProcedureDefinition(name.fullName).body(body.ast(resolved))
       override def procedures: Seq[GenLocalProc] = Seq.empty
@@ -695,15 +814,28 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
     }
 
     case class GenCall(ctx: GenCtx) extends GenClause {
-      private val availableProcNames = ctx.availableProc.map(p => p.name -> true) ++ Seq(
-        procedureName("external", "proc1") -> false,
-        procedureName("external", "proc2") -> false
+      private val availableProcNames = ctx.availableProc.map(p => p.name -> Some(p.procedureResultCol)) ++ Seq(
+        procedureName("external", "proc1") -> None,
+        procedureName("external", "proc2") -> None
       )
+      private val alias = varFor(s"x${ctx.counter.next()}")
       private val procedureToCall = pickOne(availableProcNames)
       override def ast(resolved: Boolean): Clause = procedureToCall match {
-        case (p, true) if resolved  => resolveLocalCall(p)
-        case (p, false) if resolved => resolveNonLocalCall(p)
-        case (p, _)                 => unresolvedCall(p)
+        case (p, Some(resultCol)) if resolved =>
+          resolveLocalCall(
+            p,
+            outputSignature = Some(Seq(localFieldSignature(resultCol, symbols.CTAny))),
+            callResults =
+              Seq(ProcedureResultItem(ProcedureOutput(resultCol)(pos), alias)(pos)),
+            declaredResults = true
+          )
+        case (p, Some(resultCol)) if !resolved =>
+          unresolvedCallWithYield(
+            p,
+            yields = Seq(varFor(resultCol) -> alias)
+          )
+        case (p, None) if resolved => resolveNonLocalCall(p)
+        case (p, _)                => unresolvedCall(p)
       }
       override def procedures: Seq[GenLocalProc] = Seq.empty
     }
@@ -736,7 +868,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
     }
 
     case class GenInlineCall(ctx: GenCtx, withScopeClause: Boolean) extends GenClause {
-      private val subquery = genQuery(ctx)
+      private val subquery = genQuery(ctx.copy(inImportingWithSubquery = !withScopeClause))
       override def ast(resolved: Boolean): Clause = {
         val subqueryAst = subquery.ast(resolved)
         if (withScopeClause) scopeClauseSubqueryCall(isImportingAll = false, Seq.empty, subqueryAst)
@@ -774,51 +906,87 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
 
     def genPartQuery(ctx: GenCtx): GenPartQuery = {
       val childCtx = ctx.getChildCtx
-      pickOneWeighted(Seq(
-        1 -> (() => GenSimpleQuery(childCtx, 0)),
-        1 -> (() => GenSimpleQuery(childCtx, 1)),
-        1 -> (() => GenSimpleQuery(childCtx, 2)),
-        1 -> (() => GenSimpleQuery(childCtx, 5)),
-        ctx.depthLimited(1) -> (() => GenTopLevelBraces(childCtx))
-      ))()
+      pickOneWeighted(
+        if (ctx.inImportingWithSubquery)
+          Seq(
+            1 -> (() => GenSimpleQuery(childCtx, 0)),
+            1 -> (() => GenSimpleQuery(childCtx, 1)),
+            1 -> (() => GenSimpleQuery(childCtx, 2)),
+            1 -> (() => GenSimpleQuery(childCtx, 5))
+          )
+        else
+          Seq(
+            1 -> (() => GenSimpleQuery(childCtx, 0)),
+            1 -> (() => GenSimpleQuery(childCtx, 1)),
+            1 -> (() => GenSimpleQuery(childCtx, 2)),
+            1 -> (() => GenSimpleQuery(childCtx, 5)),
+            ctx.depthLimited(1) -> (() => GenTopLevelBraces(childCtx))
+          )
+      )()
     }
 
     def genQueryUnderNext(ctx: GenCtx): GenQuery = {
       val childCtx = ctx.getChildCtx
-      pickOneWeighted(Seq(
-        ctx.depthLimited(2) -> (() => GenUnion(childCtx, distinct = true)),
-        ctx.depthLimited(1) -> (() => GenUnion(childCtx, distinct = false)),
-        ctx.depthLimited(1) -> (() => GenConditional(1, childCtx)),
-        ctx.depthLimited(1) -> (() => GenConditional(2, childCtx)),
-        ctx.depthLimited(1) -> (() => GenConditional(3, childCtx)),
-        3 -> (() => genPartQuery(childCtx))
-      ))()
+      pickOneWeighted(
+        if (ctx.inImportingWithSubquery)
+          Seq(
+            ctx.depthLimited(2) -> (() => GenUnion(childCtx, distinct = true)),
+            ctx.depthLimited(1) -> (() => GenUnion(childCtx, distinct = false)),
+            1 -> (() => genPartQuery(childCtx))
+          )
+        else
+          Seq(
+            ctx.depthLimited(2) -> (() => GenUnion(childCtx, distinct = true)),
+            ctx.depthLimited(1) -> (() => GenUnion(childCtx, distinct = false)),
+            ctx.depthLimited(1) -> (() => GenConditional(1, childCtx)),
+            ctx.depthLimited(1) -> (() => GenConditional(2, childCtx)),
+            ctx.depthLimited(1) -> (() => GenConditional(3, childCtx)),
+            3 -> (() => genPartQuery(childCtx))
+          )
+      )()
     }
 
     def genQueryAfterDefinition(ctx: GenCtx): GenQuery = {
       val childCtx = ctx.getChildCtx
-      pickOneWeighted(Seq(
-        ctx.depthLimited(1) -> (() => GenNext(childCtx, 2)),
-        ctx.depthLimited(1) -> (() => GenNext(childCtx, 3)),
-        ctx.depthLimited(1) -> (() => GenNext(childCtx, 5)),
-        ctx.depthLimited(3) -> (() => genQueryUnderNext(childCtx)),
-        3 -> (() => genPartQuery(childCtx))
-      ))()
+      pickOneWeighted(
+        if (ctx.inImportingWithSubquery)
+          Seq(
+            ctx.depthLimited(1) -> (() => genQueryUnderNext(childCtx)),
+            1 -> (() => genPartQuery(childCtx))
+          )
+        else
+          Seq(
+            ctx.depthLimited(1) -> (() => GenNext(childCtx, 2)),
+            ctx.depthLimited(1) -> (() => GenNext(childCtx, 3)),
+            ctx.depthLimited(1) -> (() => GenNext(childCtx, 5)),
+            ctx.depthLimited(3) -> (() => genQueryUnderNext(childCtx)),
+            3 -> (() => genPartQuery(childCtx))
+          )
+      )()
     }
 
     def genQuery(ctx: GenCtx): GenQuery = {
       val childCtx = ctx.getChildCtx
-      pickOneWeighted(Seq(
-        ctx.depthLimited(2) -> (() => GenQueryWithProcs(childCtx, 1)),
-        ctx.depthLimited(1) -> (() => GenQueryWithProcs(childCtx, 3)),
-        ctx.depthLimited(3) -> (() => genQueryAfterDefinition(childCtx)),
-        ctx.depthLimited(3) -> (() => genQueryUnderNext(childCtx)),
-        3 -> (() => genPartQuery(childCtx))
-      ))()
+      pickOneWeighted(
+        if (ctx.inImportingWithSubquery)
+          Seq(
+            ctx.depthLimited(1) -> (() => genQueryAfterDefinition(childCtx)),
+            ctx.depthLimited(1) -> (() => genQueryUnderNext(childCtx)),
+            1 -> (() => genPartQuery(childCtx))
+          )
+        else
+          Seq(
+            ctx.depthLimited(2) -> (() => GenQueryWithProcs(childCtx, 1)),
+            ctx.depthLimited(1) -> (() => GenQueryWithProcs(childCtx, 3)),
+            ctx.depthLimited(3) -> (() => genQueryAfterDefinition(childCtx)),
+            ctx.depthLimited(3) -> (() => genQueryUnderNext(childCtx)),
+            3 -> (() => genPartQuery(childCtx))
+          )
+      )()
     }
 
     val generatedTests = for {
-      _ <- 0 until 500
+      _ <- 0 until numberOfFuzzTests
       testCase = genQuery(GenCtx(depthLimit = 10))
     } yield testCase
 
@@ -888,6 +1056,44 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
     def isRewrittenTo(ast: Statement): TestCase
   }
 
+  case class NoOpTestCase() extends TestCase {
+    def hasExtractedLocalProcedures(procedures: (ProcedureName, LocalProcedureDefinition)*): TestCase = this
+    def hasExtractedLocalFunctions(functions: (FunctionName, LocalFunctionDefinition)*): TestCase = this
+    def isRewrittenTo(ast: Statement): TestCase = this
+  }
+
+  case class FailedTestCase(
+    query: String,
+    astOpt: Option[Statement],
+    exception: Throwable
+  ) extends TestCase {
+    def hasExtractedLocalProcedures(procedures: (ProcedureName, LocalProcedureDefinition)*): TestCase = fail()
+    def hasExtractedLocalFunctions(functions: (FunctionName, LocalFunctionDefinition)*): TestCase = fail()
+    def isRewrittenTo(ast: Statement): TestCase = fail()
+
+    private def fail(): TestCase = {
+      Assertions.fail(
+        s"""Query:
+           |
+           |$testName
+           |
+           |has exception:
+           |
+           |${exception.getClass.getCanonicalName}: ${exception.getMessage}
+           |
+           |AST:
+           |
+           |${astOpt.map(pprint.apply(_, width = 200, height = 1000)).getOrElse("—")}
+           |
+           |AST prettified:
+           |
+           |${astOpt.map(prettifier.asString).getOrElse("—")}
+           |""".stripMargin
+      )
+      NoOpTestCase()
+    }
+  }
+
   case class RanTestCase(
     query: String,
     statementBefore: Statement,
@@ -920,11 +1126,22 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
                        |
                        |AST Before:
                        |
-                       |${pprint.apply(statementBefore, height = 1000)}
-                       |                       |
+                       |${pprint.apply(statementBefore, width = 200, height = 1000)}
+                       |
                        |AST After:
                        |
-                       |${pprint.apply(statementAfter, height = 1000)}
+                       |${pprint.apply(statementAfter, width = 200, height = 1000)}
+                       |---
+                       |Actual local procedure definitions:
+                       |
+                       |${pprint.apply(
+                        localDefinitionsDirectory.localProcedureDefinitions.toSeq.sortBy(_._1.toString),
+                        height = 1000
+                      )}
+                       |---
+                       |Expected local procedure definitions:
+                       |
+                       |${pprint.apply(expectedProcedures.sortBy(_._1.toString), height = 1000)}
                        |---""".stripMargin
                   )
                 }
@@ -985,6 +1202,17 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
                        |AST After:
                        |
                        |${pprint.apply(statementAfter, height = 1000)}
+                       |---
+                       |Actual local function definitions:
+                       |
+                       |${pprint.apply(
+                        localDefinitionsDirectory.localFunctionDefinitions.toSeq.sortBy(_._1.toString),
+                        height = 1000
+                      )}
+                       |---
+                       |Expected local function definitions:
+                       |
+                       |${pprint.apply(expectedFunctions.sortBy(_._1.toString), height = 1000)}
                        |---""".stripMargin
                   )
                 }
@@ -1054,7 +1282,11 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
   }
 
   private def initContext(cypherVersion: CypherVersion) =
-    ContextHelper.create(cypherVersion, semanticFeatures = Seq(LocalCallables), planContext = PlanContextMock)
+    ContextHelper.create(
+      cypherVersion,
+      semanticFeatures = Seq(LocalCallables, VariableChecking),
+      planContext = PlanContextMock
+    )
 
   case class Ast(
     statement: Statement,
@@ -1084,10 +1316,16 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
   ) extends TestCase {
 
     private def ran(): TestCase = {
-      val context = initContext(cypherVersion)
-      val stateAfterParsing = Parse.transform(initialStateWithQuery(testName), context)
-      val state = transformers.transform(stateAfterParsing, context)
-      RanTestCase(testName, stateAfterParsing.statement(), state.statement(), state.localDefinitions(), cypherVersion)
+      var statementOpt: Option[Statement] = None
+      try {
+        val context = initContext(cypherVersion)
+        val stateAfterParsing = Parse.transform(initialStateWithQuery(testName), context)
+        statementOpt = stateAfterParsing.maybeStatement
+        val state = transformers.transform(stateAfterParsing, context)
+        RanTestCase(testName, stateAfterParsing.statement(), state.statement(), state.localDefinitions(), cypherVersion)
+      } catch {
+        case ex: Neo4jException => FailedTestCase(testName, statementOpt, ex)
+      }
     }
 
     override def hasExtractedLocalProcedures(procedures: (ProcedureName, LocalProcedureDefinition)*): TestCase = {
@@ -1106,7 +1344,11 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
   def cypher25testName: TestName = TestName(Cypher25)
 
   private val transformers: Transformer[PlannerContext, BaseState, BaseState] =
-    ScopeSurveyor andThen ExtractLocalDefinitions andThen RewriteProcedureCalls
+    PreparatoryRewriting andThen
+      ScopeSurveyor andThen
+      SemanticAnalysis(warn = Some(false)) andThen
+      ExtractLocalDefinitions andThen
+      RewriteProcedureCalls
 
   private def initialStateWithQuery(query: String): InitialState =
     InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)

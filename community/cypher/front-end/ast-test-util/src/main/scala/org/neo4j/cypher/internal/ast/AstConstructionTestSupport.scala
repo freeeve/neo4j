@@ -190,6 +190,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.SizeBucket
 import org.neo4j.cypher.internal.util.UnknownSize
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -1600,6 +1601,28 @@ trait AstConstructionTestSupport {
 
   def unwind(e: Expression, v: Variable): Unwind =
     Unwind(e, v)(pos)
+
+  def unresolvedCallWithYield(
+    procedureName: ProcedureName,
+    yields: Seq[(Variable, Variable)],
+    args: Option[Seq[Expression]] = Some(Vector()),
+    where: Option[Expression] = None,
+    standalone: Boolean = false,
+    optional: Boolean = false
+  ): UnresolvedCall =
+    UnresolvedCall(
+      procedureName,
+      args,
+      Some(ProcedureResult(
+        yields.toIndexedSeq.map {
+          case (rc, vs) =>
+            ProcedureResultItem(ProcedureOutput(rc.name)(pos), vs)(pos)
+        },
+        where.map(p => Where(p)(pos))
+      )(pos)),
+      standalone,
+      optional = optional
+    )(pos)
 
   def unresolvedCall(
     procedureName: ProcedureName,

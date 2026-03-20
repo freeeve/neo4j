@@ -82,8 +82,7 @@ trait ResolvedCall[IMPL <: ResolvedCall[IMPL]] extends CallClause {
     if (outputFieldSignatures.isEmpty && (callResults.nonEmpty || yieldAll)) {
       throw SyntaxException.cannotYieldFromVoidProcedure()
     }
-    val outputTypes = callOutputTypes
-    callResults.map(result => result.variable.name -> outputTypes(result.outputName))
+    callResults.map(result => result.variable.name -> callOutputTypes(result.outputName))
   }
 
   override def returnVariables: ReturnVariables =
@@ -162,12 +161,11 @@ trait ResolvedCall[IMPL <: ResolvedCall[IMPL]] extends CallClause {
   }
 
   def resultCheck: SemanticCheck = {
-    // TODO: update to relaxed YIELD rules for local calls
     // CALL of VOID procedure => No need to name arguments, even in query
     // CALL of empty procedure => No need to name arguments, even in query
-    if (outputFieldSignatures.isEmpty && (callResults.nonEmpty || yieldAll)) {
+    if ((outputFieldSignatures.isEmpty || outputFieldSignatures.get.isEmpty) && (callResults.nonEmpty || yieldAll)) {
       error(SemanticError.cannotYieldFromVoidProcedure(position))
-    } else if (outputFieldSignatures.isEmpty) {
+    } else if (outputFieldSignatures.isEmpty || outputFieldSignatures.get.isEmpty) {
       success
     } // CALL ... YIELD ... => Check named outputs
     else if (declaredResults) {
@@ -281,22 +279,32 @@ case class ResolvedNonLocalCall(
 
 object ResolvedLocalCall {
 
-  def apply(unresolved: UnresolvedCall, localProcedureDefinition: LocalProcedureDefinition): ResolvedLocalCall = {
+  def apply(
+    unresolved: UnresolvedCall,
+    localProcedureDefinition: LocalProcedureDefinition,
+    inferredOutputSignature: Option[Seq[LocalFieldSignature]]
+  ): ResolvedLocalCall = {
     val UnresolvedCall(procedureName, declaredArguments, declaredResult, _, yieldAll, optional) = unresolved
     val position = unresolved.position
     val inputSignature = localProcedureDefinition.inputSignature
-    val outputSignature = localProcedureDefinition.outputSignature
-    def implicitArguments = inputSignature.map(s =>
+    val outputSignature = localProcedureDefinition.outputSignature.orElse(inferredOutputSignature)
+
+    def implicitArguments: Seq[Expression] = inputSignature.map(s =>
       s.default.map(d => ImplicitProcedureArgument(s.name, s.getType, d)).getOrElse(
         ExplicitParameter(s.name, s.getType)(position)
       )
     )
+
     val callArguments = declaredArguments.getOrElse(implicitArguments)
     val callArgumentsWithSensitivityMarkers = callArguments.map {
       e: Expression => e.endoRewrite(SensitiveParameterRewriter)
     }
 
-    def implicitCallResults = signatureResults(outputSignature, position)
+    def implicitCallResults: IndexedSeq[ProcedureResultItem] =
+      outputSignature.getOrElse(Seq.empty).map {
+        field => ProcedureResultItem(Variable(field.name)(position, Variable.isIsolatedDefault))(position)
+      }.toIndexedSeq
+
     val callResults = declaredResult.map(_.items).getOrElse(implicitCallResults)
 
     val callFilter = declaredResult.flatMap(_.where)
@@ -316,14 +324,6 @@ object ResolvedLocalCall {
         optional
       )(position)
   }
-
-  private def signatureResults(
-    outputSignature: Option[Seq[LocalFieldSignature]],
-    position: InputPosition
-  ): IndexedSeq[ProcedureResultItem] =
-    outputSignature.getOrElse(Seq.empty).map {
-      field => ProcedureResultItem(Variable(field.name)(position, Variable.isIsolatedDefault))(position)
-    }.toIndexedSeq
 }
 
 case class ResolvedLocalCall(

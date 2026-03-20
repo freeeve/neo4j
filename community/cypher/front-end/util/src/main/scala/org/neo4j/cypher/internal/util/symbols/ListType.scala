@@ -38,6 +38,8 @@ case class ListType(innerType: CypherType, isNullable: Boolean)(val position: In
     case _                         => TypeSpec.exact(this)
   }
 
+  override val isNotNullContaining: Boolean = !isNullable || innerType.isNotNullContaining
+
   override val toClassString = s"List<$innerType>"
   override val toCypherTypeString = s"LIST<${innerType.description}>"
 

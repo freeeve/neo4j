@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
 import org.neo4j.cypher.internal.frontend.phases.InitialState
+import org.neo4j.cypher.internal.frontend.phases.OptionalTransformer
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
@@ -123,9 +124,14 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     )
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  def semanticAnalysisTwice(): Pipeline = {
+  def semanticAnalysisTwice(
+    extraStepBefore: Option[Transformer[BaseContext, BaseState, BaseState]] = None,
+    extraStepInBetween: Option[Transformer[BaseContext, BaseState, BaseState]] = None
+  ): Pipeline = {
     PreparatoryRewriting andThen
+      OptionalTransformer(extraStepBefore) andThen
       SemanticAnalysis(warn = Some(true)) andThen
+      OptionalTransformer(extraStepInBetween) andThen
       SemanticAnalysis(warn = Some(false)) andThen
       SemanticTypeCheck
   }
@@ -181,8 +187,21 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def hasNoErrors: Self = hasErrors()
 
-    def hasErrorsWithMarkedPosition(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
+    def hasErrorsWithMarkedPositionMapped(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
       hasErrors(expected(analyse.extractedPositions.get.toIndexedSeq): _*)
+
+    // this method should not be overloaded for convenience of usage
+    def hasErrorsWithMarkedPosition(expected: (InputPosition => SemanticErrorDef)*): Self = {
+      val extractedPositions = analyse.extractedPositions.getOrElse(Seq.empty)
+      if (extractedPositions.size != expected.size)
+        new IllegalArgumentException(
+          s"Not the same number of extracted positions as error constructor function: ${extractedPositions.size} vs. ${expected.size}"
+        )
+      val expectedErrors = extractedPositions.zip(expected).map {
+        case (pos, ex) => ex(pos)
+      }
+      hasErrors(expectedErrors: _*)
+    }
 
     def hasErrors(expected: SemanticErrorDef*): Self =
       assert { result =>
@@ -198,8 +217,21 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
         }
       }
 
-    def hasAtLeastErrorsWithMarkedPosition(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
+    def hasAtLeastErrorsWithMarkedPositionMapped(expected: IndexedSeq[InputPosition] => Seq[SemanticErrorDef]): Self =
       hasAtLeastErrors(expected(analyse.extractedPositions.get.toIndexedSeq): _*)
+
+    // this method should not be overloaded for convenience of usage
+    def hasAtLeastErrorsWithMarkedPosition(expected: (InputPosition => SemanticErrorDef)*): Self = {
+      val extractedPositions = analyse.extractedPositions.getOrElse(Seq.empty)
+      if (extractedPositions.size != expected.size)
+        new IllegalArgumentException(
+          s"Not the same number of extracted positions as error constructor function: ${extractedPositions.size} vs. ${expected.size}"
+        )
+      val expectedErrors = extractedPositions.zip(expected).map {
+        case (pos, ex) => ex(pos)
+      }
+      hasAtLeastErrors(expectedErrors: _*)
+    }
 
     def hasAtLeastErrors(expected: SemanticErrorDef*): Self =
       assert { result =>
@@ -297,6 +329,16 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def hasNotifications(expected: Notification*): Self =
       assert(_.notifications should contain theSameElementsAs expected)
+
+    def hasNotificationsWithMarkedPosition(expected: (InputPosition => Notification)*): Self = {
+      val expectedWithPositions = expected.zipWithIndex.map {
+        case (exp, i) =>
+          val pos = analyse.extractedPositions.get.apply(i)
+          exp(pos)
+      }
+      hasNotifications(expectedWithPositions: _*)
+    }
+
     def hasNoNotifications: Any = hasNotifications()
 
     def hasNotificationsIn(f: CypherVersion => Seq[Notification]): Self =
@@ -407,6 +449,19 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
 
   def runWith(disabledCypherVersions: Set[CypherVersion], pipeline: Pipeline): AnalysisAssertions =
     run(defaultQuery, defaultPositions, pipeline, disabledVersions = disabledCypherVersions)
+
+  def runWith(
+    disabledCypherVersions: Set[CypherVersion],
+    pipeline: Pipeline,
+    features: SemanticFeature*
+  ): AnalysisAssertions =
+    run(
+      defaultQuery,
+      defaultPositions,
+      pipeline,
+      disabledVersions = disabledCypherVersions,
+      semanticFeatures = features
+    )
 
   def runWith(
     query: String,

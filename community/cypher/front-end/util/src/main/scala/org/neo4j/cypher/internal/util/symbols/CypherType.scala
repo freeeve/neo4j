@@ -27,6 +27,7 @@ trait CypherType extends ASTNode {
 
   // e.g BOOLEAN set(true, false, null) is nullable, BOOLEAN NOT NULL set(true, false) is not
   def isNullable: Boolean
+  def isNotNullContaining: Boolean = !isNullable
   def hasCypherParserSupport: Boolean = true
 
   /**

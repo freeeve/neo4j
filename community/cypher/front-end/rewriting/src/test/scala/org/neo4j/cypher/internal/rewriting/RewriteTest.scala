@@ -33,8 +33,11 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 trait RewriteTest extends AstRewritingTestSupport {
   self: CypherFunSuite =>
 
+  def sendStatementToRewriterConstructor: Boolean = false
+
   def rewriterUnderTest: Rewriter
   def rewriterUnderTest(query: String): Rewriter = rewriterUnderTest
+  def rewriterUnderTest(query: Statement): Rewriter = rewriterUnderTest
 
   val prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))
 
@@ -183,7 +186,10 @@ trait RewriteTest extends AstRewritingTestSupport {
     original.rewrite(rewriterUnderTest(""))
 
   protected def rewrite(original: Statement, queryString: String): AnyRef =
-    original.rewrite(rewriterUnderTest(queryString))
+    original.rewrite(
+      if (sendStatementToRewriterConstructor) rewriterUnderTest(original)
+      else rewriterUnderTest(queryString)
+    )
 
   protected def endoRewrite(original: Statement): Statement =
     original.endoRewrite(rewriterUnderTest(""))
@@ -193,7 +199,22 @@ trait RewriteTest extends AstRewritingTestSupport {
 
   protected def assertIsNotRewritten(query: String): Unit = {
     val original = parse(query, Neo4jCypherExceptionFactory(query, None))
-    val result = original.rewrite(rewriterUnderTest)
+    val result = original.rewrite(
+      if (sendStatementToRewriterConstructor) rewriterUnderTest(original)
+      else rewriterUnderTest
+    )
+    assert(
+      result === original,
+      s"\n$query\nshould not have been rewritten but was to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
+    )
+  }
+
+  protected def assertIsNotRewritten(version: CypherVersion, query: String): Unit = {
+    val original = parse(version, query, Neo4jCypherExceptionFactory(query, None))
+    val result = original.rewrite(
+      if (sendStatementToRewriterConstructor) rewriterUnderTest(original)
+      else rewriterUnderTest
+    )
     assert(
       result === original,
       s"\n$query\nshould not have been rewritten but was to:\n${prettifier.asString(result.asInstanceOf[Statement])}"

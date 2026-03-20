@@ -4643,6 +4643,55 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "not supported local function definition",
             ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
+    STATUS_42NAH(
+            new GqlStatus("42NAH"),
+            "Return column { %s } does not match output signature of local procedure { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.ident, GqlParams.StringParam.proc},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "return column error",
+            ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
+    STATUS_42NAI(
+            new GqlStatus("42NAI"),
+            "Return column { %s } is missing to match output signature of local procedure { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.ident, GqlParams.StringParam.proc},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "missing return column",
+            ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
+    STATUS_42NAJ(
+            new GqlStatus("42NAJ"),
+            "{ %s } is not supported as local procedure output type. Adjust the type of output field { %s } of local procedure { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.typeDescription, GqlParams.StringParam.ident, GqlParams.StringParam.proc
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported local procedure output type",
+            ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
+    STATUS_42NAK(
+            new GqlStatus("42NAK"),
+            "{ %s } is not supported as local function return type. Adjust the return type of local function { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.typeDescription, GqlParams.StringParam.fun},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported local function return type",
+            ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
+    STATUS_42NAL(
+            new GqlStatus("42NAL"),
+            "{ %s } is not supported as local callable parameter type. Adjust the type of parameter { %s } of local callable { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.typeDescription, GqlParams.StringParam.ident, GqlParams.StringParam.proc
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "not supported local callable parameter type",
+            ErrorClassification.CLIENT_ERROR),
     @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NFC(
             new GqlStatus("42NFC"),

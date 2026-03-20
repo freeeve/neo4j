@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions.And
@@ -26,7 +27,9 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
+import org.neo4j.cypher.internal.util.CallableName
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -928,14 +931,61 @@ object SemanticError {
   }
 
   def useClauseInLocalProcedureDefinitionNotSupported(pos: InputPosition): SemanticError = {
-    val msg = "USE clause is not supported in local procedure definitions."
+    val msg = "USE clause is not supported in local procedure definitions"
     val gql = GqlHelper.getGql42001_42NAF()
     SemanticError(gql, msg, pos)
   }
 
   def useClauseInLocalFunctionDefinitionNotSupported(pos: InputPosition): SemanticError = {
-    val msg = "USE clause is not supported in local function definitions."
+    val msg = "USE clause is not supported in local function definitions"
     val gql = GqlHelper.getGql42001_42NAG()
+    SemanticError(gql, msg, pos)
+  }
+
+  def returnColumnDoesNotMatchOutputSignatureOfLocalProcedure(
+    column: String,
+    procedureName: ProcedureName,
+    pos: InputPosition
+  ): SemanticError = {
+    val msg = s"Return column `$column` does not match output signature of local procedure ${procedureName.fullName}"
+    val gql = GqlHelper.getGql42001_42NAH(column, procedureName.fullName, pos.offset, pos.line, pos.column)
+    SemanticError(gql, msg, pos)
+  }
+
+  def missingReturnColumnInLocalProcedure(
+    column: String,
+    procedureName: ProcedureName,
+    pos: InputPosition
+  ): SemanticError = {
+    val msg =
+      s"Return column `$column` is missing to match output signature of local procedure ${procedureName.fullName}"
+    val gql = GqlHelper.getGql42001_42NAI(column, procedureName.fullName, pos.offset, pos.line, pos.column)
+    SemanticError(gql, msg, pos)
+  }
+
+  def notSupportedLocalProcedureOutputType(
+    outputFieldSignature: LocalFieldSignature,
+    procedureName: ProcedureName
+  ): SemanticError = {
+    val typeName = outputFieldSignature.getType.normalizedCypherTypeString()
+    val column = outputFieldSignature.name
+    val pos = outputFieldSignature.position
+    val msg =
+      s"`$typeName` is not supported as local procedure output type. Adjust the type of output field `$column` of local procedure ${procedureName.fullName}"
+    val gql = GqlHelper.getGql42001_42NAJ(typeName, column, procedureName.fullName, pos.offset, pos.line, pos.column)
+    SemanticError(gql, msg, pos)
+  }
+
+  def notSupportedLocalCallableParameterType(
+    inputFieldSignature: LocalFieldSignature,
+    callableName: CallableName
+  ): SemanticError = {
+    val typeName = inputFieldSignature.getType.normalizedCypherTypeString()
+    val column = inputFieldSignature.name
+    val pos = inputFieldSignature.position
+    val msg =
+      s"`$typeName` is not supported as local callable parameter type. Adjust the type of parameter `$column` of local callable ${callableName.fullName}"
+    val gql = GqlHelper.getGql42001_42NAL(typeName, column, callableName.fullName, pos.offset, pos.line, pos.column)
     SemanticError(gql, msg, pos)
   }
 
@@ -1628,14 +1678,8 @@ object SemanticError {
   }
 
   def procedureCallWithImplicitNaming(position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N25)
-        .atPosition(position.offset, position.line, position.column)
-        .build())
-      .build()
     SemanticError(
-      gql,
+      GqlHelper.getGql42001_42N25(position.offset, position.line, position.column),
       s"Procedure call inside a query does not support naming results implicitly (name explicitly using `YIELD` instead)",
       position
     )
@@ -1731,12 +1775,7 @@ object SemanticError {
   }
 
   def cannotYieldFromVoidProcedure(position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I42)
-        .atPosition(position.offset, position.line, position.column)
-        .build())
-      .build()
+    val gql = GqlHelper.getGql42001_42I42(position.offset, position.line, position.column)
     SemanticError(gql, "Cannot yield value from void procedure.", position)
   }
 

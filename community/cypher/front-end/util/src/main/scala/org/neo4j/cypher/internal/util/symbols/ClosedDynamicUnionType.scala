@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 case class ClosedDynamicUnionType(innerTypes: Set[CypherType])(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
 
+  override def isNotNullContaining: Boolean = !isNullable || innerTypes.exists(_.isNotNullContaining)
+
   val sortedInnerTypes: List[CypherType] = innerTypes.map(_.simplify).toList.sorted
   override val toClassString: String = sortedInnerTypes.map(_.toString).mkString(" | ")
   override val toCypherTypeString: String = sortedInnerTypes.map(_.description).mkString(" | ")

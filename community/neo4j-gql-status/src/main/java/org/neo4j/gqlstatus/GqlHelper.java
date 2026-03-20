@@ -763,6 +763,15 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I42(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I42)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42I45(String action, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
@@ -979,6 +988,15 @@ public class GqlHelper {
                         .atPosition(offset, line, column)
                         .withParam(GqlParams.StringParam.input1, input1)
                         .withParam(GqlParams.StringParam.input2, input2)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42N25(int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N25)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
@@ -1432,6 +1450,64 @@ public class GqlHelper {
     public static ErrorGqlStatusObject getGql42001_42NAG() {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAG)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42NAH(
+            String columnName, String procedureName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAH)
+                        .withParam(GqlParams.StringParam.ident, columnName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42NAI(
+            String columnName, String procedureName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAI)
+                        .withParam(GqlParams.StringParam.ident, columnName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42NAJ(
+            String typeName, String columnName, String procedureName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAJ)
+                        .withParam(GqlParams.StringParam.typeDescription, typeName)
+                        .withParam(GqlParams.StringParam.ident, columnName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    // reserved for local functions
+    public static ErrorGqlStatusObject getGql42001_42NAK(
+            String typeName, String functionName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAK)
+                        .withParam(GqlParams.StringParam.typeDescription, typeName)
+                        .withParam(GqlParams.StringParam.fun, functionName)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
+    public static ErrorGqlStatusObject getGql42001_42NAL(
+            String typeName, String columnName, String procedureName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAL)
+                        .withParam(GqlParams.StringParam.typeDescription, typeName)
+                        .withParam(GqlParams.StringParam.ident, columnName)
+                        .withParam(GqlParams.StringParam.proc, procedureName)
+                        .atPosition(offset, line, column)
                         .build())
                 .build();
     }
