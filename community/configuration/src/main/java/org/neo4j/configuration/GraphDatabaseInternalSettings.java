@@ -1991,6 +1991,21 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Graph Engine fallback procedures")
+    public static final Setting<Set<String>> graph_engine_fallback_procedures = newBuilder(
+                    "internal.graphengine.fallback_procedures",
+                    setOf(STRING),
+                    Set.of(
+                            "db.ping",
+                            "dbms.clientConfig",
+                            "dbms.components",
+                            "dbms.info",
+                            "dbms.listCapabilities",
+                            "db.clearQueryCaches"))
+            .immutable()
+            .build();
+
+    @Internal
     @Description("Allowlist of logging prefixes for libraries that bind to SLF4J")
     public static final Setting<List<String>> slf4j_class_prefixes = newBuilder(
                     "internal.server.logs.filter.slf4j_class_prefixes",
