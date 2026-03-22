@@ -20,10 +20,10 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.io.ByteUnit.MebiByte;
 
 import java.io.IOException;
@@ -307,12 +307,8 @@ public class EvictionLogicTest {
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
         PageMetadata.unlockWrite(pageRef); // page is now modified
         assertTrue(PageMetadata.isModified(pageRef));
-        try {
-            EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata);
-            fail("tryEvict should have thrown");
-        } catch (IOException e) {
-            // good
-        }
+        assertThatThrownBy(() -> EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata))
+                .isInstanceOf(IOException.class);
         // there should be no lock preventing us from taking an exclusive lock
         assertTrue(PageMetadata.tryExclusiveLock(pageRef));
         // page should still be loaded...
@@ -346,12 +342,8 @@ public class EvictionLogicTest {
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
         PageMetadata.unlockWrite(pageRef); // page is now modified
         assertTrue(PageMetadata.isModified(pageRef));
-        try {
-            EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata);
-            fail("tryEvict should have thrown");
-        } catch (IOException e) {
-            // good
-        }
+        assertThatThrownBy(() -> EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata))
+                .isInstanceOf(IOException.class);
         // we should not have gotten any notification about eviction
         assertFalse(evictionNotified.get());
     }
@@ -575,12 +567,8 @@ public class EvictionLogicTest {
         PageMetadata.unlockExclusiveAndTakeWriteLock(pageRef);
         PageMetadata.unlockWrite(pageRef); // page is now modified
         assertTrue(PageMetadata.isModified(pageRef));
-        try {
-            EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata);
-            fail("tryEvict should have thrown");
-        } catch (IOException e) {
-            // ok
-        }
+        assertThatThrownBy(() -> EvictionLogic.tryEvict(pageRef, EvictionRunEvent.NULL, swappers, pageMetadata))
+                .isInstanceOf(IOException.class);
         assertTrue(PageMetadata.validateReadLock(prevPageRef, prevStamp));
         assertTrue(PageMetadata.validateReadLock(nextPageRef, nextStamp));
     }

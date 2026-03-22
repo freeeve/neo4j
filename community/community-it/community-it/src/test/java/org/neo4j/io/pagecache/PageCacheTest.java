@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -4141,12 +4140,9 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
     }
 
     private void verifyMappingWithOpenOptionThrows(OpenOption option) throws IOException {
-        try {
-            map(file("a"), filePageSize, immutable.of(option)).close();
-            fail("Expected map() to throw when given the OpenOption " + option);
-        } catch (IllegalArgumentException | UnsupportedOperationException e) {
-            // good
-        }
+        assertThatThrownBy(
+                        () -> map(file("a"), filePageSize, immutable.of(option)).close())
+                .isInstanceOfAny(IllegalArgumentException.class, UnsupportedOperationException.class);
     }
 
     @Test
@@ -5512,20 +5508,18 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
             try (PageCursor cursor = pf.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
                 cursor.setCursorException(msg);
-                cursor.checkAndClearCursorException();
-                fail("checkAndClearError on write cursor should have thrown");
-            } catch (CursorException e) {
-                assertThat(e.getMessage()).isEqualTo(msg);
+                assertThatThrownBy(cursor::checkAndClearCursorException)
+                        .isInstanceOf(CursorException.class)
+                        .hasMessage(msg);
             }
 
             msg = "Boo" + ThreadLocalRandom.current().nextInt();
             try (PageCursor cursor = pf.io(0, PF_SHARED_READ_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
                 cursor.setCursorException(msg);
-                cursor.checkAndClearCursorException();
-                fail("checkAndClearError on read cursor should have thrown");
-            } catch (CursorException e) {
-                assertThat(e.getMessage()).isEqualTo(msg);
+                assertThatThrownBy(cursor::checkAndClearCursorException)
+                        .isInstanceOf(CursorException.class)
+                        .hasMessage(msg);
             }
         }
     }
@@ -5537,22 +5531,14 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
             try (PageCursor cursor = pf.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
                 cursor.setCursorException("boo");
-                try {
-                    cursor.checkAndClearCursorException();
-                    fail("checkAndClearError on write cursor should have thrown");
-                } catch (CursorException ignore) {
-                }
+                assertThatThrownBy(cursor::checkAndClearCursorException).isInstanceOf(CursorException.class);
                 cursor.checkAndClearCursorException();
             }
 
             try (PageCursor cursor = pf.io(0, PF_SHARED_READ_LOCK, NULL_CONTEXT)) {
                 assertTrue(cursor.next());
                 cursor.setCursorException("boo");
-                try {
-                    cursor.checkAndClearCursorException();
-                    fail("checkAndClearError on read cursor should have thrown");
-                } catch (CursorException ignore) {
-                }
+                assertThatThrownBy(cursor::checkAndClearCursorException).isInstanceOf(CursorException.class);
                 cursor.checkAndClearCursorException();
             }
         }

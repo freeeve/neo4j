@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.test.Race.throwing;
@@ -108,12 +107,12 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
             tx.rollback();
         }
 
-        try (Transaction tx = graphDb.beginTx()) {
-            tx.getNodeById(node);
-            fail("There should be no node");
-        } catch (NotFoundException e) {
-            // expected
-        }
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = graphDb.beginTx()) {
+                        tx.getNodeById(node);
+                    }
+                })
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
@@ -125,12 +124,7 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
             tx.commit();
         }
         try (Transaction tx = graphDb.beginTx()) {
-            try {
-                tx.getNodeById(node);
-                fail("Did not remove node");
-            } catch (NotFoundException e) {
-                // expected
-            }
+            assertThatThrownBy(() -> tx.getNodeById(node)).isInstanceOf(NotFoundException.class);
         }
     }
 

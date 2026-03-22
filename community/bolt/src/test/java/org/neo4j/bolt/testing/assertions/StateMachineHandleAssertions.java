@@ -19,7 +19,7 @@
  */
 package org.neo4j.bolt.testing.assertions;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.neo4j.bolt.fsm.StateMachineHandle;
@@ -45,11 +45,7 @@ public final class StateMachineHandleAssertions
             ThrowingConsumer<StateMachineHandle, StateMachineException> consumer) {
         this.isNotNull();
 
-        try {
-            consumer.accept(this.actual);
-            fail("should have killed the connection");
-        } catch (StateMachineException ignore) {
-        }
+        assertThatThrownBy(() -> consumer.accept(this.actual)).isInstanceOf(StateMachineException.class);
 
         return this;
     }

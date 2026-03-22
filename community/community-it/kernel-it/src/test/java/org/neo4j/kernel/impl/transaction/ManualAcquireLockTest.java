@@ -20,8 +20,8 @@
 package org.neo4j.kernel.impl.transaction;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
@@ -60,11 +60,7 @@ class ManualAcquireLockTest {
         try (Transaction transaction = db.beginTx()) {
             Lock nodeLock = transaction.acquireWriteLock(node);
             worker.beginTx();
-            try {
-                worker.setProperty(node, key, "ksjd");
-                fail("Shouldn't be able to grab it");
-            } catch (Exception ignored) {
-            }
+            assertThatThrownBy(() -> worker.setProperty(node, key, "ksjd")).isInstanceOf(Exception.class);
             nodeLock.release();
             worker.setProperty(node, key, "yo");
 
@@ -83,11 +79,7 @@ class ManualAcquireLockTest {
         try (Transaction transaction = db.beginTx()) {
             Lock nodeLock = transaction.acquireWriteLock(node);
             nodeLock.release();
-            try {
-                nodeLock.release();
-                fail("Shouldn't be able to release more than once");
-            } catch (IllegalStateException e) { // Good
-            }
+            assertThatThrownBy(nodeLock::release).isInstanceOf(IllegalStateException.class);
         }
     }
 
