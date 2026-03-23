@@ -31,7 +31,6 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIM
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_TYPE;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION;
 
 import java.util.OptionalInt;
@@ -87,12 +86,12 @@ class VectorIndexV3ForV202509ConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
-                        VectorIndexConfig::quantization,
+                        VectorIndexConfig::quantizationEnabled,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
                         OptionalInt.of(VERSION.maxDimensions()),
                         VERSION.similarityFunction("COSINE"),
-                        VectorQuantizationType.NONE,
+                        false,
                         new HnswConfig(16, 100));
 
         assertThat(vectorIndexConfig.config().settingNames())
@@ -120,13 +119,10 @@ class VectorIndexV3ForV202509ConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
-                        VectorIndexConfig::quantization,
+                        VectorIndexConfig::quantizationEnabled,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
-                        OptionalInt.empty(),
-                        VERSION.similarityFunction("COSINE"),
-                        VectorQuantizationType.SCALAR,
-                        new HnswConfig(16, 100));
+                        OptionalInt.empty(), VERSION.similarityFunction("COSINE"), true, new HnswConfig(16, 100));
 
         assertThat(vectorIndexConfig.config().settingNames())
                 .containsExactlyInAnyOrder(
@@ -155,6 +151,25 @@ class VectorIndexV3ForV202509ConfigValidationTest {
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "Invalid index config key 'fulltext.analyzer', it was not recognized as an index setting.");
+    }
+
+    @Test
+    void nullDimensions() {
+        final var settings = VectorIndexSettings.create().set(DIMENSIONS, null).toSettingsAccessor();
+
+        final var validationRecords = VALIDATOR.validate(settings);
+        assertThat(validationRecords.invalid()).isTrue();
+        assertThat(validationRecords.get(INVALID_VALUE))
+                .hasSize(1)
+                .first()
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
+                .containsExactly(DIMENSIONS, null);
+
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
     }
 
     @Test
@@ -222,6 +237,33 @@ class VectorIndexV3ForV202509ConfigValidationTest {
     }
 
     @Test
+    void nullSimilarityFunction() {
+        final var settings =
+                VectorIndexSettings.create().set(SIMILARITY_FUNCTION, null).toSettingsAccessor();
+
+        final var validationRecords = VALIDATOR.validate(settings);
+        assertThat(validationRecords.invalid()).isTrue();
+        assertThat(validationRecords.get(INVALID_VALUE))
+                .hasSize(1)
+                .first()
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
+                .containsExactly(SIMILARITY_FUNCTION, null);
+
+        final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
+        for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
+            supportedSimilarityFunctions.add(similarityFunction.functionName());
+        }
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "null",
+                        "is an unsupported",
+                        SIMILARITY_FUNCTION.getSettingName(),
+                        supportedSimilarityFunctions.toString());
+    }
+
+    @Test
     void incorrectTypeForSimilarityFunction() {
         final var incorrectSimilarityFunction = 123L;
         final var settings = VectorIndexSettings.create()
@@ -265,7 +307,7 @@ class VectorIndexV3ForV202509ConfigValidationTest {
                 .first()
                 .asInstanceOf(type(InvalidValue.class))
                 .extracting(HasSetting::setting, RecordWithValue::value)
-                .containsExactly(SIMILARITY_FUNCTION, invalidSimilarityFunction);
+                .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
 
         final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
         for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
@@ -311,21 +353,22 @@ class VectorIndexV3ForV202509ConfigValidationTest {
     }
 
     @Test
-    void cannotSetQuantizationType() {
-        final var settings = VectorIndexSettings.create()
-                .withDimensions(VERSION.maxDimensions())
-                .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
-                .withQuantizationType(VectorQuantizationType.NONE)
-                .toSettingsAccessor();
+    void nullHnswM() {
+        final var settings = VectorIndexSettings.create().set(HNSW_M, null).toSettingsAccessor();
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
+        assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(1)
                 .first()
-                .asInstanceOf(type(UnrecognizedSetting.class))
-                .extracting(NamedSetting::settingName)
-                .isEqualTo(QUANTIZATION_TYPE.getSettingName());
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
+                .containsExactly(HNSW_M, null);
+
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        HNSW_M.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxHnswM()));
     }
 
     @Test
@@ -395,6 +438,28 @@ class VectorIndexV3ForV202509ConfigValidationTest {
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         HNSW_M.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxHnswM()));
+    }
+
+    @Test
+    void nullHnswEfConstruction() {
+        final var settings =
+                VectorIndexSettings.create().set(HNSW_EF_CONSTRUCTION, null).toSettingsAccessor();
+
+        final var validationRecords = VALIDATOR.validate(settings);
+        assertThat(validationRecords.invalid()).isTrue();
+        assertThat(validationRecords.get(INVALID_VALUE))
+                .hasSize(1)
+                .first()
+                .asInstanceOf(type(InvalidValue.class))
+                .extracting(HasSetting::setting, RecordWithValue::value)
+                .containsExactly(HNSW_EF_CONSTRUCTION, null);
+
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        HNSW_EF_CONSTRUCTION.getSettingName(),
+                        "must be between 1 and",
+                        String.valueOf(VERSION.maxHnswEfConstruction()));
     }
 
     @Test

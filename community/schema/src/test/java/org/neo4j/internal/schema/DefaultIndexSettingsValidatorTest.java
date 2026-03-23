@@ -48,7 +48,6 @@ import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.Lookup;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
-import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 import org.neo4j.internal.schema.SettingsAccessor.IndexSettingObjectMapAccessor;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.IntegerToOptionalIntConverter;
 import org.neo4j.internal.schema.SingleIndexSettingLookup.NameToEnumLookup;
@@ -250,8 +249,7 @@ class DefaultIndexSettingsValidatorTest {
                         MissingSettingMaterializer.of(
                                 TestIndexSetting.INTEGER, OptionalInt.empty(), OptionalInt.empty(), Values.NO_VALUE),
                         OptionalIntRangeValidator.of(TestIndexSetting.INTEGER, 1, 64),
-                        new SingleIndexSettingValidator<>(
-                                TestIndexSetting.STRING, String.class, new DefaultRequirement<>("lowercase")) {
+                        new SingleIndexSettingValidator<>(TestIndexSetting.STRING, String.class, "lowercase") {
                             @Override
                             protected boolean isValid(String value) {
                                 return Objects.equals(value, value.toLowerCase(Locale.ROOT));

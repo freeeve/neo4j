@@ -19,12 +19,11 @@
  */
 package org.neo4j.internal.schema;
 
-import static org.assertj.core.api.InstanceOfAssertFactories.iterable;
+import static org.assertj.core.api.InstanceOfAssertFactories.set;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.FAKE_VALUE;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Supplier;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -84,8 +83,7 @@ public class SingleIndexSettingLookupTest {
                 valid.add(entry.name());
             }
             invalidValueAssert
-                    .extracting(InvalidValue::requirement)
-                    .extracting(Supplier::get, iterable(String.class))
+                    .extracting(InvalidValue::valid, set(String.class))
                     .containsExactlyInAnyOrderElementsOf(valid);
         }
 

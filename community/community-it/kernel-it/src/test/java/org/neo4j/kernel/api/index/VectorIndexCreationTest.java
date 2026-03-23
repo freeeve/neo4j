@@ -886,8 +886,7 @@ public class VectorIndexCreationTest {
         private static void assertMissingExpectedSetting(IndexSetting setting, ThrowingCallable callable) {
             assertThatThrownBy(callable)
                     .isInstanceOf(InvalidArgumentException.class)
-                    .hasMessageContainingAll(
-                            "setting is expected to have been set", "Expected", setting.getSettingName());
+                    .hasMessageContainingAll(setting.getSettingName(), "is expected to have been set");
         }
     }
 

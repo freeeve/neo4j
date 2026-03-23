@@ -27,7 +27,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
-import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexConfigUtils.NamedSetting;
 import org.neo4j.util.MarkerInterface;
 import org.neo4j.values.AnyValue;
@@ -187,14 +186,13 @@ public sealed interface IndexSettingRecord extends NamedSetting, Comparable<Inde
         }
     }
 
-    record InvalidValue(IndexSetting setting, Object value, IndexSettingsRequirement<?> requirement)
-            implements RecordWithValue, Invalid {
-        public InvalidValue(RecordWithValue hasValue, IndexSettingsRequirement<?> requirement) {
-            this(hasValue.setting(), hasValue.value(), requirement);
+    record InvalidValue(IndexSetting setting, Object value, Object valid) implements RecordWithValue, Invalid {
+        public InvalidValue(RecordWithValue hasValue, Object valid) {
+            this(hasValue.setting(), hasValue.value(), valid);
         }
 
-        public InvalidValue(RecordWithSetting hasSetting, Object value, IndexSettingsRequirement<?> requirement) {
-            this(hasSetting.setting(), value, requirement);
+        public InvalidValue(RecordWithSetting hasSetting, Object value, Object valid) {
+            this(hasSetting.setting(), value, valid);
         }
 
         @Override

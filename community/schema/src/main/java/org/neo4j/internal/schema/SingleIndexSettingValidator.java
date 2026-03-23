@@ -22,26 +22,23 @@ package org.neo4j.internal.schema;
 import java.util.OptionalInt;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
-import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
-import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 
 /// A [SingleIndexSettingProcessor] which validates the value and produces a [Valid] record.
 public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSettingProcessor
         implements ValidatingIndexSettingsProcessor {
     protected final Class<TYPE> type;
-    protected final IndexSettingsRequirement<?> requirement;
+    protected final Object valid;
 
-    protected SingleIndexSettingValidator(
-            IndexSetting setting, Class<TYPE> type, IndexSettingsRequirement<?> requirement) {
+    protected SingleIndexSettingValidator(IndexSetting setting, Class<TYPE> type, Object valid) {
         super(setting);
         this.type = type;
-        this.requirement = requirement;
+        this.valid = valid;
     }
 
     protected abstract boolean isValid(TYPE value);
@@ -55,13 +52,13 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
 
         final Object value = pending.value();
         if (value == null) {
-            return new InvalidValue(pending, requirement);
+            return new InvalidValue(pending, valid);
         }
         if (!type.isInstance(value)) {
             return new IncorrectType(pending, type);
         }
         if (!isValid(pending.valueAs(type))) {
-            return new InvalidValue(pending, requirement);
+            return new InvalidValue(pending, valid);
         }
 
         return new Valid(pending);
@@ -74,9 +71,8 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
 
     /// A [SingleIndexSettingValidator] that allows for `null` values within records
     public abstract static class SingleIndexSettingNullableValidator<TYPE> extends SingleIndexSettingValidator<TYPE> {
-        protected SingleIndexSettingNullableValidator(
-                IndexSetting setting, Class<TYPE> type, IndexSettingsRequirement<?> requirement) {
-            super(setting, type, requirement);
+        protected SingleIndexSettingNullableValidator(IndexSetting setting, Class<TYPE> type, Object valid) {
+            super(setting, type, valid);
         }
 
         @Override
@@ -90,7 +86,7 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
                 return new IncorrectType(pending, type);
             }
             if (!isValid(pending.valueAs(type))) {
-                return new InvalidValue(pending, requirement);
+                return new InvalidValue(pending, valid);
             }
 
             return new Valid(pending);
@@ -112,7 +108,7 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
         }
 
         private IntegerRangeValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange) {
-            super(setting, Integer.class, new DefaultRequirement<>(supportedRange));
+            super(setting, Integer.class, supportedRange);
             this.supportedRange = supportedRange;
         }
 
@@ -133,7 +129,7 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
         }
 
         private OptionalIntRangeValidator(IndexSetting setting, InclusiveRange<Integer> supportedRange) {
-            super(setting, OptionalInt.class, new DefaultRequirement<>(supportedRange));
+            super(setting, OptionalInt.class, supportedRange);
             this.supportedRange = supportedRange;
         }
 

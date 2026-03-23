@@ -19,18 +19,13 @@
  */
 package org.neo4j.kernel.api.schema.vector;
 
-import static java.lang.String.CASE_INSENSITIVE_ORDER;
-import static org.neo4j.internal.schema.IndexConfigUtils.INDEX_SETTING_COMPARATOR;
-
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.LazyIterable;
 import org.eclipse.collections.api.RichIterable;
@@ -42,15 +37,16 @@ import org.eclipse.collections.api.factory.primitive.FloatLists;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.ShortLists;
+import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.api.tuple.Pair;
+import org.eclipse.collections.impl.factory.Maps;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.internal.schema.IndexConfig;
-import org.neo4j.internal.schema.InternalIndexSetting;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.SettingsAccessor.IndexSettingObjectMapAccessor;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorQuantizationType;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.values.AnyValue;
@@ -679,20 +675,18 @@ public class VectorTestUtils {
     }
 
     public static class VectorIndexSettings {
-        private final Map<IndexSetting, Object> settings = new TreeMap<>(INDEX_SETTING_COMPARATOR);
+        private final MutableMap<IndexSetting, Object> settings = Maps.mutable.empty();
 
         private VectorIndexSettings() {}
-
-        private VectorIndexSettings(Map<IndexSetting, Object> settings) {
-            this.settings.putAll(settings);
-        }
 
         public static VectorIndexSettings create() {
             return new VectorIndexSettings();
         }
 
         public static VectorIndexSettings from(Map<IndexSetting, Object> settings) {
-            return new VectorIndexSettings(settings);
+            final var vectorIndexSettings = create();
+            settings.forEach(vectorIndexSettings::set);
+            return vectorIndexSettings;
         }
 
         public static VectorIndexSettings from(IndexConfig config) {
@@ -733,10 +727,6 @@ public class VectorTestUtils {
             return set(IndexSetting.vector_Quantization_Enabled(), quantizationEnabled);
         }
 
-        public VectorIndexSettings withQuantizationType(VectorQuantizationType quantizationType) {
-            return set(InternalIndexSetting.vector_Quantization_Type(), quantizationType.name());
-        }
-
         public VectorIndexSettings withHnswM(int M) {
             return set(IndexSetting.vector_Hnsw_M(), M);
         }
@@ -756,7 +746,7 @@ public class VectorTestUtils {
         }
 
         public Map<IndexSetting, Object> toMap() {
-            return Collections.unmodifiableMap(settings);
+            return settings.asUnmodifiable();
         }
 
         public Map<IndexSetting, Object> toMapWith(VectorIndexVersion version) {
@@ -764,9 +754,10 @@ public class VectorTestUtils {
         }
 
         public SortedMap<String, Object> toStringObjectMap() {
-            final SortedMap<String, Object> map = new TreeMap<>(CASE_INSENSITIVE_ORDER);
-            settings.forEach((setting, value) -> map.put(setting.getSettingName(), value));
-            return Collections.unmodifiableSortedMap(map);
+            return settings.keyValuesView()
+                    .toSortedMap(
+                            String.CASE_INSENSITIVE_ORDER, kv -> kv.getOne().getSettingName(), Pair::getTwo)
+                    .asUnmodifiable();
         }
 
         public SortedMap<String, Object> toStringObjectMapWith(VectorIndexVersion version) {
@@ -774,9 +765,9 @@ public class VectorTestUtils {
         }
 
         public MapValue toMapValue() {
-            final MapValueBuilder mapBuilder = new MapValueBuilder(settings.size());
-            settings.forEach(
-                    (setting, value) -> mapBuilder.add(setting.getSettingName(), Values.unsafeOf(value, true)));
+            final var mapBuilder = new MapValueBuilder(settings.size());
+            settings.keyValuesView()
+                    .forEach(kv -> mapBuilder.add(kv.getOne().getSettingName(), Values.of(kv.getTwo())));
             return mapBuilder.build();
         }
 

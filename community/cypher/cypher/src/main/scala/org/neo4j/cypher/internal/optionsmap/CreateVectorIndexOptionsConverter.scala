@@ -19,10 +19,11 @@
  */
 package org.neo4j.cypher.internal.optionsmap
 
+import org.eclipse.collections.api.PrimitiveIterable
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.helpers.InclusiveRange
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexProviderDescriptor
@@ -147,8 +148,8 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
             case maybeInt: OptionalInt                     => maybeInt.getAsInt
             case value                                     => value
           }
-          val requirement = invalidValue.requirement
-          requirement.get match {
+          val valid = invalidValue.valid
+          valid match {
             case range: InclusiveRange[_] => throw InvalidArgumentsException.indexSettingOutOfRange(
                 invalidValue.settingName,
                 // In practice all vector setting ranges are INTEGER,
@@ -158,19 +159,23 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
                 range.max.toString,
                 value
               )
-            case iterable: lang.Iterable[_] => throw InvalidArgumentsException.invalidIndexSettingValue(
+            case _: lang.Iterable[_] | _: PrimitiveIterable =>
+              val supported: List[String] = valid match {
+                case iterable: lang.Iterable[_]           => iterable.asScala.map(_.toString).toList
+                case primitiveIterable: PrimitiveIterable => List(primitiveIterable.makeString(", "))
+                case _                                    =>
+                  // by construction, this pattern match is exhaustive
+                  List.empty
+              }
+              throw InvalidArgumentsException.invalidIndexSettingValue(
                 invalidValue.settingName,
-                iterable.asScala.map(_.toString).toList.asJava,
+                supported.asJava,
                 value
               )
-            case _ =>
-              val valueString = stringify(value)
-              val settingName = invalidValue.settingName
-              InvalidArgumentException.invalidIndexInput(
-                valueString,
-                settingName,
-                "'%s' is an unsupported '%s'. Supported: %s"
-                  .formatted(stringify(value), settingName, requirement.supported())
+            case unknown => throw InternalException.internalError(
+                this.getClass.getSimpleName,
+                s"Unhandled valid value type '${unknown.getClass.getSimpleName}' for '${invalidValue.settingName}'. Provided: $unknown.",
+                s"Unhandled valid value type '${unknown.getClass.getSimpleName}' for '${invalidValue.settingName}'. Provided: $unknown"
               )
           }
       }

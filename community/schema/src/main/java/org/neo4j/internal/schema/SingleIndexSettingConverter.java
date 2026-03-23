@@ -28,7 +28,6 @@ import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
-import org.neo4j.internal.schema.IndexSettingsRequirements.ClassRequirement;
 
 /// A [SingleIndexSettingProcessor] which converts/transforms a value to another with the same [IndexSetting]
 public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSettingProcessor {
@@ -50,7 +49,7 @@ public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSetti
 
         final Object value = hasStorable.value();
         if (value == null) {
-            return new InvalidValue(hasStorable, new ClassRequirement(fromType));
+            return new InvalidValue(hasStorable, fromType);
         }
         if (!fromType.isInstance(value)) {
             return new IncorrectType(hasStorable, fromType);

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.FAKE_VALUE;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.assertj.core.api.ObjectAssert;
@@ -40,7 +41,6 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
-import org.neo4j.internal.schema.IndexSettingsRequirements.ClassRequirement;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.FinalizePending;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.MissingSettingMaterializer;
 import org.neo4j.values.storable.Value;
@@ -102,11 +102,11 @@ public class SingleIndexSettingProcessorTest {
                     final Value storable = Objects.requireNonNullElse(Values.unsafeOf(value, true), Values.NO_VALUE);
                     missingSetting.upsert(new MissingSetting(setting));
                     incorrectType.upsert(new IncorrectType(setting, FAKE_VALUE, setting.getType()));
-                    invalidValue.upsert(new InvalidValue(setting, value, new ClassRequirement(setting.getType())));
+                    invalidValue.upsert(new InvalidValue(setting, value, setting.getType()));
                     pending.upsert(new Pending(setting, value, storable));
                     valid.upsert(new Valid(setting, value, storable));
                 }
-                return Stream.of(empty, missingSetting, incorrectType, invalidValue, pending, valid);
+                return List.of(empty, missingSetting, incorrectType, invalidValue, pending, valid).stream();
             }
 
             private static Object value(TestIndexSetting setting) {

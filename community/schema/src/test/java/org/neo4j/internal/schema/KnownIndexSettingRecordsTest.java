@@ -35,7 +35,6 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
-import org.neo4j.internal.schema.IndexSettingsRequirements.IterableRequirement;
 import org.neo4j.internal.schema.KnownIndexSettingRecords.RecordProcessor;
 import org.neo4j.values.storable.Values;
 
@@ -123,8 +122,7 @@ class KnownIndexSettingRecordsTest {
     void toIndexSettings() {
         final Iterable<RecordWithSetting> provided = Iterables.asIterable(
                 records.upsert(new MissingSetting(TestIndexSetting.OBJECT)),
-                records.upsert(new InvalidValue(
-                        TestIndexSetting.STRING, "foo", new IterableRequirement(Set.of("bar", "baz")))),
+                records.upsert(new InvalidValue(TestIndexSetting.STRING, "foo", Set.of("bar", "baz"))),
                 records.upsert(new Pending(TestIndexSetting.INTEGER, 42, Values.intValue(42))),
                 records.upsert(new Pending(TestIndexSetting.BOOLEAN, false, Values.NO_VALUE)),
                 records.upsert(new Valid(TestIndexSetting.DOUBLE, Math.PI, Values.doubleValue(Math.PI))));
