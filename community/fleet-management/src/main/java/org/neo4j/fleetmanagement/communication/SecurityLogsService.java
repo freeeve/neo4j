@@ -69,7 +69,7 @@ public class SecurityLogsService extends BufferedReportingService<SecurityLogsTi
         var msg = new SecurityLogsReportMessage();
         msg.fromTimestamp = oldLogs.getCreationTime();
         msg.toTimestamp = Instant.now().toEpochMilli();
-        msg.dbmsId = TopologyMapper.getDbmsId(transactor.getDatabases());
+        msg.dbmsId = TopologyMapper.getDbmsId(transactor::getDatabases);
         msg.serverId = serverIdentity.serverId().uuid().toString();
         msg.projectId = upstream.getApiKey().projectId();
         msg.logs = oldLogs.getLogs().entrySet().stream()
