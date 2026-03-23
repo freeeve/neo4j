@@ -35,6 +35,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.State;
 import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
+import org.neo4j.internal.schema.IndexSettingsRequirements.IterableRequirement;
 import org.neo4j.values.storable.Values;
 
 class IndexSettingRecordsTest {
@@ -75,7 +76,7 @@ class IndexSettingRecordsTest {
     void upsertRecords() {
         final Iterable<IndexSettingRecord> provided = Iterables.asIterable(
                 new UnrecognizedSetting("unknown"),
-                new InvalidValue(TestIndexSetting.STRING, "foo", Set.of("bar", "baz")),
+                new InvalidValue(TestIndexSetting.STRING, "foo", new IterableRequirement(Set.of("bar", "baz"))),
                 new Pending(TestIndexSetting.INTEGER, 42, Values.intValue(42)),
                 new Valid(TestIndexSetting.DOUBLE, Math.PI, Values.doubleValue(Math.PI)));
 
@@ -92,8 +93,8 @@ class IndexSettingRecordsTest {
         final Iterable<MissingSetting> missingSetting =
                 Iterables.asIterable(records.upsert(new MissingSetting(TestIndexSetting.OBJECT)));
 
-        final Iterable<InvalidValue> invalidValue = Iterables.asIterable(
-                records.upsert(new InvalidValue(TestIndexSetting.STRING, "foo", Set.of("bar", "baz"))));
+        final Iterable<InvalidValue> invalidValue = Iterables.asIterable(records.upsert(
+                new InvalidValue(TestIndexSetting.STRING, "foo", new IterableRequirement(Set.of("bar", "baz")))));
 
         final Iterable<Pending> pending = Iterables.asIterable(
                 records.upsert(new Pending(TestIndexSetting.INTEGER, 42, Values.intValue(42))),

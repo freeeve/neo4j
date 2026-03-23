@@ -573,6 +573,21 @@ public final class Iterators {
         };
     }
 
+    // specifically does not allow Iterator::remove
+    public static <T> Iterator<T> asUnmodifiable(Iterator<T> iterator) {
+        return new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                return iterator.next();
+            }
+        };
+    }
+
     @SafeVarargs
     public static <T> Iterator<T> iterator(T... items) {
         return asIterator(items.length, items);

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.settings;
 
+import java.util.function.Supplier;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -157,7 +158,8 @@ class IndexSettingExtractorTest {
                     extractForValidationAndAssertRecord(accessor, InvalidValue.class);
             invalidValueAssert.extracting(RecordWithValue::value).isEqualTo(value);
             invalidValueAssert
-                    .extracting(InvalidValue::valid, type(InclusiveRange.class))
+                    .extracting(InvalidValue::requirement)
+                    .extracting(Supplier::get, type(InclusiveRange.class))
                     .extracting(InclusiveRange::min, InclusiveRange::max)
                     .containsExactly((long) Integer.MIN_VALUE, (long) Integer.MAX_VALUE);
         }

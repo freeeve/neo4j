@@ -41,6 +41,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.IntegralValue;
@@ -213,7 +214,7 @@ public class IndexSettingExtractors {
             // cannot go via IntegralValue::intValue as LongValue::intValue will throw
             final long longValue = integralValue.longValue();
             if (!INTEGER_RANGE.contains(longValue)) {
-                return new InvalidValue(unprocessed, longValue, INTEGER_RANGE);
+                return new InvalidValue(unprocessed, longValue, new DefaultRequirement<>(INTEGER_RANGE));
             }
 
             return new Pending(unprocessed, (int) longValue, integralValue);

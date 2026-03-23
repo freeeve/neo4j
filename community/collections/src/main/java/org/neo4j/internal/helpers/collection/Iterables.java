@@ -521,6 +521,10 @@ public final class Iterables {
         return () -> Iterators.iterator(array);
     }
 
+    public static <T> Iterable<T> asUnmodifiable(Iterable<T> iterable) {
+        return () -> Iterators.asUnmodifiable(iterable.iterator());
+    }
+
     public static <T> ResourceIterable<T> resourceIterable(final Iterable<T> iterable) {
         return new AbstractResourceIterable<>() {
             @Override

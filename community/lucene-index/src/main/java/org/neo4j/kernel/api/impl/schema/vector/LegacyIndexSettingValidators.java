@@ -33,6 +33,8 @@ import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
+import org.neo4j.internal.schema.IndexSettingsRequirements.IterableRequirement;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
@@ -141,7 +143,7 @@ class LegacyIndexSettingValidators {
 
             final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(unprocessed, null, booleans);
+                return new InvalidValue(unprocessed, null, new IterableRequirement(booleans));
             }
             if (!(rawValue instanceof final BooleanValue booleanValue)) {
                 return new IncorrectType(unprocessed, BooleanValue.class);
@@ -149,7 +151,7 @@ class LegacyIndexSettingValidators {
 
             final Boolean quantization = map(booleanValue);
             return quantization == null
-                    ? new InvalidValue(unprocessed, null, booleans)
+                    ? new InvalidValue(unprocessed, null, new IterableRequirement(booleans))
                     : new Valid(setting, quantization, map(quantization));
         }
     }
@@ -182,7 +184,7 @@ class LegacyIndexSettingValidators {
 
             final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(unprocessed, null, supportedRange);
+                return new InvalidValue(unprocessed, null, new DefaultRequirement<>(supportedRange));
             }
             if (!(rawValue instanceof final IntegralValue integralValue)) {
                 return new IncorrectType(unprocessed, IntegralValue.class);
@@ -191,7 +193,7 @@ class LegacyIndexSettingValidators {
             final Integer value = map(integralValue);
             return supportedRange.contains(value)
                     ? new Valid(setting, value, map(value))
-                    : new InvalidValue(unprocessed, value, supportedRange);
+                    : new InvalidValue(unprocessed, value, new DefaultRequirement<>(supportedRange));
         }
     }
 
@@ -226,7 +228,7 @@ class LegacyIndexSettingValidators {
 
             final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(unprocessed, null, supportedRange);
+                return new InvalidValue(unprocessed, null, new DefaultRequirement<>(supportedRange));
             }
             if (!(rawValue instanceof final IntegralValue integralValue)) {
                 return new IncorrectType(unprocessed, IntegralValue.class);
@@ -236,7 +238,7 @@ class LegacyIndexSettingValidators {
             return supportedRange.contains(dimensions.orElseThrow(() ->
                             new IllegalStateException("'%s' should not be empty at this point.".formatted(setting))))
                     ? new Valid(setting, dimensions, map(dimensions))
-                    : new InvalidValue(unprocessed, dimensions, supportedRange);
+                    : new InvalidValue(unprocessed, dimensions, new DefaultRequirement<>(supportedRange));
         }
     }
 
@@ -274,7 +276,7 @@ class LegacyIndexSettingValidators {
 
             final AnyValue rawValue = unprocessed.rawValue();
             if (rawValue == Values.NO_VALUE) {
-                return new InvalidValue(unprocessed, null, lookup.keySet());
+                return new InvalidValue(unprocessed, null, new IterableRequirement(lookup.keySet()));
             }
             if (!(rawValue instanceof final TextValue textValue)) {
                 return new IncorrectType(unprocessed, TextValue.class);
@@ -282,7 +284,7 @@ class LegacyIndexSettingValidators {
 
             final TYPE type = map(textValue);
             return type == null
-                    ? new InvalidValue(unprocessed, textValue, lookup.keySet())
+                    ? new InvalidValue(unprocessed, textValue, new IterableRequirement(lookup.keySet()))
                     : new Valid(setting, type, map(type));
         }
     }
