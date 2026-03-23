@@ -95,6 +95,7 @@ public final class BadCollector implements Collector {
     static final int DATA_AFTER_QUOTE = 0x80;
     static final int ILLEGAL_QUOTE = 0x100;
     static final int INVALID_ID = 0x200;
+    static final int MISSING_ID_COLUMN = 0x400;
     static final int BAD_NODES = DUPLICATE_NODES | VIOLATING_NODES | OTHER_NODE_VIOLATION;
 
     static final int ALL_SCHEMA_VIOLATIONS = VIOLATING_SCHEMA | BAD_NODES | BAD_RELATIONSHIPS;
@@ -114,7 +115,8 @@ public final class BadCollector implements Collector {
             Map.entry(REL_SCHEMA_VIOLATIONS, "RelationshipSchemaViolation"),
             Map.entry(DATA_AFTER_QUOTE, "DataAfterQuote"),
             Map.entry(ILLEGAL_QUOTE, "IllegalQuote"),
-            Map.entry(INVALID_ID, "InvalidId"));
+            Map.entry(INVALID_ID, "InvalidId"),
+            Map.entry(MISSING_ID_COLUMN, "MissingIdColumn"));
 
     static final int COLLECT_ALL = -1;
     public static final long UNLIMITED_TOLERANCE = -1;
@@ -266,6 +268,11 @@ public final class BadCollector implements Collector {
                 endIdGroup,
                 sourceDescription,
                 lineNumber));
+    }
+
+    @Override
+    public void collectIdColumnMissing(String source, long row, int columnIndex) {
+        collect(ProblemReporters.idColumnMissingReporter(source, row, columnIndex));
     }
 
     @Override

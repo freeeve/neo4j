@@ -27,6 +27,7 @@ import static org.neo4j.internal.batchimport.input.BadCollector.DUPLICATE_NODES;
 import static org.neo4j.internal.batchimport.input.BadCollector.EXTRA_COLUMNS;
 import static org.neo4j.internal.batchimport.input.BadCollector.ILLEGAL_QUOTE;
 import static org.neo4j.internal.batchimport.input.BadCollector.INVALID_ID;
+import static org.neo4j.internal.batchimport.input.BadCollector.MISSING_ID_COLUMN;
 import static org.neo4j.internal.batchimport.input.BadCollector.NODE_SCHEMA_VIOLATIONS;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_NODE_VIOLATION;
 import static org.neo4j.internal.batchimport.input.BadCollector.OTHER_RELATIONSHIP_VIOLATION;
@@ -65,7 +66,8 @@ public class ProblemReporters {
             .addSerializer(OtherViolationReporter.SERIALIZER)
             .addSerializer(DataAfterQuoteProblemReporter.SERIALIZER)
             .addSerializer(IllegalQuoteProblemReporter.SERIALIZER)
-            .addSerializer(InvalidIdProblemReporter.SERIALIZER);
+            .addSerializer(InvalidIdProblemReporter.SERIALIZER)
+            .addSerializer(IdColumnMissingProblemReporter.SERIALIZER);
 
     /**
      * Prints the {@link ProblemReporter#message()} of any reported errors to the provided {@link OutputStream}
@@ -192,6 +194,10 @@ public class ProblemReporters {
 
     public static ProblemReporter invalidIdReporter(String source, long row, String value) {
         return new InvalidIdProblemReporter(source, row, value);
+    }
+
+    public static ProblemReporter idColumnMissingReporter(String source, long row, int columnIndex) {
+        return new IdColumnMissingProblemReporter(source, row, columnIndex);
     }
 
     private static class RelationshipsProblemReporter extends ProblemReporter {
@@ -410,11 +416,7 @@ public class ProblemReporters {
 
         private String getReportMessage() {
             if (message == null) {
-                message = Collector.standardisedErrorMessage(
-                        "Extra column not present in header",
-                        source,
-                        row,
-                        format("Bad extra column value: '%s'", value));
+                message = Collector.extraColumnsMessage(source, row, value);
             }
             return message;
         }
@@ -477,14 +479,8 @@ public class ProblemReporters {
 
         @Override
         String message() {
-            final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
-            return Collector.standardisedErrorMessage(
-                    format("%s would have violated a constraint", entityTypeString),
-                    sourceDescription,
-                    lineNumber,
-                    format(
-                            "%s %s (internal id %d) would have violated constraint: %s, with properties: %s",
-                            entityTypeString, id, actualId, constraintDescription, new TreeMap<>(properties)));
+            return Collector.entityViolatingConstraintMessage(
+                    id, actualId, properties, constraintDescription, entityType, sourceDescription, lineNumber);
         }
 
         @Override
@@ -558,15 +554,16 @@ public class ProblemReporters {
 
         @Override
         String message() {
-            return Collector.standardisedErrorMessage(
-                    "Relationship would have violated a constraint",
+            return Collector.relationshipViolatingConstraintMessage(
+                    properties,
+                    constraintDescription,
+                    startId,
+                    startIdGroup,
+                    type,
+                    endId,
+                    endIdGroup,
                     sourceDescription,
-                    lineNumber,
-                    format(
-                            "%s would have violated constraint: %s, with properties:%s",
-                            Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
-                            constraintDescription,
-                            new TreeMap<>(properties)));
+                    lineNumber);
         }
 
         @Override
@@ -683,11 +680,7 @@ public class ProblemReporters {
 
         @Override
         public String message() {
-            return Collector.standardisedErrorMessage(
-                    "Characters after an ending quote in a CSV field are not supported.",
-                    source,
-                    row,
-                    "Column content: `%s`.".formatted(value));
+            return Collector.dataAfterQuoteMessage(source, row, value);
         }
 
         @Override
@@ -727,11 +720,7 @@ public class ProblemReporters {
 
         @Override
         public String message() {
-            return Collector.standardisedErrorMessage(
-                    "Quotes are only allowed in quoted strings in a CSV field.",
-                    source,
-                    row,
-                    "Column content: `%s`.".formatted(value));
+            return Collector.illegalQuoteMessage(source, row, value);
         }
 
         @Override
@@ -771,16 +760,61 @@ public class ProblemReporters {
 
         @Override
         public String message() {
-            return Collector.standardisedErrorMessage(
-                    "ID value is invalid for the id type specified.",
-                    source,
-                    row,
-                    "Invalid ID value: `%s`.".formatted(value));
+            return Collector.invalidIDMessage(source, row, value);
         }
 
         @Override
         public InputException exception() {
             return new InputException(message());
+        }
+    }
+
+    private static class IdColumnMissingProblemReporter extends ProblemReporter {
+
+        private static final StdSerializer<IdColumnMissingProblemReporter> SERIALIZER =
+                new StdSerializer<>(IdColumnMissingProblemReporter.class) {
+                    @Override
+                    public void serialize(
+                            IdColumnMissingProblemReporter reporter,
+                            JsonGenerator jsonGenerator,
+                            SerializerProvider serializerProvider)
+                            throws IOException {
+                        jsonGenerator.writeStartObject();
+                        startReport(jsonGenerator, reporter);
+                        writeSource(jsonGenerator, reporter.source, reporter.row);
+                        writeField(jsonGenerator, "columnIndex", reporter.columnIndex);
+                        jsonGenerator.writeEndObject();
+                    }
+                };
+
+        private final String source;
+        private final long row;
+        private final int columnIndex;
+
+        private String message;
+
+        private IdColumnMissingProblemReporter(String source, long row, int columnIndex) {
+            super(MISSING_ID_COLUMN);
+            this.source = source;
+            this.row = row;
+            this.columnIndex = columnIndex;
+        }
+
+        @Override
+        public String message() {
+            return getReportMessage();
+        }
+
+        @Override
+        public InputException exception() {
+            return new InputException(getReportMessage());
+        }
+
+        private String getReportMessage() {
+            if (message == null) {
+                message = Collector.idColumnMissingMessage(source, row, columnIndex);
+            }
+            return message;
         }
     }
 

@@ -40,6 +40,7 @@ class ProblemReportersTest {
     private static final String DUFF = "duff";
     private static final String SOURCE = "some.file";
     private static final long LINE = 13;
+    private static final int COL = 31;
 
     private static final Groups GROUPS = new Groups();
     private static final Group G1 = GROUPS.getOrCreate("G1");
@@ -303,15 +304,15 @@ class ProblemReportersTest {
                 new Problem(ProblemReporters.collectExtraColumnsReporter(SOURCE, LINE, DUFF), formatJson("""
                     {
                         "problem":"ExtraColumn",
-                        "message":"Extra column not present in header\\nsome.file: line 13\\nBad extra column value: 'duff'",
+                        "message":"Row has more columns than expected based on the header.\\nsome.file: line 13\\nBad extra column value: 'duff'.",
                         "source":"some.file",
                         "line":13,
                         "extraValue":"duff"
                     }
                     """), """
-                        Extra column not present in header
+                        Row has more columns than expected based on the header.
                         some.file: line 13
-                        Bad extra column value: 'duff'
+                        Bad extra column value: 'duff'.
                         """),
                 new Problem(
                         ProblemReporters.schemaCommandFailureReporter(EntityType.NODE, DUFF), formatJson("""
@@ -380,6 +381,19 @@ class ProblemReportersTest {
                         ID value is invalid for the id type specified.
                         some.file: line 13
                         Invalid ID value: `duff`.
+                        """),
+                new Problem(ProblemReporters.idColumnMissingReporter(SOURCE, LINE, COL), formatJson("""
+                            {
+                                "problem": "MissingIdColumn",
+                                "message": "Row has fewer columns than expected and ID column is missing.\\nsome.file: line 13\\nMissing ID column index: 31.",
+                                "source":"some.file",
+                                "line":13,
+                                "columnIndex":"31"
+                            }
+                            """), """
+                        Row has fewer columns than expected and ID column is missing.
+                        some.file: line 13
+                        Missing ID column index: 31.
                         """));
     }
 

@@ -651,7 +651,7 @@ class ImportCommandTest {
                                         .toAbsolutePath()));
         assertTrue(ctx.outAsString().contains("IMPORT FAILED"));
         assertFalse(ctx.errAsString().contains(e.getClass().getName()));
-        assertTrue(e.getCause().getMessage().contains("Extra column not present in header"));
+        assertTrue(e.getCause().getMessage().contains("Row has more columns than expected based on the header."));
     }
 
     @Test
@@ -679,7 +679,7 @@ class ImportCommandTest {
 
         // THEN
         String badContents = Files.readString(reportFile(), Charset.defaultCharset());
-        assertTrue(badContents.contains("Extra column not present in header"));
+        assertTrue(badContents.contains("Row has more columns than expected based on the header."));
     }
 
     @Test

@@ -22,6 +22,7 @@ package org.neo4j.batchimport.api.input;
 import static java.lang.String.format;
 
 import java.util.Map;
+import java.util.TreeMap;
 import org.neo4j.common.EntityType;
 
 /**
@@ -70,6 +71,11 @@ public interface Collector extends AutoCloseable {
     void collectExtraColumns(String source, long row, String value);
 
     /**
+     * @param columnIndex 1-based index of the ID column that is missing, as per the header.
+     */
+    void collectIdColumnMissing(String source, long row, int columnIndex);
+
+    /**
      * @param entityType the type of entity that relates to the {@link org.neo4j.internal.schema.SchemaCommand} being
      *                  applied (or <code>null</code> if the type is unknown)
      * @param failureMessage the failure message that resulted when applying a {@link org.neo4j.internal.schema.SchemaCommand}
@@ -105,6 +111,85 @@ public interface Collector extends AutoCloseable {
                 type,
                 endId,
                 endIdGroup != null ? format(":%s", endIdGroup) : "");
+    }
+
+    static String idColumnMissingMessage(String source, long row, int columnIndex) {
+        return standardisedErrorMessage(
+                "Row has fewer columns than expected and ID column is missing.",
+                source,
+                row,
+                "Missing ID column index: %d.".formatted(columnIndex));
+    }
+
+    static String invalidIDMessage(String source, long row, String value) {
+        return standardisedErrorMessage(
+                "ID value is invalid for the id type specified.",
+                source,
+                row,
+                "Invalid ID value: `%s`.".formatted(value));
+    }
+
+    static String illegalQuoteMessage(String source, long row, String value) {
+        return standardisedErrorMessage(
+                "Quotes are only allowed in quoted strings in a CSV field.",
+                source,
+                row,
+                "Column content: `%s`.".formatted(value));
+    }
+
+    static String dataAfterQuoteMessage(String source, long row, String value) {
+        return standardisedErrorMessage(
+                "Characters after an ending quote in a CSV field are not supported.",
+                source,
+                row,
+                "Column content: `%s`.".formatted(value));
+    }
+
+    static String relationshipViolatingConstraintMessage(
+            Map<String, Object> properties,
+            String constraintDescription,
+            Object startId,
+            Group startIdGroup,
+            String type,
+            Object endId,
+            Group endIdGroup,
+            String source,
+            long lineNumber) {
+        return standardisedErrorMessage(
+                "Relationship would have violated a constraint",
+                source,
+                lineNumber,
+                format(
+                        "%s would have violated constraint: %s, with properties:%s",
+                        Collector.illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
+                        constraintDescription,
+                        new TreeMap<>(properties)));
+    }
+
+    static String entityViolatingConstraintMessage(
+            Object id,
+            long actualId,
+            Map<String, Object> properties,
+            String constraintDescription,
+            EntityType entityType,
+            String source,
+            long lineNumber) {
+        final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
+        return standardisedErrorMessage(
+                format("%s would have violated a constraint", entityTypeString),
+                source,
+                lineNumber,
+                format(
+                        "%s %s (internal id %d) would have violated constraint: %s, with properties: %s",
+                        entityTypeString, id, actualId, constraintDescription, new TreeMap<>(properties)));
+    }
+
+    static String extraColumnsMessage(String source, long row, String value) {
+        return standardisedErrorMessage(
+                "Row has more columns than expected based on the header.",
+                source,
+                row,
+                "Bad extra column value: '%s'.".formatted(value));
     }
 
     Collector EMPTY = new Collector() {
@@ -174,6 +259,9 @@ public interface Collector extends AutoCloseable {
         public void collectOtherRelationshipViolation(String problem) {}
 
         @Override
+        public void collectIdColumnMissing(String source, long row, int columnIndex) {}
+
+        @Override
         public boolean isCollectingBadRelationships() {
             return true;
         }
@@ -182,8 +270,7 @@ public interface Collector extends AutoCloseable {
     Collector STRICT = new Collector() {
         @Override
         public void collectExtraColumns(String source, long row, String value) {
-            throw new IllegalStateException(standardisedErrorMessage(
-                    "Extra column not present in header", source, row, format("Bad extra column value: '%s'", value)));
+            throw new IllegalStateException(extraColumnsMessage(source, row, value));
         }
 
         @Override
@@ -221,29 +308,17 @@ public interface Collector extends AutoCloseable {
 
         @Override
         public void collectDataAfterQuote(String source, long row, String value) {
-            throw new IllegalStateException(standardisedErrorMessage(
-                    "Characters after an ending quote in a CSV field are not supported.",
-                    source,
-                    row,
-                    "Column content: `%s`.".formatted(value)));
+            throw new IllegalStateException(dataAfterQuoteMessage(source, row, value));
         }
 
         @Override
         public void collectIllegalQuote(String source, long row, String value) {
-            throw new IllegalStateException(standardisedErrorMessage(
-                    "Quotes are only allowed in quoted strings in a CSV field.",
-                    source,
-                    row,
-                    "Column content: `%s`.".formatted(value)));
+            throw new IllegalStateException(illegalQuoteMessage(source, row, value));
         }
 
         @Override
         public void collectInvalidID(String source, long row, String value) {
-            throw new IllegalStateException(standardisedErrorMessage(
-                    "ID value is invalid for the id type specified.",
-                    source,
-                    row,
-                    "Invalid ID value: `%s`.".formatted(value)));
+            throw new IllegalStateException(invalidIDMessage(source, row, value));
         }
 
         @Override
@@ -255,14 +330,8 @@ public interface Collector extends AutoCloseable {
                 EntityType entityType,
                 String source,
                 long lineNumber) {
-            final String entityTypeString = entityType == EntityType.NODE ? "Node" : "Relationship";
-            throw new IllegalStateException(standardisedErrorMessage(
-                    format("%s would have violated a constraint", entityTypeString),
-                    source,
-                    lineNumber,
-                    format(
-                            "%s with properties: %s, violating constraint: %s, id:%s",
-                            entityTypeString, properties, constraintDescription, id)));
+            throw new IllegalStateException(Collector.entityViolatingConstraintMessage(
+                    id, actualId, properties, constraintDescription, entityType, source, lineNumber));
         }
 
         @Override
@@ -276,15 +345,21 @@ public interface Collector extends AutoCloseable {
                 Group endIdGroup,
                 String source,
                 long lineNumber) {
-            throw new IllegalStateException(standardisedErrorMessage(
-                    "Relationship would have violated a constraint",
+            throw new IllegalStateException(relationshipViolatingConstraintMessage(
+                    properties,
+                    constraintDescription,
+                    startId,
+                    startIdGroup,
+                    type,
+                    endId,
+                    endIdGroup,
                     source,
-                    lineNumber,
-                    format(
-                            "%s, with properties: %s, violating constraint: %s",
-                            illustrateRelationship(startId, startIdGroup, type, endId, endIdGroup),
-                            properties,
-                            constraintDescription)));
+                    lineNumber));
+        }
+
+        @Override
+        public void collectIdColumnMissing(String source, long row, int columnIndex) {
+            throw new IllegalStateException(idColumnMissingMessage(source, row, columnIndex));
         }
 
         @Override
@@ -365,6 +440,9 @@ public interface Collector extends AutoCloseable {
 
         @Override
         public void collectOtherRelationshipViolation(String problem) {}
+
+        @Override
+        public void collectIdColumnMissing(String source, long row, int columnIndex) {}
 
         @Override
         public long badEntries() {
