@@ -75,6 +75,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllowClauseWithMixedLabelSyntax
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestAcyclic
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -115,6 +116,7 @@ import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.ParenthesizedPath
 import org.neo4j.cypher.internal.expressions.PathConcatenation
 import org.neo4j.cypher.internal.expressions.PathMode
+import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternElement
@@ -1106,7 +1108,10 @@ case class Match(
     checkMatchModePathModeCompatibility chain
       checkNoPathModeMixing chain
       checkNoPathModeVarLength chain
-      checkNoPathModeGpmShortest
+      whenState(_.features.contains(GpmShortestAcyclic))(
+        thenBranch = checkGpmShortestOnlyInImplicitOrAcyclicPathMode,
+        elseBranch = checkNoPathModeGpmShortest
+      )
 
   private def checkMatchModePathModeCompatibility: SemanticCheck =
     matchMode match {
@@ -1146,6 +1151,19 @@ case class Match(
             )
           }
         case _ => None
+      }
+
+    SemanticCheck.error(errors)
+  }
+
+  private def checkGpmShortestOnlyInImplicitOrAcyclicPathMode: SemanticCheck = {
+    val errors =
+      pattern.patternParts.filterNot {
+        case PrefixedPatternPart(_, _: Acyclic, _) => true
+        case _                                     => false
+      }.collect {
+        case PrefixedPatternPart(selector, pathMode, _) if !pathMode.implicitlyCreated && selector.isSelective =>
+          SemanticError.unsupportedPathModeWithGpmShortest(pathMode.prettified, selector.position)
       }
 
     SemanticCheck.error(errors)

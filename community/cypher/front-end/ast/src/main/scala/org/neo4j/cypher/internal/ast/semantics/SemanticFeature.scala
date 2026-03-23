@@ -120,6 +120,10 @@ object SemanticFeature {
     override def name: String = "Attribute based access control"
   }
 
+  case object GpmShortestAcyclic extends SemanticFeature with FeatureToString {
+    override def name: String = "Allow mixing GPM shortest with Acyclic path mode"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -140,7 +144,8 @@ object SemanticFeature {
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
     AttributeBasedAccessControl,
-    ShowDatabaseInterpretedRuntime
+    ShowDatabaseInterpretedRuntime,
+    GpmShortestAcyclic
   )
 
   def fromString(str: String): SemanticFeature =
