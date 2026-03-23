@@ -19,14 +19,32 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
-import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.dimensionsValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.hnswEfConstructionValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.hnswMValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.quantizationEnabledValidator;
-import static org.neo4j.kernel.api.impl.schema.vector.LegacyVectorIndexSettingValidators.similarityFunctionValidator;
+import static java.util.Map.entry;
+import static org.neo4j.internal.schema.SequencedIndexSettingProcessors.mergeToValidatingProcessor;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.EUCLIDEAN;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.L2_NORM_COSINE;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.SIMPLE_COSINE;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS_EXTRACTOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION_EXTRACTOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M_EXTRACTOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.OPTIONAL_DIMENSION_CONVERTER;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED_EXTRACTOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED_VALIDATOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION_EXTRACTOR;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.dimensionValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswEfConstruction;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswEfConstructionDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswEfConstructionValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswM;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswMDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswMValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.optionalDimensionDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.optionalDimensionValidator;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.quantizationEnabledDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.quantizationEnabledToTypeMigrator;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.quantizationType;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.similarityFunctionDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.similarityFunctionLookup;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,11 +62,15 @@ import java.util.TreeSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
+import org.neo4j.internal.schema.DefaultIndexSettingsValidator;
+import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
+import org.neo4j.internal.schema.IndexSettingExtractors;
+import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
 import org.neo4j.internal.schema.NotFoundTypedIndexSettingsValidator;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidators.LegacyVersionedValidator;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.VectorCandidate;
@@ -66,7 +88,7 @@ public enum VectorIndexVersion {
             Collections.emptySet()) {
         @Override
         protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
-            return Map.ofEntries(Map.entry(
+            return Map.ofEntries(entry(
                     KernelVersion.EARLIEST,
                     new NotFoundTypedIndexSettingsValidator<>(
                             AllIndexProviderDescriptors.UNDECIDED,
@@ -93,24 +115,30 @@ public enum VectorIndexVersion {
         @Override
         protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(
-                    Map.entry(
+                    entry(
                             KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED,
-                            new LegacyVersionedValidator(
+                            new VersionedValidator(
                                     this,
-                                    dimensionsValidator(1, Integer.MAX_VALUE), // this was a bug
-                                    similarityFunctionValidator(nameToSimilarityFunction()),
-                                    quantizationEnabledValidator(false),
-                                    hnswMValidator(16),
-                                    hnswEfConstructionValidator(100))),
-                    Map.entry(
+                                    new IndexSettingExtractors(DIMENSIONS_EXTRACTOR, SIMILARITY_FUNCTION_EXTRACTOR),
+                                    mergeToValidatingProcessor(
+                                            dimensionValidator(1, Integer.MAX_VALUE), // this was a bug
+                                            OPTIONAL_DIMENSION_CONVERTER,
+                                            similarityFunctionLookup(nameToSimilarityFunction())),
+                                    quantizationType(VectorQuantizationType.NONE),
+                                    hnswM(16),
+                                    hnswEfConstruction(100))),
+                    entry(
                             KernelVersion.V5_12,
-                            new LegacyVersionedValidator(
+                            new VersionedValidator(
                                     this,
-                                    dimensionsValidator(1, maxDimensions()),
-                                    similarityFunctionValidator(nameToSimilarityFunction()),
-                                    quantizationEnabledValidator(false),
-                                    hnswMValidator(16),
-                                    hnswEfConstructionValidator(100))));
+                                    new IndexSettingExtractors(DIMENSIONS_EXTRACTOR, SIMILARITY_FUNCTION_EXTRACTOR),
+                                    mergeToValidatingProcessor(
+                                            dimensionValidator(1, maxDimensions()),
+                                            OPTIONAL_DIMENSION_CONVERTER,
+                                            similarityFunctionLookup(nameToSimilarityFunction())),
+                                    quantizationType(VectorQuantizationType.NONE),
+                                    hnswM(16),
+                                    hnswEfConstruction(100))));
         }
 
         @Override
@@ -130,24 +158,41 @@ public enum VectorIndexVersion {
         @Override
         protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
             return Map.ofEntries(
-                    Map.entry(
+                    entry(
                             KernelVersion.VERSION_VECTOR_2_INTRODUCED,
-                            new LegacyVersionedValidator(
+                            new VersionedValidator(
                                     this,
-                                    dimensionsValidator(1, maxDimensions()),
-                                    similarityFunctionValidator(nameToSimilarityFunction()),
-                                    quantizationEnabledValidator(false),
-                                    hnswMValidator(16),
-                                    hnswEfConstructionValidator(100))),
-                    Map.entry(
+                                    new IndexSettingExtractors(DIMENSIONS_EXTRACTOR, SIMILARITY_FUNCTION_EXTRACTOR),
+                                    mergeToValidatingProcessor(
+                                            dimensionValidator(1, maxDimensions()),
+                                            OPTIONAL_DIMENSION_CONVERTER,
+                                            similarityFunctionLookup(nameToSimilarityFunction())),
+                                    quantizationType(VectorQuantizationType.NONE),
+                                    hnswM(16),
+                                    hnswEfConstruction(100))),
+                    entry(
                             KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS,
-                            new LegacyVersionedValidator(
+                            new VersionedValidator(
                                     this,
-                                    dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
-                                    similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
-                                    quantizationEnabledValidator(supportedQuantizationBooleans(), false, true),
-                                    hnswMValidator(1, maxHnswM(), 16),
-                                    hnswEfConstructionValidator(1, maxHnswEfConstruction(), 100))));
+                                    new IndexSettingExtractors(
+                                            DIMENSIONS_EXTRACTOR,
+                                            SIMILARITY_FUNCTION_EXTRACTOR,
+                                            QUANTIZATION_ENABLED_EXTRACTOR,
+                                            HNSW_M_EXTRACTOR,
+                                            HNSW_EF_CONSTRUCTION_EXTRACTOR),
+                                    mergeToValidatingProcessor(
+                                            OPTIONAL_DIMENSION_CONVERTER,
+                                            optionalDimensionDefault(OptionalInt.empty()),
+                                            optionalDimensionValidator(1, maxDimensions()),
+                                            similarityFunctionDefault(L2_NORM_COSINE),
+                                            similarityFunctionLookup(nameToSimilarityFunction()),
+                                            quantizationEnabledDefault(false, true),
+                                            QUANTIZATION_ENABLED_VALIDATOR,
+                                            quantizationEnabledToTypeMigrator(VectorQuantizationType.SCALAR),
+                                            hnswMDefault(16),
+                                            hnswMValidator(1, maxHnswM()),
+                                            hnswEfConstructionDefault(100),
+                                            hnswEfConstructionValidator(1, maxHnswEfConstruction())))));
         }
 
         @Override
@@ -165,15 +210,29 @@ public enum VectorIndexVersion {
             Set.of(false, true)) {
         @Override
         protected Map<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> configureValidators() {
-            return Map.ofEntries(Map.entry(
+            return Map.ofEntries(entry(
                     KernelVersion.VERSION_LUCENE_10_INTRODUCED,
-                    new LegacyVersionedValidator(
+                    new VersionedValidator(
                             this,
-                            dimensionsValidator(1, maxDimensions(), OptionalInt.empty()),
-                            similarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
-                            quantizationEnabledValidator(supportedQuantizationBooleans(), false, true),
-                            hnswMValidator(1, maxHnswM(), 16),
-                            hnswEfConstructionValidator(1, maxHnswEfConstruction(), 100))));
+                            new IndexSettingExtractors(
+                                    DIMENSIONS_EXTRACTOR,
+                                    SIMILARITY_FUNCTION_EXTRACTOR,
+                                    QUANTIZATION_ENABLED_EXTRACTOR,
+                                    HNSW_M_EXTRACTOR,
+                                    HNSW_EF_CONSTRUCTION_EXTRACTOR),
+                            mergeToValidatingProcessor(
+                                    OPTIONAL_DIMENSION_CONVERTER,
+                                    optionalDimensionDefault(OptionalInt.empty()),
+                                    optionalDimensionValidator(1, maxDimensions()),
+                                    similarityFunctionDefault(L2_NORM_COSINE),
+                                    similarityFunctionLookup(nameToSimilarityFunction()),
+                                    quantizationEnabledDefault(false, true),
+                                    QUANTIZATION_ENABLED_VALIDATOR,
+                                    quantizationEnabledToTypeMigrator(VectorQuantizationType.SCALAR),
+                                    hnswMDefault(16),
+                                    hnswMValidator(1, maxHnswM()),
+                                    hnswEfConstructionDefault(100),
+                                    hnswEfConstructionValidator(1, maxHnswEfConstruction())))));
         }
 
         @Override
@@ -326,5 +385,23 @@ public enum VectorIndexVersion {
                 InvalidArgumentException.internalError(
                         "Validator Not Found",
                         "Validator not found for '%s' on '%s'.".formatted(descriptor.name(), kernelVersion)));
+    }
+
+    private static class VersionedValidator extends TypedIndexSettingsValidator<VectorIndexConfig> {
+        private final VectorIndexVersion version;
+
+        VersionedValidator(
+                VectorIndexVersion version,
+                IndexSettingExtractors extractors,
+                ValidatingIndexSettingsProcessor processor,
+                IndexSettingEntry... injectedSettings) {
+            super(version.descriptor(), new DefaultIndexSettingsValidator(extractors, processor, injectedSettings));
+            this.version = version;
+        }
+
+        @Override
+        protected VectorIndexConfig toTypedConfig(Iterable<Valid> records) {
+            return new VectorIndexConfig(version, acceptedSettings(), records);
+        }
     }
 }

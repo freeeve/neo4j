@@ -131,6 +131,10 @@ public class VectorIndexConfigUtils {
                                     existingSimilarityFunction,
                                     similarityFunction));
         }
+        return similarityFunctionLookup(lookup);
+    }
+
+    static ValidatingIndexSettingsProcessor similarityFunctionLookup(Map<String, VectorSimilarityFunction> lookup) {
         return SingleIndexSettingMapLookup.of(SIMILARITY_FUNCTION, String.class, lookup);
     }
 

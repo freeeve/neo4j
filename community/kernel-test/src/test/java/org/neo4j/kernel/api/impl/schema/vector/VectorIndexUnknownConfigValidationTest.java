@@ -67,6 +67,11 @@ public class VectorIndexUnknownConfigValidationTest {
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name());
 
+        assertThatThrownBy(() -> validator.interpretAuthoritative(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name());
+
         assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -102,6 +107,11 @@ public class VectorIndexUnknownConfigValidationTest {
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
 
+        assertThatThrownBy(() -> validator.interpretAuthoritative(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name());
+
         assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -134,6 +144,51 @@ public class VectorIndexUnknownConfigValidationTest {
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThatThrownBy(() -> validator.interpretAuthoritative(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name());
+
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(anyIterable(Valid.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThat(validator.acceptedSettings()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @KernelVersionSource(lessThan = "2025.09")
+    void unknownValidationForVectorIndexV3(KernelVersion kernelVersion) {
+        final var version = VectorIndexVersion.V3_0;
+        final var validator = version.indexSettingValidator(kernelVersion);
+        assertThat(validator).isInstanceOf(NotFoundTypedIndexSettingsValidator.class);
+
+        assertThatThrownBy(() -> validator.validate(any()))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThatThrownBy(() -> validator.validateToTypedConfig(any(IndexSettingRecordsByState.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name(), "on", kernelVersion.toString());
+
+        assertThatThrownBy(() -> validator.interpretAuthoritative(any(SettingsAccessor.class)))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Validator not found for", version.descriptor().name());
 
         assertThatThrownBy(() -> validator.interpretAuthoritativeToTypedConfig(any(SettingsAccessor.class)))
                 .isInstanceOf(InvalidArgumentException.class)
