@@ -32,8 +32,10 @@ import static org.neo4j.util.Preconditions.checkState;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -94,6 +96,7 @@ public class CsvInput implements Input {
     private final Configuration config;
     private final Monitor monitor;
     private final Groups groups;
+    private final Map<Path, Header> headersByPath = new HashMap<>();
     private final boolean autoSkipHeaders;
     private final MemoryTracker memoryTracker;
     private List<Header> cachedNodeHeaders;
@@ -264,6 +267,10 @@ public class CsvInput implements Input {
     public InputIterable relationships(Collector badCollector) {
         Preconditions.checkState(hasBeenValidated, "must call validateAndEstimate before calling relationships");
         return () -> stream(relationshipDataFactory, relationshipHeaderFactory, badCollector);
+    }
+
+    public Map<Path, Header> headersByPath() {
+        return Collections.unmodifiableMap(headersByPath);
     }
 
     private InputIterator stream(Iterable<DataFactory> data, Header.Factory headerFactory, Collector badCollector) {
@@ -484,7 +491,7 @@ public class CsvInput implements Input {
                 try (var decorator = data.decorator()) {
                     final var stream = data.stream();
                     while (stream.hasNext()) {
-                        var source = stream.next();
+                        CharReadable source = stream.next();
                         try {
                             final var sourceDescription = source.sourceDescription();
                             if (!seenSourceFiles.add(sourceDescription)) {
@@ -499,6 +506,7 @@ public class CsvInput implements Input {
                                 header = extractHeader(source, headerFactory, idType, sampleConfig, groups, monitor);
                                 headerChecker.accept(header, sourceDescription, decorator == NO_DECORATOR);
                             }
+                            headersByPath.put(source.file(), header);
                         } catch (Throwable t) {
                             source.close();
                             throw t;
