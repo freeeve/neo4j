@@ -196,23 +196,18 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
                 mergeLog,
                 GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
                 true);
-        DatabaseManagementService managementService =
-                databaseFactory.setConfig(extraConfig).build();
         Path currentLogPath;
-        try {
+        try (var managementService = databaseFactory.setConfig(extraConfig).build()) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             generateTransaction(database);
             DependencyResolver dependencyResolver = database.getDependencyResolver();
             LogFiles logFiles = dependencyResolver.resolveDependency(LogFiles.class);
             LogFile logFile = logFiles.getLogFile();
             currentLogPath = logFile.getLogFileForVersion(logFile.getCurrentLogVersion());
-        } finally {
-            managementService.shutdown();
         }
         setLogHeaderToStoreId(currentLogPath, storeId);
 
-        managementService = databaseFactory.setConfig(extraConfig).build();
-        try {
+        try (var managementService = databaseFactory.setConfig(extraConfig).build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             DatabaseStateService<?> dbStateService =
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
@@ -222,8 +217,6 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
                     throwable -> assertThat(throwable.getCause())
                             .hasMessageContaining(
                                     "Error reading transaction logs, recovery not possible. To force the database to start anyway, you can specify 'internal.dbms.tx_log.fail_on_corrupted_log_files=false'"));
-        } finally {
-            managementService.shutdown();
         }
     }
 

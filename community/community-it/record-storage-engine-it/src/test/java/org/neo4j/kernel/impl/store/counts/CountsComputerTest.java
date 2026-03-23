@@ -121,8 +121,7 @@ class CountsComputerTest {
 
     @Test
     void tracePageCacheAccessOnInitialization() throws IOException {
-        DatabaseManagementService managementService = dbBuilder.build();
-        try {
+        try (var managementService = dbBuilder.build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             try (var tx = db.beginTx()) {
                 // Just make it non-empty
@@ -141,8 +140,6 @@ class CountsComputerTest {
             softly.assertThat(cursorTracer.pins()).as("Pins").isEqualTo(4);
             softly.assertThat(cursorTracer.unpins()).as("Unpins").isEqualTo(4);
             softly.assertThat(cursorTracer.hits()).as("hits").isEqualTo(3);
-        } finally {
-            managementService.shutdown();
         }
     }
 

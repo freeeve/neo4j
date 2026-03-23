@@ -272,8 +272,7 @@ class CheckPointerIntegrationTest {
 
     @Test
     void oldestNotVisibleTransactionIsTheSameAsTransactionPositionOnTheDatabaseAfterTransactions() throws IOException {
-        DatabaseManagementService managementService = builder.build();
-        try {
+        try (var managementService = builder.build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
             for (int i = 0; i < 17; i++) {
@@ -289,17 +288,14 @@ class CheckPointerIntegrationTest {
             CheckpointInfo lastCheckpoint = checkpointInfos.getLast();
             assertEquals(
                     lastCheckpoint.oldestNotVisibleTransactionLogPosition(), lastCheckpoint.transactionLogPosition());
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void tracePageCacheAccessOnCheckpoint() throws Exception {
-        var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
+        try (var managementService = builder.setConfig(check_point_interval_time, ofMillis(0))
                 .setConfig(check_point_interval_tx, 1)
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var cacheTracer = databaseAPI.getDependencyResolver().resolveDependency(PageCacheTracer.class);
 
@@ -312,19 +308,16 @@ class CheckPointerIntegrationTest {
             assertThat(cacheTracer.flushes()).isGreaterThan(initialFlushes);
             assertThat(cacheTracer.bytesWritten()).isGreaterThan(initialBytesWritten);
             assertThat(cacheTracer.pins()).isGreaterThan(initialPins);
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void checkpointMessageWithNotConfiguredIOController() throws IOException {
         AssertableLogProvider logProvider = new AssertableLogProvider();
-        var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
+        try (var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
                 .setConfig(check_point_interval_tx, 10_000)
                 .setInternalLogProvider(logProvider)
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var cacheTracer = databaseAPI.getDependencyResolver().resolveDependency(PageCacheTracer.class);
 
@@ -346,20 +339,16 @@ class CheckPointerIntegrationTest {
                             greaterThan(25),
                             greaterThan(1),
                             greaterThan(25));
-
-        } finally {
-            managementService.shutdown();
         }
     }
 
     @Test
     void checkpointMessageWithDifferentNumberOfIOsWithNotConfiguredIOController() throws IOException {
         AssertableLogProvider logProvider = new AssertableLogProvider();
-        var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
+        try (var managementService = builder.setConfig(check_point_interval_time, ofHours(7))
                 .setConfig(check_point_interval_tx, 10_000)
                 .setInternalLogProvider(logProvider)
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var cacheTracer = databaseAPI.getDependencyResolver().resolveDependency(PageCacheTracer.class);
 
@@ -392,9 +381,6 @@ class CheckPointerIntegrationTest {
                             greaterThan(40),
                             greaterThan(3),
                             greaterThan(40));
-
-        } finally {
-            managementService.shutdown();
         }
     }
 
@@ -402,13 +388,11 @@ class CheckPointerIntegrationTest {
     void shouldUpdateLowestAvailableCommittedTransactionIdOnPruning() throws IOException {
         // given
         int minNumTransactionsToKeep = 50;
-        var dbms = builder.setConfig(check_point_interval_tx, 10)
+        // when
+        try (var dbms = builder.setConfig(check_point_interval_tx, 10)
                 .setConfig(logical_log_rotation_threshold, kibiBytes(128))
                 .setConfig(keep_logical_logs, minNumTransactionsToKeep + " txs")
-                .build();
-
-        // when
-        try {
+                .build()) {
             var db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             var metadataProvider = db.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
             var checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
@@ -436,8 +420,6 @@ class CheckPointerIntegrationTest {
                 }
             }
             assertThat(numLowestTxIdBumps).isGreaterThan(0);
-        } finally {
-            dbms.shutdown();
         }
     }
 

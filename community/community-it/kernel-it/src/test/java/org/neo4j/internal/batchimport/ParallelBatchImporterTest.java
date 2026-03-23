@@ -72,7 +72,6 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.ConsistencyCheckService;
 import org.neo4j.consistency.ConsistencyCheckService.Result;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -249,22 +248,20 @@ public class ParallelBatchImporterTest {
                     .isEqualTo(Math.addExact(pageCacheTracer.faults(), pageCacheTracer.hits()));
 
             // THEN
-            DatabaseManagementService managementService =
-                    getDBMSBuilder(databaseLayout).build();
-            GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-            try (Transaction tx = db.beginTx()) {
-                inputIdGenerator.reset();
-                verifyData(
-                        NODE_COUNT,
-                        RELATIONSHIP_COUNT,
-                        db,
-                        tx,
-                        groupDistribution,
-                        nodeRandomsState,
-                        relationshipRandomsStates);
-                tx.commit();
-            } finally {
-                managementService.shutdown();
+            try (var managementService = getDBMSBuilder(databaseLayout).build()) {
+                GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+                try (Transaction tx = db.beginTx()) {
+                    inputIdGenerator.reset();
+                    verifyData(
+                            NODE_COUNT,
+                            RELATIONSHIP_COUNT,
+                            db,
+                            tx,
+                            groupDistribution,
+                            nodeRandomsState,
+                            relationshipRandomsStates);
+                    tx.commit();
+                }
             }
             assertThat(mentionsCountsStoreRebuild(databaseLayout)).isFalse();
             assertConsistent(databaseLayout);

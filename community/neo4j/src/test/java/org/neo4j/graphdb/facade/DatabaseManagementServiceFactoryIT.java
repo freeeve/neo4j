@@ -190,28 +190,22 @@ class DatabaseManagementServiceFactoryIT {
                     .build();
             DatabaseManagementServiceFactory databaseManagementServiceFactory =
                     new DatabaseManagementServiceFactory(DbmsInfo.COMMUNITY, CommunityEditionModule::new);
-            DatabaseManagementService dbms = null;
-            try {
-                if (expectedException != null) {
-                    // When HTTPs is enabled, server startup fails due to missing SSL policy. This is fine for this
-                    // test.
-                    var cause = assertThrows(
-                                    RuntimeException.class,
-                                    () -> databaseManagementServiceFactory.build(
-                                            cfg, false, GraphDatabaseDependencies.newDependencies()))
-                            .getCause();
-                    assertTrue(expectedException.isInstance(cause));
-                    assertTrue(cause.getMessage().contains(execptedMessage));
-                } else {
-                    dbms = databaseManagementServiceFactory.build(
-                            cfg, false, GraphDatabaseDependencies.newDependencies());
+            if (expectedException != null) {
+                // When HTTPs is enabled, server startup fails due to missing SSL policy. This is fine for this
+                // test.
+                var cause = assertThrows(
+                                RuntimeException.class,
+                                () -> databaseManagementServiceFactory.build(
+                                        cfg, false, GraphDatabaseDependencies.newDependencies()))
+                        .getCause();
+                assertTrue(expectedException.isInstance(cause));
+                assertTrue(cause.getMessage().contains(execptedMessage));
+            } else {
+                try (var dbms = databaseManagementServiceFactory.build(
+                        cfg, false, GraphDatabaseDependencies.newDependencies())) {
                     var dependencyResolver =
                             ((GraphDatabaseAPI) dbms.database(SYSTEM_DATABASE_NAME)).getDependencyResolver();
                     assertDoesNotThrow(() -> dependencyResolver.resolveDependency(expectedServerClass));
-                }
-            } finally {
-                if (dbms != null) {
-                    dbms.shutdown();
                 }
             }
         }
