@@ -5739,6 +5739,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "no admin user candidate",
             ErrorClassification.CLIENT_ERROR),
+    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, SCHEMA})
+    STATUS_51N7B(
+            new GqlStatus("51N7B"),
+            "Feature: { %s } is not available in a composite database.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "unsupported operation on a composite database",
+            ErrorClassification.CLIENT_ERROR),
     @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, NON_SENSITIVE_NUMBER, TEMPORAL_SPATIAL})
     STATUS_52N01(
             new GqlStatus("52N01"),

@@ -17,24 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.procedure;
+package org.neo4j.procedure.builtin;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.stream.Stream;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.procedure.Description;
 
-/**
- * This annotation marks a {@link Procedure} which is not possible to run on an SPeeDy database.
- * i.e. if you try to run a query with this procedure on a SPeeDy database, it will fail.
- */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface UnsupportedDatabaseTypes {
-    DatabaseType[] value();
+public interface SysInfoMetricsProvider {
 
-    enum DatabaseType {
-        SPD,
-        COMPOSITE
-    }
+    Stream<SysInfoResult> sysInfoMetrics(
+            String databaseName, Transaction transaction, SpdBuiltInProcedures spdBuiltInProcedures);
+
+    record SysInfoResult(
+            @Description("The name of the table.") String tableName,
+            @Description("The name of the column.") String columnName,
+            @Description("The value of the column.") String value) {}
 }

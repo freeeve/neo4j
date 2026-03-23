@@ -144,7 +144,21 @@ public class ProcedureException extends KernelException {
                 name);
     }
 
-    public static ProcedureException unsupportedProcedure(QualifiedName name) {
+    public static ProcedureException unsupportedProcedureOnComposite(QualifiedName name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N7B)
+                .withParam(GqlParams.StringParam.feat, "Unsupported procedure call")
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N08)
+                        .withParam(GqlParams.StringParam.procFun, name.toString())
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                "Procedure `%s` is not supported in a composite database.",
+                name);
+    }
+
+    public static ProcedureException unsupportedProcedureOnShardedDb(QualifiedName name) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N71)
                 .withParam(GqlParams.StringParam.feat, "Unsupported procedure call")
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N08)

@@ -19,6 +19,8 @@
  */
 package org.neo4j.procedure.builtin;
 
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.neo4j.kernel.api.KernelTransaction;
 
@@ -77,6 +79,11 @@ public interface SpdBuiltInProcedures {
             throw unsupported();
         }
 
+        @Override
+        public Map<String, Long> dbMetrics(List<String> metricsWithLocationPlaceholder, String aggregatedDbName) {
+            return Map.of();
+        }
+
         private static UnsupportedOperationException unsupported() {
             return new UnsupportedOperationException("Trying to use SPD procedure outside of SPD context");
         }
@@ -99,4 +106,6 @@ public interface SpdBuiltInProcedures {
     void resampleIndex(String indexName);
 
     void awaitFulltextIndexRefresh();
+
+    Map<String, Long> dbMetrics(List<String> metricsWithLocationPlaceholder, String aggregatedDbName);
 }

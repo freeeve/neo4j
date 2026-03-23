@@ -58,10 +58,12 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.procedure.Admin;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
+import org.neo4j.procedure.Internal;
 import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.NotThreadSafe;
 import org.neo4j.procedure.Procedure;
+import org.neo4j.procedure.UnsupportedDatabaseTypes;
 import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.time.Stopwatch;
 
@@ -369,6 +371,22 @@ public class BuiltInProcedures {
                     + "procedure.")
     public Stream<BooleanResult> ping() {
         return Stream.of(new BooleanResult(Boolean.TRUE));
+    }
+
+    @Internal
+    @NotThreadSafe
+    @Procedure(name = "internal.db.system.info", mode = READ)
+    @UnsupportedDatabaseTypes(UnsupportedDatabaseTypes.DatabaseType.COMPOSITE)
+    public Stream<SysInfoMetricsProvider.SysInfoResult> systemInfo() {
+        var sysInfoMetricsProvider =
+                graphDatabaseAPI.getDependencyResolver().resolveOptionalDependency(SysInfoMetricsProvider.class);
+        if (sysInfoMetricsProvider.isPresent()) {
+            return sysInfoMetricsProvider
+                    .get()
+                    .sysInfoMetrics(callContext.databaseName(), transaction, spdBuiltInProcedures);
+        } else {
+            return Stream.empty();
+        }
     }
 
     private ZoneId getConfiguredTimeZone() {
