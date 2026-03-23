@@ -348,6 +348,10 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
                   // Some other Thread already replaced the value. Retry.
                   None
                 } else {
+                  tracer.logText(
+                    "Cached query plan is not used due to existing notifications that are not valid anymore",
+                    metaData
+                  )
                   Some(compile(hitCache = true, Some(beingRecomputed)))
                 }
               } else {
@@ -484,6 +488,10 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
       val result = if (!cachedValue.recompiledWithExpressionCodeGen) {
         compiler.maybeCompileWithExpressionCodeGen(cachedValue.numberOfHits, onRecompilation _) match {
           case Some(recompiledQuery) =>
+            tracer.logText(
+              "Cached query plan is not used because recompilation with expression code generation is triggered",
+              metaData
+            )
             tracer.computeWithExpressionCodeGen(queryKey, recompiledQuery.codeGenByteCodeSize, metaData)
             val recompiled = new CachedValue(recompiledQuery, recompiledWithExpressionCodeGen = true)
             inner.put(queryKey, recompiled)

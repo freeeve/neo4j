@@ -58,6 +58,8 @@ trait CacheTracer[KEY] {
   def cacheStale(key: KEY, secondsSinceCompute: Int, metaData: String, maybeReason: Option[String]): Unit =
     ()
 
+  def logText(text: String, metaData: String): Unit = ()
+
   /**
    * The query cache was flushed.
    */

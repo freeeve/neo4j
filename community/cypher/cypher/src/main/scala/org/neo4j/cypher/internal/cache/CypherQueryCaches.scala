@@ -53,7 +53,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache.CacheableLogicalPlan
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.PreParserCache
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.PredefinedCacheTracers
-import org.neo4j.cypher.internal.cache.CypherQueryCaches.QueryCacheStaleLogger
+import org.neo4j.cypher.internal.cache.CypherQueryCaches.QueryCacheLogger
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.withDebugMonitor
 import org.neo4j.cypher.internal.compiler.StatsDivergenceCalculator
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
@@ -391,18 +391,22 @@ object CypherQueryCaches {
 
   // --- Logging ----------------------------------------------------
 
-  trait QueryCacheStaleLogger[Key] extends CacheTracer[Key] {
+  trait QueryCacheLogger[Key] extends CacheTracer[Key] {
 
     protected val itemType: String
     protected val doLog: String => Unit
 
     override def cacheStale(key: Key, secondsSinceReplan: Int, queryId: String, maybeReason: Option[String]): Unit = {
       super.cacheStale(key, secondsSinceReplan, queryId, maybeReason)
-      doLog(
-        (Seq(s"Discarded stale $itemType from the $itemType cache after $secondsSinceReplan seconds.") ++
-          maybeReason.map(r => s"Reason: $r.").toSeq ++
-          Seq(s"Query id: $queryId.")).mkString(" ")
+      logText(
+        (Seq(s"Discarded stale $itemType from the $itemType cache after $secondsSinceReplan seconds") ++
+          maybeReason.map(r => s". Reason: $r").toSeq).mkString(""),
+        queryId
       )
+    }
+
+    override def logText(text: String, queryId: String): Unit = {
+      doLog(s"$text. Query id: $queryId.")
     }
   }
 
@@ -603,13 +607,13 @@ class CypherQueryCaches(
   private object cacheTracers extends PredefinedCacheTracers {
 
     override val logicalPlan: LogicalPlanCacheMetricsMonitor =
-      new LogicalPlanCacheMetricsMonitor with QueryCacheStaleLogger[CypherQueryCaches.LogicalPlanCache.Key] {
+      new LogicalPlanCacheMetricsMonitor with QueryCacheLogger[CypherQueryCaches.LogicalPlanCache.Key] {
         override protected val itemType: String = "plan"
         override protected val doLog: String => Unit = log.debug
       }
 
     override val executablePlan: ExecutableQueryCacheMetricsMonitor =
-      new ExecutableQueryCacheMetricsMonitor with QueryCacheStaleLogger[ExecutableQueryCache.Key] {
+      new ExecutableQueryCacheMetricsMonitor with QueryCacheLogger[ExecutableQueryCache.Key] {
         override protected val itemType: String = "query"
         override protected val doLog: String => Unit = log.info
       }

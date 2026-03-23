@@ -317,6 +317,10 @@ class QueryCacheTest extends CypherFunSuite {
     o.verify(tracer).cacheMiss(key, "")
     o.verify(tracer).compute(key, 23L, "")
     o.verify(tracer, times(2)).cacheHit(key, "")
+    o.verify(tracer).logText(
+      "Cached query plan is not used because recompilation with expression code generation is triggered",
+      ""
+    )
     o.verify(tracer).computeWithExpressionCodeGen(key, 23L, "")
     o.verify(tracer).cacheHit(key, "")
     verifyNoMoreInteractions(tracer)
@@ -367,6 +371,10 @@ class QueryCacheTest extends CypherFunSuite {
     v2 should equal(compiled(key))
     v2.compiledWithExpressionCodeGen should equal(true)
     o.verify(tracer, times(2)).cacheHit(key, "")
+    o.verify(tracer).logText(
+      "Cached query plan is not used because recompilation with expression code generation is triggered",
+      ""
+    )
     o.verify(tracer).computeWithExpressionCodeGen(key, 23L, "")
     o.verify(tracer).cacheHit(key, "")
     verifyNoMoreInteractions(tracer)
@@ -437,6 +445,10 @@ class QueryCacheTest extends CypherFunSuite {
     o.verify(tracer).cacheMiss(key, "")
     o.verify(tracer).compute(key, 23L, "")
     o.verify(tracer, times(2)).cacheHit(key, "")
+    o.verify(tracer).logText(
+      "Cached query plan is not used because recompilation with expression code generation is triggered",
+      ""
+    )
     o.verify(tracer).computeWithExpressionCodeGen(key, 23L, "")
     o.verify(tracer, times(97)).cacheHit(key, "")
     verifyNoMoreInteractions(tracer)
