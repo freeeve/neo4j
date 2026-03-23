@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,6 +54,8 @@ public class TopologyMapper {
 
     private VersionAndEdition versionAndEdition;
     private List<Server.Plugin> plugins;
+
+    private static String dbmsId = null;
 
     public TopologyMapper(
             Config config, FileSystemAbstraction fs, ITransactor transactor, ServerIdentity serverIdentity) {
@@ -83,7 +86,7 @@ public class TopologyMapper {
 
         var databasesByInstance = transactor.getDatabases();
 
-        dbms.dbmsId = getDbmsId(databasesByInstance);
+        dbms.dbmsId = getDbmsId(() -> databasesByInstance);
 
         // Add all databases to their respective server
         databasesByInstance.forEach((serverId, dbArray) -> {
@@ -121,11 +124,6 @@ public class TopologyMapper {
         return dbms;
     }
 
-    public String getDbmsId() {
-        var databasesByInstance = transactor.getDatabases();
-        return getDbmsId(databasesByInstance);
-    }
-
     public String getServerId() {
         return serverIdentity.serverId().uuid().toString();
     }
@@ -139,15 +137,17 @@ public class TopologyMapper {
         return this.versionAndEdition.version;
     }
 
-    public static String getDbmsId(Map<String, List<Database>> databasesByInstance) {
-        String dbmsId = null;
-        for (var dbList : databasesByInstance.values()) {
-            for (var oneDb : dbList) {
-                if (dbmsId == null && Objects.equals(oneDb.name, "system")) {
-                    dbmsId = oneDb.databaseId;
-                }
-            }
+    public static String getDbmsId(Supplier<Map<String, List<Database>>> databasesByInstanceSupplier) {
+        if (dbmsId != null) {
+            return dbmsId;
         }
+        dbmsId = databasesByInstanceSupplier.get().values().stream()
+                .flatMap(List::stream)
+                .filter(db -> Objects.equals(db.name, "system"))
+                .map(db -> db.databaseId)
+                .findFirst()
+                .orElse(null);
+
         return dbmsId;
     }
 

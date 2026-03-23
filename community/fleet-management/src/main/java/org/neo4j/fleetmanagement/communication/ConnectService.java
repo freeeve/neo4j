@@ -79,7 +79,7 @@ public class ConnectService extends BaseService {
         try {
             serverVersion = topologyMapper.getServerVersion();
             serverId = topologyMapper.getServerId();
-            dbmsId = topologyMapper.getDbmsId();
+            dbmsId = TopologyMapper.getDbmsId(transactor::getDatabases);
             fleetManagerVersion = FleetManagerVersion.getFleetManagerVersion();
         } catch (Exception e) {
             this.userLog.error("Fleet manager failed to connect - exception in mapTopology: ", e);

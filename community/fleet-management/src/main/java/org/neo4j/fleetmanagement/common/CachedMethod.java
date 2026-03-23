@@ -39,9 +39,7 @@ public class CachedMethod<T> {
         Instant now = Instant.now();
 
         // If we have a cached value and it's less than 1 hour old, return it
-        if (cachedValue != null
-                && lastCacheTime != null
-                && Duration.between(lastCacheTime, now).compareTo(CACHE_DURATION) < 0) {
+        if (lastCacheTime != null && Duration.between(lastCacheTime, now).compareTo(CACHE_DURATION) < 0) {
             return cachedValue;
         }
 

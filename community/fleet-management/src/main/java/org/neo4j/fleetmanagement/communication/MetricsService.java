@@ -74,7 +74,7 @@ public class MetricsService extends AbstractReportingService {
 
         MetricsMessage msg = new MetricsMessage();
         msg.metrics = metricsData;
-        msg.dbmsId = TopologyMapper.getDbmsId(transactor.getDatabases());
+        msg.dbmsId = TopologyMapper.getDbmsId(transactor::getDatabases);
         msg.serverId = serverIdentity.serverId().uuid().toString();
         msg.projectId = upstream.getApiKey().projectId();
 

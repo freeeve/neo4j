@@ -61,7 +61,7 @@ public class ConfigService extends AbstractReportingService implements PropertyC
     public void report() {
         var configMessage = new Neo4jConfigMessage();
         configMessage.neo4jConfig = neo4jConfigMapper.mapConfig();
-        configMessage.dbmsId = TopologyMapper.getDbmsId(transactor.getDatabases());
+        configMessage.dbmsId = TopologyMapper.getDbmsId(transactor::getDatabases);
         configMessage.serverId = serverIdentity.serverId().uuid().toString();
         configMessage.projectId = upstream.getApiKey().projectId();
 

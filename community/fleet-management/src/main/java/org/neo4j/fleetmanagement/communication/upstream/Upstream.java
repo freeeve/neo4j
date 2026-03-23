@@ -108,8 +108,7 @@ public class Upstream {
     }
 
     public String getDbmsId() {
-        var databasesByInstance = transactor.getDatabases();
-        return TopologyMapper.getDbmsId(databasesByInstance);
+        return TopologyMapper.getDbmsId(transactor::getDatabases);
     }
 
     public UpstreamPostRequest postTo(Endpoint endpoint) throws IOException {

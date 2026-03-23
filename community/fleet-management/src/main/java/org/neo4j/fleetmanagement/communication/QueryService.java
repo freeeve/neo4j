@@ -82,7 +82,7 @@ public class QueryService extends BufferedReportingService<AggregatedQueriesTime
         }
 
         var msg = new QueryReportMessage(oldQueries.getCreationTime());
-        msg.dbmsId = TopologyMapper.getDbmsId(transactor.getDatabases());
+        msg.dbmsId = TopologyMapper.getDbmsId(transactor::getDatabases);
         msg.serverId = serverIdentity.serverId().uuid().toString();
         msg.projectId = upstream.getApiKey().projectId();
         msg.queries = oldQueries.getAggregations().entrySet().stream()
