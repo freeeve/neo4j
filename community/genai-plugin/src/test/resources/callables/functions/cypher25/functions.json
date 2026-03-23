@@ -122,6 +122,45 @@
   {
     "isDeprecated": false,
     "aggregating": false,
+    "signature": "ai.text.chunkByTokenLimit(input :: STRING, limit :: INTEGER, model = ada :: STRING, overlap = 0 :: INTEGER) :: LIST<ANY>",
+    "name": "ai.text.chunkByTokenLimit",
+    "description": "Chunk the given string into a list of string chunks based on the token limit.",
+    "returnDescription": "LIST<ANY>",
+    "deprecatedBy": null,
+    "category": "",
+    "isBuiltIn": false,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "The input to chunk.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "limit",
+        "description": "The maximum token limit of a single chunk.",
+        "isDeprecated": false,
+        "type": "INTEGER"
+      },
+      {
+        "name": "model",
+        "description": "The OpenAI model to chunk by.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=ada, type=STRING}",
+        "type": "STRING"
+      },
+      {
+        "name": "overlap",
+        "description": "The amount of tokens to overlap by.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=0, type=INTEGER}",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
+    "aggregating": false,
     "signature": "ai.text.completion(prompt :: STRING, provider :: STRING, configuration = {} :: MAP) :: STRING",
     "name": "ai.text.completion",
     "description": "Generate text based on the specified prompt.",

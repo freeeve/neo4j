@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.ai.text.completion.TextCompletionCallCountersMonitor;
 import org.neo4j.genai.ai.text.embed.VectorEmbeddingCallCountersMonitor;
-import org.neo4j.genai.ai.text.tokenCount.TokenCountCallCountersMonitor;
+import org.neo4j.genai.ai.text.tokenCount.TextTokenCallCountersMonitor;
 import org.neo4j.genai.dbs.VectorDatabaseCallCountersMonitor;
 import org.neo4j.genai.util.GenAIMonitor;
 import org.neo4j.genai.vector.DeprecatedVectorEncodingCallCountersMonitor;
@@ -64,8 +64,8 @@ public interface Monitors {
         return ofType(TextCompletionCallCountersMonitor.class);
     }
 
-    default TokenCountCallCountersMonitor tokenCount() {
-        return ofType(TokenCountCallCountersMonitor.class);
+    default TextTokenCallCountersMonitor textToken() {
+        return ofType(TextTokenCallCountersMonitor.class);
     }
 
     @ServiceProvider

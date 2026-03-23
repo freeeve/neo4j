@@ -32,6 +32,7 @@ import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
+import org.neo4j.genai.ai.text.tokenChunking.TextChunkByToken;
 import org.neo4j.genai.ai.text.tokenCount.TextTokenCount;
 import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding;
@@ -53,6 +54,7 @@ public interface GenAITestExtension {
                 TextAggregateCompletion.class,
                 TextAggregateStructuredCompletion.class,
                 TextTokenCount.class,
+                TextChunkByToken.class,
                 TextChat.class,
                 VectorEmbedding.class);
     }

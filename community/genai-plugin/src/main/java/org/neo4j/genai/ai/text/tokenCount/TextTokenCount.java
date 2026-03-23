@@ -67,7 +67,7 @@ public class TextTokenCount {
             requireNonNull(configuration, "'configuration' must not be null");
         }
         final var provider = providers.configure(providerName, configuration, genAIConfig);
-        monitors.tokenCount().textTokenCountFunctionCalled(provider.metricsName());
+        monitors.textToken().textTokenCountFunctionCalled(provider.metricsName());
         return prompt == null ? null : ValueUtils.asLongValue(provider.tokenCount(prompt));
     }
 

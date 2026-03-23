@@ -21,6 +21,8 @@ package org.neo4j.genai.ai.text.tokenCount;
 
 import org.neo4j.genai.util.GenAIMonitor;
 
-public interface TokenCountCallCountersMonitor extends GenAIMonitor {
+public interface TextTokenCallCountersMonitor extends GenAIMonitor {
     void textTokenCountFunctionCalled(String provider);
+
+    void textChunkByTokenLimitFunctionCalled();
 }
