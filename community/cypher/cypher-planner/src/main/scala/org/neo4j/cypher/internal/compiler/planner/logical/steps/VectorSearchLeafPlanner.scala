@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner.queryExpressionFromWhereClause
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner.solvableGivenSymbols
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
@@ -107,16 +108,9 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
     queryGraph.searchClause match {
-      case Some(VectorSearchClause(resultVariable, indexName, embedding, where, limit, scoreVariable))
-        if !skipIDs.contains(resultVariable) =>
-        val dependencies = embedding.dependencies union limit.dependencies
-        val unresolvedDependencies = dependencies diff queryGraph.argumentIds
-        // TODO: add support for vector search where the embedding refers to the binding variable
-        //  See PLAN-3087
-        assert(
-          unresolvedDependencies.isEmpty,
-          s"unexpected dependencies $unresolvedDependencies in vector search predicate ${queryGraph.searchClause.get}"
-        )
+      case Some(search @ VectorSearchClause(resultVariable, indexName, embedding, where, limit, scoreVariable))
+        if !skipIDs.contains(resultVariable) && solvableGivenSymbols(search, queryGraph.argumentIds) =>
+
         if (queryGraph.patternNodes.contains(resultVariable)) {
           context.staticComponents.planContext.nodeVectorIndexByName(indexName) match {
             case Right(descriptor) =>
@@ -370,6 +364,10 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
 }
 
 object VectorSearchLeafPlanner {
+
+  def solvableGivenSymbols(search: VectorSearchClause, availableSymbols: Set[LogicalVariable]): Boolean = {
+    search.dependencies.subsetOf(availableSymbols)
+  }
 
   def queryExpressionFromWhereClause(
     maybeWhere: Option[Where],

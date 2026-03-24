@@ -191,7 +191,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
     }
   }
 
-  test("throws error if embedding has unresolved dependencies not in argumentIds") {
+  test("produces no candidates if embedding has unresolved dependencies not in argumentIds") {
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
@@ -215,14 +215,11 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
-
-      an[AssertionError] should be thrownBy {
-        planner(qg, InterestingOrderConfig.empty, context)
-      }
+      planner(qg, InterestingOrderConfig.empty, context) shouldEqual Set.empty
     }
   }
 
-  test("throws error if limit has unresolved dependencies not in argumentIds") {
+  test("produces no candidates if limit has unresolved dependencies not in argumentIds") {
     val bindingVariable = v"movie"
     new givenConfig {
       addTypeToSemanticTable(bindingVariable, CTNode)
@@ -246,10 +243,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
-
-      an[AssertionError] should be thrownBy {
-        planner(qg, InterestingOrderConfig.empty, context)
-      }
+      planner(qg, InterestingOrderConfig.empty, context) shouldEqual Set.empty
     }
   }
 

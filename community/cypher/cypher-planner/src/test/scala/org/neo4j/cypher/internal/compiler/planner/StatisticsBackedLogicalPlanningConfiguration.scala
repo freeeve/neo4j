@@ -41,6 +41,8 @@ import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanResolver
 import org.neo4j.cypher.internal.compiler.helpers.TokenContainer
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration.PlanningResult
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration.RecordingCostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.Cardinalities
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.DatabaseFormat
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.ExistenceConstraintDefinition
@@ -55,11 +57,15 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelDef
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.defaultSettingsOverrides
+import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
+import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.SimpleMetricsFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ConfigurableIDPSolverConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.simpleExpressionEvaluator
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.devNullListener
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
@@ -106,6 +112,7 @@ import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTDateTime
@@ -1818,6 +1825,22 @@ class StatisticsBackedLogicalPlanningConfiguration(
     version: CypherVersion,
     queryString: String
   ): LogicalPlanState = {
+    doPlan(version, queryString, recordCostComparisonCandidates = false).logicalPlanState
+  }
+
+  def planAndRecordCostComparisonCandidates(
+    version: CypherVersion,
+    query: String
+  ): (LogicalPlan, ListSet[LogicalPlan]) = {
+    val result = doPlan(version, query, recordCostComparisonCandidates = true)
+    (result.logicalPlanState.logicalPlan, result.recordedCostComparisonCandidates)
+  }
+
+  private def doPlan(
+    version: CypherVersion,
+    queryString: String,
+    recordCostComparisonCandidates: Boolean
+  ): PlanningResult = {
     val plannerConfiguration = CypherPlannerConfiguration.withSettings(settings)
 
     val cfg = Config.defaults(settings.asJava)
@@ -1862,17 +1885,29 @@ class StatisticsBackedLogicalPlanningConfiguration(
         resolveSimpleDynamicExpressions = cc.resolveSimpleDynamicExpressions
       )
     }
-    val finalState = LogicalPlanningTestSupport2
-      .pipeLine(
-        parsingConfig = parsingConfig,
-        deduplicateNames = options.deduplicateNames,
-        allowSubqueryDuplicationInCnfNormalizer = cc.allowDuplicatingSubqueryExpressionsInCnfNormalizer
-      )
-      .transform(state, context)
+
+    val recordingCostComparisonListener = new RecordingCostComparisonListener()
+    val finalState = {
+      val costComparisonListener =
+        if (recordCostComparisonCandidates) recordingCostComparisonListener
+        else devNullListener
+
+      CostComparisonListener.withScopedTestListener(costComparisonListener) {
+        LogicalPlanningTestSupport2
+          .pipeLine(
+            parsingConfig = parsingConfig,
+            deduplicateNames = options.deduplicateNames,
+            allowSubqueryDuplicationInCnfNormalizer = cc.allowDuplicatingSubqueryExpressionsInCnfNormalizer
+          )
+          .transform(state, context)
+      }
+    }
+
     if (options.printNotifications) {
       printOutNotifications(notificationLogger.notifications)
     }
-    finalState
+
+    PlanningResult(finalState, recordingCostComparisonListener.result())
   }
 
   private def printOutNotifications(notifications: Set[InternalNotification]): Unit =
@@ -1913,6 +1948,31 @@ class StatisticsBackedLogicalPlanningConfiguration(
         iDPSolverConfig,
         options.debug.disableExistsSubqueryCaching
       )
+    }
+  }
+}
+
+object StatisticsBackedLogicalPlanningConfiguration {
+
+  case class PlanningResult(logicalPlanState: LogicalPlanState, recordedCostComparisonCandidates: ListSet[LogicalPlan])
+
+  class RecordingCostComparisonListener() extends CostComparisonListener {
+
+    private val recordedPlans = ListSet.newBuilder[LogicalPlan]
+
+    def result(): ListSet[LogicalPlan] = recordedPlans.result()
+
+    override def report[X, Score: Ordering](
+      projector: X => LogicalPlan,
+      input: Iterable[X],
+      calculateScore: X => Score,
+      context: LogicalPlanningContext,
+      resolved: => String,
+      resolvedPerPlan: LogicalPlan => String,
+      heuristic: SelectorHeuristic,
+      planDescriptor: X => Option[String]
+    ): Unit = {
+      recordedPlans.addAll(input.map(projector))
     }
   }
 }

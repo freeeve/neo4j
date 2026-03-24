@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyA
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
@@ -46,6 +47,8 @@ import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
 import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
+
+import scala.util.chaining.scalaUtilChainingOps
 
 object leafPlanOptions extends LeafPlanFinder {
 
@@ -72,6 +75,7 @@ object leafPlanOptions extends LeafPlanFinder {
     val leafPlanCandidatesWithSelections = queryPlannerKit.select(leafPlanCandidates, queryGraph)
 
     leafPlanCandidatesWithSelections
+      .pipe(addCandidatesWithVectorSearch(_, queryPlannerKit, queryGraph, context))
       .toSeq
       .sequentiallyGroupBy(_.availableSymbols.intersect(queryGraph.idsWithoutOptionalMatchesOrUpdates))
       .map { case (availableSymbols, bucket) =>
@@ -112,6 +116,22 @@ object leafPlanOptions extends LeafPlanFinder {
 
   def leafPlanHeuristic(context: LogicalPlanningContext): SelectorHeuristic = new LeafPlanSelectorHeuristic(context)
 
+  private def addCandidatesWithVectorSearch(
+    leafPlanCandidatesWithSelections: Set[LogicalPlan],
+    kit: QueryPlannerKit,
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext
+  ): Set[LogicalPlan] = {
+    if (queryGraph.searchClause.isEmpty) {
+      leafPlanCandidatesWithSelections
+    } else {
+      val kitWithSearch = QueryPlannerKit.withVectorSearchSupportIfNeeded(kit, queryGraph, context)
+      val candidatesWithSelectionsAndSearch = kitWithSearch.select(leafPlanCandidatesWithSelections, queryGraph)
+      // candidates with SEARCH introduce new symbols (binding variable), so we don't want to just map
+      // over the original candidates, but have them added to the set
+      leafPlanCandidatesWithSelections ++ candidatesWithSelectionsAndSearch
+    }
+  }
 }
 
 class LeafPlanSelectorHeuristic(context: LogicalPlanningContext) extends SelectorHeuristic {

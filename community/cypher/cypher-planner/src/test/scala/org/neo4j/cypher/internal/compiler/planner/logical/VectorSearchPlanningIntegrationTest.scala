@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
@@ -32,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -391,10 +393,12 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
   // TODO: see Example SQ2 in CIP-224
   //  See PLAN-3087
   ignore("plan node vector index search, where the embedding refers to the binding variable") {
-    val planner = plannerBuilder().build()
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
 
     val query =
-      """MATCH (movie:Movie)
+      """MATCH (movie)
         |  SEARCH movie IN (
         |    VECTOR INDEX moviePlots
         |    FOR movie.titleEmbedding
@@ -404,24 +408,22 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
         |RETURN movie""".stripMargin
 
     val plan = planner.plan(CypherVersion.Cypher25, query)
-
     plan shouldEqual
       planner.planBuilder()
-        .produceResults(column("movie", "cacheN[movie.plot]"))
+        .produceResults("movie")
+        .filter("`  movie@0` = movie")
         .apply()
-        .|.filter("anon_0 = movie")
         .|.nodeVectorIndexSearch(
-          node = "anon_0",
+          node = "  movie@0",
           labelNames = Seq("Movie"),
-          properties = Seq("plot"),
+          properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "movie.titleEmbedding",
           limit = "10",
-          argumentIds = Set("movie"),
-          getValueFromIndex = _ => GetValue
+          argumentIds = Set("movie")
         )
         .filter("movie.title IN $titles")
-        .nodeByLabelScan("movie", "Movie")
+        .allNodeScan("movie")
         .build()
   }
 
@@ -1109,7 +1111,9 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
 
   // TODO update apply to join after PLAN-3088
   test("plan node vector index search for previously bound nodes") {
-    val planner = plannerBuilder().build()
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
 
     val query =
       """
@@ -1129,19 +1133,19 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
       planner.planBuilder()
         .produceResults("title")
         .projection("movie.title AS title")
-        .filter("movie = movie", assertIsNode("movie"))
+        .filter("`  movie@0` = movie", assertIsNode("movie"))
         .apply()
         .|.nodeVectorIndexSearch(
-          node = "movie",
+          node = "  movie@0",
           labelNames = Seq("Movie"),
           properties = moviePlotsProperties,
           indexName = "moviePlots",
           vector = "$embedding",
           limit = "5",
-          argumentIds = Set("d", "movie", "anon_0")
+          argumentIds = Set("d", "movie", "  UNNAMED0")
         )
         .filter("movie:Movie")
-        .expandAll("(d)-[anon_0:DIRECTED]->(movie)")
+        .expandAll("(d)-[`  UNNAMED0`:DIRECTED]->(movie)")
         .filter("d.name = 'Pakula, Alan'")
         .nodeByLabelScan("d", "Person")
         .build()
@@ -1934,4 +1938,167 @@ abstract class VectorSearchWithComplexPatternPlanningIntegrationTestBase
       )
       .build()
   }
+
+  test("plan node vector index search with embedding depending on a symbol from the same pattern") {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
+
+    val query =
+      """MATCH (movie:Movie)<-[rel:DIRECTED]-(director:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR director.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot, director.name as name""".stripMargin
+
+    val (plan, costComparisonCandidates) = planner.planAndRecordCostComparisonCandidates(CypherVersion.Cypher25, query)
+
+    plan.stripProduceResults shouldEqual planner.subPlanBuilder()
+      .projection("movie.plot AS plot", "cacheN[director.name] AS name")
+      .filter("`  movie@0` = movie")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = cachedNodeProp("director", "embedding"),
+        limit = "10",
+        argumentIds = Set("director", "movie")
+      )
+      .filter("movie:Movie")
+      .expandAll("(director)-[:DIRECTED]->(movie)")
+      .cacheProperties("cacheNFromStore[director.embedding]", "cacheNFromStore[director.name]")
+      .nodeByLabelScan("director", "Person")
+      .build()
+
+    costComparisonCandidates should contain {
+      planner.subPlanBuilder()
+        .expandInto("(director)-[rel:DIRECTED]->(movie)")
+        .apply()
+        .|.nodeVectorIndexSearch(
+          node = "movie",
+          labelNames = Seq("Movie"),
+          properties = moviePlotsProperties,
+          indexName = "moviePlots",
+          vector = prop("director", "embedding"),
+          limit = "10",
+          argumentIds = Set("director"),
+          getValueFromIndex = _ => CanGetValue
+        )
+        .nodeByLabelScan("director", "Person")
+        .build()
+    }
+  }
+
+  test("plan node vector index search with embedding depending on a symbol from the same pattern, longer pattern") {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
+
+    val query =
+      """MATCH (movie:Movie)<-[otherRel]-(otherMovie)<-[rel:DIRECTED]-(director:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR director.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot, director.name as name""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("movie.plot AS plot", "director.name AS name")
+      .filter("`  movie@0` = movie")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = prop("director", "embedding"),
+        limit = "10",
+        argumentIds = Set("director", "movie")
+      )
+      .filter("NOT rel = otherRel", "director:Person")
+      .expandAll("(otherMovie)<-[rel:DIRECTED]-(director)")
+      .expandAll("(movie)<-[otherRel]-(otherMovie)")
+      .nodeByLabelScan("movie", "Movie")
+      .build()
+  }
+
+  test("plan node vector index search with embedding depending on multiple symbols from the same pattern") {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
+
+    val query =
+      """MATCH (movie:Movie)<-[otherRel]-(otherMovie)<-[rel:DIRECTED]-(director:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR director[otherMovie.prop]
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot, director.name as name""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("movie.plot AS plot", "director.name AS name")
+      .filter("`  movie@0` = movie")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = containerIndex(v"director", prop("otherMovie", "prop")),
+        limit = "10",
+        argumentIds = Set("director", "movie", "otherMovie")
+      )
+      .filter("NOT rel = otherRel", "director:Person")
+      .expandAll("(otherMovie)<-[rel:DIRECTED]-(director)")
+      .expandAll("(movie)<-[otherRel]-(otherMovie)")
+      .nodeByLabelScan("movie", "Movie")
+      .build()
+  }
+
+  test("plan node vector index search with predicates depending on a symbol from the same pattern") {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
+
+    val query =
+      """MATCH (movie:Movie)<-[otherRel]-(otherMovie)<-[rel:DIRECTED]-(director:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR $vector
+        |    WHERE movie.releaseYear < director.birthYear
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot, director.name as name""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan.printLogicalPlanBuilderString()
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("movie.plot AS plot", "director.name AS name")
+      .filter("`  movie@0` = movie")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = parameter("vector", CTAny),
+        limit = "10",
+        argumentIds = Set("director", "movie"),
+        filter = Some(composite(AllQueryExpression, rangeExpression(lt(prop("director", "birthYear")))))
+      )
+      .filter("NOT rel = otherRel", "director:Person")
+      .expandAll("(otherMovie)<-[rel:DIRECTED]-(director)")
+      .expandAll("(movie)<-[otherRel]-(otherMovie)")
+      .nodeByLabelScan("movie", "Movie")
+      .build()
+  }
+
 }

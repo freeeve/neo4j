@@ -46,7 +46,10 @@ case class VectorSearchClause(
   scoreVariable: Option[LogicalVariable]
 ) extends SearchClause {
 
-  override def dependencies: Set[LogicalVariable] = embedding.dependencies ++ limit.dependencies
+  override def dependencies: Set[LogicalVariable] =
+    embedding.dependencies ++
+      limit.dependencies ++
+      where.fold(Set.empty[LogicalVariable])(_.dependencies - resultVariable)
 
   override def inlinedPredicatesSet: ListSet[Expression] = {
     where.fold(ListSet.empty[Expression])(w => Ands.unwrap(w.expression))

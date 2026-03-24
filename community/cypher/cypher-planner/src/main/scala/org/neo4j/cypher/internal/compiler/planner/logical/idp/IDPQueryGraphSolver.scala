@@ -30,11 +30,9 @@ import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner.orderSatis
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.ExistsSubqueryPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.planShortestRelationships
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -155,7 +153,11 @@ case class IDPQueryGraphSolver(
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): BestPlans = {
-    val kit = kitWithShortestPathSupport(context.plannerState.config.toKit(interestingOrderConfig, context), context)
+    val kit =
+      context.plannerState.config.toKit(interestingOrderConfig, context)
+        .pipe(QueryPlannerKit.withShortestPathSupportIfNeeded(_, queryGraph, context))
+        .pipe(QueryPlannerKit.withVectorSearchSupportIfNeeded(_, queryGraph, context))
+
     val components = queryGraph.connectedComponents
     val plannedComponents =
       if (components.isEmpty)
@@ -172,27 +174,6 @@ case class IDPQueryGraphSolver(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     existsSubqueryPlanner.planInnerOfExistsSubquery(subquery, labelInfo, context)
-  }
-
-  private def kitWithShortestPathSupport(kit: QueryPlannerKit, context: LogicalPlanningContext) =
-    kit.copy(select = (initialPlan: LogicalPlan, qg: QueryGraph) => selectShortestPath(kit, initialPlan, qg, context))
-
-  private def selectShortestPath(
-    kit: QueryPlannerKit,
-    initialPlan: LogicalPlan,
-    qg: QueryGraph,
-    context: LogicalPlanningContext
-  ): LogicalPlan = {
-    val initialSolved = context.staticComponents.planningAttributes.solveds.get(initialPlan.id).asSinglePlannerQuery
-    def alreadySolved(sp: ShortestRelationshipPattern): Boolean =
-      initialSolved.exists(_.queryGraph.shortestRelationshipPatterns.contains(sp))
-
-    qg.shortestRelationshipPatterns.foldLeft(kit.select(initialPlan, qg)) {
-      case (plan, sp) if !alreadySolved(sp) && sp.isFindableFrom(plan.availableSymbols) =>
-        val shortestPath = planShortestRelationships(plan, qg, sp, context)
-        kit.select(shortestPath, qg)
-      case (plan, _) => plan
-    }
   }
 
   private def planComponents(

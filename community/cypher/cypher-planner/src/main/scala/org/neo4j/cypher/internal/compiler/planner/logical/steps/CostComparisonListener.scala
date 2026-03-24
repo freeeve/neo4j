@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import scala.collection.mutable
 import scala.io.AnsiColor
+import scala.util.DynamicVariable
 
 trait CostComparisonListener {
 
@@ -56,12 +57,20 @@ object CostComparisonListener {
       Option.when(
         options.printCostComparisonsEnabled || java.lang.Boolean.getBoolean("pickBestPlan.VERBOSE")
       )(new SystemOutCostLogger()),
-      Option.when(options.logCostComparisonsEnabled)(new DebugCostLogger(log))
+      Option.when(options.logCostComparisonsEnabled)(new DebugCostLogger(log)),
+      TEST_LISTENER.value
     ).flatten match {
       case Nil             => devNullListener
       case listener :: Nil => listener
       case listeners       => new CombinedListener(listeners)
     }
+
+  // for tests only
+  def withScopedTestListener[A](listener: CostComparisonListener)(f: => A): A = {
+    TEST_LISTENER.withValue(Option(listener))(f)
+  }
+
+  private val TEST_LISTENER: DynamicVariable[Option[CostComparisonListener]] = new DynamicVariable(None)
 }
 
 object devNullListener extends CostComparisonListener {

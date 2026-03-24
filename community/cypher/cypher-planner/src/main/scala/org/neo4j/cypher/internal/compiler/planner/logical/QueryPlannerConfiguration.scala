@@ -179,15 +179,42 @@ case class QueryPlannerConfiguration(
 
   def toKit(interestingOrderConfig: InterestingOrderConfig, context: LogicalPlanningContext): QueryPlannerKit =
     QueryPlannerKit(
-      select = (plan: LogicalPlan, qg: QueryGraph) => applySelections(plan, qg, interestingOrderConfig, context),
+      select = SelectionPlanner.PlanSelections(applySelections, interestingOrderConfig, context),
       pickBest = pickBestCandidate(context)
     )
 
   def withLeafPlanners(leafPlanners: LeafPlannerIterable): QueryPlannerConfiguration = copy(leafPlanners = leafPlanners)
 }
 
-case class QueryPlannerKit(select: (LogicalPlan, QueryGraph) => LogicalPlan, pickBest: CandidateSelector) {
+case class QueryPlannerKit(select: SelectionPlanner, pickBest: CandidateSelector) {
 
-  def select(plans: Iterable[LogicalPlan], qg: QueryGraph): Iterable[LogicalPlan] =
+  def select(plans: Set[LogicalPlan], qg: QueryGraph): Set[LogicalPlan] =
     plans.map(plan => select(plan, qg))
+}
+
+object QueryPlannerKit {
+
+  def withShortestPathSupportIfNeeded(
+    kit: QueryPlannerKit,
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext
+  ): QueryPlannerKit = {
+    if (queryGraph.shortestRelationshipPatterns.isEmpty) {
+      kit
+    } else {
+      kit.copy(select = SelectionPlanner.ShortestPathDecorator(kit.select, context))
+    }
+  }
+
+  def withVectorSearchSupportIfNeeded(
+    kit: QueryPlannerKit,
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext
+  ): QueryPlannerKit = {
+    if (queryGraph.searchClause.isEmpty) {
+      kit
+    } else {
+      kit.copy(select = SelectionPlanner.VectorSearchDecorator(kit.select, context))
+    }
+  }
 }
