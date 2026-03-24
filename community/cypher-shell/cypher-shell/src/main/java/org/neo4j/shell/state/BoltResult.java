@@ -36,4 +36,8 @@ public interface BoltResult {
     Iterator<Record> iterate();
 
     ResultSummary getSummary();
+
+    default List<String> getRawKeys() {
+        return List.of();
+    }
 }

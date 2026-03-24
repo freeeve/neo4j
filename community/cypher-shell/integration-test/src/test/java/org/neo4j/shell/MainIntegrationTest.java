@@ -1470,6 +1470,7 @@ class MainIntegrationTest extends TestHarness {
     @Test
     void sysInfo() throws Exception {
         assumeAtLeastVersion("4.4.0");
+        assumeIsEnterpriseEdition();
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD)
                 .userInputLines(":sysinfo", ":exit")
@@ -1487,12 +1488,26 @@ class MainIntegrationTest extends TestHarness {
                         .containsOnlyOnce("\"Hit Ratio\"")
                         .containsOnlyOnce("\"Usage Ratio\"")
                         .containsOnlyOnce("\"Page Faults\"")
-                        .containsOnlyOnce("\"Last Tx Id\"")
+                        .containsIgnoringCase("\"Last Tx Id\"")
+                        .containsOnlyOnce("\"Last Tx")
                         .containsOnlyOnce("\"Current Read\"")
                         .containsOnlyOnce("\"Current Write\"")
                         .containsOnlyOnce("\"Peak Transactions\"")
                         .containsOnlyOnce("\"Committed Read\"")
                         .containsOnlyOnce("\"Committed Write\""));
+    }
+
+    @Test
+    void sysInfoCommunity() throws Exception {
+        assumeAtLeastVersion("4.4.0");
+        assumeIsCommunityEdition();
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD)
+                .userInputLines(":sysinfo", ":exit")
+                .run()
+                .assertSuccessAndConnected()
+                .outputSatisfies(
+                        o -> assertThat(o).containsOnlyOnce("\"neo4j\"").containsOnlyOnce("\"system\""));
     }
 
     @Test

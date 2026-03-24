@@ -33,18 +33,25 @@ public class ListBoltResult implements BoltResult {
     private final List<String> keys;
     private final List<Record> records;
     private final ResultSummary summary;
+    private final List<String> rawKeys; // keys that shouldn't be quoted
 
     public ListBoltResult(List<Record> records, ResultSummary summary) {
         this(
                 records,
                 summary,
-                records.isEmpty() ? Collections.emptyList() : records.get(0).keys());
+                records.isEmpty() ? Collections.emptyList() : records.get(0).keys(),
+                List.of());
     }
 
     public ListBoltResult(List<Record> records, ResultSummary summary, List<String> keys) {
+        this(records, summary, keys, List.of());
+    }
+
+    public ListBoltResult(List<Record> records, ResultSummary summary, List<String> keys, List<String> rawKeys) {
         this.keys = keys;
         this.records = records;
         this.summary = summary;
+        this.rawKeys = rawKeys;
     }
 
     @Override
@@ -65,5 +72,10 @@ public class ListBoltResult implements BoltResult {
     @Override
     public ResultSummary getSummary() {
         return summary;
+    }
+
+    @Override
+    public List<String> getRawKeys() {
+        return rawKeys;
     }
 }

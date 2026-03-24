@@ -24,17 +24,22 @@ import static java.util.stream.Collectors.toMap;
 import static org.neo4j.shell.TransactionHandler.TransactionType.USER_ACTION;
 import static org.neo4j.shell.util.Versions.version;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.neo4j.driver.Record;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
+import org.neo4j.driver.internal.InternalRecord;
 import org.neo4j.shell.CypherShell;
 import org.neo4j.shell.exception.CommandException;
 import org.neo4j.shell.exception.ExitException;
 import org.neo4j.shell.prettyprint.TableOutputFormatter;
 import org.neo4j.shell.printer.Printer;
+import org.neo4j.shell.state.ListBoltResult;
 import org.neo4j.shell.util.Version;
 import org.neo4j.shell.util.Versions;
 
@@ -46,8 +51,10 @@ public class SysInfo implements Command {
     private final TableOutputFormatter tableFormatter;
     private final CypherShell shell;
     private final Version firstSupportedVersion = new Version(4, 4, 0);
+    private final Version sysInfoProcIntroducedVersion = new Version(2026, 4, 0);
     private final String SYSTEM_DB_TYPE = "system";
     private final String COMPOSITE_DB_TYPE = "composite";
+    private final String COMMUNITY_EDITION = "community";
 
     public SysInfo(Printer printer, CypherShell shell) {
         this.printer = printer;
@@ -71,8 +78,16 @@ public class SysInfo implements Command {
             final var db = shell.getActualDatabaseAsReportedByServer();
             printDatabases();
 
-            for (final var group : allMetrics) {
-                printMetrics(clientConfig, db, group);
+            var isCommunityEdition = isCommunityEdition();
+            // We do not have this info in community edition
+            if (!isCommunityEdition) {
+                if (isSysInfoProcSupported()) {
+                    printSysInfoProcedureMetrics();
+                } else {
+                    for (final var group : allMetrics) {
+                        printMetrics(clientConfig, db, group);
+                    }
+                }
             }
         }
     }
@@ -84,6 +99,34 @@ public class SysInfo implements Command {
         } catch (Versions.FailedToParseException e) {
             return true; // Assume supported
         }
+    }
+
+    private boolean isSysInfoProcSupported() {
+        final var version = shell.getServerVersion();
+        try {
+            return version == null
+                    || version.isBlank()
+                    || version(version).compareTo(sysInfoProcIntroducedVersion) >= 0;
+        } catch (Versions.FailedToParseException e) {
+            return false; // Assume not supported
+        }
+    }
+
+    private boolean isCommunityEdition() throws CommandException {
+        var query = """
+            CALL dbms.components()
+            YIELD name, edition
+            WHERE name = 'Neo4j Kernel'
+            RETURN edition
+        """;
+        final var result = shell.runCypher(query, Map.of(), USER_ACTION);
+        if (result.isPresent()) {
+            for (final var record : result.get().getRecords()) {
+                final var edition = record.get("edition").asString("");
+                return COMMUNITY_EDITION.equals(edition);
+            }
+        }
+        return false;
     }
 
     private boolean isSystemOrCompositeDb() throws CommandException {
@@ -129,7 +172,8 @@ public class SysInfo implements Command {
                   address AS Address,
                   role AS Role,
                   currentStatus AS Status,
-                  default AS Default""";
+                  default AS Default,
+                  home AS Home""";
         shell.runCypher5(query, Map.of(), USER_ACTION).ifPresent(result -> {
             printer.printOut("");
             tableFormatter.formatWithHeading(result, printer, "Databases");
@@ -149,8 +193,45 @@ public class SysInfo implements Command {
                 .toList();
         final var params = Map.of("metrics", Values.value(metricNamesParam));
         shell.runCypher5(query, params, USER_ACTION).ifPresent(result -> {
+            final var keys = List.of("Name", "Value");
             printer.printOut("");
-            tableFormatter.formatWithHeading(result, printer, group.name());
+            tableFormatter.formatWithHeading(
+                    new ListBoltResult(result.getRecords(), result.getSummary(), keys, List.of("Value")),
+                    printer,
+                    group.name());
+        });
+    }
+
+    private void printSysInfoProcedureMetrics() throws CommandException {
+        final var query = """
+            CALL internal.db.system.info()
+            YIELD tableName, columnName, value
+            RETURN tableName, columnName AS Name, value AS Value
+        """;
+        shell.runCypher(query, Map.of(), USER_ACTION).ifPresent(result -> {
+            final var records = result.getRecords();
+            final var groupedByTable = records.stream()
+                    .collect(Collectors.groupingBy(
+                            r -> r.get("tableName").asString(), Collectors.toCollection(ArrayList::new)));
+
+            final var tableNames = records.stream()
+                    .map(r -> r.get("tableName").asString())
+                    .distinct()
+                    .toList();
+
+            for (final var tableName : tableNames) {
+                final var groupRecords = groupedByTable.get(tableName);
+                final var keys = List.of("Name", "Value");
+                final var boltRecords = groupRecords.stream()
+                        .map(r -> (Record) new InternalRecord(keys, List.of(r.get("Name"), r.get("Value"))))
+                        .toList();
+
+                printer.printOut("");
+                tableFormatter.formatWithHeading(
+                        new ListBoltResult(boltRecords, result.getSummary(), keys, List.of("Value")),
+                        printer,
+                        tableName);
+            }
         });
     }
 

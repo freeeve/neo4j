@@ -67,8 +67,14 @@ public class TableOutputFormatter implements OutputFormatter {
             return 0;
         }
 
+        boolean[] rawColumns = new boolean[columns.length];
+        List<String> rawKeys = result.getRawKeys();
+        for (int i = 0; i < columns.length; i++) {
+            rawColumns[i] = rawKeys.contains(columns[i]);
+        }
+
         Iterator<Record> records = result.iterate();
-        return formatResultAndCountRows(columns, records, output);
+        return formatResultAndCountRows(columns, rawColumns, records, output);
     }
 
     /**
@@ -76,7 +82,12 @@ public class TableOutputFormatter implements OutputFormatter {
      */
     public void formatWithHeading(BoltResult result, LinePrinter output, String heading) {
         final String[] columns = result.getKeys().toArray(new String[0]);
-        printTableAndCountRows(columns, emptyIterator(), output, result.getRecords(), true, heading);
+        boolean[] rawColumns = new boolean[columns.length];
+        List<String> rawKeys = result.getRawKeys();
+        for (int i = 0; i < columns.length; i++) {
+            rawColumns[i] = rawKeys.contains(columns[i]);
+        }
+        printTableAndCountRows(columns, rawColumns, emptyIterator(), output, result.getRecords(), true, heading);
     }
 
     private static void take(Iterator<Record> records, ArrayList<Record> topRecords, int count) {
@@ -85,26 +96,28 @@ public class TableOutputFormatter implements OutputFormatter {
         }
     }
 
-    private int formatResultAndCountRows(String[] columns, Iterator<Record> records, LinePrinter output) {
+    private int formatResultAndCountRows(
+            String[] columns, boolean[] rawColumns, Iterator<Record> records, LinePrinter output) {
 
         ArrayList<Record> topRecords = new ArrayList<>(numSampleRows);
         try {
             take(records, topRecords, numSampleRows);
         } catch (RuntimeException e) {
-            printTableAndCountRows(columns, records, output, topRecords, false, null);
+            printTableAndCountRows(columns, rawColumns, records, output, topRecords, false, null);
             throw e;
         }
-        return printTableAndCountRows(columns, records, output, topRecords, true, null);
+        return printTableAndCountRows(columns, rawColumns, records, output, topRecords, true, null);
     }
 
     private int printTableAndCountRows(
             String[] columns,
+            boolean[] rawColumns,
             Iterator<Record> records,
             LinePrinter output,
             List<Record> topRecords,
             boolean printFooter,
             String heading) {
-        int[] columnSizes = calculateColumnSizes(columns, topRecords, records.hasNext(), heading);
+        int[] columnSizes = calculateColumnSizes(columns, rawColumns, topRecords, records.hasNext(), heading);
 
         int totalWidth = 1;
         for (int columnSize : columnSizes) {
@@ -129,12 +142,12 @@ public class TableOutputFormatter implements OutputFormatter {
         int numberOfRows = 0;
 
         for (Record record : topRecords) {
-            output.printOut(formatRecord(builder, columnSizes, record));
+            output.printOut(formatRecord(builder, columnSizes, rawColumns, record));
             numberOfRows++;
         }
 
         while (records.hasNext()) {
-            output.printOut(formatRecord(builder, columnSizes, records.next()));
+            output.printOut(formatRecord(builder, columnSizes, rawColumns, records.next()));
             numberOfRows++;
         }
 
@@ -152,7 +165,7 @@ public class TableOutputFormatter implements OutputFormatter {
      * @return the column sizes
      */
     private int[] calculateColumnSizes(
-            String[] columns, List<Record> data, boolean moreDataAfterSamples, String heading) {
+            String[] columns, boolean[] rawColumns, List<Record> data, boolean moreDataAfterSamples, String heading) {
         int[] columnSizes = new int[columns.length];
         for (int i = 0; i < columns.length; i++) {
             columnSizes[i] = displayWidth(columns[i]);
@@ -160,7 +173,8 @@ public class TableOutputFormatter implements OutputFormatter {
         for (Record record : data) {
             for (int i = 0; i < columns.length; i++) {
                 final var currentColumnSize = columnSizes[i];
-                final int len = columnLengthForValue(record.get(i), moreDataAfterSamples, currentColumnSize);
+                final int len =
+                        columnLengthForValue(record.get(i), rawColumns[i], moreDataAfterSamples, currentColumnSize);
                 if (currentColumnSize < len) {
                     columnSizes[i] = len;
                 }
@@ -180,15 +194,16 @@ public class TableOutputFormatter implements OutputFormatter {
      * The length of a column, where Numbers are always getting enough space to fit the highest number possible.
      *
      * @param value                the value to calculate the length for
+     * @param raw                  whether to format the value rawly (without quotations)
      * @param moreDataAfterSamples if there is more data that should be written into the table after `data`
      * @param currentColSize       current size of this column
      * @return the column size for this value.
      */
-    private int columnLengthForValue(Value value, boolean moreDataAfterSamples, int currentColSize) {
+    private int columnLengthForValue(Value value, boolean raw, boolean moreDataAfterSamples, int currentColSize) {
         if (value instanceof NumberValueAdapter && moreDataAfterSamples) {
             return 19; // The number of digits of Long.Max
         } else {
-            final var formatted = formatValue(value);
+            final var formatted = raw ? formatValueRaw(value) : formatValue(value);
             final boolean hasLineBreak = StringUtils.containsAny(formatted, '\n', '\r');
             if (!hasLineBreak) {
                 return displayWidth(formatted);
@@ -208,17 +223,27 @@ public class TableOutputFormatter implements OutputFormatter {
         }
     }
 
-    private String formatRecord(StringBuilder sb, int[] columnSizes, Record record) {
+    private String formatRecord(StringBuilder sb, int[] columnSizes, boolean[] rawColumns, Record record) {
         sb.setLength(0);
-        return formatRow(sb, columnSizes, formatValues(record), new boolean[columnSizes.length]);
+        return formatRow(sb, columnSizes, formatValues(record, rawColumns), new boolean[columnSizes.length]);
     }
 
-    private String[] formatValues(Record record) {
+    private String[] formatValues(Record record, boolean[] rawColumns) {
         String[] row = new String[record.size()];
         for (int i = 0; i < row.length; i++) {
-            row[i] = formatValue(record.get(i));
+            row[i] = rawColumns[i] ? formatValueRaw(record.get(i)) : formatValue(record.get(i));
         }
         return row;
+    }
+
+    private String formatValueRaw(Value value) {
+        if (value == null || value.isNull()) {
+            return "";
+        }
+        if (value.type().name().equals("STRING")) {
+            return value.asString();
+        }
+        return formatValue(value);
     }
 
     /**
@@ -457,8 +482,11 @@ public class TableOutputFormatter implements OutputFormatter {
         StringBuilder sb = new StringBuilder();
         Record record =
                 new InternalRecord(asList(columns), info.values().stream().toList());
-        formatResultAndCountRows(columns, Collections.singletonList(record).iterator(), line -> sb.append(line)
-                .append(OutputFormatter.NEWLINE));
+        formatResultAndCountRows(
+                columns,
+                new boolean[columns.length],
+                Collections.singletonList(record).iterator(),
+                line -> sb.append(line).append(OutputFormatter.NEWLINE));
         return sb.toString();
     }
 

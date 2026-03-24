@@ -20,6 +20,7 @@
 package org.neo4j.shell;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.shell.ShellRunner.shouldBeInteractive;
 import static org.neo4j.shell.terminal.CypherShellTerminalBuilder.terminalBuilder;
@@ -28,10 +29,12 @@ import static org.neo4j.shell.test.Util.testConnectionConfig;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.Optional;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.function.ThrowingFunction;
+import org.neo4j.shell.TransactionHandler.TransactionType;
 import org.neo4j.shell.cli.AccessMode;
 import org.neo4j.shell.cli.Format;
 import org.neo4j.shell.completions.CompletionEngine;
@@ -42,6 +45,7 @@ import org.neo4j.shell.parameter.ParameterService;
 import org.neo4j.shell.prettyprint.PrettyConfig;
 import org.neo4j.shell.prettyprint.PrettyPrinter;
 import org.neo4j.shell.printer.AnsiPrinter;
+import org.neo4j.shell.state.BoltResult;
 import org.neo4j.shell.state.BoltStateHandler;
 import org.neo4j.shell.terminal.CypherShellTerminal;
 import org.neo4j.shell.terminal.TestSimplePrompt;
@@ -169,6 +173,29 @@ public class TestHarness {
         } catch (Versions.FailedToParseException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected void assumeIsEnterpriseEdition() {
+        assumeFalse(isCommunityEdition());
+    }
+
+    protected void assumeIsCommunityEdition() {
+        assumeTrue(isCommunityEdition());
+    }
+
+    protected boolean isCommunityEdition() {
+        var query = """
+            CALL dbms.components()
+            YIELD name, edition
+            WHERE name = 'Neo4j Kernel'
+            RETURN edition
+        """;
+        return runInDbAndReturn("", shell -> {
+            Optional<BoltResult> result = shell.runCypher(query, Collections.emptyMap(), TransactionType.USER_ACTION);
+            return result.map(boltResult -> boltResult.getRecords().stream().anyMatch(record -> "community"
+                            .equalsIgnoreCase(record.get("edition").asString())))
+                    .orElse(false);
+        });
     }
 
     protected void runInSystemDb(ThrowingConsumer<CypherShell, Exception> systemDbConsumer) {
