@@ -22,6 +22,7 @@ package org.neo4j.index.internal.gbptree;
 import java.nio.file.OpenOption;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.io.pagecache.PageCacheOpenOptions;
 
 /**
  * Default factory that provides {@link DefaultTreeNodeSelector} with standard GBPTree node functionality
@@ -35,6 +36,9 @@ public class DefaultTreeNodeLayoutFactory implements TreeNodeLayoutFactory {
 
     @Override
     public TreeNodeSelector createSelector(ImmutableSet<OpenOption> openOptions) {
+        if (openOptions.contains(PageCacheOpenOptions.MULTI_VERSIONED)) {
+            throw new UnsupportedOperationException("Multi-versioned tree nodes are not supported");
+        }
         return DefaultTreeNodeSelector.selector();
     }
 }
