@@ -1072,9 +1072,14 @@ public abstract class MuninnPageCursor extends PageCursor {
 
     @Override
     public void setCursorException(String message) {
+        setCursorException(message, null);
+    }
+
+    @Override
+    public void setCursorException(String message, Throwable cause) {
         Objects.requireNonNull(message);
         if (usePreciseCursorErrorStackTraces) {
-            this.cursorException = new CursorExceptionWithPreciseStackTrace(message);
+            this.cursorException = new CursorExceptionWithPreciseStackTrace(message, cause);
         } else {
             this.cursorException = message;
         }

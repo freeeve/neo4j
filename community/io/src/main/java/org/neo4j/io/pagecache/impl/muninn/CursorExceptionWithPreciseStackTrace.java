@@ -31,4 +31,8 @@ final class CursorExceptionWithPreciseStackTrace extends CursorException {
     CursorExceptionWithPreciseStackTrace(String message) {
         super(message);
     }
+
+    public CursorExceptionWithPreciseStackTrace(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

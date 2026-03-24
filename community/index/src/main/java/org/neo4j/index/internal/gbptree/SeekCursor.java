@@ -700,7 +700,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
             } catch (Exception e) {
                 String message =
                         e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                cursor.setCursorException(message);
+                cursor.setCursorException(message, e);
             }
             retry = true;
         } while (cursor.shouldRetry());

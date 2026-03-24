@@ -29,4 +29,8 @@ public class CursorException extends IOException {
     public CursorException(String message) {
         super(message);
     }
+
+    public CursorException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

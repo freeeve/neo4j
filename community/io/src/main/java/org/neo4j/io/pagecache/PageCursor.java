@@ -387,6 +387,10 @@ public abstract class PageCursor implements AutoCloseable {
      */
     public abstract void setCursorException(String message);
 
+    public void setCursorException(String message, Throwable cause) {
+        setCursorException(message);
+    }
+
     /**
      * Unconditionally clear any error condition that has been set on this or any linked cursor, without throwing an
      * exception.

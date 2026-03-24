@@ -167,7 +167,7 @@ public class OffloadStoreImpl<KEY, VALUE> implements OffloadStore<KEY, VALUE> {
         int keySize = layout.keySize(key);
         int valueSize = layout.valueSize(value);
         long newId = acquireNewId(stableGeneration, unstableGeneration, cursorContext);
-        try (PageCursor cursor = pcFactory.create(newId, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
+        try (var cursor = pcFactory.create(newId, PagedFile.PF_SHARED_WRITE_LOCK, cursorContext)) {
             placeCursorAtOffloadId(cursor, newId);
 
             writeHeader(cursor);
