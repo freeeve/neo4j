@@ -104,7 +104,9 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.impl.GlobalProceduresRegistry;
 import org.neo4j.procedure.impl.ProcedureConfig;
+import org.neo4j.procedure.impl.memory.ProcedureMemoryProvider;
 import org.neo4j.procedure.impl.temporal.TemporalFunction;
+import org.neo4j.procedure.memory.ProcedureMemory;
 import org.neo4j.time.Clocks;
 import org.neo4j.token.api.NamedToken;
 import org.neo4j.values.AnyValue;
@@ -142,6 +144,7 @@ class BuiltInProceduresTest {
         procs.registerComponent(SecurityContext.class, Context::securityContext, true);
         procs.registerComponent(ProcedureCallContext.class, Context::procedureCallContext, true);
         procs.registerComponent(SystemGraphComponents.class, ctx -> systemGraphComponents, false);
+        procs.registerComponent(ProcedureMemory.class, new ProcedureMemoryProvider(), true);
 
         procs.registerComponent(Log.class, ctx -> log, false);
         procs.registerType(Node.class, NTNode);

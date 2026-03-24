@@ -64,6 +64,7 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.NotThreadSafe;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.procedure.UnsupportedDatabaseTypes;
+import org.neo4j.procedure.memory.ProcedureMemory;
 import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.time.Stopwatch;
 
@@ -90,6 +91,9 @@ public class BuiltInProcedures {
 
     @Context
     public SpdBuiltInProcedures spdBuiltInProcedures;
+
+    @Context
+    public ProcedureMemory procedureMemory;
 
     @SystemProcedure
     @NotThreadSafe
@@ -359,7 +363,10 @@ public class BuiltInProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return Stream.of(new SchemaProcedure((InternalTransaction) transaction).buildSchemaGraph());
+        final var tracker = procedureMemory.newTracker();
+        return Stream.of(new SchemaProcedure((InternalTransaction) transaction, procedureMemory, tracker)
+                        .buildSchemaGraph())
+                .onClose(tracker::close);
     }
 
     @SystemProcedure(allowExpiredCredentials = true)

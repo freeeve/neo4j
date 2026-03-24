@@ -21,6 +21,7 @@ package org.neo4j.internal.kernel.api.procs;
 
 import java.util.stream.Stream;
 import org.neo4j.kernel.api.QueryLanguage;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 
 /**
@@ -109,8 +110,8 @@ public class ProcedureCallContext {
     }
 
     /* should only be used for testing purposes */
-    public static final ProcedureCallContext EMPTY =
-            new ProcedureCallContext(-1, EMPTY_OUTPUT_FIELDNAMES, false, "", false, "", null, QueryLanguage.CYPHER_25);
+    public static final ProcedureCallContext EMPTY = new ProcedureCallContext(
+            -1, EMPTY_OUTPUT_FIELDNAMES, false, "", false, "", EmptyMemoryTracker.INSTANCE, QueryLanguage.CYPHER_25);
 
     public int id() {
         return id;
