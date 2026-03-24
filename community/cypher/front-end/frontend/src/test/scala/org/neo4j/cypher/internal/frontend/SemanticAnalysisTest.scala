@@ -79,9 +79,9 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
   test("Should not allow multiple columns with the same name in WITH") {
     run("MATCH (n) WITH n.prop AS n, n.foo AS n ORDER BY n + 2 RETURN 1 AS one")
       .hasError(
-        GqlHelper.getGql42001_42N38(15, 1, 16),
+        GqlHelper.getGql42001_42N38(37, 1, 38),
         "Multiple result columns with the same name are not supported",
-        p(15, 1, 16)
+        p(37, 1, 38)
       )
   }
 

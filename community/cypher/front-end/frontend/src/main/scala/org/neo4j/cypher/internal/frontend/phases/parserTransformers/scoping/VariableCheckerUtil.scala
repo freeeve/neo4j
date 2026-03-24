@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
@@ -29,6 +30,7 @@ import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
+import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
@@ -422,7 +424,13 @@ trait VariableCheckerUtil {
 
   protected def findMultipleDeclarationsIn(names: Seq[LogicalVariable], pc: ProjectionClause): Seq[SemanticError] =
     names.groupMapReduce(identity)(_ => 1)(_ + _).filter(_._2 > 1).map {
-      _ => SemanticError.multipleReturnColumnsWithSameName(pc.returnItems.items.head.position)
+      tuple: (LogicalVariable, Int) =>
+        val duplicates = pc.returnItems.items.collect {
+          case a: AliasedReturnItem if a.variable.equals(tuple._1)                               => a.variable
+          case u: UnaliasedReturnItem if u.expression.asCanonicalStringVal.equals(tuple._1.name) => u.expression
+        }
+        // Warn on the second item (i.e. the first duplicate)
+        SemanticError.multipleReturnColumnsWithSameName(duplicates(1).position)
     }.toSeq
 
   protected def getIncompatibleReturnColumnsForUnion(

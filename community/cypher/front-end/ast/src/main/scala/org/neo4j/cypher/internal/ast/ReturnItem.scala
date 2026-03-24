@@ -87,7 +87,12 @@ final case class ReturnItems(
   private def ensureProjectedToUniqueIds: SemanticCheck = {
     items.groupBy(_.name).foldSemanticCheck {
       case (_, groupedItems) if groupedItems.size > 1 =>
-        SemanticError.multipleReturnColumnsWithSameName(groupedItems.head.position)
+        // Warn on the second item (i.e. the first duplicate)
+        val position = groupedItems(1) match {
+          case a: AliasedReturnItem   => a.variable.position
+          case u: UnaliasedReturnItem => u.expression.position
+        }
+        SemanticError.multipleReturnColumnsWithSameName(position)
       case _ =>
         SemanticCheck.success
     }
