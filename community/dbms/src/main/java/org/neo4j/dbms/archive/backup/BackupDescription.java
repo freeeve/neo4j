@@ -237,10 +237,18 @@ public class BackupDescription implements Comparable<BackupDescription> {
             return dbIdCompared;
         }
 
-        if (isEmpty() || o.isEmpty()) {
+        if (eitherIsEmpty(o) || highestAppendIndexMatches(o)) {
             return getBackupTime().compareTo(o.getBackupTime());
         } else {
             return Long.compare(getHighestAppendIndex(), o.getHighestAppendIndex());
         }
+    }
+
+    private boolean highestAppendIndexMatches(BackupDescription o) {
+        return getHighestAppendIndex() == o.getHighestAppendIndex();
+    }
+
+    private boolean eitherIsEmpty(BackupDescription o) {
+        return isEmpty() || o.isEmpty();
     }
 }

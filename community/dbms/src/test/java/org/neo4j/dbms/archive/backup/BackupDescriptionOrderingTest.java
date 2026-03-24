@@ -137,6 +137,22 @@ public class BackupDescriptionOrderingTest {
         assertThat(backups).containsExactlyElementsOf(expected);
     }
 
+    @Test
+    void shouldOrderByTimeWhenHighestTxIdMatches() {
+        // given
+        var backup1 = createBackup(dbName1, dbId1, 1, 1, 10);
+        var backup2 = createBackup(dbName1, dbId1, 2, 1, 10);
+
+        var backups = Arrays.asList(backup2, backup1);
+
+        // when
+        Collections.sort(backups);
+
+        // then
+        var expected = List.of(backup1, backup2);
+        assertThat(backups).containsExactlyElementsOf(expected);
+    }
+
     private BackupDescription createBackup(
             String databaseName,
             DatabaseId databaseId,
