@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.ir
 
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
@@ -164,7 +165,9 @@ case class Selections private (predicates: Set[Predicate]) {
   def coveredBy(solvedPredicates: Seq[Expression]): Boolean =
     flatPredicates.forall(solvedPredicates.contains)
 
-  def contains(e: Expression): Boolean = predicates.exists { _.expr == e }
+  def contains(e: Expression): Boolean = predicates.exists {
+    _.expr == e
+  }
 
   def ++(other: Selections): Selections = Selections(predicates ++ other.predicates)
 
@@ -193,15 +196,35 @@ object Selections {
     def isCoveredByOtherPredicate(partial: PartialPredicate[_]): Boolean =
       partial.coveringPredicate.asPredicates.forall(subExpr => predicates.contains(subExpr))
 
-    val keptPredicates = predicates.filter {
-      case Predicate(_, partial: PartialPredicate[_]) => !isCoveredByOtherPredicate(partial)
-      case _                                          => true
+    def replaceCoveredPredicates(predicateToFilter: Expression): Option[Expression] = predicateToFilter match {
+      case partial: PartialPredicate[_] if isCoveredByOtherPredicate(partial) => None
+      case Ors(exprs) =>
+        val replacedExprs = exprs.flatMap {
+          case ands: Ands => replaceCoveredPredicates(ands)
+          case other      => Some(other)
+        }
+        Some(Ors.create(replacedExprs))
+      case Ands(exprs) =>
+        val replacedExprs = exprs.flatMap(replaceCoveredPredicates)
+        if (replacedExprs.isEmpty)
+          None
+        else
+          Some(Ands.create(replacedExprs))
+      case other => Some(other)
+    }
+
+    val keptPredicates = predicates.flatMap {
+      case Predicate(dependencies, expr) => replaceCoveredPredicates(expr).map {
+          case replacedExpr if replacedExpr != expr => Predicate(replacedExpr.dependencies, replacedExpr)
+          case expr                                 => Predicate(dependencies, expr)
+        }
     }
 
     new Selections(keptPredicates)
   }
 
   def from(expressions: Iterable[Expression]): Selections = Selections(expressions.flatMap(_.asPredicates).toSet)
+
   def from(expressions: Expression): Selections = Selections(expressions.asPredicates)
 
   def containsExistsSubquery(e: Expression): Boolean = e match {

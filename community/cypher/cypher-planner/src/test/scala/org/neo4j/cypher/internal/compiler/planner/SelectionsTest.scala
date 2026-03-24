@@ -20,16 +20,20 @@
 package org.neo4j.cypher.internal.compiler.planner
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.Selections
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
   private val aIsPerson = hasLabels("a", "Person")
   private val aIsProgrammer = hasLabels("a", "Programmer")
+  private val aIsEmployee = hasLabels("a", "Employee")
   private val bIsAnimal = hasLabels("b", "Animal")
 
   private val aId = idNames("a")
@@ -112,6 +116,57 @@ class SelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
     val expected = Selections(Set(Predicate(aId, covering)))
 
     selections should equal(expected)
+  }
+
+  test("should not prune covered partial predicates within disjunctions") {
+    val covered = aIsPerson
+    val covering = aIsProgrammer
+    val selections = Selections(Set(
+      Predicate(aId ++ bId, Ors.create(ListSet(PartialPredicate(covered, covering), bIsAnimal))),
+      Predicate(aId, covering)
+    ))
+
+    val expected = Set(
+      Predicate(aId, covering),
+      Predicate(aId ++ bId, Ors.create(ListSet(PartialPredicate(covered, covering), bIsAnimal)))
+    )
+
+    selections.predicates should equal(expected)
+  }
+
+  test("PLAN-3293: should prune covered partial predicates within disjunctions and conjunctions") {
+    val covered = aIsPerson
+    val covering = aIsProgrammer
+    val selections = Selections(Set(
+      Predicate(
+        aId ++ bId,
+        Ors.create(ListSet(Ands.create(ListSet(PartialPredicate(covered, covering), aIsEmployee)), bIsAnimal))
+      ),
+      Predicate(aId, covering)
+    ))
+
+    val expected = Set(Predicate(aId, covering), Predicate(bId ++ aId, Ors.create(ListSet(bIsAnimal, aIsEmployee))))
+
+    selections.predicates should equal(expected)
+  }
+
+  test("PLAN-3334: should prune covered partial predicates within multiple conjunctions") {
+    val covered = aIsPerson
+    val covering = aIsProgrammer
+    val selections = Selections(Set(
+      Predicate(
+        aId ++ bId,
+        Ors.create(ListSet(
+          Ands.create(ListSet(PartialPredicate(covered, covering), aIsEmployee)),
+          bIsAnimal
+        ))
+      ),
+      Predicate(aId, covering)
+    ))
+
+    val expected = Set(Predicate(aId, covering), Predicate(bId ++ aId, Ors.create(ListSet(bIsAnimal, aIsEmployee))))
+
+    selections.predicates should equal(expected)
   }
 
   test("should prune covered sub predicates when adding") {

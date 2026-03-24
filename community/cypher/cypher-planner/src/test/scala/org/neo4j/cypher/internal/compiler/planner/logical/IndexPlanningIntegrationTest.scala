@@ -453,10 +453,11 @@ class IndexPlanningIntegrationTest
   }
 
   test("should plan index usage if distance predicate depends on variable from the horizon") {
-    val query = """WITH 10 AS maxDistance
-                  |MATCH (p:Place)
-                  |WHERE point.distance(p.location, point({x: 0, y: 0, crs: 'cartesian'})) <= maxDistance
-                  |RETURN p.location as point
+    val query =
+      """WITH 10 AS maxDistance
+        |MATCH (p:Place)
+        |WHERE point.distance(p.location, point({x: 0, y: 0, crs: 'cartesian'})) <= maxDistance
+        |RETURN p.location as point
         """.stripMargin
 
     val cfg = plannerConfigWithPointIndexForDistancePredicateTests()
@@ -2872,11 +2873,12 @@ class IndexPlanningIntegrationTest
       .addNodeIndex("N0", Seq("p1"), 0.0, 0.0)
       .build()
 
-    val q = """
-              |MATCH (n:N1) WITH collect(n.p0) AS c0
-              |MATCH (n:N0)
-              |WHERE NOT any(v IN c0 WHERE n.p1 = v)
-              |RETURN *""".stripMargin
+    val q =
+      """
+        |MATCH (n:N1) WITH collect(n.p0) AS c0
+        |MATCH (n:N0)
+        |WHERE NOT any(v IN c0 WHERE n.p1 = v)
+        |RETURN *""".stripMargin
 
     val plan = planner.plan(q).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
@@ -2918,6 +2920,47 @@ class IndexPlanningIntegrationTest
     plan shouldEqual planner.subPlanBuilder()
       .filter("NOT a.prop IN $param", "a.otherProp IS NOT NULL")
       .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("should plan a composite index with a partial predicate as a part of a disjunction") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(10_000)
+      .setLabelCardinality("A", 1_500)
+      .setLabelCardinality("B", 7_500)
+      .addNodeIndex("A", Seq("prop1", "prop2"), 0.5, 0.01)
+      .addNodeIndex("A", Seq("prop2", "prop3"), 1.0, 0.01)
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A {prop2: "hello"})
+        |WHERE a.prop4 = "disjunction" OR a.prop3 = "test"
+        |WITH a
+        |MATCH (b:B)
+        |WHERE b.A_prop = a.prop1
+        |RETURN *;
+      """.stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    // The planner will inject a partial predicate a.prop1 IS NOT NULL to make use of the index.
+    // This predicate is anyway implied by b.A_prop = a.prop1.
+    // When the union is planned, the planner doesn't realize that a partial predicate was added to the disjunction.
+    // This results in a redundant filter being planned. This is probably cheaper than normalizing the disjunction and separating the partial predicates out.
+    plan shouldEqual planner.subPlanBuilder()
+      .valueHashJoin("cacheN[a.prop1] = b.A_prop")
+      .|.nodeByLabelScan("b", "B", IndexOrderNone)
+      .filter("cacheN[a.prop3]='test' OR cacheNFromStore[a.prop4] = 'disjunction'")
+      .distinct("a AS a")
+      .cacheProperties("cacheN[a.prop3]", "cacheN[a.prop4]")
+      .union()
+      .|.filter("cacheN[a.prop2] = 'hello'", "cacheNFromStore[a.prop4] = 'disjunction'")
+      .|.nodeIndexOperator("a:A(prop1, prop2)", getValue = Map("prop1" -> GetValue, "prop2" -> GetValue))
+      .nodeIndexOperator(
+        "a:A(prop2 = 'hello', prop3 = 'test')",
+        getValue = Map("prop2" -> GetValue, "prop3" -> GetValue),
+        supportPartitionedScan = false
+      )
       .build()
   }
 
