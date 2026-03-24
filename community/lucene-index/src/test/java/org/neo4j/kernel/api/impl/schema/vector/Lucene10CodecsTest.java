@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig.MergePolicyOption.LOG_BYTE_SIZED;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -70,8 +71,7 @@ public class Lucene10CodecsTest {
         var context = LuceneContext.LUCENE_10;
         var codec = context.codecsFactory().codecFor(config);
         var writerConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer()).setCodec(codec);
-        writerConfig.setMergingParameters(1.0, 10, 10, 10, 10);
-
+        writerConfig.setMergingParameters(1.0, 10, LOG_BYTE_SIZED, 10, 10, 10, 8.0, 10);
         var documentStructure = VectorDocumentStructures.documentStructureFor(VectorIndexVersion.V3_0);
         var documentFactory = context.documentsFactory();
         var directoryFactory = context.directoryFactory();
