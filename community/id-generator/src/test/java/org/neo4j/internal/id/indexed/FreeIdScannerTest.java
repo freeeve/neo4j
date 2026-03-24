@@ -40,7 +40,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiConsumer;
@@ -79,7 +78,7 @@ import org.neo4j.test.utils.TestDirectory;
 class FreeIdScannerTest {
     private static final int IDS_PER_ENTRY = 256;
     private static final IdCache.IdRangeConsumer EMPTY_ID_RANGE_CONSUMER = (id, size) -> {};
-    private static final IdRangeMerger MERGER = new IdRangeMerger(false, NO_MONITOR, null);
+    private static final IdRangeMerger MERGER = new IdRangeMerger(false, NO_MONITOR, null, true);
 
     @Inject
     PageCache pageCache;
@@ -94,7 +93,7 @@ class FreeIdScannerTest {
     private GBPTree<IdRangeKey, IdRange> tree;
 
     // instantiated in tests
-    private AtomicInteger freeIdsNotifier;
+    private FreeIdFindState freeIdFindState;
     private IdCache cache;
     private RecordingReservedMarkerProvider reuser;
     private RecordingMonitor recordingMonitor;
@@ -124,7 +123,7 @@ class FreeIdScannerTest {
         FreeIdScanner scanner = scanner(IDS_PER_ENTRY, 8, 1, true);
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
     }
 
     @Test
@@ -145,7 +144,7 @@ class FreeIdScannerTest {
         assertThat(cache.takeOrDefault(NO_ID)).isZero();
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isTrue();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isTrue();
     }
 
     @ParameterizedTest
@@ -452,7 +451,7 @@ class FreeIdScannerTest {
         FreeIdScanner scanner = scanner(IDS_PER_ENTRY, 32, currentGeneration, true);
         forEachId(oldGeneration, range(0, 8), range(64, 72)).accept(IdRangeMarker::markDeleted);
         // explicitly set to true because the usage pattern in this test is not quite
-        freeIdsNotifier.incrementAndGet();
+        freeIdFindState.notifySeenFreedId(Integer.MAX_VALUE);
 
         // when
         tryLoadFreeIdsIntoCache(scanner, false);
@@ -781,7 +780,7 @@ class FreeIdScannerTest {
             assertThat(cursorTracer.unpins()).isZero();
             assertThat(cursorTracer.hits()).isZero();
 
-            freeIdsNotifier.incrementAndGet();
+            freeIdFindState.notifySeenFreedId(Integer.MAX_VALUE);
             scanner.tryLoadFreeIdsIntoCache(false, false, 0, cursorContext);
 
             assertThat(cursorTracer.pins()).isOne();
@@ -847,7 +846,7 @@ class FreeIdScannerTest {
         scanner.queueSkippedHighId(id, size);
         // Here the id range will be marked as free, although it's not yet deleted. The bridging will take care of it
         // below when marking a higher one as used
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
 
         // when
         try (IdRangeMarker marker = marker(generation, true)) {
@@ -860,7 +859,7 @@ class FreeIdScannerTest {
             marker.markFree(0);
         }
 
-        assertThat(scanner.hasMoreFreeIds(false)).isTrue();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isTrue();
         scanner.tryLoadFreeIdsIntoCache(true, true, 0, NULL_CONTEXT);
 
         // then
@@ -881,8 +880,8 @@ class FreeIdScannerTest {
         scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
-        assertThat(scanner.hasMoreFreeIds(true)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(true, 1)).isFalse();
     }
 
     @Test
@@ -899,8 +898,8 @@ class FreeIdScannerTest {
         scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
-        assertThat(scanner.hasMoreFreeIds(true)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(true, 1)).isFalse();
     }
 
     @Test
@@ -915,8 +914,8 @@ class FreeIdScannerTest {
         scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
-        assertThat(scanner.hasMoreFreeIds(true)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(true, 1)).isFalse();
     }
 
     @Test
@@ -933,8 +932,8 @@ class FreeIdScannerTest {
         scanner.tryLoadFreeIdsIntoCache(true, false, 0, NULL_CONTEXT);
 
         // then
-        assertThat(scanner.hasMoreFreeIds(false)).isFalse();
-        assertThat(scanner.hasMoreFreeIds(true)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(false, 1)).isFalse();
+        assertThat(scanner.hasMoreFreeIds(true, 1)).isFalse();
     }
 
     /**
@@ -974,14 +973,14 @@ class FreeIdScannerTest {
     private FreeIdScanner scanner(int idsPerEntry, IdCache cache, long generation, boolean strict) {
         this.cache = cache;
         this.reuser = new RecordingReservedMarkerProvider(tree, generation, new AtomicLong());
-        this.freeIdsNotifier = new AtomicInteger();
+        this.freeIdFindState = new FreeIdFindState();
         this.recordingMonitor = new RecordingMonitor();
         return new FreeIdScanner(
                 idsPerEntry,
                 tree,
                 layout,
                 cache,
-                freeIdsNotifier,
+                freeIdFindState,
                 reuser,
                 generation,
                 strict,
@@ -1030,7 +1029,7 @@ class FreeIdScannerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                freeIdsNotifier,
+                freeIdFindState,
                 generation,
                 new AtomicLong(),
                 new AtomicLong(),
@@ -1114,7 +1113,7 @@ class FreeIdScannerTest {
                         null,
                         MERGER,
                         true,
-                        freeIdsNotifier,
+                        freeIdFindState,
                         generation,
                         highestWrittenId,
                         new AtomicLong(),
@@ -1193,7 +1192,7 @@ class FreeIdScannerTest {
         }
     }
 
-    private static class RecordingMonitor extends IndexedIdGenerator.Monitor.Adapter {
+    private static class RecordingMonitor implements IndexedIdGenerator.Monitor {
         private final ConcurrentHashMap<Integer, MutableLongList> cached = new ConcurrentHashMap<>();
 
         @Override

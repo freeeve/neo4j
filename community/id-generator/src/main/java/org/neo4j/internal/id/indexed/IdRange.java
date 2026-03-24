@@ -257,6 +257,10 @@ class IdRange {
         }
     }
 
+    int idsPerEntry() {
+        return idsPerEntry;
+    }
+
     private void verifyMerge(IdRangeKey key, IdRange other) {
         if (!isAddition(other.addition, BITSET_COMMIT)) {
             return;

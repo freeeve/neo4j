@@ -44,7 +44,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Stream;
@@ -62,7 +61,6 @@ import org.neo4j.index.internal.gbptree.GBPTreeBuilder;
 import org.neo4j.index.internal.gbptree.GBPTreeVisitor;
 import org.neo4j.index.internal.gbptree.Seeker;
 import org.neo4j.index.internal.gbptree.ValueHolder;
-import org.neo4j.index.internal.gbptree.ValueMerger;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.internal.id.IdValidator;
 import org.neo4j.internal.id.TestIdType;
@@ -77,7 +75,7 @@ import org.neo4j.test.utils.TestDirectory;
 @PageCacheExtension
 @RandomSupportExtension
 class IdRangeMarkerTest {
-    private static final IdRangeMerger MERGER = new IdRangeMerger(false, NO_MONITOR, null);
+    private static final IdRangeMerger MERGER = new IdRangeMerger(false, NO_MONITOR, null, true);
 
     @Inject
     PageCache pageCache;
@@ -109,7 +107,7 @@ class IdRangeMarkerTest {
     @Test
     void shouldCreateEntryOnFirstAddition() throws IOException {
         // given
-        ValueMerger merger = mock(ValueMerger.class);
+        IdRangeMerger merger = mock(IdRangeMerger.class);
 
         // when
         try (IdRangeMarker marker = instantiateMarker(mock(Lock.class), merger)) {
@@ -129,12 +127,12 @@ class IdRangeMarkerTest {
     @Test
     void shouldMergeAdditionIntoExistingEntry() throws IOException {
         // given
-        try (IdRangeMarker marker = instantiateMarker(mock(Lock.class), mock(ValueMerger.class))) {
+        try (IdRangeMarker marker = instantiateMarker(mock(Lock.class), mock(IdRangeMerger.class))) {
             marker.markDeleted(0);
         }
 
         // when
-        ValueMerger merger = realMergerMock();
+        var merger = realMergerMock();
         try (IdRangeMarker marker = instantiateMarker(mock(Lock.class), merger)) {
             marker.markDeleted(1);
         }
@@ -153,7 +151,7 @@ class IdRangeMarkerTest {
     @Test
     void shouldNotCreateEntryOnFirstRemoval() throws IOException {
         // when
-        ValueMerger merger = mock(ValueMerger.class);
+        var merger = mock(IdRangeMerger.class);
         try (IdRangeMarker marker = instantiateMarker(mock(Lock.class), merger)) {
             marker.markUsed(0);
         }
@@ -217,7 +215,7 @@ class IdRangeMarkerTest {
         Lock lock = mock(Lock.class);
 
         // when
-        try (IdRangeMarker marker = instantiateMarker(lock, mock(ValueMerger.class))) {
+        try (IdRangeMarker marker = instantiateMarker(lock, mock(IdRangeMerger.class))) {
             verifyNoMoreInteractions(lock);
         }
 
@@ -228,7 +226,7 @@ class IdRangeMarkerTest {
     @Test
     void shouldHandleCloseIfLockAbsent() throws IOException {
         // when
-        var idRangeMarker = instantiateMarker(null, mock(ValueMerger.class));
+        var idRangeMarker = instantiateMarker(null, mock(IdRangeMerger.class));
 
         // then
         assertDoesNotThrow(idRangeMarker::close);
@@ -244,9 +242,9 @@ class IdRangeMarkerTest {
                 layout,
                 writer,
                 mock(Lock.class),
-                mock(ValueMerger.class),
+                MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(-1),
                 new AtomicLong(),
@@ -275,7 +273,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(reservedId - 1),
                 new AtomicLong(reservedId),
@@ -309,7 +307,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(reservedId - 1),
                 new AtomicLong(reservedId),
@@ -338,7 +336,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(-1),
                 new AtomicLong(),
@@ -372,7 +370,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(highestWrittenId),
                 new AtomicLong(highestWrittenId + 1),
@@ -409,7 +407,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(highestWrittenId),
                 new AtomicLong(highestWrittenId + 1),
@@ -425,7 +423,7 @@ class IdRangeMarkerTest {
     @Test
     void shouldMarkDeletedAndFree() throws IOException {
         // given
-        var freeIdsNotifier = new AtomicInteger();
+        var freeIdFindState = new FreeIdFindState();
         try (var marker = new IdRangeMarker(
                 TestIdType.TEST,
                 idsPerEntry,
@@ -434,7 +432,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                freeIdsNotifier,
+                freeIdFindState,
                 1,
                 new AtomicLong(-1),
                 new AtomicLong(),
@@ -446,7 +444,7 @@ class IdRangeMarkerTest {
         }
 
         // then
-        assertThat(freeIdsNotifier.get()).isGreaterThan(0);
+        assertThat(freeIdFindState.snapshot().freeIdsNotification()).isGreaterThan(0);
         assertThat(gatherIds(IdRange.IdState.FREE)).isEqualTo(LongSets.immutable.of(5, 6, 7));
     }
 
@@ -464,7 +462,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 new AtomicLong(-1),
                 new AtomicLong(),
@@ -501,7 +499,7 @@ class IdRangeMarkerTest {
                 mock(Lock.class),
                 MERGER,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 highestWrittenId,
                 highId,
@@ -517,8 +515,8 @@ class IdRangeMarkerTest {
         assertThat(highId.longValue()).isEqualTo(12);
     }
 
-    private static ValueMerger realMergerMock() {
-        ValueMerger merger = mock(ValueMerger.class);
+    private static IdRangeMerger realMergerMock() {
+        IdRangeMerger merger = mock(IdRangeMerger.class);
         when(merger.merge(any(), any(), any(), any()))
                 .thenAnswer(invocation -> MERGER.merge(
                         invocation.getArgument(0),
@@ -528,7 +526,7 @@ class IdRangeMarkerTest {
         return merger;
     }
 
-    private IdRangeMarker instantiateMarker(Lock lock, ValueMerger merger) throws IOException {
+    private IdRangeMarker instantiateMarker(Lock lock, IdRangeMerger merger) throws IOException {
         return new IdRangeMarker(
                 TestIdType.TEST,
                 idsPerEntry,
@@ -537,7 +535,7 @@ class IdRangeMarkerTest {
                 lock,
                 merger,
                 true,
-                new AtomicInteger(),
+                new FreeIdFindState(),
                 1,
                 highestWritternId,
                 new AtomicLong(),
