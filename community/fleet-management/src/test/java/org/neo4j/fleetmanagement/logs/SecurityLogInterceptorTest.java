@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -44,12 +45,15 @@ class SecurityLogInterceptorTest {
     LogMonitor mockLogMonitor;
     SecurityLogInterceptor securityLogInterceptor;
     SecurityLogsService mockSecurityLogsService;
-    static Log mock = Mockito.mock(Log.class);
 
     ObjectMapper objectMapper = new ObjectMapper();
 
-    static {
-        Logger.initLogger(mock);
+    private static Log mockLog;
+
+    @BeforeAll
+    static void beforeAll() {
+        mockLog = Mockito.mock(Log.class);
+        Logger.initLogger(mockLog);
     }
 
     @BeforeEach
