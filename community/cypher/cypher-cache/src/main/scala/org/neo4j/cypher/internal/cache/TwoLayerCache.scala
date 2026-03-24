@@ -43,7 +43,7 @@ class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends 
     else secondary.getIfPresent(key)
   }
 
-  override def get(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V = {
+  override def get(key: K, mappingFunction: function.Function[? >: K, ? <: V]): V = {
     val p = primary.get(key, mappingFunction)
     if (p != null) {
       secondary.invalidate(key)
@@ -53,11 +53,11 @@ class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends 
     }
   }
 
-  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = throw unsupported
+  override def getAllPresent(keys: lang.Iterable[? <: K]): util.Map[K, V] = throw unsupported
 
   override def getAll(
-    keys: lang.Iterable[_ <: K],
-    mappingFunction: function.Function[_ >: util.Set[_ <: K], _ <: util.Map[_ <: K, _ <: V]]
+    keys: lang.Iterable[? <: K],
+    mappingFunction: function.Function[? >: util.Set[? <: K], ? <: util.Map[? <: K, ? <: V]]
   ): util.Map[K, V] = {
     throw unsupported
   }
@@ -67,14 +67,14 @@ class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends 
     primary.put(key, value)
   }
 
-  override def putAll(map: util.Map[_ <: K, _ <: V]): Unit = primary.putAll(map)
+  override def putAll(map: util.Map[? <: K, ? <: V]): Unit = primary.putAll(map)
 
   override def invalidate(key: K): Unit = {
     primary.invalidate(key)
     secondary.invalidate(key)
   }
 
-  override def invalidateAll(keys: lang.Iterable[_ <: K]): Unit = {
+  override def invalidateAll(keys: lang.Iterable[? <: K]): Unit = {
     primary.invalidateAll(keys)
     secondary.invalidateAll(keys)
   }
@@ -112,7 +112,7 @@ class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends 
       primary.asMap().replace(key, oldValue, newValue) || secondary.asMap().replace(key, oldValue, newValue)
     }
 
-    override def forEach(action: BiConsumer[_ >: K, _ >: V]): Unit = {
+    override def forEach(action: BiConsumer[? >: K, ? >: V]): Unit = {
       val primaryMap = primary.asMap()
       primaryMap.forEach(action)
       val secondaryMap = secondary.asMap()
@@ -137,13 +137,13 @@ class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends 
     // ===================
 
     override def remove(key: Any): V = throw unsupported
-    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
+    override def putAll(m: util.Map[? <: K, ? <: V]): Unit = throw unsupported
     override def clear(): Unit = throw unsupported
-    override def computeIfAbsent(key: K, f: function.Function[_ >: K, _ <: V]): V = throw unsupported
-    override def computeIfPresent(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
-    override def compute(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
-    override def merge(key: K, value: V, f: BiFunction[_ >: V, _ >: V, _ <: V]): V = throw unsupported
-    override def replaceAll(f: BiFunction[_ >: K, _ >: V, _ <: V]): Unit = throw unsupported
+    override def computeIfAbsent(key: K, f: function.Function[? >: K, ? <: V]): V = throw unsupported
+    override def computeIfPresent(key: K, f: BiFunction[? >: K, ? >: V, ? <: V]): V = throw unsupported
+    override def compute(key: K, f: BiFunction[? >: K, ? >: V, ? <: V]): V = throw unsupported
+    override def merge(key: K, value: V, f: BiFunction[? >: V, ? >: V, ? <: V]): V = throw unsupported
+    override def replaceAll(f: BiFunction[? >: K, ? >: V, ? <: V]): Unit = throw unsupported
     override def remove(key: Any, value: Any): Boolean = throw unsupported
     override def putIfAbsent(key: K, value: V): V = throw unsupported
     override def replace(key: K, value: V): V = throw unsupported

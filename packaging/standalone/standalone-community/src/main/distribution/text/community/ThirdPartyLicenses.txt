@@ -128,6 +128,7 @@ Apache Software License, Version 2.0
   rxjs
   Scala Reflect
   scala-collection-contrib
+  scala3-library-bootstrapped
   snappy-java
   Strategic Blue Parquet Floor
   tslib

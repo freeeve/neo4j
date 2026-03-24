@@ -23,7 +23,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import org.mockito.Mockito
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
 import java.util.Collections
 import java.util.concurrent.Executor
@@ -34,7 +34,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 
-class SharedCacheContainerTest extends CypherFunSuite {
+class SharedCacheContainerTest extends CypherFunSuite3 {
 
   case class TestData(
     cacheContainer0: SharedCacheContainer[String, String],
@@ -46,7 +46,7 @@ class SharedCacheContainerTest extends CypherFunSuite {
 
   private def mockCacheTracerRepository: CacheTracerRepository = {
     new CacheTracerRepository {
-      override def tracerForCacheKind(kind: String): CacheTracer[_] = mock[CacheTracer[String]]
+      override def tracerForCacheKind(kind: String): CacheTracer[?] = mock[CacheTracer[String]]
     }
   }
 

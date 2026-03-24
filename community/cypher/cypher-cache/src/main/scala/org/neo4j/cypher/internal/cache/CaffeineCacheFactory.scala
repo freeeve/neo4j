@@ -110,7 +110,7 @@ trait CaffeineCacheFactory extends CacheFactory {
 }
 
 trait CacheTracerRepository {
-  def tracerForCacheKind(kind: String): CacheTracer[_]
+  def tracerForCacheKind(kind: String): CacheTracer[?]
 }
 
 class ExecutorBasedCaffeineCacheFactory(override protected val executor: Executor) extends CaffeineCacheFactory {
@@ -138,7 +138,7 @@ final class SharedExecutorBasedCaffeineCacheFactory(
   val cacheTracerRepository: CacheTracerRepository
 ) extends CacheFactory { self =>
 
-  private[this] val backingCacheByKind = new scala.collection.concurrent.TrieMap[String, BackingCache[_, _]]()
+  private val backingCacheByKind = new scala.collection.concurrent.TrieMap[String, BackingCache[?, ?]]()
 
   override def resolveCacheKind(kind: String): SharedCacheFactoryForKind = new SharedCacheFactoryForKind(kind)
 
@@ -163,7 +163,7 @@ final class SharedExecutorBasedCaffeineCacheFactory(
   def invalidateAllEntries(kind: String): Unit = backingCacheByKind.get(kind).foreach(_.cache.invalidateAll())
 
   @VisibleForTesting
-  private[cache] def backingCache(kind: String): Option[BackingCache[_, _]] = backingCacheByKind.get(kind)
+  private[cache] def backingCache(kind: String): Option[BackingCache[?, ?]] = backingCacheByKind.get(kind)
 
   // Note, estimated size is less correct in this implementation when using ttl and soft cache.
   // See SharedCachePropertyTest.
@@ -204,7 +204,7 @@ final class SharedExecutorBasedCaffeineCacheFactory(
     ): BackingCache[K, V] = {
       val secondary = newBackingCache[K, V](CacheConf(executor, secondarySize, softValues = true))
       val primaryEviction = new TwoLayerCache.EvictionListener(secondary.cache) {
-        private[this] val listeners = secondary.listeners
+        private val listeners = secondary.listeners
         override def onPut(key: (Int, K), oldValue: V, value: V): Unit =
           if (oldValue == null) listeners.onPut(key._1)
       }
@@ -231,7 +231,7 @@ object SharedExecutorBasedCaffeineCacheFactory {
   private case class DbListeners[K, V](eviction: Option[RemovalListener[K, V]], removal: SizeEstimation)
 
   abstract private class DbListener[K, V](
-    private[this] val dbListeners: TrieMap[Int, DbListeners[K, V]]
+    private val dbListeners: TrieMap[Int, DbListeners[K, V]]
   ) extends RemovalListener[(Int, K), V] {
 
     final override def onRemoval(key: (Int, K), value: V, cause: RemovalCause): Unit = dbListeners.get(key._1) match {
@@ -243,7 +243,7 @@ object SharedExecutorBasedCaffeineCacheFactory {
   }
 
   final class InternalListeners[K, V](tracer: CacheTracer[K]) {
-    private[this] val dbListeners: TrieMap[Int, DbListeners[K, V]] = new scala.collection.concurrent.TrieMap()
+    private val dbListeners: TrieMap[Int, DbListeners[K, V]] = new scala.collection.concurrent.TrieMap()
 
     val evictionListener: RemovalListener[(Int, K), V] = new DbListener(dbListeners) {
       override def onRemoval(listeners: DbListeners[K, V], key: K, value: V, cause: RemovalCause): Unit = {
@@ -280,10 +280,10 @@ object SharedExecutorBasedCaffeineCacheFactory {
    * in dbmses with many databases and high cache size.
    */
   case class SizeEstimation() {
-    private[this] val sizeEstimate = new AtomicLong(0)
-    def onRemoval(): Unit = sizeEstimate.decrementAndGet()
-    def onPut(): Unit = sizeEstimate.incrementAndGet()
-    def sizeEstimate(): Long = math.max(0L, sizeEstimate.get())
+    private val sizeEstimateCounter = new AtomicLong(0)
+    def onRemoval(): Unit = sizeEstimateCounter.decrementAndGet()
+    def onPut(): Unit = sizeEstimateCounter.incrementAndGet()
+    def sizeEstimate(): Long = math.max(0L, sizeEstimateCounter.get())
   }
 }
 

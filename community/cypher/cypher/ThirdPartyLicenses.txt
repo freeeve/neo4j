@@ -46,6 +46,7 @@ Apache Software License, Version 2.0
   picocli
   Scala Reflect
   scala-collection-contrib
+  scala3-library-bootstrapped
   snappy-java
   Strategic Blue Parquet Floor
   WMI4Java

@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.cache
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class LFUCacheTest extends CypherFunSuite {
+class LFUCacheTest extends CypherFunSuite3 {
 
   test("testClear") {
     val cache = new LFUCache[String, String](TestExecutorCaffeineCacheFactory, 5)

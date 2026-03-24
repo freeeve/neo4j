@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.neo4j.cypher.internal.util.test_helpers
+
+import org.mockito.ArgumentCaptor
+import org.scalatest.Args
+import org.scalatest.Assertions
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Status
+import org.scalatest.Suite
+import org.scalatest.Tag
+import org.scalatest.funsuite.AnyFunSuiteLike
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
+
+abstract class CypherFunSuite3
+    extends Suite
+    with Assertions
+    with MockitoSugar
+    with AnyFunSuiteLike
+    with Matchers
+    with BeforeAndAfterEach
+    with CompareAsPrettyStrings3 {
+
+  object Tags {
+
+    /**
+     * Use this tag to exclude tests from running with overridden default query language.
+     * See the default-query-lang-cypher-25 maven profile.
+     */
+    val NoQueryLangOverride = Tag("exclude-default-query-lang-override")
+
+    /**
+     * Use this tag to exclude tests from running with SPD.
+     * See the test-spd maven profile.
+     */
+    val NoSpdOverride = Tag("exclude-spd-override")
+  }
+
+  def argCaptor[T <: AnyRef](implicit manifest: Manifest[T]): ArgumentCaptor[T] = {
+    ArgumentCaptor.forClass(manifest.runtimeClass.asInstanceOf[Class[T]])
+  }
+
+  protected def normalizeNewLines(string: String) = {
+    string.replace("\r\n", "\n")
+  }
+}
+
+trait TestName extends Suite {
+  final def testName: String = __testName.get
+
+  private var __testName: Option[String] = None
+
+  override protected def runTest(testName: String, args: Args): Status = {
+    __testName = Some(testName)
+    try {
+      super.runTest(testName, args)
+    } finally {
+      __testName = None
+    }
+  }
+}
+
+trait TestNameWithCaretPosition extends Suite {
+  final def testName: String = caretPosition.cleanInput
+  final def testPositions: Seq[InputPositionFromCaret] = caretPosition.positions
+
+  private def caretPosition: CaretPosition = {
+    if (__lastTestName == __testName) {
+      __lastCaretPosition.get
+    } else {
+      __lastTestName = __testName
+      __lastCaretPosition = Some(CaretPosition(__testName.get))
+      __lastCaretPosition.get
+    }
+  }
+
+  private var __lastCaretPosition: Option[CaretPosition] = None
+  private var __lastTestName: Option[String] = None
+  private var __testName: Option[String] = None
+
+  override protected def runTest(testName: String, args: Args): Status = {
+    __testName = Some(testName)
+    try {
+      super.runTest(testName, args)
+    } finally {
+      __testName = None
+    }
+  }
+}

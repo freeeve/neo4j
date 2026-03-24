@@ -157,6 +157,7 @@
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <scala.test.version>3.2.13</scala.test.version>
     <scala.version>2.13.17</scala.version>
+    <scala3.version>3.7.4</scala3.version>
     <shiro.version>2.1.0</shiro.version>
     <skip-scalastyle>false</skip-scalastyle>
     <slf4j.version>2.0.17</slf4j.version>
@@ -881,6 +882,11 @@
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
+        <artifactId>scala3-library_3</artifactId>
+        <version>${scala3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
         <artifactId>scalap</artifactId>
         <version>${scala.version}</version>
       </dependency>
@@ -979,13 +985,13 @@
       <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>fansi_${scala.binary.version}</artifactId>
-        <version>0.2.9</version>
+        <version>0.5.1</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>pprint_${scala.binary.version}</artifactId>
-        <version>0.6.0</version>
+        <version>0.9.6</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -1132,6 +1138,12 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>org.scalactic</groupId>
+        <artifactId>scalactic_3</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-compatible</artifactId>
         <version>${scala.test.version}</version>
@@ -1145,13 +1157,31 @@
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-core_3</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
         <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
         <version>${scala.test.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-funsuite_3</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
         <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-matchers-core_3</artifactId>
         <version>${scala.test.version}</version>
         <scope>test</scope>
       </dependency>
@@ -1168,8 +1198,27 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-shouldmatchers_3</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- scalatest_3 -->
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest_3</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.scalatestplus</groupId>
         <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatestplus</groupId>
+        <artifactId>mockito-4-6_3</artifactId>
         <version>${scala.test.version}.0</version>
         <scope>test</scope>
       </dependency>
@@ -1614,6 +1663,7 @@
               <arg>-Xlint:_,-missing-interpolator</arg>
               <arg>-target:jvm-${scala.target.vm}</arg>
               <arg>-nobootcp</arg>
+              <arg>-Ytasty-reader</arg>
               <!-- We need to be able to deprecate APIs and have some time for all teams to adapt. -->
               <arg>-Wconf:cat=deprecation:is</arg>
             </args>
@@ -1728,6 +1778,7 @@
                       <exclude>com.neo4j:neo4j-tools:*:*:compile</exclude>
                       <exclude>org.neo4j:*-test-util:*:*:compile</exclude>
                       <exclude>org.neo4j:*-test-utils:*:*:compile</exclude>
+                      <exclude>org.neo4j:*-test-util-scala3:*:*:compile</exclude>
                       <exclude>org.neo4j:neo4j-cypher-spec-suite-tools:*:*:compile</exclude>
                       <exclude>org.neo4j:neo4j-cypher-testing:*:*:compile</exclude>
                       <exclude>org.neo4j:neo4j-random-values:*:*:compile</exclude>

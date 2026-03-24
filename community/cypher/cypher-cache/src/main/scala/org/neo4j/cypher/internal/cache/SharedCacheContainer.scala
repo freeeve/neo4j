@@ -62,10 +62,10 @@ case class SharedCacheContainer[K, V <: AnyRef](
   cacheFactory: SharedExecutorBasedCaffeineCacheFactory,
   sizeEstimation: SizeEstimation
 ) extends Cache[K, V] with Closeable {
-  private[this] val innerAsMap = inner.asMap()
-  private[this] val mapRepresentation = new MapRepresentation
+  private val innerAsMap = inner.asMap()
+  private val mapRepresentation = new MapRepresentation
 
-  override def get(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V = {
+  override def get(key: K, mappingFunction: function.Function[? >: K, ? <: V]): V = {
     var hit = true
 
     val result = inner.get((id, key), _ => { hit = false; mappingFunction(key) })
@@ -114,13 +114,13 @@ case class SharedCacheContainer[K, V <: AnyRef](
   private def unsupported = new UnsupportedOperationException
 
   // These could very well be implemented using different approaches. However, we should know the use-case first before choosing an implementation.
-  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = throw unsupported
-  override def putAll(map: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
-  override def invalidateAll(keys: lang.Iterable[_ <: K]): Unit = throw unsupported
+  override def getAllPresent(keys: lang.Iterable[? <: K]): util.Map[K, V] = throw unsupported
+  override def putAll(map: util.Map[? <: K, ? <: V]): Unit = throw unsupported
+  override def invalidateAll(keys: lang.Iterable[? <: K]): Unit = throw unsupported
 
   override def getAll(
-    keys: lang.Iterable[_ <: K],
-    f: function.Function[_ >: util.Set[_ <: K], _ <: util.Map[_ <: K, _ <: V]]
+    keys: lang.Iterable[? <: K],
+    f: function.Function[? >: util.Set[? <: K], ? <: util.Map[? <: K, ? <: V]]
   ): util.Map[K, V] = throw unsupported
 
   final private class MapRepresentation extends ConcurrentMap[K, V] {
@@ -131,8 +131,8 @@ case class SharedCacheContainer[K, V <: AnyRef](
 
     override def values(): util.Collection[V] = new util.AbstractCollection[V] {
       override def iterator(): util.Iterator[V] = new util.Iterator[V] {
-        private[this] val entries = innerAsMap.entrySet().iterator()
-        private[this] var nextEntry: V = _
+        private val entries = innerAsMap.entrySet().iterator()
+        private var nextEntry: V = scala.compiletime.uninitialized
         override def hasNext: Boolean = {
           while (entries.hasNext && nextEntry == null) {
             val current = entries.next()
@@ -159,15 +159,15 @@ case class SharedCacheContainer[K, V <: AnyRef](
     override def get(key: Any): V = throw unsupported
     override def put(key: K, value: V): V = throw unsupported
     override def remove(key: Any): V = throw unsupported
-    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
+    override def putAll(m: util.Map[? <: K, ? <: V]): Unit = throw unsupported
     override def clear(): Unit = throw unsupported
     override def keySet(): util.Set[K] = throw unsupported
     override def entrySet(): util.Set[java.util.Map.Entry[K, V]] = throw unsupported
-    override def computeIfAbsent(key: K, f: function.Function[_ >: K, _ <: V]): V = throw unsupported
-    override def computeIfPresent(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
-    override def compute(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
-    override def merge(key: K, value: V, f: BiFunction[_ >: V, _ >: V, _ <: V]): V = throw unsupported
-    override def replaceAll(f: BiFunction[_ >: K, _ >: V, _ <: V]): Unit = throw unsupported
+    override def computeIfAbsent(key: K, f: function.Function[? >: K, ? <: V]): V = throw unsupported
+    override def computeIfPresent(key: K, f: BiFunction[? >: K, ? >: V, ? <: V]): V = throw unsupported
+    override def compute(key: K, f: BiFunction[? >: K, ? >: V, ? <: V]): V = throw unsupported
+    override def merge(key: K, value: V, f: BiFunction[? >: V, ? >: V, ? <: V]): V = throw unsupported
+    override def replaceAll(f: BiFunction[? >: K, ? >: V, ? <: V]): Unit = throw unsupported
     override def remove(key: Any, value: Any): Boolean = throw unsupported
     override def putIfAbsent(key: K, value: V): V = throw unsupported
     override def replace(key: K, value: V): V = throw unsupported
