@@ -75,6 +75,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.database.DatabaseStartupController;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
@@ -300,6 +301,7 @@ class TransactionLogsRecoveryTest {
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
                     RecoveryMode.FULL,
+                    new ChunkedTransactionTracker(),
                     false));
 
             life.start();
@@ -393,6 +395,7 @@ class TransactionLogsRecoveryTest {
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
                     RecoveryMode.FULL,
+                    new ChunkedTransactionTracker(),
                     false));
 
             life.start();
@@ -504,6 +507,7 @@ class TransactionLogsRecoveryTest {
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
                     RecoveryMode.FULL,
+                    new ChunkedTransactionTracker(),
                     false));
 
             life.start();
@@ -596,6 +600,7 @@ class TransactionLogsRecoveryTest {
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
                     RecoveryMode.FULL,
+                    new ChunkedTransactionTracker(),
                     false));
 
             assertThatThrownBy(life::start)
@@ -836,6 +841,7 @@ class TransactionLogsRecoveryTest {
                 Clocks.systemClock(),
                 LatestVersions.BINARY_VERSIONS,
                 RecoveryMode.FULL,
+                new ChunkedTransactionTracker(),
                 false);
 
         logsRecovery.init();
@@ -936,6 +942,7 @@ class TransactionLogsRecoveryTest {
                     Clocks.systemClock(),
                     LatestVersions.BINARY_VERSIONS,
                     RecoveryMode.FULL,
+                    new ChunkedTransactionTracker(),
                     false));
 
             life.start();

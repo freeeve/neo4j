@@ -70,6 +70,10 @@ class DatabaseKernelModule {
         return fileListing;
     }
 
+    public TransactionCommitProcess getTransactionCommitProcess() {
+        return transactionCommitProcess;
+    }
+
     public void satisfyDependencies(Dependencies dependencies) {
         dependencies.satisfyDependencies(transactionCommitProcess, kernel, kernelTransactions, fileListing);
     }

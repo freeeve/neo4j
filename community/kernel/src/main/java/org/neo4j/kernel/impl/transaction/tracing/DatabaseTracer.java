@@ -110,8 +110,13 @@ public interface DatabaseTracer extends TransactionTracer, CheckPointTracer, Log
         }
 
         @Override
-        public TransactionRollbackEvent beginAsyncRollback() {
+        public TransactionRollbackEvent beginAsyncTransactionRollback() {
             return TransactionRollbackEvent.NULL;
+        }
+
+        @Override
+        public DatabaseAsyncRollbackEvent beginAsyncDatabaseRollback() {
+            return DatabaseAsyncRollbackEvent.NULL;
         }
 
         @Override

@@ -25,6 +25,8 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_ter
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_transaction_database_max_size;
 import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction_end_timeout;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
+import static org.neo4j.kernel.api.exceptions.Status.Transaction.LeaseExpired;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.api.transaction.serial.DatabaseSerialGuard.EMPTY_GUARD;
 
 import java.util.Set;
@@ -421,6 +423,18 @@ public class KernelTransactions extends LifecycleAdapter
         // won't be reused, ever. Each transaction has, among other things, a Locks.Client and we
         // certainly want to keep that from being reused from this point.
         allTransactions.forEach(tx -> tx.markForTermination(Status.General.DatabaseUnavailable));
+    }
+
+    /**
+     * Terminate all transactions that are not associated with the provided current lease id.
+     */
+    public void terminateOldLeaseTransactions(long currentLeaseId) {
+        for (KernelTransactionImplementation tx : allTransactions) {
+            int txLeaseId = tx.leaseClient().leaseId();
+            if (txLeaseId != NO_LEASE && currentLeaseId != txLeaseId) {
+                tx.markForTermination(LeaseExpired);
+            }
+        }
     }
 
     @Override

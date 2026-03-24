@@ -42,6 +42,7 @@ import org.neo4j.internal.helpers.progress.Indicator;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -113,6 +114,7 @@ class RecoveryProgressIndicatorTest {
                 Clocks.systemClock(),
                 LatestVersions.BINARY_VERSIONS,
                 RecoveryMode.FULL,
+                new ChunkedTransactionTracker(),
                 false);
         recovery.init();
 

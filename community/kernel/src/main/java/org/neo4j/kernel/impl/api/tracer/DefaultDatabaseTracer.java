@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.CountingLogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
+import org.neo4j.kernel.impl.transaction.tracing.DatabaseAsyncRollbackEvent;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.impl.transaction.tracing.RollbackBatchEvent;
@@ -76,8 +77,13 @@ public class DefaultDatabaseTracer implements DatabaseTracer {
     }
 
     @Override
-    public TransactionRollbackEvent beginAsyncRollback() {
+    public TransactionRollbackEvent beginAsyncTransactionRollback() {
         return transactionRollbackEvent;
+    }
+
+    @Override
+    public DatabaseAsyncRollbackEvent beginAsyncDatabaseRollback() {
+        return DatabaseAsyncRollbackEvent.NULL;
     }
 
     @Override
@@ -247,7 +253,8 @@ public class DefaultDatabaseTracer implements DatabaseTracer {
         }
 
         @Override
-        public void chunkAppended(int chunkNumber, long transactionSequenceNumber, long transactionId) {
+        public void chunkAppended(
+                int chunkNumber, long transactionSequenceNumber, long transactionId, long appendIndex) {
             batchesAppended.increment();
         }
     }

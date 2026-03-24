@@ -45,8 +45,13 @@ public interface TransactionTracer {
         }
 
         @Override
-        public TransactionRollbackEvent beginAsyncRollback() {
+        public TransactionRollbackEvent beginAsyncTransactionRollback() {
             return TransactionRollbackEvent.NULL;
+        }
+
+        @Override
+        public DatabaseAsyncRollbackEvent beginAsyncDatabaseRollback() {
+            return DatabaseAsyncRollbackEvent.NULL;
         }
     };
 
@@ -71,5 +76,11 @@ public interface TransactionTracer {
      * Rollback event of transaction that is replicated in a cluster commit.
      * @return rollback event
      */
-    TransactionRollbackEvent beginAsyncRollback();
+    TransactionRollbackEvent beginAsyncTransactionRollback();
+
+    /**
+     * Rollback event of fired on the database startup to signal about transactions rollback on the instance that were interrupted by restart or by some clustering events.
+     * @return datbase rollback event
+     */
+    DatabaseAsyncRollbackEvent beginAsyncDatabaseRollback();
 }

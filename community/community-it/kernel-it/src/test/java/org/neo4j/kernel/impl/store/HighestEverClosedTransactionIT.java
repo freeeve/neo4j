@@ -32,6 +32,7 @@ import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogFileCreateEvent;
 import org.neo4j.kernel.impl.transaction.log.LogFileFlushEvent;
+import org.neo4j.kernel.impl.transaction.tracing.DatabaseAsyncRollbackEvent;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.impl.transaction.tracing.StoreApplyEvent;
@@ -249,7 +250,10 @@ public class HighestEverClosedTransactionIT {
 
                             @Override
                             public void chunkAppended(
-                                    int chunkNumber, long transactionSequenceNumber, long transactionId) {}
+                                    int chunkNumber,
+                                    long transactionSequenceNumber,
+                                    long transactionId,
+                                    long appendIndex) {}
                         };
                     }
 
@@ -283,8 +287,13 @@ public class HighestEverClosedTransactionIT {
             }
 
             @Override
-            public TransactionRollbackEvent beginAsyncRollback() {
+            public TransactionRollbackEvent beginAsyncTransactionRollback() {
                 return TransactionRollbackEvent.NULL;
+            }
+
+            @Override
+            public DatabaseAsyncRollbackEvent beginAsyncDatabaseRollback() {
+                return DatabaseAsyncRollbackEvent.NULL;
             }
 
             @Override

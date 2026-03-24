@@ -32,6 +32,7 @@ import static org.neo4j.kernel.recovery.Recovery.context;
 import static org.neo4j.kernel.recovery.Recovery.validateStoreId;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP_WORK;
+import static org.neo4j.scheduler.Group.STORAGE_MAINTENANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
@@ -99,6 +100,7 @@ import org.neo4j.kernel.diagnostics.providers.DbmsDiagnosticsManager;
 import org.neo4j.kernel.extension.DatabaseExtensions;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.kernel.extension.context.DatabaseExtensionContext;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
 import org.neo4j.kernel.impl.api.CommandCommitListeners;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
 import org.neo4j.kernel.impl.api.ExternalIdReuseConditionProvider;
@@ -272,6 +274,8 @@ public class Database extends AbstractDatabase {
     private TransactionCommitmentFactory commitmentFactory;
     private VersionStorage versionStorage;
     private LeaseMonitor leaseMonitor;
+    private ChunkedTransactionTracker chunkedTransactionTracker;
+    private MultiVersionDatabaseRollbackService multiVersionDatabaseRollbackService;
 
     public Database(DatabaseCreationContext context) {
         super(
@@ -342,6 +346,7 @@ public class Database extends AbstractDatabase {
         var storageLockManager = storageEngineFactory.createLockManager(databaseConfig, this.clock, transactionStats);
         this.databaseLockManager =
                 multiVersioned ? new MultiVersionLockManager(storageLockManager) : storageLockManager;
+        this.chunkedTransactionTracker = new ChunkedTransactionTracker();
         this.lockService = createLockService(storageEngineFactory, getNamedDatabaseId());
         this.databaseLayout = storageEngineFactory.formatSpecificDatabaseLayout(databaseLayout);
         new DatabaseDirectoriesCreator(fs, databaseLayout).createDirectories();
@@ -357,6 +362,7 @@ public class Database extends AbstractDatabase {
                 databaseLayout,
                 databaseConfig,
                 multiVersioned);
+
         databasePageCache = new DatabasePageCache(globalPageCache, ioController, versionStorage, databaseConfig);
         DatabaseIdContext databaseIdContext = idContextFactory.createIdContext(
                 namedDatabaseId, cursorContextFactory, databaseConfig, idGeneratorSettings, multiVersioned);
@@ -367,6 +373,7 @@ public class Database extends AbstractDatabase {
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
 
+        databaseDependencies.satisfyDependencies(chunkedTransactionTracker);
         databaseDependencies.satisfyDependency(databaseCreationOptions);
         databaseDependencies.satisfyDependency(ioController);
         databaseDependencies.satisfyDependency(transactionIdSequence);
@@ -460,6 +467,7 @@ public class Database extends AbstractDatabase {
                 .recoveryPredicate(RecoveryPredicate.ALL)
                 .monitors(databaseMonitors)
                 .extensionFactories(extensionFactories)
+                .rollbackRegistry(chunkedTransactionTracker)
                 .startupChecker(new RecoveryStartupChecker(startupController, namedDatabaseId))
                 .clock(clock))) {
             // recovery replayed logs and wrote some checkpoints as result we need to rescan log tail to get the
@@ -635,6 +643,18 @@ public class Database extends AbstractDatabase {
                 storageEngineFactory.multiVersioned());
 
         this.checkpointerLifecycle = new CheckpointerLifecycle(transactionLogModule.checkPointer(), databaseHealth);
+        this.multiVersionDatabaseRollbackService = new MultiVersionDatabaseRollbackService(
+                kernelModule.kernelTransactions(),
+                internalLog,
+                tracers,
+                databaseAvailabilityGuard,
+                leaseService,
+                chunkedTransactionTracker,
+                readOnlyDatabaseChecker,
+                databaseHealth,
+                kernelModule.getTransactionCommitProcess(),
+                clock);
+        databaseDependencies.satisfyDependency(multiVersionDatabaseRollbackService);
 
         life.add(onStop(() -> {
             this.executionEngine.clearQueryCaches();
@@ -1348,8 +1368,15 @@ public class Database extends AbstractDatabase {
         try (var cursorContext = cursorContextFactory.create(ID_CACHE_CLUSTER_CLEANUP_TAG)) {
             idGeneratorFactory.clearCache(iAmLeaseOwner, cursorContext);
         }
+
         if (iAmLeaseOwner) {
             leaseMonitor.newLeaseAcquired(leaseId);
+            if (!storageEngineFactory.multiVersioned()) {
+                return;
+            }
+            scheduler.schedule(
+                    STORAGE_MAINTENANCE,
+                    () -> multiVersionDatabaseRollbackService.postLeaseSwitchTransactionCleanup(leaseId));
         }
     }
 

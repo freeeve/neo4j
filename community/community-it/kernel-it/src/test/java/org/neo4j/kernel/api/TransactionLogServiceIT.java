@@ -1303,7 +1303,8 @@ class TransactionLogServiceIT {
             }
 
             @Override
-            public void chunkAppended(int chunkNumber, long transactionSequenceNumber, long transactionId) {}
+            public void chunkAppended(
+                    int chunkNumber, long transactionSequenceNumber, long transactionId, long appendIndex) {}
         }
 
         private static class InjectableBeforeApplyTransactionEvent implements TransactionEvent {

@@ -43,6 +43,8 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.Database;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
+import org.neo4j.kernel.impl.api.LeaseService;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -57,6 +59,7 @@ import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.kernel.recovery.TransactionIdTracker.PartialLastTransactionChunk;
 import org.neo4j.storageengine.AppendIndexProvider;
 
 /**
@@ -83,6 +86,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     private final Clock clock;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final RecoveryMode mode;
+    private final ChunkedTransactionTracker chunkedTransactionTracker;
     private final boolean parallelRecovery;
 
     private ProgressListener progressListener;
@@ -104,6 +108,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             Clock clock,
             BinarySupportedKernelVersions binarySupportedKernelVersions,
             RecoveryMode mode,
+            ChunkedTransactionTracker chunkedTransactionTracker,
             boolean parallelRecovery) {
         this.logFiles = logFiles;
         this.versionProvider = versionProvider;
@@ -121,6 +126,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         this.clock = clock;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.mode = mode;
+        this.chunkedTransactionTracker = chunkedTransactionTracker;
         this.parallelRecovery = parallelRecovery;
         this.progressListener = null;
     }
@@ -159,14 +165,11 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             if (rollbackIncompleteTransactions && recoveryPredicate.changingTheLogAllowed()) {
                 logsTruncator.truncate(
                         recoveryContextTracker.getRecoveryToPosition(), recoveryStartInformation.checkpointInfo());
-                var rollbackTransactionInfo = rollbackTransactions(
-                        recoveryContextTracker.getRecoveryToPosition(),
-                        transactionIdTracker,
-                        appendIndexProvider,
-                        monitor);
-                if (rollbackTransactionInfo != null) {
-                    recoveryContextTracker.rollbackBatch(rollbackTransactionInfo, rollbackTransactionInfo.position());
-                }
+            }
+            var rollbackTransactionInfo = rollbackTransactions(
+                    recoveryContextTracker.getRecoveryToPosition(), transactionIdTracker, appendIndexProvider, monitor);
+            if (rollbackTransactionInfo != null) {
+                recoveryContextTracker.rollbackBatch(rollbackTransactionInfo, rollbackTransactionInfo.position());
             }
             recoveryService.transactionsRecovered(
                     recoveryContextTracker.getLastHighestTransactionBatchInfo(),
@@ -354,37 +357,51 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         if (notCompletedTransactions.length == 0) {
             return null;
         }
-        KernelVersion kernelVersion = versionProvider.kernelVersion();
-        LogFile logFile = logFiles.getLogFile();
-        try (ChannelWithPartialLogRotationAbility channelAllocator = new ChannelWithPartialLogRotationAbility(
-                logFile, versionProvider, logFormatVersionProvider, logFile.rotationSize(), writePosition)) {
-            PhysicalFlushableLogPositionAwareChannel writerChannel = channelAllocator.getWriterChannel();
-            var entryWriter = new LogEntryWriter<>(writerChannel, binarySupportedKernelVersions);
-            long time = clock.millis();
-            CommittedCommandBatchRepresentation.BatchInformation lastBatchInfo = null;
-            for (int i = 0; i < notCompletedTransactions.length; i++) {
-                long notCompletedTransaction = notCompletedTransactions[i];
-                long appendIndex = appendIndexProvider.nextAppendIndex();
-                int checksum = entryWriter.writeRollbackEntry(
-                        kernelVersion,
-                        notCompletedTransaction,
-                        appendIndex,
-                        transactionTracker.lastNotCompletedTransactionChunk(notCompletedTransaction),
-                        time);
-                if (i == (notCompletedTransactions.length - 1)) {
-                    lastBatchInfo = new CommittedCommandBatchRepresentation.BatchInformation(
-                            notCompletedTransaction,
-                            kernelVersion,
-                            checksum,
-                            time,
-                            UNKNOWN_CONSENSUS_INDEX,
-                            appendIndex);
-                }
-                monitor.rollbackTransaction(notCompletedTransaction, appendIndex);
-            }
 
-            return new RollbackTransactionInfo(lastBatchInfo, writerChannel.getCurrentLogPosition());
+        KernelVersion kernelVersion = versionProvider.kernelVersion();
+        if (rollbackIncompleteTransactions) {
+            LogFile logFile = logFiles.getLogFile();
+            try (ChannelWithPartialLogRotationAbility channelAllocator = new ChannelWithPartialLogRotationAbility(
+                    logFile, versionProvider, logFormatVersionProvider, logFile.rotationSize(), writePosition)) {
+                PhysicalFlushableLogPositionAwareChannel writerChannel = channelAllocator.getWriterChannel();
+                var entryWriter = new LogEntryWriter<>(writerChannel, binarySupportedKernelVersions);
+                long time = clock.millis();
+                CommittedCommandBatchRepresentation.BatchInformation lastBatchInfo = null;
+                for (int i = 0; i < notCompletedTransactions.length; i++) {
+                    long notCompletedTransaction = notCompletedTransactions[i];
+                    long appendIndex = appendIndexProvider.nextAppendIndex();
+                    int checksum = entryWriter.writeRollbackEntry(
+                            kernelVersion,
+                            notCompletedTransaction,
+                            appendIndex,
+                            transactionTracker.lastNotCompletedTransactionChunk(notCompletedTransaction),
+                            time);
+                    if (i == (notCompletedTransactions.length - 1)) {
+                        lastBatchInfo = new CommittedCommandBatchRepresentation.BatchInformation(
+                                notCompletedTransaction,
+                                kernelVersion,
+                                checksum,
+                                time,
+                                UNKNOWN_CONSENSUS_INDEX,
+                                appendIndex);
+                    }
+                    monitor.rollbackTransaction(notCompletedTransaction, appendIndex);
+                }
+
+                return new RollbackTransactionInfo(lastBatchInfo, writerChannel.getCurrentLogPosition());
+            }
         }
+
+        var notCompletedTransactionChunks = transactionTracker.getPartialLastTransactionChunks();
+        for (PartialLastTransactionChunk partialLastTransactionChunk : notCompletedTransactionChunks) {
+            chunkedTransactionTracker.registerChunkedTransaction(
+                    partialLastTransactionChunk.transactionId(),
+                    partialLastTransactionChunk.appendIndex(),
+                    partialLastTransactionChunk.chunkId(),
+                    kernelVersion,
+                    LeaseService.NO_LEASE);
+        }
+        return null;
     }
 
     private static class ChannelWithPartialLogRotationAbility implements LogRotation, Closeable {
@@ -447,7 +464,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         }
 
         @Override
-        public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
+        public void rotateLogFile(LogRotateEvents logRotateEvents) {
             // rotation should only occur due to envelope file size limits
             throw new UnsupportedOperationException();
         }

@@ -64,11 +64,8 @@ public final class MultiVersionTransactionRollbackProcess implements Transaction
                                 chunksToRollback, rolledbackBatches, transactionIdToRollback));
                     }
                     CommittedCommandBatchRepresentation commandBatch = commandBatches.get();
-                    if (commandBatch.txId() != transactionIdToRollback) {
-                        throw new TransactionRollbackException(String.format(
-                                "Transaction rollback failed. Batch with transaction id %d encountered, while it was expected to belong to transaction id %d. Batch id: %s.",
-                                commandBatch.txId(), transactionIdToRollback, chunkId(commandBatch)));
-                    }
+                    validateBatch(commandBatch, transactionIdToRollback);
+
                     rollbackChunkedTransaction.init((ChunkedCommandBatch) commandBatch.commandBatch());
                     rollbackChunkedTransaction
                             .cursorContext()
@@ -85,6 +82,19 @@ public final class MultiVersionTransactionRollbackProcess implements Transaction
                         chunksToRollback, transactionIdToRollback, nextBatchToRollbackIndex));
             }
             rollbackDataEvent.batchedRolledBack(chunksToRollback, transactionIdToRollback);
+        }
+    }
+
+    private static void validateBatch(CommittedCommandBatchRepresentation commandBatch, long transactionIdToRollback) {
+        if (commandBatch.txId() != transactionIdToRollback) {
+            throw new TransactionRollbackException(String.format(
+                    "Transaction rollback failed. Batch with transaction id %d encountered, while it was expected to belong to transaction id %d. Batch id: %s.",
+                    commandBatch.txId(), transactionIdToRollback, chunkId(commandBatch)));
+        }
+        if (!(commandBatch.commandBatch() instanceof ChunkedCommandBatch)) {
+            throw new TransactionRollbackException(String.format(
+                    "Transaction rollback failed. Complete transaction with id %d encountered, while batch of chunked transaction was expected. Unexpected entry append index: %s.",
+                    commandBatch.txId(), commandBatch.appendIndex()));
         }
     }
 

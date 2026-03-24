@@ -91,6 +91,7 @@ import org.neo4j.kernel.extension.DatabaseExtensions;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.kernel.extension.ExtensionFailureStrategies;
 import org.neo4j.kernel.extension.context.DatabaseExtensionContext;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -336,6 +337,7 @@ public final class Recovery {
         private final IOController ioController;
         private RecoveryPredicate recoveryPredicate = RecoveryPredicate.ALL;
         private RecoveryMode mode = RecoveryMode.FULL;
+        private ChunkedTransactionTracker chunkedTransactionTracker = new ChunkedTransactionTracker();
         private long awaitIndexesOnlineMillis;
         private KernelVersionProvider emptyLogsFallbackKernelVersion;
         private boolean failOnCorruptedLogs;
@@ -442,6 +444,11 @@ public final class Recovery {
             return this;
         }
 
+        public Context rollbackRegistry(ChunkedTransactionTracker chunkedTransactionTracker) {
+            this.chunkedTransactionTracker = chunkedTransactionTracker;
+            return this;
+        }
+
         /**
          * Is decided by {@link GraphDatabaseInternalSettings#fail_on_corrupted_log_files} by default. This method forces recovery to fail on corrupted log files.
          * Is needed in some cluster components.
@@ -485,6 +492,7 @@ public final class Recovery {
                     context.clock,
                     context.ioController,
                     context.recoveryPredicate,
+                    context.chunkedTransactionTracker,
                     context.rollbackIncompleteTransactions,
                     context.awaitIndexesOnlineMillis,
                     context.emptyLogsFallbackKernelVersion,
@@ -522,6 +530,7 @@ public final class Recovery {
             Clock clock,
             IOController ioController,
             RecoveryPredicate recoveryPredicate,
+            ChunkedTransactionTracker chunkedTransactionTracker,
             boolean rollbackIncompleteTransactions,
             long awaitIndexesOnlineMillis,
             KernelVersionProvider emptyLogsFallbackKernelVersion,
@@ -775,6 +784,7 @@ public final class Recovery {
                 rollbackIncompleteTransactions,
                 cursorContextFactory,
                 mode,
+                chunkedTransactionTracker,
                 binarySupportedKernelVersions,
                 storageFilesState,
                 config);
@@ -946,6 +956,7 @@ public final class Recovery {
             boolean rollbackIncompleteTransactions,
             CursorContextFactory contextFactory,
             RecoveryMode mode,
+            ChunkedTransactionTracker chunkedTransactionTracker,
             BinarySupportedKernelVersions binarySupportedKernelVersions,
             StoreFileChecker storageFilesState,
             Config config) {
@@ -983,6 +994,7 @@ public final class Recovery {
                 clock,
                 binarySupportedKernelVersions,
                 mode,
+                chunkedTransactionTracker,
                 doParallelRecovery);
     }
 

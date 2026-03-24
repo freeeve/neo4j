@@ -49,6 +49,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.kernel.impl.api.ChunkedTransactionTracker;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
@@ -249,6 +250,7 @@ class PhysicalLogicalTransactionStoreTest {
                 Clock.systemUTC(),
                 LatestVersions.BINARY_VERSIONS,
                 RecoveryMode.FULL,
+                new ChunkedTransactionTracker(),
                 false));
 
         // WHEN

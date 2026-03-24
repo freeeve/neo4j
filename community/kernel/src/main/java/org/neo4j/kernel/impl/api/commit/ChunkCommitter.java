@@ -177,7 +177,10 @@ public final class ChunkCommitter implements TransactionCommitter {
                     validationLockDumper.dumpLocks(
                             lockClient, chunkNumber, transactionPayload.transactionId(), memoryTracker);
                     transactionWriteEvent.chunkAppended(
-                            chunkNumber, ktx.getTransactionSequenceNumber(), transactionPayload.transactionId());
+                            chunkNumber,
+                            ktx.getTransactionSequenceNumber(),
+                            transactionPayload.transactionId(),
+                            transactionPayload.lastBatchAppendIndex());
                 } catch (TransactionConflictException tce) {
                     dumpLocks(lockClient, memoryTracker);
                     throw tce;
