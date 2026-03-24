@@ -16,48 +16,9 @@
  */
 package org.neo4j.export.util;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.neo4j.cli.CommandTestUtils.withSuppressedOutput;
-import static wiremock.org.hamcrest.MatcherAssert.assertThat;
-
-import java.nio.file.Path;
-import org.neo4j.commandline.dbms.DumpCommand;
 import org.neo4j.internal.helpers.progress.ProgressListener;
-import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import wiremock.org.hamcrest.Matcher;
 
 public class ExportTestUtilities {
-
-    public static void createDump(Path homeDir, Path confDir, Path dump, FileSystemAbstraction fs, String dbName) {
-        withSuppressedOutput(homeDir, confDir, fs, ctx -> {
-            final var dumpCommand = new DumpCommand(ctx);
-            picocli.CommandLine.populateCommand(dumpCommand, "--to-path=" + dump, dbName);
-            assertThatCode(dumpCommand::execute).doesNotThrowAnyException();
-        });
-    }
-
-    public static void prepareDatabase(DatabaseLayout databaseLayout) {
-        new TestDatabaseManagementServiceBuilder(databaseLayout).build().shutdown();
-    }
-
-    public static void assertThrows(
-            Class<? extends Exception> exceptionClass, Matcher<String> message, ThrowingRunnable action) {
-        try {
-            action.run();
-            fail("Should have failed");
-        } catch (Exception e) {
-            assertTrue(exceptionClass.isInstance(e));
-            assertThat(e.getMessage(), message);
-        }
-    }
-
-    public interface ThrowingRunnable {
-        void run() throws Exception;
-    }
 
     public static class ControlledProgressListener extends ProgressListener.Adapter {
         public long progress;

@@ -76,6 +76,7 @@
     <module>neo4j-exceptions</module>
     <module>layout</module>
     <module>push-to-cloud</module>
+    <module>push-to-cloud-test</module>
     <module>fabric</module>
     <module>capabilities</module>
     <module>storage-engine-util</module>
