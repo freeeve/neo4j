@@ -108,9 +108,20 @@ abstract class Expression extends ASTNode {
     this.folder.treeFold(Expression.TreeAcc[Set[LogicalVariable]](Set.empty)) {
       case scope: ScopeExpression =>
         acc =>
-          val newDependencies = scope.dependencies.filterNot(acc.inScope)
-          val newAcc = acc.mapData(_ ++ newDependencies)
-          SkipChildren(newAcc)
+          scope match {
+
+            /**
+             * If there were semantic errors in previous checks,
+             * the 'computeDependenciesForExpressions rewriter' has not been run,
+             * meaning there are no scope dependencies available to check.
+             */
+            case expr: ExpressionWithComputedDependencies if expr.computedScopeDependencies.isEmpty =>
+              SkipChildren(acc)
+            case _ =>
+              val newDependencies = scope.dependencies.filterNot(acc.inScope)
+              val newAcc = acc.mapData(_ ++ newDependencies)
+              SkipChildren(newAcc)
+          }
       case id: LogicalVariable => acc => {
           val newAcc = if (acc.inScope(id)) acc else acc.mapData(_ + id)
           TraverseChildren(newAcc)

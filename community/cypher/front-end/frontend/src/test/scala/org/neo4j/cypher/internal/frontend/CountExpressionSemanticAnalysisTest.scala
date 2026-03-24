@@ -16,33 +16,17 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42I58
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
-import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N57
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
 
-class CountExpressionSemanticAnalysisTest
-    extends CypherFunSuite
-    with NameBasedSemanticAnalysisTestSuite {
+class CountExpressionSemanticAnalysisTest extends SubqueryExpressionSemanticAnalysisTest("Count", " > 1") {
 
-  test("""MATCH (a)
-         |RETURN COUNT { CREATE (b) } > 1
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N57("Count", 17, 2, 8),
-      "A Count Expression cannot contain any updates",
-      p(17, 2, 8)
-    )
-  }
-
-  test("""MATCH (m)
-         |WHERE COUNT { OPTIONAL MATCH (a)-[r]->(b) } > 1
-         |RETURN m
-         |""".stripMargin) {
+  test("RETURN  COUNT { MATCH (a) }") {
     run().hasNoErrors
   }
 
@@ -58,271 +42,9 @@ class CountExpressionSemanticAnalysisTest
     run().hasNoErrors
   }
 
-  test("""MATCH (m)
-         |WHERE COUNT { MATCH (a:A)-[r]->(b) USING SCAN a:A } > 1
-         |RETURN m
-         |""".stripMargin) {
-    run().hasNoErrors
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT { SET a.name = 1 } > 1
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N57("Count", 17, 2, 8),
-      "A Count Expression cannot contain any updates",
-      p(17, 2, 8)
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT { MATCH (b) WHERE b.a = a.a DETACH DELETE b } > 1
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N57("Count", 17, 2, 8),
-      "A Count Expression cannot contain any updates",
-      p(17, 2, 8)
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT { MATCH (b) MERGE (b)-[:FOLLOWS]->(:Person) } > 1
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N57("Count", 17, 2, 8),
-      "A Count Expression cannot contain any updates",
-      p(17, 2, 8)
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT { CALL db.labels() } > 1
-         |""".stripMargin) {
-    run().hasNoErrors
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT {
-         |   MATCH (a)-[:KNOWS]->(b)
-         |   RETURN b.name as name
-         |   UNION ALL
-         |   MATCH (a)-[:LOVES]->(b)
-         |   RETURN b.name as name
-         |}""".stripMargin) {
-    run().hasNoErrors
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT { MATCH (m)-[r]->(p), (a)-[r2]-(c) }
-         |""".stripMargin) {
-    run().hasNoErrors
-  }
-
   test("""MATCH (a)
          |RETURN COUNT { (a)-->(b) WHERE b.prop = 5  }
          |""".stripMargin) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MERGE p=(a)-[:T]->()
-      |WITH *
-      |WHERE COUNT { WITH p AS n } = 3
-      |RETURN 1
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MATCH p=(a)-[:T]->()
-      |WITH *
-      |WHERE COUNT { RETURN p } = 3
-      |RETURN 1
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MATCH p=(a)-[]-()
-      |WITH p
-      |WHERE COUNT { WITH a } = 3
-      |RETURN 1
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MATCH p=()-[]->()
-      |RETURN * ORDER BY COUNT {
-      |  WITH p
-      |  RETURN 1
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test("""WITH 5 as aNum
-         |MATCH (a)
-         |RETURN COUNT {
-         |  WITH 6 as aNum
-         |  MATCH (a)-->(b) WHERE b.prop = aNum
-         |  RETURN a
-         |}
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N07("aNum", 52, 4, 13),
-      "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(52, 4, 13)
-    )
-  }
-
-  test("""WITH 5 as aNum
-         |MATCH (a)
-         |RETURN COUNT {
-         |  MATCH (a)-->(b) WHERE b.prop = aNum
-         |  WITH 6 as aNum
-         |  MATCH (b)-->(c) WHERE c.prop = aNum
-         |  RETURN a
-         |}
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N07("aNum", 90, 5, 13),
-      "The variable `aNum` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(90, 5, 13)
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT {
-         |  MATCH (a)-->(b)
-         |  WITH b as a
-         |  MATCH (b)-->(c)
-         |  RETURN a
-         |}
-         |""".stripMargin) {
-    run().hasError(
-      getGql42001_42N07("a", 55, 4, 13),
-      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(55, 4, 13)
-    )
-  }
-
-  test(
-    """MATCH (a)
-      |RETURN COUNT {
-      |  MATCH (b)
-      |  RETURN b AS a
-      |  UNION
-      |  MATCH (a)
-      |  RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasAtLeastOneGqlErrorIn(_ =>
-      Seq(
-        // Semantic Analysis
-        (
-          getGql42001_42N07("a", 51, 4, 15),
-          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-          p(51, 4, 15)
-        ),
-        // Variable Checker
-        (
-          getGql42001_42N07("a", 39, 4, 3),
-          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-          p(39, 4, 3)
-        )
-      )
-    )
-  }
-
-  test(
-    """MATCH (a)
-      |RETURN COUNT {
-      |  MATCH (a)
-      |  RETURN a
-      |  UNION ALL
-      |  MATCH ()-->(a)
-      |  RETURN a
-      |  UNION ALL
-      |  MATCH (b)
-      |  RETURN b AS a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasAtLeastOneGqlErrorIn(_ =>
-      Seq(
-        // Semantic Analysis
-        (
-          getGql42001_42N07("a", 126, 10, 15),
-          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-          p(126, 10, 15)
-        ),
-        // Variable Checker
-        (
-          getGql42001_42N07("a", 114, 10, 3),
-          "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-          p(114, 10, 3)
-        )
-      )
-    )
-  }
-
-  test("""MATCH (a)
-         |RETURN COUNT {
-         |  MATCH (a)-->(b)
-         |  WITH b as c
-         |  MATCH (c)-->(d)
-         |  RETURN a
-         |}
-         |""".stripMargin) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MATCH (a)
-      |RETURN COUNT {
-      |  MATCH (a)
-      |  RETURN a
-      |  UNION
-      |  MATCH (a)
-      |  RETURN a
-      |  UNION
-      |  MATCH (a)
-      |  RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """MATCH (a)
-      |RETURN COUNT {
-      |  MATCH (a)
-      |  RETURN a
-      |  UNION ALL
-      |  MATCH (a)
-      |  RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test("""MATCH (person:Person)
-         |WHERE COUNT {
-         |    RETURN CASE
-         |       WHEN true THEN 1
-         |       ELSE 2
-         |    END
-         |} > 1
-         |RETURN person.name
-     """.stripMargin) {
     run().hasNoErrors
   }
 
@@ -464,87 +186,17 @@ class CountExpressionSemanticAnalysisTest
     )
   }
 
-  test(
-    """MATCH (n)
-      |RETURN COUNT {
-      |   CALL {
-      |     MATCH (n)
-      |     RETURN 1 AS a
-      |   }
-      |   RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """
-      |MATCH (n)
-      |RETURN COUNT {
-      |   CALL {
-      |     MATCH (n)
-      |     RETURN COUNT { CALL { MATCH (n) RETURN n AS a } RETURN a } AS a
-      |   }
-      |   RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """UNWIND [1, 2, 3] AS x
-      |CALL {
-      |    WITH x
-      |    RETURN x * 10 AS y
-      |}
-      |RETURN COUNT {
-      |   WITH 10 as x
-      |   MATCH (n) WHERE n.prop = x
-      |   RETURN n.prop
-      |}
-      |""".stripMargin
-  ) {
-    run().hasError(
-      getGql42001_42N07("x", 94, 7, 15),
-      "The variable `x` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(94, 7, 15)
-    )
-  }
-
-  test(
-    """WITH 1 AS x, 2 AS y
-      |RETURN COUNT {
-      |   CALL {
-      |     WITH y
-      |     WITH y, 3 AS x
-      |     MATCH (n) WHERE n.prop = x
-      |     RETURN 1 AS a
-      |   }
-      |   RETURN a
-      |}
-      |""".stripMargin
-  ) {
-    run().hasNoErrors
-  }
-
-  test(
-    """WITH 5 AS y
-      |RETURN COUNT {
-      |    UNWIND [0, 1, 2] AS x
-      |    CALL {
-      |        WITH x
-      |        RETURN x * 10 AS y
-      |    }
-      |    RETURN y
-      |}
-      |""".stripMargin
-  ) {
-    run().hasError(
-      getGql42001_42N07("y", 104, 6, 26),
-      "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      p(104, 6, 26)
+  test("should raise an error on cross reference in graph pattern with count expression") {
+    run(
+      """CREATE (a), (b {prop: COUNT { MATCH (n) WHERE n.prop = a.prop } })
+        |RETURN a""".stripMargin,
+      disabledVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(
+      SemanticError(
+        getGql42001_42I58("a", 55, 1, 56),
+        "Creating an entity (a) and referencing that entity in a property definition in the same CREATE is not allowed. Only reference variables created in earlier clauses.",
+        p(55, 1, 56)
+      )
     )
   }
 }
