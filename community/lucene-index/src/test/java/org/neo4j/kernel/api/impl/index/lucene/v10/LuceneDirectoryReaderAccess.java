@@ -17,19 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v10;
 
-import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodec;
-import org.neo4j.kernel.api.impl.index.lucene.codec.LuceneCodecsFactory;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.StandardDirectoryReader;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 
-public class Lucene10CodecsFactory implements LuceneCodecsFactory {
-    public static final LuceneCodecsFactory INSTANCE = new Lucene10CodecsFactory();
-
-    @Override
-    public LuceneCodec codecFor(VectorIndexConfig config) {
-        return config.quantizationEnabled()
-                ? new Neo4j202604ScalarVectorCodec(config)
-                : new Neo4j202604NoneVectorCodec(config);
+public class LuceneDirectoryReaderAccess {
+    public static SegmentInfos getSegmentInfos(LuceneDirectoryReader reader) {
+        if (reader instanceof Lucene10DirectoryReader lucene10Reader) {
+            if (lucene10Reader.reader instanceof StandardDirectoryReader directoryReader) {
+                return directoryReader.getSegmentInfos();
+            }
+        }
+        throw new IllegalArgumentException("Can only read segment infos for Lucene 10 StandardDirectoryReader");
     }
 }

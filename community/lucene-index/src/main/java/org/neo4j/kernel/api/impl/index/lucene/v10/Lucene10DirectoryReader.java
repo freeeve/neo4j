@@ -31,7 +31,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
 public class Lucene10DirectoryReader implements LuceneDirectoryReader {
     private static final SearcherFactory SEARCHER_FACTORY = new SearcherFactory();
 
-    private final DirectoryReader reader;
+    final DirectoryReader reader;
 
     public Lucene10DirectoryReader(DirectoryReader reader) {
         this.reader = reader;

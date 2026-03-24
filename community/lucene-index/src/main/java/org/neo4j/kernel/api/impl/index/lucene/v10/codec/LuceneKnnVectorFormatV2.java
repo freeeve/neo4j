@@ -33,11 +33,12 @@ public class LuceneKnnVectorFormatV2 extends KnnVectorsFormat {
     private final KnnVectorsFormat vectorsFormat;
     private final int maxDimensions;
 
-    // This constructor is only needed for Lucene Service Loader
+    /// Used by Lucene Service Loader when reading segments, will load actual values from disk
     public LuceneKnnVectorFormatV2() {
         this(Integer.MAX_VALUE, HnswConfig.DUMMY);
     }
 
+    /// Used for writing and created programmatically when creating the IndexWriter
     public LuceneKnnVectorFormatV2(int maxDimensions, HnswConfig hnswConfig) {
         super(FORMAT_NAME);
         this.maxDimensions = maxDimensions;

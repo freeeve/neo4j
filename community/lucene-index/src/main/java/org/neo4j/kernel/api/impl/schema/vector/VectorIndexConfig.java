@@ -71,6 +71,10 @@ public class VectorIndexConfig extends TypedIndexConfig {
         return dimensions;
     }
 
+    public int maxDimensions() {
+        return dimensions.orElseGet(version::maxDimensions);
+    }
+
     public VectorSimilarityFunction similarityFunction() {
         return similarityFunction;
     }

@@ -48,9 +48,8 @@ public class LuceneDirectoryTest {
     void shouldLogMergesWhenScheduled(LuceneContext luceneContext) throws IOException, InterruptedException {
         var logProvider = new AssertableLogProvider();
 
-        try (var directoryFactory = luceneContext.directoryFactory();
-                var directory = directoryFactory.inMemoryDirectory()) {
-
+        var directoryFactory = luceneContext.directoryFactory();
+        try (var directory = directoryFactory.inMemoryDirectory()) {
             runTest(logProvider, luceneContext, directory, iw -> iw.forceMerge(1));
         }
 
@@ -69,8 +68,8 @@ public class LuceneDirectoryTest {
     void shouldLogMergeErrors(LuceneContext luceneContext) throws IOException, InterruptedException {
         var logProvider = new AssertableLogProvider();
 
-        try (var directoryFactory = luceneContext.directoryFactory();
-                var directory = directoryFactory.openPersistent(tmpDir)) {
+        var directoryFactory = luceneContext.directoryFactory();
+        try (var directory = directoryFactory.openPersistent(tmpDir)) {
 
             assertThatThrownBy(() -> runTest(logProvider, luceneContext, directory, iw -> {
                         // remove some index files so that merging will fail

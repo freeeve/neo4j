@@ -54,11 +54,6 @@ public class Lucene9DirectoryFactory implements LuceneDirectoryFactory {
     }
 
     @Override
-    public void close() throws IOException {
-        // Nothing to close
-    }
-
-    @Override
     public DirectoryFactory newInMemoryDirectoryFactory() {
         return newInMemoryDirectoryFactory(null);
     }

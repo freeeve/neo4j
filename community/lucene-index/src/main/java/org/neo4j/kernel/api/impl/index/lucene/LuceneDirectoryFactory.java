@@ -19,14 +19,13 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.util.FeatureToggles;
 
-public interface LuceneDirectoryFactory extends Closeable {
+public interface LuceneDirectoryFactory {
     int MAX_MERGE_SIZE_MB = FeatureToggles.getInteger(DirectoryFactory.class, "max_merge_size_mb", 5);
     int MAX_CACHED_MB = FeatureToggles.getInteger(DirectoryFactory.class, "max_cached_mb", 50);
     boolean USE_DEFAULT_DIRECTORY_FACTORY =

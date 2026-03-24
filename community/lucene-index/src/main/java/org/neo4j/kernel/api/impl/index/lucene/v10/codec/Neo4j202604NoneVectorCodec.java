@@ -19,21 +19,26 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
 
-import org.apache.lucene.backward_codecs.lucene103.Lucene103Codec;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.FilterCodec;
 import org.apache.lucene.codecs.KnnVectorsFormat;
+import org.apache.lucene.codecs.lucene104.Lucene104Codec;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
 
-/// Compatibility codec that is being loaded from existing vector-3.0 indexes
-public class VectorCodecV3 extends FilterCodec implements Lucene10Codec {
-    private static final String CODEC_NAME = "VectorCodecV3";
+public class Neo4j202604NoneVectorCodec extends FilterCodec implements Lucene10Codec {
+    private static final String CODEC_NAME = "Neo4j202604NoneVectorCodec";
     private final KnnVectorsFormat vectorFormat;
 
-    /// Used by Lucene Service Loader for reading from segments
-    /// Do not use this codec for writing
-    public VectorCodecV3() {
-        super(CODEC_NAME, new Lucene103Codec());
-        this.vectorFormat = new CompatibilityKnnVectorFormatV3();
+    /// Used by Lucene Service Loader when reading segments, will load actual values from disk
+    public Neo4j202604NoneVectorCodec() {
+        this(VectorIndexConfig.EMPTY);
+    }
+
+    /// Used for writing and created programmatically when creating the IndexWriter
+    public Neo4j202604NoneVectorCodec(VectorIndexConfig config) {
+        super(CODEC_NAME, new Lucene104Codec());
+        final int maxDimensions = config.maxDimensions();
+        this.vectorFormat = new LuceneKnnVectorFormatV2(maxDimensions, config.hnsw());
     }
 
     @Override
