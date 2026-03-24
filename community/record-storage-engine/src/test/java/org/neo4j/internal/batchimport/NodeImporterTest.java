@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.batchimport;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -62,8 +61,10 @@ import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.EagerValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.token.api.TokenHolder;
@@ -71,6 +72,7 @@ import org.neo4j.values.storable.Values;
 
 @PageCacheExtension
 @Neo4jLayoutExtension
+@RandomSupportExtension
 class NodeImporterTest {
     @Inject
     private PageCache pageCache;
@@ -80,6 +82,9 @@ class NodeImporterTest {
 
     @Inject
     private RecordDatabaseLayout layout;
+
+    @Inject
+    private RandomSupport random;
 
     private ThreadPoolJobScheduler jobScheduler;
     private BatchingNeoStores stores;
@@ -167,9 +172,9 @@ class NodeImporterTest {
                 labels[i] = "Label" + i;
             }
             importer.labels(labels);
-            importer.property("a", randomAscii(10), false);
-            importer.property("b", randomAscii(100), false);
-            importer.property("c", randomAscii(1000), false);
+            importer.property("a", random.nextAsciiStringOfLength(10), false);
+            importer.property("b", random.nextAsciiStringOfLength(100), false);
+            importer.property("c", random.nextAsciiStringOfLength(1000), false);
             importer.endOfEntity();
         }
 

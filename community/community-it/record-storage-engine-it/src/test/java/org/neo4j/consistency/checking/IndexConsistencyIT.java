@@ -198,7 +198,7 @@ class IndexConsistencyIT {
     }
 
     private void randomNodeModifications(Transaction tx, int numberOfModifications) {
-        List<Pair<Long, Label[]>> existingNodes = new ArrayList<>();
+        List<Pair<String, Label[]>> existingNodes = new ArrayList<>();
         for (int i = 0; i < numberOfModifications; i++) {
             double selectModification = random.nextDouble();
             if (existingNodes.size() < ENTITY_COUNT_BASELINE || selectModification >= DELETE_RATIO + UPDATE_RATIO) {
@@ -212,7 +212,7 @@ class IndexConsistencyIT {
     }
 
     private void randomRelationshipModifications(Transaction tx, int numberOfModifications) {
-        List<Long> existingRelationships = new ArrayList<>();
+        List<String> existingRelationships = new ArrayList<>();
         for (int i = 0; i < numberOfModifications; i++) {
             double selectModification = random.nextDouble();
             if (existingRelationships.size() < ENTITY_COUNT_BASELINE
@@ -226,10 +226,10 @@ class IndexConsistencyIT {
         }
     }
 
-    private void createNewNode(Transaction transaction, List<Pair<Long, Label[]>> existingNodes) {
+    private void createNewNode(Transaction transaction, List<Pair<String, Label[]>> existingNodes) {
         Label[] labels = randomLabels();
         Node node = createNewNode(transaction, labels);
-        existingNodes.add(Pair.of(node.getId(), labels));
+        existingNodes.add(Pair.of(node.getElementId(), labels));
     }
 
     private Node createNewNode(Transaction tx, Label[] labels) {
@@ -247,19 +247,19 @@ class IndexConsistencyIT {
         }
     }
 
-    private void createNewRelationship(Transaction transaction, List<Long> existingRelationships) {
+    private void createNewRelationship(Transaction transaction, List<String> existingRelationships) {
         Node node = transaction.createNode();
         existingRelationships.add(set(
                         node.createRelationshipTo(node, random.among(TYPES)),
                         property(random.among(PROPERTY_KEYS), random.nextInt()))
-                .getId());
+                .getElementId());
     }
 
-    private void modifyLabelsOnExistingNode(Transaction transaction, List<Pair<Long, Label[]>> existingNodes) {
+    private void modifyLabelsOnExistingNode(Transaction transaction, List<Pair<String, Label[]>> existingNodes) {
         int targetIndex = random.nextInt(existingNodes.size());
-        Pair<Long, Label[]> existingPair = existingNodes.get(targetIndex);
-        long nodeId = existingPair.first();
-        Node node = transaction.getNodeById(nodeId);
+        Pair<String, Label[]> existingPair = existingNodes.get(targetIndex);
+        String nodeId = existingPair.first();
+        Node node = transaction.getNodeByElementId(nodeId);
         node.getLabels().forEach(node::removeLabel);
         Label[] newLabels = randomLabels();
         for (Label label : newLabels) {
@@ -269,10 +269,10 @@ class IndexConsistencyIT {
         existingNodes.add(Pair.of(nodeId, newLabels));
     }
 
-    private void modifyPropertiesOnExistingRelationship(Transaction transaction, List<Long> existingRelationships) {
+    private void modifyPropertiesOnExistingRelationship(Transaction transaction, List<String> existingRelationships) {
         int targetIndex = random.nextInt(existingRelationships.size());
-        long relId = existingRelationships.get(targetIndex);
-        Relationship relationship = transaction.getRelationshipById(relId);
+        String relId = existingRelationships.get(targetIndex);
+        Relationship relationship = transaction.getRelationshipByElementId(relId);
         relationship.getPropertyKeys().forEach(relationship::removeProperty);
         String[] properties = random.selection(PROPERTY_KEYS, 0, PROPERTY_KEYS.length, false);
         for (String property : properties) {
@@ -280,17 +280,17 @@ class IndexConsistencyIT {
         }
     }
 
-    private void deleteExistingNode(Transaction transaction, List<Pair<Long, Label[]>> existingNodes) {
+    private void deleteExistingNode(Transaction transaction, List<Pair<String, Label[]>> existingNodes) {
         int targetIndex = random.nextInt(existingNodes.size());
-        Pair<Long, Label[]> existingPair = existingNodes.get(targetIndex);
-        Node node = transaction.getNodeById(existingPair.first());
+        Pair<String, Label[]> existingPair = existingNodes.get(targetIndex);
+        Node node = transaction.getNodeByElementId(existingPair.first());
         node.delete();
         existingNodes.remove(targetIndex);
     }
 
-    private void deleteExistingRelationship(Transaction transaction, List<Long> existingRelationship) {
+    private void deleteExistingRelationship(Transaction transaction, List<String> existingRelationship) {
         int targetIndex = random.nextInt(existingRelationship.size());
-        Relationship relationship = transaction.getRelationshipById(existingRelationship.get(targetIndex));
+        Relationship relationship = transaction.getRelationshipByElementId(existingRelationship.get(targetIndex));
         relationship.delete();
         existingRelationship.remove(targetIndex);
     }

@@ -37,7 +37,7 @@ public class TextIndexStringLengthIndexValidationIT extends StringLengthIndexVal
 
     @Override
     protected String getString(RandomSupport random, int keySize) {
-        return random.nextAlphaNumericString(keySize, keySize);
+        return random.nextAlphaNumericString(keySize);
     }
 
     @Override

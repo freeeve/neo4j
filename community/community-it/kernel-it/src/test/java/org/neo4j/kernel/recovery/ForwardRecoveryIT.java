@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.recovery;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -254,7 +254,7 @@ class ForwardRecoveryIT {
                 Node node1 = transaction.createNode();
                 Node node2 = transaction.createNode();
                 node1.createRelationshipTo(node2, withName("Type" + i));
-                node2.setProperty("a", randomAlphanumeric(5));
+                node2.setProperty("a", secure().nextAlphanumeric(5));
                 transaction.commit();
             }
         }

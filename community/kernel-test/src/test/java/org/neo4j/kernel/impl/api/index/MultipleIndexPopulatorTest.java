@@ -515,7 +515,7 @@ class MultipleIndexPopulatorTest {
         // given
         createIndexPopulator();
         multipleIndexPopulator.create(NULL_CONTEXT);
-        String largeString = random.nextAlphaNumericString(100_000, 100_000);
+        String largeString = random.nextAlphaNumericString(100_000);
         int roughlyNumUpdates = (int) (multipleIndexPopulator.batchMaxByteSizeScan / HeapEstimator.sizeOf(largeString));
         Value largeStringValue = Values.stringValue(largeString);
         IndexDescriptor indexDescriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))

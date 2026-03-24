@@ -36,7 +36,7 @@ public class TrigramIndexStringLengthIndexValidationIT extends StringLengthIndex
 
     @Override
     protected String getString(RandomSupport random, int keySize) {
-        return random.nextAlphaNumericString(keySize, keySize);
+        return random.nextAlphaNumericString(keySize);
     }
 
     @Override

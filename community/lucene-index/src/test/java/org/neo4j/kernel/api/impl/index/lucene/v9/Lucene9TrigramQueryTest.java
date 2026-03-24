@@ -42,7 +42,7 @@ class Lucene9TrigramQueryTest {
         var size = LuceneIndexValueValidator.MAX_TERM_LENGTH;
 
         // When
-        var query = new Lucene9QueryContext().trigramSearch(random.nextAlphaNumericString(size, size));
+        var query = new Lucene9QueryContext().trigramSearch(random.nextAlphaNumericString(size));
 
         // Then
         var terms = new HashSet<Term>();

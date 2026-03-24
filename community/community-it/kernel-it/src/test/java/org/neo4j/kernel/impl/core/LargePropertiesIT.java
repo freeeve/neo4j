@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
@@ -31,19 +30,25 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralFileSystemExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @ExtendWith(EphemeralFileSystemExtension.class)
+@RandomSupportExtension
 class LargePropertiesIT {
     @Inject
     private EphemeralFileSystemAbstraction fs;
 
+    @Inject
+    private RandomSupport random;
+
     @Test
     void readArrayAndStringPropertiesWithDifferentBlockSizes() {
-        String stringValue = RandomStringUtils.randomAlphanumeric(10000);
-        byte[] arrayValue = RandomStringUtils.randomAlphanumeric(10000).getBytes();
+        String stringValue = random.nextAlphaNumericString(10000);
+        byte[] arrayValue = random.nextAlphaNumericString(10000).getBytes();
 
         try (var managementService = new TestDatabaseManagementServiceBuilder()
                 .setFileSystem(fs)
@@ -51,17 +56,17 @@ class LargePropertiesIT {
                 .setConfig(GraphDatabaseInternalSettings.array_block_size, 2048)
                 .build()) {
             GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
-            long nodeId;
+            String nodeId;
             try (Transaction tx = db.beginTx()) {
                 Node node = tx.createNode();
-                nodeId = node.getId();
+                nodeId = node.getElementId();
                 node.setProperty("string", stringValue);
                 node.setProperty("array", arrayValue);
                 tx.commit();
             }
 
             try (Transaction tx = db.beginTx()) {
-                Node node = tx.getNodeById(nodeId);
+                Node node = tx.getNodeByElementId(nodeId);
                 assertEquals(stringValue, node.getProperty("string"));
                 assertArrayEquals(arrayValue, (byte[]) node.getProperty("array"));
                 tx.commit();

@@ -3061,7 +3061,7 @@ class CsvInputTest {
             while (bytesWritten.longValue() < roughSize) {
                 writer.println(format(
                         "%s,%s,%d",
-                        random.nextAlphaNumericString(6, 6), random.nextAlphaNumericString(5, 20), random.nextInt()));
+                        random.nextAlphaNumericString(6), random.nextAlphaNumericString(5, 20), random.nextInt()));
             }
         }
         return file;

@@ -22,7 +22,6 @@ package org.neo4j.kernel.api;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofDays;
 import static java.util.OptionalLong.empty;
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -111,15 +110,18 @@ import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.OtherThreadExecutor;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.BinaryLatch;
 
 @DbmsExtension(configurationCallback = "configure")
+@RandomSupportExtension
 class TransactionLogServiceIT {
     private static final long THRESHOLD = kibiBytes(256);
 
@@ -150,6 +152,9 @@ class TransactionLogServiceIT {
     @Inject
     private DatabaseAvailabilityGuard availabilityGuard;
 
+    @Inject
+    private RandomSupport random;
+
     @ExtensionCallback
     void configure(TestDatabaseManagementServiceBuilder builder) {
 
@@ -165,7 +170,7 @@ class TransactionLogServiceIT {
 
     @Test
     void rotationDuringTransactionLogReadingKeepNonAffectedChannelsOpen() throws IOException {
-        var propertyValue = randomAscii((int) THRESHOLD);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD);
 
         // execute test transaction to create any tokens to avoid tx ids tricks
         createNodeInIsolatedTransaction("any");
@@ -201,7 +206,7 @@ class TransactionLogServiceIT {
 
     @Test
     void rotationDuringTransactionLogReading() throws IOException {
-        var propertyValue = randomAscii((int) THRESHOLD);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD);
 
         int numberOfTransactions = 30;
         for (int i = 0; i < numberOfTransactions; i++) {
@@ -247,7 +252,7 @@ class TransactionLogServiceIT {
 
     @Test
     void closingReadersDoesAutomaticCleanup() throws Exception {
-        var propertyValue = randomAscii((int) THRESHOLD);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD);
 
         int numberOfTransactions = 30;
         for (int i = 0; i < numberOfTransactions; i++) {
@@ -333,7 +338,8 @@ class TransactionLogServiceIT {
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
         int appendIterations = 100;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 logService.append(
@@ -363,7 +369,8 @@ class TransactionLogServiceIT {
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
         int appendIterations = 100;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 logService.append(
@@ -393,7 +400,8 @@ class TransactionLogServiceIT {
 
         int appendIterations = 100;
         int indexShift = 10;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 logService.append(
@@ -428,7 +436,7 @@ class TransactionLogServiceIT {
 
         int dataSize = DEFAULT_LOG_SEGMENT_SIZE / 2;
         var appendData = ByteBuffers.allocateDirect(dataSize, ByteOrder.LITTLE_ENDIAN, INSTANCE)
-                .put(randomAscii(dataSize).getBytes(UTF_8))
+                .put(random.nextAsciiStringOfLength(dataSize).getBytes(UTF_8))
                 .rewind();
         try {
             logService.append(
@@ -474,7 +482,7 @@ class TransactionLogServiceIT {
 
         int dataSize = DEFAULT_LOG_SEGMENT_SIZE / 2;
         var appendData = ByteBuffers.allocateDirect(dataSize, ByteOrder.LITTLE_ENDIAN, INSTANCE)
-                .put(randomAscii(dataSize).getBytes(UTF_8))
+                .put(random.nextAsciiStringOfLength(dataSize).getBytes(UTF_8))
                 .rewind();
         try {
             logService.append(
@@ -503,7 +511,8 @@ class TransactionLogServiceIT {
 
         int appendIterations = 100;
         int transactionalShift = 10;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 logService.append(
@@ -534,7 +543,8 @@ class TransactionLogServiceIT {
 
         int appendIterations = 100;
         int transactionalShift = 10;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 logService.append(
@@ -562,7 +572,8 @@ class TransactionLogServiceIT {
 
         int appendIterations = 100;
         LogPosition previousPosition = null;
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             for (int i = 0; i < appendIterations; i++) {
                 var position = logService.append(
@@ -591,7 +602,8 @@ class TransactionLogServiceIT {
         availabilityGuard.require(new AvailabilityRequirement("Database unavailable"));
         long logVersionBefore = metadataProvider.getCurrentLogVersion();
 
-        var appendData = createBuffer().put(randomAscii((int) (THRESHOLD + 1)).getBytes(UTF_8));
+        var appendData = createBuffer()
+                .put(random.nextAsciiStringOfLength((int) (THRESHOLD + 1)).getBytes(UTF_8));
         try {
             int appendIterations = 100;
             LogPosition firstPosition = null;
@@ -638,7 +650,7 @@ class TransactionLogServiceIT {
             List<LogChannel> logFileChannels = logReaders.getChannels();
             assertThat(logFileChannels).hasSize(1);
 
-            LogChannel channel = logFileChannels.get(0);
+            LogChannel channel = logFileChannels.getFirst();
             assertEquals(2, channel.startAppendIndex());
 
             StoreChannel storeChannel = channel.channel();
@@ -659,7 +671,7 @@ class TransactionLogServiceIT {
 
     @Test
     void setsStartingTransactionIdCorrectlyForAllFiles() throws IOException {
-        var propertyValue = randomAscii((int) THRESHOLD / 2);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD / 2);
 
         int numberOfTransactions = 40;
         for (int i = 0; i < numberOfTransactions; i++) {
@@ -690,7 +702,7 @@ class TransactionLogServiceIT {
 
     @Test
     void setsLastTransactionIdCorrectlyForAllFiles() throws IOException {
-        var propertyValue = randomAscii((int) THRESHOLD / 2);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD / 2);
 
         int numberOfTransactions = 40;
         for (int i = 0; i < numberOfTransactions; i++) {
@@ -721,7 +733,7 @@ class TransactionLogServiceIT {
 
     @Test
     void endOffsetPositionedToEndOfFile() throws IOException {
-        var propertyValue = randomAscii((int) THRESHOLD);
+        var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD);
 
         int numberOfTransactions = 30;
         for (int i = 0; i < numberOfTransactions; i++) {
@@ -785,7 +797,7 @@ class TransactionLogServiceIT {
                 try (TransactionLogChannels logReaders = logService.logFilesChannels(lastAppendIndex)) {
                     var channels = logReaders.getChannels();
                     assertThat(channels).hasSize(1);
-                    var channel = channels.get(0);
+                    var channel = channels.getFirst();
                     // they should include only the last committed transaction (not the last closed)
                     assertThat(channel.lastAppendIndex()).isEqualTo(lastCommittedTransaction);
                     assertThat(channel.startAppendIndex()).isEqualTo(lastCommittedTransaction);
@@ -826,7 +838,7 @@ class TransactionLogServiceIT {
                 .build()) {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
-            var propertyValue = randomAscii((int) THRESHOLD / 16);
+            var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD / 16);
 
             int numberOfTransactions = 32;
             for (int i = 0; i < numberOfTransactions; i++) {
@@ -881,7 +893,7 @@ class TransactionLogServiceIT {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
 
-            var propertyValue = randomAscii((int) THRESHOLD / 16);
+            var propertyValue = random.nextAsciiStringOfLength((int) THRESHOLD / 16);
 
             int numberOfTransactions = 35;
             for (int i = 0; i < numberOfTransactions; i++) {
@@ -1207,7 +1219,7 @@ class TransactionLogServiceIT {
         try (TransactionLogChannels logReaders = logService.logFilesChannels(txId)) {
             List<LogChannel> logFileChannels = logReaders.getChannels();
             assertThat(logFileChannels).hasSize(1);
-            assertEquals(expectedOffset, logFileChannels.get(0).channel().position());
+            assertEquals(expectedOffset, logFileChannels.getFirst().channel().position());
         }
     }
 

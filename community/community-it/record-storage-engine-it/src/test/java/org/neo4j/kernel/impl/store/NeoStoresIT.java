@@ -21,7 +21,7 @@ package org.neo4j.kernel.impl.store;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 import static org.apache.commons.lang3.exception.ExceptionUtils.indexOfThrowable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
@@ -60,7 +60,7 @@ class NeoStoresIT {
     private GraphDatabaseAPI db;
 
     private static final RelationshipType FRIEND = RelationshipType.withName("FRIEND");
-    private static final String LONG_STRING_VALUE = randomAscii(2048);
+    private static final String LONG_STRING_VALUE = secure().nextAscii(2048);
     private final CursorContextFactory contextFactory =
             new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER);
 
@@ -79,7 +79,7 @@ class NeoStoresIT {
         for (int i = 0; i < 1000; i++) {
             try (Transaction transaction = db.beginTx()) {
                 var node = transaction.createNode();
-                node.setProperty("a", randomAscii(1024));
+                node.setProperty("a", secure().nextAscii(1024));
                 transaction.commit();
             }
         }

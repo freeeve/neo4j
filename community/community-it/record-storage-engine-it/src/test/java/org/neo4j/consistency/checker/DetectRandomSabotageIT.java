@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -54,10 +55,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
-import org.eclipse.collections.api.list.primitive.MutableLongList;
-import org.eclipse.collections.api.set.primitive.MutableLongSet;
-import org.eclipse.collections.impl.factory.primitive.LongLists;
-import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -179,16 +176,16 @@ public class DetectRandomSabotageIT {
                 .reset();
 
         // Create some nodes
-        MutableLongList nodeIds = createNodes(db);
+        List<String> nodeIds = createNodes(db);
 
         // Force some nodes to be dense nodes and some to have only a single relationship
-        MutableLongSet singleRelationshipNodes = LongSets.mutable.empty();
-        MutableLongSet denseNodes = LongSets.mutable.empty();
+        Set<String> singleRelationshipNodes = new HashSet<>();
+        Set<String> denseNodes = new HashSet<>();
         while (singleRelationshipNodes.size() < 5) {
             singleRelationshipNodes.add(nodeIds.get(random.nextInt(nodeIds.size())));
         }
         while (denseNodes.size() < 5) {
-            long nodeId = nodeIds.get(random.nextInt(nodeIds.size()));
+            String nodeId = nodeIds.get(random.nextInt(nodeIds.size()));
             if (!singleRelationshipNodes.contains(nodeId)) {
                 denseNodes.add(nodeId);
             }
@@ -345,19 +342,16 @@ public class DetectRandomSabotageIT {
     }
 
     private void deleteSomeEntities(
-            GraphDatabaseAPI db,
-            MutableLongList nodeIds,
-            MutableLongSet singleRelationshipNodes,
-            MutableLongSet denseNodes) {
+            GraphDatabaseAPI db, List<String> nodeIds, Set<String> singleRelationshipNodes, Set<String> denseNodes) {
         int nodesToDelete = NUMBER_OF_NODES / 100;
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < nodesToDelete; i++) {
-                long nodeId;
+                String nodeId;
                 do {
                     nodeId = nodeIds.get(random.nextInt(nodeIds.size()));
                 } while (singleRelationshipNodes.contains(nodeId) || denseNodes.contains(nodeId));
                 nodeIds.remove(nodeId);
-                Node node = tx.getNodeById(nodeId);
+                Node node = tx.getNodeByElementId(nodeId);
                 Iterables.forEach(node.getRelationships(), Relationship::delete);
                 node.delete();
             }
@@ -366,13 +360,13 @@ public class DetectRandomSabotageIT {
     }
 
     private void createAdditionalRelationshipsForDenseNodes(
-            GraphDatabaseAPI db, MutableLongList nodeIds, MutableLongSet denseNodes) {
+            GraphDatabaseAPI db, List<String> nodeIds, Set<String> denseNodes) {
         try (Transaction tx = db.beginTx()) {
             int additionalRelationships = denseNodes.size() * GraphDatabaseSettings.dense_node_threshold.defaultValue();
-            long[] denseNodeIds = denseNodes.toArray();
+            String[] denseNodeIds = denseNodes.toArray(new String[] {});
             for (int i = 0; i < additionalRelationships; i++) {
-                Node denseNode = tx.getNodeById(denseNodeIds[i % denseNodeIds.length]);
-                Node otherNode = tx.getNodeById(nodeIds.get(random.nextInt(nodeIds.size())));
+                Node denseNode = tx.getNodeByElementId(denseNodeIds[i % denseNodeIds.length]);
+                Node otherNode = tx.getNodeByElementId(nodeIds.get(random.nextInt(nodeIds.size())));
                 Node startNode = random.nextBoolean() ? denseNode : otherNode;
                 Node endNode = startNode == denseNode ? otherNode : denseNode;
                 startNode.createRelationshipTo(endNode, RelationshipType.withName(random.among(TOKEN_NAMES)));
@@ -381,35 +375,36 @@ public class DetectRandomSabotageIT {
         }
     }
 
-    private void createRelationships(
-            GraphDatabaseAPI db, MutableLongList nodeIds, MutableLongSet singleRelationshipNodes) {
+    private void createRelationships(GraphDatabaseAPI db, List<String> nodeIds, Set<String> singleRelationshipNodes) {
         try (Transaction tx = db.beginTx()) {
             int numberOfRelationships = (int) (NUMBER_OF_NODES * (10f + 10f * random.nextFloat()));
             for (int i = 0; i < numberOfRelationships; i++) {
-                Node startNode = tx.getNodeById(nodeIds.get(random.nextInt(nodeIds.size())));
-                Node endNode = tx.getNodeById(nodeIds.get(random.nextInt(nodeIds.size())));
+                String startNodeId = nodeIds.get(random.nextInt(nodeIds.size()));
+                String endNodeId = nodeIds.get(random.nextInt(nodeIds.size()));
+                Node startNode = tx.getNodeByElementId(startNodeId);
+                Node endNode = tx.getNodeByElementId(endNodeId);
                 Relationship relationship =
                         startNode.createRelationshipTo(endNode, RelationshipType.withName(random.among(TOKEN_NAMES)));
                 setRandomProperties(relationship);
                 // Prevent more relationships to be added to the "single-relationship" Nodes
-                if (singleRelationshipNodes.remove(startNode.getId())) {
-                    nodeIds.remove(startNode.getId());
+                if (singleRelationshipNodes.remove(startNodeId)) {
+                    nodeIds.remove(startNodeId);
                 }
-                if (singleRelationshipNodes.remove(endNode.getId())) {
-                    nodeIds.remove(endNode.getId());
+                if (singleRelationshipNodes.remove(endNodeId)) {
+                    nodeIds.remove(endNodeId);
                 }
             }
             tx.commit();
         }
     }
 
-    private MutableLongList createNodes(GraphDatabaseAPI db) {
-        MutableLongList nodeIds = LongLists.mutable.empty();
+    private List<String> createNodes(GraphDatabaseAPI db) {
+        List<String> nodeIds = new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < NUMBER_OF_NODES; i++) {
                 Node node = tx.createNode(labels(random.selection(TOKEN_NAMES, 0, TOKEN_NAMES.length, false)));
                 setRandomProperties(node);
-                nodeIds.add(node.getId());
+                nodeIds.add(node.getElementId());
             }
             tx.commit();
         }
@@ -891,21 +886,21 @@ public class DetectRandomSabotageIT {
                     StoreCursors storageCursors,
                     DynamicAllocatorProvider allocatorProvider) {
                 ToLongFunction<RelationshipGroupRecord> getter;
-                BiConsumer<RelationshipGroupRecord, Long> setter;
-                switch (random.nextInt(3)) {
-                    case 0:
-                        getter = RelationshipGroupRecord::getFirstOut;
-                        setter = RelationshipGroupRecord::setFirstOut;
-                        break;
-                    case 1:
-                        getter = RelationshipGroupRecord::getFirstIn;
-                        setter = RelationshipGroupRecord::setFirstIn;
-                        break;
-                    default:
-                        getter = RelationshipGroupRecord::getFirstLoop;
-                        setter = RelationshipGroupRecord::setFirstLoop;
-                        break;
-                }
+                BiConsumer<RelationshipGroupRecord, Long> setter =
+                        switch (random.nextInt(3)) {
+                            case 0 -> {
+                                getter = RelationshipGroupRecord::getFirstOut;
+                                yield RelationshipGroupRecord::setFirstOut;
+                            }
+                            case 1 -> {
+                                getter = RelationshipGroupRecord::getFirstIn;
+                                yield RelationshipGroupRecord::setFirstIn;
+                            }
+                            default -> {
+                                getter = RelationshipGroupRecord::getFirstLoop;
+                                yield RelationshipGroupRecord::setFirstLoop;
+                            }
+                        };
                 return loadChangeUpdate(
                         random,
                         stores.getRelationshipGroupStore(),
@@ -1407,5 +1402,5 @@ public class DetectRandomSabotageIT {
                 throws Exception;
     }
 
-    private record Sabotage(String description, String record) {}
+    protected record Sabotage(String description, String record) {}
 }

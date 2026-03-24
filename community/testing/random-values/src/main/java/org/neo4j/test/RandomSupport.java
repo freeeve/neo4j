@@ -208,6 +208,10 @@ public class RandomSupport {
         return randoms.nextAlphaNumericTextValue();
     }
 
+    public String nextAlphaNumericString(int length) {
+        return nextAlphaNumericTextValue(length, length).stringValue();
+    }
+
     public String nextAlphaNumericString(int minLength, int maxLength) {
         return nextAlphaNumericTextValue(minLength, maxLength).stringValue();
     }

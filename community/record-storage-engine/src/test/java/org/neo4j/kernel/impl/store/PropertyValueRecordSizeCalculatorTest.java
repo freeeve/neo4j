@@ -89,7 +89,7 @@ class PropertyValueRecordSizeCalculatorTest {
     }
 
     private String string(int length) {
-        return random.nextAlphaNumericString(length, length);
+        return random.nextAlphaNumericString(length);
     }
 
     private static PropertyValueRecordSizeCalculator newCalculator() {

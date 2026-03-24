@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.EntityType;
 import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
@@ -103,11 +102,14 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.ElementIdMapper;
 
 @ImpermanentDbmsExtension
+@RandomSupportExtension
 class QueryExecutionLocksIT {
     @Inject
     private GraphDatabaseAPI db;
@@ -117,6 +119,9 @@ class QueryExecutionLocksIT {
 
     @Inject
     private QueryExecutionEngine executionEngine;
+
+    @Inject
+    private RandomSupport random;
 
     @Test
     void noLocksTakenForQueryWithoutAnyIndexesUsage() throws Exception {
@@ -136,7 +141,7 @@ class QueryExecutionLocksIT {
 
         try (Transaction transaction = db.beginTx()) {
             Node node = transaction.createNode(human);
-            node.setProperty(propertyKey, RandomStringUtils.randomAscii(10));
+            node.setProperty(propertyKey, random.nextAsciiStringOfLength(10));
             transaction.commit();
         }
 
@@ -147,7 +152,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(1);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.LABEL, operationRecord.resourceType);
@@ -173,7 +178,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(1);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.RELATIONSHIP_TYPE, operationRecord.resourceType);
@@ -199,7 +204,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(1);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.RELATIONSHIP_TYPE, operationRecord.resourceType);
@@ -225,7 +230,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(1);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.RELATIONSHIP_TYPE, operationRecord.resourceType);
@@ -251,7 +256,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(1);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.RELATIONSHIP_TYPE, operationRecord.resourceType);
@@ -266,7 +271,7 @@ class QueryExecutionLocksIT {
 
         try (Transaction transaction = db.beginTx()) {
             Node node = transaction.createNode(robot);
-            node.setProperty(propertyKey, RandomStringUtils.randomAscii(10));
+            node.setProperty(propertyKey, random.nextAsciiStringOfLength(10));
             transaction.commit();
         }
 
@@ -278,7 +283,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lock operations is: " + lockOperationRecords)
                 .hasSize(3);
 
-        LockOperationRecord operationRecord = lockOperationRecords.get(0);
+        LockOperationRecord operationRecord = lockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(ResourceType.LABEL, operationRecord.resourceType);
@@ -302,7 +307,7 @@ class QueryExecutionLocksIT {
 
         try (Transaction transaction = db.beginTx()) {
             Node node = transaction.createNode(robot);
-            node.setProperty(propertyKey, RandomStringUtils.randomAscii(10));
+            node.setProperty(propertyKey, random.nextAsciiStringOfLength(10));
             transaction.commit();
         }
 
@@ -315,7 +320,7 @@ class QueryExecutionLocksIT {
                 .as("Observed list of lookup lock operations is: " + lookupLockOperationRecords)
                 .hasSize(3);
 
-        LookupLockOperationRecord operationRecord = lookupLockOperationRecords.get(0);
+        LookupLockOperationRecord operationRecord = lookupLockOperationRecords.getFirst();
         assertTrue(operationRecord.acquisition);
         assertFalse(operationRecord.exclusive);
         assertEquals(EntityType.NODE, operationRecord.entityType);

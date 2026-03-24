@@ -84,8 +84,8 @@ class CompositeStringLengthValidationIT {
 
     @Test
     void shouldHandleCompositeSizesCloseToTheLimit() throws KernelException {
-        String firstSlot = random.nextAlphaNumericString(firstSlotLength, firstSlotLength);
-        String secondSlot = random.nextAlphaNumericString(secondSlotLength, secondSlotLength);
+        String firstSlot = random.nextAlphaNumericString(firstSlotLength);
+        String secondSlot = random.nextAlphaNumericString(secondSlotLength);
 
         // given
         IndexDescriptor index = createIndex(KEY, KEY2);
@@ -123,8 +123,8 @@ class CompositeStringLengthValidationIT {
 
     @Test
     void shouldFailBeforeCommitOnCompositeSizesLargerThanLimit() {
-        String firstSlot = random.nextAlphaNumericString(firstSlotLength + 1, firstSlotLength + 1);
-        String secondSlot = random.nextAlphaNumericString(secondSlotLength, secondSlotLength);
+        String firstSlot = random.nextAlphaNumericString(firstSlotLength + 1);
+        String secondSlot = random.nextAlphaNumericString(secondSlotLength);
 
         // given
         createIndex(KEY, KEY2);

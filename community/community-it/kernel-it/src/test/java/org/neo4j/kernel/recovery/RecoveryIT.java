@@ -25,7 +25,7 @@ import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -391,7 +391,7 @@ class RecoveryIT {
             Node node1 = tx.createNode();
             Node node2 = tx.createNode();
             node1.createRelationshipTo(node2, marker);
-            node2.setProperty(propertyName, randomAlphanumeric(TEN_KB));
+            node2.setProperty(propertyName, random.nextAlphaNumericString(TEN_KB));
             tx.commit();
         }
         managementService.shutdown();
@@ -1469,7 +1469,7 @@ class RecoveryIT {
     }
 
     @RecoveryExtension
-    private class TestPanicRecoveryExtension extends ExtensionFactory<TestPanicRecoveryExtension.Dependencies> {
+    private static class TestPanicRecoveryExtension extends ExtensionFactory<TestPanicRecoveryExtension.Dependencies> {
         private static final String PANIC_MSG = "AAAAAAAAAAAAH!";
         boolean panicked = false;
 
@@ -1882,11 +1882,10 @@ class RecoveryIT {
             }
         };
         monitors.addMonitorListener(recoveryMonitor);
-        var service = new TestDatabaseManagementServiceBuilder(layout.getNeo4jLayout())
+        try (var service = new TestDatabaseManagementServiceBuilder(layout.getNeo4jLayout())
                 .addExtension(guardExtensionFactory)
                 .setMonitors(monitors)
-                .build();
-        try {
+                .build()) {
             var database = service.database(layout.getDatabaseName());
             assertTrue(recoveryMonitor.isReverseCompleted());
             assertFalse(recoveryMonitor.isRecoveryCompleted());
@@ -1894,8 +1893,6 @@ class RecoveryIT {
                     guardExtensionFactory.getProvidedGuardConsumer().globalGuard.isAvailable());
             assertFalse(database.isAvailable());
             assertThatThrownBy(database::beginTx).rootCause().isInstanceOf(DatabaseStartAbortedException.class);
-        } finally {
-            service.shutdown();
         }
     }
 
@@ -2758,7 +2755,7 @@ class RecoveryIT {
                 Node node1 = transaction.createNode();
                 Node node2 = transaction.createNode();
                 node1.createRelationshipTo(node2, withName("Type" + i));
-                node2.setProperty("a", randomAlphanumeric(TEN_KB));
+                node2.setProperty("a", secure().nextAlphanumeric(TEN_KB));
                 transaction.commit();
             }
         }

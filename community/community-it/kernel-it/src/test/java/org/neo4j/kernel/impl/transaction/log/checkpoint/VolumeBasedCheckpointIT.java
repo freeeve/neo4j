@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
-import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.neo4j.configuration.GraphDatabaseSettings.CheckpointPolicy.VOLUME;
@@ -38,17 +37,23 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
+@RandomSupportExtension
 class VolumeBasedCheckpointIT {
     private static final int WAIT_TIMEOUT_MINUTES = 10;
 
     @Inject
     private TestDirectory testDirectory;
+
+    @Inject
+    private RandomSupport random;
 
     private DatabaseManagementService dbms;
 
@@ -72,7 +77,7 @@ class VolumeBasedCheckpointIT {
 
         try (var transaction = database.beginTx()) {
             Node node = transaction.createNode();
-            node.setProperty("a", randomAscii((int) kibiBytes(100)));
+            node.setProperty("a", random.nextAsciiStringOfLength((int) kibiBytes(100)));
             transaction.commit();
         }
 
@@ -99,7 +104,7 @@ class VolumeBasedCheckpointIT {
         for (int i = 0; i < 128; i++) {
             try (var transaction = database.beginTx()) {
                 Node node = transaction.createNode();
-                node.setProperty("a", randomAscii((int) kibiBytes(128)));
+                node.setProperty("a", random.nextAsciiStringOfLength((int) kibiBytes(128)));
                 transaction.commit();
             }
         }
@@ -126,12 +131,12 @@ class VolumeBasedCheckpointIT {
 
         try (var transaction = database.beginTx()) {
             Node node = transaction.createNode();
-            node.setProperty("a", randomAscii((int) kibiBytes(128)));
+            node.setProperty("a", random.nextAsciiStringOfLength((int) kibiBytes(128)));
             transaction.commit();
         }
         try (var transaction = database.beginTx()) {
             Node node = transaction.createNode();
-            node.setProperty("a", randomAscii((int) kibiBytes(64)));
+            node.setProperty("a", random.nextAsciiStringOfLength((int) kibiBytes(64)));
             transaction.commit();
         }
 

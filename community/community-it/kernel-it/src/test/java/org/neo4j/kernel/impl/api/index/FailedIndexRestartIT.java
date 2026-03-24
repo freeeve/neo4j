@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.internal.helpers.collection.Iterators.count;
@@ -31,13 +30,16 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 
 @SkipOnSpd(reason = "Failed indexes in SPD works differently?")
 @DbmsExtension
+@RandomSupportExtension
 public class FailedIndexRestartIT {
     private static final String ROBOT = "Robot";
     private static final String GENDER = "gender";
@@ -48,10 +50,13 @@ public class FailedIndexRestartIT {
     @Inject
     private DbmsController dbmsController;
 
+    @Inject
+    private RandomSupport random;
+
     @Test
     void failedIndexUpdatesAfterRestart() {
         Label robot = Label.label(ROBOT);
-        String megaProperty = randomAlphanumeric((int) mebiBytes(16));
+        String megaProperty = random.nextAlphaNumericString((int) mebiBytes(16));
         createNodeWithProperty(database, robot, megaProperty);
 
         try (Transaction tx = database.beginTx()) {

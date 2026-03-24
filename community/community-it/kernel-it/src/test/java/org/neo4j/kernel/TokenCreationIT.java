@@ -21,7 +21,7 @@ package org.neo4j.kernel;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.commons.lang3.RandomStringUtils.secure;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -109,7 +109,7 @@ class TokenCreationIT {
         int randomLabelValue = ThreadLocalRandom.current().nextInt(2) + 1;
         Label[] labels = new Label[randomLabelValue];
         for (int i = 0; i < labels.length; i++) {
-            labels[i] = Label.label(randomAlphanumeric(randomLabelValue));
+            labels[i] = Label.label(secure().nextAlphanumeric(randomLabelValue));
         }
         return labels;
     }
