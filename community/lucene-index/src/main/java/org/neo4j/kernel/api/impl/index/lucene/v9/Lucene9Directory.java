@@ -50,6 +50,7 @@ import org.neo4j.shaded.lucene9.index.SegmentInfos;
 import org.neo4j.shaded.lucene9.index.SegmentInfos.FindSegmentsFile;
 import org.neo4j.shaded.lucene9.index.SerialMergeScheduler;
 import org.neo4j.shaded.lucene9.index.SnapshotDeletionPolicy;
+import org.neo4j.shaded.lucene9.index.TieredMergePolicy;
 import org.neo4j.shaded.lucene9.store.Directory;
 import org.neo4j.shaded.lucene9.store.IOContext;
 import org.neo4j.shaded.lucene9.store.IndexInput;
@@ -178,16 +179,31 @@ public class Lucene9Directory implements LuceneDirectory {
             mergeScheduler = cms;
         }
         indexWriterConfig.setMergeScheduler(new LoggedMergeScheduler(mergeScheduler, config.logProvider));
-
-        LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
-        mergePolicy.setNoCFSRatio(config.noCFSRatio);
-        mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
-        mergePolicy.setMinMergeMB(config.minMergeMB);
-        mergePolicy.setMaxMergeMB(config.maxMergeMB);
-        mergePolicy.setMergeFactor(config.mergeFactor);
-        indexWriterConfig.setMergePolicy(mergePolicy);
+        indexWriterConfig.setMergePolicy(mergePolicy(config));
 
         return indexWriterConfig;
+    }
+
+    private static MergePolicy mergePolicy(LuceneIndexWriterConfig config) {
+        return switch (config.mergePolicyOption) {
+            case LOG_BYTE_SIZED -> {
+                LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
+                mergePolicy.setNoCFSRatio(config.noCFSRatio);
+                mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
+                mergePolicy.setMinMergeMB(config.minMergeMB);
+                mergePolicy.setMaxMergeMB(config.maxMergeMB);
+                mergePolicy.setMergeFactor(config.mergeFactor);
+                yield mergePolicy;
+            }
+            case TIERED -> {
+                TieredMergePolicy mergePolicy = new TieredMergePolicy();
+                mergePolicy.setNoCFSRatio(config.noCFSRatio);
+                mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
+                mergePolicy.setSegmentsPerTier(config.segmentsPerTier);
+                mergePolicy.setMaxMergeAtOnce(config.maxMergeAtOnce);
+                yield mergePolicy;
+            }
+        };
     }
 
     private static Codec toInternalCodec(LuceneCodec codec) {

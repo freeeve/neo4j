@@ -74,9 +74,12 @@ public final class IndexWriterConfigBuilder {
         writerConfig.setMergingParameters(
                 config.get(lucene_nocfs_ratio),
                 config.get(lucene_max_cfs_segment_size_mb),
+                mode.mergePolicy(config),
                 config.get(lucene_min_merge),
                 config.get(lucene_max_merge),
-                mode.getMergeFactor(config));
+                mode.getMergeFactor(config),
+                mode.segmentsPerTier(config),
+                mode.maxMergeAtOnce(config));
 
         return mode.visitWithConfig(writerConfig, config);
     }

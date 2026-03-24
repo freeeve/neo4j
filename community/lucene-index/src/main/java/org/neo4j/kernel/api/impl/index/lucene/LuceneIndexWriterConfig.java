@@ -41,6 +41,14 @@ public class LuceneIndexWriterConfig {
     public double minMergeMB;
     public double maxMergeMB;
     public int mergeFactor;
+    public MergePolicyOption mergePolicyOption;
+    public double segmentsPerTier;
+    public int maxMergeAtOnce;
+
+    public enum MergePolicyOption {
+        LOG_BYTE_SIZED,
+        TIERED
+    }
 
     /**
      * Only configure analyzer, use for in memory only implementation that does not require anything else.
@@ -89,11 +97,21 @@ public class LuceneIndexWriterConfig {
     }
 
     public void setMergingParameters(
-            double noCFSRatio, double maxCFSSegmentSizeMB, double minMergeMB, double maxMergeMB, int mergeFactor) {
+            double noCFSRatio,
+            double maxCFSSegmentSizeMB,
+            MergePolicyOption mergePolicyOption,
+            double minMergeMB,
+            double maxMergeMB,
+            int mergeFactor,
+            double segmentsPerTier,
+            int maxMergeAtOnce) {
         this.noCFSRatio = noCFSRatio;
         this.maxCFSSegmentSizeMB = maxCFSSegmentSizeMB;
+        this.mergePolicyOption = mergePolicyOption;
         this.minMergeMB = minMergeMB;
         this.maxMergeMB = maxMergeMB;
         this.mergeFactor = mergeFactor;
+        this.segmentsPerTier = segmentsPerTier;
+        this.maxMergeAtOnce = maxMergeAtOnce;
     }
 }

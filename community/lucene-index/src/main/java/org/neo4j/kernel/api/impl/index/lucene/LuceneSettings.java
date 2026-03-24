@@ -24,19 +24,21 @@ import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.DOUBLE;
 import static org.neo4j.configuration.SettingValueParsers.INT;
+import static org.neo4j.configuration.SettingValueParsers.ofEnum;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig.MergePolicyOption.LOG_BYTE_SIZED;
 
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.Description;
 import org.neo4j.configuration.Internal;
 import org.neo4j.configuration.SettingsDeclaration;
 import org.neo4j.graphdb.config.Setting;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig.MergePolicyOption;
 
 @ServiceProvider
 public class LuceneSettings implements SettingsDeclaration {
     @Internal
-    @Description(
-            "Configure lucene partition size. This is mainly used to test partitioning behaviour without having to create "
-                    + "Integer.MAX_VALUE indexed entities.")
+    @Description("Configure lucene partition size. This is mainly used to test partitioning behaviour without having to"
+            + " create Integer.MAX_VALUE indexed entities.")
     public static final Setting<Integer> lucene_max_partition_size =
             newBuilder("internal.dbms.lucene.max_partition_size", INT, null).build();
 
@@ -98,20 +100,62 @@ public class LuceneSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Sets the minimum size for the lowest level segments. Any segments below this size are "
-            + "candidates for full-flush merges and be merged more aggressively in order to avoid having "
-            + "a long tail of small segments. Large values of this parameter increase the merging cost during "
-            + "indexing if you flush small segments")
+    @Description("Sets the merge policy to use for Lucene")
+    public static final Setting<MergePolicyOption> lucene_merge_policy = newBuilder(
+                    "internal.dbms.index.lucene.merge_policy", ofEnum(MergePolicyOption.class), LOG_BYTE_SIZED)
+            .build();
+
+    @Internal
+    @Description("Sets the merge policy to use for Vector Search")
+    public static final Setting<MergePolicyOption> vector_merge_policy = newBuilder(
+                    "internal.dbms.index.vector.merge_policy", ofEnum(MergePolicyOption.class), LOG_BYTE_SIZED)
+            .build();
+
+    @Internal
+    @Description("Sets the minimum size for the lowest level segments. Any segments below this size are candidates for"
+            + " full-flush merges and be merged more aggressively in order to avoid having a long tail of small"
+            + " segments. Large values of this parameter increase the merging cost during indexing if you flush"
+            + " small segments. Only used if `internal.dbms.index.lucene.merge_policy` is set to LOG_BYTE_SIZE.")
     public static final Setting<Double> lucene_min_merge =
             newBuilder("internal.dbms.index.lucene.min_merge", DOUBLE, 0.1).build();
 
     @Internal
-    @Description("Determines the largest segment (measured by total byte size of the segment's files, in MB) "
-            + "that may be merged with other segments. Small values (e. g., less than 50 MB) are best for interactive "
-            + "indexing, as this limits the length of pauses while indexing to a few seconds. Larger values are best "
-            + "for batched indexing and speedier searches.")
+    @Description(
+            "Determines the largest segment (measured by total byte size of the segment's files, in MB) that may be"
+                    + " merged with other segments. Small values (e. g., less than 50 MB) are best for interactive"
+                    + " indexing, as this limits the length of pauses while indexing to a few seconds. Larger values are"
+                    + " best for batched indexing and speedier searches. Only used if"
+                    + " `internal.dbms.index.lucene.merge_policy` is set to LOG_BYTE_SIZE.")
     public static final Setting<Double> lucene_max_merge =
             newBuilder("internal.dbms.index.lucene.max_merge", DOUBLE, 2048D).build();
+
+    @Internal
+    @Description(
+            "Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments. Only"
+                    + " used if `internal.dbms.index.lucene.merge_policy` is set to TIERED.")
+    public static final Setting<Double> lucene_segments_per_tier = newBuilder(
+                    "internal.dbms.index.lucene.segments_per_tiers", DOUBLE, 8.0)
+            .build();
+
+    @Internal
+    @Description(
+            "Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments. Only"
+                    + " used if `internal.dbms.index.lucene.merge_policy` is set to TIERED.")
+    public static final Setting<Double> vector_segments_per_tier = newBuilder(
+                    "internal.dbms.index.vector.segments_per_tiers", DOUBLE, 8.0)
+            .build();
+
+    @Internal
+    @Description("Maximum number of segments to be merged at a time during \"normal\" merging Only"
+            + " used if `internal.dbms.index.lucene.merge_policy` is set to TIERED.")
+    public static final Setting<Integer> lucene_max_merge_at_once =
+            newBuilder("internal.dbms.index.lucene.max_merge_at_once", INT, 10).build();
+
+    @Internal
+    @Description("Maximum number of segments to be merged at a time during \"normal\" merging Only"
+            + " used if `internal.dbms.index.lucene.merge_policy` is set to TIERED.")
+    public static final Setting<Integer> vector_max_merge_at_once =
+            newBuilder("internal.dbms.index.vector.max_merge_at_once", INT, 10).build();
 
     @Internal
     @Description("Determines the amount of RAM (in MiB) that may be used for buffering added documents and deletions "

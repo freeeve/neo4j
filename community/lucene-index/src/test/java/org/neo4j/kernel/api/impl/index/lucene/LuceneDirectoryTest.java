@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.impl.index.lucene;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig.MergePolicyOption.LOG_BYTE_SIZED;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
 import java.io.IOException;
@@ -108,7 +109,8 @@ public class LuceneDirectoryTest {
         var indexWriterConfig = new LuceneIndexWriterConfig(new KeywordAnalyzer());
         indexWriterConfig
                 .setLogProvider(logProvider)
-                .setMergingParameters(1.0, 1.0, 32, 32, 1024); // parameters to avoid merge during indexing
+                .setMergingParameters(
+                        1.0, 1.0, LOG_BYTE_SIZED, 32, 32, 1024, 8.0, 10); // parameters to avoid merge during indexing
 
         try (var indexWriter = directory.newWriter(indexWriterConfig)) {
 

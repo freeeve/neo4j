@@ -41,6 +41,7 @@ import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentInfos.FindSegmentsFile;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -178,15 +179,31 @@ public class Lucene10Directory implements LuceneDirectory {
         }
         indexWriterConfig.setMergeScheduler(new LoggedMergeScheduler(mergeScheduler, config.logProvider));
 
-        LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
-        mergePolicy.setNoCFSRatio(config.noCFSRatio);
-        mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
-        mergePolicy.setMinMergeMB(config.minMergeMB);
-        mergePolicy.setMaxMergeMB(config.maxMergeMB);
-        mergePolicy.setMergeFactor(config.mergeFactor);
-        indexWriterConfig.setMergePolicy(mergePolicy);
+        indexWriterConfig.setMergePolicy(mergePolicy(config));
 
         return indexWriterConfig;
+    }
+
+    private static MergePolicy mergePolicy(LuceneIndexWriterConfig config) {
+        return switch (config.mergePolicyOption) {
+            case LOG_BYTE_SIZED -> {
+                LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
+                mergePolicy.setNoCFSRatio(config.noCFSRatio);
+                mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
+                mergePolicy.setMinMergeMB(config.minMergeMB);
+                mergePolicy.setMaxMergeMB(config.maxMergeMB);
+                mergePolicy.setMergeFactor(config.mergeFactor);
+                yield mergePolicy;
+            }
+            case TIERED -> {
+                TieredMergePolicy mergePolicy = new TieredMergePolicy();
+                mergePolicy.setNoCFSRatio(config.noCFSRatio);
+                mergePolicy.setMaxCFSSegmentSizeMB(config.maxCFSSegmentSizeMB);
+                mergePolicy.setSegmentsPerTier(config.segmentsPerTier);
+                mergePolicy.setMaxMergeAtOnce(config.maxMergeAtOnce);
+                yield mergePolicy;
+            }
+        };
     }
 
     private static Codec toInternalCodec(LuceneCodec codec) {
@@ -205,7 +222,7 @@ public class Lucene10Directory implements LuceneDirectory {
         @Override
         public void merge(MergeSource mergeSource, MergeTrigger trigger) throws IOException {
             while (true) {
-                MergePolicy.OneMerge merge = nextMergeSynchronized(mergeSource);
+                OneMerge merge = nextMergeSynchronized(mergeSource);
                 if (merge == null) {
                     break;
                 }
@@ -213,7 +230,7 @@ public class Lucene10Directory implements LuceneDirectory {
             }
         }
 
-        private synchronized MergePolicy.OneMerge nextMergeSynchronized(MergeSource mergeSource) {
+        private synchronized OneMerge nextMergeSynchronized(MergeSource mergeSource) {
             return mergeSource.getNextMerge();
         }
 
