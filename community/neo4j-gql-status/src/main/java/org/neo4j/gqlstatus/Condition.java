@@ -41,6 +41,28 @@ public enum Condition {
     INVALID_TRANSACTION_TERMINATION,
     TRANSACTION_ROLLBACK;
 
+    public static Condition fromClass(String classNbr) {
+        return switch (classNbr) {
+            case "00" -> SUCCESSFUL_COMPLETION;
+            case "01" -> WARNING;
+            case "02" -> NO_DATA;
+            case "03" -> INFORMATIONAL;
+            case "08" -> CONNECTION_EXCEPTION;
+            case "22" -> DATA_EXCEPTION;
+            case "25" -> INVALID_TRANSACTION_STATE;
+            case "2D" -> INVALID_TRANSACTION_TERMINATION;
+            case "40" -> TRANSACTION_ROLLBACK;
+            case "42" -> SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION;
+            case "50" -> GENERAL_PROCESSING_EXCEPTION;
+            case "51" -> SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION;
+            case "52" -> PROCEDURE_EXCEPTION;
+            case "53" -> FUNCTION_EXCEPTION;
+            case "G1" -> DEPENDENT_OBJECT_ERROR;
+            case "G2" -> GRAPH_TYPE_VIOLATION;
+            default -> throw new IllegalArgumentException("Unexpected class for GqlStatusInfoCodes: " + classNbr);
+        };
+    }
+
     public static String createStandardDescription(Condition condition, String subcondition) {
         return switch (condition) {
             case WARNING -> "warn: " + subcondition;
