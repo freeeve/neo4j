@@ -148,12 +148,12 @@ class LoadCommandTest {
     }
 
     @Test
-    void shouldGiveAClearMessageIfTheArchiveDoesntExist() throws IOException, IncorrectFormat {
-        String dumpName = archive.resolve("foo.dump").toString();
+    void shouldGiveAClearMessageIfTheArchiveDoesntExist() {
         CommandFailedException commandFailed =
                 assertThrows(CommandFailedException.class, () -> execute("foo", archive));
         assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
-        assertThat(commandFailed.getMessage()).contains("No matching archives found");
+        assertThat(commandFailed.getMessage())
+                .contains("No matching archives ('foo.dump' or a full backup of 'foo') found in");
     }
 
     @Test

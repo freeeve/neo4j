@@ -240,10 +240,11 @@ public class LoadCommand extends AbstractAdminCommand {
 
     private void loadDump(FileSystemAbstraction fs, Path sourcePath, Config config) throws IOException {
         Set<DumpInfo> dbNames = getDbNames(fs, sourcePath, false);
-        loadDump(dbNames, config, fs);
+        loadDump(dbNames, config, fs, sourcePath);
     }
 
-    protected void loadDump(Set<DumpInfo> dbNames, Config config, FileSystemAbstraction fs) throws IOException {
+    protected void loadDump(Set<DumpInfo> dbNames, Config config, FileSystemAbstraction fs, Path sourcePath)
+            throws IOException {
         LoadDumpExecutor loadDumpExecutor =
                 new LoadDumpExecutor(config, fs, ctx.err(), ctx.out(), createLoader(fs), LoadCommand::decompress);
 
@@ -262,7 +263,9 @@ public class LoadCommand extends AbstractAdminCommand {
                                 + "desired archive.");
                     }
                     if (dbName.archives.isEmpty()) {
-                        throw new CommandFailedException("No matching archives found");
+                        throw new CommandFailedException(
+                                "No matching archives ('%s%s' or a full backup of '%s') found in '%s'"
+                                        .formatted(dbName.dbName, DUMP_EXTENSION, dbName.dbName, sourcePath));
                     }
                     dumpPath = dbName.archives.getFirst();
                     if (!fs.fileExists(dumpPath)) {
