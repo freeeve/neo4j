@@ -3910,7 +3910,7 @@
         "isDeprecated": false
       }
     ],
-    "description": "Change the default database to the provided value. The database must exist and the old default database must be stopped.",
+    "description": "Change the default database to the provided value. The old default database must be stopped.",
     "rolesExecution": [
       "admin"
     ],
