@@ -25,8 +25,10 @@ import static org.neo4j.internal.schema.SequencedIndexSettingProcessors.mergeToV
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -36,6 +38,7 @@ import java.util.function.BiPredicate;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
+import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
@@ -43,23 +46,28 @@ import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
 import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
-import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
+import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 import org.neo4j.internal.schema.InternalIndexSetting;
 import org.neo4j.internal.schema.KnownIndexSettingRecords;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.IntegerToOptionalIntConverter;
+import org.neo4j.internal.schema.SingleIndexSettingConverter.StringToUpperCaseConverter;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.TypeToOptionalConverter;
 import org.neo4j.internal.schema.SingleIndexSettingLookup.NameToEnumLookup;
 import org.neo4j.internal.schema.SingleIndexSettingLookup.SingleIndexSettingMapLookup;
 import org.neo4j.internal.schema.SingleIndexSettingMigrator;
+import org.neo4j.internal.schema.SingleIndexSettingProcessor;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.FinalizePending;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.MissingSettingMaterializer;
+import org.neo4j.internal.schema.SingleIndexSettingStorableNormalizer.EnumToNameStorableNormalizer;
+import org.neo4j.internal.schema.SingleIndexSettingStorableNormalizer.SingleIndexSettingMapStorableNormalizer;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.IntegerRangeValidator;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.OptionalIntRangeValidator;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
+import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
 public class VectorIndexConfigUtils {
@@ -112,6 +120,9 @@ public class VectorIndexConfigUtils {
 
     static final IndexSettingExtractor SIMILARITY_FUNCTION_EXTRACTOR = StringExtractor.of(SIMILARITY_FUNCTION);
 
+    static final IndexSettingsProcessor SIMILARITY_FUNCTION_UPPER_CASE_CONVERTER =
+            StringToUpperCaseConverter.of(SIMILARITY_FUNCTION);
+
     static IndexSettingsProcessor similarityFunctionDefault(VectorSimilarityFunction similarityFunction) {
         return MissingSettingMaterializer.forVerification(SIMILARITY_FUNCTION, similarityFunction.functionName());
     }
@@ -129,7 +140,20 @@ public class VectorIndexConfigUtils {
                                     existingSimilarityFunction,
                                     similarityFunction));
         }
+        return similarityFunctionLookup(lookup);
+    }
+
+    static ValidatingIndexSettingsProcessor similarityFunctionLookup(Map<String, VectorSimilarityFunction> lookup) {
         return SingleIndexSettingMapLookup.of(SIMILARITY_FUNCTION, String.class, lookup);
+    }
+
+    static IndexSettingsProcessor similarityFunctionNormalizer(Map<String, VectorSimilarityFunction> lookup) {
+        final Map<VectorSimilarityFunction, TextValue> inverted = new HashMap<>(lookup.size());
+        for (final Entry<String, VectorSimilarityFunction> entry : lookup.entrySet()) {
+            inverted.put(entry.getValue(), Values.utf8Value(entry.getKey()));
+        }
+        return SingleIndexSettingMapStorableNormalizer.of(
+                SIMILARITY_FUNCTION, VectorSimilarityFunction.class, inverted);
     }
 
     // ======================
@@ -197,11 +221,30 @@ public class VectorIndexConfigUtils {
         }
     }
 
+    static final IndexSettingsProcessor REMOVE_QUANTIZATION_ENABLED =
+            new SingleIndexSettingProcessor(QUANTIZATION_ENABLED) {
+                @Override
+                public RecordWithSetting processForVerification(RecordWithSetting record) {
+                    if (!(record instanceof final Valid valid)) {
+                        return record;
+                    }
+                    return new Valid(valid, Optional.empty(), Values.NO_VALUE);
+                }
+
+                @Override
+                public RecordWithSetting processForAuthoritativeRead(RecordWithSetting record) {
+                    return record;
+                }
+            };
+
     // ===================
     //  quantization type
     // ===================
 
     static final IndexSettingExtractor QUANTIZATION_TYPE_EXTRACTOR = StringExtractor.of(QUANTIZATION_TYPE);
+
+    static final IndexSettingsProcessor QUANTIZATION_TYPE_UPPER_CASE_CONVERTER =
+            StringToUpperCaseConverter.of(QUANTIZATION_TYPE);
 
     static IndexSettingsProcessor quantizationTypeDefault(VectorQuantizationType quantizationType) {
         final String name = quantizationType.name();
@@ -215,24 +258,17 @@ public class VectorIndexConfigUtils {
 
     static final class QuantizationTypeLookup implements ValidatingIndexSettingsProcessor {
         static final BiPredicate<Optional<Boolean>, VectorQuantizationType> JOINT_VALUE_VALIDATOR =
-                new BiPredicate<>() {
-                    @Override
-                    public boolean test(Optional<Boolean> optionalEnabled, VectorQuantizationType type) {
-                        if (optionalEnabled.isEmpty()) {
-                            return true;
-                        }
-                        final boolean enabled = optionalEnabled.get();
-                        return !enabled && type == VectorQuantizationType.NONE
-                                || enabled && type != VectorQuantizationType.NONE;
+                (optionalEnabled, type) -> {
+                    if (optionalEnabled.isEmpty()) {
+                        return true;
                     }
-
-                    @Override
-                    public String toString() {
-                        return "valid :: no boolean | (disabled, NONE) | (enabled, not NONE)";
-                    }
+                    final boolean enabled = optionalEnabled.get();
+                    return !enabled && type == VectorQuantizationType.NONE
+                            || enabled && type != VectorQuantizationType.NONE;
                 };
 
         private final ValidatingIndexSettingsProcessor independentSettingsValidator;
+        private final IndexSettingsRequirement<?> requirement;
 
         static ValidatingIndexSettingsProcessor of(VectorQuantizationType first, VectorQuantizationType... rest) {
             return of(EnumSet.of(first, rest));
@@ -246,6 +282,44 @@ public class VectorIndexConfigUtils {
             this.independentSettingsValidator = mergeToValidatingProcessor(
                     FinalizePending.of(QUANTIZATION_ENABLED),
                     NameToEnumLookup.of(QUANTIZATION_TYPE, quantizationTypes));
+
+            // build up supported message
+            final Optional<Boolean> optEmpty = Optional.empty();
+            final Optional<Boolean> optFalse = Optional.of(false);
+            final Optional<Boolean> optTrue = Optional.of(true);
+            final StringBuilder sb = new StringBuilder()
+                    .append("('")
+                    .append(QUANTIZATION_ENABLED.getSettingName())
+                    .append("', '")
+                    .append(QUANTIZATION_TYPE.getSettingName())
+                    .append("') ::");
+
+            // false, NONE
+            sb.append(" (")
+                    .append(optFalse)
+                    .append(", ")
+                    .append(VectorQuantizationType.NONE)
+                    .append(")");
+
+            // true, not NONE
+            for (final VectorQuantizationType type : quantizationTypes) {
+                if (type != VectorQuantizationType.NONE) {
+                    sb.append(" | (").append(optTrue).append(", ").append(type).append(")");
+                }
+            }
+
+            // NULL, _
+            for (final VectorQuantizationType type : quantizationTypes) {
+                sb.append(" | (").append(optEmpty).append(", ").append(type).append(")");
+            }
+
+            final String supported = sb.toString();
+            this.requirement = new DefaultRequirement<>(JOINT_VALUE_VALIDATOR) {
+                @Override
+                public String supported() {
+                    return supported;
+                }
+            };
         }
 
         @Override
@@ -253,27 +327,18 @@ public class VectorIndexConfigUtils {
             independentSettingsValidator.updateForVerification(records);
             final RecordWithSetting enabledRecord = records.get(QUANTIZATION_ENABLED);
             final RecordWithSetting typeRecord = records.get(QUANTIZATION_TYPE);
-            if (enabledRecord instanceof final Valid validEnabled && typeRecord instanceof final Valid validType) {
-                // individually valid
-                if (JOINT_VALUE_VALIDATOR.test(validEnabled.get(), validType.get())) {
-                    // compatable settings, don't store "enabled"
-                    records.upsert(new Valid((RecordWithValue) validEnabled, Values.NO_VALUE));
-                } else {
-                    // incompatable settings
-                    records.upsert(new InvalidValue(validEnabled, JOINT_VALUE_VALIDATOR));
-                    records.upsert(new InvalidValue(validType, JOINT_VALUE_VALIDATOR));
-                }
+            if (enabledRecord instanceof final Valid validEnabled
+                    && typeRecord instanceof final Valid validType
+                    && !JOINT_VALUE_VALIDATOR.test(validEnabled.get(), validType.get())) {
+                // incompatable settings
+                records.upsert(new InvalidValue(validEnabled, requirement));
+                records.upsert(new InvalidValue(validType, requirement));
             }
         }
 
         @Override
         public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
             independentSettingsValidator.updateForAuthoritativeRead(records);
-            final RecordWithSetting enabledRecord = records.get(QUANTIZATION_ENABLED);
-            if (enabledRecord instanceof final Valid validEnabled) {
-                // compatable settings, don't store "enabled"
-                records.upsert(new Valid((RecordWithValue) validEnabled, Values.NO_VALUE));
-            }
         }
 
         @Override
@@ -285,6 +350,10 @@ public class VectorIndexConfigUtils {
         public String toString() {
             return Iterables.toString(settings(), ", ", getClass().getSimpleName() + "[", "]");
         }
+    }
+
+    static IndexSettingsProcessor quantizationTypeNormalizer(Set<VectorQuantizationType> quantizationTypes) {
+        return EnumToNameStorableNormalizer.of(QUANTIZATION_TYPE, VectorQuantizationType.class, quantizationTypes);
     }
 
     static IndexSettingEntry quantizationType(VectorQuantizationType quantizationType) {

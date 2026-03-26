@@ -86,16 +86,12 @@ class VectorIndexProviderTest {
             super(luceneContext, VectorIndexVersion.V1_0);
         }
 
-        private VectorIndexSettings validSettings() {
+        @Override
+        protected VectorIndexSettings minimalValidSettings() {
             return VectorIndexSettings.create()
                     .withDimensions(version.maxDimensions())
                     .withSimilarityFunction(
                             version.supportedSimilarityFunctions().iterator().next());
-        }
-
-        @Override
-        IndexPrototype validPrototype() {
-            return super.validPrototype().withIndexConfig(validSettings().toIndexConfig());
         }
 
         @Override
@@ -107,33 +103,37 @@ class VectorIndexProviderTest {
 
                     //   invalid dimension
                     vectorPrototype()
-                            .withIndexConfig(validSettings().withDimensions(-1).toIndexConfig())
+                            .withIndexConfig(
+                                    minimalValidSettings().withDimensions(-1).toIndexConfig())
                             .withName("unsupported"),
 
                     //   unsupported similarity function
                     vectorPrototype()
-                            .withIndexConfig(validSettings()
+                            .withIndexConfig(minimalValidSettings()
                                     .withSimilarityFunction("malmo")
                                     .toIndexConfig())
                             .withName("unsupported"),
 
                     //   unrecognised vector index setting
                     validPrototype()
-                            .withIndexConfig(validSettings()
+                            .withIndexConfig(minimalValidSettings()
                                     .set(IndexSetting.fulltext_Analyzer(), "swedish")
                                     .toIndexConfig())
                             .withName("unsupported"),
 
                     //   unrecognised vector settings for version
                     validPrototype()
+                            .withIndexConfig(minimalValidSettings()
+                                    .withQuantizationDisabled()
+                                    .toIndexConfig())
+                            .withName("unsupported"),
+                    validPrototype()
                             .withIndexConfig(
-                                    validSettings().withQuantizationDisabled().toIndexConfig())
+                                    minimalValidSettings().withHnswM(32).toIndexConfig())
                             .withName("unsupported"),
                     validPrototype()
-                            .withIndexConfig(validSettings().withHnswM(32).toIndexConfig())
-                            .withName("unsupported"),
-                    validPrototype()
-                            .withIndexConfig(validSettings().withHnswM(256).toIndexConfig())
+                            .withIndexConfig(
+                                    minimalValidSettings().withHnswM(256).toIndexConfig())
                             .withName("unsupported"),
 
                     // Unsupported index types
@@ -253,9 +253,15 @@ class VectorIndexProviderTest {
                     .withIndexProvider(version.descriptor());
         }
 
+        protected VectorIndexSettings minimalValidSettings() {
+            return VectorIndexSettings.create();
+        }
+
         @Override
         IndexPrototype validPrototype() {
-            return vectorPrototype().withName("valid");
+            return vectorPrototype()
+                    .withName("valid")
+                    .withIndexConfig(minimalValidSettings().toIndexConfigWith(version));
         }
 
         @Override

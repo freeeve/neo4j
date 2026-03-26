@@ -32,8 +32,10 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIM
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_TYPE;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION;
 
+import java.util.Locale;
 import java.util.OptionalInt;
 import java.util.StringJoiner;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -101,12 +103,12 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
-                        VectorIndexConfig::quantizationEnabled,
+                        VectorIndexConfig::quantization,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
                         OptionalInt.of(VERSION.maxDimensions()),
                         VERSION.similarityFunction("COSINE"),
-                        false,
+                        VectorQuantizationType.NONE,
                         new HnswConfig(16, 100));
 
         assertThat(vectorIndexConfig.config().settingNames())
@@ -153,29 +155,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
-                .hasMessageContainingAll(DIMENSIONS.getSettingName(), "is expected to have been set");
-    }
-
-    @Test
-    void nullDimensions() {
-        final var settings = VectorIndexSettings.create()
-                .set(DIMENSIONS, null)
-                .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
-                .toSettingsAccessor();
-
-        final var validationRecords = VALIDATOR.validate(settings);
-        assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE))
-                .hasSize(1)
-                .first()
-                .asInstanceOf(type(InvalidValue.class))
-                .extracting(HasSetting::setting, RecordWithValue::value)
-                .containsExactly(DIMENSIONS, null);
-
-        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
-                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
+                        "setting is expected to have been set", "Expected", DIMENSIONS.getSettingName());
     }
 
     @Test
@@ -250,7 +231,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .first()
                 .asInstanceOf(type(InvalidValue.class))
                 .extracting(HasSetting::setting, RecordWithValue::value)
-                .containsExactly(DIMENSIONS, OptionalInt.of(invalidDimensions));
+                .containsExactly(DIMENSIONS, invalidDimensions);
 
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -275,36 +256,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
-                .hasMessageContainingAll(SIMILARITY_FUNCTION.getSettingName(), "is expected to have been set");
-    }
-
-    @Test
-    void nullSimilarityFunction() {
-        final var settings = VectorIndexSettings.create()
-                .withDimensions(VERSION.maxDimensions())
-                .set(SIMILARITY_FUNCTION, null)
-                .toSettingsAccessor();
-
-        final var validationRecords = VALIDATOR.validate(settings);
-        assertThat(validationRecords.invalid()).isTrue();
-        assertThat(validationRecords.get(INVALID_VALUE))
-                .hasSize(1)
-                .first()
-                .asInstanceOf(type(InvalidValue.class))
-                .extracting(HasSetting::setting, RecordWithValue::value)
-                .containsExactly(SIMILARITY_FUNCTION, null);
-
-        final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
-        for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
-            supportedSimilarityFunctions.add(similarityFunction.functionName());
-        }
-        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
-                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        "null",
-                        "is an unsupported",
-                        SIMILARITY_FUNCTION.getSettingName(),
-                        supportedSimilarityFunctions.toString());
+                        "setting is expected to have been set", "Expected", SIMILARITY_FUNCTION.getSettingName());
     }
 
     @Test
@@ -345,6 +298,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .withDimensions(VERSION.maxDimensions())
                 .set(IndexSetting.vector_Similarity_Function(), invalidSimilarityFunction)
                 .toSettingsAccessor();
+        final var normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
 
         final var validationRecords = VALIDATOR.validate(settings);
         assertThat(validationRecords.invalid()).isTrue();
@@ -353,7 +307,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .first()
                 .asInstanceOf(type(InvalidValue.class))
                 .extracting(HasSetting::setting, RecordWithValue::value)
-                .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
+                .containsExactly(SIMILARITY_FUNCTION, normalizedInvalidSimilarityFunction);
 
         final StringJoiner supportedSimilarityFunctions = new StringJoiner(", ", "[", "]");
         for (final VectorSimilarityFunction similarityFunction : VERSION.supportedSimilarityFunctions()) {
@@ -362,10 +316,33 @@ class VectorIndexV1ForV512ConfigValidationTest {
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        invalidSimilarityFunction,
+                        normalizedInvalidSimilarityFunction,
                         "is an unsupported",
                         SIMILARITY_FUNCTION.getSettingName(),
                         supportedSimilarityFunctions.toString());
+    }
+
+    @Test
+    void nonUpperCaseSimilarityFunction() {
+        final var similarityFunction = "coSIne";
+        final var settings = VectorIndexSettings.create()
+                .withDimensions(VERSION.maxDimensions())
+                .withSimilarityFunction(similarityFunction)
+                .toSettingsAccessor();
+
+        final var validationRecords = VALIDATOR.validate(settings);
+        assertThat(validationRecords.valid()).isTrue();
+
+        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        assertThat(vectorIndexConfig)
+                .extracting(
+                        VectorIndexConfig::similarityFunction,
+                        config -> config.get(SIMILARITY_FUNCTION),
+                        config -> config.getValue(SIMILARITY_FUNCTION))
+                .containsExactly(
+                        Neo4jVectorSimilarityFunction.SIMPLE_COSINE,
+                        Neo4jVectorSimilarityFunction.SIMPLE_COSINE,
+                        Values.utf8Value(Neo4jVectorSimilarityFunction.SIMPLE_COSINE.functionName()));
     }
 
     @Test
@@ -384,6 +361,24 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .asInstanceOf(type(UnrecognizedSetting.class))
                 .extracting(NamedSetting::settingName)
                 .isEqualTo(QUANTIZATION_ENABLED.getSettingName());
+    }
+
+    @Test
+    void cannotSetQuantizationType() {
+        final var settings = VectorIndexSettings.create()
+                .withDimensions(VERSION.maxDimensions())
+                .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
+                .withQuantizationType(VectorQuantizationType.NONE)
+                .toSettingsAccessor();
+
+        final var validationRecords = VALIDATOR.validate(settings);
+        assertThat(validationRecords.invalid()).isTrue();
+        assertThat(validationRecords.get(UNRECOGNIZED_SETTING))
+                .hasSize(1)
+                .first()
+                .asInstanceOf(type(UnrecognizedSetting.class))
+                .extracting(NamedSetting::settingName)
+                .isEqualTo(QUANTIZATION_TYPE.getSettingName());
     }
 
     @Test

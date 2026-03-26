@@ -34,7 +34,6 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.INDEX_TYPES;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TOKEN_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR;
 import static org.neo4j.internal.schema.IndexPrototype.forSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forAnyEntityTokens;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
@@ -46,7 +45,6 @@ import static org.neo4j.token.ReadOnlyTokenCreator.READ_ONLY;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -68,13 +66,10 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
-import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
-import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexCapability;
-import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
@@ -87,7 +82,9 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
+import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
 import org.neo4j.kernel.impl.api.index.IndexPopulationFailure;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -112,7 +109,6 @@ import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.NamedToken;
 import org.neo4j.token.api.TokenHolder;
 import org.neo4j.values.ElementIdMapper;
-import org.neo4j.values.storable.Values;
 
 @RandomSupportExtension
 @Neo4jLayoutExtension
@@ -198,26 +194,21 @@ class KernelIndexesLifecycleManagerTest {
     }
 
     private static Stream<Arguments> completeConfiguration() {
-        return INDEX_TYPES.entrySet().stream()
-                // skipping VectorV1 as it requires the config to already be set before completion
-                .filter(entry -> entry.getKey() != VECTOR_V1_DESCRIPTOR)
-                .map(entry -> {
-                    final var indexProviderDescriptor = entry.getKey();
-                    final var indexType = entry.getValue();
-                    // only Point and Fulltext add config - VectorV2 defaults come from Cypher-land and not the provider
-                    final var addsDefaultConfig = indexType == IndexType.POINT || indexType == IndexType.FULLTEXT;
-                    return Arguments.of(indexProviderDescriptor, indexType, addsDefaultConfig);
-                });
+        return INDEX_TYPES.entrySet().stream().map(entry -> {
+            final var indexProviderDescriptor = entry.getKey();
+            final var indexType = entry.getValue();
+            final var addsDefaultConfig = indexType == IndexType.POINT || indexType == IndexType.FULLTEXT;
+            return Arguments.of(indexProviderDescriptor, indexType, addsDefaultConfig);
+        });
     }
 
     @ParameterizedTest
     @MethodSource
     void completeConfiguration(IndexProviderDescriptor providerDescriptor, IndexType type, boolean addsDefaultConfig) {
-        final var descriptor = forSchema(forLabel(1, 2))
-                .withName("basic")
-                .withIndexType(type)
-                .withIndexProvider(providerDescriptor)
-                .materialise(3);
+        final var prototype =
+                forSchema(forLabel(1, 2)).withName("basic").withIndexType(type).withIndexProvider(providerDescriptor);
+
+        final var descriptor = withDefaultConfig(prototype).materialise(3);
         assertThat(descriptor.getCapability()).isEqualTo(IndexCapability.NO_CAPABILITY);
 
         final var completedDescriptor = indexesLifecycleManager.completeConfiguration(descriptor);
@@ -581,7 +572,7 @@ class KernelIndexesLifecycleManagerTest {
                     final var indexType = entry.getValue();
                     final var ruleId = counter.getAndIncrement();
                     IndexPrototype indexPrototype;
-                    if (providerDescriptor == TOKEN_DESCRIPTOR) {
+                    if (indexType.isLookup()) {
                         indexPrototype = forSchema(forAnyEntityTokens(entityType));
                     } else {
                         if (entityType == EntityType.NODE) {
@@ -589,22 +580,27 @@ class KernelIndexesLifecycleManagerTest {
                         } else {
                             indexPrototype = forSchema(forRelType(ruleId + 1, ruleId + 2));
                         }
-
-                        if (providerDescriptor == AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR) {
-                            indexPrototype = indexPrototype.withIndexConfig(IndexConfig.with(Map.of(
-                                    IndexSetting.vector_Dimensions().getSettingName(),
-                                    Values.intValue(666),
-                                    IndexSetting.vector_Similarity_Function().getSettingName(),
-                                    Values.stringValue("COSINE"))));
-                        }
                     }
 
-                    return Arguments.of(indexPrototype
+                    indexPrototype = indexPrototype
                             .withName("index_" + ruleId)
                             .withIndexProvider(providerDescriptor)
-                            .withIndexType(indexType)
-                            .materialise(ruleId));
+                            .withIndexType(indexType);
+
+                    return Arguments.of(withDefaultConfig(indexPrototype).materialise(ruleId));
                 }));
+    }
+
+    private static IndexPrototype withDefaultConfig(IndexPrototype indexPrototype) {
+        if (indexPrototype.getIndexType() == IndexType.VECTOR) {
+            final var version = VectorIndexVersion.fromDescriptor(indexPrototype.getIndexProvider());
+            final var settings = VectorIndexSettings.create();
+            if (version == VectorIndexVersion.V1_0) {
+                settings.withDimensions(666).withSimilarityFunction("COSINE");
+            }
+            indexPrototype = indexPrototype.withIndexConfig(settings.toIndexConfigWith(version));
+        }
+        return indexPrototype;
     }
 
     private record DuffContext(FileSystemAbstraction fs) implements LifecycleContext {}

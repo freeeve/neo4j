@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
@@ -41,7 +42,6 @@ import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
-import org.neo4j.values.utils.PrettyPrinter;
 
 public class IndexConfigUtils {
     public static final Comparator<IndexSetting> INDEX_SETTING_COMPARATOR =
@@ -78,8 +78,8 @@ public class IndexConfigUtils {
                 final Object value = Objects.requireNonNullElse(invalidValue.value(), NO_VALUE);
                 final String valueString = stringify(value);
 
-                final Object valid = invalidValue.valid();
-                yield switch (valid) {
+                final IndexSettingsRequirement<?> requirement = invalidValue.requirement();
+                yield switch (requirement.get()) {
                     case InclusiveRange<?> range ->
                         InvalidArgumentException.outOfRange(
                                 settingName,
@@ -88,22 +88,12 @@ public class IndexConfigUtils {
                                 stringify(range.min()),
                                 stringify(range.max()));
 
-                    case Iterable<?> iterable -> {
-                        final String supported =
-                                Iterables.toString(Iterables.map(iterable, PrettyPrinter::stringify), ", ", "[", "]");
-                        yield InvalidArgumentException.invalidIndexInput(
+                    default ->
+                        InvalidArgumentException.invalidIndexInput(
                                 valueString,
                                 settingName,
                                 "'%s' is an unsupported '%s'. Supported: %s"
-                                        .formatted(valueString, settingName, supported));
-                    }
-
-                    // this is an implementation mistake
-                    default ->
-                        InternalException.indexNotApplicable(
-                                descriptor.name(),
-                                "Unhandled valid value type '%s' for '%s'. Provided: %s"
-                                        .formatted(valid.getClass().getSimpleName(), settingName, valid));
+                                        .formatted(valueString, settingName, requirement.supported()));
                 };
             }
         };
@@ -122,6 +112,10 @@ public class IndexConfigUtils {
         default String settingName() {
             return setting().getSettingName();
         }
+    }
+
+    public interface IndexSettingsRequirement<T> extends Supplier<T> {
+        String supported();
     }
 
     private static InternalException incompleteValidation(

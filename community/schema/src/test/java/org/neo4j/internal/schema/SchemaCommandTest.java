@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_TEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_VECTOR_DESCRIPTOR;
@@ -94,6 +95,9 @@ class SchemaCommandTest {
     private static final String[] LABELS = tokens(13, "Label");
     private static final String[] TYPES = tokens(7, "Rel");
 
+    // these IndexConfigs should be the authoritative configs (the ones serialized)
+    // this depends on the index version, this test assumes latest provider
+
     private static final List<IndexConfig> FULLTEXT_CONFIGS = List.of(
             IndexConfig.empty(),
             IndexConfig.with(Map.of("fulltext.eventually_consistent", Values.booleanValue(true))),
@@ -107,34 +111,26 @@ class SchemaCommandTest {
                     Values.doubleArray(new double[] {0.0, 0.0}),
                     "spatial.cartesian.max",
                     Values.doubleArray(new double[] {1.0, 1.0}))));
+
     private static final List<IndexConfig> VECTOR_CONFIGS = List.of(
-            IndexConfig.empty(),
-            IndexConfig.with(Map.of(
-                    "vector.hnsw.ef_construction",
-                    Values.intValue(100),
-                    "vector.hnsw.m",
-                    Values.intValue(16),
-                    "vector.quantization.enabled",
-                    Values.booleanValue(true),
-                    "vector.similarity_function",
-                    Values.stringValue("COSINE"))),
-            IndexConfig.with(Map.of(
-                    "vector.dimensions",
-                    Values.intValue(1536),
-                    "vector.hnsw.ef_construction",
-                    Values.intValue(100),
-                    "vector.hnsw.m",
-                    Values.intValue(16),
-                    "vector.quantization.enabled",
-                    Values.booleanValue(true),
-                    "vector.similarity_function",
-                    Values.stringValue("COSINE"))),
-            // Vector 1
-            IndexConfig.with(Map.of(
-                    "vector.dimensions",
-                    Values.intValue(1536),
-                    "vector.similarity_function",
-                    Values.stringValue("COSINE"))));
+            // no empty authoritative config, the default (minimum authoritative config):
+            IndexConfig.with(Map.ofEntries(
+                    entry("vector.similarity_function", Values.utf8Value("COSINE")),
+                    entry("vector.quantization.enabled", Values.booleanValue(true)),
+                    entry("vector.hnsw.m", Values.intValue(16)),
+                    entry("vector.hnsw.ef_construction", Values.intValue(100)))),
+            IndexConfig.with(Map.ofEntries(
+                    entry("vector.dimensions", Values.intValue(1536)),
+                    entry("vector.similarity_function", Values.utf8Value("COSINE")),
+                    entry("vector.quantization.enabled", Values.booleanValue(true)),
+                    entry("vector.hnsw.m", Values.intValue(16)),
+                    entry("vector.hnsw.ef_construction", Values.intValue(100)))),
+            IndexConfig.with(Map.ofEntries(
+                    entry("vector.dimensions", Values.intValue(768)),
+                    entry("vector.similarity_function", Values.utf8Value("EUCLIDEAN")),
+                    entry("vector.quantization.enabled", Values.booleanValue(false)),
+                    entry("vector.hnsw.m", Values.intValue(32)),
+                    entry("vector.hnsw.ef_construction", Values.intValue(200)))));
 
     private static final PropertyTypeSet[] PROPERTY_TYPES = new PropertyTypeSet[] {
         PropertyTypeSet.of(SchemaValueType.BOOLEAN),

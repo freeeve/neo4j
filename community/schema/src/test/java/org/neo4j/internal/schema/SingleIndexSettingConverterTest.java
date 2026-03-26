@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Stream;
@@ -36,6 +37,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.IntegerToOptionalIntConverter;
+import org.neo4j.internal.schema.SingleIndexSettingConverter.StringToUpperCaseConverter;
 import org.neo4j.internal.schema.SingleIndexSettingConverter.TypeToOptionalConverter;
 import org.neo4j.internal.schema.SingleIndexSettingProcessorTest.SingleProcessorTestBase;
 import org.neo4j.values.storable.Value;
@@ -155,6 +157,55 @@ public class SingleIndexSettingConverterTest {
             final Value storable = Values.unsafeOf(value, true);
             final RecordWithSetting record = new Valid(setting, value, storable);
             final Optional<?> processedValue = Optional.ofNullable(value);
+
+            processForVerificationAndAssertRecord(record, Valid.class)
+                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(processedValue, storable);
+
+            processForAuthoritativeReadAndAssertRecord(record)
+                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(processedValue, storable);
+        }
+    }
+
+    @Nested
+    class StringToUpperCaseConverterTest extends SingleConverterTestBase {
+        StringToUpperCaseConverterTest() {
+            super(StringToUpperCaseConverter.of(TestIndexSetting.STRING));
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void incorrectType(Object value) {
+            final RecordWithSetting record = new Pending(setting, value, Values.of(value));
+
+            processForVerificationAndAssertRecord(record, IncorrectType.class)
+                    .extracting(IncorrectType::targetType)
+                    .isEqualTo(String.class);
+        }
+
+        static Stream<Object> incorrectType() {
+            return Stream.of(false, 42, new float[] {3.f, 4.f, 5.f});
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"foo", "bar", "baz"})
+        void pending(String value) {
+            final Value storable = Values.utf8Value(value);
+            final RecordWithSetting record = new Pending(setting, value, storable);
+            final String processedValue = value.toUpperCase(Locale.ROOT);
+
+            processForVerificationAndAssertRecord(record, Pending.class)
+                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(processedValue, storable);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"foo", "bar", "baz"})
+        void valid(String value) {
+            final Value storable = Values.utf8Value(value);
+            final RecordWithSetting record = new Valid(setting, value, storable);
+            final String processedValue = value.toUpperCase(Locale.ROOT);
 
             processForVerificationAndAssertRecord(record, Valid.class)
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)

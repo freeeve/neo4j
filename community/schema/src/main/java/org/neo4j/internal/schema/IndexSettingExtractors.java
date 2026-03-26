@@ -41,9 +41,12 @@ import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.IntegralValue;
+import org.neo4j.values.storable.LongValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
@@ -210,13 +213,24 @@ public class IndexSettingExtractors {
             if (!(unprocessed.rawValue() instanceof final IntegralValue integralValue)) {
                 return new IncorrectType(unprocessed, IntegralValue.class);
             }
-            // cannot go via IntegralValue::intValue as LongValue::intValue will throw
-            final long longValue = integralValue.longValue();
-            if (!INTEGER_RANGE.contains(longValue)) {
-                return new InvalidValue(unprocessed, longValue, INTEGER_RANGE);
+
+            if (integralValue instanceof final IntValue intValue) {
+                return new Pending(unprocessed, intValue.intValue(), intValue);
             }
 
-            return new Pending(unprocessed, (int) longValue, integralValue);
+            final int value;
+            if (integralValue instanceof final LongValue longValue) {
+                // LongValue::intValue will always throw, go via long
+                final long primitiveLong = longValue.longValue();
+                if (!INTEGER_RANGE.contains(primitiveLong)) {
+                    return new InvalidValue(unprocessed, primitiveLong, new DefaultRequirement<>(INTEGER_RANGE));
+                }
+                value = (int) primitiveLong;
+            } else {
+                value = integralValue.intValue();
+            }
+
+            return new Pending(unprocessed, value, Values.intValue(value));
         }
 
         @Override

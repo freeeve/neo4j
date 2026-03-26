@@ -35,6 +35,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.Unprocessed;
 import org.neo4j.internal.schema.IndexSettingRecord.UnrecognizedSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
+import org.neo4j.internal.schema.IndexSettingsRequirements.IterableRequirement;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -128,7 +129,7 @@ class IndexSettingRecordsByStateTest {
             case UNRECOGNIZED_SETTING -> new UnrecognizedSetting("unknown-" + setting.getSettingName());
             case MISSING_SETTING -> new MissingSetting(setting);
             case INCORRECT_TYPE -> new IncorrectType(setting, (float) value, Integer.class);
-            case INVALID_VALUE -> new InvalidValue(setting, -23, Set.of(23, 42, 64));
+            case INVALID_VALUE -> new InvalidValue(setting, -23, new IterableRequirement(Set.of(23, 42, 64)));
         };
     }
 }

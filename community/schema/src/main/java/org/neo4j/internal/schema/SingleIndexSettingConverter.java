@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.neo4j.graphdb.schema.IndexSetting;
@@ -28,6 +29,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithStorable;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsRequirements.ClassRequirement;
 
 /// A [SingleIndexSettingProcessor] which converts/transforms a value to another with the same [IndexSetting]
 public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSettingProcessor {
@@ -49,7 +51,7 @@ public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSetti
 
         final Object value = hasStorable.value();
         if (value == null) {
-            return new InvalidValue(hasStorable, fromType);
+            return new InvalidValue(hasStorable, new ClassRequirement(fromType));
         }
         if (!fromType.isInstance(value)) {
             return new IncorrectType(hasStorable, fromType);
@@ -128,6 +130,28 @@ public abstract class SingleIndexSettingConverter<FROM> extends SingleIndexSetti
         @Override
         protected Optional<FROM> convert(FROM value) {
             return Optional.ofNullable(value);
+        }
+    }
+
+    public static final class StringToUpperCaseConverter extends SingleIndexSettingConverter<String> {
+        private final Locale locale;
+
+        public static StringToUpperCaseConverter of(IndexSetting setting) {
+            return of(setting, Locale.ROOT);
+        }
+
+        public static StringToUpperCaseConverter of(IndexSetting setting, Locale locale) {
+            return new StringToUpperCaseConverter(setting, locale);
+        }
+
+        private StringToUpperCaseConverter(IndexSetting setting, Locale locale) {
+            super(setting, String.class);
+            this.locale = locale;
+        }
+
+        @Override
+        protected Object convert(String value) {
+            return value.toUpperCase(locale);
         }
     }
 }

@@ -25,8 +25,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingsProcessor.ValidatingIndexSettingsProcessor;
+import org.neo4j.internal.schema.IndexSettingsRequirements.IterableRequirement;
 
 /// A [SingleIndexSettingProcessor] that has a lookup from one type to another
 ///
@@ -37,9 +39,10 @@ public abstract class SingleIndexSettingLookup<FROM> extends SingleIndexSettingP
     protected final SingleIndexSettingValidator<FROM> validator;
     protected final SingleIndexSettingConverter<FROM> converter;
 
-    protected SingleIndexSettingLookup(IndexSetting setting, Class<FROM> fromType, Object valid) {
+    protected SingleIndexSettingLookup(
+            IndexSetting setting, Class<FROM> fromType, IndexSettingsRequirement<?> requirement) {
         super(setting);
-        this.validator = new Validator(setting, fromType, valid);
+        this.validator = new Validator(setting, fromType, requirement);
         this.converter = new Converter(setting, fromType);
     }
 
@@ -60,8 +63,8 @@ public abstract class SingleIndexSettingLookup<FROM> extends SingleIndexSettingP
     protected abstract Object lookup(FROM value);
 
     private class Validator extends SingleIndexSettingValidator<FROM> {
-        private Validator(IndexSetting setting, Class<FROM> type, Object valid) {
-            super(setting, type, valid);
+        private Validator(IndexSetting setting, Class<FROM> type, IndexSettingsRequirement<?> requirement) {
+            super(setting, type, requirement);
         }
 
         @Override
@@ -94,7 +97,7 @@ public abstract class SingleIndexSettingLookup<FROM> extends SingleIndexSettingP
         }
 
         protected SingleIndexSettingMapLookup(IndexSetting setting, Class<FROM> fromType, Map<FROM, ?> lookup) {
-            super(setting, fromType, Collections.unmodifiableSet(lookup.keySet()));
+            super(setting, fromType, new IterableRequirement(lookup.keySet()));
             this.lookup = Collections.unmodifiableMap(lookup);
         }
 
@@ -123,10 +126,6 @@ public abstract class SingleIndexSettingLookup<FROM> extends SingleIndexSettingP
             for (final TYPE value : values) {
                 lookup.put(value.name(), value);
             }
-            return of(setting, lookup);
-        }
-
-        public static <TYPE extends Enum<TYPE>> NameToEnumLookup of(IndexSetting setting, Map<String, TYPE> lookup) {
             return new NameToEnumLookup(setting, lookup);
         }
 

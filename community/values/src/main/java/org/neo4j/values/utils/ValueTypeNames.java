@@ -74,7 +74,12 @@ public class ValueTypeNames {
 
     @SuppressWarnings("unchecked")
     public static String nameOfType(Class<?> type) {
-        return Value.class.isAssignableFrom(type) ? ofClass((Class<? extends Value>) type) : type.getSimpleName();
+        if (Value.class.isAssignableFrom(type)) {
+            return ofClass((Class<? extends Value>) type);
+        }
+
+        final String simpleName = type.getSimpleName();
+        return simpleName.isBlank() ? type.getTypeName() : simpleName;
     }
 
     public static String ofRepresentation(ValueRepresentation valueRepresentation) {

@@ -27,6 +27,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
+import org.neo4j.internal.schema.IndexSettingsRequirements.ClassRequirement;
 
 /// A [SingleIndexSettingProcessor] that transforms a valid value from one [IndexSetting] to another
 public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSettingProcessor {
@@ -51,7 +52,7 @@ public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSe
     @Override
     public RecordWithSetting processForVerification(RecordWithSetting record) {
         if (!(record instanceof final Valid valid)) {
-            return new InvalidValue(toSetting, null, toType);
+            return new InvalidValue(toSetting, null, new ClassRequirement(toType));
         }
         if (!fromType.isInstance(valid.value())) {
             return new IncorrectType(toSetting, null, fromType);

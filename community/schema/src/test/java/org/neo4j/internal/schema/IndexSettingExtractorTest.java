@@ -20,9 +20,13 @@
 package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
+import static org.assertj.core.api.InstanceOfAssertFactories.INTEGER;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.settings;
 
+import java.util.function.Supplier;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,8 +46,8 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.IntegralValue;
-import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
@@ -123,13 +127,17 @@ class IndexSettingExtractorTest {
             final BooleanValue booleanValue = Values.booleanValue(value);
             final SettingsAccessor accessor = settingValue(value);
 
-            extractForValidationAndAssertRecord(accessor, Pending.class)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(value, booleanValue);
+            final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
+            validationAssert.extracting(RecordWithValue::value, BOOLEAN).isEqualTo(value);
+            validationAssert
+                    .extracting(RecordWithStorable::storable, type(BooleanValue.class))
+                    .isEqualTo(booleanValue);
 
-            extractForAuthoritativeReadAndAssertRecord(accessor)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(value, booleanValue);
+            final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
+            authoritativeReadAssert.extracting(RecordWithValue::value, BOOLEAN).isEqualTo(value);
+            authoritativeReadAssert
+                    .extracting(RecordWithStorable::storable, type(BooleanValue.class))
+                    .isEqualTo(booleanValue);
         }
     }
 
@@ -157,7 +165,8 @@ class IndexSettingExtractorTest {
                     extractForValidationAndAssertRecord(accessor, InvalidValue.class);
             invalidValueAssert.extracting(RecordWithValue::value).isEqualTo(value);
             invalidValueAssert
-                    .extracting(InvalidValue::valid, type(InclusiveRange.class))
+                    .extracting(InvalidValue::requirement)
+                    .extracting(Supplier::get, type(InclusiveRange.class))
                     .extracting(InclusiveRange::min, InclusiveRange::max)
                     .containsExactly((long) Integer.MIN_VALUE, (long) Integer.MAX_VALUE);
         }
@@ -186,19 +195,22 @@ class IndexSettingExtractorTest {
                     Integer.MAX_VALUE
                 })
         void extracted(Number value) {
-            final NumberValue numberValue = Values.numberValue(value);
-            assertThat(numberValue).isInstanceOf(IntegralValue.class);
-            final IntegralValue integralValue = (IntegralValue) numberValue;
             final int integer = value.intValue();
+            final IntValue storable = Values.intValue(integer);
             final SettingsAccessor accessor = settingValue(value);
 
-            extractForValidationAndAssertRecord(accessor, Pending.class)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(integer, integralValue);
+            final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
+            validationAssert.extracting(RecordWithValue::value, INTEGER).isEqualTo(integer);
+            validationAssert
+                    .as("should specifically be an % on validation", IntValue.class.getSimpleName())
+                    .extracting(RecordWithStorable::storable, type(IntValue.class))
+                    .isEqualTo(storable);
 
-            extractForAuthoritativeReadAndAssertRecord(accessor)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(integer, integralValue);
+            final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
+            authoritativeReadAssert.extracting(RecordWithValue::value, INTEGER).isEqualTo(integer);
+            authoritativeReadAssert
+                    .extracting(RecordWithStorable::storable, type(IntegralValue.class))
+                    .isEqualTo(storable);
         }
     }
 
@@ -220,16 +232,20 @@ class IndexSettingExtractorTest {
         @ParameterizedTest
         @ValueSource(strings = {"foo", "bar", "baz"})
         void extracted(String value) {
-            final TextValue textValue = Values.utf8Value(value);
+            final TextValue textValue = Values.stringValue(value);
             final SettingsAccessor accessor = settingValue(value);
 
-            extractForValidationAndAssertRecord(accessor, Pending.class)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(value, textValue);
+            final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
+            validationAssert.extracting(RecordWithValue::value, STRING).isEqualTo(value);
+            validationAssert
+                    .extracting(RecordWithStorable::storable, type(TextValue.class))
+                    .isEqualTo(textValue);
 
-            extractForAuthoritativeReadAndAssertRecord(accessor)
-                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(value, textValue);
+            final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
+            authoritativeReadAssert.extracting(RecordWithValue::value, STRING).isEqualTo(value);
+            authoritativeReadAssert
+                    .extracting(RecordWithStorable::storable, type(TextValue.class))
+                    .isEqualTo(textValue);
         }
     }
 }

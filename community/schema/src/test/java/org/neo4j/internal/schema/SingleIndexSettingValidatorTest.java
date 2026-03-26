@@ -24,6 +24,7 @@ import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.internal.schema.IndexSettingTestUtils.FAKE_VALUE;
 
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.ObjectAssert;
@@ -87,7 +88,8 @@ public class SingleIndexSettingValidatorTest {
             invalidValueAssert.extracting(RecordWithValue::value).isEqualTo(value);
 
             invalidValueAssert
-                    .extracting(InvalidValue::valid, type(InclusiveRange.class))
+                    .extracting(InvalidValue::requirement)
+                    .extracting(Supplier::get, type(InclusiveRange.class))
                     .extracting(InclusiveRange::min, InclusiveRange::max)
                     .containsExactly(MIN, MAX);
         }
@@ -144,7 +146,8 @@ public class SingleIndexSettingValidatorTest {
             invalidValueAssert.extracting(RecordWithValue::value).isEqualTo(value);
 
             invalidValueAssert
-                    .extracting(InvalidValue::valid, type(InclusiveRange.class))
+                    .extracting(InvalidValue::requirement)
+                    .extracting(Supplier::get, type(InclusiveRange.class))
                     .extracting(InclusiveRange::min, InclusiveRange::max)
                     .containsExactly(MIN, MAX);
         }

@@ -20,13 +20,13 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_TYPE;
 
 import java.util.EnumSet;
 import java.util.Optional;
-import java.util.function.BiPredicate;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
+import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
 import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
@@ -61,6 +62,10 @@ class VectorIndexSettingsProcessorsTest {
         void setup() {
             records = new KnownIndexSettingRecords();
         }
+
+        private static Object underlyingRequirement(InvalidValue invalidValue) {
+            return invalidValue.requirement().get();
+        }
     }
 
     @Nested
@@ -78,7 +83,7 @@ class VectorIndexSettingsProcessorsTest {
             final RecordWithSetting processedRecord = MIGRATOR.processForVerification(record);
             assertThat(processedRecord)
                     .asInstanceOf(type(InvalidValue.class))
-                    .extracting(HasSetting::setting, InvalidValue::value, InvalidValue::valid)
+                    .extracting(HasSetting::setting, InvalidValue::value, TestBase::underlyingRequirement)
                     .containsExactly(QUANTIZATION_TYPE, null, VectorQuantizationType.class);
 
             MIGRATOR.updateForVerification(records);
@@ -155,8 +160,7 @@ class VectorIndexSettingsProcessorsTest {
         @EnumSource
         void invalidValueViaEnabled(VectorQuantizationType type) {
             final Value storable = Values.utf8Value(type.name());
-            final RecordWithSetting enabledRecord =
-                    records.upsert(new MissingSetting(VectorIndexConfigUtils.QUANTIZATION_ENABLED));
+            final RecordWithSetting enabledRecord = records.upsert(new MissingSetting(QUANTIZATION_ENABLED));
             records.upsert(new Pending(QUANTIZATION_TYPE, type.name(), storable));
             LOOKUP.updateForVerification(records);
 
@@ -175,8 +179,7 @@ class VectorIndexSettingsProcessorsTest {
             final Optional<Boolean> optionalEnabled = Optional.ofNullable(enabled);
             final Value storable = optionalEnabled.map(Values::of).orElse(Values.NO_VALUE);
             records.upsert(new Pending(QUANTIZATION_ENABLED, optionalEnabled, storable));
-            final RecordWithSetting typeRecord =
-                    records.upsert(new MissingSetting(VectorIndexConfigUtils.QUANTIZATION_TYPE));
+            final RecordWithSetting typeRecord = records.upsert(new MissingSetting(QUANTIZATION_TYPE));
             LOOKUP.updateForVerification(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED))
@@ -189,10 +192,8 @@ class VectorIndexSettingsProcessorsTest {
 
         @Test
         void invalidValueViaBoth() {
-            final RecordWithSetting enabledRecord =
-                    records.upsert(new MissingSetting(VectorIndexConfigUtils.QUANTIZATION_ENABLED));
-            final RecordWithSetting typeRecord =
-                    records.upsert(new MissingSetting(VectorIndexConfigUtils.QUANTIZATION_TYPE));
+            final RecordWithSetting enabledRecord = records.upsert(new MissingSetting(QUANTIZATION_ENABLED));
+            final RecordWithSetting typeRecord = records.upsert(new MissingSetting(QUANTIZATION_TYPE));
             LOOKUP.updateForVerification(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED)).isSameAs(enabledRecord);
@@ -212,12 +213,46 @@ class VectorIndexSettingsProcessorsTest {
             final ObjectAssert<InvalidValue> invalidEnabledValueAssert =
                     assertThat(records.get(QUANTIZATION_ENABLED)).asInstanceOf(type(InvalidValue.class));
             invalidEnabledValueAssert.extracting(RecordWithValue::value).isEqualTo(optionalEnabled);
-            invalidEnabledValueAssert.extracting(InvalidValue::valid).isInstanceOf(BiPredicate.class);
+            invalidEnabledValueAssert
+                    .extracting(InvalidValue::requirement)
+                    .extracting(IndexSettingsRequirement::supported, STRING)
+                    .containsSubsequence(
+                            QUANTIZATION_ENABLED.getSettingName(),
+                            QUANTIZATION_TYPE.getSettingName(),
+                            String.valueOf(Optional.of(false)),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.SCALAR.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.SCALAR.name());
 
             final ObjectAssert<InvalidValue> invalidTypeValueAssert =
                     assertThat(records.get(QUANTIZATION_TYPE)).asInstanceOf(type(InvalidValue.class));
             invalidTypeValueAssert.extracting(RecordWithValue::value).isEqualTo(type);
-            invalidTypeValueAssert.extracting(InvalidValue::valid).isInstanceOf(BiPredicate.class);
+            invalidTypeValueAssert
+                    .extracting(InvalidValue::requirement)
+                    .extracting(IndexSettingsRequirement::supported, STRING)
+                    .containsSubsequence(
+                            QUANTIZATION_ENABLED.getSettingName(),
+                            QUANTIZATION_TYPE.getSettingName(),
+                            String.valueOf(Optional.of(false)),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.SCALAR.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.SCALAR.name());
         }
 
         @ParameterizedTest
@@ -233,12 +268,46 @@ class VectorIndexSettingsProcessorsTest {
             final ObjectAssert<InvalidValue> invalidEnabledValueAssert =
                     assertThat(records.get(QUANTIZATION_ENABLED)).asInstanceOf(type(InvalidValue.class));
             invalidEnabledValueAssert.extracting(RecordWithValue::value).isEqualTo(optionalEnabled);
-            invalidEnabledValueAssert.extracting(InvalidValue::valid).isInstanceOf(BiPredicate.class);
+            invalidEnabledValueAssert
+                    .extracting(InvalidValue::requirement)
+                    .extracting(IndexSettingsRequirement::supported, STRING)
+                    .containsSubsequence(
+                            QUANTIZATION_ENABLED.getSettingName(),
+                            QUANTIZATION_TYPE.getSettingName(),
+                            String.valueOf(Optional.of(false)),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.SCALAR.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.SCALAR.name());
 
             final ObjectAssert<InvalidValue> invalidTypeValueAssert =
                     assertThat(records.get(QUANTIZATION_TYPE)).asInstanceOf(type(InvalidValue.class));
             invalidTypeValueAssert.extracting(RecordWithValue::value).isEqualTo(type);
-            invalidTypeValueAssert.extracting(InvalidValue::valid).isInstanceOf(BiPredicate.class);
+            invalidTypeValueAssert
+                    .extracting(InvalidValue::requirement)
+                    .extracting(IndexSettingsRequirement::supported, STRING)
+                    .containsSubsequence(
+                            QUANTIZATION_ENABLED.getSettingName(),
+                            QUANTIZATION_TYPE.getSettingName(),
+                            String.valueOf(Optional.of(false)),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.of(true)),
+                            VectorQuantizationType.SCALAR.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.NONE.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.BINARY.name(),
+                            String.valueOf(Optional.empty()),
+                            VectorQuantizationType.SCALAR.name());
         }
 
         // =================================
@@ -286,20 +355,21 @@ class VectorIndexSettingsProcessorsTest {
             final boolean enabled = false;
             final Optional<Boolean> optionalEnabled = Optional.of(enabled);
             final VectorQuantizationType type = VectorQuantizationType.NONE;
-            final Value storable = Values.utf8Value(type.name());
-            records.upsert(new Pending(QUANTIZATION_ENABLED, optionalEnabled, Values.booleanValue(enabled)));
-            records.upsert(new Pending(QUANTIZATION_TYPE, type.name(), storable));
+            final Value storableEnabled = Values.booleanValue(enabled);
+            final Value storableType = Values.utf8Value(type.name());
+            records.upsert(new Pending(QUANTIZATION_ENABLED, optionalEnabled, storableEnabled));
+            records.upsert(new Pending(QUANTIZATION_TYPE, type.name(), storableType));
             LOOKUP.updateForVerification(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(optionalEnabled, Values.NO_VALUE);
+                    .containsExactly(optionalEnabled, storableEnabled);
 
             assertThat(records.get(QUANTIZATION_TYPE))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(type, storable);
+                    .containsExactly(type, storableType);
         }
 
         @Test
@@ -307,20 +377,21 @@ class VectorIndexSettingsProcessorsTest {
             final boolean enabled = false;
             final Optional<Boolean> optionalEnabled = Optional.of(enabled);
             final VectorQuantizationType type = VectorQuantizationType.NONE;
-            final Value storable = Values.utf8Value(type.name());
-            records.upsert(new Valid(QUANTIZATION_ENABLED, optionalEnabled, Values.booleanValue(enabled)));
-            records.upsert(new Valid(QUANTIZATION_TYPE, type.name(), storable));
+            final Value storableEnabled = Values.booleanValue(enabled);
+            final Value storableType = Values.utf8Value(type.name());
+            records.upsert(new Valid(QUANTIZATION_ENABLED, optionalEnabled, storableEnabled));
+            records.upsert(new Valid(QUANTIZATION_TYPE, type.name(), storableType));
             LOOKUP.updateForAuthoritativeRead(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(optionalEnabled, Values.NO_VALUE);
+                    .containsExactly(optionalEnabled, storableEnabled);
 
             assertThat(records.get(QUANTIZATION_TYPE))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(type, storable);
+                    .containsExactly(type, storableType);
         }
 
         @ParameterizedTest
@@ -328,20 +399,21 @@ class VectorIndexSettingsProcessorsTest {
         void enabledForVerification(VectorQuantizationType type) {
             final boolean enabled = true;
             final Optional<Boolean> optionalEnabled = Optional.of(enabled);
-            final Value storable = Values.utf8Value(type.name());
+            final Value storableEnabled = Values.booleanValue(enabled);
+            final Value storableType = Values.utf8Value(type.name());
             records.upsert(new Pending(QUANTIZATION_ENABLED, optionalEnabled, Values.booleanValue(enabled)));
-            records.upsert(new Pending(QUANTIZATION_TYPE, type.name(), storable));
+            records.upsert(new Pending(QUANTIZATION_TYPE, type.name(), storableType));
             LOOKUP.updateForVerification(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(optionalEnabled, Values.NO_VALUE);
+                    .containsExactly(optionalEnabled, storableEnabled);
 
             assertThat(records.get(QUANTIZATION_TYPE))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(type, storable);
+                    .containsExactly(type, storableType);
         }
 
         @ParameterizedTest
@@ -349,20 +421,21 @@ class VectorIndexSettingsProcessorsTest {
         void enabledForAuthoritativeRead(VectorQuantizationType type) {
             final boolean enabled = true;
             final Optional<Boolean> optionalEnabled = Optional.of(enabled);
-            final Value storable = Values.utf8Value(type.name());
-            records.upsert(new Valid(QUANTIZATION_ENABLED, optionalEnabled, Values.booleanValue(enabled)));
-            records.upsert(new Valid(QUANTIZATION_TYPE, type.name(), storable));
+            final Value storableEnabled = Values.booleanValue(enabled);
+            final Value storableType = Values.utf8Value(type.name());
+            records.upsert(new Valid(QUANTIZATION_ENABLED, optionalEnabled, storableEnabled));
+            records.upsert(new Valid(QUANTIZATION_TYPE, type.name(), storableType));
             LOOKUP.updateForAuthoritativeRead(records);
 
             assertThat(records.get(QUANTIZATION_ENABLED))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(optionalEnabled, Values.NO_VALUE);
+                    .containsExactly(optionalEnabled, storableEnabled);
 
             assertThat(records.get(QUANTIZATION_TYPE))
                     .asInstanceOf(type(Valid.class))
                     .extracting(RecordWithValue::value, RecordWithStorable::storable)
-                    .containsExactly(type, storable);
+                    .containsExactly(type, storableType);
         }
     }
 }

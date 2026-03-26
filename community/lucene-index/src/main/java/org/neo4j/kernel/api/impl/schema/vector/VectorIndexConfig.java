@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
-import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_TYPE;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION;
 
 import java.util.Collections;
@@ -49,8 +49,7 @@ public class VectorIndexConfig extends TypedIndexConfig {
         this.version = version;
         this.dimensions = get(DIMENSIONS);
         this.similarityFunction = get(SIMILARITY_FUNCTION);
-        final boolean quantizationEnabled = get(QUANTIZATION_ENABLED);
-        this.quantization = quantizationEnabled ? VectorQuantizationType.SCALAR : VectorQuantizationType.NONE;
+        this.quantization = get(QUANTIZATION_TYPE);
         this.hnswConfig = new HnswConfig(get(HNSW_M), get(HNSW_EF_CONSTRUCTION));
     }
 
