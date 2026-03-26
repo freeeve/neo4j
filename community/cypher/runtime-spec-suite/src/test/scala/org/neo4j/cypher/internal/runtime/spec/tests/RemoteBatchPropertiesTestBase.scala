@@ -22,17 +22,29 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
+import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
+import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport
+import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSupport.WorkloadMode
+import org.neo4j.cypher.internal.runtime.spec.tests.index.PropertyIndexTestSupport
 import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.UpperBound.Limited
+import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.RelationshipType.withName
+import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.internal.helpers.collection.Iterables
+import org.neo4j.kernel.api.KernelTransaction.Type
+import org.neo4j.logging.InternalLogProvider
 
 import java.util.Collections.emptyList
 
@@ -1094,5 +1106,186 @@ trait UpdatingRemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext] extends R
     // then
     val result = execute(logicalQuery, runtime)
     result should beColumns("n").withRows(rowCount(1)).withStatistics(nodesCreated = 1, propertiesSet = 1)
+  }
+}
+
+trait UpdatingTransactionRemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext]
+    extends RuntimeTestSuite[CONTEXT] with PropertyIndexTestSupport[CONTEXT] {
+  self: RemoteBatchPropertiesTestBase[CONTEXT] =>
+
+  override protected def createRuntimeTestSupport(
+    graphDb: GraphDatabaseService,
+    edition: Edition[CONTEXT],
+    runtime: CypherRuntime[CONTEXT],
+    workloadMode: WorkloadMode,
+    logProvider: InternalLogProvider
+  ): RuntimeTestSupport[CONTEXT] = {
+    new RuntimeTestSupport[CONTEXT](
+      graphDb,
+      edition,
+      runtime,
+      workloadMode,
+      logProvider,
+      debugOptions,
+      defaultTransactionType = Type.IMPLICIT
+    )
+  }
+
+  test("should create data from returning subqueries remote projection on RHS") {
+    givenGraph {
+      tx.createNode(Label.label("L")).setProperty("prop", 10)
+      tx.createNode(Label.label("L")).setProperty("prop", 20)
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .transactionApply()
+      .|.setProperty("n", "prop", "cache[l.prop]")
+      .|.create(createNode("n", "N"))
+      .|.filter("cache[l.prop] = x")
+      .|.remoteBatchProperties("cache[l.prop]")
+      .|.nodeByLabelScan("l", "L")
+      .unwind("[10, 20] AS x")
+      .argument()
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+    consume(runtimeResult)
+    val nodes = Iterables.asList(tx.getAllNodes)
+    nodes.size shouldBe 4
+  }
+
+  private val nodeCount = 50
+
+  for (batchSize <- List(nodeCount - 1, nodeCount, nodeCount + 1)) {
+
+    test(s"should create data in subqueries using batch size $batchSize with remote seek and projection on RHS") {
+      givenGraph {
+        for (i <- 1 to nodeCount) {
+          tx.createNode(Label.label("L")).setProperty("prop", i)
+        }
+        nodeIndex(IndexType.RANGE, "L", "prop")
+      }
+
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("n")
+        .transactionApply(batchSize)
+        .|.setProperty("n", "prop", "cache[l.prop]")
+        .|.create(createNode("n", "N"))
+        .|.remoteBatchProperties("cache[l.prop]")
+        .|.nodeIndexOperator(
+          "l:L(prop = ???)",
+          getValue = _ => DoNotGetValue,
+          paramExpr = Some(varFor("x")),
+          argumentIds = Set("x"),
+          indexType = IndexType.RANGE
+        )
+        .unwind(s"range(1,$nodeCount) AS x")
+        .argument()
+        .build(readOnly = false)
+
+      // then
+      val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+      consume(runtimeResult)
+      val nodes = Iterables.asList(tx.getAllNodes)
+      nodes.size shouldBe nodeCount * 2
+    }
+
+    test(s"should create data in subqueries using batch size $batchSize with label scan and projection on RHS") {
+      givenGraph {
+        for (i <- 1 to nodeCount) {
+          tx.createNode(Label.label("L")).setProperty("prop", i)
+        }
+        nodeIndex(IndexType.RANGE, "L", "prop")
+      }
+
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("n")
+        .transactionApply(batchSize)
+        .|.setProperty("n", "prop", "cache[l.prop]")
+        .|.create(createNode("n", "N"))
+        .|.filter("cache[l.prop] = x")
+        .|.remoteBatchProperties("cache[l.prop]")
+        .|.nodeByLabelScan("l", "L")
+        .unwind(s"range(1,$nodeCount) AS x")
+        .argument()
+        .build(readOnly = false)
+
+      // then
+      val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+      consume(runtimeResult)
+      val nodes = Iterables.asList(tx.getAllNodes)
+      nodes.size shouldBe nodeCount * 2
+    }
+
+    test(
+      s"should create data in subqueries using batch size $batchSize with remote seek and multiple projections on RHS"
+    ) {
+      givenGraph {
+        for (i <- 1 to nodeCount) {
+          val node = tx.createNode(Label.label("L"))
+          node.setProperty("prop1", i)
+          node.setProperty("prop2", i)
+        }
+        nodeIndex(IndexType.RANGE, "L", "prop1")
+      }
+
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("n")
+        .transactionApply(batchSize)
+        .|.setProperty("n", "prop2", "cache[l.prop2]")
+        .|.setProperty("n", "prop1", "cache[l.prop1]")
+        .|.create(createNode("n", "N"))
+        .|.remoteBatchProperties("cache[l.prop2]")
+        .|.nodeIndexOperator(
+          "l:L(prop1 = ???)",
+          getValue = _ => GetValue,
+          paramExpr = Some(varFor("x")),
+          argumentIds = Set("x"),
+          indexType = IndexType.RANGE
+        )
+        .unwind(s"range(1,$nodeCount) AS x")
+        .argument()
+        .build(readOnly = false)
+
+      // then
+      val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+      consume(runtimeResult)
+      val nodes = Iterables.asList(tx.getAllNodes)
+      nodes.size shouldBe nodeCount * 2
+    }
+
+    test(
+      s"should create data in subqueries using batch size $batchSize with label scan and multiple remote projections on RHS"
+    ) {
+      givenGraph {
+        for (i <- 1 to nodeCount) {
+          val node = tx.createNode(Label.label("L"))
+          node.setProperty("prop1", i)
+          node.setProperty("prop2", i)
+        }
+      }
+
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("n")
+        .transactionApply(batchSize)
+        .|.setProperty("n", "prop2", "cache[l.prop2]")
+        .|.setProperty("n", "prop1", "cache[l.prop1]")
+        .|.create(createNode("n", "N"))
+        .|.remoteBatchProperties("cache[l.prop2]")
+        .|.filter("cache[l.prop1] = x")
+        .|.remoteBatchProperties("cache[l.prop1]")
+        .|.nodeByLabelScan("l", "L")
+        .unwind(s"range(1,$nodeCount) AS x")
+        .argument()
+        .build(readOnly = false)
+
+      // then
+      val runtimeResult: RecordingRuntimeResult = execute(query, runtime)
+      consume(runtimeResult)
+      val nodes = Iterables.asList(tx.getAllNodes)
+      nodes.size shouldBe nodeCount * 2
+    }
   }
 }
