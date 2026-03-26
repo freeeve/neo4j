@@ -39,7 +39,6 @@ import static java.net.HttpURLConnection.HTTP_CREATED;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.output.NullOutputStream.nullOutputStream;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -304,8 +303,9 @@ public class UploadCommandTest {
         String[] args = getNormalRuntimeArgs();
         CommandLine.populateCommand(command, args);
 
-        var exception = assertThrows(CommandFailedException.class, () -> command.execute());
-        assertThat(exception.getMessage()).contains("Timed out waiting for database load to start");
+        assertThatThrownBy(() -> command.execute())
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Timed out waiting for database load to start");
 
         verifyCommonConsoleUrls();
         verifyGCPPresignedEndpoints();
@@ -328,9 +328,9 @@ public class UploadCommandTest {
         String[] args = getNormalRuntimeArgs();
         CommandLine.populateCommand(command, args);
 
-        var exception = assertThrows(CommandFailedException.class, () -> command.execute());
-        assertThat(exception.getMessage())
-                .contains(
+        assertThatThrownBy(() -> command.execute())
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining(
                         "The target database contained data and consent to overwrite the data was not given. Aborting");
     }
 

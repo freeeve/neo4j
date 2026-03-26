@@ -19,8 +19,7 @@
  */
 package org.neo4j.io.pagecache.checking;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -136,8 +135,9 @@ class AccessCheckingPageCacheTest {
         // GIVEN
         cursor.getByte();
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.close());
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.close())
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 
     @Test
@@ -145,8 +145,9 @@ class AccessCheckingPageCacheTest {
         // GIVEN
         cursor.getByte(0);
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.next());
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.next())
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 
     @Test
@@ -154,8 +155,9 @@ class AccessCheckingPageCacheTest {
         // GIVEN
         cursor.getShort();
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.next(1));
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.next(1))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 
     @Test
@@ -165,8 +167,9 @@ class AccessCheckingPageCacheTest {
         cursor.shouldRetry();
         cursor.getInt();
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.close());
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.close())
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 
     @Test
@@ -176,8 +179,9 @@ class AccessCheckingPageCacheTest {
         cursor.shouldRetry();
         cursor.getLong();
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.next());
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.next())
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 
     @Test
@@ -187,7 +191,8 @@ class AccessCheckingPageCacheTest {
         cursor.shouldRetry();
         cursor.getBytes(new byte[2]);
 
-        AssertionError assertionError = assertThrows(AssertionError.class, () -> cursor.next(1));
-        assertThat(assertionError.getMessage()).contains("shouldRetry");
+        assertThatThrownBy(() -> cursor.next(1))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("shouldRetry");
     }
 }

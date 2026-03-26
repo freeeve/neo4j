@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.transaction.log;
 
 import static java.util.Collections.emptyIterator;
 import static org.apache.commons.io.IOUtils.EMPTY_BYTE_ARRAY;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -324,17 +323,16 @@ class BatchingTransactionAppenderTest {
         CompleteBatchRepresentation transaction =
                 new CompleteBatchRepresentation(start, singleTestCommand(), commit, BASE_TX_CHECKSUM);
 
-        var e = assertThrows(
-                Exception.class,
-                () -> appender.register(
+        assertThatThrownBy(() -> appender.register(
                         new CompleteTransaction(
                                 transaction,
                                 NULL_CONTEXT,
                                 StoreCursors.NULL,
                                 new TransactionCommitment(transactionIdStore),
                                 new IdStoreTransactionIdGenerator(transactionIdStore)),
-                        LogAppendEvent.NULL));
-        assertThat(e.getMessage()).contains("to be applied, but appending it ended up generating an");
+                        LogAppendEvent.NULL))
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("to be applied, but appending it ended up generating an");
     }
 
     @Test

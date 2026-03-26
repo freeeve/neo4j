@@ -20,6 +20,7 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -162,20 +163,18 @@ public class ProcedureTest {
 
     @Test
     void shouldGiveHelpfulErrorOnConstructorThatRequiresArgument() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(WeirdConstructorProcedure.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(WeirdConstructorProcedure.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Unable to find a usable public no-argument constructor in the class `WeirdConstructorProcedure`. Please add a "
                                 + "valid, public constructor, recompile the class and try again.");
     }
 
     @Test
     void shouldGiveHelpfulErrorOnNoPublicConstructor() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(PrivateConstructorProcedure.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(PrivateConstructorProcedure.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Unable to find a usable public no-argument constructor in the class `PrivateConstructorProcedure`. Please add "
                                 + "a valid, public constructor, recompile the class and try again.");
     }
@@ -193,10 +192,9 @@ public class ProcedureTest {
 
     @Test
     void shouldGiveHelpfulErrorOnProcedureReturningInvalidRecordType() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(ProcedureWithInvalidRecordOutput.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(ProcedureWithInvalidRecordOutput.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         String.format("Procedures must return a Stream of records, where a record is a concrete class%n"
                                 + "that you define, with public non-final fields defining the fields in the record.%n"
                                 + "If you''d like your procedure to return `String`, you could define a record class like:%n"
@@ -208,10 +206,9 @@ public class ProcedureTest {
 
     @Test
     void shouldGiveHelpfulErrorOnContextAnnotatedStaticField() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(ProcedureWithStaticContextAnnotatedField.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format(
+        assertThatThrownBy(() -> compile(ProcedureWithStaticContextAnnotatedField.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(String.format(
                         "The field `gdb` in the class named `ProcedureWithStaticContextAnnotatedField` is annotated as a @Context field,%n"
                                 + "but it is static. @Context fields must be public, non-final and non-static,%n"
                                 + "because they are reset each time a procedure is invoked."));
@@ -252,10 +249,9 @@ public class ProcedureTest {
         CallableProcedure proc =
                 compile(ProcedureThatThrowsNullMsgExceptionAtInvocation.class).get(0);
 
-        ProcedureException exception = assertThrows(
-                ProcedureException.class, () -> proc.apply(prepareContext(), new AnyValue[0], EMPTY_RESOURCE_TRACKER));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> proc.apply(prepareContext(), new AnyValue[0], EMPTY_RESOURCE_TRACKER))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Failed to invoke procedure `org.neo4j.procedure.impl.throwsAtInvocation`: Caused by: java.lang.IndexOutOfBoundsException");
     }
 

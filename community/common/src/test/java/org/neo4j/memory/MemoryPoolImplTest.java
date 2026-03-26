@@ -19,7 +19,7 @@
  */
 package org.neo4j.memory;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -102,12 +102,11 @@ class MemoryPoolImplTest {
         memoryPool.reserveHeap(halfLimit);
         assertState(limit, 0, limit, memoryPool);
 
-        MemoryLimitExceededException memoryLimitExceededException =
-                assertThrows(MemoryLimitExceededException.class, () -> memoryPool.reserveHeap(1));
-        assertThat(memoryLimitExceededException.getMessage())
-                .contains("The allocation of an extra 1 B would use more than the limit 10 B. " + "Currently using "
-                        + limit + " B");
-        assertThat(memoryLimitExceededException.getMessage()).contains("mySetting");
+        assertThatThrownBy(() -> memoryPool.reserveHeap(1))
+                .isInstanceOf(MemoryLimitExceededException.class)
+                .hasMessageContaining("The allocation of an extra 1 B would use more than the limit 10 B. "
+                        + "Currently using " + limit + " B")
+                .hasMessageContaining("mySetting");
 
         memoryPool.releaseHeap(halfLimit);
         assertState(limit, halfLimit, halfLimit, memoryPool);

@@ -19,8 +19,7 @@
  */
 package org.neo4j.shell;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
@@ -140,9 +139,9 @@ class CypherShellTest {
                 new OfflineTestShell(printer, mockedBoltStateHandler, mockedDbInfo, mockedPrettyPrinter);
         when(mockedBoltStateHandler.isConnected()).thenReturn(false);
 
-        CommandException exception = assertThrows(
-                CommandException.class, () -> shell.execute(new CypherStatement("RETURN 999;", true, 0, 0)));
-        assertThat(exception).hasMessageContaining("Not connected to Neo4j");
+        assertThatThrownBy(() -> shell.execute(new CypherStatement("RETURN 999;", true, 0, 0)))
+                .isInstanceOf(CommandException.class)
+                .hasMessageContaining("Not connected to Neo4j");
     }
 
     @Test
@@ -168,8 +167,9 @@ class CypherShellTest {
     @Test
     void incorrectCommandsThrowException() {
         var statement = new CommandStatement(":help", List.of("arg1", "arg2"), true, 0, 0);
-        CommandException exception = assertThrows(CommandException.class, () -> offlineTestShell.execute(statement));
-        assertThat(exception).hasMessageContaining("Incorrect number of arguments");
+        assertThatThrownBy(() -> offlineTestShell.execute(statement))
+                .isInstanceOf(CommandException.class)
+                .hasMessageContaining("Incorrect number of arguments");
     }
 
     @Test

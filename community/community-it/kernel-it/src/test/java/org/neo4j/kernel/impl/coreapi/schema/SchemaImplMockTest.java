@@ -19,8 +19,7 @@
  */
 package org.neo4j.kernel.impl.coreapi.schema;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,12 +47,10 @@ class SchemaImplMockTest {
         KernelTransaction kernelTransaction = mockKernelTransaction();
         SchemaImpl schema = new SchemaImpl(kernelTransaction);
 
-        // when
-        IllegalStateException e = assertThrows(
-                IllegalStateException.class, () -> schema.awaitIndexOnline(indexDefinition, 1, TimeUnit.MINUTES));
-
-        // then
-        assertThat(e.getMessage()).contains(Exceptions.stringify(cause));
+        // when/then
+        assertThatThrownBy(() -> schema.awaitIndexOnline(indexDefinition, 1, TimeUnit.MINUTES))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(Exceptions.stringify(cause));
     }
 
     private static IndexDefinitionImpl mockIndexDefinition() {

@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.internal.locker;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -164,12 +164,13 @@ class FileLockerTest {
             }
         };
 
-        FileLockException fileLockException = assertThrows(FileLockException.class, () -> {
-            try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
-                storeLocker.checkLock();
-            }
-        });
-        assertThat(fileLockException.getMessage()).startsWith("Unable to create path for dir: ");
+        assertThatThrownBy(() -> {
+                    try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
+                        storeLocker.checkLock();
+                    }
+                })
+                .isInstanceOf(FileLockException.class)
+                .hasMessageStartingWith("Unable to create path for dir: ");
     }
 
     @ParameterizedTest
@@ -187,12 +188,13 @@ class FileLockerTest {
             }
         };
 
-        FileLockException fileLockException = assertThrows(FileLockException.class, () -> {
-            try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
-                storeLocker.checkLock();
-            }
-        });
-        assertThat(fileLockException.getMessage()).startsWith("Unable to obtain lock on file:");
+        assertThatThrownBy(() -> {
+                    try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
+                        storeLocker.checkLock();
+                    }
+                })
+                .isInstanceOf(FileLockException.class)
+                .hasMessageStartingWith("Unable to obtain lock on file:");
     }
 
     @ParameterizedTest
@@ -215,12 +217,13 @@ class FileLockerTest {
             }
         };
 
-        FileLockException fileLockException = assertThrows(FileLockException.class, () -> {
-            try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
-                storeLocker.checkLock();
-            }
-        });
-        assertThat(fileLockException.getMessage()).contains("Lock file has been locked by another process");
+        assertThatThrownBy(() -> {
+                    try (Locker storeLocker = lockerFactory.createLocker(fileSystemAbstraction, testDirectory)) {
+                        storeLocker.checkLock();
+                    }
+                })
+                .isInstanceOf(FileLockException.class)
+                .hasMessageContaining("Lock file has been locked by another process");
     }
 
     @Test

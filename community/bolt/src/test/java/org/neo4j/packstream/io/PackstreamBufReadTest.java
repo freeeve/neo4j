@@ -20,6 +20,7 @@
 package org.neo4j.packstream.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
@@ -173,16 +174,16 @@ class PackstreamBufReadTest {
 
     @Test
     void wrapShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> PackstreamBuf.wrap(null));
-
-        assertThat(ex).hasMessage("delegate cannot be null");
+        assertThatThrownBy(() -> PackstreamBuf.wrap(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("delegate cannot be null");
     }
 
     @Test
     void wrapRetainedShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> PackstreamBuf.wrapRetained(null));
-
-        assertThat(ex).hasMessage("delegate cannot be null");
+        assertThatThrownBy(() -> PackstreamBuf.wrapRetained(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("delegate cannot be null");
     }
 
     @TestFactory

@@ -20,9 +20,9 @@
 package org.neo4j.internal.batchimport.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -158,29 +158,27 @@ class BatchingNeoStoresTest {
         // GIVEN
         someDataInTheDatabase();
 
-        // WHEN
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> {
-            try (JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
-                try (BatchingNeoStores store = batchingNeoStores(
-                        fileSystem,
-                        databaseLayout,
-                        Configuration.DEFAULT,
-                        NullLogService.getInstance(),
-                        Config.defaults(),
-                        jobScheduler,
-                        PageCacheTracer.NULL,
-                        CONTEXT_FACTORY,
-                        INSTANCE,
-                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
-                    store.createNew();
-                }
-            }
-        });
-
-        // THEN
-        assertThat(exception.getMessage())
-                .contains(databaseLayout.databaseDirectory().toString())
-                .contains("already contains");
+        // WHEN/THEN
+        assertThatThrownBy(() -> {
+                    try (JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
+                        try (BatchingNeoStores store = batchingNeoStores(
+                                fileSystem,
+                                databaseLayout,
+                                Configuration.DEFAULT,
+                                NullLogService.getInstance(),
+                                Config.defaults(),
+                                jobScheduler,
+                                PageCacheTracer.NULL,
+                                CONTEXT_FACTORY,
+                                INSTANCE,
+                                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
+                            store.createNew();
+                        }
+                    }
+                })
+                .isInstanceOf(DirectoryNotEmptyException.class)
+                .hasMessageContaining(databaseLayout.databaseDirectory().toString())
+                .hasMessageContaining("already contains");
     }
 
     @Test
@@ -189,29 +187,28 @@ class BatchingNeoStoresTest {
         someDataInTheDatabase();
         fileSystem.deleteRecursively(databaseLayout.databaseDirectory());
 
-        // WHEN
-        DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> {
-            try (JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
-                try (BatchingNeoStores store = batchingNeoStores(
-                        fileSystem,
-                        databaseLayout,
-                        Configuration.DEFAULT,
-                        NullLogService.getInstance(),
-                        Config.defaults(),
-                        jobScheduler,
-                        PageCacheTracer.NULL,
-                        CONTEXT_FACTORY,
-                        INSTANCE,
-                        DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
-                    store.createNew();
-                }
-            }
-        });
-
-        // THEN
-        assertThat(exception.getMessage())
-                .contains(databaseLayout.getTransactionLogsDirectory().toString())
-                .contains("already contains");
+        // WHEN/THEN
+        assertThatThrownBy(() -> {
+                    try (JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
+                        try (BatchingNeoStores store = batchingNeoStores(
+                                fileSystem,
+                                databaseLayout,
+                                Configuration.DEFAULT,
+                                NullLogService.getInstance(),
+                                Config.defaults(),
+                                jobScheduler,
+                                PageCacheTracer.NULL,
+                                CONTEXT_FACTORY,
+                                INSTANCE,
+                                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)) {
+                            store.createNew();
+                        }
+                    }
+                })
+                .isInstanceOf(DirectoryNotEmptyException.class)
+                .hasMessageContaining(
+                        databaseLayout.getTransactionLogsDirectory().toString())
+                .hasMessageContaining("already contains");
     }
 
     @Test

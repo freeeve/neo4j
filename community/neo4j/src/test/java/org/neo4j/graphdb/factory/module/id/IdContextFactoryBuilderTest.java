@@ -20,9 +20,9 @@
 package org.neo4j.graphdb.factory.module.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.collections.api.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.configuration.Config.defaults;
@@ -86,10 +86,10 @@ class IdContextFactoryBuilderTest {
 
     @Test
     void requireFileSystemWhenIdGeneratorFactoryNotProvided() {
-        NullPointerException exception = assertThrows(
-                NullPointerException.class, () -> IdContextFactoryBuilder.of(null, jobScheduler, PageCacheTracer.NULL)
-                        .build());
-        assertThat(exception.getMessage()).contains("File system is required");
+        assertThatThrownBy(() -> IdContextFactoryBuilder.of(null, jobScheduler, PageCacheTracer.NULL)
+                        .build())
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("File system is required");
     }
 
     @Test

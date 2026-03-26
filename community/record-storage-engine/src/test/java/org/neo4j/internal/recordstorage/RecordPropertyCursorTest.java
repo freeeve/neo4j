@@ -21,6 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -245,15 +246,16 @@ public class RecordPropertyCursorTest {
         // when
         RecordPropertyCursor cursor = createCursor();
         cursor.initNodeProperties(longReference(firstProp), ALL_PROPERTIES, owner.getId());
-        InconsistentDataReadException e = assertThrows(InconsistentDataReadException.class, () -> {
-            while (cursor.next()) {
-                // just keep going, it should eventually hit the cycle detection threshold
-                cursor.propertyValue();
-            }
-        });
 
         // then
-        assertThat(e).hasMessageContainingAll("Unable to read property value in record", "owner NODE:" + owner.getId());
+        assertThatThrownBy(() -> {
+                    while (cursor.next()) {
+                        // just keep going, it should eventually hit the cycle detection threshold
+                        cursor.propertyValue();
+                    }
+                })
+                .isInstanceOf(InconsistentDataReadException.class)
+                .hasMessageContainingAll("Unable to read property value in record", "owner NODE:" + owner.getId());
     }
 
     @Test

@@ -20,9 +20,9 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
@@ -156,20 +156,18 @@ public class UserFunctionTest {
 
     @Test
     void shouldGiveHelpfulErrorOnConstructorThatRequiresArgument() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(WeirdConstructorFunction.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(WeirdConstructorFunction.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Unable to find a usable public no-argument constructor in the class `WeirdConstructorFunction`. Please add a "
                                 + "valid, public constructor, recompile the class and try again.");
     }
 
     @Test
     void shouldGiveHelpfulErrorOnNoPublicConstructor() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(PrivateConstructorFunction.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(PrivateConstructorFunction.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Unable to find a usable public no-argument constructor in the class `PrivateConstructorFunction`. Please add "
                                 + "a valid, public constructor, recompile the class and try again.");
     }
@@ -204,10 +202,9 @@ public class UserFunctionTest {
 
     @Test
     void shouldGiveHelpfulErrorOnContextAnnotatedStaticField() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(FunctionWithStaticContextAnnotatedField.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format(
+        assertThatThrownBy(() -> compile(FunctionWithStaticContextAnnotatedField.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(String.format(
                         "The field `gdb` in the class named `FunctionWithStaticContextAnnotatedField` is annotated as a @Context field,%n"
                                 + "but it is static. @Context fields must be public, non-final and non-static,%n"
                                 + "because they are reset each time a procedure is invoked."));
@@ -230,10 +227,9 @@ public class UserFunctionTest {
                 compile(FunctionThatThrowsNullMsgExceptionAtInvocation.class).get(0);
 
         // When
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> proc.apply(prepareContext(), new AnyValue[0]));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> proc.apply(prepareContext(), new AnyValue[0]))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Failed to invoke function `org.neo4j.procedure.impl.throwsAtInvocation`: Caused by: java.lang.IndexOutOfBoundsException");
     }
 

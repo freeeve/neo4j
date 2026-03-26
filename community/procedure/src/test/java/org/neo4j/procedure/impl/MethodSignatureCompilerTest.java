@@ -20,7 +20,7 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -101,11 +101,9 @@ class MethodSignatureCompilerTest {
         Method echo =
                 ClassWithProcedureWithSimpleArgs.class.getMethod("echoWithoutAnnotations", String.class, String.class);
 
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> new MethodSignatureCompiler(new Cypher5TypeCheckers())
-                        .signatureFor(echo));
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format(
+        assertThatThrownBy(() -> new MethodSignatureCompiler(new Cypher5TypeCheckers()).signatureFor(echo))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(String.format(
                         "Argument at position 1 in method `echoWithoutAnnotations` is missing an `@Name` annotation.%n"
                                 + "Please add the annotation, recompile the class and try again."));
     }

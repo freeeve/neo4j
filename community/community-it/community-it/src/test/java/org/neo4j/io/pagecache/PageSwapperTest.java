@@ -946,8 +946,9 @@ public abstract class PageSwapperTest {
     void directIOAllowedOnlyOnLinux() throws IOException {
         PageSwapperFactory factory = createSwapperFactory(getFs());
         Path file = file("file");
-        var e = assertThrows(IllegalArgumentException.class, () -> createSwapperAndFile(factory, file, true));
-        assertThat(e.getMessage()).contains("Linux");
+        assertThatThrownBy(() -> createSwapperAndFile(factory, file, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Linux");
     }
 
     @Test
@@ -965,8 +966,9 @@ public abstract class PageSwapperTest {
     }
 
     private void checkUnsupportedPageSize(PageSwapperFactory factory, Path path, int pageSize) {
-        var e = assertThrows(IllegalArgumentException.class, () -> createSwapperAndFile(factory, path, pageSize, true));
-        assertThat(e.getMessage()).contains("block");
+        assertThatThrownBy(() -> createSwapperAndFile(factory, path, pageSize, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("block");
     }
 
     @Test

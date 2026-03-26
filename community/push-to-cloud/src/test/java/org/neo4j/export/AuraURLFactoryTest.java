@@ -16,9 +16,8 @@
  */
 package org.neo4j.export;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,10 +38,9 @@ public class AuraURLFactoryTest {
     public void testBuildConsoleURLWithInvalidURI() {
         // given
         boolean devMode = false;
-        CommandFailedException exception = assertThrows(
-                CommandFailedException.class, () -> auraURLFactory.buildConsoleURI("hello.local", devMode));
-
-        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'hello.local'");
+        assertThatThrownBy(() -> auraURLFactory.buildConsoleURI("hello.local", devMode))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Invalid Bolt URI 'hello.local'");
     }
 
     @Test
@@ -50,12 +48,10 @@ public class AuraURLFactoryTest {
         // given
         boolean devMode = false;
 
-        // when
-        CommandFailedException exception = assertThrows(
-                CommandFailedException.class,
-                () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue-env.databases.neo4j-abc.io", devMode));
-        // then
-        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'neo4j+s://rogue-env.databases.neo4j-abc.io'");
+        // when/then
+        assertThatThrownBy(() -> auraURLFactory.buildConsoleURI("neo4j+s://rogue-env.databases.neo4j-abc.io", devMode))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Invalid Bolt URI 'neo4j+s://rogue-env.databases.neo4j-abc.io'");
     }
 
     @Test
@@ -117,27 +113,20 @@ public class AuraURLFactoryTest {
                 "https://console-staging.neo4j.io/v2/databases/rogue/import",
                 consoleUrl.getImportUrl().toString());
 
-        // when
-        CommandFailedException exception = assertThrows(
-                CommandFailedException.class,
-                () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.env-orch-0001.neo4j.io", devMode));
-
-        // then
-        assertThat(exception.getMessage()).contains("Invalid Bolt URI 'neo4j+s://rogue.env-orch-0001.neo4j.io'");
+        // when/then
+        assertThatThrownBy(() -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.env-orch-0001.neo4j.io", devMode))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Invalid Bolt URI 'neo4j+s://rogue.env-orch-0001.neo4j.io'");
     }
 
     @Test
     public void testExceptionWithDevModeOnRealURI() {
         // given
         boolean devMode = true;
-        // when
-        CommandFailedException exception = assertThrows(
-                CommandFailedException.class,
-                () -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.databases.neo4j.io", devMode));
-
-        // then
-        assertThat(exception.getMessage())
-                .contains(
+        // when/then
+        assertThatThrownBy(() -> auraURLFactory.buildConsoleURI("neo4j+s://rogue.databases.neo4j.io", devMode))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining(
                         "Expected to find an environment running in dev mode in bolt URI: neo4j+s://rogue.databases.neo4j.io");
     }
 

@@ -20,7 +20,7 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.internal.kernel.api.procs.UserFunctionSignature.functionSignature;
 import static org.neo4j.kernel.api.procedure.BasicContext.buildContext;
@@ -138,14 +138,12 @@ class UserFunctionsTest {
     void shouldNotAllowCallingNonExistingFunction() {
         var view = procs.getCurrentView();
         UserFunctionHandle functionHandle = view.function(signature.name(), QueryLanguage.CYPHER_5);
-        ProcedureException exception = assertThrows(
-                ProcedureException.class,
-                () -> view.callFunction(
+        assertThatThrownBy(() -> view.callFunction(
                         prepareContext(),
                         functionHandle != null ? functionHandle.id() : -1,
-                        new AnyValue[] {numberValue(1337)}));
-        assertThat(exception.getMessage())
-                .isEqualTo("There is no function with the internal id `-1` registered for this database instance.");
+                        new AnyValue[] {numberValue(1337)}))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage("There is no function with the internal id `-1` registered for this database instance.");
     }
 
     @Test
@@ -153,9 +151,9 @@ class UserFunctionsTest {
         // Given
         procs.register(function);
 
-        ProcedureException exception = assertThrows(ProcedureException.class, () -> procs.register(function));
-        assertThat(exception.getMessage())
-                .isEqualTo("Unable to register function, because the name `org.myfunc` is already in use.");
+        assertThatThrownBy(() -> procs.register(function))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage("Unable to register function, because the name `org.myfunc` is already in use.");
     }
 
     @Test

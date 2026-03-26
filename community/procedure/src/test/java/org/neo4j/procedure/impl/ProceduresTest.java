@@ -20,7 +20,7 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTAny;
@@ -116,10 +116,9 @@ class ProceduresTest {
 
     @Test
     void shouldNotAllowCallingNonExistingProcedure() {
-        ProcedureException exception = assertThrows(ProcedureException.class, () -> procs.getCurrentView()
-                .procedure(signature.name(), QueryLanguage.CYPHER_5));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> procs.getCurrentView().procedure(signature.name(), QueryLanguage.CYPHER_5))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "There is no procedure with the name `org.myproc` registered for this database instance. Please ensure you've spelled the "
                                 + "procedure name correctly and that the procedure is properly deployed.");
     }
@@ -129,41 +128,36 @@ class ProceduresTest {
         // Given
         procs.register(procedure);
 
-        ProcedureException exception = assertThrows(ProcedureException.class, () -> procs.register(procedure));
-        assertThat(exception.getMessage())
-                .isEqualTo("Unable to register procedure, because the name `org.myproc` is already in use.");
+        assertThatThrownBy(() -> procs.register(procedure))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage("Unable to register procedure, because the name `org.myproc` is already in use.");
     }
 
     @Test
     void shouldNotAllowDuplicateFieldNamesInInput() {
-        ProcedureException exception = assertThrows(
-                ProcedureException.class,
-                () -> procs.register(procedureWithSignature(
-                        procedureSignature(PROC).in("a", NTAny).in("a", NTAny).build())));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> procs.register(procedureWithSignature(
+                        procedureSignature(PROC).in("a", NTAny).in("a", NTAny).build())))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Procedure `org.myproc(a :: ANY, a :: ANY) :: ()` cannot be registered, because it contains a duplicated input field, 'a'. "
                                 + "You need to rename or remove one of the duplicate fields.");
     }
 
     @Test
     void shouldNotAllowDuplicateFieldNamesInOutput() {
-        ProcedureException exception = assertThrows(
-                ProcedureException.class,
-                () -> procs.register(procedureWithSignature(
-                        procedureSignature(PROC).out("a", NTAny).out("a", NTAny).build())));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> procs.register(procedureWithSignature(
+                        procedureSignature(PROC).out("a", NTAny).out("a", NTAny).build())))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "Procedure `org.myproc() :: (a :: ANY, a :: ANY)` cannot be registered, because it contains a duplicated output field, 'a'. "
                                 + "You need to rename or remove one of the duplicate fields.");
     }
 
     @Test
     void shouldSignalNonExistingProcedure() {
-        ProcedureException exception = assertThrows(ProcedureException.class, () -> procs.getCurrentView()
-                .procedure(signature.name(), QueryLanguage.CYPHER_5));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> procs.getCurrentView().procedure(signature.name(), QueryLanguage.CYPHER_5))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         "There is no procedure with the name `org.myproc` registered for this database instance. Please ensure you've spelled the "
                                 + "procedure name correctly and that the procedure is properly deployed.");
     }

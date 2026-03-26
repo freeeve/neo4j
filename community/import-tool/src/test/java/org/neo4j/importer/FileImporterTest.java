@@ -23,7 +23,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
@@ -129,13 +128,11 @@ class FileImporterTest {
                 .withCsvConfig(Configuration.TABS)
                 .withDatabaseConfig(dbConfig)
                 .withReportFile(reportLocation.toAbsolutePath());
-        var e = assertThrows(
-                FileImporter.CsvImportException.class,
-                () -> csvImporterBuilder.build().doImport(fullImport()));
-
         // Then
-        assertThat(e).hasCauseInstanceOf(DirectoryNotEmptyException.class);
-        assertThat(e.getMessage()).contains("Database already exist. Re-run with `--overwrite-destination`");
+        assertThatThrownBy(() -> csvImporterBuilder.build().doImport(fullImport()))
+                .isInstanceOf(FileImporter.CsvImportException.class)
+                .hasCauseInstanceOf(DirectoryNotEmptyException.class)
+                .hasMessageContaining("Database already exist. Re-run with `--overwrite-destination`");
         assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport()))
                 .doesNotThrowAnyException();
     }

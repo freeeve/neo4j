@@ -20,9 +20,8 @@
 package org.neo4j.kernel.impl.index.schema;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
@@ -147,11 +146,10 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
         // when
         updater.close();
 
-        IllegalStateException e = assertThrows(
-                IllegalStateException.class,
-                () -> updater.process(TokenIndexEntryUpdate.tokenChange(
-                        random.nextInt(), null, EMPTY_INT_ARRAY, TokenIndexUtility.generateRandomTokens(random))));
-        assertThat(e).hasMessageContaining("Updater has been closed");
+        assertThatThrownBy(() -> updater.process(TokenIndexEntryUpdate.tokenChange(
+                        random.nextInt(), null, EMPTY_INT_ARRAY, TokenIndexUtility.generateRandomTokens(random))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Updater has been closed");
         populator.close(true, NULL_CONTEXT);
     }
 

@@ -21,6 +21,7 @@ package org.neo4j.ssl;
 
 import static java.nio.file.Files.createDirectories;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -148,9 +149,9 @@ class SslPolicyLoaderTest {
                 .build();
 
         // when
-        Exception exception = assertThrows(
-                Exception.class, () -> SslPolicyLoader.create(fileSystem, config, NullLogProvider.getInstance()));
-        assertThat(exception).hasMessageContaining(expectedMessage).isInstanceOf(expectedCause);
+        assertThatThrownBy(() -> SslPolicyLoader.create(fileSystem, config, NullLogProvider.getInstance()))
+                .hasMessageContaining(expectedMessage)
+                .isInstanceOf(expectedCause);
     }
 
     @ParameterizedTest

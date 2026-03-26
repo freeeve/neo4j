@@ -26,7 +26,7 @@ import static java.time.temporal.ChronoUnit.MONTHS;
 import static java.time.temporal.ChronoUnit.NANOS;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -715,69 +715,70 @@ class DurationValueTest {
     @Test
     void shouldThrowOnParsingYearsOverflow() {
         long years = Long.MAX_VALUE;
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> DurationValue.parse("P" + years + "Y"));
-        assertThat(e.getMessage()).contains("Invalid value for duration").contains("years=" + years);
+        assertThatThrownBy(() -> DurationValue.parse("P" + years + "Y"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("years=" + years);
     }
 
     @Test
     void shouldThrowOnParsingYearAndMonthOverflow() {
         long years = 1;
         long months = Long.MAX_VALUE;
-        InvalidArgumentException e = assertThrows(
-                InvalidArgumentException.class, () -> DurationValue.parse("P" + years + "Y" + months + "M"));
-        assertThat(e.getMessage())
-                .contains("Invalid value for duration")
-                .contains("years=" + years)
-                .contains("months=" + months);
+        assertThatThrownBy(() -> DurationValue.parse("P" + years + "Y" + months + "M"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("years=" + years)
+                .hasMessageContaining("months=" + months);
     }
 
     @Test
     void shouldThrowOnParsingWeeksOverflow() {
         long weeks = Long.MAX_VALUE;
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> DurationValue.parse("P" + weeks + "W"));
-        assertThat(e.getMessage()).contains("Invalid value for duration").contains("weeks=" + weeks);
+        assertThatThrownBy(() -> DurationValue.parse("P" + weeks + "W"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("weeks=" + weeks);
     }
 
     @Test
     void shouldThrowOnParsingWeeksAndDaysOverflow() {
         long weeks = 1;
         long days = Long.MAX_VALUE;
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> DurationValue.parse("P" + weeks + "W" + days + "D"));
-        assertThat(e.getMessage())
-                .contains("Invalid value for duration")
-                .contains("weeks=" + weeks)
-                .contains("days=" + days);
+        assertThatThrownBy(() -> DurationValue.parse("P" + weeks + "W" + days + "D"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("weeks=" + weeks)
+                .hasMessageContaining("days=" + days);
     }
 
     @Test
     void shouldThrowOnParsingHoursOverflow() {
         long hours = Long.MAX_VALUE;
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> DurationValue.parse("PT" + hours + "H"));
-        assertThat(e.getMessage()).contains("Invalid value for duration").contains("hours=" + hours);
+        assertThatThrownBy(() -> DurationValue.parse("PT" + hours + "H"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("hours=" + hours);
     }
 
     @Test
     void shouldThrowOnParsingHoursAndSecondsOverflow() {
         long hours = 1;
         long seconds = Long.MAX_VALUE;
-        InvalidArgumentException e = assertThrows(
-                InvalidArgumentException.class, () -> DurationValue.parse("PT" + hours + "H" + seconds + "S"));
-        assertThat(e.getMessage())
-                .contains("Invalid value for duration")
-                .contains("hours=" + hours)
-                .contains("seconds=" + seconds);
+        assertThatThrownBy(() -> DurationValue.parse("PT" + hours + "H" + seconds + "S"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("hours=" + hours)
+                .hasMessageContaining("seconds=" + seconds);
     }
 
     @Test
     void shouldThrowOnMinutesOverflow() {
         long minutes = Long.MAX_VALUE;
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> DurationValue.parse("PT" + minutes + "M"));
-        assertThat(e.getMessage()).contains("Invalid value for duration").contains("minutes=" + minutes);
+        assertThatThrownBy(() -> DurationValue.parse("PT" + minutes + "M"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("minutes=" + minutes);
     }
 
     @Test
@@ -798,14 +799,12 @@ class DurationValueTest {
     }
 
     private static void assertConstructorThrows(long months, long days, long seconds, long nanos) {
-        InvalidArgumentException e =
-                assertThrows(InvalidArgumentException.class, () -> duration(months, days, seconds, nanos));
-
-        assertThat(e.getMessage())
-                .contains("Invalid value for duration")
-                .contains("months=" + months)
-                .contains("days=" + days)
-                .contains("seconds=" + seconds)
-                .contains("nanos=" + nanos);
+        assertThatThrownBy(() -> duration(months, days, seconds, nanos))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContaining("Invalid value for duration")
+                .hasMessageContaining("months=" + months)
+                .hasMessageContaining("days=" + days)
+                .hasMessageContaining("seconds=" + seconds)
+                .hasMessageContaining("nanos=" + nanos);
     }
 }

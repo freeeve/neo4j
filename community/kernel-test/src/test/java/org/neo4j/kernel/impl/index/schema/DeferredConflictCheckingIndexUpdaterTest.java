@@ -19,8 +19,7 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -103,9 +102,10 @@ class DeferredConflictCheckingIndexUpdaterTest {
 
         // when
         updater.process(add(0, descriptor, tuple(10, 11)));
-        var e = assertThrows(IndexEntryConflictException.class, updater::close);
-        assertThat(e.getMessage()).contains("101");
-        assertThat(e.getMessage()).contains("202");
+        assertThatThrownBy(updater::close)
+                .isInstanceOf(IndexEntryConflictException.class)
+                .hasMessageContaining("101")
+                .hasMessageContaining("202");
     }
 
     private static Value[] tuple(Object... values) {

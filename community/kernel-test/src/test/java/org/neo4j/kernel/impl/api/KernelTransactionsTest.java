@@ -441,11 +441,9 @@ class KernelTransactionsTest {
     void threadThatBlocksNewTxsCantStartNewTxs() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
         kernelTransactions.blockNewTransactions();
-        var e = assertThrows(
-                Exception.class,
-                () -> kernelTransactions.newInstance(
-                        IMPLICIT, AnonymousContext.write(), EMBEDDED_CONNECTION, NO_TIMEOUT));
-        assertThat(e).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> kernelTransactions.newInstance(
+                        IMPLICIT, AnonymousContext.write(), EMBEDDED_CONNECTION, NO_TIMEOUT))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

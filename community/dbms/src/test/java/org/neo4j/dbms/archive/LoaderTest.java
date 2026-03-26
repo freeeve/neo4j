@@ -21,7 +21,7 @@ package org.neo4j.dbms.archive;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySet;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -120,9 +120,9 @@ class LoaderTest {
             tar.putArchiveEntry(archiveEntry);
             tar.closeArchiveEntry();
         }
-        final InvalidDumpEntryException exception = assertThrows(
-                InvalidDumpEntryException.class, () -> new Loader(fileSystem).load(databaseLayout, archive));
-        assertThat(exception.getMessage()).contains("points to a location outside of the destination database.");
+        assertThatThrownBy(() -> new Loader(fileSystem).load(databaseLayout, archive))
+                .isInstanceOf(InvalidDumpEntryException.class)
+                .hasMessageContaining("points to a location outside of the destination database.");
     }
 
     @Test

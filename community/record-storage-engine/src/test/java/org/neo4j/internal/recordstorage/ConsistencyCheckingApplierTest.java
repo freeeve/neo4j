@@ -19,8 +19,7 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -139,8 +138,9 @@ class ConsistencyCheckingApplierTest {
                 .initialize(true, NULL, NODE1, NODE2, TYPE, 0, NULL, 1, NULL, false, true, false, false));
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(command));
-        assertThat(error.getMessage()).contains("prev refers to unused");
+        assertThatThrownBy(() -> apply(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("prev refers to unused");
     }
 
     @Test
@@ -150,8 +150,9 @@ class ConsistencyCheckingApplierTest {
                 .initialize(true, NULL, NODE1, NODE2, TYPE, 1, NULL, 0, NULL, true, false, false, false));
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(command));
-        assertThat(error.getMessage()).contains("prev refers to unused");
+        assertThatThrownBy(() -> apply(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("prev refers to unused");
     }
 
     @Test
@@ -167,8 +168,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("that doesn't refer back");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("that doesn't refer back");
     }
 
     @Test
@@ -184,8 +186,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("that doesn't refer back");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("that doesn't refer back");
     }
 
     @Test
@@ -199,8 +202,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("which is a relationship between other nodes");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("which is a relationship between other nodes");
     }
 
     @Test
@@ -214,8 +218,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("which is a relationship between other nodes");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("which is a relationship between other nodes");
     }
 
     // ===== NEXT =====
@@ -227,8 +232,9 @@ class ConsistencyCheckingApplierTest {
                 .initialize(true, NULL, NODE1, NODE2, TYPE, 1, 0, 1, NULL, true, true, false, false));
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(command));
-        assertThat(error.getMessage()).contains("next refers to unused");
+        assertThatThrownBy(() -> apply(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("next refers to unused");
     }
 
     @Test
@@ -238,8 +244,9 @@ class ConsistencyCheckingApplierTest {
                 .initialize(true, NULL, NODE1, NODE2, TYPE, 1, NULL, 1, 0, true, true, false, false));
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(command));
-        assertThat(error.getMessage()).contains("next refers to unused");
+        assertThatThrownBy(() -> apply(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("next refers to unused");
     }
 
     @Test
@@ -255,8 +262,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("that doesn't refer back");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("that doesn't refer back");
     }
 
     @Test
@@ -272,8 +280,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("that doesn't refer back");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("that doesn't refer back");
     }
 
     @Test
@@ -287,8 +296,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("which is a relationship between other nodes");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("which is a relationship between other nodes");
     }
 
     @Test
@@ -302,8 +312,9 @@ class ConsistencyCheckingApplierTest {
         };
 
         // when/then
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> apply(commands));
-        assertThat(error.getMessage()).contains("which is a relationship between other nodes");
+        assertThatThrownBy(() -> apply(commands))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("which is a relationship between other nodes");
     }
 
     private void apply(Command.RelationshipCommand... commands) throws Exception {

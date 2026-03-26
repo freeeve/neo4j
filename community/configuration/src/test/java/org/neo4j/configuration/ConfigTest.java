@@ -120,10 +120,10 @@ class ConfigTest {
 
     @Test
     void failToBuildConfigForSettingInWrongNamespace() {
-        var e = assertThrows(IllegalArgumentException.class, () -> Config.newBuilder()
-                .addSettingsClass(WrongNamespaceSettings.class)
-                .build());
-        assertThat(e)
+        assertThatThrownBy(() -> Config.newBuilder()
+                        .addSettingsClass(WrongNamespaceSettings.class)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(
                         "Setting: 'planet.express.open' name does not reside in any of the supported setting namespaces which are: dbms., db., browser., server., internal.");
     }
@@ -138,34 +138,30 @@ class ConfigTest {
 
     @Test
     void failToBuildConfigForInternalSettingInWrongNamespace() {
-        var e = assertThrows(IllegalArgumentException.class, () -> Config.newBuilder()
-                .addSettingsClass(InternalWrongNamespaceSettings.class)
-                .build());
-        assertThat(e)
+        assertThatThrownBy(() -> Config.newBuilder()
+                        .addSettingsClass(InternalWrongNamespaceSettings.class)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(
                         "Setting: 'server.setting.not_really.internal' is internal but does not reside in the correct internal settings namespace.");
     }
 
     @Test
     void failToBuildConfigForPublicSettingInInternalNamespace() {
-        var e = assertThrows(IllegalArgumentException.class, () -> {
-            Config.newBuilder()
-                    .addSettingsClass(PublicWrongNamespaceSettings.class)
-                    .build();
-        });
-        assertThat(e)
+        assertThatThrownBy(() -> Config.newBuilder()
+                        .addSettingsClass(PublicWrongNamespaceSettings.class)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(
                         "Setting: 'setting.not_really.internal' is not internal but using internal settings namespace.");
     }
 
     @Test
     void failToBuildConfigForPublicSettingInLegacyUnsupportedNamespace() {
-        var e = assertThrows(IllegalArgumentException.class, () -> {
-            Config.newBuilder()
-                    .addSettingsClass(LegacyUnsupportedNamespaceSettings.class)
-                    .build();
-        });
-        assertThat(e)
+        assertThatThrownBy(() -> Config.newBuilder()
+                        .addSettingsClass(LegacyUnsupportedNamespaceSettings.class)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(
                         " Setting: 'setting.unsupported_or_not_really' is not internal but using internal settings namespace.");
     }

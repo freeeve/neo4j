@@ -20,6 +20,7 @@
 package org.neo4j.commandline.dbms;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -149,11 +150,11 @@ class LoadCommandTest {
 
     @Test
     void shouldGiveAClearMessageIfTheArchiveDoesntExist() {
-        CommandFailedException commandFailed =
-                assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
-        assertThat(commandFailed.getMessage())
-                .contains("No matching archives ('foo.dump' or a full backup of 'foo') found in");
+        String dumpName = archive.resolve("foo.dump").toString();
+        assertThatThrownBy(() -> execute("foo", archive))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Load failed for databases: 'foo'")
+                .hasMessageContaining("No matching archives ('foo.dump' or a full backup of 'foo') found in");
     }
 
     @Test
@@ -162,10 +163,10 @@ class LoadCommandTest {
         doThrow(FileAlreadyExistsException.class)
                 .when(loader)
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
-        CommandFailedException commandFailed =
-                assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
-        assertThat(commandFailed.getMessage()).contains("Database already exists: foo");
+        assertThatThrownBy(() -> execute("foo", archive))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Load failed for databases: 'foo'")
+                .hasMessageContaining("Database already exists: foo");
     }
 
     @Test
@@ -174,10 +175,10 @@ class LoadCommandTest {
         doThrow(AccessDeniedException.class)
                 .when(loader)
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
-        CommandFailedException commandFailed =
-                assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
-        assertThat(commandFailed.getMessage()).contains("You do not have permission to load the database 'foo'.");
+        assertThatThrownBy(() -> execute("foo", archive))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Load failed for databases: 'foo'")
+                .hasMessageContaining("You do not have permission to load the database 'foo'.");
     }
 
     @Test
@@ -187,10 +188,10 @@ class LoadCommandTest {
         doThrow(new FileSystemException("the-message"))
                 .when(loader)
                 .load(any(), anyBoolean(), anyBoolean(), any(), any(DumpInput.class));
-        CommandFailedException commandFailed =
-                assertThrows(CommandFailedException.class, () -> execute("foo", archive));
-        assertThat(commandFailed.getMessage()).contains("Load failed for databases: 'foo'");
-        assertThat(commandFailed.getMessage()).contains("Unable to load database: FileSystemException: the-message");
+        assertThatThrownBy(() -> execute("foo", archive))
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("Load failed for databases: 'foo'")
+                .hasMessageContaining("Unable to load database: FileSystemException: the-message");
     }
 
     @Test

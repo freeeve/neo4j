@@ -20,7 +20,7 @@
 package org.neo4j.commandline.dbms;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -132,8 +132,9 @@ class StoreInfoCommandTest {
     void nonExistingDirShouldThrow() {
         var notADirArgs = args(Paths.get("yaba", "daba", "doo"), true, "foo");
         CommandLine.populateCommand(command, notADirArgs);
-        var notADirException = assertThrows(CommandFailedException.class, () -> command.execute());
-        assertThat(notADirException.getMessage()).contains("must point to a directory");
+        assertThatThrownBy(() -> command.execute())
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("must point to a directory");
     }
 
     @Test
@@ -141,8 +142,9 @@ class StoreInfoCommandTest {
         prepareStore(fooDbLayout, "A", "v1", null, null);
         var dbDirArgs = args(fooDbDirectory, false, "");
         CommandLine.populateCommand(command, dbDirArgs);
-        var dbDirException = assertThrows(CommandFailedException.class, () -> command.execute());
-        assertThat(dbDirException.getMessage()).contains("should point to the databases directory");
+        assertThatThrownBy(() -> command.execute())
+                .isInstanceOf(CommandFailedException.class)
+                .hasMessageContaining("should point to the databases directory");
     }
 
     @Test
@@ -174,8 +176,9 @@ class StoreInfoCommandTest {
         prepareStore(fooDbLayout, "unknown", "v1", null, null);
         when(storageEngineFactory.versionInformation(any(StoreId.class))).thenThrow(IllegalArgumentException.class);
         CommandLine.populateCommand(command, args(databasesRoot, true, "foo"));
-        var exception = assertThrows(Exception.class, () -> command.execute());
-        assertThat(exception).hasRootCauseInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> command.execute())
+                .isInstanceOf(Exception.class)
+                .hasRootCauseInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -184,9 +187,9 @@ class StoreInfoCommandTest {
         try (Locker locker = new DatabaseLocker(fileSystem, fooDbLayout)) {
             locker.checkLock();
             CommandLine.populateCommand(command, args(databasesRoot, true, "foo"));
-            var exception = assertThrows(Exception.class, () -> command.execute());
-            assertThat(exception.getMessage())
-                    .contains(
+            assertThatThrownBy(() -> command.execute())
+                    .isInstanceOf(Exception.class)
+                    .hasMessageContaining(
                             "Failed to execute command as the database 'foo' is in use. Please stop it and try again.");
         }
     }

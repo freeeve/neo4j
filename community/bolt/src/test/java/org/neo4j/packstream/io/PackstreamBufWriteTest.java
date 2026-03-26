@@ -20,7 +20,7 @@
 package org.neo4j.packstream.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
@@ -84,9 +84,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void allocShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> PackstreamBuf.alloc(null));
-
-        assertThat(ex).hasMessage("alloc cannot be null");
+        assertThatThrownBy(() -> PackstreamBuf.alloc(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("alloc cannot be null");
     }
 
     @Test
@@ -116,10 +116,9 @@ public class PackstreamBufWriteTest {
         return getTypeMarkers()
                 .filter(TypeMarker::hasLengthPrefix)
                 .map(marker -> dynamicTest(marker.name(), () -> {
-                    var ex = assertThrows(
-                            IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeMarker(marker)));
-
-                    assertThat(ex).hasMessage("Type %s requires a length", marker.name());
+                    assertThatThrownBy(() -> prepareBuffer(b -> b.writeMarker(marker)))
+                            .isInstanceOf(IllegalArgumentException.class)
+                            .hasMessage("Type %s requires a length", marker.name());
                 }));
     }
 
@@ -158,10 +157,9 @@ public class PackstreamBufWriteTest {
         return getTypeMarkers()
                 .filter(marker -> !marker.hasLengthPrefix())
                 .map(marker -> dynamicTest(marker.name(), () -> {
-                    var ex = assertThrows(
-                            IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeMarker(marker, 15)));
-
-                    assertThat(ex).hasMessage("Type %s does not provide length", marker.name());
+                    assertThatThrownBy(() -> prepareBuffer(b -> b.writeMarker(marker, 15)))
+                            .isInstanceOf(IllegalArgumentException.class)
+                            .hasMessage("Type %s does not provide length", marker.name());
                 }));
     }
 
@@ -172,10 +170,8 @@ public class PackstreamBufWriteTest {
                 .map(marker -> dynamicTest(marker.name(), () -> {
                     var length = marker.getLengthPrefix().getMaxValue() + 1;
 
-                    var ex = assertThrows(
-                            IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeMarker(marker, length)));
-
-                    assertThat(ex)
+                    assertThatThrownBy(() -> prepareBuffer(b -> b.writeMarker(marker, length)))
+                            .isInstanceOf(IllegalArgumentException.class)
                             .hasMessage(
                                     "Type %s cannot store value of length %d (limit is %d)",
                                     marker.name(),
@@ -203,25 +199,22 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeMarkerShouldFailWithIllegalArgumentWhenNoMarkersAreGiven() {
-        var ex = assertThrows(
-                IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeMarker(Collections.emptyList(), 42)));
-
-        assertThat(ex).hasMessage("Marker collection cannot be empty");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMarker(Collections.emptyList(), 42)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Marker collection cannot be empty");
     }
 
     @Test
     void writeMarkerShouldFailWithIllegalArgumentWhenLengthPrefixExceedsMaximumOfAllAlternatives() {
         var length = LengthPrefix.UINT32.getMaxValue() + 1;
 
-        var ex = assertThrows(
-                IllegalArgumentException.class,
-                () -> prepareBuffer(b -> b.writeMarker(TypeMarker.STRING_TYPES, length)));
-
         var maxLengths = TypeMarker.STRING_TYPES.stream()
                 .map(marker -> String.format("%d (%s)", marker.getLengthPrefix().getMaxValue(), marker.name()))
                 .collect(Collectors.joining(", "));
 
-        assertThat(ex).hasMessage("Length %d exceeds supported maximum lengths of %s", length, maxLengths);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMarker(TypeMarker.STRING_TYPES, length)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Length %d exceeds supported maximum lengths of %s", length, maxLengths);
     }
 
     @Test
@@ -310,11 +303,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeTinyIntShouldFailWithIllegalArgumentWhenValueOutOfRange() {
-        var ex = assertThrows(
-                IllegalArgumentException.class,
-                () -> prepareBuffer(b -> b.writeTinyInt((byte) (Type.TINY_INT_MIN - 1))));
-
-        assertThat(ex).hasMessage("Value is out of type bounds: %d", Type.TINY_INT_MIN - 1);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeTinyInt((byte) (Type.TINY_INT_MIN - 1))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Value is out of type bounds: %d", Type.TINY_INT_MIN - 1);
     }
 
     @TestFactory
@@ -458,11 +449,9 @@ public class PackstreamBufWriteTest {
 
         var payload = new byte[(int) length];
 
-        var ex = assertThrows(
-                IllegalArgumentException.class,
-                () -> prepareBuffer(b -> b.writeBytes8(Unpooled.wrappedBuffer(payload))));
-
-        assertThat(ex).hasMessage("Type BYTES8 cannot store value of length %d (limit is %d)", length, limit);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeBytes8(Unpooled.wrappedBuffer(payload))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Type BYTES8 cannot store value of length %d (limit is %d)", length, limit);
     }
 
     @Test
@@ -494,11 +483,9 @@ public class PackstreamBufWriteTest {
 
         var payload = new byte[(int) length];
 
-        var ex = assertThrows(
-                IllegalArgumentException.class,
-                () -> prepareBuffer(b -> b.writeBytes16(Unpooled.wrappedBuffer(payload))));
-
-        assertThat(ex).hasMessage("Type BYTES16 cannot store value of length %d (limit is %d)", length, limit);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeBytes16(Unpooled.wrappedBuffer(payload))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Type BYTES16 cannot store value of length %d (limit is %d)", length, limit);
     }
 
     @Test
@@ -569,9 +556,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeStringShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeString(null)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeString(null)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
     }
 
     @TestFactory
@@ -601,9 +588,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeTinyStringShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeTinyString(null)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeTinyString(null)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
     }
 
     @TestFactory
@@ -632,9 +619,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeString8ShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeString8(null)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeString8(null)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
     }
 
     @TestFactory
@@ -663,9 +650,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeString16ShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeString16(null)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeString16(null)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
     }
 
     @TestFactory
@@ -694,9 +681,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeString32ShouldFailWithNullPointerWhenNullIsGiven() {
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeString32(null)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeString32(null)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
     }
 
     @TestFactory
@@ -737,9 +724,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeListHeaderShouldFailWithIllegalArgumentWhenNegativeSizeIsGiven() {
-        var ex = assertThrows(IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeListHeader(-1)));
-
-        assertThat(ex).hasMessage("size cannot be negative");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeListHeader(-1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("size cannot be negative");
     }
 
     @TestFactory
@@ -794,10 +781,9 @@ public class PackstreamBufWriteTest {
     void writeListShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeList(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeList(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -831,10 +817,9 @@ public class PackstreamBufWriteTest {
     void writeTinyListShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeTinyList(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeTinyList(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -867,10 +852,9 @@ public class PackstreamBufWriteTest {
     void writeList8ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeList8(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeList8(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -903,10 +887,9 @@ public class PackstreamBufWriteTest {
     void writeList16ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeList16(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeList16(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -939,10 +922,9 @@ public class PackstreamBufWriteTest {
     void writeList32ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeList32(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeList32(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -986,11 +968,9 @@ public class PackstreamBufWriteTest {
 
     @Test
     void writeMapHeaderShouldFailWithIllegalArgumentWhenPayloadExceedsValidBounds() {
-        var ex = assertThrows(
-                IllegalArgumentException.class,
-                () -> prepareBuffer(b -> b.writeMapHeader(((long) Integer.MAX_VALUE) + 1)));
-
-        assertThat(ex).hasMessage("length exceeds limit of %d", Integer.MAX_VALUE);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMapHeader(((long) Integer.MAX_VALUE) + 1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("length exceeds limit of %d", Integer.MAX_VALUE);
     }
 
     @TestFactory
@@ -1060,10 +1040,9 @@ public class PackstreamBufWriteTest {
     void writeMapShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeMap(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMap(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -1115,10 +1094,9 @@ public class PackstreamBufWriteTest {
     void writeTinyMapShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeTinyMap(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeTinyMap(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -1169,10 +1147,9 @@ public class PackstreamBufWriteTest {
     void writeMap8ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeMap8(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMap8(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -1223,10 +1200,9 @@ public class PackstreamBufWriteTest {
     void writeMap16ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeMap16(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMap16(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -1277,10 +1253,9 @@ public class PackstreamBufWriteTest {
     void writeMap32ShouldFailWithNullPointerWhenNullIsGiven() {
         var writer = mock(Writer.class);
 
-        @SuppressWarnings("unchecked")
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeMap32(null, writer)));
-
-        assertThat(ex).hasMessage("payload cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeMap32(null, writer)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("payload cannot be null");
 
         verifyNoInteractions(writer);
     }
@@ -1349,10 +1324,9 @@ public class PackstreamBufWriteTest {
 
         when(registry.getWriter(payload)).thenReturn(Optional.empty());
 
-        var ex = assertThrows(
-                IllegalArgumentException.class, () -> prepareBuffer(b -> b.writeStruct(null, registry, payload)));
-
-        assertThat(ex).hasMessage("Illegal struct: %s", payload);
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeStruct(null, registry, payload)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Illegal struct: %s", payload);
 
         verify(registry).getWriter(payload);
         verifyNoMoreInteractions(registry);
@@ -1362,9 +1336,9 @@ public class PackstreamBufWriteTest {
     void writeStructShouldFailWithNullPointerWhenRegistryIsNull() {
         var payload = new Object();
 
-        var ex = assertThrows(NullPointerException.class, () -> prepareBuffer(b -> b.writeStruct(null, null, payload)));
-
-        assertThat(ex).hasMessage("registry cannot be null");
+        assertThatThrownBy(() -> prepareBuffer(b -> b.writeStruct(null, null, payload)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("registry cannot be null");
     }
 
     @Test

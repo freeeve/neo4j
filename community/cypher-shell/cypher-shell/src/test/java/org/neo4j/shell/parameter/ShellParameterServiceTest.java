@@ -20,7 +20,7 @@
 package org.neo4j.shell.parameter;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -88,10 +88,9 @@ class ShellParameterServiceTest {
 
     @Test
     void failToEvaluate() {
-        var exception = assertThrows(
-                ParameterService.ParameterEvaluationException.class,
-                () -> parameters.evaluate(new RawParameters("INVALID")));
-        assertThat(exception).hasMessageContaining("Failed to evaluate expression INVALID");
+        assertThatThrownBy(() -> parameters.evaluate(new RawParameters("INVALID")))
+                .isInstanceOf(ParameterService.ParameterEvaluationException.class)
+                .hasMessageContaining("Failed to evaluate expression INVALID");
     }
 
     @Test

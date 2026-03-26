@@ -20,8 +20,8 @@
 package org.neo4j.procedure.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
 import static org.neo4j.internal.kernel.api.procs.ProcedureSignature.procedureSignature;
@@ -114,30 +114,27 @@ public class ProcedureWithArgumentsTest {
 
     @Test
     void shouldFailIfMissingAnnotations() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(ClassWithProcedureWithoutAnnotatedArgs.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format(
+        assertThatThrownBy(() -> compile(ClassWithProcedureWithoutAnnotatedArgs.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(String.format(
                         "Argument at position 0 in method `listCoolPeople` is missing an `@Name` annotation.%n"
                                 + "Please add the annotation, recompile the class and try again."));
     }
 
     @Test
     void shouldFailIfMisplacedDefaultValue() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(ClassWithProcedureWithMisplacedDefault.class));
-        assertThat(exception.getMessage())
-                .contains(
+        assertThatThrownBy(() -> compile(ClassWithProcedureWithMisplacedDefault.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessageContaining(
                         "Non-default argument at position 2 with name c in method defaultValues follows default argument. "
                                 + "Add a default value or rearrange arguments so that the non-default values comes first.");
     }
 
     @Test
     void shouldFailIfWronglyTypedDefaultValue() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(ClassWithProcedureWithBadlyTypedDefault.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(
+        assertThatThrownBy(() -> compile(ClassWithProcedureWithBadlyTypedDefault.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(
                         String.format(
                                 "Argument `a` at position 0 in `defaultValues` with%n"
                                         + "type `long` cannot be converted to a Neo4j type: Default value `forty-two` could not be parsed as a INTEGER"));

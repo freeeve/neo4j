@@ -74,13 +74,11 @@ class WebURLAccessRuleTest {
             final Config config = Config.defaults(
                     GraphDatabaseInternalSettings.cypher_ip_blocklist, List.of(blockedIpv4Range, blockedIpv6Range));
 
-            // execute the query
-            final var error = assertThrows(URLAccessValidationError.class, () -> new WebURLAccessRule(config)
-                    .validate(url, securityAuthorizationHandler, fullSecurityContext()));
-
-            // assert that the validation fails
-            assertThat(error.getMessage())
-                    .contains("blocked via the configuration property internal.dbms.cypher_ip_blocklist");
+            // execute the query and assert that the validation fails
+            assertThatThrownBy(() -> new WebURLAccessRule(config)
+                            .validate(url, securityAuthorizationHandler, fullSecurityContext()))
+                    .isInstanceOf(URLAccessValidationError.class)
+                    .hasMessageContaining("blocked via the configuration property internal.dbms.cypher_ip_blocklist");
         }
     }
 
@@ -122,13 +120,11 @@ class WebURLAccessRuleTest {
         final Config config =
                 Config.defaults(GraphDatabaseInternalSettings.cypher_ip_blocklist, List.of(blockedIpv4Range));
 
-        // execute the query
-        final var error = assertThrows(URLAccessValidationError.class, () -> new WebURLAccessRule(config)
-                .validate(url, securityAuthorizationHandler, fullSecurityContext()));
-
-        // assert that the validation fails
-        assertThat(error.getMessage())
-                .contains("blocked via the configuration property internal.dbms.cypher_ip_blocklist");
+        // execute the query and assert that the validation fails
+        assertThatThrownBy(() ->
+                        new WebURLAccessRule(config).validate(url, securityAuthorizationHandler, fullSecurityContext()))
+                .isInstanceOf(URLAccessValidationError.class)
+                .hasMessageContaining("blocked via the configuration property internal.dbms.cypher_ip_blocklist");
     }
 
     @Test
@@ -141,13 +137,12 @@ class WebURLAccessRuleTest {
         final Config config =
                 Config.defaults(GraphDatabaseInternalSettings.cypher_ip_blocklist, List.of(blockedIpv4Range));
 
-        // execute the query
-        final var error = assertThrows(UnknownHostException.class, () -> new WebURLAccessRule(config)
-                .validate(url, securityAuthorizationHandler, fullSecurityContext()));
-
-        // assert that the validation fails
+        // execute the query and assert that the validation fails
         // The error message is OS specific so only check that it fails on the expected host
-        assertThat(error.getMessage()).contains("always.invalid");
+        assertThatThrownBy(() ->
+                        new WebURLAccessRule(config).validate(url, securityAuthorizationHandler, fullSecurityContext()))
+                .isInstanceOf(UnknownHostException.class)
+                .hasMessageContaining("always.invalid");
     }
 
     @Test
@@ -172,13 +167,11 @@ class WebURLAccessRuleTest {
         final Config config =
                 Config.defaults(GraphDatabaseInternalSettings.cypher_ip_blocklist, List.of(blockedIpv4Range));
 
-        // execute the query
-        final var error = assertThrows(URLAccessValidationError.class, () -> new WebURLAccessRule(config)
-                .validate(url, securityAuthorizationHandler, fullSecurityContext()));
-
-        // assert that the validation fails
-        assertThat(error.getMessage())
-                .contains(
+        // execute the query and assert that the validation fails
+        assertThatThrownBy(() ->
+                        new WebURLAccessRule(config).validate(url, securityAuthorizationHandler, fullSecurityContext()))
+                .isInstanceOf(URLAccessValidationError.class)
+                .hasMessageContaining(
                         "access to /127.0.0.1 is blocked via the configuration property internal.dbms.cypher_ip_blocklist");
     }
 

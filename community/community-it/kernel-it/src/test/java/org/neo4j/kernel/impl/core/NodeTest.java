@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.impl.core;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -58,15 +58,15 @@ class NodeTest {
 
         // And given a transaction deleting just the node
 
-        ConstraintViolationException exception = assertThrows(ConstraintViolationException.class, () -> {
-            try (Transaction transaction = db.beginTx()) {
-                var node = transaction.getNodeById(nodeId);
-                node.delete();
-                transaction.commit();
-            }
-        });
-        assertThat(exception.getMessage())
-                .contains(
+        assertThatThrownBy(() -> {
+                    try (Transaction transaction = db.beginTx()) {
+                        var node = transaction.getNodeById(nodeId);
+                        node.delete();
+                        transaction.commit();
+                    }
+                })
+                .isInstanceOf(ConstraintViolationException.class)
+                .hasMessageContaining(
                         "Cannot delete node<" + nodeId
                                 + ">, because it still has relationships. To delete this node, you must first delete its relationships.");
     }

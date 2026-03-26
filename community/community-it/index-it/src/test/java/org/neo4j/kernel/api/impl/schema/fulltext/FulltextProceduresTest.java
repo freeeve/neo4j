@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -156,42 +157,48 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
     @Test
     void nodeIndexesMustHaveLabels() {
-        Exception e = assertThrows(QueryExecutionException.class, () -> {
-            try (Transaction tx = db.beginTx()) {
-                tx.execute(format(FULLTEXT_CREATE, "nodeIndex", asNodeLabelStr(), asPropertiesStrList(PROP)))
-                        .close();
-            }
-        });
-
         // Fails at parsing, schema descriptor must have at least one label.
-        assertThat(e).message().containsAnyOf("Invalid input ')': expected \":\"", "Invalid input ')': expected ':'");
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute(format(FULLTEXT_CREATE, "nodeIndex", asNodeLabelStr(), asPropertiesStrList(PROP)))
+                                .close();
+                    }
+                })
+                .isInstanceOf(QueryExecutionException.class)
+                .extracting(Throwable::getMessage)
+                .asString()
+                .containsAnyOf("Invalid input ')': expected \":\"", "Invalid input ')': expected ':'");
     }
 
     @Test
     void relationshipIndexesMustHaveRelationshipTypes() {
-        Exception e = assertThrows(QueryExecutionException.class, () -> {
-            try (Transaction tx = db.beginTx()) {
-                tx.execute(format(FULLTEXT_CREATE, "relIndex", asRelationshipTypeStr(), asPropertiesStrList(PROP)));
-            }
-        });
-
         // Fails at parsing, schema descriptor must have at least one relationship type.
-        assertThat(e).message().containsAnyOf("Invalid input ']': expected \":\"", "Invalid input ']': expected ':'");
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute(format(
+                                FULLTEXT_CREATE, "relIndex", asRelationshipTypeStr(), asPropertiesStrList(PROP)));
+                    }
+                })
+                .isInstanceOf(QueryExecutionException.class)
+                .hasMessageContaining("Invalid input ']': expected");
     }
 
     @Test
     void relationshipIndexesMustHaveProperties() {
-        Exception e = assertThrows(QueryExecutionException.class, () -> {
-            try (Transaction tx = db.beginTx()) {
-                tx.execute(format(
-                                FULLTEXT_CREATE, "index", asRelationshipTypeStr("EntityToken"), asPropertiesStrList()))
-                        .close();
-            }
-        });
-
         // Fails at parsing, an index needs at least one property key to index.
-        assertThat(e)
-                .message()
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute(format(
+                                        FULLTEXT_CREATE,
+                                        "index",
+                                        asRelationshipTypeStr("EntityToken"),
+                                        asPropertiesStrList()))
+                                .close();
+                    }
+                })
+                .isInstanceOf(QueryExecutionException.class)
+                .extracting(Throwable::getMessage)
+                .asString()
                 .containsAnyOf(
                         "Invalid input ']': expected an identifier", "Invalid input ']': expected a variable name");
     }
@@ -200,15 +207,15 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
     void nodeIndexesMustHaveProperties() {
         String indexCreateMethod =
                 format(FULLTEXT_CREATE, "index", asNodeLabelStr("EntityToken"), asPropertiesStrList());
-        Exception e = assertThrows(QueryExecutionException.class, () -> {
-            try (Transaction tx = db.beginTx()) {
-                tx.execute(indexCreateMethod).close();
-            }
-        });
-
         // Fails at parsing, an index needs at least one property key to index.
-        assertThat(e)
-                .message()
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute(indexCreateMethod).close();
+                    }
+                })
+                .isInstanceOf(QueryExecutionException.class)
+                .extracting(Throwable::getMessage)
+                .asString()
                 .containsAnyOf(
                         "Invalid input ']': expected an identifier", "Invalid input ']': expected a variable name");
     }
@@ -1589,18 +1596,19 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
     @Test
     void attemptingToIndexOnPropertyUsedForInternalReferenceMustThrow() {
-        var e = assertThrows(Exception.class, () -> {
-            try (Transaction tx = db.beginTx()) {
-                tx.execute(format(
-                                FULLTEXT_CREATE,
-                                "myindex",
-                                asNodeLabelStr(LABEL.name()),
-                                asPropertiesStrList(LuceneFulltextDocumentStructure.FIELD_ENTITY_ID)))
-                        .close();
-                tx.commit();
-            }
-        });
-        assertThat(e.getMessage()).contains(LuceneFulltextDocumentStructure.FIELD_ENTITY_ID);
+        assertThatThrownBy(() -> {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute(format(
+                                        FULLTEXT_CREATE,
+                                        "myindex",
+                                        asNodeLabelStr(LABEL.name()),
+                                        asPropertiesStrList(LuceneFulltextDocumentStructure.FIELD_ENTITY_ID)))
+                                .close();
+                        tx.commit();
+                    }
+                })
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining(LuceneFulltextDocumentStructure.FIELD_ENTITY_ID);
     }
 
     @CsvSource({"false, without DB restart", "true, with DB restart"})

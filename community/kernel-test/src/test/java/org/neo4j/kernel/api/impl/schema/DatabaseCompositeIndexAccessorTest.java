@@ -25,8 +25,8 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.anyOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.collection.PrimitiveLongCollections.toSet;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
@@ -298,18 +298,19 @@ public class DatabaseCompositeIndexAccessorTest {
                         },
                         null);
 
-                var e = assertThrows(IndexNotFoundKernelException.class, () -> {
-                    try (var reader = indexReader /* do not inline! */;
-                            IndexSampler sampler = indexSampler /* do not inline! */) {
-                        while (!droppedLatch.get() && !awaitCompletion.test(dropper.get())) {
-                            LockSupport.parkNanos(MILLISECONDS.toNanos(10));
-                        }
-                        sampler.sampleIndex(CursorContext.NULL_CONTEXT, new AtomicBoolean());
-                    } finally {
-                        drop.get();
-                    }
-                });
-                assertThat(e).hasMessage("Index dropped while sampling.");
+                assertThatThrownBy(() -> {
+                            try (var reader = indexReader /* do not inline! */;
+                                    IndexSampler sampler = indexSampler /* do not inline! */) {
+                                while (!droppedLatch.get() && !awaitCompletion.test(dropper.get())) {
+                                    LockSupport.parkNanos(MILLISECONDS.toNanos(10));
+                                }
+                                sampler.sampleIndex(CursorContext.NULL_CONTEXT, new AtomicBoolean());
+                            } finally {
+                                drop.get();
+                            }
+                        })
+                        .isInstanceOf(IndexNotFoundKernelException.class)
+                        .hasMessage("Index dropped while sampling.");
             }
         }
     }

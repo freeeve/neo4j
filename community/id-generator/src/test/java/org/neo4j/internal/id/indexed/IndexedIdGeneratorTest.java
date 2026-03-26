@@ -2053,8 +2053,7 @@ class IndexedIdGeneratorTest {
         // Start in readOnly mode
         try (var readOnlyGenerator = openIdGenerator(customization().with(file).readOnly())) {
             readOnlyGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-            var e = assertThrows(Exception.class, operation.apply(readOnlyGenerator));
-            assertThat(e).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(operation.apply(readOnlyGenerator)::execute).isInstanceOf(IllegalStateException.class);
         }
     }
 

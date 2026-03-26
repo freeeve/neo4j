@@ -20,7 +20,7 @@
 package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.HashSet;
@@ -106,12 +106,13 @@ class IndexDescriptorTest {
 
     @Test
     void mustThrowWhenCreatingIndexNamedAfterNoIndexName() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            IndexPrototype prototype = IndexPrototype.forSchema(SCHEMAS[0]);
-            prototype = prototype.withName(IndexDescriptor.NO_INDEX.getName());
-            prototype.materialise(0);
-        });
-        assertThat(exception.getMessage()).contains(IndexDescriptor.NO_INDEX.getName());
+        assertThatThrownBy(() -> {
+                    IndexPrototype prototype = IndexPrototype.forSchema(SCHEMAS[0]);
+                    prototype = prototype.withName(IndexDescriptor.NO_INDEX.getName());
+                    prototype.materialise(0);
+                })
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(IndexDescriptor.NO_INDEX.getName());
     }
 
     @Test

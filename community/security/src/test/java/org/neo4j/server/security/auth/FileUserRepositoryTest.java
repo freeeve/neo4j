@@ -237,8 +237,9 @@ class FileUserRepositoryTest {
         // When
         FileUserRepository users = new FileUserRepository(fs, authFile, logProvider, memoryTracker);
 
-        var e = assertThrows(IllegalStateException.class, users::start);
-        assertThat(e.getMessage()).startsWith("Failed to read authentication file: ");
+        assertThatThrownBy(users::start)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageStartingWith("Failed to read authentication file: ");
 
         assertThat(users.numberOfUsers()).isEqualTo(0);
         assertThat(logProvider)

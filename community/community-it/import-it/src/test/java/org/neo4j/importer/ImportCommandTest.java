@@ -813,16 +813,15 @@ class ImportCommandTest {
     void failOnInvalidDatabaseName() throws Exception {
         List<String> nodeIds = nodeIds();
 
-        var e = assertThrows(
-                Exception.class,
-                () -> runImport(
+        assertThatThrownBy(() -> runImport(
                         "--nodes",
                         nodeData(true, Configuration.COMMAS, nodeIds, TRUE)
                                 .toAbsolutePath()
                                 .toString(),
                         "--", // force the parser to pick up the end of the nodes
-                        "__incorrect_db__"));
-        assertThat(e).hasMessageContaining("Invalid database name '__incorrect_db__'.");
+                        "__incorrect_db__"))
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("Invalid database name '__incorrect_db__'.");
     }
 
     @Test
@@ -1166,14 +1165,13 @@ class ImportCommandTest {
         List<String> nodeIds = nodeIds();
 
         // WHEN
-        var e = assertThrows(
-                ParameterException.class,
-                () -> runImport(
+        assertThatThrownBy(() -> runImport(
                         "--relationships",
                         relationshipData(true, Configuration.COMMAS, nodeIds, TRUE, true)
                                 .toAbsolutePath()
-                                .toString()));
-        assertThat(e).hasMessageContaining("Missing required option: '--nodes");
+                                .toString()))
+                .isInstanceOf(ParameterException.class)
+                .hasMessageContaining("Missing required option: '--nodes");
     }
 
     @Test
@@ -1468,9 +1466,7 @@ class ImportCommandTest {
         Configuration config = Configuration.TABS;
 
         // WHEN
-        var e = assertThrows(
-                ParameterException.class,
-                () -> runImport(
+        assertThatThrownBy(() -> runImport(
                         "--delimiter", "\\bogus",
                         "--array-delimiter", String.valueOf(config.arrayDelimiter()),
                         "--nodes",
@@ -1480,8 +1476,9 @@ class ImportCommandTest {
                         "--relationships",
                                 relationshipData(true, config, nodeIds, TRUE, true)
                                         .toAbsolutePath()
-                                        .toString()));
-        assertThat(e).hasMessageContaining("bogus");
+                                        .toString()))
+                .isInstanceOf(ParameterException.class)
+                .hasMessageContaining("bogus");
     }
 
     @Test
@@ -1740,16 +1737,15 @@ class ImportCommandTest {
         // GIVEN
         List<String> nodeIds = nodeIds(10);
 
-        var e = assertThrows(
-                ParameterException.class,
-                () -> runImport(
+        assertThatThrownBy(() -> runImport(
                         "--nodes",
                         nodeData(true, Configuration.COMMAS, nodeIds, TRUE)
                                 .toAbsolutePath()
                                 .toString(),
                         "--max-off-heap-memory",
-                        "110%"));
-        assertThat(e).hasMessageContaining("Expected int value between 1 (inclusive) and 100 (exclusive), got 110.");
+                        "110%"))
+                .isInstanceOf(ParameterException.class)
+                .hasMessageContaining("Expected int value between 1 (inclusive) and 100 (exclusive), got 110.");
     }
 
     @Test

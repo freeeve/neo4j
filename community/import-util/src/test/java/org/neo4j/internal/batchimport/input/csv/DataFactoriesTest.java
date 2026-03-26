@@ -20,6 +20,7 @@
 package org.neo4j.internal.batchimport.input.csv;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -349,9 +350,9 @@ public class DataFactoriesTest {
         IdType idType = IdType.ACTUAL;
 
         // WHEN
-        var e = assertThrows(
-                InputException.class, () -> defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups));
-        assertThat(e.getMessage()).contains("START_ID");
+        assertThatThrownBy(() -> defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups))
+                .isInstanceOf(InputException.class)
+                .hasMessageContaining("START_ID");
     }
 
     @Test
@@ -361,9 +362,9 @@ public class DataFactoriesTest {
         IdType idType = IdType.ACTUAL;
 
         // WHEN
-        var e = assertThrows(InputException.class, () -> defaultFormatRelationshipFileHeader()
-                .create(seeker, COMMAS, idType, groups));
-        assertThat(e.getMessage()).contains("LABEL");
+        assertThatThrownBy(() -> defaultFormatRelationshipFileHeader().create(seeker, COMMAS, idType, groups))
+                .isInstanceOf(InputException.class)
+                .hasMessageContaining("LABEL");
     }
 
     @Test

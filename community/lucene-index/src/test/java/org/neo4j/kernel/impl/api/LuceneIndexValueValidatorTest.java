@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.api;
 
 import static org.apache.commons.lang3.RandomStringUtils.insecure;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_TOKEN_LOOKUP;
@@ -54,21 +54,22 @@ class LuceneIndexValueValidatorTest {
 
     @Test
     void tooLongArrayIsNotAllowed() {
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> {
-            TextArray largeArray = Values.stringArray(
-                    insecure().nextAlphabetic(MAX_TERM_LENGTH), insecure().nextAlphabetic(MAX_TERM_LENGTH));
-            VALIDATOR.validate(ENTITY_ID, largeArray);
-        });
-        assertThat(iae.getMessage()).contains("Property value is too large to index");
+        assertThatThrownBy(() -> {
+                    TextArray largeArray = Values.stringArray(
+                            insecure().nextAlphabetic(MAX_TERM_LENGTH),
+                            insecure().nextAlphabetic(MAX_TERM_LENGTH));
+                    VALIDATOR.validate(ENTITY_ID, largeArray);
+                })
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Property value is too large to index");
     }
 
     @Test
     void stringOverExceedLimitNotAllowed() {
         int length = MAX_TERM_LENGTH + 1;
-        IllegalArgumentException iae = assertThrows(
-                IllegalArgumentException.class,
-                () -> VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(length))));
-        assertThat(iae.getMessage()).contains("Property value is too large to index");
+        assertThatThrownBy(() -> VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(length))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Property value is too large to index");
     }
 
     @Test

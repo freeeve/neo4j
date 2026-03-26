@@ -23,6 +23,7 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,8 +52,9 @@ class TokenRegistryTest {
         registry.put(new NamedToken(INBOUND2_TYPE, 2));
 
         NamedToken token = new NamedToken(INBOUND1_TYPE, 3);
-        NonUniqueTokenException exception = assertThrows(NonUniqueTokenException.class, () -> registry.put(token));
-        assertThat(exception.getMessage()).contains(format("The testType %s is not unique", token));
+        assertThatThrownBy(() -> registry.put(token))
+                .isInstanceOf(NonUniqueTokenException.class)
+                .hasMessageContaining(format("The testType %s is not unique", token));
     }
 
     @Test
@@ -61,8 +63,9 @@ class TokenRegistryTest {
         registry.put(new NamedToken(INBOUND2_TYPE, 2, true));
 
         NamedToken token = new NamedToken(INBOUND1_TYPE, 3, true);
-        NonUniqueTokenException exception = assertThrows(NonUniqueTokenException.class, () -> registry.put(token));
-        assertThat(exception.getMessage()).contains(format("The testType %s is not unique", token));
+        assertThatThrownBy(() -> registry.put(token))
+                .isInstanceOf(NonUniqueTokenException.class)
+                .hasMessageContaining(format("The testType %s is not unique", token));
     }
 
     @Test
@@ -128,8 +131,9 @@ class TokenRegistryTest {
     void setInitialTokensMustThrowOnDuplicateNameInTokensAdded() {
         var first = new NamedToken(INBOUND1_TYPE, 1);
         var second = new NamedToken(INBOUND1_TYPE, 2);
-        var e = assertThrows(NonUniqueTokenException.class, () -> registry.setInitialTokens(asList(first, second)));
-        assertThat(e.getMessage()).contains(first.toString());
+        assertThatThrownBy(() -> registry.setInitialTokens(asList(first, second)))
+                .isInstanceOf(NonUniqueTokenException.class)
+                .hasMessageContaining(first.toString());
     }
 
     @Test

@@ -20,6 +20,7 @@
 package org.neo4j.pki;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.InputStream;
@@ -51,25 +52,25 @@ class PemParserTest {
 
         @Test
         void throwOnBadKey() {
-            KeyException exception = assertThrows(
-                    KeyException.class,
-                    () -> verifyPrivateKey(BASE + "PBEWithHmacSHA512AndAES_256.key", "invalid", RSAPrivateKey.class));
-            assertThat(exception).hasMessage("Unable to decrypt private key.");
+            assertThatThrownBy(() ->
+                            verifyPrivateKey(BASE + "PBEWithHmacSHA512AndAES_256.key", "invalid", RSAPrivateKey.class))
+                    .isInstanceOf(KeyException.class)
+                    .hasMessage("Unable to decrypt private key.");
         }
 
         @Test
         void throwOnMissingPassphrase() {
-            KeyException exception = assertThrows(
-                    KeyException.class,
-                    () -> verifyPrivateKey(BASE + "PBEWithHmacSHA512AndAES_256.key", null, RSAPrivateKey.class));
-            assertThat(exception).hasMessage("Found encrypted private key but no passphrase was provided.");
+            assertThatThrownBy(
+                            () -> verifyPrivateKey(BASE + "PBEWithHmacSHA512AndAES_256.key", null, RSAPrivateKey.class))
+                    .isInstanceOf(KeyException.class)
+                    .hasMessage("Found encrypted private key but no passphrase was provided.");
         }
 
         @Test
         void throwOnPassphraseProvided() {
-            KeyException exception = assertThrows(
-                    KeyException.class, () -> verifyPrivateKey(BASE + "pkcs8.key", "pass", RSAPrivateKey.class));
-            assertThat(exception).hasMessage("Passphrase was provided but found un-encrypted private key.");
+            assertThatThrownBy(() -> verifyPrivateKey(BASE + "pkcs8.key", "pass", RSAPrivateKey.class))
+                    .isInstanceOf(KeyException.class)
+                    .hasMessage("Passphrase was provided but found un-encrypted private key.");
         }
 
         @Test

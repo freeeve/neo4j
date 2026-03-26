@@ -20,12 +20,11 @@
 package org.neo4j.configuration.ssl;
 
 import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.strict_config_validation;
 import static org.neo4j.configuration.ssl.SslPolicyScope.TESTING;
@@ -174,11 +173,9 @@ class SslPolicyConfigValidatorTest {
                 confFile, Arrays.asList("dbms.ssl.policy.testing.trust_all=xyz", "dbms.ssl.policy.testing.color=blue"));
 
         // when
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> Config.newBuilder().fromFile(confFile).build());
-
-        assertThat(exception.getMessage()).contains("Error evaluating value for setting");
+        assertThatThrownBy(() -> Config.newBuilder().fromFile(confFile).build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Error evaluating value for setting");
     }
 
     @Test
@@ -192,9 +189,9 @@ class SslPolicyConfigValidatorTest {
         Config.Builder builder =
                 Config.newBuilder().set(strict_config_validation, true).fromFile(confFile);
         // when
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, builder::build);
-
-        assertThat(exception.getMessage()).contains("No declared setting with name: dbms.ssl.policy.");
+        assertThatThrownBy(builder::build)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No declared setting with name: dbms.ssl.policy.");
     }
 
     @Test
@@ -206,11 +203,11 @@ class SslPolicyConfigValidatorTest {
                 Arrays.asList("dbms.ssl.unknown=xyz", "dbms.ssl.something=xyz", "dbms.unrelated.totally=xyz"));
 
         // when
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Config.newBuilder()
-                .set(strict_config_validation, true)
-                .fromFile(confFile)
-                .build());
-
-        assertThat(exception.getMessage()).contains("Unrecognized setting");
+        assertThatThrownBy(() -> Config.newBuilder()
+                        .set(strict_config_validation, true)
+                        .fromFile(confFile)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unrecognized setting");
     }
 }

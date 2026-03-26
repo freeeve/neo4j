@@ -30,7 +30,6 @@ import static org.awaitility.Awaitility.await;
 import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -689,10 +688,9 @@ class IndexingServiceTest {
         life.start();
         life.shutdown();
 
-        var e = assertThrows(
-                IllegalStateException.class,
-                () -> indexingService.applyUpdates(iterator(add(1, "foo")), NULL_CONTEXT, false));
-        assertThat(e.getMessage()).startsWith("Can't apply index updates");
+        assertThatThrownBy(() -> indexingService.applyUpdates(iterator(add(1, "foo")), NULL_CONTEXT, false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageStartingWith("Can't apply index updates");
     }
 
     @Test
@@ -1330,10 +1328,10 @@ class IndexingServiceTest {
 
         IndexingService indexingService = createIndexServiceWithCustomIndexMap(indexMapReference);
 
-        var e = assertThrows(
-                UnderlyingStorageException.class,
-                () -> indexingService.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT));
-        assertThat(e.getMessage()).startsWith("Unable to force");
+        assertThatThrownBy(() ->
+                        indexingService.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT))
+                .isInstanceOf(UnderlyingStorageException.class)
+                .hasMessageStartingWith("Unable to force");
     }
 
     @Test
