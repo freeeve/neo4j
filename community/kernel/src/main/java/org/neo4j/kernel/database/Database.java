@@ -276,6 +276,7 @@ public class Database extends AbstractDatabase {
     private LeaseMonitor leaseMonitor;
     private ChunkedTransactionTracker chunkedTransactionTracker;
     private MultiVersionDatabaseRollbackService multiVersionDatabaseRollbackService;
+    private volatile RecoveryPredicate recoveryPredicate = RecoveryPredicate.ALL;
 
     public Database(DatabaseCreationContext context) {
         super(
@@ -464,7 +465,7 @@ public class Database extends AbstractDatabase {
                         ioController,
                         internalLogProvider,
                         tailMetadata)
-                .recoveryPredicate(RecoveryPredicate.ALL)
+                .recoveryPredicate(recoveryPredicate)
                 .monitors(databaseMonitors)
                 .extensionFactories(extensionFactories)
                 .rollbackRegistry(chunkedTransactionTracker)
@@ -712,6 +713,10 @@ public class Database extends AbstractDatabase {
         }
     }
 
+    public void setRecoveryPredicate(RecoveryPredicate recoveryPredicate) {
+        this.recoveryPredicate = recoveryPredicate;
+    }
+
     private void createTokenIndexes() throws KernelException, IOException {
         try (var tx = kernelModule
                 .kernelAPI()
@@ -755,6 +760,7 @@ public class Database extends AbstractDatabase {
                 .withMonitors(databaseMonitors)
                 .withClock(clock)
                 .withStorageEngineFactory(storageEngineFactory)
+                .withTailReadingMaxPosition(recoveryPredicate.maxPosition())
                 .build();
     }
 

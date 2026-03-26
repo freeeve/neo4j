@@ -29,6 +29,7 @@ import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LastAppendBatchInfoProvider;
 import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryEmpty;
@@ -51,6 +52,7 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final CommandReaderFactory commandReaderFactory;
     private final MemoryTracker memoryTracker;
+    private final LogPosition maxPosition;
 
     public DetachedLogTailAppendIndexProvider(
             CommandReaderFactory commandReaderFactory,
@@ -59,14 +61,22 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
             KernelVersion kernelVersion,
             long startingAppendIndex,
             LogPosition logPosition,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            LogPosition maxPosition) {
         this.logFile = logFile;
         this.kernelVersion = kernelVersion;
         this.startingAppendIndex = startingAppendIndex;
+        if (logPosition != LogPosition.UNSPECIFIED
+                && maxPosition != LogPosition.UNSPECIFIED
+                && maxPosition.isBefore(logPosition)) {
+            throw new IllegalStateException(
+                    "checkpoint start position=" + logPosition + " is after maxPosition=" + maxPosition);
+        }
         this.logPosition = logPosition;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.commandReaderFactory = commandReaderFactory;
         this.memoryTracker = memoryTracker;
+        this.maxPosition = maxPosition;
     }
 
     @Override
@@ -85,6 +95,9 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
             var logEntryReader =
                     new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
             long currentFileVersion = logFile.getLogRangeInfo().highestVersion();
+            if (maxPosition != LogPosition.UNSPECIFIED && currentFileVersion > maxPosition.getLogVersion()) {
+                currentFileVersion = maxPosition.getLogVersion();
+            }
 
             while (currentFileVersion >= logVersion) {
                 long currentAppendIndex = UNKNOWN_APPEND_INDEX;
@@ -100,9 +113,23 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                     }
                     try (var reader =
                             logFile.getReader(logFileStartPosition, ReaderLogVersionBridge.forFile(logFile))) {
+                        if (isAfterOrSameAsMaxPosition(reader)) {
+                            currentFileVersion--;
+                            continue;
+                        }
                         reader.alignWithStartEntry();
+                        if (isAfterOrSameAsMaxPosition(reader)) {
+                            currentFileVersion--;
+                            continue;
+                        }
                         try (var cursor = new LogEntryCursor(logEntryReader, reader)) {
                             while (cursor.next()) {
+                                // If we are already past the max position then drop out
+                                // and possibly go back another version, but do process
+                                // if we have only just reached the maxPosition though
+                                if (isAfterMaxPosition(reader)) {
+                                    break;
+                                }
                                 var entry = cursor.get();
                                 if (entry instanceof LogEntryStart startEntry) {
                                     currentAppendIndex = startEntry.getAppendIndex();
@@ -125,6 +152,10 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                                     postLogPosition = reader.getCurrentLogPosition();
                                     infoFound = true;
                                 }
+                                // don't attempt any further read beyond maxPosition
+                                if (isAfterOrSameAsMaxPosition(reader)) {
+                                    break;
+                                }
                             }
                             if (infoFound) {
                                 return new AppendBatchInfo(appendIndex, postLogPosition);
@@ -141,6 +172,15 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
         } catch (Throwable t) {
             throw new RuntimeException("Unable to retrieve last append index", t);
         }
+    }
+
+    private boolean isAfterOrSameAsMaxPosition(ReadableLogChannel reader) throws IOException {
+        return maxPosition != LogPosition.UNSPECIFIED
+                && reader.getCurrentLogPosition().isAfterOrSame(maxPosition);
+    }
+
+    private boolean isAfterMaxPosition(ReadableLogChannel reader) throws IOException {
+        return maxPosition != LogPosition.UNSPECIFIED && maxPosition.isBefore(reader.getCurrentLogPosition());
     }
 
     private LogPosition getLogFileStartPosition(long currentFileVersion, long logVersion) throws IOException {

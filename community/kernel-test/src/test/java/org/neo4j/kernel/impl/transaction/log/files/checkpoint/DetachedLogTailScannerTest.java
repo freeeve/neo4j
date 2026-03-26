@@ -190,6 +190,109 @@ class DetachedLogTailScannerTest {
     }
 
     @Test
+    void lastBatchOfFilesWithoutCheckpointAndSeveralEntries() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry position = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                10,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        start(appendIndex + 1),
+                        commit(11),
+                        start(appendIndex + 2), // last full batch
+                        commit(12),
+                        position,
+                        start(appendIndex + 3) // incomplete
+                        ));
+
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 2, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(position));
+    }
+
+    @Test
+    void lastBatchOfFilesWithoutCheckpointAndMaxPosition() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry endPosition = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                10,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        start(appendIndex + 1),
+                        commit(11),
+                        start(appendIndex + 2), // last in range batch
+                        commit(12),
+                        endPosition,
+                        start(appendIndex + 3),
+                        commit(13),
+                        start(appendIndex + 4),
+                        commit(14)));
+
+        this.logFiles = createLogFiles(positions.get(endPosition));
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 2, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(endPosition));
+    }
+
+    @Test
+    void lastBatchOfFilesWithoutCheckpointAndMaxPositionNotInLastFile() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry endPosition = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                11,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        start(appendIndex + 1), // last in range batch
+                        commit(11),
+                        endPosition,
+                        start(appendIndex + 2),
+                        commit(12)),
+                logFile(start(appendIndex + 3), commit(13), start(appendIndex + 4), commit(14)));
+
+        this.logFiles = createLogFiles(positions.get(endPosition));
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 1, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(endPosition));
+    }
+
+    @Test
+    void lastBatchOfFilesWithMaxPositionInMiddleOfEntry() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry position = position();
+        PositionEntry endPosition = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                11,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        start(appendIndex + 1), // last complete in range batch
+                        commit(11),
+                        position),
+                logFile(
+                        start(appendIndex + 2),
+                        endPosition, // prevent us reading a full entry
+                        commit(12),
+                        start(appendIndex + 3),
+                        commit(13)));
+
+        this.logFiles = createLogFiles(positions.get(endPosition));
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 1, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(position));
+    }
+
+    @Test
     void lastBatchOfFilesWithCheckpoint() throws Exception {
         long appendIndex = BASE_APPEND_INDEX + 1;
         setupLogFiles(
@@ -219,6 +322,63 @@ class DetachedLogTailScannerTest {
         assertThat(lastBatch.appendIndex()).isEqualTo(appendIndex + 1);
         assertThat(lastBatch.logPositionAfter().getLogVersion()).isEqualTo(10);
         assertThat(lastBatch.logPositionAfter().getByteOffset()).isGreaterThan(LogFormat.BIGGEST_HEADER);
+    }
+
+    @Test
+    void lastBatchOfFilesWithCheckpointAndMaxPosition() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry endPosition = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                10,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        checkPoint(),
+                        start(appendIndex + 1),
+                        commit(11),
+                        start(appendIndex + 2), // last in range batch
+                        commit(12),
+                        endPosition,
+                        start(appendIndex + 3),
+                        commit(13),
+                        start(appendIndex + 4),
+                        commit(14)));
+
+        this.logFiles = createLogFiles(positions.get(endPosition));
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 2, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(endPosition));
+    }
+
+    @Test
+    void lastBatchOfWithCheckpointAndLastBatchNotInFinalFile() throws Exception {
+        long appendIndex = BASE_APPEND_INDEX + 1;
+        PositionEntry position = position();
+        PositionEntry endPosition = position();
+        Map<Entry, LogPosition> positions = setupLogFiles(
+                11,
+                logFile(
+                        start(appendIndex),
+                        commit(10),
+                        checkPoint(),
+                        start(appendIndex + 1), // last complete in range batch
+                        commit(11),
+                        position),
+                logFile(
+                        start(appendIndex + 2),
+                        endPosition, // prevent us reading a full entry
+                        commit(12),
+                        start(appendIndex + 3),
+                        commit(13)));
+
+        this.logFiles = createLogFiles(positions.get(endPosition));
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(appendIndex + 1, lastBatch.appendIndex());
+        assertEquals(10, lastBatch.logPositionAfter().getLogVersion());
+        assertThat(lastBatch.logPositionAfter()).isEqualTo(positions.get(position));
     }
 
     @Test
@@ -843,7 +1003,7 @@ class DetachedLogTailScannerTest {
 
     // === Below is code for helping the tests above ===
 
-    void setupLogFiles(long endLogVersion, LogCreator... logFiles) throws Exception {
+    Map<Entry, LogPosition> setupLogFiles(long endLogVersion, LogCreator... logFiles) throws Exception {
         Map<Entry, LogPosition> positions = new HashMap<>();
         long version = endLogVersion - logFiles.length;
         for (LogCreator logFile : logFiles) {
@@ -851,6 +1011,7 @@ class DetachedLogTailScannerTest {
         }
 
         this.logFiles = createLogFiles();
+        return positions;
     }
 
     LogCreator logFile(Entry... entries) {
@@ -980,7 +1141,8 @@ class DetachedLogTailScannerTest {
 
     private record CheckPointEntry(Entry withPositionOfEntry, TransactionId transactionId) implements Entry {}
 
-    private record PositionEntry() implements Entry {}
+    // Use class to ensure reference equality when we record several positions
+    private static final class PositionEntry implements Entry {}
 
     private record PseudoEndSegmentEntry() implements Entry {}
 

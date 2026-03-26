@@ -193,7 +193,8 @@ public class DetachedLogTailScanner {
                         checkpoint.kernelVersion(),
                         checkpoint.appendIndex(),
                         transactionLogPosition,
-                        memoryTracker));
+                        memoryTracker,
+                        maxPosition));
     }
 
     private PostCheckpointInfo getPostCheckpointInfo(
@@ -245,7 +246,8 @@ public class DetachedLogTailScanner {
                         logFileVersion,
                         UNKNOWN_APPEND_INDEX,
                         startPosition,
-                        memoryTracker));
+                        memoryTracker,
+                        maxPosition));
     }
 
     private static LogPosition getLogStartPosition(LogFile logFile, long lowestLogVersion) throws IOException {

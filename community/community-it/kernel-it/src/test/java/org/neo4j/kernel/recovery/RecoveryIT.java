@@ -50,6 +50,7 @@ import static org.neo4j.internal.kernel.api.PropertyIndexQuery.fulltextSearch;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.kernel.database.DatabaseTracers.EMPTY;
+import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.BIGGEST_HEADER;
 import static org.neo4j.kernel.recovery.Recovery.context;
 import static org.neo4j.kernel.recovery.Recovery.performRecovery;
@@ -60,6 +61,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
@@ -150,6 +152,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -166,6 +169,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.service.Services;
+import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -2418,14 +2422,14 @@ class RecoveryIT {
         channel.putVersion(LATEST_KERNEL_VERSION.version());
         channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         // something that can not be read without error
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
         channel.putChecksum();
         channel.prepareForFlush().flush();
 
@@ -2461,6 +2465,90 @@ class RecoveryIT {
     }
 
     @Test
+    void shouldRecoverWithTailScanningAndLogPositionIgnoringUnstableTail() throws Exception {
+        // Nothing after the maxposition should ever be read, even in logtail reading because after that
+        // position the log is not stable and could be truncated during recovery is running.
+        // We write a dummy tx with a higher appendIndex/txId to catch this,
+        // since DetachedLogTailAppendIndexProvider masks exceptions
+
+        GraphDatabaseAPI db = createDatabase();
+        DatabaseLayout layout = db.databaseLayout();
+
+        generateSomeData(db);
+        CheckPointer checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
+        checkPointer.forceCheckPoint(new SimpleTriggerInfo("My checkpoint"));
+        LatestCheckpointInfo latestCheckpointInfo = checkPointer.latestCheckPointInfo();
+
+        // Append an extra dummy tx after maxPosition which we shouldn't read
+        var txWriter = db.getDependencyResolver()
+                .resolveDependency(LogFiles.class)
+                .getLogFile()
+                .getTransactionLogWriter();
+        txWriter.getWriter()
+                .writeStartEntry(LogEntryFactory.newStartEntry(
+                        LATEST_KERNEL_VERSION,
+                        Instant.now().toEpochMilli(),
+                        latestCheckpointInfo
+                                .highestObservedClosedTransactionId()
+                                .id(),
+                        latestCheckpointInfo.appendIndex() + 1L,
+                        0,
+                        NO_LEASE,
+                        Leases.NO_LEASES,
+                        new byte[0]));
+        txWriter.getWriter()
+                .writeCommitEntry(
+                        LATEST_KERNEL_VERSION,
+                        latestCheckpointInfo
+                                        .highestObservedClosedTransactionId()
+                                        .id()
+                                + 1,
+                        Instant.now().toEpochMilli());
+
+        managementService.shutdown();
+
+        // Delete shutdown checkpoint
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+        // Delete custom checkpoint
+        RecoveryHelpers.removeLastCheckpointRecordFromLogFile(layout, fileSystem);
+
+        RecoveryCriteria recoveryCriteria =
+                RecoveryCriteria.untilPosition(latestCheckpointInfo.checkpointedLogPosition());
+        RecoveryPredicate predicate = recoveryCriteria.toPredicate();
+
+        Monitors monitors = new Monitors();
+        monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
+        Config config = Config.newBuilder().build();
+        additionalConfiguration(config);
+
+        LogFiles logFiles = LogFilesBuilder.readableBuilder(
+                        layout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
+                .withTailReadingMaxPosition(latestCheckpointInfo.checkpointedLogPosition())
+                .build();
+        LogTailMetadata tailMetadata = logFiles.getTailMetadata();
+        assertThat(tailMetadata.lastBatch().appendIndex()).isEqualTo(latestCheckpointInfo.appendIndex());
+        assertThat(tailMetadata.lastBatch().logPositionAfter())
+                .isEqualTo(latestCheckpointInfo.checkpointedLogPosition());
+        assertTrue(isRecoveryRequired(databaseLayout, config, predicate));
+
+        assertTrue(performRecovery(context(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        tailMetadata)
+                .recoveryPredicate(predicate)
+                .monitors(monitors)
+                .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                .clock(fakeClock)
+                .rollbackIncompleteTransactions(false)));
+    }
+
+    @Test
     void shouldHandleRecoveryWithLogPositionIfUnstableTailWithoutCheckpoints() throws Exception {
         // Nothing after the maxposition should ever be read, even in logtail reading because after that
         // position the log is not stable and could be truncated during recovery is running.
@@ -2481,14 +2569,14 @@ class RecoveryIT {
         channel.putVersion(LATEST_KERNEL_VERSION.version());
         channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         // something that can not be read without error
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
-        channel.put((byte) 3);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
+        channel.put((byte) 99);
         channel.putChecksum();
         channel.prepareForFlush().flush();
 
