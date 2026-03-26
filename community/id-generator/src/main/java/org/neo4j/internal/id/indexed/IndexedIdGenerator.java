@@ -44,6 +44,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -81,6 +82,7 @@ import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.util.Preconditions;
+import org.neo4j.util.SimpleHistogram;
 
 /**
  * At the heart of this free-list sits a {@link GBPTree}, containing all deleted and freed ids. The tree is used as a bit-set and since it's
@@ -919,11 +921,27 @@ public class IndexedIdGenerator implements IdGenerator {
                 MutableLong numDeletedNotFreed = new MutableLong();
                 MutableLong numDeletedAndFreed = new MutableLong();
                 out.println("Calculating summary...");
+                SimpleHistogram freeIdsHisto = new SimpleHistogram(
+                        IntStream.range(1, layout.idsPerEntry() + 1).toArray());
                 try (var cursorContext = contextFactory.create("IndexDump")) {
                     tree.visit(
                             new GBPTreeVisitor.Adaptor<>() {
+                                private long idRangeIndex;
+
+                                @Override
+                                public void key(IdRangeKey key, boolean isLeaf, long offloadId) {
+                                    idRangeIndex = key.getIdRangeIdx();
+                                }
+
                                 @Override
                                 public void value(ValueHolder<IdRange> value) {
+                                    long baseId = idRangeIndex * layout.idsPerEntry();
+                                    value.value.visitFreeIds(
+                                            baseId, value.value.getGeneration() + 1, (id, numberOfIds) -> {
+                                                freeIdsHisto.register(numberOfIds);
+                                                return true;
+                                            });
+
                                     for (int i = 0; i < header.idsPerEntry; i++) {
                                         IdRange.IdState state = value.value.getState(i);
                                         if (state == IdRange.IdState.FREE) {
@@ -940,6 +958,7 @@ public class IndexedIdGenerator implements IdGenerator {
                 out.println();
                 out.println("Number of IDs deleted and available for reuse: " + numDeletedAndFreed);
                 out.println("Number of IDs deleted, but not yet available for reuse: " + numDeletedNotFreed);
+                out.println("Histogram of sizes of free IDs: " + freeIdsHisto);
                 out.printf(
                         "NOTE: A deleted ID not yet available for reuse is buffered until all transactions that were open%n"
                                 + "at the time of its deletion have been closed, or the database is restarted%n");
