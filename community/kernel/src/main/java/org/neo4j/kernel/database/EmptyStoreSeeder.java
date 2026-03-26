@@ -229,13 +229,15 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
 
     @Override
     public void validateStoreId(StoreId storeId) throws IOException {
+        if (createForMergedLog()) {
+            return;
+        }
         var storageEngineFactory =
                 StorageEngineFactory.selectStorageEngine(fs, databaseLayout).orElseThrow();
         var logTailMetadata =
                 new LogTailMetadataFactoryImpl(fs).getLogTailMetadata(config, databaseLayout, storageEngineFactory);
         var existingStoreId = logTailMetadata.getStoreId().orElseThrow();
-        if (!(existingStoreId.equals(storeId)
-                || (config.get(GraphDatabaseInternalSettings.merged_log) && existingStoreId.equals(StoreId.UNKNOWN)))) {
+        if (!existingStoreId.equals(storeId)) {
             throw new IllegalStateException(
                     "Existing " + existingStoreId + " of " + databaseLayout + " doesn't match expected " + storeId);
         }

@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.txid;
 
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
+@FunctionalInterface
 public interface TransactionIdGenerator {
     TransactionIdGenerator EMPTY = any -> BASE_TX_ID;
     TransactionIdGenerator EXTERNAL_ID = externalId -> externalId;

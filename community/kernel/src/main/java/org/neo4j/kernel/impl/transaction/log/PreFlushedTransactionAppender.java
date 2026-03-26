@@ -60,6 +60,19 @@ public class PreFlushedTransactionAppender extends LifecycleAdapter implements T
                             format("Attempted to publish transaction with invalid LogPositionMetadata: %s", metadata));
                 }
 
+                if (commands.transactionId() != metadata.appendIndex()
+                        || metadata.appendIndex() != commands.commandBatch().appendIndex()) {
+                    throw new IllegalStateException(format(
+                            "Expected transactionId (%d) and append index, both on the metadata (%d) and on the "
+                                    + "command batch (%d), to be equal, but they aren't. Transaction in question: %s,"
+                                    + " which starts at position: %s",
+                            commands.transactionId(),
+                            metadata.appendIndex(),
+                            commands.commandBatch().appendIndex(),
+                            commands,
+                            metadata.prePosition()));
+                }
+
                 // Compute txid
                 commands.transactionId();
                 // Inform TransactionMetadataCache and TransactionIdStore of new tx

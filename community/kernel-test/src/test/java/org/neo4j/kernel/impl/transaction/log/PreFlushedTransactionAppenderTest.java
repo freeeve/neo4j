@@ -129,7 +129,7 @@ public class PreFlushedTransactionAppenderTest {
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
         for (long appendIndex = BASE_APPEND_INDEX; appendIndex < BASE_APPEND_INDEX + transactions; appendIndex++) {
             CompleteTransaction tx = new CompleteTransaction(
-                    transaction(),
+                    transaction(appendIndex),
                     NULL_CONTEXT,
                     StoreCursors.NULL,
                     transactionCommitment,
@@ -145,8 +145,8 @@ public class PreFlushedTransactionAppenderTest {
         return first;
     }
 
-    private static CommandBatch transaction() {
-        return new CompleteCommandBatch(
+    private static CommandBatch transaction(long appendIndex) {
+        CompleteCommandBatch storageCommands = new CompleteCommandBatch(
                 Collections.singletonList(new TestCommand()),
                 0,
                 0,
@@ -156,6 +156,8 @@ public class PreFlushedTransactionAppenderTest {
                 Leases.NO_LEASES,
                 LATEST_KERNEL_VERSION,
                 ANONYMOUS);
+        storageCommands.setAppendIndex(appendIndex);
+        return storageCommands;
     }
 
     private static LogPositionMetadata createBelievableMetadata(long appendIndex) {
