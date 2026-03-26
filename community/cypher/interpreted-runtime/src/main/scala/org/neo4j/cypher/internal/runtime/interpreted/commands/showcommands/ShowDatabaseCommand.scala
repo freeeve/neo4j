@@ -95,4 +95,8 @@ case class SlotBasedParameterProvider(queryState: QueryState) extends ParameterP
   override val get: PartialFunction[Expression, AnyValue] = {
     case p: ParameterFromSlot => queryState.params.apply(p.offset)
   }
+
+  override val getName: PartialFunction[Expression, String] = {
+    case p: ParameterFromSlot => p.name
+  }
 }

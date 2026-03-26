@@ -65,6 +65,9 @@ object NamespacedName {
 
 case class ParameterName(expression: Expression)(val position: InputPosition) extends DatabaseName {
   lazy val parameter: Parameter = expression.asInstanceOf[Parameter]
+
+  // This will not work if the parameter has been slotted (ParameterFromSlot), but that is only used for SHOW DATABASES
+  // and in that case we will not use this method
   override def asLegacyName: Either[String, Parameter] = Right(parameter)
 
   def getNameParts(
@@ -76,7 +79,8 @@ case class ParameterName(expression: Expression)(val position: InputPosition) ex
     if (!paramValue.isInstanceOf[TextValue]) {
       throw ParameterWrongTypeException.expectedParameterToBeString42N51(
         false,
-        parameter.name,
+        // On the SHOW DATABASE path, we might be using slotted parameters
+        params.getName(expression),
         String.valueOf(paramValue),
         paramValue.prettify()
       )
@@ -110,11 +114,16 @@ case class ParameterName(expression: Expression)(val position: InputPosition) ex
 
 trait ParameterProvider {
   val get: PartialFunction[Expression, AnyValue]
+  val getName: PartialFunction[Expression, String]
 }
 
 case class MapBasedParameterProvider(mapValue: MapValue) extends ParameterProvider {
 
   override val get: PartialFunction[Expression, AnyValue] = {
     case p: Parameter => mapValue.get(p.name)
+  }
+
+  override val getName: PartialFunction[Expression, String] = {
+    case p: Parameter => p.name
   }
 }
