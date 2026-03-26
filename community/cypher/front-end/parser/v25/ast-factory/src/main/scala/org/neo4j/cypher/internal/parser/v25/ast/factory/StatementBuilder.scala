@@ -648,7 +648,13 @@ trait StatementBuilder extends Cypher25ParserListener {
   final override def exitUnwindClause(
     ctx: Cypher25Parser.UnwindClauseContext
   ): Unit = {
-    ctx.ast = Unwind(ctxChild(ctx, 1).ast(), ctxChild(ctx, 3).ast())(pos(ctx))
+    ctx.ast = Unwind(ctxChild(ctx, 1).ast(), ctxChild(ctx, 3).ast())(pos(ctx), useForInSyntax = false)
+  }
+
+  final override def exitForListClause(
+    ctx: Cypher25Parser.ForListClauseContext
+  ): Unit = {
+    ctx.ast = Unwind(ctx.expression().ast(), ctx.variable().ast())(pos(ctx), useForInSyntax = true)
   }
 
   final override def exitLetClause(

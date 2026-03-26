@@ -389,7 +389,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
             nodePat(Some("a"))
           ),
           with_(varFor("a").aliased),
-          unwind(listOfInt(2), varFor("x")).copy()(unwindPos)
+          unwind(listOfInt(2), varFor("x")).copy()(unwindPos, useForInSyntax = false)
         )
       ),
       return_(countStar().as("count"))

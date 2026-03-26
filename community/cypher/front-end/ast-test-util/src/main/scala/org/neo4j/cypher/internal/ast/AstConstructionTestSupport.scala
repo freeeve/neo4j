@@ -1602,6 +1602,9 @@ trait AstConstructionTestSupport {
   def unwind(e: Expression, v: Variable): Unwind =
     Unwind(e, v)(pos)
 
+  def unwind(e: Expression, v: Variable, useForInSyntax: Boolean): Unwind =
+    Unwind(e, v)(pos, useForInSyntax)
+
   def unresolvedCallWithYield(
     procedureName: ProcedureName,
     yields: Seq[(Variable, Variable)],

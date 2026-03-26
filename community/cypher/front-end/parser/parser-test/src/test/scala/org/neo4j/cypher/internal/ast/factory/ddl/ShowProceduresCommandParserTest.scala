@@ -574,7 +574,7 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
             |                ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'EXEC': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'EXECUTABLE', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
+          """Invalid input 'EXEC': expected 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'EXECUTABLE', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH', 'YIELD' or <EOF> (line 1, column 16 (offset: 15))
             |"SHOW PROCEDURE EXEC"
             |                ^""".stripMargin
         )
@@ -714,7 +714,7 @@ class ShowProceduresCommandParserTest extends AdministrationAndSchemaCommandPars
             |                                         ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'AST': expected an expression, ',', 'ASC', 'ASCENDING', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DESC', 'DESCENDING', 'DETACH', 'FILTER', 'FINISH', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 1, column 41 (offset: 40))
+          """Invalid input 'AST': expected an expression, ',', 'ASC', 'ASCENDING', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DESC', 'DESCENDING', 'DETACH', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 1, column 41 (offset: 40))
             |"SHOW PROCEDURE YIELD name ORDER BY name AST RETURN *"
             |                                         ^""".stripMargin
         )

@@ -1736,7 +1736,8 @@ class AstGenerator(
   def _unwind: Gen[Unwind] = for {
     expression <- _expression
     variable <- _variable
-  } yield Unwind(expression, variable)(pos)
+    useForInSyntax <- if (usesCypher5) const(false) else frequency(2 -> const(false), 1 -> const(true))
+  } yield Unwind(expression, variable)(pos, useForInSyntax = useForInSyntax)
 
   def _setItem: Gen[SetItem] = for {
     variable <- _variable

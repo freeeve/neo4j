@@ -127,6 +127,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitUnwindClause(Cypher25Parser.UnwindClauseContext ctx);
 
+    void exitForListClause(Cypher25Parser.ForListClauseContext ctx);
+
     void exitLetClause(Cypher25Parser.LetClauseContext ctx);
 
     void exitLetItem(Cypher25Parser.LetItemContext ctx);

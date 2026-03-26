@@ -267,6 +267,11 @@ class PrettifierIT extends AbstractPrettifierTest {
     "unwind [1,2,3] AS x RETURN x" ->
       """UNWIND [1, 2, 3] AS x
         |RETURN x""".stripMargin,
+    FailsInCypher5(
+      "for x in [1,2,3] return x",
+      """FOR x IN [1, 2, 3]
+        |RETURN x""".stripMargin
+    ),
     "MATCH REPEATABLE ELEMENTS (a)-->(b)     rETuRN a" ->
       """MATCH REPEATABLE ELEMENTS (a)-->(b)
         |RETURN a""".stripMargin,

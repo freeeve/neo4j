@@ -1407,7 +1407,11 @@ case class Prettifier(
     }
 
     def asString(u: Unwind): String = {
-      s"${INDENT}UNWIND ${expr(u.expression, shouldBacktickEmpty = true)} AS ${expr(u.variable, shouldBacktickEmpty = true)}"
+      if (u.useForInSyntax) {
+        s"${INDENT}FOR ${expr(u.variable, shouldBacktickEmpty = true)} IN ${expr(u.expression, shouldBacktickEmpty = true)}"
+      } else {
+        s"${INDENT}UNWIND ${expr(u.expression, shouldBacktickEmpty = true)} AS ${expr(u.variable, shouldBacktickEmpty = true)}"
+      }
     }
 
     def asString(u: UnresolvedCall): String = {

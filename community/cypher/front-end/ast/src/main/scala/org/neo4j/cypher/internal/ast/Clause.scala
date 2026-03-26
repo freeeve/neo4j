@@ -156,6 +156,7 @@ import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.ProcedureName
+import org.neo4j.cypher.internal.util.Rewritable.IteratorEq
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.helpers.StringHelper.RichString
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -1709,8 +1710,22 @@ case class Foreach(
 case class Unwind(
   expression: Expression,
   variable: Variable
-)(val position: InputPosition) extends Clause with SemanticAnalysisTooling {
-  override def name = "UNWIND"
+)(val position: InputPosition, val useForInSyntax: Boolean = false) extends Clause with SemanticAnalysisTooling {
+  override def name: String = if (useForInSyntax) "FOR" else "UNWIND"
+
+  override def dup(children: Seq[AnyRef]): Unwind.this.type =
+    if (children.iterator eqElements this.treeChildren)
+      this
+    else {
+      children match {
+        case Seq(e: Expression, v: Variable) =>
+          copy(expression = e, variable = v)(position, useForInSyntax).asInstanceOf[this.type]
+        case _ =>
+          throw new IllegalStateException(
+            s"Failed rewriting $this\nTried using children: ${children.mkString(",")}"
+          )
+      }
+    }
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
     SemanticExpressionCheck.check(SemanticContext.Simple, expression) chain

@@ -502,7 +502,7 @@ trait StatementBuilder extends Cypher5ParserListener {
   final override def exitUnwindClause(
     ctx: Cypher5Parser.UnwindClauseContext
   ): Unit = {
-    ctx.ast = Unwind(ctxChild(ctx, 1).ast(), ctxChild(ctx, 3).ast())(pos(ctx))
+    ctx.ast = Unwind(ctxChild(ctx, 1).ast(), ctxChild(ctx, 3).ast())(pos(ctx), useForInSyntax = false)
   }
 
   final override def exitCallClause(

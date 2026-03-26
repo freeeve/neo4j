@@ -107,6 +107,7 @@ clause
    | withClause
    | filterClause
    | unwindClause
+   | forListClause
    | letClause
    | callClause
    | subqueryClause
@@ -263,6 +264,10 @@ filterClause
 
 unwindClause
    : UNWIND expression AS variable
+   ;
+
+forListClause
+   : FOR variable IN expression
    ;
 
 letClause
