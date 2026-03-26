@@ -333,7 +333,7 @@ final class Lucene10FilterQueryBuilder {
         final int toOffsetSeconds =
                 TemporalOffsetWithId.zoneOffsetOf(to, ZoneOffset.MAX).getTotalSeconds();
         if (toOffsetSeconds < fromOffsetSeconds) {
-            return List.of(new MatchNoDocsQuery());
+            return List.of(MatchNoDocsQuery.INSTANCE);
         }
 
         String fromZoneId = TemporalOffsetWithId.hasZoneId(from) ? TemporalWithZone.zoneIdString(from.zoneId()) : null;

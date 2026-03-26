@@ -85,7 +85,7 @@ final class Lucene10ValueFields {
 
         static Query newRangeQuery(String field, boolean lowerValueInclusive, boolean upperValueInclusive) {
             if (lowerValueInclusive && !upperValueInclusive) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             } else if (lowerValueInclusive) {
                 // range from [true, true]
                 return newExactQuery(field, true);
@@ -133,7 +133,7 @@ final class Lucene10ValueFields {
         static Query newRangeQuery(String field, long lowerValueInclusive, long upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             if (upperValueInclusive < lowerValueInclusive) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
             return new LongPointRangeQuery(
                     field, longToBytes(lowerValueInclusive), longToBytes(upperValueInclusive), 1);
@@ -186,7 +186,7 @@ final class Lucene10ValueFields {
         static Query newRangeQuery(String field, int lowerValueInclusive, int upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             if (upperValueInclusive < lowerValueInclusive) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
             return new IntegerPointRangeQuery(
                     field, intToBytes(lowerValueInclusive), intToBytes(upperValueInclusive), 1);
@@ -239,7 +239,7 @@ final class Lucene10ValueFields {
         static Query newRangeQuery(String field, Instant lowerValueInclusive, Instant upperValueInclusive) {
             Preconditions.requireNonNull(field, "Field cannot be null");
             if (lowerValueInclusive.isAfter(upperValueInclusive)) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
             return new InstantPointRangeQuery(
                     field, instantToBytes(lowerValueInclusive), instantToBytes(upperValueInclusive), 1);
@@ -306,7 +306,7 @@ final class Lucene10ValueFields {
             Preconditions.checkArgument(
                     !Double.isNaN(upperValueInclusive), "NaN is not a valid upper bound for a range");
             if (lowerValueInclusive > upperValueInclusive) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
             return new DoublePointRangeQuery(
                     field, doubleToBytes(lowerValueInclusive), doubleToBytes(upperValueInclusive), 1);
@@ -423,7 +423,6 @@ final class Lucene10ValueFields {
                 }
 
                 case TimeValue timeValue -> {
-                    var time = timeValue.asObjectCopy();
                     // a fake instant calculated as duration from the earliest possible offset time
                     var offset = Duration.between(OffsetTime.MIN, timeValue.asObjectCopy());
                     yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());

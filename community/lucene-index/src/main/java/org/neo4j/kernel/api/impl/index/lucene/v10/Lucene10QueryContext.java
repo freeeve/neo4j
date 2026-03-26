@@ -36,6 +36,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.KnnFloatVectorQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
@@ -123,7 +124,7 @@ public class Lucene10QueryContext implements LuceneQueryContext {
 
     @Override
     public Lucene10QueryContext matchAll() {
-        assignSingle(new MatchAllDocsQuery());
+        assignSingle(MatchAllDocsQuery.INSTANCE);
         return this;
     }
 
@@ -207,7 +208,7 @@ public class Lucene10QueryContext implements LuceneQueryContext {
 
     private static Query trigramSearchQuery(String searchString) {
         if (searchString.isEmpty()) {
-            return new MatchAllDocsQuery();
+            return MatchNoDocsQuery.INSTANCE;
         }
 
         var codePointBuffer = Lucene10TrigramTokenStream.getCodePoints(searchString);
