@@ -48,8 +48,8 @@ public class DefaultIndexSettingsValidator implements IndexSettingsValidator {
     /// [SettingsAccessor]
     /// @param processor the processor that validates transforms those extracted settings into their typed final
     /// values. Must cover all [IndexSetting]s extracted by the `extractors`.
-    /// @param implicitSettings any settings that are not expected, and thus an error, in the original authoritative set
-    /// of valid settings, that are now expected with their implicit value.
+    /// @param implicitSettings any settings that are not expected, and thus an error, in the original authoritative
+    // set of valid settings, that are now expected with their implicit value.
     /// @see SequencedIndexSettingProcessors#mergeToValidatingProcessor(IndexSettingsProcessor...)
     public DefaultIndexSettingsValidator(
             IndexSettingExtractors extractors,
