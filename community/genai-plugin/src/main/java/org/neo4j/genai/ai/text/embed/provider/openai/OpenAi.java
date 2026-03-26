@@ -49,6 +49,7 @@ public class OpenAi implements VectorEmbedding.Provider {
     public static class Parameters {
         public String token;
         public String model;
+        public long maxBatchSize = 8192; // Default token limit for embeddings endpoint
         // Optional Vendor Options: user and dimensions
         public Map<String, Object> vendorOptions = Map.of();
     }
@@ -86,6 +87,15 @@ public class OpenAi implements VectorEmbedding.Provider {
         public void extendPayload(MutableMap<String, Object> payload) {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
+        }
+
+        @Override
+        public long maxBatchSize() {
+            if (params.maxBatchSize > 0) {
+                return params.maxBatchSize;
+            }
+            // Default token limit for embeddings endpoint
+            return 8192;
         }
     }
 }

@@ -53,6 +53,7 @@ public class AzureOpenAi implements VectorEmbedding.Provider {
         public String token;
         public String resource;
         public String model;
+        public long maxBatchSize = 8192; // Default token limit for embeddings endpoint
         public Map<String, Object> vendorOptions = Map.of();
     }
 
@@ -89,6 +90,15 @@ public class AzureOpenAi implements VectorEmbedding.Provider {
         public void extendPayload(MutableMap<String, Object> payload) {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
+        }
+
+        @Override
+        public long maxBatchSize() {
+            if (params.maxBatchSize > 0) {
+                return params.maxBatchSize;
+            }
+            // Default token limit for embeddings endpoint
+            return 8192;
         }
     }
 

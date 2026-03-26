@@ -21,6 +21,10 @@ package org.neo4j.genai.ai.text.embed;
 
 import static java.util.Objects.requireNonNull;
 
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingType;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -112,6 +116,50 @@ public class VectorEmbedding {
         }
         final var provider = providers.configure(providerName, configuration, genAIConfig);
         monitors.vectorEnc().embedBatchProcedureCalled(provider.name());
+
+        // Not all providers use batching, so in those cases there is no limit, just return
+        // the entire thing encoded
+        var maxBatchSize = provider.maxBatchSize();
+        if (maxBatchSize > 0) {
+            var encoding = getEncoding(configuration.get("model").toString());
+            var currentOffset = 0;
+            var currentBatchSize = 0;
+            var newResources = new ArrayList<String>();
+            var streams = new ArrayList<Stream<InternalBatchRow>>();
+            for (var resource : resources) {
+                var resourceSize = resource == null ? 0 : encoding.countTokens(resource);
+                if (currentBatchSize + resourceSize > maxBatchSize && currentBatchSize != 0) {
+                    // Close current bucket, send away
+                    streams.add(encodePartialBatch(newResources, provider, currentOffset));
+                    currentBatchSize = 0;
+                    currentOffset += newResources.size();
+                    newResources = new ArrayList<>();
+                    // Add current resource to the bucket
+                    newResources.add(resource);
+                    currentBatchSize += resourceSize;
+                } else if (currentBatchSize + resourceSize > maxBatchSize && currentBatchSize == 0) {
+                    // The resource is really large, we won't do any splitting, just send away, user error
+                    newResources.add(resource);
+                    streams.add(encodePartialBatch(newResources, provider, currentOffset));
+                    currentOffset += newResources.size();
+                    newResources = new ArrayList<>();
+                } else {
+                    // We have more room in the bucket
+                    newResources.add(resource);
+                    currentBatchSize += resourceSize;
+                }
+            }
+            if (!newResources.isEmpty()) {
+                streams.add(encodePartialBatch(newResources, provider, currentOffset));
+            }
+            return streams.stream().flatMap(stream -> stream);
+        } else {
+            return encodePartialBatch(resources, provider, 0);
+        }
+    }
+
+    private Stream<InternalBatchRow> encodePartialBatch(
+            List<String> resources, Provider.Implementation provider, int currentOffset) {
         // Remember all the places where we had nulls and remove them from the requested resources
         final var removedIndexes = IntLists.mutable.empty();
         // We need to make a copy as the List interface doesn't guarantee mutability
@@ -132,16 +180,26 @@ public class VectorEmbedding {
             return IntStream.range(0, removedIndexes.size()).mapToObj(index -> new InternalBatchRow(index, null, null));
         }
 
-        return provider.encodeBatch(cleanedResources, removedIndexes.toArray());
+        return provider.encodeBatch(cleanedResources, removedIndexes.toArray(), currentOffset);
+    }
+
+    private Encoding getEncoding(String model) {
+        final var registry = Encodings.newDefaultEncodingRegistry();
+        return (model == null || model.isEmpty())
+                ? registry.getEncoding(EncodingType.R50K_BASE)
+                : registry.getEncodingForModel(model).orElseGet(() -> registry.getEncoding(EncodingType.R50K_BASE));
     }
 
     public interface Provider extends NamedProvider {
         Provider.Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig);
 
         interface Implementation extends NamedProvider.Implementation {
+            long maxBatchSize();
+
             VectorValue encode(String resource);
 
-            Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes);
+            Stream<VectorEmbedding.InternalBatchRow> encodeBatch(
+                    List<String> resources, int[] nullIndexes, int batchOffset);
         }
     }
 

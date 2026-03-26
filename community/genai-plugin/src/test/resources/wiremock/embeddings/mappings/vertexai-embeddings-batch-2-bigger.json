@@ -1,0 +1,89 @@
+{
+  "request": {
+    "urlPath": "/v1/projects/gem/locations/tasman/publishers/google/models/gemini-embedding-001:predict",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer dummy-vertex-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "instances": [
+            {
+              "content": "Hello 6"
+            },
+            {
+              "content": "Hello 7"
+            },
+            {
+              "content": "Hello 8"
+            },
+            {
+              "content": "Hello 9"
+            },
+            {
+              "content": "Hello 10"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "predictions": [
+        {
+          "embeddings": {
+            "values": [
+              0.1,
+              0.2,
+              0.3
+            ]
+          }
+        },
+        {
+          "embeddings": {
+            "values": [
+              0.1,
+              0.2,
+              0.3
+            ]
+          }
+        },
+        {
+          "embeddings": {
+            "values": [
+              0.1,
+              0.2,
+              0.3
+            ]
+          }
+        },
+        {
+          "embeddings": {
+            "values": [
+              0.1,
+              0.2,
+              0.3
+            ]
+          }
+        },
+        {
+          "embeddings": {
+            "values": [
+              0.1,
+              0.2,
+              0.3
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

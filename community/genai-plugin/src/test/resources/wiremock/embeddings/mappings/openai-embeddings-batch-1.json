@@ -1,0 +1,36 @@
+{
+  "request": {
+    "urlPath": "/v1/embeddings",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "equalToJson": {
+          "model": "text-embedding-3-small",
+          "input": ["Hello 1"],
+          "encoding_format": "float"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "object": "list",
+      "data": [
+        {
+          "object": "embedding",
+          "index": 0,
+          "embedding": [0.1, 0.2, 0.3]
+        }
+      ]
+    }
+  }
+}

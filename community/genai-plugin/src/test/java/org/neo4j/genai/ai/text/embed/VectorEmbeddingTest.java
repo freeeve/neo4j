@@ -105,10 +105,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
+                      maxBatchSize :: INTEGER NOT NULL,
                       vendorOptions :: MAP NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("vendorOptions", Map.of())),
+                    Map.of("maxBatchSize", 8192L, "vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "Bedrock-Titan",
@@ -139,10 +140,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                     "optionalConfigType",
                     """
                     {
+                      maxBatchSize :: INTEGER NOT NULL,
                       vendorOptions :: MAP NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("vendorOptions", Map.of())),
+                    Map.of("maxBatchSize", 8192L, "vendorOptions", Map.of())),
             Map.of(
                     "name",
                     "VertexAI",
@@ -159,10 +161,11 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                       token :: STRING,
                       apiKey :: STRING,
                       publisher :: STRING NOT NULL,
+                      maxBatchSize :: INTEGER NOT NULL,
                       vendorOptions :: MAP NOT NULL
                     }""",
                     "defaultConfig",
-                    Map.of("publisher", "google", "vendorOptions", Map.of())));
+                    Map.of("maxBatchSize", -1L, "publisher", "google", "vendorOptions", Map.of())));
 
     @Test
     void listProviders() {
@@ -190,6 +193,150 @@ public class VectorEmbeddingTest implements GenAITestExtension {
                 .as("Query:%n```%n%s%n```%n", query2)
                 .singleElement(resultMap())
                 .containsEntry("result", true);
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(BatchWithMaxBatchSizeArguments.class)
+    void batchEmbeddingWithMaxBatchSizeShouldProcessInMultipleBatches(ProviderArgs args) {
+        // "Hello 1" is 2 tokens.
+        // Setting maxBatchSize to 1 will force each "Hello 1" into its own batch because it exceeds the limit.
+        final var query = """
+                    CALL ai.text.embedBatch(
+                      ['Hello 1', 'Hello 2'],
+                      '%s',
+                      %s
+                    )
+                    YIELD index, vector, resource
+                    RETURN index, resource, vector IS :: VECTOR<FLOAT32> AS vector
+                """.formatted(args.provider(), args.conf());
+
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .containsExactly(
+                        Map.of("vector", true, "index", 0L, "resource", "Hello 1"),
+                        Map.of("vector", true, "index", 1L, "resource", "Hello 2"));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(BatchWithMaxBatchSizeArguments2.class)
+    void batchEmbeddingWithMaxBatchSizeShouldProcessInMultipleBatches2(ProviderArgs args) {
+        // "Hello 1" is 2 tokens.
+        // Setting maxBatchSize to 10 will force each 5 groups of "Hello %d" into their own batch.
+        final var query = """
+                    CALL ai.text.embedBatch(
+                      [
+                      'Hello 1',
+                      'Hello 2',
+                      'Hello 3',
+                      'Hello 4',
+                      'Hello 5',
+                      'Hello 6',
+                      'Hello 7',
+                      'Hello 8',
+                      'Hello 9',
+                      'Hello 10'
+                      ],
+                      '%s',
+                      %s
+                    )
+                    YIELD index, vector, resource
+                    RETURN index, resource, vector IS :: VECTOR<FLOAT32> AS vector
+                """.formatted(args.provider(), args.conf());
+
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .containsExactly(
+                        Map.of("vector", true, "index", 0L, "resource", "Hello 1"),
+                        Map.of("vector", true, "index", 1L, "resource", "Hello 2"),
+                        Map.of("vector", true, "index", 2L, "resource", "Hello 3"),
+                        Map.of("vector", true, "index", 3L, "resource", "Hello 4"),
+                        Map.of("vector", true, "index", 4L, "resource", "Hello 5"),
+                        Map.of("vector", true, "index", 5L, "resource", "Hello 6"),
+                        Map.of("vector", true, "index", 6L, "resource", "Hello 7"),
+                        Map.of("vector", true, "index", 7L, "resource", "Hello 8"),
+                        Map.of("vector", true, "index", 8L, "resource", "Hello 9"),
+                        Map.of("vector", true, "index", 9L, "resource", "Hello 10"));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(BatchWithMaxBatchSizeArguments2.class)
+    void batchEmbeddingWithMaxBatchSizeShouldProcessInMultipleBatchesWithNulls(ProviderArgs args) {
+        // "Hello 1" is 2 tokens.
+        // Setting maxBatchSize to 10 will force each 5 groups of "Hello %d" into their own batch.
+        final var query = """
+                    CALL ai.text.embedBatch(
+                      [
+                      null,
+                      'Hello 1',
+                      null,
+                      null,
+                      'Hello 2',
+                      'Hello 3',
+                      null,
+                      null,
+                      'Hello 4',
+                      'Hello 5',
+                      'Hello 6',
+                      'Hello 7',
+                      null,
+                      'Hello 8',
+                      'Hello 9',
+                      null,
+                      null,
+                      null,
+                      'Hello 10',
+                      null
+                      ],
+                      '%s',
+                      %s
+                    )
+                    YIELD index, vector, resource
+                    RETURN index, resource, vector IS :: VECTOR<FLOAT32> NOT NULL AS vector
+                """.formatted(args.provider(), args.conf());
+
+        assertThat(db.executeTransactionally(query, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query)
+                .containsExactly(
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 0L, "resource", null)
+                                .castToMap(),
+                        Map.of("vector", true, "index", 1L, "resource", "Hello 1"),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 2L, "resource", null)
+                                .castToMap(),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 3L, "resource", null)
+                                .castToMap(),
+                        Map.of("vector", true, "index", 4L, "resource", "Hello 2"),
+                        Map.of("vector", true, "index", 5L, "resource", "Hello 3"),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 6L, "resource", null)
+                                .castToMap(),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 7L, "resource", null)
+                                .castToMap(),
+                        Map.of("vector", true, "index", 8L, "resource", "Hello 4"),
+                        Map.of("vector", true, "index", 9L, "resource", "Hello 5"),
+                        Map.of("vector", true, "index", 10L, "resource", "Hello 6"),
+                        Map.of("vector", true, "index", 11L, "resource", "Hello 7"),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 12L, "resource", null)
+                                .castToMap(),
+                        Map.of("vector", true, "index", 13L, "resource", "Hello 8"),
+                        Map.of("vector", true, "index", 14L, "resource", "Hello 9"),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 15L, "resource", null)
+                                .castToMap(),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 16L, "resource", null)
+                                .castToMap(),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 17L, "resource", null)
+                                .castToMap(),
+                        Map.of("vector", true, "index", 18L, "resource", "Hello 10"),
+                        Maps.immutable
+                                .of("vector", false, "index", (Object) 19L, "resource", null)
+                                .castToMap());
     }
 
     @ParameterizedTest
@@ -604,5 +751,35 @@ class MissingSecretsArguments implements ProviderArguments {
                 new ProviderArgs(
                         "bedrock-titan:foundation model by arn",
                         "{ model: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1', region: 'us-east-1' }"));
+    }
+}
+
+class BatchWithMaxBatchSizeArguments implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs(
+                        "azure-openai",
+                        "{ token: 'dummy-azure-token', resource: 'dummy', model: 'text-embedding-3-small', maxBatchSize: 1 }"),
+                new ProviderArgs(
+                        "openai", "{ token: 'dummy-openai-token', model: 'text-embedding-3-small', maxBatchSize: 1 }"),
+                new ProviderArgs(
+                        "vertexai",
+                        "{ token: 'dummy-vertex-token', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google', maxBatchSize: 1 }"));
+    }
+}
+
+class BatchWithMaxBatchSizeArguments2 implements ProviderArguments {
+    @Override
+    public Stream<ProviderArgs> providers() {
+        return Stream.of(
+                new ProviderArgs(
+                        "azure-openai",
+                        "{ token: 'dummy-azure-token', resource: 'dummy', model: 'text-embedding-3-small', maxBatchSize: 10 }"),
+                new ProviderArgs(
+                        "openai", "{ token: 'dummy-openai-token', model: 'text-embedding-3-small', maxBatchSize: 10 }"),
+                new ProviderArgs(
+                        "vertexai",
+                        "{ token: 'dummy-vertex-token', model: 'gemini-embedding-001', region: 'tasman', project: 'gem', publisher: 'google', maxBatchSize: 10 }"));
     }
 }

@@ -61,12 +61,13 @@ public class VertexAi implements VectorEmbedding.Provider {
     }
 
     public static class Parameters {
-        public Optional<String> token; // OAuth Access Token
-        public Optional<String> apiKey; // API Key
         public String model;
         public String project;
         public String region;
+        public Optional<String> token; // OAuth Access Token
+        public Optional<String> apiKey; // API Key
         public String publisher = "google";
+        public long maxBatchSize = -1;
         // Optional Vendor Options: taskType, autoTruncate
         public Map<String, Object> vendorOptions = Map.of();
     }
@@ -96,8 +97,16 @@ public class VertexAi implements VectorEmbedding.Provider {
             implements VectorEmbedding.Provider.Implementation {
 
         @Override
+        public long maxBatchSize() {
+            if (params.maxBatchSize > 0) {
+                return params.maxBatchSize;
+            }
+            return -1; // No automatic batching, VertexAI has a larger limit than OpenAI
+        }
+
+        @Override
         public VectorValue encode(String resource) {
-            var vectors = encode(List.of(resource), EMPTY_INT_ARRAY).toList();
+            var vectors = encode(List.of(resource), EMPTY_INT_ARRAY, 0).toList();
             if (vectors.size() != 1) {
                 throw new MalformedGenAIResponseException(
                         "Expected exactly one vector embedding, but found " + vectors.size());
@@ -106,11 +115,13 @@ public class VertexAi implements VectorEmbedding.Provider {
         }
 
         @Override
-        public Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes) {
-            return encode(resources, nullIndexes);
+        public Stream<VectorEmbedding.InternalBatchRow> encodeBatch(
+                List<String> resources, int[] nullIndexes, int batchOffset) {
+            return encode(resources, nullIndexes, batchOffset);
         }
 
-        private Stream<VectorEmbedding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
+        private Stream<VectorEmbedding.InternalBatchRow> encode(
+                List<String> resources, int[] nullIndexes, int batchOffset) {
             final Object payload = buildPayload(resources);
 
             URI requestEndpoint = endpoint;
@@ -132,7 +143,7 @@ public class VertexAi implements VectorEmbedding.Provider {
                                 }
                                 return b.POST(jsonBody(payload)).build();
                             },
-                            inputStream -> parseResponse(resources, inputStream, nullIndexes));
+                            inputStream -> parseResponse(resources, inputStream, nullIndexes, batchOffset));
         }
 
         /*
@@ -147,10 +158,11 @@ public class VertexAi implements VectorEmbedding.Provider {
             }
         */
         static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
-                List<String> resources, InputStream inputStream, int[] nullIndexes)
+                List<String> resources, InputStream inputStream, int[] nullIndexes, int batchOffset)
                 throws MalformedGenAIResponseException {
             final String[] properties = {"embeddings", "values"};
-            return JsonUtils.parseResponse("VertexAI", "predictions", properties, resources, inputStream, nullIndexes);
+            return JsonUtils.parseResponse(
+                    "VertexAI", "predictions", properties, resources, inputStream, nullIndexes, batchOffset);
         }
 
         /*

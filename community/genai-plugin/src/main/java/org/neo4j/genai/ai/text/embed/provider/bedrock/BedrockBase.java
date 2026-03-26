@@ -105,6 +105,12 @@ record BedrockImplementation(
         implements VectorEmbedding.Provider.Implementation {
 
     @Override
+    public long maxBatchSize() {
+        // Bedrock doesn't accept a list of embeddings
+        return 0;
+    }
+
+    @Override
     public VectorValue encode(String resource) {
         var body = createRequestBody(resource);
         final var endpoint = endpoint();
@@ -131,7 +137,8 @@ record BedrockImplementation(
     }
 
     @Override
-    public Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes) {
+    public Stream<VectorEmbedding.InternalBatchRow> encodeBatch(
+            List<String> resources, int[] nullIndexes, int batchOffset) {
         final MutableInt offset = new MutableInt();
         return IntStream.range(0, resources.size() + nullIndexes.length).mapToObj(index -> {
             // We need to reinsert nulls at the right place

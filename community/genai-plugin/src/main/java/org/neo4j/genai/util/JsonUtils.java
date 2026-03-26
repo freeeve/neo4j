@@ -48,7 +48,8 @@ public final class JsonUtils {
             String[] properties,
             List<String> resources,
             InputStream inputStream,
-            int[] nullIndexes)
+            int[] nullIndexes,
+            int batchOffset)
             throws MalformedGenAIResponseException {
         final JsonNode tree = readTree(inputStream);
 
@@ -65,7 +66,7 @@ public final class JsonUtils {
             try {
                 if (Arrays.binarySearch(nullIndexes, index) >= 0) {
                     offset.increment();
-                    return new VectorEmbedding.InternalBatchRow(index, null, null);
+                    return new VectorEmbedding.InternalBatchRow(batchOffset + index, null, null);
                 }
                 final int offsetIndex = index - offset.intValue();
                 final var embedding = getExpectedFrom(name, predictions.get(offsetIndex), properties);
@@ -74,7 +75,7 @@ public final class JsonUtils {
                 }
                 try (final var parser = embedding.traverse(getObjectMapper())) {
                     return new VectorEmbedding.InternalBatchRow(
-                            index,
+                            batchOffset + index,
                             resources.get(offsetIndex),
                             Values.float32Vector(parser.readValueAs(TYPE_REF_FLOAT_VECTOR)));
                 } catch (IOException e) {

@@ -55,8 +55,14 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
     void extendPayload(MutableMap<String, Object> payload);
 
     @Override
+    default long maxBatchSize() {
+        // Default token limit for embeddings endpoint
+        return 8192;
+    }
+
+    @Override
     default VectorValue encode(String resource) {
-        var vectors = encode(List.of(resource), EMPTY_INT_ARRAY).toList();
+        var vectors = encode(List.of(resource), EMPTY_INT_ARRAY, 0).toList();
         if (vectors.size() != 1) {
             throw new MalformedGenAIResponseException(
                     "Expected exactly one vector embedding, but found " + vectors.size());
@@ -65,17 +71,22 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
     }
 
     @Override
-    default Stream<VectorEmbedding.InternalBatchRow> encodeBatch(List<String> resources, int[] nullIndexes) {
-        return encode(resources, nullIndexes);
+    default Stream<VectorEmbedding.InternalBatchRow> encodeBatch(
+            List<String> resources, int[] nullIndexes, int batchOffset) {
+        return encode(resources, nullIndexes, batchOffset);
     }
 
-    private Stream<VectorEmbedding.InternalBatchRow> encode(List<String> resources, int[] nullIndexes) {
-        return postJson(buildPayload(resources), inputStream -> parseResponse(resources, inputStream, nullIndexes));
+    private Stream<VectorEmbedding.InternalBatchRow> encode(
+            List<String> resources, int[] nullIndexes, int batchOffset) {
+        return postJson(
+                buildPayload(resources),
+                inputStream -> parseResponse(resources, inputStream, nullIndexes, batchOffset));
     }
 
     @VisibleForTesting
     static Stream<VectorEmbedding.InternalBatchRow> parseResponse(
-            List<String> resources, InputStream inputStream, int[] nullIndexes) throws MalformedGenAIResponseException {
+            List<String> resources, InputStream inputStream, int[] nullIndexes, int batchOffset)
+            throws MalformedGenAIResponseException {
         final var response = JsonUtils.readValue(inputStream, ResponseModel.Response.class);
 
         final var data = response.data();
@@ -88,24 +99,26 @@ public interface OpenAiBase<PARAMS> extends VectorEmbedding.Provider.Implementat
         }
 
         final var offset = new MutableInt();
-        return IntStream.range(0, resources.size() + nullIndexes.length).mapToObj(index -> {
-            try {
-                if (Arrays.binarySearch(nullIndexes, index) >= 0) {
-                    offset.increment();
-                    return new VectorEmbedding.InternalBatchRow(index, null, null);
-                }
-                final int offsetIndex = index - offset.intValue();
-                final var vector = data.get(offsetIndex).embedding();
-                if (vector == null) {
-                    throw new MalformedGenAIResponseException(
-                            "Expected embedding to be present at index " + offsetIndex);
-                }
-                return new VectorEmbedding.InternalBatchRow(
-                        index, resources.get(offsetIndex), Values.float32Vector(vector));
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
-            }
-        });
+        offset.add(batchOffset);
+        return IntStream.range(batchOffset, batchOffset + resources.size() + nullIndexes.length)
+                .mapToObj(index -> {
+                    try {
+                        if (Arrays.binarySearch(nullIndexes, index - batchOffset) >= 0) {
+                            offset.increment();
+                            return new VectorEmbedding.InternalBatchRow(index, null, null);
+                        }
+                        final int offsetIndex = index - offset.intValue();
+                        final var vector = data.get(offsetIndex).embedding();
+                        if (vector == null) {
+                            throw new MalformedGenAIResponseException(
+                                    "Expected embedding to be present at index " + offsetIndex);
+                        }
+                        return new VectorEmbedding.InternalBatchRow(
+                                index, resources.get(offsetIndex), Values.float32Vector(vector));
+                    } catch (Throwable throwable) {
+                        throw new RuntimeException(throwable);
+                    }
+                });
     }
 
     /*
