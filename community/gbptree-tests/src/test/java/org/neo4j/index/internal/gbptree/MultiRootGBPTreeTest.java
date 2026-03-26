@@ -461,12 +461,14 @@ class MultiRootGBPTreeTest {
         // when
         var ops = new AtomicInteger();
         var numCheckpoints = new AtomicInteger();
-        var race = new Race().withEndCondition(() -> ops.get() > 10000 && numCheckpoints.get() >= 20);
+        int opsLimit = 10_000;
+        var race = new Race().withEndCondition(() -> ops.get() > opsLimit && numCheckpoints.get() >= 20);
         List<RawBytes> keys = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             keys.add(rootKeyLayout.key(i));
         }
         race.addContestants(3, throwing(() -> {
+            Thread.sleep(ops.get() > opsLimit ? random.nextInt(1, 10) : 1);
             try {
                 RawBytes key = random.among(keys);
                 tree.create(key, NULL_CONTEXT);
@@ -476,6 +478,7 @@ class MultiRootGBPTreeTest {
             ops.incrementAndGet();
         }));
         race.addContestants(3, throwing(() -> {
+            Thread.sleep(ops.get() > opsLimit ? random.nextInt(1, 10) : 1);
             try {
                 RawBytes key = random.among(keys);
                 updateKey(key, true);
@@ -496,6 +499,7 @@ class MultiRootGBPTreeTest {
         }));
 
         race.addContestants(3, throwing(() -> {
+            Thread.sleep(ops.get() > opsLimit ? random.nextInt(1, 10) : 1);
             updateKey(random.among(keys), false);
             ops.incrementAndGet();
         }));
