@@ -67,9 +67,11 @@ import org.neo4j.values.storable.VectorValue;
 /// because we don't have access to that class (and the Scala it uses) at this level.
 public class ValueTypeNames {
     public static String nameOfType(Object object) {
-        return object instanceof final Value value
-                ? ofRepresentation(value.valueRepresentation(), value)
-                : nameOfType(object.getClass());
+        return switch (object) {
+            case Value value -> ofRepresentation(value.valueRepresentation(), value);
+            case Class<?> type -> nameOfType(type);
+            default -> nameOfType(object.getClass());
+        };
     }
 
     @SuppressWarnings("unchecked")

@@ -21,9 +21,9 @@ package org.neo4j.internal.schema;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
@@ -122,7 +122,7 @@ public abstract class SingleIndexSettingLookup<FROM> extends SingleIndexSettingP
         }
 
         public static <TYPE extends Enum<TYPE>> NameToEnumLookup of(IndexSetting setting, Set<TYPE> values) {
-            final Map<String, TYPE> lookup = new HashMap<>();
+            final Map<String, TYPE> lookup = new TreeMap<>();
             for (final TYPE value : values) {
                 lookup.put(value.name(), value);
             }

@@ -734,7 +734,11 @@ public class VectorTestUtils {
         }
 
         public VectorIndexSettings withQuantizationType(VectorQuantizationType quantizationType) {
-            return set(InternalIndexSetting.vector_Quantization_Type(), quantizationType.name());
+            return withQuantizationType(quantizationType.name());
+        }
+
+        public VectorIndexSettings withQuantizationType(String quantizationType) {
+            return set(InternalIndexSetting.vector_Quantization_Type(), quantizationType);
         }
 
         public VectorIndexSettings withHnswM(int M) {

@@ -256,6 +256,10 @@ public class VectorIndexConfigUtils {
         return QuantizationTypeLookup.of(first, rest);
     }
 
+    static ValidatingIndexSettingsProcessor quantizationTypeLookup(Set<VectorQuantizationType> quantizationTypes) {
+        return QuantizationTypeLookup.of(quantizationTypes);
+    }
+
     static final class QuantizationTypeLookup implements ValidatingIndexSettingsProcessor {
         static final BiPredicate<Optional<Boolean>, VectorQuantizationType> JOINT_VALUE_VALIDATOR =
                 (optionalEnabled, type) -> {
