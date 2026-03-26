@@ -80,6 +80,7 @@
   <properties>
     <amazon-sdk.version>1.12.791</amazon-sdk.version>
     <antlr.version>4.13.2</antlr.version>
+    <apache.directory.server.version>2.0.0.AM27</apache.directory.server.version>
     <asm.version>9.9.1</asm.version>
     <awaitility.version>4.3.0</awaitility.version>
     <awssdk-crt.version>0.43.8</awssdk-crt.version>
@@ -608,6 +609,33 @@
         <artifactId>commons-text</artifactId>
         <version>1.15.0</version>
       </dependency>
+
+      <!-- testing -->
+      <dependency>
+        <groupId>org.apache.directory.api</groupId>
+        <artifactId>api-ldap-model</artifactId>
+        <version>2.1.5</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-core-annotations</artifactId>
+        <version>${apache.directory.server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-core-api</artifactId>
+        <version>${apache.directory.server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-protocol-ldap</artifactId>
+        <version>${apache.directory.server.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-protocol-shared</artifactId>
+        <version>${apache.directory.server.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-api</artifactId>
@@ -1012,12 +1040,10 @@
         <version>0.14.1</version>
         <scope>test</scope>
       </dependency>
-
-      <!-- testing -->
       <dependency>
         <groupId>org.apache.directory.server</groupId>
         <artifactId>apacheds-server-integ</artifactId>
-        <version>2.0.0.AM27</version>
+        <version>${apache.directory.server.version}</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -1949,6 +1975,7 @@
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
                 <!-- lucene-backward-codecs are used for shading, not currently for code paths dependency plugin recognises -->
                 <ignoredUnusedDeclaredDependency>org.apache.lucene:lucene-backward-codecs</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.directory.server:apacheds-server-integ</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
               <ignoredUsedUndeclaredDependencies>
                 <ignoredUsedUndeclaredDependency>org.apiguardian:apiguardian-api</ignoredUsedUndeclaredDependency>
