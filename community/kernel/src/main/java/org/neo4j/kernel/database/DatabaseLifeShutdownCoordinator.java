@@ -31,9 +31,11 @@ public class DatabaseLifeShutdownCoordinator extends LifecycleAdapter {
     DatabaseLifeShutdownCoordinator(
             DatabaseAvailabilityGuard databaseAvailabilityGuard,
             KernelTransactions kernelTransactions,
-            CheckpointerLifecycle checkpointerLifecycle) {
+            CheckpointerLifecycle checkpointerLifecycle,
+            MultiVersionDatabaseRollbackService multiVersionDatabaseRollbackService) {
         lifeSupport.add(checkpointerLifecycle);
         lifeSupport.add(kernelTransactions);
+        lifeSupport.add(multiVersionDatabaseRollbackService);
         lifeSupport.add(databaseAvailabilityGuard);
     }
 
@@ -60,6 +62,7 @@ public class DatabaseLifeShutdownCoordinator extends LifecycleAdapter {
     public void shutdown() throws Exception {
         // Steps on shutdown:
         // - database guard will say that its on shutdown
+        // - shutdown mvcc transaction rollbacker
         // - kernel transactions will close all the resources
         // - we do checkpoint since no more writes should be performed into the database
         lifeSupport.shutdown();

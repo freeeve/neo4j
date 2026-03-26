@@ -665,7 +665,10 @@ public class Database extends AbstractDatabase {
         life.add(databaseHealth);
 
         life.setLast(new DatabaseLifeShutdownCoordinator(
-                databaseAvailabilityGuard, kernelModule.kernelTransactions(), checkpointerLifecycle));
+                databaseAvailabilityGuard,
+                kernelModule.kernelTransactions(),
+                checkpointerLifecycle,
+                multiVersionDatabaseRollbackService));
 
         databaseDependencies.resolveDependency(DbmsDiagnosticsManager.class).dumpDatabaseDiagnostics(this);
 

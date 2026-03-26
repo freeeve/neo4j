@@ -38,13 +38,14 @@ import org.neo4j.kernel.impl.api.chunk.ChunkedTransaction;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionRollbackEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
+import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.time.SystemNanoClock;
 
-public class MultiVersionDatabaseRollbackService {
+public class MultiVersionDatabaseRollbackService extends LifecycleAdapter {
 
     private final KernelTransactions kernelTransactions;
     private final InternalLog internalLog;
@@ -56,6 +57,7 @@ public class MultiVersionDatabaseRollbackService {
     private final DatabaseHealth databaseHealth;
     private final TransactionCommitProcess transactionCommitProcess;
     private final SystemNanoClock clock;
+    private boolean shutdown;
 
     public MultiVersionDatabaseRollbackService(
             KernelTransactions kernelTransactions,
@@ -82,6 +84,9 @@ public class MultiVersionDatabaseRollbackService {
 
     public synchronized void postLeaseSwitchTransactionCleanup(int leaseId) {
         try {
+            if (shutdown) {
+                return;
+            }
             LeaseClient leaseClient = leaseService.newClient();
             leaseClient.ensureValid();
             if (leaseService != LeaseService.NO_LEASES && leaseClient.leaseId() != leaseId) {
@@ -156,6 +161,11 @@ public class MultiVersionDatabaseRollbackService {
             internalLog.error("Unexpected error while doing database rollback.", e);
             databaseHealth.panic(e);
         }
+    }
+
+    @Override
+    public synchronized void shutdown() throws Exception {
+        shutdown = true;
     }
 
     private static ChunkMetadata createChunkMetadata(
