@@ -60,9 +60,11 @@ public interface ErrorGqlStatusObject extends CommonGqlStatusObject {
     }
 
     default String obfuscatedStatusDescription() {
-        if (gqlStatusObject() instanceof ErrorGqlStatusObjectImplementation e && e.hasNonSensitiveStatusDescription()) {
-            return statusDescription();
+        if (gqlStatusObject() instanceof ErrorGqlStatusObjectImplementation e) {
+            return e.obfuscatedStatusDescription();
         } else {
+            // In practice, gqlStatusObject() will always be an ErrorGqlStatusObjectImplementation,
+            // but fallback to an empty string if it of some reason is not.
             return "";
         }
     }

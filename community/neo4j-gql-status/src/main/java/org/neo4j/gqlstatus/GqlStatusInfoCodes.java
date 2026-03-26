@@ -21,20 +21,18 @@ package org.neo4j.gqlstatus;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.CONFIG_SETTING;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.CYPHER_CONSTRUCT;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.CYPHER_VARIABLE;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.FIXED_TEXT;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.METADATA;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.NON_SENSITIVE_NUMBER;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.NO_PARAMETERS;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.PROCEDURES_FUNCTIONS;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.SCHEMA;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.TEMPORAL_SPATIAL;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.TOPOLOGY;
-import static org.neo4j.gqlstatus.NonSensitiveStatusDescription.Reason.VALUE_TYPE;
+import static org.neo4j.gqlstatus.NonSensitiveReason.CONFIG_SETTING;
+import static org.neo4j.gqlstatus.NonSensitiveReason.CYPHER_CONSTRUCT;
+import static org.neo4j.gqlstatus.NonSensitiveReason.CYPHER_VARIABLE;
+import static org.neo4j.gqlstatus.NonSensitiveReason.FIXED_TEXT;
+import static org.neo4j.gqlstatus.NonSensitiveReason.METADATA;
+import static org.neo4j.gqlstatus.NonSensitiveReason.NON_SENSITIVE_NUMBER;
+import static org.neo4j.gqlstatus.NonSensitiveReason.PROCEDURES_FUNCTIONS;
+import static org.neo4j.gqlstatus.NonSensitiveReason.SCHEMA;
+import static org.neo4j.gqlstatus.NonSensitiveReason.TEMPORAL_SPATIAL;
+import static org.neo4j.gqlstatus.NonSensitiveReason.TOPOLOGY;
+import static org.neo4j.gqlstatus.NonSensitiveReason.VALUE_TYPE;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -287,94 +285,90 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting, GqlParams.StringParam.cause},
             "code generation failed",
             NotificationClassification.PERFORMANCE),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08000("", "", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08007("", "transaction resolution unknown", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_08N00(
             "Unable to connect to database { %s }. Unable to get bolt address of the leader. Check the status of the database. Retrying your request at a later time may succeed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "unable to connect to database",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY, CONFIG_SETTING})
     STATUS_08N01(
             "Unable to write to database { %s } on this server. Server-side routing is disabled. Either connect to the database leader directly or enable server-side routing by setting '{ %s }=true'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
+            },
             "unable to write to database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY, CONFIG_SETTING})
     STATUS_08N02(
             "Unable to connect to database { %s }. Server-side routing is disabled. Either connect to { %s } directly, or enable server-side routing by setting '{ %s }=true'.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.db, GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
             },
             "unable to route to database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_08N03(
             "Failed to write to graph { %s }. Check the defined access mode in both driver and database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))},
             "failed to write to graph",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_08N04(
             "Routing with { %s } is not supported in embedded sessions. Connect to the database directly or try running the query using a Neo4j driver or the HTTP API.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "unable to route use clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N05(
             "Routing administration commands is not supported in embedded sessions. Connect to the system database directly or try running the query using a Neo4j driver or the HTTP API.",
             "unable to route administration command",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N06("General network protocol error.", "protocol error", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N07("This member is not the leader.", "not the leader", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N08(
             "This database is read only on this server.", "database is read only", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_08N09(
             "The database { %s } is currently unavailable. Check the database status. Retry your request at a later time.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "database unavailable",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_08N10(
             "Message { %s } cannot be handled by session in the { %s } state.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg, GqlParams.StringParam.boltServerState},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(METADATA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.boltServerState, List.of(METADATA))
+            },
             "invalid server state",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N11(
             "The request is invalid and could not be processed by the server. See cause for further details.",
             "request error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_08N12(
             "Failed to parse the supplied bookmark. Verify it is correct or check the debug log for more information.",
             "failed to parse bookmark",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_08N13(
             "The database { %s } is not up to the requested bookmark { %s }. The latest transaction ID is { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.db, GqlParams.StringParam.transactionId1, GqlParams.StringParam.transactionId2
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.transactionId1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.transactionId2, List.of(TOPOLOGY))
             },
             "database not up to requested bookmark",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_08N14(
             "Unable to provide a routing table for the database identifed by the alias { %s } because the request comes from another alias { %s } and alias chains are not permitted.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.alias1, GqlParams.StringParam.alias2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.alias1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.alias2, List.of(TOPOLOGY))
+            },
             "alias chains are not permitted",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_08N15(
             "Policy definition of the routing policy { %s } could not be found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.routingPolicy},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.routingPolicy, List.of(METADATA))},
             "no such routing policy",
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N16(
@@ -407,9 +401,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             "shard execution client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22000("", "", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22001("", "string data, right truncation", ErrorClassification.UNKNOWN),
     STATUS_22003(
             "The numeric value { %s } is outside the required range.",
@@ -418,17 +410,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             // (and then back to String in the end)
             "numeric value out of range",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22004("", "null value not allowed", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22007("", "invalid date, time, or datetime format", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22008("", "datetime field overflow", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22011("", "substring error", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22012("", "division by zero", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22015("", "interval field overflow", ErrorClassification.CLIENT_ERROR),
     STATUS_22018(
             "The character value { %s } is an invalid argument for the specified cast.",
@@ -445,75 +431,45 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.NumberParam.value},
             "invalid argument for power function",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22027("", "trim error", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2202F("", "array data, right truncation", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G02("", "negative limit value", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G03("", "invalid value type", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G04("", "values not comparable", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G05("", "invalid date, time, or datetime function field name", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G06("", "invalid datetime function value", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G07("", "invalid duration function field name", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0B("", "list data, right truncation", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0C("", "list element error", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0F("", "invalid number of paths or groups", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_22G0H(
             "The duration format { %s } is invalid.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.format},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.format, List.of(TEMPORAL_SPATIAL))
+            },
             "invalid duration format",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_22G0I(
             "{ %s } is not a valid duration field.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.field},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.field, List.of(TEMPORAL_SPATIAL))},
             "invalid duration field",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0M("", "multiple assignments to a graph element property", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0N("", "number of node labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0P("", "number of node labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0Q("", "number of edge labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0R("", "number of edge labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0S("", "number of node properties exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0T("", "number of edge properties exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0U("", "record fields do not match", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0V("", "reference value, invalid base type", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0W("", "reference value, invalid constrained type", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0X("", "record data, field unassignable", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0Y("", "record data, field missing", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G0Z("", "malformed path", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G10("", "path data, right truncation", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G11("", "reference value, referent deleted", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G13("", "invalid group variable value", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22G14("", "incompatible temporal instant unit groups", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N00(
             "The provided value is unsupported and cannot be processed.",
             "unsupported value",
@@ -526,10 +482,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             "invalid type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, TOPOLOGY, NON_SENSITIVE_NUMBER})
     STATUS_22N02(
             "Expected { %s } to be a positive number but found { %s } instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.option, GqlParams.NumberParam.value},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.option, List.of(FIXED_TEXT, TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.value, List.of(NON_SENSITIVE_NUMBER))
+            },
             "specified negative numeric value",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N03(
@@ -556,38 +514,41 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.context},
             "input failed validation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_22N06(
             // See also 22NB6
             "Invalid input. { %s } needs to be specified.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.inputList},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.ListParam.inputList, List.of(FIXED_TEXT))},
             Map.of(GqlParams.ListParam.inputList, GqlParams.JoinStyle.ANDED),
             "required input missing",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22N07(
             "Invalid pre-parser option(s): { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.optionList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.optionList, List.of(CYPHER_CONSTRUCT))
+            },
             Map.of(GqlParams.ListParam.optionList, GqlParams.JoinStyle.COMMAD),
             "invalid pre-parser option key",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22N08(
             "Invalid pre-parser option, cannot combine { %s } with { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.option1, GqlParams.StringParam.option2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.option1, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.option2, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid pre-parser combination",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22N09(
             "Invalid pre-parser option, cannot specify multiple conflicting values for { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.option},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.option, List.of(CYPHER_CONSTRUCT))
+            },
             "conflicting pre-parser combination",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22N10(
             "Invalid pre-parser option, specified { %s } is not valid for option { %s }. Valid options are: { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.option, GqlParams.ListParam.optionList,
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.option, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.optionList, List.of(CYPHER_CONSTRUCT))
             },
             Map.of(GqlParams.ListParam.optionList, GqlParams.JoinStyle.ANDED),
             "invalid pre-parser option value",
@@ -602,15 +563,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             "invalid date, time, or datetime format",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N13(
             "Specified time zones must include a date component.",
             "invalid time zone",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_22N14(
             "Cannot select both { %s } and { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.temporal1, GqlParams.StringParam.temporal2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.temporal1, List.of(TEMPORAL_SPATIAL)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.temporal2, List.of(TEMPORAL_SPATIAL))
+            },
             "invalid temporal value combination",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N15(
@@ -618,41 +580,43 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.StringParam.temporal},
             "invalid temporal component",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, TOPOLOGY})
     STATUS_22N16(
             "Importing entity values to a graph with a USE clause is not supported. Attempted to import { %s } to { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.expr, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))
+            },
             "invalid import value",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_22N18(
             "A { %s } POINT must contain { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.crs, GqlParams.ListParam.mapKeyList,
+                new NonSensitiveGqlParam(GqlParams.StringParam.crs, List.of(TEMPORAL_SPATIAL)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.mapKeyList, List.of(TEMPORAL_SPATIAL))
             },
             Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ANDED),
             "incomplete spatial value",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N19(
             "A POINT must contain either 'x' and 'y', or 'latitude' and 'longitude'.",
             "invalid spatial value",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N20(
             "Cannot create POINT with { %s }D coordinate reference system (CRS) and { %s } coordinates. Use the equivalent { %s }D coordinate reference system instead.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.dim1, GqlParams.NumberParam.value, GqlParams.NumberParam.dim2
+                new NonSensitiveGqlParam(GqlParams.NumberParam.dim1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.value, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.dim2, List.of(NON_SENSITIVE_NUMBER))
             },
             "invalid spatial value dimensions",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_22N21(
             "Unsupported coordinate reference system (CRS): { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.crs},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.crs, List.of(TEMPORAL_SPATIAL)),
+            },
             "unsupported coordinate reference system",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N22(
             "Cannot specify both coordinate reference system (CRS) and spatial reference identifier (SRID).",
             "invalid spatial value combination",
@@ -672,7 +636,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.temporal},
             "invalid temporal arguments",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N26(
             "Unknown rounding mode. Valid values are: CEILING, FLOOR, UP, DOWN, HALF_EVEN, HALF_UP, HALF_DOWN, UNNECESSARY.",
             "unsupported rounding mode",
@@ -682,24 +645,23 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input,
                 GqlParams.StringParam.context,
-                GqlParams.ListParam.valueTypeList,
+                new NonSensitiveGqlParam(GqlParams.ListParam.valueTypeList, List.of(VALUE_TYPE)),
                 GqlParams.StringParam.hint
             },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             "invalid entity type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22N28(
             "The result of the operation { %s } has caused an overflow.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.operation},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.operation, List.of(CYPHER_CONSTRUCT))
+            },
             "overflow error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N29(
             "Unknown coordinate reference system (CRS).",
             "unknown coordinate reference system",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N30(
             "At least one temporal unit must be specified.", "missing temporal unit", ErrorClassification.CLIENT_ERROR),
     STATUS_22N31(
@@ -712,21 +674,21 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "invalid properties in merge pattern",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N32(
             "'ORDER BY' expressions must be deterministic.",
             "non-deterministic sort expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_22N33(
             "Shortest path expressions must contain start and end nodes. Cannot find: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "invalid shortest path expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_22N34(
             "Cannot use { %s } function inside an aggregate function.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.funType},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.funType, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid use of aggregate function",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N35(
@@ -744,10 +706,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.value, GqlParams.StringParam.valueType},
             "invalid coercion",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_22N38(
             "Invalid argument to the function { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid function argument",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N39(
@@ -755,22 +718,24 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             "unsupported property value type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL, VALUE_TYPE})
     STATUS_22N40(
             "Cannot assign { %s } of a { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.component, List.of(TEMPORAL_SPATIAL)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))
+            },
             "non-assignable temporal component",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_22N41(
             "The 'MERGE' clause did not find a matching node { %s } and cannot create a new node due to conflicts with existing uniqueness constraints.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "merge node uniqueness constraint violation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_22N42(
             "The 'MERGE' clause did not find a matching relationship { %s } and cannot create a new relationship due to conflicts with existing uniqueness constraints.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "merge relationship uniqueness constraint violation",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N43(
@@ -778,68 +743,69 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.url},
             "unable to load external resource",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N44(
             "Parallel runtime has been disabled, enable it or upgrade to a bigger Aura instance.",
             "parallel runtime disabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N46(
             "Parallel runtime does not support updating queries or a change in the state of transactions. Use another runtime.",
             "unsupported use of parallel runtime",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N47(
             "No workers are configured for the parallel runtime. Set 'server.cypher.parallel.worker_limit' to a larger value.",
             "invalid parallel runtime configuration",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_22N48(
             "Cannot use the specified runtime { %s } due to { %s } not being supported. Use another runtime.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.runtime, GqlParams.StringParam.cause},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.runtime, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.cause, List.of(FIXED_TEXT))
+            },
             "unable to use specified runtime",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N49(
             "Cannot read a CSV field larger than the set buffer size. Ensure the field does not have an unterminated quote, or increase the buffer size via 'dbms.import.csv.buffer_size'.",
             "CSV buffer size overflow",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_22N51(
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "graph reference not found",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N52(
             "'PROFILE' and 'EXPLAIN' cannot be combined.",
             "invalid combination of PROFILE and EXPLAIN",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N53(
             "Cannot 'PROFILE' query before results are materialized.",
             "invalid use of PROFILE",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22N54(
             "Multiple conflicting entries specified for { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey}, "invalid map", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA, FIXED_TEXT})
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.mapKey, List.of(METADATA))},
+            "invalid map",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22N55(
             "Map requires key { %s } but was missing from field { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey, GqlParams.StringParam.field},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.mapKey, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.field, List.of(FIXED_TEXT))
+            },
             "required key missing from map",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N56(
             "Protocol message length limit exceeded (limit: { %s }).",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.boltMsgLenLimit},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.boltMsgLenLimit, List.of(NON_SENSITIVE_NUMBER))
+            },
             "protocol message length limit overflow",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N57(
             "Protocol type is invalid. Invalid number of struct components (received { %s } but expected { %s }).",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.count1, GqlParams.NumberParam.count2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count2, List.of(NON_SENSITIVE_NUMBER))
+            },
             "invalid protocol type",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N58(
@@ -847,124 +813,121 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.NumberParam.value},
             "invalid spatial component",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N59(
             "The { %s } token with id { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.NumberParam.tokenId},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.tokenId, List.of(SCHEMA))
+            },
             "token does not exist",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22N60(
             "Encountered illegal { %s } element. Reason: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.item, List.of(METADATA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(METADATA))
+            },
             "illegal element",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N62(
             "The relationship type { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA))},
             "relationship type does not exist",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N63(
             "The property key { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA))},
             "property key does not exist",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N64(
             "The constraint { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "constraint does not exist",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N65(
             "An equivalent constraint already exists: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "equivalent constraint already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N66(
             "A conflicting constraint already exists: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "conflicting constraint already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N67(
             "A constraint with the same name already exists: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constr},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constr, List.of(SCHEMA))},
             "duplicated constraint name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N68(
             "Dependent constraints cannot be managed individually and must be managed together with its graph type.",
             "dependent constraint managed individually",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N69(
             "The index { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idxDescrOrName, List.of(SCHEMA))},
             "index does not exist",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N70(
             "An equivalent index already exists: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idxDescrOrName, List.of(SCHEMA))},
             "equivalent index already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N71(
             "An index with the same name already exists: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "duplicated index name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N73(
             "Constraint conflicts with already existing index { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idxDescrOrName, List.of(SCHEMA))},
             "constraint conflicts with existing index",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N74(
             "Index conflicts with already existing index owned by constraint { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constr},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constr, List.of(SCHEMA))},
             "index conflicts with existing constraint",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N75(
             "The constraint specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName, GqlParams.StringParam.token},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(SCHEMA))
+            },
             "constraint contains duplicated tokens",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N76(
             "The index specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName, GqlParams.StringParam.token},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.idxDescrOrName, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(SCHEMA))
+            },
             "index contains duplicated tokens",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22N77(
             "{ %s } ({ %s }) with { %s } { %s } must have the following properties: { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType,
-                GqlParams.NumberParam.entityId,
-                GqlParams.StringParam.tokenType,
-                GqlParams.StringParam.token,
-                GqlParams.ListParam.propKeyList
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.entityId, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.propKeyList, List.of(SCHEMA))
             },
             Map.of(GqlParams.ListParam.propKeyList, GqlParams.JoinStyle.COMMAD),
             "property presence verification failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, VALUE_TYPE})
     STATUS_22N78(
             "{ %s } ({ %s }) with { %s } { %s } must have the property { %s } with value type { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType,
-                GqlParams.NumberParam.entityId,
-                GqlParams.StringParam.tokenType,
-                GqlParams.StringParam.token,
-                GqlParams.StringParam.propKey,
-                GqlParams.StringParam.valueType
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.entityId, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))
             },
             "property type verification failed",
             ErrorClassification.CLIENT_ERROR),
@@ -979,10 +942,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             "index entry conflict",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, SCHEMA})
     STATUS_22N81(
             "Invalid input: { %s } is not supported in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.exprType, GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.exprType, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT, SCHEMA))
+            },
             "expression type unsupported here",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N82(
@@ -990,27 +955,28 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.context},
             "input contains invalid characters",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N83(
             "Expected name to contain at most { %s } components separated by '.'.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.upper},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER))
+            },
             "input consists of too many components",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N84(
             "Expected the string to be no more than { %s } characters long.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.upper},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER))
+            },
             "string too long",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22N85(
             "Expected the string to be at least { %s } characters long.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.lower},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.lower, List.of(NON_SENSITIVE_NUMBER))
+            },
             "string too short",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N86("Expected a nonzero number.", "numeric range 0 disallowed", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N87(
             "Expected a number that is zero or greater.",
             "numeric range 0 or greater allowed",
@@ -1020,67 +986,63 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             "not a valid CIDR IP",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N89(
             "Expected the new password to be different from the old password.",
             "new password cannot be the same as the old password",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_22N90(
             "{ %s } is not supported in property type constraints.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))},
             "property type unsupported in constraint",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_22N91(
             "Failed to alter the specified database alias { %s }. Altering remote alias to a local alias or vice versa is not supported. Drop and recreate the alias instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.alias},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.alias, List.of(TOPOLOGY))},
             "cannot convert alias local to remote or remote to local",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N92("This query requires a RETURN clause.", "missing RETURN", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N93("A required YIELD clause is missing.", "missing YIELD", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N94(
             "'YIELD *' is not supported in this context. Explicitly specify which columns to yield.",
             "invalid YIELD *",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N95(
             "Invalid JSON input. Please check the format.", "parsing JSON exception", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22N96(
             "Unable to map the JSON input. Please verify the structure.",
             "mapping JSON exception",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22N97(
             "Unexpected struct tag: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(METADATA))},
             "unexpected struct tag",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22N98(
             "Unable to deserialize request. Expected first field to be { %s }, but was '{ %s }'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.field, GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.field, List.of(METADATA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(METADATA))
+            },
             "wrong first field during deserialization",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22N99(
             "Unable to deserialize request. Expected { %s }, found { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.token, GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(METADATA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(METADATA))
+            },
             "wrong token during deserialization",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22NA0(
             "Failed to administer property rule.",
             "invalid property-based access control rule",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, CYPHER_CONSTRUCT})
     STATUS_22NA1(
             "The property { %s } must appear on the left hand side of the { %s } operator.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.operation},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.operation, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid property-based access control rule involving non-commutative expressions",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA2(
@@ -1088,7 +1050,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             "invalid property-based access control rule involving multiple properties",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22NA3(
             "'NaN' is not supported for property-based access control.",
             "invalid property-based access control rule involving NaN",
@@ -1118,10 +1079,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.cause},
             "parsing JSON failure",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, FIXED_TEXT})
     STATUS_22NA9(
             "Invalid input. Unexpected key { %s }, expected keys are { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey, GqlParams.ListParam.mapKeyList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.mapKey, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.mapKeyList, List.of(FIXED_TEXT))
+            },
             Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ORED),
             "unexpected map entry",
             ErrorClassification.CLIENT_ERROR),
@@ -1157,46 +1120,45 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             "invalid property-based access control rule involving WHERE and IS NULL",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_22NB1(
             "Type mismatch: expected to be { %s } but was { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.valueTypeList, GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.valueTypeList, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(VALUE_TYPE))
+            },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             "type mismatch",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NB2(
             "Graph type { %s } constraint { %s } is incompatible with graph type { %s } constraint { %s } because they have different graph type dependence.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.graphTypeDependence1,
-                GqlParams.StringParam.constrDescrOrName1,
-                GqlParams.StringParam.graphTypeDependence2,
-                GqlParams.StringParam.constrDescrOrName2
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeDependence1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeDependence2, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName2, List.of(SCHEMA))
             },
             "incompatible graph type dependence",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NB3(
             "{ %s } ({ %s }) with { %s } { %s } must have the { %s } { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType,
-                GqlParams.NumberParam.entityId,
-                GqlParams.StringParam.tokenType1,
-                GqlParams.StringParam.token1,
-                GqlParams.StringParam.tokenType2,
-                GqlParams.StringParam.token2
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.entityId, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType2, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.token2, List.of(SCHEMA))
             },
             "token presence verification failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NB4(
             "Relationship ({ %s }) with type { %s } requires its { %s } node ({ %s }) to have the label { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.entityId1,
-                GqlParams.StringParam.relType,
-                GqlParams.StringParam.endpointType,
-                GqlParams.NumberParam.entityId2,
-                GqlParams.StringParam.label
+                new NonSensitiveGqlParam(GqlParams.NumberParam.entityId1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.endpointType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.entityId2, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA))
             },
             "endpoint label presence verification failed",
             ErrorClassification.CLIENT_ERROR),
@@ -1205,51 +1167,53 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             "unsupported time zone identifier",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_22NB6(
             // See also 22N06
             "Invalid input. { %s } is not allowed to be an empty string.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item}, "input empty", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.item, List.of(FIXED_TEXT))},
+            "input empty",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB7(
             "It is not supported to create element ids on composite databases. Create the element id for { %s } { %s } on the constituent instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.entityId},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityId, List.of(SCHEMA))
+            },
             "element id unsupported on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_22NB8(
             "{ %s } is not a recognized Neo4j type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(VALUE_TYPE))},
             "invalid Neo4j type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_22NB9(
             "Lists cannot have { %s } as an inner type in this context.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.typeDescription},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(VALUE_TYPE))
+            },
             "invalid inner list type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22NBA(
             "Property type constraints for vectors need to define both coordinate type and dimension.",
             "omitting mandatory field for property type constraints for vectors",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NBC(
             "Index belongs to constraint { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "index belongs to constraint",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_22NBD(
             "Unsupported struct tag: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(METADATA))},
             "unsupported struct tag",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_22NBE(
             "Invalid vector dimensions. The number of vector dimensions must be between { %s } and { %s }, but is { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.count1, GqlParams.NumberParam.count2, GqlParams.NumberParam.count3
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count2, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count3, List.of(NON_SENSITIVE_NUMBER))
             },
             "invalid vector dimensions",
             ErrorClassification.CLIENT_ERROR),
@@ -1260,118 +1224,119 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "property value too big",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_22NBG(
             "Invalid vector coordinates. The vector coordinates must be finite.",
             "invalid vector coordinates",
             ErrorClassification.CLIENT_ERROR),
     // Graph Type Errors
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC1(
             "The graph type element includes a property key with name { %s } more than once.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA))},
             "graph type element contains duplicated tokens",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC2(
             "The node element type { %s } must contain one or more implied labels, or at least one property type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.label},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA))},
             "node element type has no effect",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC3(
             "The relationship element type { %s } must define a source, destination, or at least one property type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA))},
             "relationship element type has no effect",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC4(
             "The label(s) { %s } are defined as both identifying and implied.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.labelList},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.ListParam.labelList, List.of(SCHEMA))},
             Map.of(GqlParams.ListParam.labelList, GqlParams.JoinStyle.COMMAD),
             "a label cannot be both identifying and implied",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC5(
             "The { %s } element type referenced by { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.graphTypeReference},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeReference, List.of(SCHEMA))
+            },
             "graph type element not found",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC6(
             "The independent constraint { %s } is using the same label { %s } as a node element type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName, GqlParams.StringParam.label},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA))
+            },
             "independent constraint and node element type have the same label",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC7(
             "The independent constraint { %s } is using the same relationship type { %s } as a relationship element type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName, GqlParams.StringParam.relType},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA))
+            },
             "independent constraint and relationship element type have the same relationship type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC8(
             "The graph type includes a label, a relationship type, or an alias with the name { %s } more than once.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.token},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.token, List.of(SCHEMA))},
             "graph type contains duplicated tokens",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NC9(
             "A { %s } element type property { %s } constraint cannot be specified inline of a { %s } element type.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType, GqlParams.StringParam.context, GqlParams.StringParam.entityType
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA))
             },
             "invalid element type constraints in graph type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCA(
             "A node element type identified by the label { %s } already exists in the graph type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.label},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA))},
             "node element type already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCB(
             "A relationship element type identified by the relationship type { %s } already exists in the graph type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA))},
             "relationship element type already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCC(
             "The node element type { %s } identified by the label { %s } is different to the one specified in the query { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.graphTypeElement1,
-                GqlParams.StringParam.label,
-                GqlParams.StringParam.graphTypeElement2
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeElement1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeElement2, List.of(SCHEMA))
             },
             "node element type specified incorrectly",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCD(
             "The relationship element type { %s } identified by the relationship type { %s } is different to the one specified in the query { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.graphTypeElement1,
-                GqlParams.StringParam.relType,
-                GqlParams.StringParam.graphTypeElement2
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeElement1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.relType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeElement2, List.of(SCHEMA))
             },
             "relationship element type specified incorrectly",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCE(
             "The node element type identified by the label { %s } is referenced in the graph type element { %s } and cannot be dropped.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.label, GqlParams.StringParam.graphTypeReference},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.label, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeReference, List.of(SCHEMA))
+            },
             "node element type in use",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_22NCF(
             "Graph type constraint definitions are not supported in the `ALTER GRAPH TYPE { %s }` operation.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graphTypeOperation},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.graphTypeOperation, List.of(CYPHER_CONSTRUCT))
+            },
             "graph type constraint not supported",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22NCG(
             "Expected the index { %s } to be a { %s } index but was a { %s } index.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.idx, GqlParams.StringParam.idxType1, GqlParams.StringParam.idxType2
+                new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.idxType1, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.idxType2, List.of(SCHEMA))
             },
             "wrong index type",
             ErrorClassification.CLIENT_ERROR),
@@ -1385,196 +1350,152 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.query},
             "operation not allowed for roles with DENY privileges",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_22ND3(
             "The property { %s } is not an additional property for vector search with filters on the vector index { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))
+            },
             "wrong property for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25000("", "", ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25G01("", "active GQL-transaction", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25G02("", "catalog and data statement mixing not supported", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25G03("", "read-only GQL-transaction", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25G04("", "accessing multiple graphs not supported", ErrorClassification.UNKNOWN),
     STATUS_25N01(
             "Failed to execute the query { %s } due to conflicting statement types (read query, write query, schema modification, or administration command). To execute queries in the same transaction, they must be either of the same type, or be a combination of schema modifications and read commands.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.query},
             "invalid combination of statement types",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N02(
             "Unable to complete transaction. See debug log for details.",
             "unable to complete transaction",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N03(
             "Transaction is being used concurrently by another request.",
             "concurrent access violation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_25N04(
             "Transaction { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.transactionId},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.transactionId, List.of(TOPOLOGY))},
             "specified transaction does not exist",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N05("Transaction has been closed.", "transaction closed", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N06(
             "Failed to start transaction. See debug log for details.",
             "transaction start failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N07(
             "Failed to start constituent transaction. See debug log for details.",
             "constituent transaction start failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N08(
             "The lease for the transaction is no longer valid.",
             "invalid transaction lease",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N09(
             "The transaction failed due to an internal error.",
             "internal transaction failure",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N11(
             "There was a conflict detected between the transaction state and applied updates. Please retry the transaction.",
             "conflicting transaction state",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_25N12(
             "Index { %s } was dropped in this transaction and cannot be used.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "index was dropped",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_25N13(
             "A { %s } was accessed after being deleted in this transaction. Verify the transaction statements.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA))},
             "cannot access entity after removal",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_25N14(
             "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(FIXED_TEXT))},
             "transaction termination client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_25N15(
             "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(FIXED_TEXT))},
             "transaction termination database error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, SCHEMA, NON_SENSITIVE_NUMBER})
     STATUS_25N16(
             "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(FIXED_TEXT, SCHEMA, NON_SENSITIVE_NUMBER))
+            },
             "transaction termination transient error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_25N17(
             "The attempted operation requires an implicit transaction.",
             "implicit transaction required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2D000("", "", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN01("Failed to commit transaction.", "commit failed", ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN02(
             "Failed to commit constituent transaction. See debug log for details.",
             "constituent commit failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN03(
             "Failed to terminate transaction. See debug log for details.",
             "transaction termination failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN04(
             "Failed to terminate constituent transaction. See debug log for details.",
             "constituent transaction termination failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN05(
             "There was an error on applying the transaction. See logs for more information.",
             "failed to apply transaction",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN06(
             "There was an error on appending the transaction. See logs for more information.",
             "failed to append transaction",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_2DN07(
             "Unable to commit transaction because it still have non-closed inner transactions.",
             "inner transactions still open",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_40000("", "", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_40003("", "statement completion unknown", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_40N01(
             "Failed to rollback transaction. See debug log for details.",
             "rollback failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_40N02(
             "Failed to rollback constituent transaction. See debug log for details.",
             "constituent rollback failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42000("", "", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42001("", "invalid syntax", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42004("", "use of visually confusable identifiers", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42006("", "number of edge labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42007("", "number of edge labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42008("", "number of edge properties exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42009("", "number of node labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42010("", "number of node labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42011("", "number of node properties exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42012("", "number of node type key labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42013("", "number of node type key labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42014("", "number of edge type key labels below supported minimum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42015("", "number of edge type key labels exceeds supported maximum", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I00(
             "'CASE' expressions must have the same number of 'WHEN' and 'THEN' operands.",
             "invalid case expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I01(
             "Invalid use of { %s } inside 'FOREACH'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid FOREACH",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I02(
             "Failed to parse comment. A comment starting with '/*' must also have a closing '*/'.",
             "invalid comment",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I03(
             "A Cypher query has to contain at least one clause.", "empty request", ErrorClassification.CLIENT_ERROR),
     STATUS_42I04(
@@ -1582,7 +1503,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.clause},
             "invalid expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I05(
             "The FIELDTERMINATOR specified for LOAD CSV can only be one character wide.",
             "invalid FIELDTERMINATOR",
@@ -1598,10 +1518,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
             "invalid integer literal",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I08(
             "The lower bound of the variable length relationship used in the { %s } function must be 0 or 1.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid lower bound",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I09(
@@ -1614,74 +1534,76 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
                     GqlParams.JoinStyle.COMMAD),
             "invalid map",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_42I10(
             "Mixing label expression symbols (`|`, `&`, `!`, and `%`) with colon (`:`) between labels is not allowed. This expression could be expressed as { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.syntax, List.of(SCHEMA))},
             "invalid label expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_42I11(
             "A { %s } name cannot be empty or contain any null-bytes: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(SCHEMA))
+            },
             "invalid name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I12(
             "Quantified path patterns cannot be nested.",
             "invalid nesting of quantified path patterns",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, NON_SENSITIVE_NUMBER})
     STATUS_42I13(
             "The procedure or function call does not provide the required number of arguments; expected { %s } but got { %s }. The procedure or function { %s } has the signature: { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.count1,
-                GqlParams.NumberParam.count2,
-                GqlParams.StringParam.procFun,
-                GqlParams.StringParam.sig
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count2, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.sig, List.of(PROCEDURES_FUNCTIONS))
             },
             "invalid number of procedure or function arguments",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42I14(
             "Exactly one relationship type must be specified for { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "invalid number of relationship types",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_42I15(
             "Expected exactly one statement per query but got: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.count},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER))
+            },
             "invalid number of statements",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TEMPORAL_SPATIAL})
     STATUS_42I16(
             "Map with keys { %s } is not a valid POINT. Use either Cartesian or geographic coordinates.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.mapKeyList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.mapKeyList, List.of(TEMPORAL_SPATIAL))
+            },
             Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ANDED),
             "invalid point",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I17(
             "A quantifier must not have a lower bound greater than the upper bound.",
             "invalid quantifier",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42I18(
             "The aggregation column contains implicit grouping expressions referenced by the variables { %s }. Implicit grouping expressions are variables not explicitly declared as grouping keys.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.variableList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.variableList, List.of(CYPHER_VARIABLE))
+            },
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             "invalid reference to implicitly grouped expressions",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I19(
             "Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
             "invalid string literal",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I20(
             "Label expressions and relationship type expressions cannot contain { %s }. To express a label disjunction use { %s } instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.labelExpr},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.labelExpr, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid symbol in expression",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I21(
@@ -1690,15 +1612,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             "invalid reference to variable out of scope",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I22(
             "The right hand side of a UNION clause must be a single query.",
             "invalid use of UNION",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I23(
             "The { %s } function cannot contain a quantified path pattern.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid quantified path pattern in shortest path",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I24(
@@ -1706,20 +1627,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             "invalid use of aggregate function",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I25(
             "'CALL { ... } IN TRANSACTIONS' is not supported after a write clause.",
             "invalid use of CALL IN TRANSACTIONS",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I26(
             "'DELETE ...' does not support removing labels from a node. Use 'REMOVE ...' instead.",
             "invalid DELETE",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I27(
             "`DISTINCT` cannot be used with the { %s } function.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid use of DISTINCT with non-aggregate function",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I28(
@@ -1732,89 +1651,76 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.replacement},
             "invalid use of IS",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I30(
             "Label expressions cannot be used in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.expr, List.of(CYPHER_CONSTRUCT))},
             "invalid use of label expressions",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I32(
             "Node and relationship pattern predicates cannot be used in { %s }. They can only be used in a `MATCH` clause or inside a pattern comprehension.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid use of node and relationship pattern predicate",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I33(
             "Closed Dynamic Union types cannot be appended with 'NOT NULL', specify 'NOT NULL' on inner types instead.",
             "invalid use of NOT NULL",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I34(
             "A pattern expression can only be used to test the existence of a pattern. Use a pattern comprehension instead.",
             "invalid use of pattern expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I35(
             "Relationship type expressions can only be used in 'MATCH ...'.",
             "invalid use of relationship type expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I36(
             "'REPORT STATUS' can only be used when specifying 'ON ERROR CONTINUE' or 'ON ERROR BREAK'.",
             "invalid use of REPORT STATUS",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I37(
             "'RETURN *' is not allowed when there are no variables in scope.",
             "invalid use of RETURN *",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I38(
             "'{ %s }...' can only be used at the end of a query or subquery.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid position of clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I39(
             "Mixing the { %s } function with path selectors, explicit match modes or "
                     + "explicit path modes is not allowed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid use of shortest path function",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I40(
             "UNION and UNION ALL cannot be combined.",
             "invalid use of UNION and UNION ALL",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42I41(
             "Variable length relationships cannot be used in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(FIXED_TEXT))},
             "invalid use of variable length relationship",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I42(
             "Cannot use YIELD on a call to a void procedure.",
             "invalid use of YIELD",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I43(
             "'YIELD *' can only be used with a standalone procedure call.",
             "invalid use of YIELD *",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I44(
             "Cannot use a join hint for a single node pattern.",
             "invalid joint hint",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42I45(
             "Multiple path patterns cannot be used in the same clause in combination with a selective path selector.{ %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.action},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(FIXED_TEXT))},
             "invalid use of multiple path patterns",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I46(
             "Node pattern pairs are only supported for quantified path patterns.",
             "invalid use of a node pattern pair",
@@ -1822,88 +1728,93 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I47(
             "Parser Error: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg}, "parser error", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I48(
             "Subqueries are not allowed in a MERGE clause.",
             "invalid use of a subquery in MERGE",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I49(
             "Unknown inequality operator '!='. The operator for inequality in Cypher is '<>'.",
             "invalid inequality operator",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, NON_SENSITIVE_NUMBER})
     STATUS_42I50(
             "Invalid input { %s }... A { %s } name cannot be longer than { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.tokenType, GqlParams.NumberParam.value
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.tokenType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.value, List.of(NON_SENSITIVE_NUMBER))
             },
             "token name too long",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I51(
             "The procedure or function { %s } must have the signature: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procFun, GqlParams.StringParam.sig},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.sig, List.of(PROCEDURES_FUNCTIONS)),
+            },
             "invalid call signature",
             ErrorClassification.CLIENT_ERROR),
     // Used for syntax errors for features removed in Neo4j 5.0,
     // which should have a helpful error message in Cypher 5 but the more general 42I06 in Cypher 25.
     // The full old message will be inserted as the msg parameter.
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, TOPOLOGY, FIXED_TEXT})
     STATUS_42I52(
             "{ %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(CYPHER_CONSTRUCT, TOPOLOGY, FIXED_TEXT))
+            },
             "no longer valid syntax",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_42I53(
             "Unknown coordinate type: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(VALUE_TYPE))},
             "unsupported coordinate type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42I54(
             "`{ %s }` not allowed in `INSERT`. Use `CREATE` or { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cause, GqlParams.StringParam.replacement},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.cause, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.replacement, List.of(FIXED_TEXT))
+            },
             "invalid use of `INSERT`",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, CYPHER_CONSTRUCT})
     STATUS_42I55(
             "Dynamic { %s } using `$any()` are not allowed in `{ %s }`.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid use of dynamic label or type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I56(
             "Only directed relationships are supported in `{ %s }`.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid relationship direction",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I57(
             "{ %s } cannot contain a query ending with { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.exprType, GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.exprType, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid query ending",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I58(
             "Entity, { %s }, cannot be created and referenced in the same clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             "invalid entity reference",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I59(
             "Dynamic label and types are only allowed in { %s } clauses.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.clauseList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.clauseList, List.of(CYPHER_CONSTRUCT))
+            },
             Map.of(GqlParams.ListParam.clauseList, GqlParams.JoinStyle.ANDED),
             "dynamic entity type not allowed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I60(
             "Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.",
             "invalid glob escaping",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I61(
             "Missing function name for the LOOKUP INDEX.",
             "missing LOOKUP INDEX function name",
@@ -1913,10 +1824,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             "unsupported distance metric",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42I63(
             "`ORDER BY`, `{ %s }` and `LIMIT` can only be used in this order in `RETURN`.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "wrong subclause order",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I64(
@@ -1924,22 +1835,21 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.context, GqlParams.StringParam.msg},
             "unsupported operation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_42I65(
             "An invalid character is used in the pattern. Verify that all characters are supported by `{ %s }`.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))},
             "invalid pattern character",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I66(
             "Pattern parsing failed. Make sure that an even number of escapes are used in the pattern.",
             "pattern parsing failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_42I67(
             "The query is parsable in `CYPHER { %s }`, but it is run in `CYPHER { %s }`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER { %s }`.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.version2, GqlParams.NumberParam.version1, GqlParams.NumberParam.version2
+                new NonSensitiveGqlParam(GqlParams.NumberParam.version2, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.version1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.version2, List.of(NON_SENSITIVE_NUMBER))
             },
             "unsupported language feature",
             ErrorClassification.CLIENT_ERROR),
@@ -1950,23 +1860,20 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "mismatched pattern",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42I69(
             "{ %s } must reference a variable from the same MATCH statement.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "invalid search variable reference",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I70(
             "In order to have a search clause, a MATCH statement can only have one bound variable.",
             "search clause with multiple bound variables",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I71(
             "In order to have a search clause, a MATCH statement can only have predicates on the bound node or relationship.",
             "search clause with invalid predicates",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42I72(
             "In order to have a search clause, a MATCH statement can only have a single node or relationship pattern and no selectors.",
             "search clause with too complex pattern",
@@ -1976,134 +1883,153 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             "invalid predicate for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42I74(
             "The variable { %s } in a vector search filter property predicate must be the same as the search clause binding variable { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable1, GqlParams.StringParam.variable2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable1, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable2, List.of(CYPHER_VARIABLE))
+            },
             "wrong variable for vector search with filters",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, SCHEMA})
     STATUS_42I75(
             "The expression { %s } in the search clause may not depend on the search clause binding variable { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.expr, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "self-referencing in vector search",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, NON_SENSITIVE_NUMBER})
     STATUS_42I76(
             "The provided index or constraint { %s } { %s } ({ %s } bytes) exceeded limit of { %s } bytes.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.item,
-                GqlParams.StringParam.input,
-                GqlParams.NumberParam.bytes1,
-                GqlParams.NumberParam.bytes2
+                new NonSensitiveGqlParam(GqlParams.StringParam.item, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.bytes1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.bytes2, List.of(NON_SENSITIVE_NUMBER))
             },
             "index or constraint value too long",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42I77(
             "Local callable { %s } is already defined.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "local callable already defined",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N00(
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "graph reference not found",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N01(
             "The constituent graph { %s } was not found in the in composite database { %s }. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))
+            },
             "no such constituent graph exists in composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N02(
             "Writing in read access mode not allowed.",
             "writing in read access mode",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N03(
             "Writing to multiple graphs in the same transaction is not allowed. Use CALL IN TRANSACTION or create separate transactions in your application.",
             "writing to multiple graphs",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N04(
             "Failed to access database identified by { %s } while connected to session database { %s }. Connect to { %s } directly.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2, GqlParams.StringParam.db3},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db3, List.of(TOPOLOGY))
+            },
             "unsupported access of composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N05(
             "Failed to access database identified by { %s } while connected to composite session database { %s }. Connect to { %s } directly or create an alias in the composite database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2, GqlParams.StringParam.db3},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db3, List.of(TOPOLOGY))
+            },
             "unsupported access of standard database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N06(
             "{ %s } is not supported on composite databases.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.action},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(CYPHER_CONSTRUCT))
+            },
             "unsupported action on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N07(
             "The variable { %s } is shadowing a variable with the same name from the outer scope and needs to be renamed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "variable shadowing",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N08(
             "The procedure { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "no such procedure",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N09(
             "A user with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.user}, "no such user", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, TOPOLOGY})
     STATUS_42N0A(
             "{ %s } is not allowed with a shard target. Target the sharded database { %s } instead of { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.db1, GqlParams.StringParam.db2
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY))
             },
             "invalid shard target",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N0B(
             "The database identified by { %s } is sharded. Drop the database { %s } before recreating.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY))
+            },
             "cannot replace sharded database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, TOPOLOGY})
     STATUS_42N0C(
             "{ %s } is not allowed with a { %s } target.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.typeDescription},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(TOPOLOGY))
+            },
             "invalid database target",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, FIXED_TEXT})
     STATUS_42N0D(
             "The function { %s } cannot be called from the current context. It can only be used { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun, GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))
+            },
             "cannot call function from this context",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N0E(
             "The function { %s } cannot be called without metadata.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "cannot call function without metadata",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, FIXED_TEXT})
     STATUS_42N0F(
             "The function { %s } cannot be called without metadata for realm: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun, GqlParams.StringParam.auth},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.auth, List.of(FIXED_TEXT))
+            },
             "cannot call function without metadata for realm",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N10(
             "A role with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.role}, "no such role", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N11(
             "A graph reference with the name { %s } already exists.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.dbList},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.ListParam.dbList, List.of(TOPOLOGY))},
             Map.of(GqlParams.ListParam.dbList, GqlParams.JoinStyle.ORED),
             "graph reference already exists",
             ErrorClassification.CLIENT_ERROR),
@@ -2117,22 +2043,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.role},
             "role already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N14(
             "{ %s } cannot be used together with { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause, GqlParams.StringParam.cmd},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.cmd, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid use of command",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42N15(
             "{ %s } is a reserved keyword and cannot be used in this place.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.syntax, List.of(FIXED_TEXT))},
             "invalid use of reserved keyword",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_42N16(
             "Only single property { %s } are supported.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idxType, List.of(SCHEMA))},
             "unsupported index or constraint",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N17(
@@ -2140,63 +2066,60 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             "unsupported request",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N18("The database is in read-only mode.", "read-only database", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N19(
             "Duplicate { %s } clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.syntax, List.of(CYPHER_CONSTRUCT))
+            },
             "duplicate clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N20(
             "The list range operator '[ ]' cannot be empty.",
             "empty list range operator",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N21(
             "Expression in { %s } must be aliased (use AS).",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(CYPHER_CONSTRUCT))
+            },
             "unaliased return item",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N22(
             "A COLLECT subquery must end with a single return column.",
             "single return column required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N23(
             "The aggregating function must be included in the { %s } clause for use in 'ORDER BY ...'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "missing reference to aggregation function",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N24(
             "A WITH clause is required between { %s } and { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input1, GqlParams.StringParam.input2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.input1, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input2, List.of(CYPHER_CONSTRUCT))
+            },
             "missing WITH",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N25(
             "Procedure call inside a query does not support naming results implicitly. Use YIELD instead.",
             "missing YIELD",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N26(
             "Multiple join hints for the same variable { %s } are not supported.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "multiple join hints on same variable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N28(
             "Only statically inferrable patterns and variables are allowed in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(CYPHER_CONSTRUCT))},
             "patterns or variables not statically inferrable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N29(
             "Pattern expressions are not allowed to introduce new variables: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "unbound variables in pattern expression",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N31(
@@ -2210,307 +2133,303 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "specified number out of range",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N32(
             "Parameter maps cannot be used in { %s } patterns. Use a literal map instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.keyword},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.keyword, List.of(CYPHER_CONSTRUCT))
+            },
             "invalid use of parameter map",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N34(
             "Path cannot be bound in a quantified path pattern.",
             "path bound in quantified path pattern",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N35(
             "The path selector { %s } is not supported within quantified or parenthesized path patterns.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.selector},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.selector, List.of(CYPHER_CONSTRUCT))
+            },
             "unsupported path selector in path pattern",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N36(
             "Procedure call is missing parentheses.",
             "procedure call without parentheses",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N37(
             "Relationship pattern predicates cannot be use in variable length relationships.",
             "invalid use of relationship pattern predicates in variable length relationships",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N38(
             "Return items must have unique names.", "duplicate return item name", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42N39(
             "All { %s } must have the same return column names. Use `AS` to ensure columns have the same name.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))},
             "incompatible return column names",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42N3A(
             "All { %s } need to either return rows or update the graph.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))},
             "incompatible conditional query",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42N3B(
             "All { %s } must return the same number of columns.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))},
             "incompatible number of return columns",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_42N3C(
             "Not possible to enclose { %s } in 'CALL { ... }'. Use 'CALL () { ... }' instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(FIXED_TEXT))},
             "invalid use of CALL { ... }",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N40(
             "The { %s } function must contain one relationship pattern.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "single relationship pattern required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N41(
             "The reduce function requires a '| expression' after the accumulator.",
             "missing |-expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N42(
             "Sub-path assignment is not supported.", "unsupported sub-path binding", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, CYPHER_CONSTRUCT})
     STATUS_42N44(
             "It is not possible to access the variable { %s } declared before the { %s } clause when using `DISTINCT` or an aggregation.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "inaccessible variable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N45(
             "Unexpected end of input, expected 'CYPHER', 'EXPLAIN', 'PROFILE' or a query.",
             "unexpected end of input",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_42N46( // Duplicate of 42N52, use that instead
             "{ %s } is not a recognized Cypher type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(VALUE_TYPE))},
             "unexpected type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N47(
             "'CALL { ... } IN TRANSACTIONS' is not supported in '... UNION ...'.",
             "invalid use of UNION and CALL IN TRANSACTIONS",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N48(
             "The function { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun}, "no such function", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
+            "no such function",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N49(
             "Unknown Normal Form: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(PROCEDURES_FUNCTIONS))
+            },
             "unsupported normal form",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N50(
             "The procedure return column { %s } is not defined for this procedure. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure return column not defined",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N51(
             "Invalid parameter { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(CYPHER_CONSTRUCT))},
             "invalid parameter",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_42N52(
             "{ %s } is not a recognized Cypher type.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(VALUE_TYPE))},
             "invalid value type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N53(
             "The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. Add an upper bound to the quantified path pattern.",
             "unsafe usage of repeatable elements",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N54(
             "The match mode { %s } is not supported.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.matchMode},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.matchMode, List.of(CYPHER_CONSTRUCT))
+            },
             "unsupported match mode",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N55(
             "The path selector { %s } is not supported.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.selector},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.selector, List.of(CYPHER_CONSTRUCT))
+            },
             "unsupported path selector",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N56(
             "Properties are not supported in the { %s } function.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "unsupported use of properties",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N57(
             "{ %s } cannot contain any updating clauses.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.expr, List.of(CYPHER_CONSTRUCT))},
             "invalid use of data-modifications in expressions",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N58(
             "Nested 'CALL { ... } IN TRANSACTIONS is not supported.",
             "unsupported use of nesting",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N59(
             "Variable { %s } already declared.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "variable already defined",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N60(
             "REPEATABLE ELEMENTS with { %s } path mode is not supported.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.pathMode},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.pathMode, List.of(CYPHER_CONSTRUCT))
+            },
             "unsupported combination of match mode and path mode",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N61(
             "Mixing { %s } in the same graph pattern is not supported. Split the pattern into separate MATCH clauses instead.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.pathModes},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.ListParam.pathModes, List.of(CYPHER_CONSTRUCT))
+            },
             Map.of(GqlParams.ListParam.pathModes, GqlParams.JoinStyle.ANDED),
             "unsupported mixing of different path modes",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N62(
             "Variable { %s } not defined.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
+            },
             "variable not defined",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N63(
             "All inner types in a Closed Dynamic Union must be nullable, or be appended with 'NOT NULL'.",
             "inner type with different nullability",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N64(
             "A quantified or parenthesized path pattern must have at least one node or relationship pattern.",
             "at least one node or relationship required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N65(
             "The { %s } function requires bound node variables when it is not part of a 'MATCH ...'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "node variable not bound",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N66(
             "Bound relationships are not allowed in calls to the { %s } function.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "relationship variable already bound",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N67(
             "Duplicate parameter { %s } in local callable signature.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procParam},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParam, List.of(PROCEDURES_FUNCTIONS))
+            },
             "duplicate parameter",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_42N68(
             "Variables cannot be defined more than once in a { %s } clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "duplicate variable definition",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, CYPHER_CONSTRUCT})
     STATUS_42N69(
             "The { %s } function is only allowed as a top-level element and not inside an { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun, GqlParams.StringParam.expr},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.expr, List.of(CYPHER_CONSTRUCT))
+            },
             "function not allowed inside expression",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N70(
             "The function { %s } requires a WHERE clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "function without required WHERE clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N71(
             "A query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call without a YIELD clause.",
             "incomplete query",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N72(
             "Calling graph functions is only supported on composite databases. Use the name directly or connect to a composite database with the desired constituents.",
             "graph function only supported on composite databases",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N73(
             "The USE clause must be the first clause of a query or an operand to '... UNION ...' . In a CALL sub-query, it can also be the second clause if the first clause is an importing WITH.",
             "invalid placement of USE clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N74(
             "Failed to access { %s } and { %s }. Child USE clauses must target the same graph as their parent query. Run in separate (sub)queries instead.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY))
+            },
             "invalid nested USE clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42N75(
             "A call to the graph function { %s } is only allowed as the top-level argument of a USE clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid use of graph function",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, SCHEMA})
     STATUS_42N76(
             "The hint(s) { %s } cannot be fulfilled.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.hintList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.hintList, List.of(CYPHER_VARIABLE, SCHEMA))
+            },
             Map.of(GqlParams.ListParam.hintList, GqlParams.JoinStyle.ANDED),
             "unfulfillable hints",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, SCHEMA})
     STATUS_42N77(
             "The hint { %s } cannot be fulfilled. The query does not contain a compatible predicate for { %s } on { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.hint, GqlParams.StringParam.entityType, GqlParams.StringParam.variable
+                new NonSensitiveGqlParam(GqlParams.StringParam.hint, List.of(CYPHER_VARIABLE, SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE))
             },
             "missing hint predicate",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE, CYPHER_CONSTRUCT})
     STATUS_42N78(
             "Node { %s } has already been bound and cannot be modified by the { %s } clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT))
+            },
             "variable already bound",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N79(
             "The USE clause is not required for administration commands. Retry the query without the USE clause, and it will be routed automatically.",
             "invalid USE clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42N81(
             "Expected { %s }, but got { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param, GqlParams.ListParam.paramList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.paramList, List.of(CYPHER_VARIABLE))
+            },
             Map.of(GqlParams.ListParam.paramList, GqlParams.JoinStyle.ANDED),
             "missing request parameter",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N82(
             "The database identified by { %s } has one or more aliases. Drop the aliases { %s } before dropping the database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.ListParam.aliasList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.aliasList, List.of(TOPOLOGY))
+            },
             Map.of(GqlParams.ListParam.aliasList, GqlParams.JoinStyle.ANDED),
             "cannot drop database with aliases",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N83(
             "Cannot impersonate a user while password change required.",
             "impersonation disallowed while password change required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N84(
             "WHERE clause without YIELD clause. Use 'TERMINATE TRANSACTION ... YIELD ... WHERE ...'.",
             "TERMINATE TRANSACTION misses YIELD clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N85(
             "Allowed and denied database options are mutually exclusive.",
             "cannot specify both allowed and denied databases",
@@ -2520,10 +2439,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             "wildcard in parameter",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N87(
             "The database or alias name { %s } conflicts with the name { %s } of an existing database or alias.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.db2, List.of(TOPOLOGY))
+            },
             "database or alias with similar name exists",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N89(
@@ -2531,98 +2452,83 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.cause},
             "invalid driver settings map",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42N90(
             "Composite databases cannot be altered (database: { %s }).",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "cannot alter immutable composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_42N91(
             // Never used, this error scenario is unreachable
             "Cannot index nested properties (property: { %s }).",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA))},
             "cannot index nested property",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N92(
             "Cannot combine old and new auth syntax for the same auth provider.",
             "cannot combine old and new auth provider syntax",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N93(
             // Never used, 22N06 was used instead
             "No auth given for user.", "missing auth clause", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N94(
             "'ALTER USER' requires at least one clause.",
             "incomplete ALTER USER command",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N95(
             "The combination of provider and id is already in use.",
             "provider-id combination already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N96(
             "User has no auth provider. Add at least one auth provider for the user or consider suspending them.",
             "invalid user configuration",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, FIXED_TEXT})
     STATUS_42N97(
             "Clause { %s } is mandatory for auth provider { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause, GqlParams.StringParam.auth},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.auth, List.of(FIXED_TEXT))
+            },
             "missing mandatory auth clause",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N98(
             "Cannot modify the user record of the current user.",
             "cannot modify own user",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42N99(
             "Cannot delete the user record of the current user.",
             "cannot delete own user",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA0(
             "Query contains operations that must be executed on the constituent.",
             "operations must be executed on constituent",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA1(
             "Graph access operations are not supported on composite databases.",
             "graph access operations on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA2(
             "Database operations are not supported on composite databases.",
             "database operations on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA3(
             "Schema operations are not supported on composite databases.",
             "schema operations on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA4(
             "Transaction operations are not supported on composite databases.",
             "transaction operations on composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA5(
             "Accessing multiple graphs in the same query is only supported on composite databases. Connect to a composite database with the desired constituents.",
             "accessing multiple graphs only supported on composite databases",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA6(
             "Aliases are not allowed to target composite databases.",
             "invalid alias target",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42NA7(
             "No database is corresponding to { %s }. Verify that the elementId is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "referenced database not found",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA8(
@@ -2630,97 +2536,95 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
             "invalid reference in command",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NA9(
             "The system database supports a restricted set of Cypher clauses. The supported clauses include procedure calls (if the procedure is allowed), a subset of show and terminate commands, and combinations of the two. 'YIELD' and 'RETURN' are also permitted when combined with procedure calls, show, or terminate commands.",
             "system database rules",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_42NAA(
             "Incorrectly formatted graph reference { %s }. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(TOPOLOGY))},
             "incorrectly formatted graph reference",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NAB(
             "WHERE is not supported in a standalone call. Use `CALL ... YIELD ... WHERE ... RETURN ...` instead.",
             "not supported standalone call",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NAC(
             "The backup metadata script contains an invalid or missing CREATE DATABASE statement. The metadata script must contain exactly one CREATE DATABASE statement and it must use the parameter $database.",
             "invalid CREATE DATABASE statement",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42NAD(
             "An auth rule with the name { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.authRule},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.authRule, List.of(CYPHER_VARIABLE))
+            },
             "no such auth rule",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_VARIABLE})
     STATUS_42NAE(
             "An auth rule with the name { %s } already exists.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.authRule},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.authRule, List.of(CYPHER_VARIABLE))
+            },
             "auth rule already exists",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NAF(
             "USE clause is not supported in local procedure definitions.",
             "not supported local procedure definition",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NAG(
             "USE clause is not supported in local function definitions.",
             "not supported local function definition",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42NAH(
             "Return column { %s } does not match output signature of local procedure { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.ident, GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.ident, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "return column error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_42NAI(
             "Return column { %s } is missing to match output signature of local procedure { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.ident, GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.ident, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "missing return column",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
     STATUS_42NAJ(
             "{ %s } is not supported as local procedure output type. Adjust the type of output field { %s } of local procedure { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.typeDescription, GqlParams.StringParam.ident, GqlParams.StringParam.proc
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.ident, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
             },
             "not supported local procedure output type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
     STATUS_42NAK(
             "{ %s } is not supported as local function return type. Adjust the return type of local function { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.typeDescription, GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "not supported local function return type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
     STATUS_42NAL(
             "{ %s } is not supported as local callable parameter type. Adjust the type of parameter { %s } of local callable { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.typeDescription, GqlParams.StringParam.ident, GqlParams.StringParam.proc
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.ident, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
             },
             "not supported local callable parameter type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NFC(
             "Authentication and/or authorization could not be validated. See security logs for details.",
             "auth info validation error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NFD(
             "Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
             "credentials expired",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NFE(
             "Authentication and/or authorization info expired.", "auth info expired", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NFF(
             "Access denied, see the security logs for details.",
             "permission/access denied",
@@ -2733,7 +2637,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             "unsupported syntax",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_42NGA("The query has no valid solution.", "bad query", ErrorClassification.CLIENT_ERROR),
     // End reserved block: 42NG0 - 42NGX
     // #################################
@@ -2749,289 +2652,297 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "remote execution error",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N05(
             "Deadlock detected while trying to acquire locks. See log for more details.",
             "deadlock detected",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N06(
             "Remote execution failed. See cause for more details.",
             "remote execution client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N07(
             "Execution failed. See cause and debug log for details.",
             "execution failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_50N09(
             "The server transitioned into a server state that is not valid in the current context: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.boltServerState},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.boltServerState, List.of(METADATA))
+            },
             "invalid server state transition",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N10(
             "Unable to drop { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idxDescrOrName, List.of(SCHEMA))},
             "index drop failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N11(
             "Unable to create { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "constraint creation failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N12(
             "Unable to drop { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "constraint drop failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N13(
             "Unable to validate constraint { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.constrDescrOrName, List.of(SCHEMA))
+            },
             "constraint validation error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N14(
             "A constraint imposed by the database was violated.",
             "constraint violation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N15(
             "The system attempted to execute an unsupported operation on index { %s }. See debug.log for more information.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "unsupported index operation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N16(
             "Remote execution failed. See cause for more details.",
             "remote execution transient error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N17(
             "Remote execution failed. See cause for more details.",
             "remote execution database error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_50N18(
             "Communication with shard { %s } failed. See cause for more details.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))},
             "shard execution transient error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_50N19(
             "Communication with shard { %s } failed. See cause for more details.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))},
             "shard execution database error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_50N1A(
             "Failed to retrieve all shard replica locations of { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))},
             "failed to retrieve all shard replica locations",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_50N20(
             "Communication with shard { %s } failed. See cause for more details.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY))},
             "shard execution client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_50N21(
             "The { %s } was not found for { %s }. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.schemaDescrType, GqlParams.StringParam.schemaDescr},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.schemaDescrType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.schemaDescr, List.of(SCHEMA))
+            },
             "no such schema descriptor",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_50N22(
             "Failed to parse { %s } as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "invalid graph name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER, TEMPORAL_SPATIAL})
     STATUS_50N23(
             "Transaction retry aborted after { %s } attempts. Retry timed out with a maximum retry duration of { %s } { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.count, GqlParams.NumberParam.timeAmount, GqlParams.StringParam.timeUnit
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.timeAmount, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.timeUnit, List.of(TEMPORAL_SPATIAL))
             },
             "transaction retry aborted",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N24(
             "Unexpected exception while getting transaction state.",
             "sharded properties transaction handling database error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N25(
             "Unexpected exception while getting transaction state.",
             "sharded properties transaction handling client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N26(
             "The backup metadata script contains invalid syntax.",
             "invalid backup metadata script",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N27(
             "The transaction read outdated data and cannot be recovered due to concurrent data modification. Retry the transaction.",
             "outdated read",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_50N42(
             "Unexpected error has occurred. See debug log for details.",
             "unexpected error",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N00(
             "Failed to register procedure/function.", "procedure registration error", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N01(
             "The field { %s } in the class { %s } is annotated as a '@Context' field, but it is declared as static. '@Context' fields must be public, non-final and non-static.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "class field annotation should be public, non-final, and non-static",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N02(
             "Unable to set up injection for procedure { %s }. The field { %s } has type { %s } which is not a supported injectable component.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.procClass, GqlParams.StringParam.procField, GqlParams.StringParam.procFieldType
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFieldType, List.of(PROCEDURES_FUNCTIONS))
             },
             "unsupported injectable component type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N03(
             "Unable to set up injection for { %s }, failed to access field { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procClass, GqlParams.StringParam.procField},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS))
+            },
             "unable to access field",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N04(
             "The field { %s } on { %s } must be annotated as a '@Context' field in order to store its state.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "missing class field annotation",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N05(
             "The field { %s } on { %s } must be declared non-final and public.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "class field should be public and non-final",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, NON_SENSITIVE_NUMBER})
     STATUS_51N06(
             "The argument at position { %s } in { %s } requires a '@Name' annotation and a non-empty name.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.pos, GqlParams.StringParam.procMethod},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.pos, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procMethod, List.of(PROCEDURES_FUNCTIONS))
+            },
             "missing argument name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N07(
             "The { %s } contains a non-default argument after a default argument. Non-default arguments are not allowed to be positioned after default arguments.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid ordering of default arguments",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N08(
             "The class { %s } must contain exactly one '@UserAggregationResult' method and exactly one '@UserAggregationUpdate' method.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "exactly one @UserAggregationResult method and one @UserAggregationUpdate method required",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N09(
             "The '@UserAggregationUpdate' method { %s } of { %s } must be public and have the return type 'void'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod, GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procMethod, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "@UserAggregationUpdate method must be public and void",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N10(
             "The method { %s } of { %s } must be public.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod, GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procMethod, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "aggregation method not public",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N11(
             "The class { %s } must be public.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procClass},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS))
+            },
             "class not public",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N12(
             "The procedure { %s } has zero return columns and must be defined as void.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc}, "class not void", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
+            "class not void",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_51N13(
             "Unable to register the procedure or function { %s } because the name is already in use.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure or function name already in use",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N14(
             "The procedure { %s } has a duplicate { %s } field, { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.proc, GqlParams.StringParam.procFieldType, GqlParams.StringParam.procField
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFieldType, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS))
             },
             "duplicate field name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE})
     STATUS_51N15(
             "Type mismatch for map key. Required 'STRING', but found { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))},
             "invalid map key type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {VALUE_TYPE, PROCEDURES_FUNCTIONS})
     STATUS_51N16(
             "Type mismatch for the default value. Required { %s }, but found { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid default value type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N17(
             "Procedures and functions cannot be defined in the root namespace, or use a reserved namespace. Use the package name instead (e.g., org.example.com.{ %s }).",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procFun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid procedure or function name",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N18(
             "The method { %s } has an invalid return type. Procedures must return a stream of records, where each record is of a defined concrete class.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procMethod, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid method return type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_51N20(
             "The field { %s } is not injectable. Ensure the field is marked as public and non-final.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procField},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procField, List.of(PROCEDURES_FUNCTIONS))
+            },
             "cannot inject field",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N21(
             "The procedure registration failed because the procedure registry was busy. Try again.",
             "procedure registry is busy",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N22(
             "Finding the shortest path for the given pattern requires an exhaustive search. To enable exhaustive searches, set 'cypher.forbid_exhaustive_shortestpath' to false.",
             "exhaustive shortest path search disabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N23(
             "Cannot find the shortest path when the start and end nodes are the same. To enable this behavior, set 'dbms.cypher.forbid_shortestpath_common_nodes' to false.",
             "cyclic shortest path search disabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N24(
             "Could not find a query plan within given time and space limits.",
             "insufficient resources for plan search",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N25(
             "Cannot compile query due to excessive updates to indexes and constraints.",
             "database is busy",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_51N26(
             "{ %s } is not available. This implementation of Cypher does not support { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.feat},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.item, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.feat, List.of(FIXED_TEXT))
+            },
             "not supported in this version",
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N27(
@@ -3039,78 +2950,71 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.edition},
             "not supported in this edition",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N28(
             "This Cypher command must be executed against the database { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "not supported by this database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_51N29(
             "The command { %s } must be executed on the current 'LEADER' server.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.cmd, List.of(CYPHER_CONSTRUCT))},
             "not supported by this server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_51N2A(
             "The command { %s } is not available with auth disabled.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.cmd, List.of(CYPHER_CONSTRUCT))},
             "not supported with auth disabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_51N30(
             "{ %s } is not supported in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.item, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))
+            },
             "not supported with this configuration",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, VALUE_TYPE, SCHEMA, FIXED_TEXT})
     STATUS_51N31(
             "{ %s } is not supported in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(
+                        GqlParams.StringParam.feat, List.of(CYPHER_CONSTRUCT, VALUE_TYPE, SCHEMA, FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT))
+            },
             "not supported",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N32("Server is in panic.", "server panic", ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N33(
             "This member failed to replicate transaction, try again.",
             "replication error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N34(
             "Failed to write to the database due to a cluster leader change. Retrying your request at a later time may succeed.",
             "write transaction failed due to leader change",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N35(
             "The location of { %s } has changed while the transaction was running.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "database location changed",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N36(
             "There is not enough memory to perform the current task.",
             "out of memory",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N37(
             "There is not enough stack size to perform the current task.",
             "stack overflow",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N38(
             "There are insufficient threads available for executing the current task.",
             "failed to acquire execution thread",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N39(
             "Expected set of files not found on disk. Please restore from backup.",
             "raft log corrupted",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N40(
             "Database { %s } failed to start. Try restarting it.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "unable to start database",
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N41(
@@ -3118,78 +3022,68 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             "admin operation failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N42(
             "Unable to check if allocator { %s } is available.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.alloc},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.alloc, List.of(TOPOLOGY))},
             "allocator availability check failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N43(
             "Cannot deallocate server(s) { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.serverList},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.ListParam.serverList, List.of(TOPOLOGY))},
             Map.of(GqlParams.ListParam.serverList, GqlParams.JoinStyle.ANDED),
             "cannot deallocate servers",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N44(
             "Cannot drop server { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "cannot drop server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N45(
             "Cannot cordon server { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "cannot cordon server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N46(
             "Cannot alter server { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "cannot alter server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N47(
             "Cannot rename server { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "cannot rename server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N48(
             "Cannot enable server { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "cannot enable server",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N49(
             "Cannot alter database { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "cannot alter database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N50(
             "Cannot recreate database { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "cannot recreate database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N51(
             "Cannot create database { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "cannot create database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT, NON_SENSITIVE_NUMBER})
     STATUS_51N52(
             "Cannot { %s } database topology. Number of primaries { %s } needs to be at least 1 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.action, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+                new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER))
             },
             "number primaries out of range",
             ErrorClassification.CLIENT_ERROR) // message sounds a little off for me for these two. maybe "numbe rof
     // primaries/secondaries ({ %s }) instead?
     ,
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N53(
             "Cannot { %s } database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {
@@ -3202,214 +3096,215 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             "cannot reallocate",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY, CONFIG_SETTING})
     STATUS_51N55(
             "Failed to create the database { %s }. The limit of databases is reached. Either increase the limit using the config setting { %s } or drop a database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
+            },
             "cannot create additional database",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY, NON_SENSITIVE_NUMBER})
     STATUS_51N56(
             "The number of { %s } seeding servers { %s } is larger than the desired number of { %s } allocations { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.serverType,
-                GqlParams.NumberParam.count1,
-                GqlParams.StringParam.allocType,
-                GqlParams.NumberParam.count2
+                new NonSensitiveGqlParam(GqlParams.StringParam.serverType, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.allocType, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count2, List.of(NON_SENSITIVE_NUMBER))
             },
             "topology out of range",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_51N57(
             "Unexpected error while picking allocations. { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(FIXED_TEXT))},
             "generic topology modification error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, NON_SENSITIVE_NUMBER})
     STATUS_51N58(
             "Invalid database shard topology. The number of { %s } { %s } needs to be at least 1 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.context, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+                new NonSensitiveGqlParam(GqlParams.StringParam.context, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER))
             },
             "invalid shard topology",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N59(
             "The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.",
             "internal resource exhaustion",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N60(
             "The DBMS is unable to determine the enterprise license acceptance status.",
             "unable to check enterprise license acceptance",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_51N61(
             "Index { %s } population failed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "index population failed",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_51N62(
             "Unable to use index { %s } because it is in a failed state. See logs for more information.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "index is in a failed state",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_51N63(
             "Index { %s } is not ready yet. Wait until it finishes populating and retry the transaction.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA))},
             "index is still populating",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N64("The index dropped while sampling.", "index dropped while sampling", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA, NON_SENSITIVE_NUMBER})
     STATUS_51N65(
             "Vector index { %s } has a configured dimensionality of { %s }, but the provided vector has a dimension { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.idx, GqlParams.NumberParam.dim1, GqlParams.NumberParam.dim2
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.idx, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.dim1, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.dim2, List.of(NON_SENSITIVE_NUMBER))
             },
             "vector index dimensionality mismatch",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N66(
             "Insufficient resources to complete the request.", "resource exhaustion", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, FIXED_TEXT})
     STATUS_51N67(
             "Unexpected CDC selector { %s } at { %s }, expected selector to be a { %s } selector.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.selectorType1, GqlParams.StringParam.input, GqlParams.StringParam.selectorType2
+                new NonSensitiveGqlParam(GqlParams.StringParam.selectorType1, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.selectorType2, List.of(FIXED_TEXT))
             },
             "invalid CDC selector type",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N68(
             "Change Data Capture is not currently enabled for this database.",
             "CDC is disabled for this database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CYPHER_CONSTRUCT})
     STATUS_51N69(
             "It is not possible to perform { %s } on the system database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.operation},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.operation, List.of(CYPHER_CONSTRUCT))
+            },
             "system database is immutable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N70(
             "Cannot get routing table for { %s } because Bolt is not enabled. Please update your configuration such that 'server.bolt.enabled' is set to true.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "bolt is not enabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, SCHEMA})
     STATUS_51N71(
             "Feature: { %s } is not available in a sharded database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.feat, List.of(FIXED_TEXT, SCHEMA))
+            },
             "unsupported operation on a sharded database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CONFIG_SETTING})
     STATUS_51N72(
             "Failed to allocate memory in a memory pool. See { %s } in the neo4j.conf file.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
+            },
             "memory pool out of memory",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CONFIG_SETTING})
     STATUS_51N73(
             "The transaction uses more memory than it is allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j.conf file.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
+            },
             "transaction memory limit reached",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {CONFIG_SETTING})
     STATUS_51N74(
             "Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j.conf file.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.cfgSetting, List.of(CONFIG_SETTING))
+            },
             "maximum number of transactions reached",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {SCHEMA})
     STATUS_51N75(
             "Unable to find entity with id { %s } since it is not up to date. Retrying your request at a later time may succeed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.entityId},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.entityId, List.of(SCHEMA))},
             "shard execution error",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N76("The upgrade to a new Neo4j version failed.", "upgrade failed", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_51N77(
             "{ %s } is not supported in { %s } store format.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.storeFormat},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.feat, List.of(FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.storeFormat, List.of(FIXED_TEXT))
+            },
             "not supported in this store format",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N78(
             "Routing is not permitted via this connector. Switch the connection URI scheme to bolt:// or connect to a connector with routing support.",
             "routing unavailable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_51N79(
             "Access to database { %s } is not permitted via this connector.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "database unavailable",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_51N7A(
             "No admin user candidate is found. Use `neo4j-admin dbms set-default-admin` to select a valid admin.",
             "no admin user candidate",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT, SCHEMA})
     STATUS_51N7B(
             "Feature: { %s } is not available in a composite database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.feat, List.of(FIXED_TEXT, SCHEMA))
+            },
             "unsupported operation on a composite database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, NON_SENSITIVE_NUMBER, TEMPORAL_SPATIAL})
     STATUS_52N01(
             "Execution of the procedure { %s } timed out after { %s } { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.proc, GqlParams.NumberParam.timeAmount, GqlParams.StringParam.timeUnit
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.timeAmount, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.timeUnit, List.of(TEMPORAL_SPATIAL))
             },
             "procedure execution timeout",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N02(
             "Execution of the procedure { %s } failed due to a client error.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure execution client error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N03(
             "Execution of the procedure { %s } failed due to an invalid specified execution mode { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc, GqlParams.StringParam.procExeMode},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procExeMode, List.of(PROCEDURES_FUNCTIONS))
+            },
             "invalid procedure execution mode",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N05(
             "Cannot invoke procedure on this member because it is not a secondary for the database { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "must invoke procedure on secondary",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_52N06(
             "Unexpected number of arguments (expected 0-2 but received { %s }).",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.count},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER))
+            },
             "invalid number of arguments to checkConnectivity",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_52N07(
             "Unrecognised port name { %s } (valid values are: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.port, GqlParams.ListParam.portList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.port, List.of(METADATA)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.portList, List.of(METADATA))
+            },
             Map.of(GqlParams.ListParam.portList, GqlParams.JoinStyle.ANDED),
             "invalid port argument to checkConnectivity",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N08(
             "Unable to parse server id { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "invalid server id argument to checkConnectivity",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N09(
             "Execution of the procedure { %s } failed due to a database error.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure execution database error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N10(
             "An address key is included in the query string provided to the GetRoutingTableProcedure, but its value could not be parsed.",
             "invalid address key",
@@ -3419,30 +3314,25 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             "generic topology procedure error",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N12(
             "The previous default database { %s } is still running.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "cannot change default database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N13(
             "New default database { %s } does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.db, List.of(TOPOLOGY))},
             "new default database does not exist",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N14(
             "System database cannot be set as default.",
             "system cannot be default database",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N15(
             "Provided allocator { %s } is not available or was not initialized. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.alloc},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.alloc, List.of(TOPOLOGY))},
             "no such allocator",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N16(
             "Invalid arguments to procedure.", "invalid procedure argument list", ErrorClassification.CLIENT_ERROR),
     STATUS_52N17(
@@ -3450,24 +3340,23 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             "quarantine change failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NON_SENSITIVE_NUMBER})
     STATUS_52N18(
             "The number of seeding servers { %s } is larger than the defined number of allocations { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.countSeeders, GqlParams.NumberParam.countAllocs},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.countSeeders, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.countAllocs, List.of(NON_SENSITIVE_NUMBER))
+            },
             "too many seeders",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N19(
             "The specified seeding server with id { %s } was not found. Verify that the spelling is correct.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY))},
             "no such seeder",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N20(
             "The recreation of a database is not supported when seed updating is not enabled.",
             "seed updating not enabled",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N21(
             "Failed to clean the system graph.", "failed to clean the system graph", ErrorClassification.CLIENT_ERROR),
     STATUS_52N22(
@@ -3481,57 +3370,56 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "invalid procedure argument",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N23(
             "The following namespaces are not reloadable: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.namespaceList},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.namespaceList, List.of(PROCEDURES_FUNCTIONS))
+            },
             Map.of(GqlParams.ListParam.namespaceList, GqlParams.JoinStyle.ANDED),
             "non-reloadable namespace",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N24(
             "Failed to reload procedures. See logs for more information.",
             "failed to reload procedures",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {METADATA})
     STATUS_52N25(
             "JMX error while accessing { %s }. See logs for more information.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param}, "JMX error", ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(METADATA))},
+            "JMX error",
+            ErrorClassification.DATABASE_ERROR),
     STATUS_52N26(
             "{ %s } is not a valid change identifier.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(TOPOLOGY))},
             "invalid change identifier",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N27(
             "The commit timestamp for the provided transaction ID does not match the one in the transaction log.",
             "invalid commit timestamp",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N28(
             "{ %s } is not a valid change identifier. Transaction ID does not exist.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.transactionId},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.transactionId, List.of(TOPOLOGY))},
             "invalid change identifier and transaction id",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N29(
             "Given ChangeIdentifier describes a transaction that occurred before any enrichment records exist.",
             "outdated change identifier",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N30(
             "Given ChangeIdentifier describes a transaction that hasn't yet occurred.",
             "future change identifier",
             ErrorClassification.TRANSIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY})
     STATUS_52N31(
             "Change identifier { %s } does not belong to this database.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param}, "wrong database", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {TOPOLOGY, NON_SENSITIVE_NUMBER})
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(TOPOLOGY))},
+            "wrong database",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N32(
             "Change identifier { %s } has an invalid sequence number { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.param1, GqlParams.StringParam.param2},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.param1, List.of(TOPOLOGY)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.param2, List.of(NON_SENSITIVE_NUMBER))
+            },
             "invalid sequence number",
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N33(
@@ -3539,50 +3427,49 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.sig, GqlParams.StringParam.msg},
             "procedure invocation failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N34(
             "{ %s } is restricted and accesses database internals. Procedure restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict procedures you can trust with access to database internals.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure restricted",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N35(
             "Failed to compile procedure defined in { %s }: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procClass, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.procClass, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure compilation failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N36(
             "Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is outlined in the { %s } API documentation.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.field,
-                GqlParams.StringParam.procParam,
-                GqlParams.StringParam.proc,
-                GqlParams.StringParam.procParam,
-                GqlParams.StringParam.procParamFmt
+                new NonSensitiveGqlParam(GqlParams.StringParam.field, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParam, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParam, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParamFmt, List.of(PROCEDURES_FUNCTIONS))
             },
             "invalid procedure argument with API documentation hint",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_52N37(
             "Execution of the procedure { %s } failed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS))
+            },
             "procedure execution error",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N38(
             "Cannot find a start position in the logs.", "cdc start position not found", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N39("The log scanner is no longer active.", "cdc scanner inactive", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_52N40(
             "Reconciliation failed during writing the topology graph, transaction may not be committed.",
             "reconciler execution error",
             ErrorClassification.DATABASE_ERROR),
-    @NonSensitiveStatusDescription(reasons = {FIXED_TEXT})
     STATUS_52N41(
             "The key value for { %s } in the query string cannot be parsed when getting a routing table.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.field},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.field, List.of(FIXED_TEXT))},
             "invalid routing key",
             ErrorClassification.CLIENT_ERROR),
     STATUS_52U00(
@@ -3592,28 +3479,32 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "custom procedure execution error cause",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS, FIXED_TEXT})
     STATUS_53N33(
             "Failed to invoke function { %s } caused by: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.sig, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.sig, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(FIXED_TEXT))
+            },
             "function invocation failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_53N34(
             "{ %s } is restricted and accesses database internals. User-defined function restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict user-defined functions you can trust with access to database internals.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "function restricted",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_53N35(
             "Failed to compile function defined in { %s }: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.funClass, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.funClass, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.msg, List.of(PROCEDURES_FUNCTIONS))
+            },
             "function compilation failed",
             ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {PROCEDURES_FUNCTIONS})
     STATUS_53N37(
             "Execution of the function { %s } failed.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
             "function execution error",
             ErrorClassification.UNKNOWN),
     STATUS_53U00(
@@ -3623,15 +3514,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "custom function execution error cause",
             ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_G1000("", "", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_G1001("", "edges still exist", ErrorClassification.CLIENT_ERROR),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_G1002("", "endpoint node is deleted", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_G1003("", "endpoint node not in current working graph", ErrorClassification.UNKNOWN),
-    @NonSensitiveStatusDescription(reasons = {NO_PARAMETERS})
     STATUS_G2000("", "", ErrorClassification.UNKNOWN),
     ;
 
@@ -3643,6 +3529,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     private final String template;
     private final int[] offsets;
     private final Map<GqlParams.ListParam, GqlParams.JoinStyle> joinStyles;
+    private final List<String> nonSensitiveParameterKeys;
 
     GqlStatusInfoCodes(String template, String subCondition, GqlClassification classification) {
         this(template, new GqlParams.GqlParam[] {}, emptyMap(), subCondition, classification);
@@ -3664,7 +3551,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             GqlClassification classification) {
         validateNameFormat();
         this.gqlStatus = extractGqlStatusFromName();
-        this.statusParameterKeys = statusParameterKeys;
+        this.statusParameterKeys = new GqlParams.GqlParam[statusParameterKeys.length];
+        this.nonSensitiveParameterKeys = new ArrayList<>(statusParameterKeys.length);
+
+        for (int i = 0; i < statusParameterKeys.length; i++) {
+            if (statusParameterKeys[i] instanceof NonSensitiveGqlParam nonSensitiveKey) {
+                this.statusParameterKeys[i] = nonSensitiveKey.getInnerParam();
+                this.nonSensitiveParameterKeys.add(nonSensitiveKey.name());
+            } else {
+                this.statusParameterKeys[i] = statusParameterKeys[i];
+            }
+        }
+
         this.joinStyles = joinStyles;
         this.condition = mapConditionFromName();
         this.subCondition = subCondition;
@@ -3759,15 +3657,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
         return condition;
     }
 
-    @Override
-    public boolean hasNonSensitiveStatusDescription() {
-        try {
-            Field field = this.getDeclaringClass().getField(this.name());
-            return field.isAnnotationPresent(NonSensitiveStatusDescription.class);
-        } catch (NoSuchFieldException e) {
-            // Fallback if the field somehow isn't found - should not happen
-            return false;
-        }
+    public List<String> getNonSensitiveParameterKeys() {
+        return nonSensitiveParameterKeys;
     }
 
     @Override

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -331,14 +332,43 @@ abstract class GqlExceptionTestBase {
                 .withParam(GqlParams.StringParam.value, "{key: secret}")
                 .build();
         var exception = testException(errorGqlStatusObject, "legacy message");
-        assertEquals("", exception.obfuscatedStatusDescription());
+        assertEquals(
+                "error: data exception - unsupported property value type. Value ****** cannot be stored in properties.",
+                exception.obfuscatedStatusDescription());
     }
 
     @Test
-    void shouldNotObfuscateStatusDescriptionIfGqlStatusDoesNotRequiresObfuscation() {
+    void shouldNotObfuscateStatusDescriptionWithoutParameters() {
         var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22012)
                 .build();
         var exception = testException(errorGqlStatusObject, "legacy message");
         assertEquals("error: data exception - division by zero", exception.obfuscatedStatusDescription());
+    }
+
+    @Test
+    void shouldNotObfuscateStatusDescriptionWhichIsMarkedAsNonSensitive() {
+        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N01)
+                .withParam(GqlParams.StringParam.db, "my_db")
+                .withParam(GqlParams.StringParam.cfgSetting, "db.cfgSetting")
+                .build();
+        var exception = testException(errorGqlStatusObject, "legacy message");
+        assertEquals(
+                "error: connection exception - unable to write to database. Unable to write to database `my_db` on this server. Server-side routing is disabled. Either connect to the database leader directly or enable server-side routing by setting 'db.cfgSetting=true'.",
+                exception.obfuscatedStatusDescription());
+    }
+
+    @Test
+    void shouldObfuscateSensitiveParameters() {
+        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                .withParam(GqlParams.StringParam.input, "{key: secret}")
+                .withParam(GqlParams.StringParam.context, "some context")
+                .withParam(GqlParams.ListParam.valueTypeList, List.of("STRING", "INTEGER", "FLOAT"))
+                .withParam(GqlParams.StringParam.hint, "hint")
+                .build();
+
+        var exception = testException(errorGqlStatusObject, "legacy message");
+        assertEquals(
+                "error: data exception - invalid entity type. Invalid input '******' for ******. Expected to be STRING, INTEGER or FLOAT.******",
+                exception.obfuscatedStatusDescription());
     }
 }

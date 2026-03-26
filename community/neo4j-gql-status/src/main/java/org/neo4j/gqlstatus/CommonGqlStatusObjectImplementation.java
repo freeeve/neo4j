@@ -66,14 +66,17 @@ public class CommonGqlStatusObjectImplementation implements CommonGqlStatusObjec
 
     @Override
     public String statusDescription() {
+        return createStatusDescriptionForMessage(messageWithParameters);
+    }
+
+    protected String createStatusDescriptionForMessage(String message) {
         var condition = gqlStatusInfo.getCondition();
         var subCondition = gqlStatusInfo.getSubCondition();
-
-        if (messageWithParameters.isEmpty()) {
+        if (message.isEmpty()) {
             return (createStandardDescription(condition, subCondition));
         }
 
-        return (createStandardDescription(condition, subCondition)) + ". " + messageWithParameters;
+        return (createStandardDescription(condition, subCondition)) + ". " + message;
     }
 
     @Override

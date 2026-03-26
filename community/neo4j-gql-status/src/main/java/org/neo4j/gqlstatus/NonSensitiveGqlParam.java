@@ -20,28 +20,30 @@
 package org.neo4j.gqlstatus;
 
 import java.util.List;
-import java.util.Map;
 
-public sealed interface GqlStatusInfo permits GqlStatusInfoCodes {
-    String getMessage(Object[] params);
+public class NonSensitiveGqlParam implements GqlParams.GqlParam {
+    private final GqlParams.GqlParam param;
 
-    String getMessage(Map<GqlParams.GqlParam, Object> params);
+    // While this is currently unused,
+    // it is required to make sure developers consider why a parameter is non-sensitive.
+    private final List<NonSensitiveReason> reasons;
 
-    Condition getCondition();
+    NonSensitiveGqlParam(GqlParams.GqlParam param, List<NonSensitiveReason> reasons) {
+        this.param = param;
+        this.reasons = reasons;
+    }
 
-    String getSubCondition();
+    @Override
+    public String name() {
+        return param.name();
+    }
 
-    GqlClassification getClassification();
+    @Override
+    public String process(Object s) {
+        return param.process(s);
+    }
 
-    GqlStatus getGqlStatus();
-
-    String getStatusString();
-
-    Map<String, Object> parameterMap(Object[] params);
-
-    Map<String, Object> parameterMap(Map<GqlParams.GqlParam, Object> params);
-
-    int parameterCount();
-
-    List<GqlParams.GqlParam> getStatusParameterKeys();
+    public GqlParams.GqlParam getInnerParam() {
+        return param;
+    }
 }

@@ -139,8 +139,19 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         return "";
     }
 
-    public boolean hasNonSensitiveStatusDescription() {
-        return gqlStatusInfoCode.hasNonSensitiveStatusDescription();
+    @Override
+    public String obfuscatedStatusDescription() {
+        Map<GqlParams.GqlParam, Object> obfuscatedParams = new HashMap<>();
+        var nonSensitiveKeys = gqlStatusInfoCode.getNonSensitiveParameterKeys();
+        paramMap.forEach((key, value) -> {
+            if (nonSensitiveKeys.contains(key.name())) {
+                obfuscatedParams.put(key, value);
+            } else {
+                obfuscatedParams.put(key, "******");
+            }
+        });
+        String obfuscatedMessage = gqlStatusInfoCode.getMessage(obfuscatedParams);
+        return createStatusDescriptionForMessage(obfuscatedMessage);
     }
 
     @Override
