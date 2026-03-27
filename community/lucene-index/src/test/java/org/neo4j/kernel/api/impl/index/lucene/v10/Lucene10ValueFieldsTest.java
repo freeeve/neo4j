@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -54,6 +55,12 @@ public class Lucene10ValueFieldsTest {
                 "2019-06-02T20:00:00.000-0100",
                 "2019-06-02T21:00:00.000+0000",
                 "2019-06-02T22:00:00.00+0100"));
+    }
+
+    @Test
+    public void validateTemporalStates() {
+        assertThatThrownBy(() -> new Lucene10ValueFields.TemporalWithZone<>(null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     public void checkTemporalWithZoneOrder(List<String> allDateTimes) {

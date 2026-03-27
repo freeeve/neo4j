@@ -33,6 +33,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.BooleanField;
@@ -195,7 +196,10 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
                         new SingleLongField(vectorDocumentStructure.durationSecondsValueKeyFor(index), seconds));
                 addField.accept(new SingleLongField(vectorDocumentStructure.durationNanosValueKeyFor(index), nanos));
             }
-            case null, default -> {}
+            case null ->
+                throw InvalidArgumentException.invalidFunctionArgument(
+                        "addIndexableFields", "Invalid input for 'addIndexableFields': the value parameter is null");
+            default -> {}
         }
     }
 }

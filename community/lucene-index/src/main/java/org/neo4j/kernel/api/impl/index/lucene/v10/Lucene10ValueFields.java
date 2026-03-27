@@ -37,6 +37,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
+import org.neo4j.exceptions.InternalException;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
@@ -398,6 +399,11 @@ final class Lucene10ValueFields {
     record TemporalWithZone<T extends Temporal, V extends TemporalValue<T, V>>(TemporalValue<T, V> value)
             implements Comparable<TemporalWithZone<T, V>> {
 
+        TemporalWithZone(TemporalValue<T, V> value) {
+            this.value = value;
+            Preconditions.requireNonNull(value, "value must not be null");
+        }
+
         /// Instant values returned are only comparable for the same subtypes of temporal values
         /// This is fine because different types are stored in different namespaces,
         /// so they are never actually compared.
@@ -428,7 +434,9 @@ final class Lucene10ValueFields {
                     yield Instant.ofEpochSecond(offset.getSeconds(), offset.getNano());
                 }
                 // would be nice to make Temporal sealed, and remove this default branch
-                default -> null;
+                default ->
+                    throw InternalException.internalError(
+                            this.getClass().getSimpleName(), "Temporal type is not supported");
             };
         }
 
@@ -436,28 +444,38 @@ final class Lucene10ValueFields {
             return switch (value) {
                 case DateTimeValue dateTimeValue -> dateTimeValue.asObjectCopy().getOffset();
                 case TimeValue timeValue -> timeValue.asObjectCopy().getOffset();
-                default -> null;
+                default ->
+                    throw InternalException.internalError(
+                            this.getClass().getSimpleName(), "Temporal type is not supported");
             };
         }
 
         boolean hasZoneOffset() {
-            return zoneOffset() != null;
+            return switch (value) {
+                case DateTimeValue ignored -> true;
+                case TimeValue ignored -> true;
+                default -> false;
+            };
         }
 
         ZoneId zoneId() {
             if (value instanceof DateTimeValue dateTimeValue) {
                 return dateTimeValue.asObjectCopy().getZone();
-            } else {
-                return null;
             }
+            throw InternalException.internalError(this.getClass().getSimpleName(), "Temporal type is not supported");
         }
 
         boolean hasZoneId() {
-            return zoneId() != null;
+            return switch (value) {
+                case DateTimeValue ignored -> true;
+                default -> false;
+            };
         }
 
         TemporalOffsetWithId temporalOffsetWithId() {
-            return new TemporalOffsetWithId(zoneOffset(), zoneId());
+            ZoneOffset zoneOffset = hasZoneOffset() ? zoneOffset() : null;
+            ZoneId zoneId = hasZoneId() ? zoneId() : null;
+            return new TemporalOffsetWithId(zoneOffset, zoneId);
         }
 
         @Override
