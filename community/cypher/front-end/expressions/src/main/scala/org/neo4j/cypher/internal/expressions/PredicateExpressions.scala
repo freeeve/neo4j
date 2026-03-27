@@ -49,15 +49,16 @@ object And {
 
 object Ands {
 
-  def create(exprs: Set[Expression]): Expression = {
-    val size = exprs.size
-    if (size == 0)
+  def create(exprs: Iterable[Expression]): Expression =
+    if (exprs.isEmpty) {
       True()(InputPosition.NONE)
-    else if (size == 1)
-      exprs.head
-    else
-      Ands(exprs)(exprs.head.position)
-  }
+    } else {
+      val distinct = ListSet.from(exprs)
+      if (distinct.size == 1)
+        distinct.head
+      else
+        Ands(distinct)(distinct.head.position)
+    }
 
   def apply(exprs: IterableOnce[Expression])(position: InputPosition): Ands = {
     Ands(ListSet.from(exprs))(position)
