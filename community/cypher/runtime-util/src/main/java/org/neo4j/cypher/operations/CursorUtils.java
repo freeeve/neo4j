@@ -104,6 +104,9 @@ public final class CursorUtils {
      */
     public static Value nodeGetProperty(Read read, NodeIndexCursor nodeCursor, PropertyCursor propertyCursor, int prop)
             throws EntityNotFoundException {
+        if (prop == NO_SUCH_PROPERTY_KEY) {
+            return NO_VALUE;
+        }
         if (!nodeCursor.readFromStore()) {
             long node = nodeCursor.nodeReference();
             if (read.nodeDeletedInTransaction(node)) {
@@ -112,7 +115,8 @@ public final class CursorUtils {
                 return NO_VALUE;
             }
         }
-        return nodeGetProperty(nodeCursor, propertyCursor, prop);
+        nodeCursor.properties(propertyCursor, PropertySelection.selection(prop));
+        return propertyCursor.next() ? propertyCursor.propertyValue() : NO_VALUE;
     }
 
     /**
@@ -235,7 +239,8 @@ public final class CursorUtils {
         if (!nodeCursor.readFromStore()) {
             return false;
         }
-        return nodeHasProperty((NodeCursor) nodeCursor, propertyCursor, prop);
+        nodeCursor.properties(propertyCursor, PropertySelection.onlyKeysSelection(prop));
+        return propertyCursor.next();
     }
 
     /**
@@ -317,11 +322,20 @@ public final class CursorUtils {
      * @return {@code true} if the node has all the labels, otherwise {@code false}
      */
     public static boolean nodeHasLabels(NodeIndexCursor nodeCursor, int[] labels) {
-        if (!nodeCursor.readFromStore()) {
-            return false;
+        for (int i = 0; i < labels.length; i++) {
+            int label = labels[i];
+            if (label == NO_SUCH_LABEL) {
+                return false;
+            }
+            // enough to call readFromStore once
+            if (i == 0 && !nodeCursor.readFromStore()) {
+                return false;
+            }
+            if (!nodeCursor.hasLabel(label)) {
+                return false;
+            }
         }
-
-        return nodeHasLabels((NodeCursor) nodeCursor, labels);
+        return true;
     }
 
     /**
@@ -492,7 +506,9 @@ public final class CursorUtils {
 
     @CalledFromGeneratedCode
     public static boolean relationshipHasType(RelationshipIndexCursor relationshipCursor, int type) {
-        if (relationshipCursor.readFromStore()) {
+        if (type == NO_SUCH_RELATIONSHIP_TYPE) {
+            return false;
+        } else if (relationshipCursor.readFromStore()) {
             return relationshipCursor.type() == type;
         } else {
             return false;
@@ -506,11 +522,18 @@ public final class CursorUtils {
 
     @CalledFromGeneratedCode
     public static boolean relationshipHasTypes(RelationshipIndexCursor relationshipCursor, int[] types) {
-        if (relationshipCursor.readFromStore()) {
-            return relationshipHasTypes((RelationshipScanCursor) relationshipCursor, types);
-        } else {
+        assert types.length > 0;
+        int typeToLookFor = types[0];
+        for (int i = 1; i < types.length; i++) {
+            if (types[i] != typeToLookFor) {
+                return false;
+            }
+        }
+        if (typeToLookFor == NO_SUCH_RELATIONSHIP_TYPE) {
             return false;
         }
+
+        return relationshipCursor.readFromStore() && relationshipCursor.type() == typeToLookFor;
     }
 
     @CalledFromGeneratedCode
