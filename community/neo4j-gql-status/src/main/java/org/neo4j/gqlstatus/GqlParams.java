@@ -141,6 +141,7 @@ public class GqlParams {
         schemaDescr(new STRLIT()), // Schema descriptor
         schemaDescrType(new VERBATIM()), // type of schema descriptor
         selector(new VERBATIM()), // A GPM path selector
+        selectorOrPathMode(new VERBATIM()), // A GPM path selector or GPM path mode
         selectorType1(new STRLIT()), // Selector type
         selectorType2(new STRLIT()),
         server(new STRLIT()), // Server | 'example.com

@@ -420,9 +420,20 @@ trait StatementBuilder extends Cypher25ParserListener {
       case p: NonPrefixedPatternPart => p
       case p: PrefixedPatternPart =>
         val inputPosition = pos(patternList)
-        val selector = p.selector.prettified
+        val (selectorOrExplicitPathMode: String, errorMessage: String) = p.pathMode match {
+          case pathMode: PathMode if !pathMode.implicitlyCreated =>
+            (
+              pathMode.prettified,
+              s"Explicit path modes such as `${pathMode.prettified}` cannot be used in a CREATE clause, but only in a MATCH clause."
+            )
+          case _ =>
+            (
+              p.selector.prettified,
+              s"Path selectors such as `${p.selector.prettified}` cannot be used in a CREATE clause, but only in a MATCH clause."
+            )
+        }
         val gql = GqlHelper.getGql42001_42I04(
-          selector,
+          selectorOrExplicitPathMode,
           "CREATE",
           inputPosition.offset,
           inputPosition.line,
@@ -430,7 +441,7 @@ trait StatementBuilder extends Cypher25ParserListener {
         )
         throw exceptionFactory.syntaxException(
           gql,
-          s"Path selectors such as `$selector` cannot be used in a CREATE clause, but only in a MATCH clause.",
+          errorMessage,
           inputPosition
         )
     }
@@ -606,9 +617,19 @@ trait StatementBuilder extends Cypher25ParserListener {
       case p: NonPrefixedPatternPart => p
       case p: PrefixedPatternPart =>
         val inputPosition = pos(patternPart)
-        val selector = p.selector.prettified
+        val (selectorOrExplicitPathMode: String, errorMessage: String) = p.pathMode match {
+          case pathMode: PathMode if !pathMode.implicitlyCreated =>
+            (
+              pathMode.prettified,
+              s"Explicit path modes such as `${pathMode.prettified}` cannot be used in a MERGE clause, but only in a MATCH clause."
+            )
+          case _ => (
+              p.selector.prettified,
+              s"Path selectors such as `${p.selector.prettified}` cannot be used in a MERGE clause, but only in a MATCH clause."
+            )
+        }
         val gql = GqlHelper.getGql42001_42I04(
-          selector,
+          selectorOrExplicitPathMode,
           "MERGE",
           inputPosition.offset,
           inputPosition.line,
@@ -616,7 +637,7 @@ trait StatementBuilder extends Cypher25ParserListener {
         );
         throw exceptionFactory.syntaxException(
           gql,
-          s"Path selectors such as `$selector` cannot be used in a MERGE clause, but only in a MATCH clause.",
+          errorMessage,
           inputPosition
         )
     }

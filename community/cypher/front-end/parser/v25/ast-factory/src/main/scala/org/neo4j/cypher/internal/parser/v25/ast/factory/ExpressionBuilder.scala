@@ -227,11 +227,19 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       case nonPrefixedPatternPart: NonPrefixedPatternPart => nonPrefixedPatternPart
       case ps: PrefixedPatternPart =>
         val pathPatternKind = if (ctx.quantifier() == null) "parenthesized" else "quantified"
-        throw exceptionFactory.unsupportedPathSelectorInPathPattern(
-          ps.selector.prettified,
-          pathPatternKind,
-          ps.position
-        )
+        ps.pathMode match {
+          case pathMode: PathMode if !pathMode.implicitlyCreated =>
+            throw exceptionFactory.unsupportedPathModeInPathPattern(
+              pathMode.prettified,
+              pathPatternKind,
+              ps.position
+            )
+          case _ => throw exceptionFactory.unsupportedPathSelectorInPathPattern(
+              ps.selector.prettified,
+              pathPatternKind,
+              ps.position
+            )
+        }
     }
     val quantifier = ctx.quantifier()
     ctx.ast = if (quantifier != null) QuantifiedPath(pattern, quantifier.ast(), astOpt(ctx.expression()))(p)

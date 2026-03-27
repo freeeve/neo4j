@@ -194,17 +194,41 @@ trait CypherExceptionFactory {
     pathPatternKind: String,
     position: InputPosition
   ): RuntimeException = {
+    unsupportedPathSelectorOrPathModeInPathPattern(
+      selector,
+      position,
+      s"Path selectors such as `$selector` are not supported within $pathPatternKind path patterns."
+    )
+  }
+
+  def unsupportedPathModeInPathPattern(
+    explicitPathMode: String,
+    pathPatternKind: String,
+    position: InputPosition
+  ): RuntimeException = {
+    unsupportedPathSelectorOrPathModeInPathPattern(
+      explicitPathMode,
+      position,
+      s"Explicit path modes such as `$explicitPathMode` are not supported within $pathPatternKind path patterns."
+    )
+  }
+
+  def unsupportedPathSelectorOrPathModeInPathPattern(
+    selectorOrExplicitPathMode: String,
+    position: InputPosition,
+    legacyErrorMessage: String
+  ): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N35)
         .atPosition(position.offset, position.line, position.column)
-        .withParam(GqlParams.StringParam.selector, selector)
+        .withParam(GqlParams.StringParam.selectorOrPathMode, selectorOrExplicitPathMode)
         .build())
       .build()
 
     syntaxException(
       gql,
-      s"Path selectors such as `$selector` are not supported within $pathPatternKind path patterns.",
+      legacyErrorMessage,
       position
     )
   }

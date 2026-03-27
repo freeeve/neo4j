@@ -83,6 +83,12 @@ class PrefixedPatternPartParserTest extends AstParsingTestBase {
     "SHORTEST $groupCount PATHS GROUPS" -> shortestGroups("groupCount")
   )
 
+  private val pathModesCypher25 = Seq(
+    "TRAIL",
+    "WALK",
+    "ACYCLIC"
+  )
+
   test("MATCH $selector (a)-[r]->(b)") {
     selectors.foreach { case selector -> astNode =>
       withClue(s"selector = $selector") {
@@ -560,20 +566,37 @@ class PrefixedPatternPartParserTest extends AstParsingTestBase {
       s"MATCH $selector (() ($selector (a)-[r]->(b))* ()-->())" should notParse[Clause].withSyntaxErrorContaining(
         s"Path selectors such as `${astSelector.prettified}` are not supported within quantified path patterns.",
         GqlStatusInfoCodes.STATUS_42N35,
-        s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
+        s"error: syntax error or access rule violation - unsupported path selector or explicit path mode in path pattern. The path selector or explicit path mode ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
       )
     }
   }
 
+  test("MATCH (:S)($explicitPathMode ()-->()){1,5}") {
+    pathModesCypher25.foreach(explicitPathMode =>
+      s"MATCH (:S)($explicitPathMode ()-->()){1,5}" should parseIn[Clause] {
+        case Cypher25 => _.withSyntaxErrorContaining(
+            s"Explicit path modes such as `$explicitPathMode` are not supported within quantified path patterns.",
+            GqlStatusInfoCodes.STATUS_42N35,
+            s"error: syntax error or access rule violation - unsupported path selector or explicit path mode in path pattern. The path selector or explicit path mode $explicitPathMode is not supported within quantified or parenthesized path patterns."
+          )
+        case _ => _.withAnyFailure
+      }
+    )
+  }
+
   test("CREATE $selector (a)-[r]->(b)") {
-    selectors.foreach { case selector -> _ =>
-      s"CREATE $selector (a)-[r]->(b)" should notParse[Clause].withSyntaxErrorContaining("Path selectors such as")
+    selectors.foreach { case selector -> astSelector =>
+      s"CREATE $selector (a)-[r]->(b)" should notParse[Clause].withSyntaxErrorContaining(
+        s"Path selectors such as `${astSelector.prettified}` cannot be used in a CREATE clause, but only in a MATCH clause."
+      )
     }
   }
 
   test("MERGE $selector (a)-[r]->(b)") {
-    selectors.foreach { case selector -> _ =>
-      s"MERGE $selector (a)-[r]->(b)" should notParse[Clause].withSyntaxErrorContaining("Path selectors such as")
+    selectors.foreach { case selector -> astSelector =>
+      s"MERGE $selector (a)-[r]->(b)" should notParse[Clause].withSyntaxErrorContaining {
+        s"Path selectors such as `${astSelector.prettified}` cannot be used in a MERGE clause, but only in a MATCH clause."
+      }
     }
   }
 
@@ -594,7 +617,7 @@ class PrefixedPatternPartParserTest extends AstParsingTestBase {
         failsParsing[Statements].withSyntaxErrorContaining(
           s"Path selectors such as `${astSelector.prettified}` are not supported within $pathPatternKind path patterns.",
           GqlStatusInfoCodes.STATUS_42N35,
-          s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
+          s"error: syntax error or access rule violation - unsupported path selector or explicit path mode in path pattern. The path selector or explicit path mode ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
         )
       }
 
@@ -603,7 +626,7 @@ class PrefixedPatternPartParserTest extends AstParsingTestBase {
           failsParsing[Statements].withSyntaxErrorContaining(
             s"Path selectors such as `${astSelector.prettified}` are not supported within quantified path patterns.",
             GqlStatusInfoCodes.STATUS_42N35,
-            s"error: syntax error or access rule violation - unsupported path selector in path pattern. The path selector ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
+            s"error: syntax error or access rule violation - unsupported path selector or explicit path mode in path pattern. The path selector or explicit path mode ${astSelector.prettified} is not supported within quantified or parenthesized path patterns."
           )
         }
       }

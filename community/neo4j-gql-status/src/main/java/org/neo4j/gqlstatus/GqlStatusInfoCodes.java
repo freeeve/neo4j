@@ -2144,11 +2144,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "path bound in quantified path pattern",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N35(
-            "The path selector { %s } is not supported within quantified or parenthesized path patterns.",
+            "The path selector or explicit path mode { %s } is not supported within quantified or parenthesized path patterns.",
             new GqlParams.GqlParam[] {
-                new NonSensitiveGqlParam(GqlParams.StringParam.selector, List.of(CYPHER_CONSTRUCT))
+                new NonSensitiveGqlParam(GqlParams.StringParam.selectorOrPathMode, List.of(CYPHER_CONSTRUCT))
             },
-            "unsupported path selector in path pattern",
+            "unsupported path selector or explicit path mode in path pattern",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N36(
             "Procedure call is missing parentheses.",
