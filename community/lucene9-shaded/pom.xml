@@ -21,6 +21,7 @@
   </scm>
 
   <properties>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.shaded.lucene9</moduleName>
   </properties>
 
