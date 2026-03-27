@@ -19,8 +19,6 @@
  */
 package org.neo4j.cypher.internal.physicalplanning
 
-import org.eclipse.collections.api.list.primitive.MutableIntList
-import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -58,7 +56,6 @@ object SlotConfigurationBuilder {
  * @see [[SlotConfiguration]]
  */
 final class SlotConfigurationBuilder private (
-  // Note, make sure to sync cachedPropertyOffsets when adding mutating calls to this map
   private val slots: mutable.Map[SlotKey, Slot],
   var numberOfLongs: Int,
   var numberOfReferences: Int,
@@ -94,15 +91,6 @@ final class SlotConfigurationBuilder private (
       SlotWithKeyAndAliases(key, slot, slotAliases.get(variable).map(_.toSet).getOrElse(Set.empty))
     case (key, slot) =>
       SlotWithKeyAndAliases(key, slot, Set.empty)
-  }
-
-// Contains all slot offsets of cached property slots, for fast access.
-  // NOTE! This needs to stay in sync with the content of `slots` (for entries with a CachedPropertySlotKey)
-  private val cachedPropertyOffsets: MutableIntList = {
-    val offsets = slots.iterator
-      .collect { case (CachedPropertySlotKey(_), slot) => slot.offset }
-      .toArray
-    IntArrayList.newListWith(offsets: _*)
   }
 
   // For each existing variable key, a mapping to all aliases.
@@ -342,7 +330,6 @@ final class SlotConfigurationBuilder private (
 
       case None =>
         slots.put(slotKey, RefSlot(numberOfReferences, nullable = false, CTAny))
-        cachedPropertyOffsets.add(numberOfReferences)
         numberOfReferences = numberOfReferences + 1
     }
     this
