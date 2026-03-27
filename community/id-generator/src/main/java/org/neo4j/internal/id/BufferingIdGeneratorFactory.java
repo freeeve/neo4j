@@ -20,6 +20,9 @@
 package org.neo4j.internal.id;
 
 import static org.neo4j.internal.id.DiskBufferedIds.DEFAULT_SEGMENT_SIZE;
+import static org.neo4j.internal.id.IdController.MAINTENANCE_ALL;
+import static org.neo4j.internal.id.IdController.MAINTENANCE_FREE_IDS;
+import static org.neo4j.internal.id.IdController.MAINTENANCE_LOAD_IDS;
 import static org.neo4j.internal.id.IdGenerator.NOOP_MARKER;
 import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
@@ -133,21 +136,26 @@ public class BufferingIdGeneratorFactory extends AbstractBufferingIdGeneratorFac
     }
 
     @Override
-    public void maintenance(CursorContext cursorContext) {
-        collectAndOffloadBufferedIds(true);
+    public void maintenance(int flags, CursorContext cursorContext) {
+        if ((flags & MAINTENANCE_FREE_IDS) != 0) {
+            collectAndOffloadBufferedIds(true);
 
-        // Check and free deleted IDs that are safe to free
-        bufferReadLock.lock();
-        try {
-            bufferQueue.read(new IdFreer(cursorContext));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } finally {
-            bufferReadLock.unlock();
+            // Check and free deleted IDs that are safe to free
+            bufferReadLock.lock();
+            try {
+                bufferQueue.read(new IdFreer(cursorContext));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } finally {
+                bufferReadLock.unlock();
+            }
         }
-        overriddenIdGenerators
-                .values()
-                .forEach(generator -> generator.maintenance(cursorContext, EMPTY_OLDEST_HORIZON_FACTORY));
+
+        if ((flags & MAINTENANCE_LOAD_IDS) != 0) {
+            overriddenIdGenerators
+                    .values()
+                    .forEach(generator -> generator.maintenance(cursorContext, EMPTY_OLDEST_HORIZON_FACTORY));
+        }
     }
 
     private void collectAndOffloadBufferedIds(boolean blocking) {
@@ -179,7 +187,7 @@ public class BufferingIdGeneratorFactory extends AbstractBufferingIdGeneratorFac
 
     @Override
     public void stop() throws Exception {
-        maintenance(CursorContext.NULL_CONTEXT);
+        maintenance(MAINTENANCE_ALL, CursorContext.NULL_CONTEXT);
         overriddenIdGenerators.forEach((type, generator) -> generator.stop());
         // Don't keep the overridden ones on stop - could be different ones on next start.
         overriddenIdGenerators.clear();
