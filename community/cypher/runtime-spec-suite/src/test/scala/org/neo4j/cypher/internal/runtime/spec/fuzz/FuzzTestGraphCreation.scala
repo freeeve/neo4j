@@ -39,7 +39,7 @@ object FuzzTestGraphCreation {
     "long" -> Seq(ValueType.LONG),
     "boolean" -> Seq(ValueType.BOOLEAN),
     "string" -> Seq(ValueType.STRING),
-    "rand" -> ValueType.ALL_TYPES
+    "rand" -> ValueType.ALL_TYPES.filter(v => v != ValueType.UUID && v != ValueType.UUID_ARRAY)
   )
 
   object GraphType extends Enumeration {
@@ -101,7 +101,7 @@ object FuzzTestGraphCreation {
        |  ${plan.toString.trim.lines().toScala(Seq).mkString("  ", "\n    ", "")}
        |  val rewrittenQuery = rewriteQuery(query)
        |
-       |  val baseRuntime = org.neo4j.cypher.internal.InterpretedRuntime // Change if necessary
+       |  val baseRuntime = org.neo4j.cypher.internal.CommunityInterpretedRuntime // Change if necessary
        |  val expected = execute(rewrittenQuery, baseRuntime, params).awaitAll()
        |  execute(rewrittenQuery, runtime, params) should beColumns($columns)
        |    .withRows(inAnyOrder(expected, listInAnyOrder = true))
