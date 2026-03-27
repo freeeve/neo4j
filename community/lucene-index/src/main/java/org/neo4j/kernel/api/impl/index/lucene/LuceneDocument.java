@@ -23,7 +23,7 @@ import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 
 public interface LuceneDocument {
 
-    void addNumericField(String key, long value);
+    void addNumericDocValuesField(String key, long value);
 
     void addStringField(String key, String string, boolean store);
 

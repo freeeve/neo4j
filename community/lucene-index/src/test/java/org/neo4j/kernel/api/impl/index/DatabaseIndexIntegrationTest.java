@@ -195,7 +195,7 @@ class DatabaseIndexIntegrationTest {
     private static LuceneDocument createTestDocument(LuceneIndexWriter indexWriter) {
         LuceneDocument document = indexWriter.newDocument();
         document.addTextField("text", "textValue", true);
-        document.addNumericField("long", 1);
+        document.addNumericDocValuesField("long", 1);
         return document;
     }
 

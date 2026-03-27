@@ -42,7 +42,7 @@ class Lucene10Document implements LuceneDocument {
     }
 
     @Override
-    public void addNumericField(String key, long value) {
+    public void addNumericDocValuesField(String key, long value) {
         document.add(new NumericDocValuesField(key, value));
     }
 

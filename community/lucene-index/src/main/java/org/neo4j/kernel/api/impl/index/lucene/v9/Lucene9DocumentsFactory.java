@@ -53,7 +53,7 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
     public LuceneDocument createTrigramDocument(long id, Value value) {
         Lucene9Document document = new Lucene9Document();
         document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
-        document.addNumericField(ENTITY_ID_KEY, id);
+        document.addNumericDocValuesField(ENTITY_ID_KEY, id);
         if (value.valueGroup() == ValueGroup.TEXT) {
             Lucene9TrigramTokenStream tokenStream =
                     new Lucene9TrigramTokenStream(value.asObject().toString());
@@ -81,7 +81,7 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
 
         LuceneDocument document = new Lucene9Document();
         document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
-        document.addNumericField(ENTITY_ID_KEY, id);
+        document.addNumericDocValuesField(ENTITY_ID_KEY, id);
         document.addKnnFloatVectorField(
                 vectorDocumentStructure.vectorValueKeyFor(vector.length), vector, similarityFunction);
         return document;
