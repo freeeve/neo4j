@@ -142,7 +142,7 @@ object SlotConfiguration {
   def apply(mutable: SlotConfigurationBuilder): SlotConfiguration = {
     val slots = mutable.keyedSlots.map(s => KeyedSlot(s.key, s.slot, s.aliases.toIndexedSeq)).toSeq
     new SlotConfiguration(
-      slots = slots.sortBy(s => (keyOrdering(s.key), !s.slot.isLongSlot, s.offset)).to(ArraySeq),
+      slots = slots.sorted(keyedSlotOrdering).to(ArraySeq),
       numberOfLongs = mutable.numberOfLongs,
       numberOfReferences = mutable.numberOfReferences,
       discardedRefSlotOffsets = ArraySeq.unsafeWrapArray(mutable.discardedRefOffsets())
@@ -153,11 +153,23 @@ object SlotConfiguration {
   def apply(input: Seq[SlotWithKeyAndAliases], longs: Int, refs: Int): SlotConfiguration = {
     val slots = input.map(s => KeyedSlot(s.key, s.slot, s.aliases.toIndexedSeq))
     new SlotConfiguration(
-      slots = slots.sortBy(s => (keyOrdering(s.key), !s.slot.isLongSlot, s.offset)).to(ArraySeq),
+      slots = slots.sorted(keyedSlotOrdering).to(ArraySeq),
       numberOfLongs = longs,
       numberOfReferences = refs,
       discardedRefSlotOffsets = ArraySeq.empty
     )
+  }
+
+  // Custom ordering that avoids boxing Int/Boolean in tuples during sort
+  private val keyedSlotOrdering: Ordering[KeyedSlot] = (a: KeyedSlot, b: KeyedSlot) => {
+    val keyDiff = keyOrdering(a.key) - keyOrdering(b.key)
+    if (keyDiff != 0) keyDiff
+    else {
+      // Sort longs before refs (isLongSlot=true first, i.e. !isLongSlot ascending)
+      val longDiff = java.lang.Boolean.compare(a.slot.isLongSlot, b.slot.isLongSlot)
+      if (longDiff != 0) -longDiff
+      else a.offset - b.offset
+    }
   }
 
   private def keyOrdering(key: SlotKey): Int = key match {
