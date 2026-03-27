@@ -129,7 +129,14 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     @Override
     public long forceCheckPoint(TriggerInfo info) throws IOException {
         try (Resource lock = mutex.checkPoint()) {
-            return checkpointByTrigger(info);
+            return checkpointByTrigger(info, false);
+        }
+    }
+
+    @Override
+    public long forceCheckPoint(TriggerInfo info, boolean skipLogPruning) throws IOException {
+        try (Resource lock = mutex.checkPoint()) {
+            return checkpointByTrigger(info, skipLogPruning);
         }
     }
 
@@ -138,7 +145,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             TransactionId transactionId, long appendIndex, LogPosition position, TriggerInfo triggerInfo)
             throws IOException {
         try (Resource lock = mutex.checkPoint()) {
-            return checkpointByExternalParams(transactionId, appendIndex, position, position, appendIndex, triggerInfo);
+            return checkpointByExternalParams(
+                    transactionId, appendIndex, position, position, appendIndex, triggerInfo, false);
         }
     }
 
@@ -157,7 +165,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
         Resource lockAttempt = mutex.tryCheckPoint();
         if (lockAttempt != null) {
             try (lockAttempt) {
-                return checkpointByTrigger(info);
+                return checkpointByTrigger(info, false);
             }
         } else {
             try (Resource lock = mutex.tryCheckPoint(timeout)) {
@@ -177,13 +185,13 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
         var lastClosedBatch = metadataProvider.getLastClosedBatch();
         if (threshold.isCheckPointingNeeded(lastClosedBatch.appendIndex(), lastClosedBatch.logPosition(), info)) {
             try (Resource lock = mutex.checkPoint()) {
-                return checkpointByTrigger(info);
+                return checkpointByTrigger(info, false);
             }
         }
         return NO_APPEND_INDEX;
     }
 
-    private long checkpointByTrigger(TriggerInfo triggerInfo) throws IOException {
+    private long checkpointByTrigger(TriggerInfo triggerInfo, boolean skipLogPruning) throws IOException {
         if (shutdown) {
             logShutdownMessage(triggerInfo);
             return NO_APPEND_INDEX;
@@ -198,7 +206,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
                 oldestNotVisibleTransactionInfo.logPosition(),
                 lastClosedBatch.logPosition(),
                 lastClosedBatch.appendIndex(),
-                triggerInfo);
+                triggerInfo,
+                skipLogPruning);
     }
 
     private long checkpointByExternalParams(
@@ -207,7 +216,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             LogPosition oldestNotCompletedPosition,
             LogPosition checkpointedLogPosition,
             long appendIndex,
-            TriggerInfo triggerInfo)
+            TriggerInfo triggerInfo,
+            boolean skipLogPruning)
             throws IOException {
         if (shutdown) {
             logShutdownMessage(triggerInfo);
@@ -219,7 +229,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
                 oldestNotVisibleAppendIndex,
                 oldestNotCompletedPosition,
                 checkpointedLogPosition,
-                triggerInfo);
+                triggerInfo,
+                skipLogPruning);
     }
 
     @VisibleForTesting
@@ -241,7 +252,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             long oldestNotVisibleAppendIndex,
             LogPosition oldestNotCompletedPosition,
             LogPosition checkpointedLogPosition,
-            TriggerInfo triggerInfo)
+            TriggerInfo triggerInfo,
+            boolean skipLogPruning)
             throws IOException {
         var databaseTracer = tracers.getDatabaseTracer();
         try (var cursorContext = cursorContextFactory.create(CHECKPOINT_TAG);
@@ -301,7 +313,9 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
              * Prune up to the version pointed from the latest check point,
              * since it might be an earlier version than the current log version.
              */
-            logPruning.pruneLogs(oldestNotCompletedPosition.getLogVersion());
+            if (!skipLogPruning) {
+                logPruning.pruneLogs(oldestNotCompletedPosition.getLogVersion());
+            }
             latestCheckPointInfo = ongoingCheckpoint;
             return latestCheckPointInfo.appendIndex();
         } catch (Throwable t) {

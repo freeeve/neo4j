@@ -25,11 +25,14 @@ import org.neo4j.monitoring.Panic;
 public class CheckpointerLifecycle extends LifecycleAdapter {
     private final CheckPointer checkPointer;
     private final Panic databasePanic;
+    private final boolean skipLogPruningOnShutdown;
+
     private volatile boolean checkpointOnShutdown = true;
 
-    public CheckpointerLifecycle(CheckPointer checkPointer, Panic databasePanic) {
+    public CheckpointerLifecycle(CheckPointer checkPointer, Panic databasePanic, boolean skipLogPruningOnShutdown) {
         this.checkPointer = checkPointer;
         this.databasePanic = databasePanic;
+        this.skipLogPruningOnShutdown = skipLogPruningOnShutdown;
     }
 
     public void setCheckpointOnShutdown(boolean checkpointOnShutdown) {
@@ -41,7 +44,7 @@ public class CheckpointerLifecycle extends LifecycleAdapter {
         // Write new checkpoint in the log only if the database is healthy.
         // We cannot throw here since we need to shutdown without exceptions.
         if (checkpointOnShutdown && databasePanic.hasNoPanic()) {
-            checkPointer.forceCheckPoint(new SimpleTriggerInfo("Database shutdown"));
+            checkPointer.forceCheckPoint(new SimpleTriggerInfo("Database shutdown"), skipLogPruningOnShutdown);
         }
         checkPointer.shutdown();
     }

@@ -643,7 +643,8 @@ public class Database extends AbstractDatabase {
                 providerSpi,
                 storageEngineFactory.multiVersioned());
 
-        this.checkpointerLifecycle = new CheckpointerLifecycle(transactionLogModule.checkPointer(), databaseHealth);
+        this.checkpointerLifecycle = new CheckpointerLifecycle(
+                transactionLogModule.checkPointer(), databaseHealth, logPruneStrategyFactory.skipOnShutdown());
         this.multiVersionDatabaseRollbackService = new MultiVersionDatabaseRollbackService(
                 kernelModule.kernelTransactions(),
                 internalLog,

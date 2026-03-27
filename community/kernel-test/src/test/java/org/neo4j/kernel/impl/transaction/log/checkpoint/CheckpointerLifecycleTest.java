@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -33,7 +34,8 @@ import org.neo4j.monitoring.Panic;
 class CheckpointerLifecycleTest {
     private final CheckPointer checkPointer = mock(CheckPointer.class);
     private final Panic databasePanic = mock(DatabaseHealth.class);
-    private final CheckpointerLifecycle checkpointLifecycle = new CheckpointerLifecycle(checkPointer, databasePanic);
+    private final CheckpointerLifecycle checkpointLifecycle =
+            new CheckpointerLifecycle(checkPointer, databasePanic, false);
 
     @BeforeEach
     void setUp() {
@@ -44,7 +46,7 @@ class CheckpointerLifecycleTest {
     void checkpointOnShutdown() throws Throwable {
         checkpointLifecycle.shutdown();
 
-        verify(checkPointer).forceCheckPoint(any(TriggerInfo.class));
+        verify(checkPointer).forceCheckPoint(any(TriggerInfo.class), anyBoolean());
         verify(checkPointer).shutdown();
     }
 

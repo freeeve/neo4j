@@ -87,6 +87,16 @@ public interface CheckPointer {
     long forceCheckPoint(TriggerInfo triggerInfo) throws IOException;
 
     /**
+     * This method forces the write of a check point in the transaction log and optionally skip log pruning.
+     *
+     * @param triggerInfo the info describing why check pointing has been triggered
+     * @param skipLogPruning whether to trigger an attempt to prune the logs or not
+     * @return the append index used for the check pointing
+     * @throws IOException if writing the check point fails
+     */
+    long forceCheckPoint(TriggerInfo triggerInfo, boolean skipLogPruning) throws IOException;
+
+    /**
      * This method forces the write of a check point in the transaction log for specific transaction and position.
      *
      * It is used by clustering to force checkpoint on logs after store copy.

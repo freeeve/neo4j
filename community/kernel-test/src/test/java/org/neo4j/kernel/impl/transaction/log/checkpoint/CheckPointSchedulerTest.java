@@ -205,6 +205,11 @@ class CheckPointSchedulerTest {
             }
 
             @Override
+            public long forceCheckPoint(TriggerInfo triggerInfo, boolean skipLogPruning) {
+                throw new RuntimeException("this should have not been called");
+            }
+
+            @Override
             public long forceCheckPoint(
                     TransactionId transactionId, long appendIndex, LogPosition position, TriggerInfo triggerInfo) {
                 return 0;
@@ -353,6 +358,11 @@ class CheckPointSchedulerTest {
         }
 
         @Override
+        public long forceCheckPoint(TriggerInfo triggerInfo, boolean skipLogPruning) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public long forceCheckPoint(
                 TransactionId transactionId, long appendIndex, LogPosition position, TriggerInfo triggerInfo) {
             throw new UnsupportedOperationException();
@@ -405,6 +415,11 @@ class CheckPointSchedulerTest {
 
         @Override
         public long forceCheckPoint(TriggerInfo triggerInfo) {
+            throw new UnsupportedOperationException("This should have not been called");
+        }
+
+        @Override
+        public long forceCheckPoint(TriggerInfo triggerInfo, boolean skipLogPruning) {
             throw new UnsupportedOperationException("This should have not been called");
         }
 

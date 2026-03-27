@@ -192,6 +192,40 @@ class CheckPointerImplTest {
     }
 
     @Test
+    void shouldForceCheckPointAlwaysAndSkipLogPruning() throws IOException {
+        // given
+        var checkPointing = checkPointer();
+        when(threshold.isCheckPointingNeeded(anyLong(), any(LogPosition.class), eq(INFO)))
+                .thenReturn(false);
+        mockTxIdStore();
+
+        checkPointing.start();
+
+        // when
+        long appendIndex = checkPointing.forceCheckPoint(INFO, true);
+
+        // then
+        assertEquals(TRANSACTION_APPEND_INDEX, appendIndex);
+        verify(forceOperation).flushAndForce(any(), any(), any());
+        verify(panic, times(2)).assertNoPanic(IOException.class);
+        verify(appender)
+                .checkPoint(
+                        any(LogCheckPointEvent.class),
+                        any(TransactionId.class),
+                        anyLong(),
+                        any(KernelVersion.class),
+                        eq(logPosition),
+                        eq(logPosition),
+                        any(Instant.class),
+                        any(String.class));
+        verify(threshold).initialize(initialAppendIndex, logPosition);
+        verify(threshold).checkPointHappened(TRANSACTION_APPEND_INDEX, logPosition);
+        verify(threshold, never()).isCheckPointingNeeded(TRANSACTION_APPEND_INDEX, logPosition, INFO);
+        verify(logPruning, never()).pruneLogs(logPosition.getLogVersion());
+        verifyNoMoreInteractions(forceOperation, panic, appender, threshold);
+    }
+
+    @Test
     void shouldCheckPointAlwaysWhenThereIsNoRunningCheckPoint() throws Throwable {
         // Given
         CheckPointerImpl checkPointing = checkPointer();

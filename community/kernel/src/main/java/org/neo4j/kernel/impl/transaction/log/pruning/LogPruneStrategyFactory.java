@@ -113,6 +113,10 @@ public class LogPruneStrategyFactory {
         };
     }
 
+    public boolean skipOnShutdown() {
+        return false;
+    }
+
     private static EntryTimespanThreshold createTimeBasedThreshold(
             FileSystemAbstraction fileSystem,
             InternalLogProvider logProvider,
