@@ -52,8 +52,8 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     public final BitSet cycleLengths;
 
     // The source length assigned during BFS expansion (-1 if none).
-    // This length must never be pruned because it represents a ground-truth reachability fact
-    // needed by the tracer to reach signposts and set their minTargetDistance for the first time.
+    // Used to identify the BFS-discovered length so we can preserve the node's reachability
+    // when pruning (see pruneSourceLength).
     private int bfsSourceLength = -1;
 
     protected TwoWaySignpost(NodeState prevNode, NodeState forwardNode, Lengths lengths) {
@@ -178,18 +178,17 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     }
 
     public void pruneSourceLength(int sourceLength) {
-        // In trail mode, never prune the BFS-discovered source length. This length represents a
-        // ground-truth reachability fact from BFS expansion. Pruning it would prevent the tracer
-        // from ever reaching downstream signposts to set their minTargetDistance, which in turn
-        // prevents propagation from creating longer source lengths needed for valid trails at
-        // greater depths. This only applies to trail mode; walk mode has no trail uniqueness
-        // constraint and pruning is always safe there.
-        if (!lengths.isWalkMode() && sourceLength == bfsSourceLength) {
-            return;
-        }
         prevNode.globalState.hooks.pruneSourceLength(this, sourceLength);
         this.lengths.clearSeen(sourceLength);
-        this.forwardNode.synchronizeLengthAfterPrune(sourceLength);
+        // In trail mode, when pruning the BFS-discovered source length, preserve the node's
+        // reachability by skipping synchronizeLengthAfterPrune. The signpost loses the length
+        // (tracer won't retry at the BFS length), but the node keeps it so propagation can
+        // create longer source lengths at downstream signposts. Combined with unconditional
+        // setMinTargetDistance in PathTracer, this allows valid trails to be found at deeper
+        // depths via propagated (longer) source lengths.
+        if (lengths.isWalkMode() || sourceLength != bfsSourceLength) {
+            this.forwardNode.synchronizeLengthAfterPrune(sourceLength);
+        }
     }
 
     public void validate(int sourceLength) {
