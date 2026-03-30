@@ -307,19 +307,19 @@ final class Lucene10FilterQueryBuilder {
         };
     }
 
-    private List<Query> temporalRangeQueryUpperSubRange(
+    private Query temporalRangeQueryUpperSubRange(
             TemporalWithZone<?, ?> twz, boolean inclusive, ValueGroup valueGroup, int propertyIndex) {
         return temporalRangeQueryWithinSingleInstant(
                 twz.instant(), null, true, twz.temporalOffsetWithId(), inclusive, valueGroup, propertyIndex);
     }
 
-    private List<Query> temporalRangeQueryLowerSubRange(
+    private Query temporalRangeQueryLowerSubRange(
             TemporalWithZone<?, ?> twz, boolean inclusive, ValueGroup valueGroup, int propertyIndex) {
         return temporalRangeQueryWithinSingleInstant(
                 twz.instant(), twz.temporalOffsetWithId(), inclusive, null, true, valueGroup, propertyIndex);
     }
 
-    private List<Query> temporalRangeQueryWithinSingleInstant(
+    private Query temporalRangeQueryWithinSingleInstant(
             Instant instant,
             TemporalOffsetWithId from,
             boolean fromInclusive,
@@ -333,33 +333,37 @@ final class Lucene10FilterQueryBuilder {
         final int toOffsetSeconds =
                 TemporalOffsetWithId.zoneOffsetOf(to, ZoneOffset.MAX).getTotalSeconds();
         if (toOffsetSeconds < fromOffsetSeconds) {
-            return List.of(MatchNoDocsQuery.INSTANCE);
+            return MatchNoDocsQuery.INSTANCE;
         }
 
         String fromZoneId = TemporalOffsetWithId.hasZoneId(from) ? TemporalWithZone.zoneIdString(from.zoneId()) : null;
         String toZoneId = TemporalOffsetWithId.hasZoneId(to) ? TemporalWithZone.zoneIdString(to.zoneId()) : null;
 
+        Query temporalInstant = SingleInstantField.newExactQuery(
+                vectorDocumentStructure.temporalValueKeyFor(propertyIndex, valueGroup), instant);
+
         if (toOffsetSeconds == fromOffsetSeconds && (fromZoneId != null || toZoneId != null)) {
             // special case a zone id range within a single offset
-            return List.of(temporalRangeQueryWithinSingleOffset(
-                    instant,
-                    fromOffsetSeconds,
-                    fromZoneId,
-                    fromInclusive,
-                    toZoneId,
-                    toInclusive,
-                    valueGroup,
-                    propertyIndex));
+            return everyQuery(
+                    temporalInstant,
+                    temporalRangeQueryWithinSingleOffset(
+                            fromOffsetSeconds,
+                            fromZoneId,
+                            fromInclusive,
+                            toZoneId,
+                            toInclusive,
+                            valueGroup,
+                            propertyIndex));
             // if there are no zone ids, fall through to the bottom range query which handles that case
         }
 
         // Build a list of the necessary queries
-        List<Query> queries = new ArrayList<>();
+        List<Query> zoneOffsetQueries = new ArrayList<>();
 
         final int fromOffsetRange;
         if (TemporalOffsetWithId.hasZoneId(from)) {
-            queries.add(temporalRangeQueryWithinSingleOffset(
-                    instant, fromOffsetSeconds, fromZoneId, fromInclusive, null, false, valueGroup, propertyIndex));
+            zoneOffsetQueries.add(everyQuery(temporalRangeQueryWithinSingleOffset(
+                    fromOffsetSeconds, fromZoneId, fromInclusive, null, false, valueGroup, propertyIndex)));
             fromOffsetRange = fromOffsetSeconds + 1;
         } else if (TemporalOffsetWithId.hasZoneOffset(from)) {
             // adjust bound when query's least significant element is offset
@@ -370,8 +374,8 @@ final class Lucene10FilterQueryBuilder {
 
         final int toOffsetRange;
         if (TemporalOffsetWithId.hasZoneId(to)) {
-            queries.add(temporalRangeQueryWithinSingleOffset(
-                    instant, toOffsetSeconds, null, false, toZoneId, toInclusive, valueGroup, propertyIndex));
+            zoneOffsetQueries.add(everyQuery(temporalRangeQueryWithinSingleOffset(
+                    toOffsetSeconds, null, false, toZoneId, toInclusive, valueGroup, propertyIndex)));
             toOffsetRange = toOffsetSeconds - 1;
         } else if (TemporalOffsetWithId.hasZoneOffset(to)) {
             // adjust bound when query's least significant element is offset
@@ -381,19 +385,15 @@ final class Lucene10FilterQueryBuilder {
         }
 
         if (fromOffsetRange <= toOffsetRange) {
-            queries.add(everyQuery(
-                    SingleInstantField.newExactQuery(
-                            vectorDocumentStructure.temporalValueKeyFor(propertyIndex, valueGroup), instant),
-                    SingleIntegerField.newRangeQuery(
-                            vectorDocumentStructure.zoneOffsetValueKeyFor(propertyIndex, valueGroup),
-                            fromOffsetRange,
-                            toOffsetRange)));
+            zoneOffsetQueries.add(everyQuery(SingleIntegerField.newRangeQuery(
+                    vectorDocumentStructure.zoneOffsetValueKeyFor(propertyIndex, valueGroup),
+                    fromOffsetRange,
+                    toOffsetRange)));
         }
-        return queries;
+        return everyQuery(temporalInstant, anyQuery(zoneOffsetQueries));
     }
 
-    private Query temporalRangeQueryWithinSingleOffset(
-            Instant instant,
+    private List<Query> temporalRangeQueryWithinSingleOffset(
             int offsetSeconds,
             String fromZoneId,
             boolean fromInclusive,
@@ -401,9 +401,7 @@ final class Lucene10FilterQueryBuilder {
             boolean toInclusive,
             ValueGroup valueGroup,
             int propertyIndex) {
-        return everyQuery(
-                SingleInstantField.newExactQuery(
-                        vectorDocumentStructure.temporalValueKeyFor(propertyIndex, valueGroup), instant),
+        return List.of(
                 SingleIntegerField.newExactQuery(
                         vectorDocumentStructure.zoneOffsetValueKeyFor(propertyIndex, valueGroup), offsetSeconds),
                 TermRangeQuery.newStringRange(
@@ -496,7 +494,7 @@ final class Lucene10FilterQueryBuilder {
 
         if (twzFrom != null) {
             if (twzFrom.hasZoneOffset()) {
-                queries.addAll(temporalRangeQueryLowerSubRange(twzFrom, fromInclusive, valueGroup, propertyIndex));
+                queries.add(temporalRangeQueryLowerSubRange(twzFrom, fromInclusive, valueGroup, propertyIndex));
                 // range query for instants starts at the next instant (see the above method documentation)
                 minInstant = minInstant.plusNanos(1);
             } else if (minInstant.isAfter(Instant.MIN)) {
@@ -507,7 +505,7 @@ final class Lucene10FilterQueryBuilder {
 
         if (twzTo != null) {
             if (twzTo.hasZoneOffset()) {
-                queries.addAll(temporalRangeQueryUpperSubRange(twzTo, toInclusive, valueGroup, propertyIndex));
+                queries.add(temporalRangeQueryUpperSubRange(twzTo, toInclusive, valueGroup, propertyIndex));
                 // range query for instants starts at the next instant (see the above method documentation)
                 maxInstant = maxInstant.minusNanos(1);
             } else if (maxInstant.isBefore(Instant.MAX)) {
@@ -647,12 +645,23 @@ final class Lucene10FilterQueryBuilder {
         return builder.build();
     }
 
-    private static BooleanQuery everyQuery(Query... queries) {
+    private static BooleanQuery everyQuery(List<Query> queries) {
         var builder = new BooleanQuery.Builder();
         for (Query query : queries) {
             builder.add(new ConstantScoreQuery(query), Occur.FILTER);
         }
         return builder.build();
+    }
+
+    private static BooleanQuery everyQuery(Query... queries) {
+        return everyQuery(List.of(queries));
+    }
+
+    private static BooleanQuery everyQuery(Query firstQuery, List<Query> queries) {
+        List<Query> newQueries = new ArrayList<>(queries.size() + 1);
+        newQueries.add(firstQuery);
+        newQueries.addAll(queries);
+        return everyQuery(newQueries);
     }
 
     /**
