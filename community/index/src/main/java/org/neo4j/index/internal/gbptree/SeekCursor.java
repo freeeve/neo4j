@@ -670,6 +670,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
 
                 if (retry || forceReadHeader || !seekForward) {
                     if (!readHeader() || (isInternal && searchLevel == LEAF_LEVEL)) {
+                        retry = true;
                         continue;
                     }
                 }
