@@ -47,6 +47,7 @@ import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
 import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
 import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
 import org.neo4j.cypher.cucumber.user.function.NodeHashFunction
+import org.neo4j.cypher.cucumber.user.function.PassThroughFunction
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
@@ -142,6 +143,9 @@ final class RegularCypherSteps @Inject() (
         registeredProcedures =
           registeredProcedures ++ Seq(new QualifiedName("test", "seededRand"), new QualifiedName("test", "setSeed"))
         db.registerFunction(classOf[SeededRandFunction])
+      case "test.passThrough" =>
+        registeredProcedures = registeredProcedures.appended(new QualifiedName("test", "passThrough"))
+        db.registerFunction(classOf[PassThroughFunction])
       case hashFunc if hashFunc.startsWith("test.hash.") =>
         registeredProcedures = registeredProcedures.appendedAll(Seq(
           new QualifiedName("test", "hash", "node"),

@@ -215,16 +215,47 @@ final object ResultValueMapper extends ValueMapper {
     def rowsWithCloseEnoughNumbers(epsilon: Double)(
       rows: util.List[util.List[AnyRef]]
     ): util.List[util.List[AnyRef]] = {
-      RowMapper.mapRows(
-        rows,
-        {
-          case double: lang.Double =>
-            new CloseEnoughDouble(double, epsilon)
-          case float: lang.Float =>
-            new CloseEnoughDouble(float.doubleValue(), epsilon)
-          case v => v
+      RowMapper.mapRows(rows, withCloseEnoughNumbers(_, epsilon))
+    }
+
+    private def withCloseEnoughNumbers(value: AnyRef, epsilon: Double): AnyRef = value match {
+      case double: lang.Double =>
+        new CloseEnoughDouble(double, epsilon)
+      case float: lang.Float =>
+        new CloseEnoughDouble(float.doubleValue(), epsilon)
+      case list: util.List[_] =>
+        list.stream().map(v => withCloseEnoughNumbers(v.asInstanceOf[AnyRef], epsilon)).toList
+      case map: util.Map[_, _] =>
+        val result = Maps.mutable.ofInitialCapacity[String, AnyRef](map.size())
+        map.entrySet().forEach { e =>
+          val newValue = withCloseEnoughNumbers(e.getValue.asInstanceOf[AnyRef], epsilon)
+          result.put(e.getKey.asInstanceOf[String], newValue)
         }
-      )
+        result
+      case node: NoIdNode => nodeWithCloseEnoughNumbers(node, epsilon)
+      case rel: NoIdRel   => relWithCloseEnoughNumbers(rel, epsilon)
+      case path: NoIdPath =>
+        val newStart = nodeWithCloseEnoughNumbers(path.start, epsilon)
+        val newConnections = path.connections
+          .map(c =>
+            Connection(
+              relWithCloseEnoughNumbers(c.rel, epsilon),
+              nodeWithCloseEnoughNumbers(c.node, epsilon),
+              c.outgoing
+            )
+          )
+        NoIdPath(newStart, newConnections)
+      case _ => value
+    }
+
+    private def nodeWithCloseEnoughNumbers(node: NoIdNode, epsilon: Double): NoIdNode = {
+      val newProps = withCloseEnoughNumbers(node.properties, epsilon).asInstanceOf[java.util.Map[String, AnyRef]]
+      node.copy(properties = newProps)
+    }
+
+    private def relWithCloseEnoughNumbers(rel: NoIdRel, epsilon: Double): NoIdRel = {
+      val newProps = withCloseEnoughNumbers(rel.properties, epsilon).asInstanceOf[java.util.Map[String, AnyRef]]
+      rel.copy(properties = newProps)
     }
 
     private class CloseEnoughDouble(val value: lang.Double, epsilon: Double) {
