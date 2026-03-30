@@ -80,9 +80,12 @@ final class EntityCounter {
             return storageReader.countsForNode(labelId, cursorContext)
                     + countsForNodeInTxState(
                             labelId, storageReader, cursorContext, storageCursors, txStateHolder, memoryTracker);
-        }
-        if (accessMode.disallowsTraverseLabel(labelId)) {
+        } else if (accessMode.disallowsTraverseLabel(labelId)) {
             // No nodes with the specified label can't be traversed, so the count only ones in transaction state
+            return countsForNodeInTxState(
+                    labelId, storageReader, cursorContext, storageCursors, txStateHolder, memoryTracker);
+        } else if (accessMode.hasNoTraverseNodePrivilege()) {
+            // Only able to see nodes in transaction state
             return countsForNodeInTxState(
                     labelId, storageReader, cursorContext, storageCursors, txStateHolder, memoryTracker);
         }

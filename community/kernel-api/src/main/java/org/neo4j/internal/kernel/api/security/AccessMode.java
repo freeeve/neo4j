@@ -99,6 +99,11 @@ public interface AccessMode {
     boolean disallowsTraverseLabel(int label);
 
     /**
+     * true if there are no read privileges granted
+     */
+    boolean hasNoTraverseNodePrivilege();
+
+    /**
      * true if a particular node with exactly these labels can be traversed.
      *
      * @param labels the labels on the node to be checked. If labels only contains {@link org.neo4j.token.api.TokenConstants#ANY_LABEL} it will work

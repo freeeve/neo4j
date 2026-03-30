@@ -123,6 +123,11 @@ public enum StaticAccessMode implements AccessMode {
     }
 
     @Override
+    public boolean hasNoTraverseNodePrivilege() {
+        return !read;
+    }
+
+    @Override
     public boolean allowsTraverseNode(int... labels) {
         return read;
     }

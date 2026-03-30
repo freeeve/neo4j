@@ -89,6 +89,11 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public boolean hasNoTraverseNodePrivilege() {
+        return wrapping.hasNoTraverseNodePrivilege();
+    }
+
+    @Override
     public boolean allowsTraverseNode(int... labels) {
         return wrapping.allowsTraverseNode(labels);
     }

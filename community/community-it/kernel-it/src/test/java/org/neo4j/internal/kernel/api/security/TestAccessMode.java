@@ -91,6 +91,11 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
+    public boolean hasNoTraverseNodePrivilege() {
+        return !allowRead && !allowReadAll;
+    }
+
+    @Override
     public boolean allowsTraverseNode(int... labels) {
         return allowRead;
     }
