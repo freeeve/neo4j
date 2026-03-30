@@ -142,7 +142,7 @@
     <maven.compiler.release>${vm.target.version}</maven.compiler.release>
     <metrics.version>4.2.38</metrics.version>
     <mockito.version>5.23.0</mockito.version>
-    <neo4j-java-driver.version>6.0.3</neo4j-java-driver.version>
+    <neo4j-java-driver.version>6.0.4</neo4j-java-driver.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
     <parallel.tests>false</parallel.tests>
     <parquet-floor.version>1.62</parquet-floor.version>
@@ -239,7 +239,7 @@
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.2.10.Final</version>
+        <version>4.2.12.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
