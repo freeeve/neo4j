@@ -30,19 +30,26 @@ import org.neo4j.string.Mask;
  */
 public class LogEntryEmpty extends AbstractVersionAwareLogEntry {
     private final long appendIndex;
+    private final byte contentType;
 
-    public LogEntryEmpty(long appendIndex, KernelVersion kernelVersion) {
+    public LogEntryEmpty(long appendIndex, KernelVersion kernelVersion, byte contentType) {
         super(kernelVersion, EMPTY_TX);
         this.appendIndex = appendIndex;
+        this.contentType = contentType;
     }
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryEmpty[" + "kernelVersion=" + kernelVersion() + ", appendIndex=" + appendIndex
+        return "LogEntryEmpty[" + "kernelVersion=" + kernelVersion() + ", appendIndex=" + appendIndex + ", contentType="
+                + contentType
                 + ". NOTE this is not an actual entry, but injected instead of non-tx entries when reading the log]";
     }
 
     public long getAppendIndex() {
         return appendIndex;
+    }
+
+    public byte getContentType() {
+        return contentType;
     }
 }

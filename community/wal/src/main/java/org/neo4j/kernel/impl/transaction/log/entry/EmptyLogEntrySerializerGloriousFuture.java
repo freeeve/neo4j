@@ -42,9 +42,10 @@ public class EmptyLogEntrySerializerGloriousFuture extends LogEntrySerializer<Lo
             MemoryTracker memoryTracker)
             throws IOException {
         if (channel instanceof ReadableLogPositionAwareChannel eChannel && eChannel.supportsEntrySkipping()) {
+            byte contentType = eChannel.getContentType();
             long appendIndex = eChannel.getAppendIndex();
             eChannel.goToEndOfEntry();
-            return new LogEntryEmpty(appendIndex, version);
+            return new LogEntryEmpty(appendIndex, version, contentType);
         } else {
             throw new IllegalStateException(
                     "LogEntryEmpty should only have been injected for an envelope channel, or delegate to one, but channel was "

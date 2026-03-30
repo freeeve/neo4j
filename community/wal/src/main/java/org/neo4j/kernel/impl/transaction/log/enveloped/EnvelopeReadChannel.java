@@ -709,7 +709,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void skipToNextEnvelope() throws IOException {
+    protected void skipToNextEnvelope() throws IOException {
         try {
             buffer.position(payloadEndOffset);
         } catch (IllegalArgumentException e) {
