@@ -31,6 +31,7 @@ public abstract class AbstractNettyConnectorConfiguration extends AbstractConnec
         implements NettyConnectorConfiguration {
 
     private final boolean enableMergeCumulator;
+    private final boolean enableProxyProtocol;
     private final ScopedSslPolicyProvider sslPolicyProvider;
 
     private volatile SslPolicy lastReceivedPolicy;
@@ -40,12 +41,18 @@ public abstract class AbstractNettyConnectorConfiguration extends AbstractConnec
         super(builder);
 
         this.enableMergeCumulator = builder.enableMergeCumulator;
+        this.enableProxyProtocol = builder.enableProxyProtocol;
         this.sslPolicyProvider = builder.sslPolicyProvider;
     }
 
     @Override
     public boolean enableMergeCumulator() {
         return this.enableMergeCumulator;
+    }
+
+    @Override
+    public boolean enableProxyProtocol() {
+        return this.enableProxyProtocol;
     }
 
     @Override
@@ -89,6 +96,7 @@ public abstract class AbstractNettyConnectorConfiguration extends AbstractConnec
             implements NettyConnectorConfiguration.Factory<SELF> {
 
         private boolean enableMergeCumulator = true;
+        private boolean enableProxyProtocol = false;
         private ScopedSslPolicyProvider sslPolicyProvider = ScopedSslPolicyProvider.getNullInstance();
 
         @Override
@@ -96,6 +104,7 @@ public abstract class AbstractNettyConnectorConfiguration extends AbstractConnec
             super.fromConfig(config);
 
             this.enableMergeCumulator = config.get(BoltConnectorInternalSettings.netty_message_merge_cumulator);
+            this.enableProxyProtocol = config.get(BoltConnectorInternalSettings.proxy_protocol_enabled);
 
             return (SELF) this;
         }
@@ -103,6 +112,12 @@ public abstract class AbstractNettyConnectorConfiguration extends AbstractConnec
         @Override
         public SELF enableMergeCumulator(boolean value) {
             this.enableMergeCumulator = value;
+            return (SELF) this;
+        }
+
+        @Override
+        public SELF enableProxyProtocol(boolean value) {
+            this.enableProxyProtocol = value;
             return (SELF) this;
         }
 

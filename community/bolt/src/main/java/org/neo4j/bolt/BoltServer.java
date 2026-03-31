@@ -770,6 +770,10 @@ public class BoltServer extends LifecycleAdapter {
                 .fromConfig(this.config)
                 .build();
 
+        var isPPEnabled = config.enableProxyProtocol();
+        var log = logService.getInternalLogProvider().getLog(BoltServer.class);
+        log.info("Proxy Protocol Handling enabled: %b", isPPEnabled);
+
         var socketFile = this.config.get(BoltConnector.unix_socket_path);
         if (socketFile == null || Files.isDirectory(socketFile)) {
             throw new IllegalArgumentException("A file has not been specified for use with the Unix Domain Socket.");

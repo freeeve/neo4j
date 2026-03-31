@@ -21,13 +21,16 @@ package org.neo4j.bolt.protocol.common.handler;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.neo4j.logging.AssertableLogProvider.Level.DEBUG;
 import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
+import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import javax.net.ssl.SSLException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -312,5 +315,180 @@ class TransportSelectionHandlerTest {
                 .doesNotContain(ProtocolLoggingHandler.RAW_NAME);
 
         Mockito.verify(memoryTracker).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+    }
+
+    // PROXY protocol v1 header (text-based)
+    private static final String PROXY_V1_TCP4 = "PROXY TCP4 192.168.1.1 192.168.1.2 12345 7687";
+
+    // PROXY protocol v2 signature (binary - 12 bytes)
+    private static final byte[] PROXY_V2_SIGNATURE = {
+        0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A
+    };
+
+    @Test
+    void shouldDetectProxyProtocolV1AndInstallHandlers(StrictBufferContext ctx) {
+        // Given
+        var logging = new AssertableLogProvider();
+        var memoryTracker = mock(MemoryTracker.class);
+
+        var channel = ctx.withConnection(
+                conn -> conn.withMemoryTracker(memoryTracker)
+                        .withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send PROXY protocol v1 header
+        channel.writeInbound(ctx.buffer(PROXY_V1_TCP4.getBytes(StandardCharsets.US_ASCII)));
+
+        // Then - TransportSelectionHandler should install HAProxy handlers
+        var handlers = channel.pipeline().names();
+        Assertions.assertThat(handlers).contains("haproxyDecoder").contains("haproxyExtractor");
+
+        Assertions.assertThat(channel.pipeline().get(HAProxyMessageDecoder.class))
+                .isNotNull();
+        Assertions.assertThat(channel.pipeline().get(HAProxyInfoExtractor.class))
+                .isNotNull();
+
+        assertThat(logging)
+                .forClass(TransportSelectionHandler.class)
+                .forLevel(DEBUG)
+                .containsMessages("PROXY protocol header detected");
+
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    void shouldDetectProxyProtocolV2AndInstallHandlers(StrictBufferContext ctx) {
+        // Given
+        var logging = new AssertableLogProvider();
+        var memoryTracker = mock(MemoryTracker.class);
+
+        var channel = ctx.withConnection(
+                conn -> conn.withMemoryTracker(memoryTracker)
+                        .withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send PROXY protocol v2 binary signature
+        channel.writeInbound(ctx.buffer(PROXY_V2_SIGNATURE));
+
+        // Then - TransportSelectionHandler should install HAProxy handlers
+        var handlers = channel.pipeline().names();
+        Assertions.assertThat(handlers).contains("haproxyDecoder").contains("haproxyExtractor");
+
+        assertThat(logging)
+                .forClass(TransportSelectionHandler.class)
+                .forLevel(DEBUG)
+                .containsMessages("PROXY protocol header detected");
+
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    void shouldPassThroughWhenNoProxyProtocolDetected(StrictBufferContext ctx) {
+        // Given
+        var logging = new AssertableLogProvider();
+        var memoryTracker = mock(MemoryTracker.class);
+
+        var channel = ctx.withConnection(
+                conn -> conn.withMemoryTracker(memoryTracker)
+                        .withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send Bolt handshake magic (not PROXY protocol)
+        channel.writeInbound(ctx.buffer().writeInt(0x6060B017).writeInt(0x00090005));
+
+        // Then - TransportSelectionHandler should NOT install HAProxy handlers
+        var handlers = channel.pipeline().names();
+        Assertions.assertThat(handlers).doesNotContain("haproxyDecoder").doesNotContain("haproxyExtractor");
+
+        // TransportSelectionHandler should continue with normal transport selection
+        // (it should have switched to handshake, so it should be removed)
+        Assertions.assertThat(channel.pipeline().get(TransportSelectionHandler.class))
+                .isNull();
+
+        channel.releaseInbound();
+    }
+
+    @Test
+    void shouldPassThroughWebSocketConnection(StrictBufferContext ctx) {
+        // Given
+        var logging = new AssertableLogProvider();
+
+        var channel = ctx.withConnection(
+                conn -> conn.withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send HTTP GET (WebSocket upgrade)
+        channel.writeInbound(ctx.buffer("GET / HTTP/1.1\r\n"));
+
+        // Then - TransportSelectionHandler should NOT install HAProxy handlers
+        var handlers = channel.pipeline().names();
+        Assertions.assertThat(handlers).doesNotContain("haproxyDecoder").doesNotContain("haproxyExtractor");
+
+        // TransportSelectionHandler should continue with WebSocket setup
+        Assertions.assertThat(channel.pipeline().get(TransportSelectionHandler.class))
+                .isNull();
+
+        // Discard outbound handshake data generated by WebSocket handlers
+        channel.releaseOutbound();
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    void shouldWaitForMoreBytesWhenInsufficient(StrictBufferContext ctx) {
+        // Given
+        var logging = NullLogProvider.getInstance();
+
+        var channel = ctx.withConnection(
+                conn -> conn.withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send only 3 bytes (less than minimum detection bytes needed)
+        channel.writeInbound(ctx.buffer(new byte[] {0x50, 0x52, 0x4F})); // "PRO"
+
+        // Then - TransportSelectionHandler should still be in pipeline waiting for more data
+        Assertions.assertThat(channel.pipeline().get(TransportSelectionHandler.class))
+                .isNotNull();
+
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    void shouldAllocateMemoryWhenInstallingProxyHandlers(StrictBufferContext ctx) {
+        // Given
+        var logging = NullLogProvider.getInstance();
+        var memoryTracker = mock(MemoryTracker.class);
+
+        var channel = ctx.withConnection(
+                conn -> conn.withMemoryTracker(memoryTracker)
+                        .withConfiguration(config -> config.enableProxyProtocol(true)),
+                new TransportSelectionHandler(logging));
+
+        // When - send PROXY protocol v1 header
+        channel.writeInbound(ctx.buffer(PROXY_V1_TCP4.getBytes(StandardCharsets.US_ASCII)));
+
+        // Then - memory should be allocated for the new handlers
+        verify(memoryTracker).allocateHeap(org.mockito.ArgumentMatchers.anyLong());
+
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    void shouldNotDetectProxyProtocolWhenDisabled(StrictBufferContext ctx) {
+        // Given
+        var logging = new AssertableLogProvider();
+
+        var channel = ctx.withConnection(
+                conn -> conn.withConfiguration(config -> config.enableProxyProtocol(false)),
+                new TransportSelectionHandler(logging));
+
+        // When - send PROXY protocol v1 header
+        channel.writeInbound(ctx.buffer(PROXY_V1_TCP4.getBytes(StandardCharsets.US_ASCII)));
+
+        // Then - TransportSelectionHandler should NOT install HAProxy handlers
+        // Instead, it should try to detect transport (and fail/close since PROXY looks like invalid transport)
+        var handlers = channel.pipeline().names();
+        Assertions.assertThat(handlers).doesNotContain("haproxyDecoder").doesNotContain("haproxyExtractor");
+
+        channel.finishAndReleaseAll();
     }
 }

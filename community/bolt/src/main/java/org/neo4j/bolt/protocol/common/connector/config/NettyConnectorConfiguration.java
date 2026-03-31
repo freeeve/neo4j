@@ -45,6 +45,21 @@ public interface NettyConnectorConfiguration extends ConnectorConfiguration {
      */
     SslContext sslContext();
 
+    /**
+     * Identifies whether this connector shall support the PROXY protocol (HAProxy v1/v2).
+     * <p/>
+     * When enabled, the connector will automatically detect and decode PROXY protocol headers
+     * from load balancers (e.g., HAProxy, AWS NLB) that provide the real client IP address.
+     * The connector gracefully handles both connections with and without PROXY protocol headers,
+     * making it safe to enable even in mixed environments.
+     * <p/>
+     * The real client address will be used for authentication, logging, connection tracking,
+     * and security auditing instead of the proxy's address.
+     *
+     * @return true if PROXY protocol support is enabled, false otherwise.
+     */
+    boolean enableProxyProtocol();
+
     interface Factory<SELF extends Factory<SELF>> extends ConnectorConfiguration.Factory<SELF> {
 
         NettyConnectorConfiguration build();
@@ -52,5 +67,7 @@ public interface NettyConnectorConfiguration extends ConnectorConfiguration {
         SELF enableMergeCumulator(boolean value);
 
         SELF sslPolicyProvider(ScopedSslPolicyProvider policyProvider);
+
+        SELF enableProxyProtocol(boolean value);
     }
 }

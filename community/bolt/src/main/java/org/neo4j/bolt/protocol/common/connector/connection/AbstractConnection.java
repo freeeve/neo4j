@@ -106,6 +106,9 @@ public abstract class AbstractConnection implements ConnectionHandle {
     private String impersonatedDefaultDatabase;
     protected NotificationsConfig notificationsConfig;
 
+    // Proxy protocol support - stores real client address when behind a proxy
+    private volatile SocketAddress proxyClientAddress;
+
     public AbstractConnection(
             Connector connector,
             String id,
@@ -529,13 +532,20 @@ public abstract class AbstractConnection implements ConnectionHandle {
     }
 
     @Override
+    public void setProxyProtocolInfo(SocketAddress realClientAddress) {
+        this.proxyClientAddress = realClientAddress;
+    }
+
+    @Override
     public SocketAddress serverAddress() {
         return this.channel.localAddress();
     }
 
     @Override
     public SocketAddress clientAddress() {
-        return this.channel.remoteAddress();
+        // Return real client address if proxy protocol was used, otherwise channel remote address
+        var proxyClientAddress = this.proxyClientAddress;
+        return proxyClientAddress != null ? proxyClientAddress : this.channel.remoteAddress();
     }
 
     @Override

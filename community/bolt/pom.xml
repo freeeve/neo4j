@@ -35,6 +35,10 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-codec-base</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-codec-haproxy</artifactId>
+    </dependency>
     <!-- Netty dependencies  -->
     <dependency>
       <groupId>io.netty</groupId>

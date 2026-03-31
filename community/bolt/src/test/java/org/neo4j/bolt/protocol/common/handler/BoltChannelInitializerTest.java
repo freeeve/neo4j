@@ -221,4 +221,27 @@ class BoltChannelInitializerTest {
         Mockito.verify(pipeline, Mockito.never())
                 .addLast(Mockito.eq("requestHandler"), Mockito.any(RequestHandler.class));
     }
+
+    @Test
+    void shouldNotInstallSeparateProxyProtocolDetector() {
+        // PROXY protocol detection is now integrated into TransportSelectionHandler
+        // to avoid conflicts with byte accumulation requirements
+        var config =
+                TestConnectorConfiguration.factory().enableProxyProtocol(true).build();
+
+        Mockito.doReturn(config).when(this.connector).configuration();
+
+        var memoryTracker = Mockito.mock(MemoryTracker.class);
+        var pipeline = Mockito.mock(ChannelPipeline.class, Mockito.RETURNS_SELF);
+        var channel = Mockito.mock(Channel.class, Mockito.RETURNS_MOCKS);
+
+        Mockito.doReturn(pipeline).when(channel).pipeline();
+        Mockito.doReturn(memoryTracker).when(this.connection).memoryTracker();
+
+        this.initializer.initChannel(channel);
+
+        // Verify that no separate PROXY protocol detector handler is added
+        // PROXY protocol detection happens dynamically in TransportSelectionHandler
+        Mockito.verify(pipeline, Mockito.never()).addLast(Mockito.eq("haproxyDetector"), Mockito.any());
+    }
 }

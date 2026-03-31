@@ -82,6 +82,7 @@ Apache Software License, Version 2.0
   Netty/Buffer
   Netty/Codec/Base
   Netty/Codec/Compression
+  Netty/Codec/HAProxy
   Netty/Codec/HTTP
   Netty/Common
   Netty/Handler

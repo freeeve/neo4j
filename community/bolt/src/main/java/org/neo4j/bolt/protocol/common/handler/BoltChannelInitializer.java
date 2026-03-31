@@ -80,6 +80,9 @@ public class BoltChannelInitializer extends ChannelInitializer<Channel> {
 
         ch.pipeline().addLast(new TrafficAccountantHandler(this.connector.trafficAccountant()));
 
+        // PROXY protocol detection is now handled by TransportSelectionHandler to avoid
+        // conflicts with byte accumulation requirements
+
         // when enabled, also register a protocol capture handler which writes all network
         // communication for this channel into a dedicated file
         if (this.connector.configuration().enableProtocolCapture()) {

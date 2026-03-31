@@ -27,13 +27,16 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.neo4j.bolt.negotiation.codec.ProtocolNegotiationRequestDecoder;
 import org.neo4j.bolt.negotiation.codec.ProtocolNegotiationResponseEncoder;
@@ -64,6 +67,26 @@ public class TransportSelectionHandler extends ByteToMessageDecoder {
     private static final String WEBSOCKET_MAGIC = "GET ";
     private static final int MAX_WEBSOCKET_HANDSHAKE_SIZE = 65536;
     private static final int MAX_WEBSOCKET_FRAME_SIZE = 65536;
+
+    /**
+     * Channel attribute key to track PROXY protocol processing state.
+     * Values: null (not checked), Boolean.TRUE (PROXY protocol detected and processing), Boolean.FALSE (no PROXY protocol)
+     */
+    static final AttributeKey<Boolean> PROXY_PROTOCOL_PROCESSING =
+            AttributeKey.valueOf(TransportSelectionHandler.class, "proxyProtocolProcessing");
+
+    // PROXY protocol v1 signature: "PROXY " (text-based)
+    private static final byte[] PROXY_V1_PREFIX = "PROXY ".getBytes(StandardCharsets.US_ASCII);
+
+    // PROXY protocol v2 signature: 12-byte binary header
+    private static final byte[] PROXY_V2_PREFIX = {
+        0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A
+    };
+
+    // Minimum bytes needed for PROXY protocol detection (v1 is shorter)
+    private static final int MIN_PROXY_DETECTION_BYTES = PROXY_V1_PREFIX.length;
+    // Maximum bytes needed for PROXY protocol detection (v2 is longer)
+    private static final int MAX_PROXY_DETECTION_BYTES = PROXY_V2_PREFIX.length;
 
     private final InternalLogProvider logging;
     private final InternalLog log;
@@ -98,6 +121,60 @@ public class TransportSelectionHandler extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
+        // First, check if PROXY protocol processing is enabled and handle it if needed
+        var proxyProcessing = ctx.channel().attr(PROXY_PROTOCOL_PROCESSING).get();
+        if (proxyProcessing == null && this.connector.configuration().enableProxyProtocol()) {
+            // Need at least minimum bytes to check for PROXY protocol v1
+            if (in.readableBytes() < MIN_PROXY_DETECTION_BYTES) {
+                // Not enough bytes yet to check for PROXY protocol
+                return;
+            }
+
+            // Check for PROXY protocol v1 first (only needs 6 bytes)
+            boolean isProxyV1 = in.readableBytes() >= PROXY_V1_PREFIX.length && startsWithPrefix(in, PROXY_V1_PREFIX);
+
+            // If we have enough bytes, also check for PROXY protocol v2 (needs 12 bytes)
+            boolean isProxyV2 = false;
+            if (in.readableBytes() >= PROXY_V2_PREFIX.length) {
+                isProxyV2 = startsWithPrefix(in, PROXY_V2_PREFIX);
+            }
+
+            if (isProxyV1 || isProxyV2) {
+                // PROXY protocol detected - install decoders and mark as processing
+                log.debug("[%s] PROXY protocol header detected, installing decoder", connection.id());
+                installProxyProtocolHandlers(ctx);
+                ctx.channel().attr(PROXY_PROTOCOL_PROCESSING).set(Boolean.TRUE);
+                log.info("Proxy Protocol detection: true");
+                // Pass all bytes to the next handler (HAProxyMessageDecoder) so it can decode the header
+                ByteBuf toFire = in.retainedDuplicate();
+                in.readerIndex(in.writerIndex());
+                ctx.executor().execute(() -> ctx.pipeline().fireChannelRead(toFire));
+                return;
+            }
+
+            // If we don't have enough bytes to check v2 (12 bytes), we need to decide:
+            // - If we have enough for transport detection (5 bytes), we can proceed
+            //   (it's very unlikely to be PROXY v2 if it doesn't match v1)
+            // - Otherwise, wait for more bytes
+            if (in.readableBytes() < MAX_PROXY_DETECTION_BYTES) {
+                if (in.readableBytes() < 5) {
+                    // Not enough bytes for either PROXY v2 detection or transport detection - wait
+                    return;
+                }
+                // We have enough for transport detection but not PROXY v2 - proceed with transport selection
+                // (if it were PROXY v2, the first 6 bytes would match v1 pattern, which they don't)
+            }
+
+            // No PROXY protocol detected - mark as checked and continue with normal transport selection
+            ctx.channel().attr(PROXY_PROTOCOL_PROCESSING).set(Boolean.FALSE);
+            log.info("Proxy Protocol detection: false");
+            // Continue to normal transport selection below
+        } else if (Boolean.TRUE.equals(proxyProcessing)) {
+            // PROXY protocol is being processed - wait for it to complete
+            // The HAProxyInfoExtractor will set this to false when done
+            return;
+        }
+
         // Will use the first five bytes to detect a protocol.
         if (in.readableBytes() < 5) {
             return;
@@ -145,7 +222,8 @@ public class TransportSelectionHandler extends ByteToMessageDecoder {
     }
 
     private static boolean isBoltPreamble(ByteBuf in) {
-        return in.getInt(0) == BOLT_MAGIC_PREAMBLE;
+        var preamble = in.getInt(in.readerIndex());
+        return preamble == BOLT_MAGIC_PREAMBLE;
     }
 
     private boolean detectSsl(ByteBuf buf) {
@@ -159,6 +237,38 @@ public class TransportSelectionHandler extends ByteToMessageDecoder {
             }
         }
         return true;
+    }
+
+    /**
+     * Checks if the buffer starts with the given prefix without consuming bytes.
+     */
+    private static boolean startsWithPrefix(ByteBuf buf, byte[] prefix) {
+        for (int i = 0; i < prefix.length; i++) {
+            if (buf.getByte(buf.readerIndex() + i) != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Installs the PROXY protocol decoder and info extractor into the pipeline.
+     */
+    private void installProxyProtocolHandlers(ChannelHandlerContext ctx) {
+        // Account for memory usage
+        connection
+                .memoryTracker()
+                .allocateHeap(HeapEstimator.shallowSizeOfInstance(HAProxyMessageDecoder.class)
+                        + HAProxyInfoExtractor.SHALLOW_SIZE);
+
+        // Add decoder and extractor to pipeline before this handler
+        // They will process the PROXY header bytes and then pass through remaining bytes
+        // ctx.pipeline()
+        //        .addAfter(ctx.name(), "haproxyExtractor", new HAProxyInfoExtractor(this.logging))
+        //        .addAfter(ctx.name(), "haproxyDecoder", new HAProxyMessageDecoder());
+        ctx.pipeline()
+                .addBefore(ctx.name(), "haproxyDecoder", new HAProxyMessageDecoder())
+                .addBefore(ctx.name(), "haproxyExtractor", new HAProxyInfoExtractor(this.logging));
     }
 
     private void enableSsl(ChannelHandlerContext ctx) {

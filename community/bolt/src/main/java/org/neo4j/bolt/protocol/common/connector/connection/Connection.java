@@ -25,6 +25,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AttributeKey;
+import java.net.SocketAddress;
 import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
@@ -362,6 +363,18 @@ public interface Connection extends TrackedNetworkConnection, TransactionOwner {
      * @return true if reset to a valid state, false otherwise.
      */
     boolean reset();
+
+    /**
+     * Sets the real client address when the connection is made through a proxy
+     * that uses PROXY protocol (HAProxy v1/v2).
+     * <p />
+     * This method should be called by the proxy protocol handler after successfully decoding
+     * the PROXY protocol header. The addresses will be used for authentication, logging,
+     * and connection tracking instead of the proxy's address.
+     *
+     * @param realClientAddress the actual client address from the proxy protocol header
+     */
+    void setProxyProtocolInfo(SocketAddress realClientAddress);
 
     /**
      * Evaluates whether this connection is currently considered active (e.g. has not been marked for closure or

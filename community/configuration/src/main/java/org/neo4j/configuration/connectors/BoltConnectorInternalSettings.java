@@ -233,6 +233,17 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
             .build();
 
     @Internal
+    @Description("Enable/disable PROXY protocol support (HAProxy v1/v2). "
+            + "When enabled, the Bolt connector will automatically detect and decode PROXY protocol headers "
+            + "from load balancers (e.g., HAProxy, AWS NLB with proxy protocol) that provide the real client IP address. "
+            + "The connector gracefully handles both connections with and without PROXY protocol headers, "
+            + "making it safe to enable even in mixed environments. "
+            + "The real client address will be used for authentication, logging, connection tracking, "
+            + "and security auditing instead of the proxy's address.")
+    public static final Setting<Boolean> proxy_protocol_enabled =
+            newBuilder("internal.dbms.bolt.proxy_protocol.enabled", BOOL, false).build();
+
+    @Internal
     @Description("Enable/disable generation of response metrics")
     public static final Setting<Boolean> enable_response_metrics =
             newBuilder("internal.server.bolt.response_metrics", BOOL, false).build();
