@@ -22,9 +22,13 @@ package cypher.features
 import cypher.features
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
+import org.neo4j.cypher.internal.util.symbols.CTDate
+import org.neo4j.cypher.internal.util.symbols.CTDuration
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
+import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
+import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
@@ -32,6 +36,9 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTVector
+import org.neo4j.cypher.internal.util.symbols.CTZonedDateTime
+import org.neo4j.cypher.internal.util.symbols.CTZonedTime
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.SyntaxException
 
@@ -131,18 +138,25 @@ class ProcedureSignatureParser {
 
   private def extractCypherType(typeString: String): CypherType = {
     typeString match {
-      case "ANY?"                         => CTAny
-      case "MAP?"                         => CTMap
-      case "NODE?"                        => CTNode
-      case "RELATIONSHIP?"                => CTRelationship
-      case "POINT?"                       => CTPoint
-      case "PATH?"                        => CTPath
-      case "STRING?"                      => CTString
-      case "BOOLEAN?"                     => CTBoolean
-      case "NUMBER?"                      => CTNumber
-      case "INTEGER?"                     => CTInteger
-      case "FLOAT?"                       => CTFloat
-      case s if s.startsWith("LIST? OF ") => CTList(extractCypherType(s.stripPrefix("LIST? OF ")))
+      case "ANY"                      => CTAny
+      case "BOOLEAN"                  => CTBoolean
+      case "STRING"                   => CTString
+      case "INTEGER | FLOAT"          => CTNumber
+      case "FLOAT"                    => CTFloat
+      case "INTEGER"                  => CTInteger
+      case "VECTOR"                   => CTVector
+      case "MAP"                      => CTMap
+      case "NODE"                     => CTNode
+      case "RELATIONSHIP"             => CTRelationship
+      case "POINT"                    => CTPoint
+      case "LOCAL DATETIME"           => CTLocalDateTime
+      case "ZONED DATETIME"           => CTZonedDateTime
+      case "ZONED TIME"               => CTZonedTime
+      case "DATE"                     => CTDate
+      case "LOCAL TIME"               => CTLocalTime
+      case "DURATION"                 => CTDuration
+      case "PATH"                     => CTPath
+      case s if s.startsWith("LIST<") => CTList(extractCypherType(s.stripPrefix("LIST<").stripSuffix(">")))
       case unexpected =>
         throw SyntaxException.internalError(
           this.getClass.getSimpleName,
