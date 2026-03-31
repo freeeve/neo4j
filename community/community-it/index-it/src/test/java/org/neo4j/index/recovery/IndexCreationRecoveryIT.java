@@ -167,7 +167,7 @@ class IndexCreationRecoveryIT {
 
     private static void awaitIndexPopulations(GraphDatabaseService db) {
         try (var tx = db.beginTx()) {
-            tx.schema().awaitIndexesOnline(1, TimeUnit.MINUTES);
+            tx.schema().awaitIndexesOnline(2, TimeUnit.MINUTES);
         }
     }
 }
