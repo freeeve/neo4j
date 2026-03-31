@@ -139,8 +139,10 @@ final object ResultValueMapper extends ValueMapper {
       case string: java.lang.String       => string
       case v: java.lang.Short             => java.lang.Long.valueOf(v.shortValue())
       case v: java.lang.Integer           => java.lang.Long.valueOf(v.longValue())
+      case v: java.lang.Byte              => java.lang.Long.valueOf(v.longValue())
       case v: java.lang.Long              => v
       case double: java.lang.Double       => java.lang.Double.valueOf(double.doubleValue() + 0.0) // + 0.0 to avoid -0.0
+      case float: java.lang.Float         => java.lang.Double.valueOf(float.doubleValue() + 0.0)
       case list: util.List[_]             => convertList(list)
       case map: util.Map[_, _]            => convertMap(map)
       case n: Node                        => convertNode(n)
@@ -195,8 +197,9 @@ final object ResultValueMapper extends ValueMapper {
     private def needsConversion(value: AnyRef): Boolean = value match {
       case map: util.Map[_, _] => map.values().stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
       case list: util.List[_]  => list.stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
-      case _: Entity | _: Path | _: java.lang.Integer | _: Array[_] | _: Temporal | _: TemporalAmount => true
-      case _                                                                                          => false
+      case _: Entity | _: Path | _: java.lang.Integer | _: java.lang.Float | _: java.lang.Short | _: java.lang.Byte |
+        _: Array[_] | _: Temporal | _: TemporalAmount => true
+      case _ => false
     }
   }
 
