@@ -19,25 +19,39 @@
  */
 package org.neo4j.dbms.systemgraph;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap) {
-    public static final SeedURI EMPTY = new SeedURI(Optional.empty(), Map.of());
+public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap, List<String> multipleUris) {
+    public static final SeedURI EMPTY = new SeedURI(Optional.empty(), Map.of(), List.of());
+    public static final String MULTIPLE_URIS_DELIMITER = ";";
 
     public static SeedURI single(String singleUri) {
-        return new SeedURI(Optional.of(singleUri), Map.of());
+        return new SeedURI(Optional.of(singleUri), Map.of(), List.of());
     }
 
     public static SeedURI sharded(Map<String, String> uriMap) {
-        return new SeedURI(Optional.empty(), Map.copyOf(uriMap));
+        return new SeedURI(Optional.empty(), Map.copyOf(uriMap), List.of());
+    }
+
+    public static SeedURI multiple(List<String> multipleUris) {
+        return new SeedURI(Optional.empty(), Map.of(), List.copyOf(multipleUris));
     }
 
     public boolean isEmpty() {
-        return singleUri.isEmpty() && uriMap.isEmpty();
+        return singleUri.isEmpty() && uriMap.isEmpty() && multipleUris.isEmpty();
     }
 
     public Optional<String> best(String databaseName) {
-        return Optional.ofNullable(uriMap.get(databaseName)).or(this::singleUri);
+        return Optional.ofNullable(uriMap.get(databaseName))
+                .or(this::multipleURIsAsString)
+                .or(this::singleUri);
+    }
+
+    public Optional<String> multipleURIsAsString() {
+        return multipleUris.isEmpty()
+                ? Optional.empty()
+                : Optional.of(String.join(MULTIPLE_URIS_DELIMITER, multipleUris));
     }
 }

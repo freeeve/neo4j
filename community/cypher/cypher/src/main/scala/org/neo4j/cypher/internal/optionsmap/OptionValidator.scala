@@ -32,12 +32,14 @@ import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngin
 import org.neo4j.string.SecureString
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable._
+import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util
 import java.util.Locale
 
+import scala.collection.convert.ImplicitConversions.`iterable AsScalaIterable`
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -157,6 +159,10 @@ object SeedURIOption extends OptionValidator[SeedURI] {
   override protected def validate(value: AnyValue, config: Option[Config])(implicit operation: String): SeedURI = {
     value match {
       case textValue: TextValue => SeedURI.single(textValue.stringValue())
+      case listValue: ListValue => SeedURI.multiple(listValue.toList.map {
+          case text: TextValue => text.stringValue()
+          case _               => throw InvalidArgumentsException.invalidStringOption(operation, KEY, value);
+        }.asJava)
       case mapValue: MapValue =>
         val map: util.HashMap[String, String] = util.HashMap.newHashMap(mapValue.size())
         mapValue.foreachEntry((k, v) =>
@@ -176,10 +182,18 @@ object SeedURIOption extends OptionValidator[SeedURI] {
 
   def validateSingleOnly(seedURI: SeedURI)(implicit operation: String): SeedURI = {
     val uriMap = seedURI.uriMap
+    val multipleUris = seedURI.multipleUris
     if (!uriMap.isEmpty) {
       val keys: Array[String] = uriMap.keySet.toArray(new Array[String](0))
       val values: Array[AnyValue] = keys.map(uriMap.get).map(Values.stringValue)
       throw InvalidArgumentsException.invalidStringOption(operation, KEY, VirtualValues.map(keys, values))
+    }
+    if (!multipleUris.isEmpty) {
+      throw InvalidArgumentsException.invalidStringOption(
+        operation,
+        KEY,
+        VirtualValues.fromList(multipleUris.asScala.map(Values.stringValue).map(_.asInstanceOf[AnyValue]).toList.asJava)
+      )
     }
     seedURI
   }
