@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner.DynamicRelationshipTypeLookupDetails
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.DynamicIndexUse.PropertyPredicatesHelper
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
@@ -39,9 +38,8 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 
 /**
  * Plans dynamic relationship type scans for relationships with dynamic labels.
- * @param skipIDs IDs of variables that should not be planned using dynamic relationship type scans.
  */
-case class DynamicRelationshipTypeLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object DynamicRelationshipTypeLookupLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -51,7 +49,7 @@ case class DynamicRelationshipTypeLookupLeafPlanner(skipIDs: Set[LogicalVariable
     val propertyPredicatesHelper = new PropertyPredicatesHelper(queryGraph, context)
 
     DynamicRelationshipTypeLookupLeafPlanner
-      .collectDynamicRelationshipTypeLookupDetails(skipIDs, context, queryGraph, interestingOrderConfig)
+      .collectDynamicRelationshipTypeLookupDetails(context, queryGraph, interestingOrderConfig)
       .map(planDynamicRelationshipByTypeLookup(context, propertyPredicatesHelper, _))
       .toSet
   }
@@ -84,9 +82,6 @@ case class DynamicRelationshipTypeLookupLeafPlanner(skipIDs: Set[LogicalVariable
         )
     )
   }
-}
-
-object DynamicRelationshipTypeLookupLeafPlanner {
 
   final case class DynamicRelationshipTypeLookupDetails(
     argumentIds: Set[LogicalVariable],
@@ -97,7 +92,6 @@ object DynamicRelationshipTypeLookupLeafPlanner {
   )
 
   def collectDynamicRelationshipTypeLookupDetails(
-    skipIDs: Set[LogicalVariable],
     context: LogicalPlanningContext,
     queryGraph: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig
@@ -107,7 +101,6 @@ object DynamicRelationshipTypeLookupLeafPlanner {
         predicate <- queryGraph.selections.predicates.to(LazyList)
         expression <- extractDynamicRelationshipTypeExpression(predicate)
         plan <- extractDynamicRelationshipTypeLookupDetails(
-          skipIDs,
           context,
           queryGraph.patternRelationships,
           queryGraph.argumentIds,
@@ -135,7 +128,6 @@ object DynamicRelationshipTypeLookupLeafPlanner {
     }
 
   final private def extractDynamicRelationshipTypeLookupDetails(
-    skipIDs: Set[LogicalVariable],
     context: LogicalPlanningContext,
     patternRelationships: Set[PatternRelationship],
     argumentIds: Set[LogicalVariable],
@@ -144,8 +136,7 @@ object DynamicRelationshipTypeLookupLeafPlanner {
   ): Option[DynamicRelationshipTypeLookupDetails] =
     for {
       relationship <- patternRelationships.find(_.variable == expression.variable)
-      if skipIDs.intersect(Set(relationship.variable, relationship.left, relationship.right)).isEmpty &&
-        !argumentIds.contains(relationship.variable)
+      if !argumentIds.contains(relationship.variable)
       relationshipTokenIndex <- context.staticComponents.planContext.relationshipTokenIndex
       providedOrder = ResultOrdering.providedOrderForLabelScan(
         interestingOrder = interestingOrderConfig.orderToSolve,

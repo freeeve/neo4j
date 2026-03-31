@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -216,32 +215,6 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set.empty
-  }
-
-  test("no dynamic relationship type scan if the relationship variable is skipped") {
-    val r = v"r"
-    val a = v"a"
-    val b = v"b"
-
-    val queryGraph = QueryGraph(
-      selections = Selections.from(hasAnyDynamicType(r, listOfString("R", "S"))),
-      patternRelationships = Set(PatternRelationship(r, (a, b), BOTH, Nil, SimplePatternLength))
-    )
-
-    dynamicRelationshipTypeScanLeafPlans(queryGraph, Set(r)) shouldEqual Set.empty
-  }
-
-  test("no dynamic relationship type scan if any end node variable is skipped") {
-    val r = v"r"
-    val a = v"a"
-    val b = v"b"
-
-    val queryGraph = QueryGraph(
-      selections = Selections.from(hasAnyDynamicType(r, listOfString("R", "S"))),
-      patternRelationships = Set(PatternRelationship(r, (a, b), BOTH, Nil, SimplePatternLength))
-    )
-
-    dynamicRelationshipTypeScanLeafPlans(queryGraph, Set(b)) shouldEqual Set.empty
   }
 
   test("dynamic relationship type scan when an endpoint is bound") {
@@ -472,13 +445,12 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
 
   final private def dynamicRelationshipTypeScanLeafPlans(
     queryGraph: QueryGraph,
-    skipIDs: Set[LogicalVariable] = Set.empty,
     interestingOrderConfig: InterestingOrderConfig = InterestingOrderConfig.empty
   ): Set[LogicalPlan] = {
     val context = newMockedLogicalPlanningContext(
       planContext = newMockedPlanContext(),
       semanticTable = new SemanticTable()
     )
-    DynamicRelationshipTypeLookupLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
+    DynamicRelationshipTypeLookupLeafPlanner(queryGraph, interestingOrderConfig, context)
   }
 }

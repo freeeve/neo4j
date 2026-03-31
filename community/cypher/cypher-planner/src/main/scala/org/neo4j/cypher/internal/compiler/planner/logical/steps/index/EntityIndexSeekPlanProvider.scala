@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
@@ -41,26 +40,6 @@ object EntityIndexSeekPlanProvider {
     }
 
     seekablePrefix ++ nonSeekableSuffix.map(_.convertToRangeScannable)
-  }
-
-  // Test if solving using this match is valid given the leaf plan restrictions
-  def isAllowedByRestrictions(
-    propertyPredicates: Seq[IndexCompatiblePredicate],
-    restrictions: LeafPlanRestrictions
-  ): Boolean = {
-    def isAllowed(predicate: IndexCompatiblePredicate) = restrictions match {
-      case LeafPlanRestrictions.NoRestrictions => true
-
-      case LeafPlanRestrictions.OnlyIndexSeekPlansFor(variable, dependencyRestrictions) =>
-        val isRestrictedVariable = predicate.variable == variable
-        if (isRestrictedVariable) {
-          val dependencies = predicate.dependencies
-          dependencies.nonEmpty && dependencies.subsetOf(dependencyRestrictions)
-        } else {
-          true
-        }
-    }
-    propertyPredicates.exists(isAllowed)
   }
 
   def mergeQueryExpressionsToSingleOne(predicates: Seq[IndexCompatiblePredicate]): QueryExpression[Expression] =

@@ -72,7 +72,7 @@ object SelectionPlanner {
         case (plan, search: VectorSearchClause)
           if !alreadySolved && VectorSearchLeafPlanner.solvableGivenSymbols(search, symbols) =>
 
-          val vectorLeaves = VectorSearchLeafPlanner(skipIDs = Set.empty).apply(
+          val vectorLeaves = VectorSearchLeafPlanner.apply(
             qg.withArgumentIds(symbols.intersect(search.dependencies + search.resultVariable)),
             InterestingOrderConfig.empty,
             context

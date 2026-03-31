@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsElementIdSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsIdSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.idSeekLeafPlanner.IdType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.In
@@ -40,7 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SeekableArgs
 import org.neo4j.cypher.internal.util.FunctionName
 
-case class idSeekLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object idSeekLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -67,42 +66,38 @@ case class idSeekLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner 
 
       idSeekPredicates flatMap {
         case (predicate, variable, idValues, idType) =>
-          if (skipIDs.contains(variable)) {
-            None
-          } else {
-            queryGraph.patternRelationships.find(_.variable == variable) match {
-              case Some(relationship) =>
-                Some(planHiddenSelectionAndRelationshipLeafPlan(
-                  queryGraph.argumentIds,
-                  relationship,
-                  context,
-                  planRelationshipByIdSeek(
-                    variable.asInstanceOf[Variable],
-                    _,
-                    _,
-                    _,
-                    idValues,
-                    Seq(predicate),
-                    queryGraph.argumentIds,
-                    context,
-                    idType
-                  )
-                ))
-
-              case None =>
-                val producePlan = idType match {
-                  case IdType.Id        => context.staticComponents.logicalPlanProducer.planNodeByIdSeek _
-                  case IdType.ElementId => context.staticComponents.logicalPlanProducer.planNodeByElementIdSeek _
-                }
-
-                Some(producePlan(
-                  variable,
+          queryGraph.patternRelationships.find(_.variable == variable) match {
+            case Some(relationship) =>
+              Some(planHiddenSelectionAndRelationshipLeafPlan(
+                queryGraph.argumentIds,
+                relationship,
+                context,
+                planRelationshipByIdSeek(
+                  variable.asInstanceOf[Variable],
+                  _,
+                  _,
+                  _,
                   idValues,
                   Seq(predicate),
                   queryGraph.argumentIds,
-                  context
-                ))
-            }
+                  context,
+                  idType
+                )
+              ))
+
+            case None =>
+              val producePlan = idType match {
+                case IdType.Id        => context.staticComponents.logicalPlanProducer.planNodeByIdSeek _
+                case IdType.ElementId => context.staticComponents.logicalPlanProducer.planNodeByElementIdSeek _
+              }
+
+              Some(producePlan(
+                variable,
+                idValues,
+                Seq(predicate),
+                queryGraph.argumentIds,
+                context
+              ))
           }
       }
     }
@@ -160,9 +155,7 @@ case class idSeekLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner 
 
   private def typeOfRelExpr(idExpr: LogicalVariable) =
     FunctionInvocation(FunctionName("type")(idExpr.position), idExpr)(idExpr.position)
-}
 
-object idSeekLeafPlanner {
   sealed trait IdType
 
   object IdType {

@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner.DynamicLabelExpression
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.DynamicIndexUse.PropertyPredicatesHelper
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
@@ -36,9 +35,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
 /**
  * Plans dynamic label scans for nodes with dynamic labels.
- * @param skipIDs IDs of variables that should not be planned as dynamic label scans.
  */
-case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object DynamicLabelLookupLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -81,7 +79,6 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
   ): Option[LogicalPlan] =
     if (
       !patternNodes.contains(expression.variable) ||
-      skipIDs.contains(expression.variable) ||
       argumentIds.contains(expression.variable) ||
       context.staticComponents.planContext.nodeTokenIndex.isEmpty
     ) {
@@ -99,9 +96,6 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
         propertyPredicates = propertyPredicates.indexSeekArguments
       ))
     }
-}
-
-object DynamicLabelLookupLeafPlanner {
 
   final private case class DynamicLabelExpression(
     variable: Variable,

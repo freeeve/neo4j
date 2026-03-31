@@ -37,7 +37,7 @@ class ArgumentLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSup
       patternNodes = Set(v"a", v"b")
     )
 
-    argumentLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context) shouldBe empty
+    argumentLeafPlanner(qg, InterestingOrderConfig.empty, context) shouldBe empty
   }
 
   test("should return an empty candidate list pattern nodes is empty") {
@@ -48,7 +48,7 @@ class ArgumentLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSup
       patternNodes = Set()
     )
 
-    argumentLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context) shouldBe empty
+    argumentLeafPlanner(qg, InterestingOrderConfig.empty, context) shouldBe empty
   }
 
   test("should return a plan containing all the id in argument ids and in pattern nodes") {
@@ -59,36 +59,9 @@ class ArgumentLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSup
       patternNodes = Set(v"a", v"b", v"d")
     )
 
-    argumentLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context) should equal(
+    argumentLeafPlanner(qg, InterestingOrderConfig.empty, context) should equal(
       Set(Argument(Set(v"a", v"b", v"c")))
     )
   }
 
-  test("should not plan argument for skipped id") {
-    // given
-    val context = newMockedLogicalPlanningContext(newMockedPlanContext())
-    val queryGraph = QueryGraph(
-      argumentIds = Set(v"n"),
-      patternNodes = Set(v"n")
-    )
-
-    // when
-    val resultPlans = argumentLeafPlanner(Set(v"n"))(queryGraph, InterestingOrderConfig.empty, context)
-
-    // then
-    resultPlans should be(empty)
-  }
-
-  test("plan argument for skipped ids when not all pattern nodes are skipped") {
-    val context = newMockedLogicalPlanningContext(newMockedPlanContext())
-
-    val qg = QueryGraph(
-      argumentIds = Set(v"a", v"b", v"c"),
-      patternNodes = Set(v"a", v"b", v"d")
-    )
-
-    argumentLeafPlanner(Set(v"b"))(qg, InterestingOrderConfig.empty, context) should equal(
-      Set(Argument(Set(v"a", v"b", v"c")))
-    )
-  }
 }

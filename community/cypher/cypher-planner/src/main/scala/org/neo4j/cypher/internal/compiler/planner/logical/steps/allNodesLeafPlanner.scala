@@ -22,11 +22,10 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-case class allNodesLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object allNodesLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -35,6 +34,5 @@ case class allNodesLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanne
   ): Set[LogicalPlan] =
     queryGraph.patternNodes
       .diff(queryGraph.argumentIds)
-      .diff(skipIDs)
       .map(context.staticComponents.logicalPlanProducer.planAllNodesScan(_, queryGraph.argumentIds, context))
 }

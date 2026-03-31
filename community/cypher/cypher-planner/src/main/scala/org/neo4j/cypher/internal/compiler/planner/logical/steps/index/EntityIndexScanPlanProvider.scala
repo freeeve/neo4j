@@ -20,11 +20,9 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
 import org.neo4j.cypher.internal.ast.UsingIndexHint
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.Scannable
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
@@ -83,8 +81,5 @@ object EntityIndexScanPlanProvider {
       case _                                                                       => true
     }
   }
-
-  def isAllowedByRestrictions(variable: LogicalVariable, restrictions: LeafPlanRestrictions): Boolean =
-    !restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners.contains(variable)
 
 }

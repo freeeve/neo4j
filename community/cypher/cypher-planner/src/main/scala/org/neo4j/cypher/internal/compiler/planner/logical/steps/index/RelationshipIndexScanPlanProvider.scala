@@ -19,11 +19,9 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexScanPlanProvider.Solution
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexScanPlanProvider.isAllowedByRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexScanPlanProvider.mergeSolutions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexScanPlanProvider.predicatesForIndexScan
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner.RelationshipIndexMatch
@@ -55,13 +53,11 @@ object RelationshipIndexScanPlanProvider extends RelationshipIndexPlanProvider {
   override def createPlans(
     indexMatches: Set[RelationshipIndexMatch],
     queryGraph: QueryGraph,
-    restrictions: LeafPlanRestrictions,
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
 
     val solutions = for {
       indexMatch <- indexMatches
-      if isAllowedByRestrictions(indexMatch.variable, restrictions)
     } yield createSolution(indexMatch, queryGraph, context)
 
     def provideRelationshipLeafPlan(solution: Solution[RelationshipIndexScanParameters])(

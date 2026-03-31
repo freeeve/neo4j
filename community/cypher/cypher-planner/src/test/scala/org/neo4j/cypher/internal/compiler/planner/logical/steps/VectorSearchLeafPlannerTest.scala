@@ -66,7 +66,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       // When skipIds is empty, the planner should plan the vector search
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       val plans = planner(qg, InterestingOrderConfig.empty, context)
 
       plans should have size 1
@@ -74,34 +74,6 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       plan shouldBe a[NodeVectorIndexSearch]
       val nodeVectorSearch = plan.asInstanceOf[NodeVectorIndexSearch]
       nodeVectorSearch.idName should equal(bindingVariable)
-    }
-  }
-
-  test("does not plan nodeVectorIndexSearch when skipIds contain the binding variable") {
-    val bindingVariable = v"movie"
-    new givenConfig {
-      addTypeToSemanticTable(bindingVariable, CTNode)
-      nodeVectorIndexOn("moviePlots", Seq("Movie"), "plot")
-    } withLogicalPlanningContext { (_, context) =>
-      val vectorSearchClause = VectorSearchClause(
-        resultVariable = bindingVariable,
-        indexName = "moviePlots",
-        embedding = embedding,
-        where = None,
-        limit = limit,
-        scoreVariable = None
-      )
-      val qg = QueryGraph(
-        patternNodes = Set(bindingVariable),
-        searchClause = Some(vectorSearchClause),
-        argumentIds = Set.empty
-      )
-
-      // When skipIds contains the binding variable, the planner should not plan the vector search
-      val planner = VectorSearchLeafPlanner(skipIDs = Set(bindingVariable))
-      val plans = planner(qg, InterestingOrderConfig.empty, context)
-
-      plans shouldBe empty
     }
   }
 
@@ -139,7 +111,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       )
 
       // When skipIds is empty, the planner should plan the relationship vector search
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       val plans = planner(qg, InterestingOrderConfig.empty, context)
 
       plans should have size 1
@@ -147,47 +119,6 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
       plan shouldBe a[DirectedRelationshipVectorIndexSearch]
       val relVectorSearch = plan.asInstanceOf[DirectedRelationshipVectorIndexSearch]
       relVectorSearch.idName shouldEqual Some(bindingVariable)
-    }
-  }
-
-  test("does not plan relationshipVectorIndexSearch when skipIds contain the binding variable") {
-    val bindingVariable = v"knows"
-    new givenConfig {
-      addTypeToSemanticTable(bindingVariable, CTRelationship)
-      relationshipVectorIndexOn("knowsEmbedding", Seq("KNOWS"), "embedding")
-    } withLogicalPlanningContext { (_, context) =>
-      val from = v"a"
-      val to = v"b"
-
-      val patternRelationship = PatternRelationship(
-        variable = bindingVariable,
-        (from, to),
-        dir = OUTGOING,
-        types = Seq(RelTypeName("KNOWS")(pos)),
-        length = SimplePatternLength
-      )
-
-      val vectorSearchClause = VectorSearchClause(
-        resultVariable = bindingVariable,
-        indexName = "knowsEmbedding",
-        embedding = embedding,
-        where = None,
-        limit = limit,
-        scoreVariable = None
-      )
-
-      val qg = QueryGraph(
-        patternNodes = Set(from, to),
-        patternRelationships = Set(patternRelationship),
-        searchClause = Some(vectorSearchClause),
-        argumentIds = Set.empty
-      )
-
-      // When skipIds contains the binding variable, the planner should not plan the relationship vector search
-      val planner = VectorSearchLeafPlanner(skipIDs = Set(bindingVariable))
-      val plans = planner(qg, InterestingOrderConfig.empty, context)
-
-      plans shouldBe empty
     }
   }
 
@@ -214,7 +145,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set.empty // x is not in argumentIds
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       planner(qg, InterestingOrderConfig.empty, context) shouldEqual Set.empty
     }
   }
@@ -242,7 +173,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set.empty // y is not in argumentIds
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       planner(qg, InterestingOrderConfig.empty, context) shouldEqual Set.empty
     }
   }
@@ -277,7 +208,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set.empty
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
 
       an[VectorIndexSearchException] should be thrownBy {
         planner(qg, InterestingOrderConfig.empty, context)
@@ -306,7 +237,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set.empty
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
 
       an[VectorIndexSearchException] should be thrownBy {
         planner(qg, InterestingOrderConfig.empty, context)
@@ -336,7 +267,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set.empty
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       val plans = planner(qg, InterestingOrderConfig.empty, context)
 
       plans should have size 1
@@ -372,7 +303,7 @@ class VectorSearchLeafPlannerTest extends CypherFunSuite with LogicalPlanningTes
         argumentIds = Set(parameter) // Parameter is in argumentIds, so no error should occur
       )
 
-      val planner = VectorSearchLeafPlanner(skipIDs = Set.empty)
+      val planner = VectorSearchLeafPlanner
       val plans = planner(qg, InterestingOrderConfig.empty, context)
 
       plans should have size 1

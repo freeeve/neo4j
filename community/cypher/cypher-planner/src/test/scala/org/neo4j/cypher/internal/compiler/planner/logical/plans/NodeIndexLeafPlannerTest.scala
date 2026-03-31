@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.nodeIndexScanPlanProvider
@@ -63,10 +62,9 @@ import org.neo4j.graphdb.schema.IndexType
 
 class NodeIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
 
-  private def nodeIndexLeafPlanner(restrictions: LeafPlanRestrictions) =
+  private def nodeIndexLeafPlanner =
     NodeIndexLeafPlanner(
-      Seq(nodeIndexSeekPlanProvider, nodeIndexStringSearchScanPlanProvider, nodeIndexScanPlanProvider),
-      restrictions
+      Seq(nodeIndexSeekPlanProvider, nodeIndexStringSearchScanPlanProvider, nodeIndexScanPlanProvider)
     )
 
   test("finds all types of index plans") {
@@ -153,8 +151,7 @@ class NodeIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
       indexOn("Awesome", "aaa", "bbb", "ccc")
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val restriction = LeafPlanRestrictions.OnlyIndexSeekPlansFor(v"m", Set(v"x"))
-      val resultPlans = nodeIndexLeafPlanner(restriction)(cfg.qg, InterestingOrderConfig.empty, ctx)
+      val resultPlans = nodeIndexLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       val labelToken = LabelToken("Awesome", LabelId(0))
@@ -290,6 +287,15 @@ class NodeIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
           labelToken,
           Seq(IndexedProperty(propToken, CanGetValue, NODE_TYPE)),
           SingleQueryExpression(xProp),
+          Set(v"x"),
+          IndexOrderNone,
+          IndexType.RANGE,
+          supportPartitionedScan = true
+        ),
+        NodeIndexScan(
+          v"m",
+          labelToken,
+          Seq(IndexedProperty(propToken, DoNotGetValue, NODE_TYPE)),
           Set(v"x"),
           IndexOrderNone,
           IndexType.RANGE,

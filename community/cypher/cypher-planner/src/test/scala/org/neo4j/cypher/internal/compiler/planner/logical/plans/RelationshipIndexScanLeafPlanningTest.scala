@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOnly
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner
@@ -89,11 +88,11 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
   private val bazIsNotNull = isNotNull(prop(relVar, baz))
   private val bazEquals12 = equals(prop(relVar, baz), lit12)
 
-  private def relationshipIndexScanLeafPlanner(restrictions: LeafPlanRestrictions) =
-    RelationshipIndexLeafPlanner(Seq(RelationshipIndexScanPlanProvider), restrictions)
+  private def relationshipIndexScanLeafPlanner =
+    RelationshipIndexLeafPlanner(Seq(RelationshipIndexScanPlanProvider))
 
-  private def relationshipIndexStringSearchScanLeafPlanner(restrictions: LeafPlanRestrictions) =
-    RelationshipIndexLeafPlanner(Seq(RelationshipIndexStringSearchScanPlanProvider), restrictions)
+  private def relationshipIndexStringSearchScanLeafPlanner =
+    RelationshipIndexLeafPlanner(Seq(RelationshipIndexStringSearchScanPlanProvider))
 
   private def solvedPredicates(plan: LogicalPlan, ctx: LogicalPlanningContext) =
     ctx.staticComponents.planningAttributes.solveds.get(
@@ -119,7 +118,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans shouldBe empty
@@ -133,7 +132,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -155,7 +154,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -177,7 +176,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -192,24 +191,6 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }
   }
 
-  test("no index scan when there is an index on the property but relationship variable is skipped") {
-    new givenConfig {
-      qg = queryGraph(Seq(relTypeName), BOTH, propIsNotNull)
-      relationshipIndexOn(relTypeName, prop)
-    }.withLogicalPlanningContext { (cfg, ctx) =>
-      // when
-      val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.OnlyIndexSeekPlansFor(relVar, Set(dependency)))(
-          cfg.qg,
-          InterestingOrderConfig.empty,
-          ctx
-        )
-
-      // then
-      resultPlans should be(empty)
-    }
-  }
-
   test("index scan solves is not null") {
     new givenConfig {
       qg = queryGraph(Seq(relTypeName), BOTH, propIsNotNull)
@@ -217,7 +198,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -243,7 +224,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -269,7 +250,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -295,7 +276,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -325,7 +306,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -352,7 +333,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -378,7 +359,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -406,7 +387,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -432,7 +413,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -458,7 +439,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -484,7 +465,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -510,7 +491,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -539,7 +520,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should equal(Set(
@@ -569,7 +550,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(cfg.qg, InterestingOrderConfig.empty, ctx)
+        relationshipIndexScanLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       resultPlans should be(empty)
@@ -583,7 +564,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       qg = queryGraph(Seq(relTypeName), BOTH, propContainsApa)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -600,7 +581,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -630,7 +611,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -660,7 +641,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -690,7 +671,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -731,7 +712,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipIndexOn(relTypeName, prop, foo).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -751,7 +732,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -788,7 +769,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -823,10 +804,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.OnlyIndexSeekPlansFor(
-          relVar,
-          Set(dependency)
-        ))(
+        relationshipIndexStringSearchScanLeafPlanner(
           cfg.qg,
           InterestingOrderConfig.empty,
           ctx
@@ -854,7 +832,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       qg = queryGraph(Seq(relTypeName), BOTH, propEndsWithApa)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -871,7 +849,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -901,7 +879,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -931,7 +909,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -961,7 +939,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -1001,7 +979,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipIndexOn(relTypeName, prop, foo).providesValues()
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -1021,7 +999,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -1058,7 +1036,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
       relationshipTextIndexOn(relTypeName, prop)
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.NoRestrictions)(
+      val resultPlans = relationshipIndexStringSearchScanLeafPlanner(
         cfg.qg,
         InterestingOrderConfig.empty,
         ctx
@@ -1093,10 +1071,7 @@ class RelationshipIndexScanLeafPlanningTest extends CypherFunSuite with LogicalP
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
       val resultPlans =
-        relationshipIndexStringSearchScanLeafPlanner(LeafPlanRestrictions.OnlyIndexSeekPlansFor(
-          relVar,
-          Set(dependency)
-        ))(
+        relationshipIndexStringSearchScanLeafPlanner(
           cfg.qg,
           InterestingOrderConfig.empty,
           ctx

@@ -20,13 +20,11 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.UsingIndexHint
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexSeekPlanProvider.isAllowedByRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexSeekPlanProvider.predicatesForIndexSeek
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner.RelationshipIndexMatch
@@ -56,8 +54,7 @@ import scala.annotation.tailrec
 object mergeRelationshipUniqueIndexSeekLeafPlanner extends LeafPlanner {
 
   private val relationshipIndexLeafPlanner = RelationshipIndexLeafPlanner(
-    planProviders = Seq(relationshipSingleUniqueIndexSeekPlanProvider),
-    restrictions = LeafPlanRestrictions.NoRestrictions
+    planProviders = Seq(relationshipSingleUniqueIndexSeekPlanProvider)
   )
 
   override def apply(
@@ -96,12 +93,11 @@ object relationshipSingleUniqueIndexSeekPlanProvider extends RelationshipIndexPl
   override def createPlans(
     indexMatches: Set[RelationshipIndexMatch],
     queryGraph: QueryGraph,
-    restrictions: LeafPlanRestrictions,
     context: LogicalPlanningContext
   ): Set[LogicalPlan] =
     for {
       indexMatch <- indexMatches
-      if isAllowedByRestrictions(indexMatch.propertyPredicates, restrictions) && indexMatch.indexDescriptor.isUnique
+      if indexMatch.indexDescriptor.isUnique
       propertyPredicates = predicatesForIndexSeek(indexMatch.propertyPredicates)
       queryExpression <- propertyPredicatesQueryExpression(propertyPredicates)
       predicateSet = indexMatch.predicateSet(propertyPredicates, exactPredicatesCanGetValue = true, context, queryGraph)

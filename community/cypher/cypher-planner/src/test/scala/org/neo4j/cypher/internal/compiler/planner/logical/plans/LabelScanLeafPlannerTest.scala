@@ -50,7 +50,7 @@ class LabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
     val context = newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = semanticTable)
 
     // when
-    val resultPlans = labelScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = labelScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -66,7 +66,7 @@ class LabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
     val context = newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = semanticTable)
 
     // when
-    val resultPlans = labelScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = labelScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -74,17 +74,4 @@ class LabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
     ))
   }
 
-  test("should not plan label scan for skipped id") {
-    // given
-    val semanticTable: SemanticTable = newMockedSemanticTable
-    when(semanticTable.id(labelName("Awesome"))).thenReturn(Some(labelId))
-
-    val context = newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = semanticTable)
-
-    // when
-    val resultPlans = labelScanLeafPlanner(Set(v"n"))(qg, InterestingOrderConfig.empty, context)
-
-    // then
-    resultPlans should be(empty)
-  }
 }

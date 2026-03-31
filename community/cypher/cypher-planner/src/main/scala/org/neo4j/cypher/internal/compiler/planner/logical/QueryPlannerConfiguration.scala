@@ -58,9 +58,9 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
 object QueryPlannerConfiguration {
 
-  private def leafPlannersUsedInOrLeafPlanner(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = IndexedSeq(
+  private def leafPlannersUsedInOrLeafPlanner: IndexedSeq[LeafPlanner] = IndexedSeq(
     // MATCH (n) WHERE id(n) IN ... RETURN n
-    idSeekLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    idSeekLeafPlanner,
     NodeIndexLeafPlanner(
       Seq(
         // MATCH (n) WHERE n.prop IN ... RETURN n
@@ -70,72 +70,70 @@ object QueryPlannerConfiguration {
         nodeIndexStringSearchScanPlanProvider,
         // MATCH (n) WHERE has(n.prop) RETURN n
         nodeIndexScanPlanProvider
-      ),
-      restrictions
+      )
     ),
     RelationshipIndexLeafPlanner(
       Seq(
         RelationshipIndexScanPlanProvider,
         RelationshipIndexSeekPlanProvider,
         RelationshipIndexStringSearchScanPlanProvider
-      ),
-      restrictions
+      )
     ),
 
     // MATCH (n:Person) RETURN n
-    labelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    labelScanLeafPlanner,
 
     // MATCH (n:Person&Artist) RETURN n
-    intersectionLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    intersectionLabelScanLeafPlanner,
 
     // MATCH (n:Person&!Artist) RETURN n
-    subtractionLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    subtractionLabelScanLeafPlanner,
 
     // MATCH (n:Person|Bird) RETURN n
-    unionLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    unionLabelScanLeafPlanner,
 
     // MATCH (n:$(['Person', 'Artist'])) RETURN n
-    DynamicLabelLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    DynamicLabelLookupLeafPlanner,
 
     // MATCH ()-[r:R]->()
-    relationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    relationshipTypeScanLeafPlanner,
 
     // MATCH ()-[r:R|S]->()
-    unionRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    unionRelationshipTypeScanLeafPlanner,
 
     // MATCH ()-[r:$any(['R', 'S'])]->()
-    DynamicRelationshipTypeLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
+    DynamicRelationshipTypeLookupLeafPlanner
   )
 
-  private def allLeafPlanners(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = {
-    val innerOrLeafPlanners = leafPlannersUsedInOrLeafPlanner(restrictions)
+  private def allLeafPlanners: IndexedSeq[LeafPlanner] = {
+    val innerOrLeafPlanners = leafPlannersUsedInOrLeafPlanner
     innerOrLeafPlanners ++ IndexedSeq(
-      argumentLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+      argumentLeafPlanner,
 
       // MATCH ()-[r]->()
-      allRelationshipsScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+      allRelationshipsScanLeafPlanner,
 
       // MATCH (n) RETURN n
-      allNodesLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+      allNodesLeafPlanner,
 
       // Handles OR between other leaf planners
       OrLeafPlanner(innerOrLeafPlanners)
-    ) ++ searchClauseLeafPlanner(restrictions)
+    ) ++ searchClauseLeafPlanner
   }
 
-  private def searchClauseLeafPlanner(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = IndexedSeq(
+  private def searchClauseLeafPlanner: IndexedSeq[LeafPlanner] = IndexedSeq(
     // MATCH … SEARCH
-    VectorSearchLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
+    VectorSearchLeafPlanner
   )
 
   /**
    * When doing nested index joins, we have certain variables for which we only want to allow certain index plans.
    * This method returns leaf planners that will not produce any other plans for these variables.
    */
-  def leafPlannersForNestedIndexJoins(restrictions: LeafPlanRestrictions): LeafPlannerIterable = {
+  def leafPlannersForNestedIndexJoins: LeafPlannerIterable = {
     PriorityLeafPlannerList(
-      LeafPlannerList(searchClauseLeafPlanner(restrictions)),
-      LeafPlannerList(allLeafPlanners(restrictions))
+      LeafPlannerList(searchClauseLeafPlanner),
+      LeafPlannerList(allLeafPlanners)
     )
   }
 
@@ -161,8 +159,8 @@ object QueryPlannerConfiguration {
         PriorityLeafPlannerList(
           // TODO We may want to permit other leaf plans.
           //  See PLAN-3087
-          LeafPlannerList(searchClauseLeafPlanner(LeafPlanRestrictions.NoRestrictions)),
-          LeafPlannerList(allLeafPlanners(LeafPlanRestrictions.NoRestrictions))
+          LeafPlannerList(searchClauseLeafPlanner),
+          LeafPlannerList(allLeafPlanners)
         )
       }
     )

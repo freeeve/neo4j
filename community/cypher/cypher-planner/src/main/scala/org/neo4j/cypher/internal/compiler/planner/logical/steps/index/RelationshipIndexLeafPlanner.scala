@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -48,8 +47,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.RelTypeId
 
 case class RelationshipIndexLeafPlanner(
-  planProviders: Seq[RelationshipIndexPlanProvider],
-  restrictions: LeafPlanRestrictions
+  planProviders: Seq[RelationshipIndexPlanProvider]
 ) extends LeafPlanner {
 
   override def apply(
@@ -72,7 +70,7 @@ case class RelationshipIndexLeafPlanner(
       } else {
         for {
           provider <- planProviders
-          plan <- provider.createPlans(indexMatches, qg, restrictions, context)
+          plan <- provider.createPlans(indexMatches, qg, context)
         } yield plan
       }.toSet
 

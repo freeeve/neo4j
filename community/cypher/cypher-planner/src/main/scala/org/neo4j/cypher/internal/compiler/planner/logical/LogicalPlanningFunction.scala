@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 trait PlanSelector {
@@ -77,27 +76,6 @@ trait LeafPlanFinder {
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): Map[Set[LogicalVariable], BestPlans]
-}
-
-sealed trait LeafPlanRestrictions {
-  def symbolsThatShouldOnlyUseIndexSeekLeafPlanners: Set[LogicalVariable]
-}
-
-object LeafPlanRestrictions {
-
-  case object NoRestrictions extends LeafPlanRestrictions {
-    override def symbolsThatShouldOnlyUseIndexSeekLeafPlanners: Set[LogicalVariable] = Set.empty
-  }
-
-  /**
-   * For `variable`, only plan IndexSeek, IndexContainsScan and IndexEndsWithScan.
-   */
-  case class OnlyIndexSeekPlansFor(variable: LogicalVariable, dependencies: Set[LogicalVariable])
-      extends LeafPlanRestrictions {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(dependencies.nonEmpty, "Dependencies must not be empty")
-    override def symbolsThatShouldOnlyUseIndexSeekLeafPlanners: Set[LogicalVariable] = Set(variable)
-  }
-
 }
 
 object LabelScanLeafPlanner {

@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -36,7 +35,7 @@ import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.BOTH
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.InputPosition
 
-case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object subtractionLabelScanLeafPlanner extends LeafPlanner {
 
   private case class Labels(positives: Set[LabelName], negatives: Set[LabelName])
   private case class VariableAndLabels(variable: Variable, labels: Labels)
@@ -46,7 +45,7 @@ case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
       case (acc, current) => current match {
           // Positive labels
           case HasLabels(variable: Variable, labels)
-            if !skipIDs.contains(variable) && (qg.patternNodes(variable) && !qg.argumentIds(variable)) =>
+            if (qg.patternNodes(variable) && !qg.argumentIds(variable)) =>
             val newValue =
               acc.get(variable).map(currentLabels =>
                 Labels(currentLabels.positives ++ labels, currentLabels.negatives)
@@ -54,7 +53,7 @@ case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
             acc + (variable -> newValue)
           // Negative labels
           case Not(HasLabels(variable: Variable, labels))
-            if !skipIDs.contains(variable) && (qg.patternNodes(variable) && !qg.argumentIds(variable)) =>
+            if (qg.patternNodes(variable) && !qg.argumentIds(variable)) =>
             val newValue =
               acc.get(variable).map(currentLabels =>
                 Labels(currentLabels.positives, currentLabels.negatives ++ labels)

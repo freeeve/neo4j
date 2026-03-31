@@ -19,11 +19,9 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.AbstractNodeIndexSeekPlanProvider
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexSeekPlanProvider.isAllowedByRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexLeafPlanner.NodeIndexMatch
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -47,7 +45,7 @@ import org.neo4j.cypher.internal.macros.AssertMacros
  * (ui1) (ui2)
  */
 object mergeNodeUniqueIndexSeekLeafPlanner
-    extends NodeIndexLeafPlanner(Seq(nodeSingleUniqueIndexSeekPlanProvider), LeafPlanRestrictions.NoRestrictions) {
+    extends NodeIndexLeafPlanner(Seq(nodeSingleUniqueIndexSeekPlanProvider)) {
 
   override def apply(
     qg: QueryGraph,
@@ -84,11 +82,10 @@ object nodeSingleUniqueIndexSeekPlanProvider extends AbstractNodeIndexSeekPlanPr
   override def createPlans(
     indexMatches: Set[NodeIndexMatch],
     queryGraph: QueryGraph,
-    restrictions: LeafPlanRestrictions,
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = for {
     indexMatch <- indexMatches
-    if isAllowedByRestrictions(indexMatch.propertyPredicates, restrictions) && indexMatch.indexDescriptor.isUnique
+    if indexMatch.indexDescriptor.isUnique
     solution <- createSolution(indexMatch, queryGraph, context)
     if isSingleUniqueQuery(solution.valueExpr)
   } yield constructPlan(solution, context)

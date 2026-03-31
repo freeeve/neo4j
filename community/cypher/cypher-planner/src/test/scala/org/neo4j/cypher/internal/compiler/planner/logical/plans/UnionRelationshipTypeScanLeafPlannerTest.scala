@@ -57,7 +57,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -79,7 +79,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", INCOMING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -101,7 +101,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", BOTH, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -123,7 +123,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans shouldBe empty
@@ -136,22 +136,10 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = varPattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans shouldBe empty
-  }
-
-  test("should not plan type scan for skipped ids") {
-    // given
-    val context = planningContext()
-    // (a)-[:R|S]->(b)
-    val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
-
-    // then
-    unionRelationshipTypeScanLeafPlanner(Set(v"r"))(qg, InterestingOrderConfig.empty, context) should be(empty)
-    unionRelationshipTypeScanLeafPlanner(Set(v"a"))(qg, InterestingOrderConfig.empty, context) should be(empty)
-    unionRelationshipTypeScanLeafPlanner(Set(v"b"))(qg, InterestingOrderConfig.empty, context) should be(empty)
   }
 
   test("should not plan type scan when rel id is in arguments") {
@@ -161,7 +149,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // then
-    unionRelationshipTypeScanLeafPlanner(Set.empty)(
+    unionRelationshipTypeScanLeafPlanner(
       qg.withArgumentIds(Set(v"r")),
       InterestingOrderConfig.empty,
       context
@@ -176,7 +164,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans shouldBe empty
@@ -189,7 +177,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(
       qg,
       InterestingOrderConfig(
         InterestingOrder(RequiredOrderCandidate(Seq(ColumnOrder(v"r", ascending = true))))
@@ -217,7 +205,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(
       qg,
       InterestingOrderConfig(
         InterestingOrder(RequiredOrderCandidate(Seq(ColumnOrder(v"r", ascending = false))))
@@ -245,7 +233,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(
       qg,
       InterestingOrderConfig(
         InterestingOrder(
@@ -276,7 +264,7 @@ class UnionRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Logic
     val qg = pattern(v"r", v"a", v"b", OUTGOING, "R", "S")
 
     // when
-    val resultPlans = unionRelationshipTypeScanLeafPlanner(Set.empty)(
+    val resultPlans = unionRelationshipTypeScanLeafPlanner(
       qg,
       InterestingOrderConfig(
         InterestingOrder(

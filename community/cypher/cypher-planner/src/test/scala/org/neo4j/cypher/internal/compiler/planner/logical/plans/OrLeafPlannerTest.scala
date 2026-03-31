@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.allRelationshipsScanLeafPlanner
@@ -89,8 +88,8 @@ class OrLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2
   test("should not plan node filter disjunction on top of relationship leaf plans") {
     // Allow only NodeByLabelScan and AllRelationshipsScan leaf plans.
     val orLeafPlanner = OrLeafPlanner(Seq(
-      labelScanLeafPlanner(Set.empty),
-      allRelationshipsScanLeafPlanner(Set.empty)
+      labelScanLeafPlanner,
+      allRelationshipsScanLeafPlanner
     ))
     // Node predicate disjunction
     val predicates: Set[Expression] = Set(ors(hasLabels("n", "A"), hasLabels("n", "B")))
@@ -230,28 +229,26 @@ class OrLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2
 
   private def orleafPlannerWithSubplans: OrLeafPlanner = {
     OrLeafPlanner(Seq(
-      idSeekLeafPlanner(Set.empty),
+      idSeekLeafPlanner,
       NodeIndexLeafPlanner(
         Seq(
           nodeIndexSeekPlanProvider,
           nodeIndexStringSearchScanPlanProvider,
           nodeIndexScanPlanProvider
-        ),
-        LeafPlanRestrictions.NoRestrictions
+        )
       ),
       RelationshipIndexLeafPlanner(
         Seq(
           RelationshipIndexScanPlanProvider,
           RelationshipIndexSeekPlanProvider,
           RelationshipIndexStringSearchScanPlanProvider
-        ),
-        LeafPlanRestrictions.NoRestrictions
+        )
       ),
-      labelScanLeafPlanner(Set.empty),
-      intersectionLabelScanLeafPlanner(Set.empty),
-      unionLabelScanLeafPlanner(Set.empty),
-      relationshipTypeScanLeafPlanner(Set.empty),
-      unionRelationshipTypeScanLeafPlanner(Set.empty)
+      labelScanLeafPlanner,
+      intersectionLabelScanLeafPlanner,
+      unionLabelScanLeafPlanner,
+      relationshipTypeScanLeafPlanner,
+      unionRelationshipTypeScanLeafPlanner
     ))
   }
 }

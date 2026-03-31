@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.RelationshipIndexScanPlanProvider
@@ -58,6 +57,7 @@ import org.neo4j.cypher.internal.logical.plans.PrefixSeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.RangeLessThan
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -69,14 +69,13 @@ import org.neo4j.graphdb.schema.IndexType
 
 class RelationshipIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
 
-  private def relationshipIndexLeafPlanner(restrictions: LeafPlanRestrictions) =
+  private def relationshipIndexLeafPlanner =
     RelationshipIndexLeafPlanner(
       Seq(
         RelationshipIndexScanPlanProvider,
         RelationshipIndexSeekPlanProvider,
         RelationshipIndexStringSearchScanPlanProvider
-      ),
-      restrictions
+      )
     )
 
   test("finds all types of index plans") {
@@ -179,8 +178,7 @@ class RelationshipIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanni
       relationshipIndexOn("Awesome", "aaa", "bbb", "ccc")
     }.withLogicalPlanningContext { (cfg, ctx) =>
       // when
-      val restriction = LeafPlanRestrictions.OnlyIndexSeekPlansFor(v"m", Set(v"x"))
-      val resultPlans = relationshipIndexLeafPlanner(restriction)(cfg.qg, InterestingOrderConfig.empty, ctx)
+      val resultPlans = relationshipIndexLeafPlanner(cfg.qg, InterestingOrderConfig.empty, ctx)
 
       // then
       val relationshipTypeToken = RelationshipTypeToken("Awesome", RelTypeId(0))
@@ -277,6 +275,17 @@ class RelationshipIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanni
           relationshipTypeToken,
           Seq(IndexedProperty(propToken, CanGetValue, RELATIONSHIP_TYPE)),
           SingleQueryExpression(xProp),
+          Set(v"x"),
+          IndexOrderNone,
+          IndexType.RANGE,
+          supportPartitionedScan = true
+        ),
+        UndirectedRelationshipIndexScan(
+          v"m",
+          v"m1",
+          v"m2",
+          relationshipTypeToken,
+          Seq(IndexedProperty(propToken, DoNotGetValue, RELATIONSHIP_TYPE)),
           Set(v"x"),
           IndexOrderNone,
           IndexType.RANGE,

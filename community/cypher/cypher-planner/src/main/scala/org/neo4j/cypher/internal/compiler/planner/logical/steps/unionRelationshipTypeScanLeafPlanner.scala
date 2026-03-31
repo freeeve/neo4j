@@ -35,7 +35,7 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 
-case class unionRelationshipTypeScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object unionRelationshipTypeScanLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -43,10 +43,7 @@ case class unionRelationshipTypeScanLeafPlanner(skipIDs: Set[LogicalVariable]) e
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
     def shouldIgnore(pattern: PatternRelationship) =
-      queryGraph.argumentIds.contains(pattern.variable) ||
-        skipIDs.contains(pattern.variable) ||
-        skipIDs.contains(pattern.left) ||
-        skipIDs.contains(pattern.right)
+      queryGraph.argumentIds.contains(pattern.variable)
 
     queryGraph.patternRelationships.flatMap {
       case relationship @ PatternRelationship(rel, (_, _), _, types, SimplePatternLength)

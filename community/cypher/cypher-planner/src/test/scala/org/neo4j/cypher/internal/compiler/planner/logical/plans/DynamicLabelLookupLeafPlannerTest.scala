@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
@@ -130,17 +129,6 @@ class DynamicLabelLookupLeafPlannerTest extends CypherFunSuite with LogicalPlann
     dynamicLabelScanLeafPlans(queryGraph) shouldEqual Set.empty
   }
 
-  test("no dynamic label scan if the variable is skipped") {
-    val n = v"n"
-
-    val queryGraph = QueryGraph(
-      selections = Selections.from(hasAnyDynamicLabel(n, listOfString("A", "B"))),
-      patternNodes = Set(n)
-    )
-
-    dynamicLabelScanLeafPlans(queryGraph, Set(n)) shouldEqual Set.empty
-  }
-
   test("no dynamic label scan if the variable is an argument") {
     val n = v"n"
 
@@ -204,13 +192,12 @@ class DynamicLabelLookupLeafPlannerTest extends CypherFunSuite with LogicalPlann
 
   final private def dynamicLabelScanLeafPlans(
     queryGraph: QueryGraph,
-    skipIDs: Set[LogicalVariable] = Set.empty,
     interestingOrderConfig: InterestingOrderConfig = InterestingOrderConfig.empty
   ): Set[LogicalPlan] = {
     val context = newMockedLogicalPlanningContext(
       planContext = newMockedPlanContext(),
       semanticTable = new SemanticTable()
     )
-    DynamicLabelLookupLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
+    DynamicLabelLookupLeafPlanner(queryGraph, interestingOrderConfig, context)
   }
 }

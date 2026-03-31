@@ -23,8 +23,6 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner.queryExpressionFromWhereClause
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.VectorSearchLeafPlanner.solvableGivenSymbols
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
@@ -75,9 +73,8 @@ import java.util.Locale
 
 /**
  * Plans ANN vector search leaf plans for nodes or relationships in SEARCH sub-clauses.
- * @param skipIDs IDs of variables that should not be planned as vector search.
  */
-final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object VectorSearchLeafPlanner extends LeafPlanner {
 
   private def handleErrors(indexDescriptorError: VectorIndexError, indexName: String, bindingVariableName: String) = {
     indexDescriptorError match {
@@ -109,7 +106,7 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
   ): Set[LogicalPlan] = {
     queryGraph.searchClause match {
       case Some(search @ VectorSearchClause(resultVariable, indexName, embedding, where, limit, scoreVariable))
-        if !skipIDs.contains(resultVariable) && solvableGivenSymbols(search, queryGraph.argumentIds) =>
+        if solvableGivenSymbols(search, queryGraph.argumentIds) =>
 
         if (queryGraph.patternNodes.contains(resultVariable)) {
           context.staticComponents.planContext.nodeVectorIndexByName(indexName) match {
@@ -360,10 +357,6 @@ final case class VectorSearchLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
         if relTypes.size == 1 && relTypes.exists(_.name == typeToken.name) => true
       case _ => false
     }
-
-}
-
-object VectorSearchLeafPlanner {
 
   def solvableGivenSymbols(search: VectorSearchClause, availableSymbols: Set[LogicalVariable]): Boolean = {
     search.dependencies.subsetOf(availableSymbols)

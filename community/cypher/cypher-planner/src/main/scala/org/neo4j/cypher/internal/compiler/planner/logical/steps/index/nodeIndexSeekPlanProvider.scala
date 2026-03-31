@@ -19,9 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexSeekPlanProvider.isAllowedByRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexLeafPlanner.NodeIndexMatch
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -31,20 +29,17 @@ object nodeIndexSeekPlanProvider extends AbstractNodeIndexSeekPlanProvider {
   override def createPlans(
     indexMatches: Set[NodeIndexMatch],
     queryGraph: QueryGraph,
-    restrictions: LeafPlanRestrictions,
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = for {
-    solution <- createSolutions(indexMatches, queryGraph, restrictions, context)
+    solution <- createSolutions(indexMatches, queryGraph, context)
   } yield constructPlan(solution, context)
 
   private def createSolutions(
     indexMatches: Set[NodeIndexMatch],
     queryGraph: QueryGraph,
-    restrictions: LeafPlanRestrictions,
     context: LogicalPlanningContext
   ): Set[Solution] = for {
     indexMatch <- indexMatches
-    if isAllowedByRestrictions(indexMatch.propertyPredicates, restrictions)
     solution <- createSolution(indexMatch, queryGraph, context)
   } yield solution
 

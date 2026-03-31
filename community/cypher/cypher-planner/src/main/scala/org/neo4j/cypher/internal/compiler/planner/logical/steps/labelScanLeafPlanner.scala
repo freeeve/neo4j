@@ -29,12 +29,11 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-case class labelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object labelScanLeafPlanner extends LeafPlanner {
 
   override def apply(
     qg: QueryGraph,
@@ -73,7 +72,7 @@ case class labelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlann
   ): Option[LogicalPlan] = {
 
     val variableIsValid: Boolean =
-      !skipIDs.contains(variable) && qg.patternNodes(variable) && !qg.argumentIds(variable)
+      qg.patternNodes(variable) && !qg.argumentIds(variable)
 
     for {
       nodeTokenIndex <- context.staticComponents.planContext.nodeTokenIndex

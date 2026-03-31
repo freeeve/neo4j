@@ -103,50 +103,12 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
       Set(NodeByIdSeek(v"n", ManySeekableArgs(listOfInt(42, 43, 43)), Set.empty))
     )
-  }
-
-  test("simple node by id seek with a collection of node ids and skipped ids") {
-    // given
-    val expr = in(id(v"n"), listOfInt(42, 43, 43))
-    val qg = QueryGraph(
-      selections = Selections(Set(Predicate(Set(v"n"), expr))),
-      patternNodes = Set(v"n")
-    )
-
-    val factory = newMockedMetricsFactory
-    when(factory.newCostModel(ExecutionModel.default, CancellationChecker.neverCancelled())).thenReturn((
-      (
-        plan: LogicalPlan,
-        _: QueryGraphSolverInput,
-        _: SemanticTable,
-        _: Cardinalities,
-        _: ProvidedOrders,
-        _: Set[PropertyAccess],
-        _: GraphStatistics,
-        _: CostModelMonitor
-      ) =>
-        plan match {
-          case _: NodeByIdSeek => Cost(1)
-          case _               => Cost(Double.MaxValue)
-        }
-    ): CostModel)
-    val context =
-      newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), metrics = newMockedMetrics(factory))
-    when(context.semanticTable.typeFor(v"n")).thenReturn(
-      SemanticTable.TypeGetter(Some(CTNode.invariant))
-    )
-
-    // when
-    val resultPlans = idSeekLeafPlanner(Set(v"n"))(qg, InterestingOrderConfig.empty, context)
-
-    // then
-    resultPlans should be(empty)
   }
 
   test("node by id seek with a collection of node ids via previous variable") {
@@ -182,7 +144,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
@@ -223,7 +185,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans shouldBe empty
@@ -262,7 +224,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans shouldBe empty
@@ -304,7 +266,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
@@ -354,7 +316,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
@@ -420,7 +382,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
@@ -493,7 +455,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(
@@ -551,7 +513,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
 
     // when
     val resultPlans =
-      idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context).map(removeGeneratedNamesAndParamsOnTree)
+      idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context).map(removeGeneratedNamesAndParamsOnTree)
 
     // then
     val newFrom = "anon_0"
@@ -610,7 +572,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
 
     // when
     val resultPlans =
-      idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context).map(removeGeneratedNamesAndParamsOnTree)
+      idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context).map(removeGeneratedNamesAndParamsOnTree)
 
     // then
     val newFrom = "anon_0"
@@ -659,7 +621,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     val newTo = "`  UNNAMED0`"
     // then
@@ -710,7 +672,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     )
 
     // when
-    val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = idSeekLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     val newTo = "`  UNNAMED0`"
     // then

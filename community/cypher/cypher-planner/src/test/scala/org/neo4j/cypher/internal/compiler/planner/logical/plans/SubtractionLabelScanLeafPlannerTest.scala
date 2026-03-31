@@ -55,7 +55,7 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
       newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = new SemanticTable())
 
     // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = subtractionLabelScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -74,7 +74,7 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
       newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = new SemanticTable())
 
     // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set.empty)(
+    val resultPlans = subtractionLabelScanLeafPlanner(
       qg,
       InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate(Seq(Desc(variable))))),
       context
@@ -97,7 +97,7 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
       newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = new SemanticTable())
 
     // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set.empty)(
+    val resultPlans = subtractionLabelScanLeafPlanner(
       qg,
       InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate(Seq(Asc(variable))))),
       context
@@ -129,7 +129,7 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
     )
 
     // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = subtractionLabelScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should be(empty)
@@ -149,7 +149,7 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
     )
 
     // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
+    val resultPlans = subtractionLabelScanLeafPlanner(qg, InterestingOrderConfig.empty, context)
 
     // then
     resultPlans should equal(Set(
@@ -158,15 +158,4 @@ class SubtractionLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPla
     ))
   }
 
-  test("should not plan subtraction label scan for skipped id") {
-    // given
-    val context =
-      newMockedLogicalPlanningContext(planContext = newMockedPlanContext(), semanticTable = new SemanticTable())
-
-    // when
-    val resultPlans = subtractionLabelScanLeafPlanner(Set(v"n"))(qg, InterestingOrderConfig.empty, context)
-
-    // then
-    resultPlans should be(empty)
-  }
 }

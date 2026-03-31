@@ -23,13 +23,12 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan
-import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-case class allRelationshipsScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case object allRelationshipsScanLeafPlanner extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -37,14 +36,10 @@ case class allRelationshipsScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
     def shouldIgnore(pattern: PatternRelationship): Boolean =
-      queryGraph.argumentIds.contains(pattern.variable) ||
-        skipIDs.contains(pattern.variable) ||
-        skipIDs.contains(pattern.left) ||
-        skipIDs.contains(pattern.right)
+      queryGraph.argumentIds.contains(pattern.variable)
 
     // We should not plan a relationship scan if there are dynamic relationship type scans that cover the same relationships
     lazy val dynamicTypeScans = DynamicRelationshipTypeLookupLeafPlanner.collectDynamicRelationshipTypeLookupDetails(
-      skipIDs,
       context,
       queryGraph,
       interestingOrderConfig
