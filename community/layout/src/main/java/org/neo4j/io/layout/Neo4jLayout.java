@@ -101,7 +101,7 @@ public final class Neo4jLayout {
         var databasesRootDirectory = config.get(GraphDatabaseInternalSettings.databases_root_path);
         var txLogsRootDirectory = config.get(GraphDatabaseSettings.transaction_logs_root_path);
         var scriptRootDirectory = config.get(GraphDatabaseSettings.script_root_path);
-        var seedsDirectory = config.get(GraphDatabaseInternalSettings.seeds_path);
+        var seedsDirectory = config.get(GraphDatabaseSettings.seeds_path);
         return new Neo4jLayout(
                 homeDirectory,
                 dataDirectory,
@@ -119,7 +119,7 @@ public final class Neo4jLayout {
                 .set(GraphDatabaseSettings.transaction_logs_root_path, home)
                 .set(GraphDatabaseInternalSettings.databases_root_path, home)
                 .set(GraphDatabaseSettings.script_root_path, home)
-                .set(GraphDatabaseInternalSettings.seeds_path, home)
+                .set(GraphDatabaseSettings.seeds_path, home)
                 .build();
         return of(config);
     }

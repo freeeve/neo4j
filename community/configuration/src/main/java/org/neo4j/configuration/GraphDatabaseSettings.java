@@ -95,6 +95,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final String DEFAULT_SCRIPT_FOLDER = "scripts";
     public static final String DEFAULT_DUMPS_DIR_NAME = "dumps";
     public static final String DEFAULT_LICENSES_DIR_NAME = "licenses";
+    public static final String DEFAULT_SEEDS_DIR_NAME = "seeds";
 
     public static final int DEFAULT_ROUTING_CONNECTOR_PORT = 7688;
 
@@ -852,6 +853,13 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final Setting<Path> licenses_directory = newBuilder(
                     "server.directories.licenses", PATH, Path.of(DEFAULT_LICENSES_DIR_NAME))
             .setDependency(neo4j_home)
+            .immutable()
+            .build();
+
+    @Description("Path of the seeds directory")
+    public static final Setting<Path> seeds_path = newBuilder(
+                    "server.directories.seeds", PATH, Path.of(DEFAULT_SEEDS_DIR_NAME))
+            .setDependency(GraphDatabaseSettings.neo4j_home)
             .immutable()
             .build();
 
