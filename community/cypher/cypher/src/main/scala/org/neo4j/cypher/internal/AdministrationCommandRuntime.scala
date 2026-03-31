@@ -890,9 +890,8 @@ object AdministrationCommandRuntime {
     case _ =>
       // this fails in parsing or semantic checking, but is needed for scala warnings
       throw CypherExecutionException.internalError(
-        s"Expected non-empty String or non-empty List of non-empty Strings but was `${field.asCanonicalStringVal}`.",
-        "",
-        null
+        this.getClass.getSimpleName,
+        s"Expected non-empty String or non-empty List of non-empty Strings but was `${field.asCanonicalStringVal}`."
       )
   }
 

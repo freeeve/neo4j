@@ -61,16 +61,6 @@ public class TemporalParseException extends SyntaxException {
         return new TemporalParseException(gql, "Text cannot be parsed to a " + type, text, 0);
     }
 
-    public static TemporalParseException cannotParseInput(String type, String text, String input) {
-        var gql = GqlHelper.getGql22007_22N36(text, type);
-        return new TemporalParseException(gql, "Cannot parse " + text + " as a " + type, input, 0);
-    }
-
-    public static TemporalParseException cannotParseInputInvalidCharacter(String type, String text, String input) {
-        var gql = GqlHelper.getGql22007_22N36_42I65(text, type);
-        return new TemporalParseException(gql, "Cannot parse " + text + " as a " + type, input, 0);
-    }
-
     public static TemporalParseException cannotParseToDateHint(String input) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N35)

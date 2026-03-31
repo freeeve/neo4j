@@ -363,12 +363,12 @@ abstract class GqlExceptionTestBase {
                 .withParam(GqlParams.StringParam.input, "{key: secret}")
                 .withParam(GqlParams.StringParam.context, "some context")
                 .withParam(GqlParams.ListParam.valueTypeList, List.of("STRING", "INTEGER", "FLOAT"))
-                .withParam(GqlParams.StringParam.hint, "hint")
+                .withParam(GqlParams.StringParam.hint, " hint")
                 .build();
 
         var exception = testException(errorGqlStatusObject, "legacy message");
         assertEquals(
-                "error: data exception - invalid entity type. Invalid input '******' for ******. Expected to be STRING, INTEGER or FLOAT.******",
+                "error: data exception - invalid entity type. Invalid input '******' for some context. Expected to be STRING, INTEGER or FLOAT. hint",
                 exception.obfuscatedStatusDescription());
     }
 }

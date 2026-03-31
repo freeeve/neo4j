@@ -20,11 +20,8 @@
 package org.neo4j.csv.reader;
 
 import org.neo4j.exceptions.ObfuscatableException;
-import org.neo4j.gqlstatus.Condition;
-import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class MissingEndQuoteException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate = "Missing end quote at position %s in '%s'.";
@@ -47,11 +44,6 @@ public class MissingEndQuoteException extends GqlRuntimeException implements Obf
     }
 
     @Override
-    public ErrorGqlStatusObject gqlStatusObject() {
-        return super.gqlStatusObject();
-    }
-
-    @Override
     public String getMessage() {
         return messageTemplate.formatted(position, sourceDescription);
     }
@@ -59,15 +51,5 @@ public class MissingEndQuoteException extends GqlRuntimeException implements Obf
     @Override
     public String obfuscatedMessage(String obfuscatedValue) {
         return messageTemplate.formatted(position, obfuscatedValue);
-    }
-
-    @Override
-    public String obfuscatedStatusDescription() {
-        return String.format(
-                "%s. %s",
-                Condition.createStandardDescription(
-                        GqlStatusInfoCodes.STATUS_22NAC.getCondition(),
-                        GqlStatusInfoCodes.STATUS_22NAC.getSubCondition()),
-                obfuscatedMessage("******"));
     }
 }

@@ -20,11 +20,8 @@
 package org.neo4j.csv.reader;
 
 import org.neo4j.exceptions.ObfuscatableException;
-import org.neo4j.gqlstatus.Condition;
-import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class IllegalMultilineFieldException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate =
@@ -47,11 +44,6 @@ public class IllegalMultilineFieldException extends GqlRuntimeException implemen
     }
 
     @Override
-    public ErrorGqlStatusObject gqlStatusObject() {
-        return super.gqlStatusObject();
-    }
-
-    @Override
     public String getMessage() {
         return messageTemplate.formatted(sourceDescription, position);
     }
@@ -59,15 +51,5 @@ public class IllegalMultilineFieldException extends GqlRuntimeException implemen
     @Override
     public String obfuscatedMessage(String obfuscatedValue) {
         return messageTemplate.formatted(obfuscatedValue, position);
-    }
-
-    @Override
-    public String obfuscatedStatusDescription() {
-        return String.format(
-                "%s. %s",
-                Condition.createStandardDescription(
-                        GqlStatusInfoCodes.STATUS_22NAE.getCondition(),
-                        GqlStatusInfoCodes.STATUS_22NAE.getSubCondition()),
-                obfuscatedMessage("******"));
     }
 }

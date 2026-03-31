@@ -47,8 +47,8 @@ enum NonSensitiveReason {
     // Non-sensitive parts of Cypher queries such as clauses, keywords and preparser options
     CYPHER_CONSTRUCT,
 
-    // Variable names from the Cypher query, these are not considered literals and are not obfuscated when the
-    // query is logged, so should be safe to include in errors as well
+    // Variable and parameter names from the Cypher query, these are not considered literals and are not obfuscated
+    // when the query is logged, so should be safe to include in errors as well
     CYPHER_VARIABLE,
 
     // Cypher or Java value types such as 'INTEGER NOT NULL' or 'String' and descriptions of types such as

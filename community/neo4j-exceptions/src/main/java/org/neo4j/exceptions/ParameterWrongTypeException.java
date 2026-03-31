@@ -164,24 +164,6 @@ public class ParameterWrongTypeException extends Neo4jException {
                 gql, String.format("Parameter '%s' has the wrong type, expected String, got %s.", key, inputType));
     }
 
-    public static ParameterWrongTypeException expectedNonEmptyString(String key, String prettifiedInput) {
-        var gql = getGql22G03_22N27(prettifiedInput, key, List.of("non-empty String"));
-        return new ParameterWrongTypeException(
-                gql,
-                String.format(
-                        "Expected parameter `$%s` to only contain non-empty Strings but contained `%s`.",
-                        key, prettifiedInput));
-    }
-
-    public static ParameterWrongTypeException expectedNonEmptyStringOrStringList(String key, String prettifiedInput) {
-        var gql = getGql22G03_22N27(
-                prettifiedInput, key, List.of("non-empty String", "non-empty List of non-empty Strings"));
-        return new ParameterWrongTypeException(
-                gql,
-                "Expected parameter `$%s` to be a non-empty String or a non-empty List of non-empty Strings but was `%s`."
-                        .formatted(key, prettifiedInput));
-    }
-
     public static ParameterWrongTypeException expectedPasswordToBeString(String passwordParameter, String type) {
         var gql = getGql42N51(
                 passwordParameter,

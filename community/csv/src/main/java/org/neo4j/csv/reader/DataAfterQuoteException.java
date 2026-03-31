@@ -20,11 +20,8 @@
 package org.neo4j.csv.reader;
 
 import org.neo4j.exceptions.ObfuscatableException;
-import org.neo4j.gqlstatus.Condition;
-import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class DataAfterQuoteException extends GqlRuntimeException implements ObfuscatableException {
     private static final String messageTemplate =
@@ -49,11 +46,6 @@ public class DataAfterQuoteException extends GqlRuntimeException implements Obfu
     }
 
     @Override
-    public ErrorGqlStatusObject gqlStatusObject() {
-        return super.gqlStatusObject();
-    }
-
-    @Override
     public String getMessage() {
         return messageTemplate.formatted(sourceDescription, position, readValue);
     }
@@ -61,15 +53,5 @@ public class DataAfterQuoteException extends GqlRuntimeException implements Obfu
     @Override
     public String obfuscatedMessage(String obfuscatedValue) {
         return messageTemplate.formatted(obfuscatedValue, position, obfuscatedValue);
-    }
-
-    @Override
-    public String obfuscatedStatusDescription() {
-        return String.format(
-                "%s. %s",
-                Condition.createStandardDescription(
-                        GqlStatusInfoCodes.STATUS_22NAD.getCondition(),
-                        GqlStatusInfoCodes.STATUS_22NAD.getSubCondition()),
-                obfuscatedMessage("******"));
     }
 }

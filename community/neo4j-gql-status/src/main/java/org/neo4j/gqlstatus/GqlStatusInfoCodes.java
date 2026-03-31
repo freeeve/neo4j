@@ -388,17 +388,23 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N19(
             "Communication with shard { %s } failed with message '{ %s }'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY)), GqlParams.StringParam.msg
+            },
             "shard execution transient error",
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N20(
             "Communication with shard { %s } failed with message '{ %s }'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY)), GqlParams.StringParam.msg
+            },
             "shard execution database error",
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N21(
             "Communication with shard { %s } failed with message '{ %s }'.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.graph, List.of(TOPOLOGY)), GqlParams.StringParam.msg
+            },
             "shard execution client error",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22000("", "", ErrorClassification.CLIENT_ERROR),
@@ -477,7 +483,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N01(
             "Expected the value { %s } to be of type { %s }, but was of type { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.value, GqlParams.ListParam.valueTypeList, GqlParams.StringParam.valueType
+                GqlParams.StringParam.value,
+                new NonSensitiveGqlParam(GqlParams.ListParam.valueTypeList, List.of(VALUE_TYPE, METADATA, FIXED_TEXT)),
+                new NonSensitiveGqlParam(
+                        GqlParams.StringParam.valueType, List.of(VALUE_TYPE, METADATA, PROCEDURES_FUNCTIONS))
             },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             "invalid type",
@@ -494,9 +503,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "Expected { %s } to be of type { %s } and in the range { %s } to { %s } but found { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.component,
-                GqlParams.StringParam.valueType,
-                GqlParams.StringParam.lower,
-                GqlParams.StringParam.upper,
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                // lower and upper are usually numbers but sometimes string representations of other types such as
+                // durations
+                new NonSensitiveGqlParam(GqlParams.StringParam.lower, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.upper, List.of(NON_SENSITIVE_NUMBER)),
                 GqlParams.StringParam.value
             },
             "specified numeric value out of range",
@@ -504,7 +515,19 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N04(
             "Invalid input { %s } for { %s }. Expected { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.inputList,
+                GqlParams.StringParam.input,
+                GqlParams.StringParam.context,
+                new NonSensitiveGqlParam(
+                        GqlParams.ListParam.inputList,
+                        List.of(
+                                FIXED_TEXT,
+                                VALUE_TYPE,
+                                TEMPORAL_SPATIAL,
+                                NON_SENSITIVE_NUMBER,
+                                CONFIG_SETTING,
+                                SCHEMA,
+                                PROCEDURES_FUNCTIONS,
+                                CYPHER_CONSTRUCT)),
             },
             Map.of(GqlParams.ListParam.inputList, GqlParams.JoinStyle.ORED),
             "invalid input value",
@@ -577,7 +600,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N15(
             "Cannot read the specified { %s } component from { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.StringParam.temporal},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.component, List.of(TEMPORAL_SPATIAL)),
+                GqlParams.StringParam.temporal
+            },
             "invalid temporal component",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N16(
@@ -628,12 +654,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N24(
             "Cannot construct a { %s } from { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.coordinates},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                GqlParams.StringParam.coordinates
+            },
             "invalid coordinate arguments",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N25(
             "Cannot construct a { %s } from { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.temporal},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                GqlParams.StringParam.temporal
+            },
             "invalid temporal arguments",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N26(
@@ -644,9 +676,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "Invalid input { %s } for { %s }. Expected to be { %s }.{ %s }",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input,
-                GqlParams.StringParam.context,
-                new NonSensitiveGqlParam(GqlParams.ListParam.valueTypeList, List.of(VALUE_TYPE)),
-                GqlParams.StringParam.hint
+                new NonSensitiveGqlParam(
+                        GqlParams.StringParam.context,
+                        List.of(
+                                FIXED_TEXT,
+                                TEMPORAL_SPATIAL,
+                                CYPHER_VARIABLE,
+                                CYPHER_CONSTRUCT,
+                                PROCEDURES_FUNCTIONS,
+                                CONFIG_SETTING,
+                                VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.valueTypeList, List.of(VALUE_TYPE, CONFIG_SETTING)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.hint, List.of(FIXED_TEXT))
             },
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             "invalid entity type",
@@ -667,10 +708,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N31(
             "The { %s } property { %s } in { %s } is invalid. 'MERGE' cannot be used with a graph element property value that is { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.entityType,
-                GqlParams.StringParam.propKey,
+                new NonSensitiveGqlParam(GqlParams.StringParam.entityType, List.of(SCHEMA)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.propKey, List.of(SCHEMA)),
                 GqlParams.StringParam.pat,
-                GqlParams.StringParam.value
+                new NonSensitiveGqlParam(GqlParams.StringParam.value, List.of(CYPHER_CONSTRUCT)),
             },
             "invalid properties in merge pattern",
             ErrorClassification.CLIENT_ERROR),
@@ -698,12 +739,18 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N36(
             "Cannot parse { %s } as a { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.input,
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))
+            },
             "invalid temporal format",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N37(
             "Cannot coerce { %s } to { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.value, GqlParams.StringParam.valueType},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.value,
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))
+            },
             "invalid coercion",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N38(
@@ -1090,7 +1137,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NAA(
             "The expression { %s } is not supported. Lists containing { %s } values are not supported for property-based access control.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.exprType},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.expr,
+                new NonSensitiveGqlParam(GqlParams.StringParam.exprType, List.of(CYPHER_CONSTRUCT)),
+            },
             "invalid list for property-based access control rule",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NAB(
@@ -1101,18 +1151,26 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NAC(
             "Characters after an ending quote in a CSV field are not supported. See { %s } at position { %s }. This is read as { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input, GqlParams.NumberParam.pos, GqlParams.StringParam.variable
+                GqlParams.StringParam.input,
+                new NonSensitiveGqlParam(GqlParams.NumberParam.pos, List.of(NON_SENSITIVE_NUMBER)),
+                GqlParams.StringParam.variable
             },
             "characters after quote in CSV field",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NAD(
             "Missing end quote at position { %s } in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.pos, GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.NumberParam.pos, List.of(NON_SENSITIVE_NUMBER)),
+                GqlParams.StringParam.input
+            },
             "missing end quote in CSV field",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NAE(
             "Multi-line fields are illegal in this context. Verify that there is not a missing end quote in { %s } at position { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.NumberParam.pos},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.input,
+                new NonSensitiveGqlParam(GqlParams.NumberParam.pos, List.of(NON_SENSITIVE_NUMBER)),
+            },
             "multi-line field in illegal CSV context",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB0(
@@ -1220,7 +1278,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NBF(
             "Property value of type { %s } is too big (more than { %s } bytes): { %s }",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.typeDescription, GqlParams.NumberParam.bytes, GqlParams.StringParam.value
+                new NonSensitiveGqlParam(GqlParams.StringParam.typeDescription, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.bytes, List.of(NON_SENSITIVE_NUMBER)),
+                GqlParams.StringParam.value
             },
             "property value too big",
             ErrorClassification.CLIENT_ERROR),
@@ -1500,7 +1560,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "A Cypher query has to contain at least one clause.", "empty request", ErrorClassification.CLIENT_ERROR),
     STATUS_42I04(
             "{ %s } cannot be used in a { %s } clause.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.expr,
+                new NonSensitiveGqlParam(GqlParams.StringParam.clause, List.of(CYPHER_CONSTRUCT, SCHEMA))
+            },
             "invalid expression",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I05(
@@ -1509,13 +1572,19 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I06(
             "Invalid input { %s }, expected: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.ListParam.valueList},
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.input,
+                new NonSensitiveGqlParam(GqlParams.ListParam.valueList, List.of(CYPHER_CONSTRUCT, FIXED_TEXT))
+            },
             Map.of(GqlParams.ListParam.valueList, GqlParams.JoinStyle.ORED),
             "invalid input",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I07(
             "The given { %s } literal { %s } is invalid.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                GqlParams.StringParam.input
+            },
             "invalid integer literal",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I08(
@@ -1608,7 +1677,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I21(
             "Not allowed to reference { %s } from within a parenthesized/quantified path pattern like { %s } in the same graph pattern.",
-            new GqlParams.GqlParam[] {GqlParams.ListParam.variableList, GqlParams.StringParam.pat},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.variableList, List.of(CYPHER_VARIABLE)),
+                GqlParams.StringParam.pat
+            },
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             "invalid reference to variable out of scope",
             ErrorClassification.CLIENT_ERROR),
@@ -1856,7 +1928,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I68(
             "Pattern, `{ %s }`, does not match input, `{ %s }`. Verify that the pattern is valid for constructing `{ %s }`.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.input1, GqlParams.StringParam.input2, GqlParams.StringParam.valueType
+                GqlParams.StringParam.input1,
+                GqlParams.StringParam.input2,
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE))
             },
             "mismatched pattern",
             ErrorClassification.CLIENT_ERROR),
@@ -2125,10 +2199,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N31(
             "Expected { %s } to be { %s } in the range { %s } to { %s } but found { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.component,
-                GqlParams.StringParam.valueType,
-                GqlParams.NumberParam.lower,
-                GqlParams.NumberParam.upper,
+                new NonSensitiveGqlParam(GqlParams.StringParam.component, List.of(FIXED_TEXT, CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.valueType, List.of(VALUE_TYPE)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.lower, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER)),
                 GqlParams.StringParam.value
             },
             "specified number out of range",
@@ -2642,13 +2716,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     // #################################
     STATUS_50N00(
             "Internal exception raised { %s }: { %s }",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                /*
+                 * The convention is that msgTitle is the class in the codebase which threw the internal error (this.getClass.getSimpleName)
+                 * In some instances it can also be an Exception class or a hardcoded text.
+                 */
+                new NonSensitiveGqlParam(GqlParams.StringParam.msgTitle, List.of(METADATA, FIXED_TEXT)),
+                GqlParams.StringParam.msg
+            },
             "internal error",
             ErrorClassification.UNKNOWN),
     STATUS_50N01(
             "Remote execution by { %s } raised { %s }: { %s }",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.server, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
+                new NonSensitiveGqlParam(GqlParams.StringParam.server, List.of(TOPOLOGY)),
+                GqlParams.StringParam.msgTitle,
+                GqlParams.StringParam.msg
             },
             "remote execution error",
             ErrorClassification.UNKNOWN),
@@ -2947,7 +3030,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N27(
             "{ %s } is not supported in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.edition},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.feat, List.of(SCHEMA, CYPHER_CONSTRUCT, FIXED_TEXT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.edition, List.of(FIXED_TEXT))
+            },
             "not supported in this edition",
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N28(
@@ -3087,7 +3173,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N53(
             "Cannot { %s } database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.action, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+                new NonSensitiveGqlParam(GqlParams.StringParam.action, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.count, List.of(NON_SENSITIVE_NUMBER)),
+                new NonSensitiveGqlParam(GqlParams.NumberParam.upper, List.of(NON_SENSITIVE_NUMBER))
             },
             "number secondaries out of range",
             ErrorClassification.CLIENT_ERROR),
@@ -3363,10 +3451,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.field,
-                GqlParams.StringParam.procParam,
-                GqlParams.StringParam.proc,
-                GqlParams.StringParam.procParam,
-                GqlParams.StringParam.procParamFmt
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParam, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParam, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.procParamFmt, List.of(FIXED_TEXT))
             },
             "invalid procedure argument",
             ErrorClassification.CLIENT_ERROR),
@@ -3424,7 +3512,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N33(
             "Failed to invoke procedure/function { %s } caused by: { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.sig, GqlParams.StringParam.msg},
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.sig, List.of(PROCEDURES_FUNCTIONS)),
+                GqlParams.StringParam.msg
+            },
             "procedure invocation failed",
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N34(
@@ -3475,7 +3566,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_52U00(
             "Execution of the procedure { %s } failed due to { %s }: { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.proc, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
+                new NonSensitiveGqlParam(GqlParams.StringParam.proc, List.of(PROCEDURES_FUNCTIONS)),
+                // msgTitle is the name of the underlying exception class
+                new NonSensitiveGqlParam(GqlParams.StringParam.msgTitle, List.of(METADATA)),
+                GqlParams.StringParam.msg
             },
             "custom procedure execution error cause",
             ErrorClassification.UNKNOWN),
@@ -3510,7 +3604,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_53U00(
             "Execution of the function { %s } failed due to { %s }: { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.fun, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
+                new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS)),
+                // msgTitle is the name of the underlying exception class
+                new NonSensitiveGqlParam(GqlParams.StringParam.msgTitle, List.of(METADATA)),
+                GqlParams.StringParam.msg
             },
             "custom function execution error cause",
             ErrorClassification.UNKNOWN),

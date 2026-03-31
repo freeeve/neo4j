@@ -659,19 +659,6 @@ object SemanticError {
     )
   }
 
-  def unsupportedAggregationInNEXT(aggregation: String, msg: String, pos: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.offset, pos.line, pos.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I64)
-        .atPosition(pos.offset, pos.line, pos.column)
-        .withParam(GqlParams.StringParam.context, aggregation)
-        .withParam(GqlParams.StringParam.msg, msg)
-        .build())
-      .build()
-
-    new SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, pos)
-  }
-
   def onlyDirectedRelationshipAllowed(clause: String, pos: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(pos.offset, pos.line, pos.column)
