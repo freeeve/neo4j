@@ -478,7 +478,7 @@ abstract class ExecutionEngine(
         }
         forceReplan = lockedEntities.needsReplan
 
-        // if the schema has changed while taking all locks we need to try again.
+        // if the schema has changed while taking all locks, we need to try again.
         n += 1
       }
     } finally {

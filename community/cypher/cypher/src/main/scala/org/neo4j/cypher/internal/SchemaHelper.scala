@@ -74,8 +74,8 @@ class SchemaHelper(val queryCache: QueryCache[_, _], val masterCompiler: MasterC
       lookupTypes.nonEmpty ||
       labelIndexIds.nonEmpty ||
       relationshipIndexIds.nonEmpty ||
-      semanticNodeIndexesUsed.isEmpty ||
-      semanticRelIndexesUsed.isEmpty
+      semanticNodeIndexesUsed.nonEmpty ||
+      semanticRelIndexesUsed.nonEmpty
     ) {
       val schemaTokenAfter = readSchemaToken(tc)
       // Need to check if index has been dropped because we can still acquire and get the lock
@@ -88,7 +88,7 @@ class SchemaHelper(val queryCache: QueryCache[_, _], val masterCompiler: MasterC
         lookupTypes
       )
 
-      // if the schema has changed while taking all locks OR if the lookup index has been dropped we release locks and return false
+      // if the schema has changed while taking all locks OR if the lookup index has been dropped, we release locks and return false
       if (schemaTokenBefore != schemaTokenAfter || indexDropped) {
         releaseLocks(
           tc,
