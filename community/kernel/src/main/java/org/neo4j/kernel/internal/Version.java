@@ -34,8 +34,7 @@ public final class Version {
     private static final Version KERNEL_VERSION = new Version(KERNEL_ARTIFACT_ID, selectVersion());
 
     static String selectVersion() {
-        var versionString =
-                getProperty(CUSTOM_VERSION_SETTING, Version.class.getPackage().getImplementationVersion());
+        var versionString = getProperty(CUSTOM_VERSION_SETTING, getManifestVersion());
         return Objects.toString(versionString, DEFAULT_DEV_VERSION);
     }
 
@@ -49,6 +48,10 @@ public final class Version {
 
     public static String getNeo4jVersion() {
         return getKernel().getReleaseVersion();
+    }
+
+    public static String getManifestVersion() {
+        return Version.class.getPackage().getImplementationVersion();
     }
 
     private final String artifactId;
