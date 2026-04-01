@@ -26,13 +26,13 @@ import static org.assertj.core.api.InstanceOfAssertFactories.map;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,7 +42,7 @@ import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
-import org.neo4j.genai.ai.text.chat.provider.azure.azure.AzureOpenAi;
+import org.neo4j.genai.ai.text.chat.provider.azure.AzureOpenAi;
 import org.neo4j.genai.ai.text.chat.provider.openai.OpenAi;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -73,9 +73,14 @@ public class TextChatTest implements GenAITestExtension {
                 .http2PlainDisabled(true));
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
-        builder.addExtension(
-                new GenAiPluginExtension(new OpenAi(baseUrl + "/v1"), new AzureOpenAi(p -> URI.create(baseUrl))));
+        builder.addExtension(new GenAiPluginExtension(new OpenAi(baseUrl + "/v1"), new AzureOpenAi()));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+    }
+
+    @BeforeEach
+    public void setup() {
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
     }
 
     @AfterAll
@@ -219,6 +224,31 @@ public class TextChatTest implements GenAITestExtension {
         assertThat(res)
                 .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.map(String.class, Object.class))
                 .containsEntry("message", "Bla bla bla... (openai)")
+                .containsEntry("chatId", "resp_xxx");
+    }
+
+    @Test
+    void azureOpenAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://localhost/%s");
+        final var query1 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf
+                return ai.text.chat('Fail AZURE!', null, 'azure-openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.chat`");
+
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
+        final var query2 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf
+                return ai.text.chat('Hello Chat!', null, 'azure-openai', conf) as result
+                """;
+        final var res =
+                db.executeTransactionally(query2, Map.of(), l -> l.next().get("result"));
+        assertThat(res)
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.map(String.class, Object.class))
+                .containsEntry("message", "Bla bla bla... (azure-openai)")
                 .containsEntry("chatId", "resp_xxx");
     }
 }

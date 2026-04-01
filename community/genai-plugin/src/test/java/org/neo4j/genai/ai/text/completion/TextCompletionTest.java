@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -81,12 +82,18 @@ public class TextCompletionTest implements GenAITestExtension {
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
                 new OpenAi(baseUrl + "/v1"),
-                new AzureOpenAi(p -> URI.create(baseUrl)),
+                new AzureOpenAi(),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockConverse(p -> URI.create(baseUrl)),
                 new BedrockNova(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+    }
+
+    @BeforeEach
+    public void setup() {
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
     }
 
     @AfterAll
@@ -325,6 +332,44 @@ public class TextCompletionTest implements GenAITestExtension {
                 .as("Query:%n```%n%s%n```%n", query2)
                 .singleElement(resultMap())
                 .containsEntry("result", "Bla bla bla... (openai)");
+    }
+
+    @Test
+    void azureOpenAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://%s.localhost/openai/v1");
+        final var query1 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf
+                return ai.text.completion('Fail!', 'azure-openai', conf) as result
+                """;
+        // It fails because the URL is not reachable, but it should not fail during URI creation
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.completion`")
+                .satisfies(e -> assertThat(e.getMessage())
+                        .doesNotContain("Azure OpenAI base URL template can only have 0 or 1 '%s' placeholders"));
+
+        // Two format specifiers - should fail during configuration
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://%s.%s.localhost/openai/v1");
+        final var query2 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf
+                return ai.text.completion('Fail!', 'azure-openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query2, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.completion`")
+                .hasMessageContaining(
+                        "Azure OpenAI base URL template can only have 0 or 1 '%s' placeholders, but found 2");
+
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
+        final var query0 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf
+                return ai.text.completion('Hello!', 'azure-openai', conf) as result
+                """;
+        assertThat(db.executeTransactionally(query0, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query0)
+                .singleElement(resultMap())
+                .containsEntry("result", "Bla bla bla... (azure-openai)");
     }
 
     @ParameterizedTest

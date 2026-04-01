@@ -17,37 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.ai.text.chat.provider.azure.azure;
+package org.neo4j.genai.ai.text.chat.provider.azure;
 
 import static org.neo4j.genai.util.Parameters.parse;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.function.Function;
 import org.eclipse.collections.api.map.MutableMap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.GenAIConfig;
+import org.neo4j.genai.ai.provider.azure.AzureOpenAiRequestSupport;
 import org.neo4j.genai.ai.text.chat.TextChat;
 import org.neo4j.genai.ai.text.chat.provider.openai.OpenAiChatBase;
 import org.neo4j.genai.util.HttpService;
-import org.neo4j.genai.util.UrlPath;
-import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.virtual.MapValue;
 
 @ServiceProvider
 public class AzureOpenAi implements TextChat.Provider {
-    private static final String DEFAULT_BASE_URL_TEMPLATE = "https://%s.openai.azure.com";
-    private static final String DEFAULT_API_PATH = "/openai/v1/responses";
-    private final Function<Parameters, URI> baseUriResolver;
-
-    public AzureOpenAi() {
-        this(new DefaultBaseUriResolver());
-    }
-
-    @VisibleForTesting
-    public AzureOpenAi(Function<Parameters, URI> baseUriResolver) {
-        this.baseUriResolver = baseUriResolver;
-    }
+    private static final String DEFAULT_API_PATH = "/responses";
 
     public static class Parameters {
         public String token;
@@ -69,7 +56,7 @@ public class AzureOpenAi implements TextChat.Provider {
     @Override
     public Implementation configure(HttpService httpService, MapValue configuration, GenAIConfig genAIConfig) {
         final var params = parse(Parameters.class, configuration);
-        final var uri = baseUriResolver.apply(params).resolve(DEFAULT_API_PATH);
+        final var uri = AzureOpenAiRequestSupport.endpoint(genAIConfig, params.resource, DEFAULT_API_PATH);
         return new Impl(uri, httpService, params, name());
     }
 
@@ -81,21 +68,13 @@ public class AzureOpenAi implements TextChat.Provider {
             implements OpenAiChatBase<Parameters> {
         @Override
         public String[] authHeader() {
-            return new String[] {"Authorization", "Bearer " + params.token};
+            return AzureOpenAiRequestSupport.authHeader(params.token);
         }
 
         @Override
         public void extendPayload(MutableMap<String, Object> payload) {
             payload.putAll(params.vendorOptions); // Needs to be first to not override model
             payload.put("model", params.model);
-        }
-    }
-
-    private static class DefaultBaseUriResolver implements Function<Parameters, URI> {
-        @Override
-        public URI apply(Parameters parameters) {
-            final var region = UrlPath.pathSafe(parameters.resource, "resource");
-            return URI.create(DEFAULT_BASE_URL_TEMPLATE.formatted(region));
         }
     }
 }

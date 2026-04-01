@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -80,10 +81,16 @@ public class TextAggregateStructuredCompletionTest implements GenAITestExtension
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
                 new OpenAi(baseUrl + "/v1"),
-                new AzureOpenAi(p -> URI.create(baseUrl)),
+                new AzureOpenAi(),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockConverse(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+    }
+
+    @BeforeEach
+    public void setup() {
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
     }
 
     @BeforeAll
@@ -392,6 +399,40 @@ public class TextAggregateStructuredCompletionTest implements GenAITestExtension
                 WITH { token: 'dummy-openai-token', model: 'gpt-5' } as conf, %s AS schema
                 MATCH (u:UserReview)
                 RETURN ai.text.aggregateStructuredCompletion(u.review, 'Hello, can you tell me the issues with my restaurant based on these reviews?', schema, 'openai', conf) as result
+                """.formatted(schemaLiteral());
+        assertThat(db.executeTransactionally(query2, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query2)
+                .singleElement(resultMap())
+                .satisfies(row -> {
+                    @SuppressWarnings("unchecked")
+                    var result = (Map<String, Object>) row.get("result");
+                    assertThat(result)
+                            .containsExactlyEntriesOf(Map.of(
+                                    "issues",
+                                    List.of(
+                                            Map.of("priority", "High", "description", "Issue 1."),
+                                            Map.of("priority", "Medium", "description", "Issue 2."))));
+                });
+    }
+
+    @Test
+    void azureOpenAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://localhost/%s");
+        final var query1 = """
+                WITH { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf, %s AS schema
+                MATCH (u:UserReview)
+                RETURN ai.text.aggregateStructuredCompletion(u.review, 'Fail AZURE!', schema, 'azure-openai', conf) as result
+                """.formatted(schemaLiteral());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.aggregateStructuredCompletion`");
+
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
+        final var query2 = """
+                WITH { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf, %s AS schema
+                MATCH (u:UserReview)
+                RETURN ai.text.aggregateStructuredCompletion(u.review, 'Hello, can you tell me the issues with my restaurant based on these reviews?', schema, 'azure-openai', conf) as result
                 """.formatted(schemaLiteral());
         assertThat(db.executeTransactionally(query2, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query2)

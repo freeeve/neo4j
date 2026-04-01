@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,11 +80,17 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         this.wireMock.start();
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
-                new AzureOpenAi(p -> URI.create(baseUrl)),
+                new AzureOpenAi(),
                 new OpenAi(baseUrl + "/v1"),
                 new VertexAi(p -> URI.create(baseUrl)),
                 new BedrockTitan(p -> URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+    }
+
+    @BeforeEach
+    public void setup() {
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
     }
 
     @AfterAll
@@ -188,6 +195,29 @@ public class VectorEmbeddingTest implements GenAITestExtension {
         final var query2 = """
                 with { token: 'dummy-openai-token', model: 'text-embedding-3-small' } as conf
                 return ai.text.embed('Hello!', 'openai', conf) IS :: VECTOR<FLOAT32> as result
+                """;
+        assertThat(db.executeTransactionally(query2, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query2)
+                .singleElement(resultMap())
+                .containsEntry("result", true);
+    }
+
+    @Test
+    void azureOpenAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://localhost/%s");
+        final var query1 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'text-embedding-ada-002' } as conf
+                return ai.text.embed('Hello!', 'azure-openai', conf) as result
+                """;
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.embed`");
+
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
+        final var query2 = """
+                with { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'text-embedding-3-small' } as conf
+                return ai.text.embed('Hello!', 'azure-openai', conf) IS :: VECTOR<FLOAT32> as result
                 """;
         assertThat(db.executeTransactionally(query2, Map.of(), consume()))
                 .as("Query:%n```%n%s%n```%n", query2)

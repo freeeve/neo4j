@@ -29,11 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.ai.ProviderArgs;
 import org.neo4j.genai.ai.ProviderArguments;
@@ -73,10 +75,16 @@ public class TextStructuredCompletionTest implements GenAITestExtension {
         final var baseUrl = this.wireMock.baseUrl();
         builder.addExtension(new GenAiPluginExtension(
                 new OpenAi(baseUrl + "/v1"),
-                new AzureOpenAi(p -> java.net.URI.create(baseUrl)),
+                new AzureOpenAi(),
                 new VertexAi(p -> java.net.URI.create(baseUrl)),
                 new BedrockConverse(p -> java.net.URI.create(baseUrl))));
         builder.setConfig(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
+    }
+
+    @BeforeEach
+    public void setup() {
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
     }
 
     @AfterAll
@@ -330,6 +338,36 @@ public class TextStructuredCompletionTest implements GenAITestExtension {
                     @SuppressWarnings("unchecked")
                     var result = (Map<String, Object>) row.get("result");
                     assertThat(result).containsEntry("answer", "Paris is in France.");
+                });
+    }
+
+    @Test
+    void azureOpenAIWithConfigSetBaseURL() {
+        GenAIConfig.instance().setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, "http://localhost/%s");
+        final var query1 = """
+                WITH { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf, %s AS schema
+                RETURN ai.text.structuredCompletion('Fail AZURE!', schema, 'azure-openai', conf) as result
+                """.formatted(schemaLiteralSimple());
+        assertThatThrownBy(() -> db.executeTransactionally(
+                        query1, Map.of(), r -> r.stream().toList()))
+                .hasMessageContaining("Failed to invoke function `ai.text.structuredCompletion`");
+
+        GenAIConfig.instance()
+                .setProperty(GenAIConfig.GENAI_AZURE_OPENAI_BASE_URL, this.wireMock.baseUrl() + "/openai/v1");
+        final var query2 = """
+                WITH { token: 'dummy-azure-token', resource: 'dummy-resource', model: 'gpt-5' } as conf, %s AS schema
+                RETURN ai.text.structuredCompletion('Hello!', schema, 'azure-openai', conf) as result
+                """.formatted(schemaLiteralSimple());
+        assertThat(db.executeTransactionally(query2, Map.of(), consume()))
+                .as("Query:%n```%n%s%n```%n", query2)
+                .singleElement(resultMap())
+                .satisfies(row -> {
+                    @SuppressWarnings("unchecked")
+                    var result = (Map<String, Object>) row.get("result");
+                    assertThat(result)
+                            .containsEntry(
+                                    "answer",
+                                    "Hi there! How can I help today? I can explain concepts, answer questions, draft or edit emails, brainstorm ideas, translate text, summarize articles, help with coding, plan trips, make checklists, and more.");
                 });
     }
 

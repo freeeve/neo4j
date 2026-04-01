@@ -47,9 +47,11 @@ import org.neo4j.util.Preconditions;
 
 public class GenAIConfig extends LifecycleAdapter {
     public static final String GENAI_OPENAI_BASE_URL = "genai.openai.baseurl";
+    public static final String GENAI_AZURE_OPENAI_BASE_URL = "genai.azureopenai.baseurl";
 
-    private static final Map<String, Object> configDefaultValues =
-            Map.of(GENAI_OPENAI_BASE_URL, "https://api.openai.com/v1");
+    private static final Map<String, Object> configDefaultValues = Map.of(
+            GENAI_OPENAI_BASE_URL, "https://api.openai.com/v1",
+            GENAI_AZURE_OPENAI_BASE_URL, "https://%s.openai.azure.com/openai/v1");
 
     private final Config neo4jConfig;
     private final Log log;
