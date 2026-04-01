@@ -65,16 +65,7 @@ public class GenAiPluginSecurityIT implements GenAITestExtension {
                 "RETURN genai.vector.encode('', 'Bedrock', {accessKeyId: '-', secretAccessKey: '-'})",
                 "CALL genai.vector.encodeBatch([''], 'Bedrock', {accessKeyId: '-', secretAccessKey: '-'})",
                 "RETURN genai.vector.encode('', 'VertexAI', {token: '-', projectId: '-', model: 'text-embedding-005'})",
-                "CALL genai.vector.encodeBatch([''], 'VertexAI', {token: '-', projectId: '-', model: 'text-embedding-005'})",
-                "CALL genai.vector.external.info('https://www.pinecone.io', '', {})",
-                "CALL genai.vector.external.createCollection('https://www.pinecone.io', 'x', 'x', 1, {})",
-                "CALL genai.vector.external.deleteCollection('https://www.pinecone.io', 'x', {})",
-                "CALL genai.vector.external.delete('https://www.pinecone.io', 'x', [0], {})",
-                "CALL genai.vector.external.get('https://www.pinecone.io', 'x', [0], {})",
-                "CALL genai.vector.external.getAndUpdate('https://www.pinecone.io', 'x', [0], {})",
-                "CALL genai.vector.external.upsert('https://www.pinecone.io', 'x', [{}], {})",
-                "CALL genai.vector.external.query('https://www.pinecone.io', 'x', [0.0], null, 1, {})",
-                "CALL genai.vector.external.queryAndUpdate('https://www.pinecone.io', 'x', [0.0], null, 1, {})");
+                "CALL genai.vector.encodeBatch([''], 'VertexAI', {token: '-', projectId: '-', model: 'text-embedding-005'})");
         final var expectedMessage = Pattern.compile(
                 "Failed to invoke .*: Caused by: org.neo4j.graphdb.security.URLAccessValidationError: access to .* is blocked via the configuration property internal.dbms.cypher_ip_blocklist");
         for (final var query : queries) {

@@ -27,7 +27,6 @@ import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.ai.text.completion.TextCompletionCallCountersMonitor;
 import org.neo4j.genai.ai.text.embed.VectorEmbeddingCallCountersMonitor;
 import org.neo4j.genai.ai.text.tokenCount.TextTokenCallCountersMonitor;
-import org.neo4j.genai.dbs.VectorDatabaseCallCountersMonitor;
 import org.neo4j.genai.util.GenAIMonitor;
 import org.neo4j.genai.vector.DeprecatedVectorEncodingCallCountersMonitor;
 import org.neo4j.graphdb.event.DatabaseEventContext;
@@ -47,10 +46,6 @@ import org.neo4j.util.VisibleForTesting;
  */
 public interface Monitors {
     <T extends GenAIMonitor> T ofType(Class<T> type);
-
-    default VectorDatabaseCallCountersMonitor vectorDb() {
-        return ofType(VectorDatabaseCallCountersMonitor.class);
-    }
 
     default DeprecatedVectorEncodingCallCountersMonitor deprecatedVectorEnc() {
         return ofType(DeprecatedVectorEncodingCallCountersMonitor.class);

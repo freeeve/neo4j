@@ -34,7 +34,6 @@ import org.neo4j.genai.ai.text.embed.VectorEmbedding;
 import org.neo4j.genai.ai.text.structuredCompletion.TextStructuredCompletion;
 import org.neo4j.genai.ai.text.tokenChunking.TextChunkByToken;
 import org.neo4j.genai.ai.text.tokenCount.TextTokenCount;
-import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding;
 import org.neo4j.graphdb.ResultTransformer;
 import org.neo4j.test.jar.JarBuilder;
@@ -48,7 +47,6 @@ public interface GenAITestExtension {
         JarBuilder.createJarFor(
                 path,
                 DeprecatedVectorEncoding.class,
-                VectorDatabases.class,
                 TextCompletion.class,
                 TextStructuredCompletion.class,
                 TextAggregateCompletion.class,
