@@ -28,6 +28,7 @@ import static org.neo4j.server.security.auth.SecurityTestUtils.password;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
@@ -68,6 +69,24 @@ class RateLimitedAuthenticationStrategyTest {
 
         // Then
         assertThat(authStrategy.authenticate(user, password("wrong"))).isEqualTo(AuthenticationResult.FAILURE);
+    }
+
+    @Test
+    void shouldReturnFailureWhenCredentialIsNull() {
+        FakeClock clock = getFakeClock();
+        AuthenticationStrategy authStrategy = newAuthStrategy(clock, 3);
+        User user = new User("user", "id", null, false, false, Set.of());
+
+        assertThat(authStrategy.authenticate(user, password("any"))).isEqualTo(AuthenticationResult.FAILURE);
+    }
+
+    @Test
+    void shouldReturnFailureWhenStoredNativeCredentialIsNull() {
+        FakeClock clock = getFakeClock();
+        AuthenticationStrategy authStrategy = newAuthStrategy(clock, 3);
+        User user = new User("user", "id", new User.SensitiveCredential(null), false, false, Set.of());
+
+        assertThat(authStrategy.authenticate(user, password("any"))).isEqualTo(AuthenticationResult.FAILURE);
     }
 
     @Test

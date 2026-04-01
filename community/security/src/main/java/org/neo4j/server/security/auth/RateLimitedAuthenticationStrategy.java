@@ -81,6 +81,13 @@ public class RateLimitedAuthenticationStrategy implements AuthenticationStrategy
             return AuthenticationResult.TOO_MANY_ATTEMPTS;
         }
 
+        if (user.credential() == null || user.credential().value() == null) {
+            // Native password auth is impossible (e.g. user only has external auth, or credentials were cleared
+            // while a :User still exists or is visible during concurrent administration).
+            authMetadata.authFailed();
+            return AuthenticationResult.FAILURE;
+        }
+
         if (user.credential().value().matchesPassword(password)) {
             authMetadata.authSuccess();
             return AuthenticationResult.SUCCESS;
