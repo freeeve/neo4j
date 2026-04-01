@@ -36,10 +36,40 @@ case class PhysicalPlanAttributes(
   providedOrders: ProvidedOrders,
   leveragedOrders: LeveragedOrders
 ) {
+  import PhysicalPlanAttributes.AttributeType
 
   def copyAll(from: Id, to: Id): Unit = {
     effectiveCardinalities.copy(from, to)
     providedOrders.copy(from, to)
     leveragedOrders.copy(from, to)
+  }
+
+  /**
+   * Copies all attributes to the target Id, selecting the source Id for each attribute type
+   * via the given selector function. Uses a sealed trait so that Scala's exhaustive pattern
+   * matching ensures all attribute types are handled.
+   *
+   * Example:
+   * {{{
+   * attributes.copyTo(limit.id) {
+   *   case EffectiveCardinalities => lhs.id
+   *   case ProvidedOrders | LeveragedOrders => rhs.id
+   * }
+   * }}}
+   */
+  def copyTo(target: Id)(fromSelector: AttributeType => Id): Unit = {
+    effectiveCardinalities.copy(fromSelector(AttributeType.EffectiveCardinalities), target)
+    providedOrders.copy(fromSelector(AttributeType.ProvidedOrders), target)
+    leveragedOrders.copy(fromSelector(AttributeType.LeveragedOrders), target)
+  }
+}
+
+object PhysicalPlanAttributes {
+  sealed trait AttributeType
+
+  object AttributeType {
+    case object EffectiveCardinalities extends AttributeType
+    case object ProvidedOrders extends AttributeType
+    case object LeveragedOrders extends AttributeType
   }
 }
