@@ -378,32 +378,37 @@
         </plugins>
       </build>
     </profile>
-    <!--  TODO: uncomment this when the thousands of warnings are fixed... -->
-    <!--
     <profile>
       <id>scala-fatal-warnings</id>
       <activation>
-          <property>
-              <name>scalaFatalWarnings</name>
-              <value>true</value>
-          </property>
+        <property>
+          <name>scalaFatalWarnings</name>
+          <value>true</value>
+        </property>
       </activation>
       <build>
-          <plugins>
-              <plugin>
-                  <groupId>net.alchim31.maven</groupId>
-                  <artifactId>scala-maven-plugin</artifactId>
-                  <configuration>
-                      <args combine.children="append">
-                          <arg>-Xfatal-warnings</arg>
-                          <arg>-feature</arg>
-                      </args>
-                  </configuration>
-              </plugin>
-          </plugins>
+        <plugins>
+          <plugin>
+            <groupId>net.alchim31.maven</groupId>
+            <artifactId>scala-maven-plugin</artifactId>
+            <configuration>
+              <args combine.children="append">
+                <arg>-Xfatal-warnings</arg>
+                <arg>-feature</arg>
+                <arg>-Wconf:cat=lint-infer-any:s</arg>
+                <arg>-Wconf:cat=unused:s</arg>
+                <arg>-Wconf:msg=integral division:s</arg>
+                <arg>-Wconf:cat=other-match-analysis:s</arg>
+                <arg>-Wconf:msg=shadows mutable:s</arg>
+                <arg>-Wconf:msg=unreachable code:s</arg>
+                <arg>-Wconf:msg=patterns after a variable pattern:s</arg>
+                <arg>-Wconf:msg=return statement uses an exception:s</arg>
+              </args>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
-    -->
   </profiles>
 
 </project>
