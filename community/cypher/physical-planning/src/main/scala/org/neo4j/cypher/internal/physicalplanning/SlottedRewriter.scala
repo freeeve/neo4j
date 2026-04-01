@@ -739,9 +739,12 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
     positiveCheck: Boolean
   ) = {
     def makeNegativeIfNeeded(e: expressions.Expression) =
-      if (!positiveCheck)
-        Not(e)(e.position)
-      else
+      if (!positiveCheck) {
+        e match {
+          case ne: NotEquals => ne
+          case e             => Not(e)(e.position)
+        }
+      } else
         e
 
     val shortcutWhenDifferentTypes: expressions.Expression =
