@@ -63,7 +63,7 @@ case class CollectUnwindOnTop(
     else topDown(
       Rewriter.lift {
         case pr @ ProduceResult(source, columns)
-          if !ctx.leveragedOrders(source.id) && randomShouldApply(config) =>
+          if !ctx.attributes.leveragedOrders(source.id) && randomShouldApply(config) =>
           val collectedRowsName = ctx.anonymousVariableNameGenerator.nextName
           val collectedRowsVar = Variable(collectedRowsName)(pos, Variable.isIsolatedDefault)
           val unwoundRowName = ctx.anonymousVariableNameGenerator.nextName
