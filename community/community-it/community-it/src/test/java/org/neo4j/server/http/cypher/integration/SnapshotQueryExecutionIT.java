@@ -73,7 +73,7 @@ class SnapshotQueryExecutionIT extends ExclusiveWebContainerTestBase {
                 contexts.add(context);
                 return context;
             } else {
-                return new TestVersionContext(TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY, databaseName);
+                return new TestVersionContext(TransactionIdSnapshotFactory.EMPTY_SNAPSHOT_FACTORY, databaseName, true);
             }
         });
 

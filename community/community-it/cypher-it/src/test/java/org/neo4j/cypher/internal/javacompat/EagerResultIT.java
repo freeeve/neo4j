@@ -265,7 +265,7 @@ class EagerResultIT {
         private boolean useCorrectLastCommittedTxId;
 
         TestVersionContext(TransactionIdSnapshotFactory snapshotFactory, String databaseName) {
-            super(snapshotFactory, databaseName);
+            super(snapshotFactory, databaseName, true);
         }
 
         @Override

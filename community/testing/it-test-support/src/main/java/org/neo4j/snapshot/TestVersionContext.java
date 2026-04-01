@@ -44,7 +44,7 @@ public class TestVersionContext extends TransactionVersionContext {
     private final String databaseName;
 
     public TestVersionContext(TransactionIdSnapshotFactory transactionIdSnapshotFactory, String databaseName) {
-        this(transactionIdSnapshotFactory, databaseName, true);
+        this(transactionIdSnapshotFactory, databaseName, false);
     }
 
     public TestVersionContext(
@@ -117,7 +117,7 @@ public class TestVersionContext extends TransactionVersionContext {
 
     public static TestVersionContext testCursorContext(
             TransactionIdSnapshotFactory snapshotFactory, String databaseName) {
-        var context = new TestVersionContext(snapshotFactory, databaseName);
+        var context = new TestVersionContext(snapshotFactory, databaseName, true);
         context.initRead();
         return context;
     }
@@ -127,7 +127,8 @@ public class TestVersionContext extends TransactionVersionContext {
         TransactionIdStore transactionIdStore = getTransactionIdStore(managementService, databaseName);
         var context = new TestVersionContext(
                 () -> new TransactionIdSnapshot(transactionIdStore.getHighestGapFreeClosedTransactionId()),
-                databaseName);
+                databaseName,
+                true);
         context.initRead();
         return context;
     }
