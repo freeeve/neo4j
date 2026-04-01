@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.CypherVersion;
 
 public class CompilerInfo {
     private final String planner;
-    private final String runtime;
+    private final RuntimeName runtimeName;
     private final List<SchemaIndexUsage> indexes;
     private final List<RelationshipTypeIndexUsage> relationshipTypeIndexes;
     private final List<LookupIndexUsage> lookupIndexes;
@@ -36,7 +36,7 @@ public class CompilerInfo {
 
     public CompilerInfo(
             String planner,
-            String runtime,
+            RuntimeName runtimeName,
             List<SchemaIndexUsage> indexes,
             List<RelationshipTypeIndexUsage> relationshipTypeIndexes,
             List<LookupIndexUsage> lookupIndexes,
@@ -44,7 +44,7 @@ public class CompilerInfo {
             List<RelationshipTypeIndexUsage> semanticRelationshipIndexes,
             CypherVersion cypherVersion) {
         this.planner = planner;
-        this.runtime = runtime;
+        this.runtimeName = runtimeName;
         this.indexes = indexes;
         this.relationshipTypeIndexes = relationshipTypeIndexes;
         this.lookupIndexes = lookupIndexes;
@@ -53,10 +53,11 @@ public class CompilerInfo {
         this.cypherVersion = cypherVersion;
     }
 
-    public CompilerInfo(String planner, String runtime, List<SchemaIndexUsage> indexes, CypherVersion cypherVersion) {
+    public CompilerInfo(
+            String planner, RuntimeName runtimeName, List<SchemaIndexUsage> indexes, CypherVersion cypherVersion) {
         this(
                 planner,
-                runtime,
+                runtimeName,
                 indexes,
                 Collections.emptyList(),
                 Collections.emptyList(),
@@ -70,7 +71,11 @@ public class CompilerInfo {
     }
 
     public String runtime() {
-        return runtime.toLowerCase(Locale.ROOT);
+        return runtimeName.asString();
+    }
+
+    public boolean isParallelRuntime() {
+        return runtimeName == RuntimeName.PARALLEL;
     }
 
     public List<SchemaIndexUsage> indexes() {

@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.result.RuntimeResult
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.values.virtual.MapValue
@@ -131,7 +132,7 @@ trait InterpretedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTE
 
     new InterpretedExecutionPlan(
       resultBuilderFactory,
-      InterpretedRuntimeName,
+      RuntimeName.INTERPRETED,
       query.readOnly,
       transactionsMode.startsTransactions,
       IndexedSeq.empty,

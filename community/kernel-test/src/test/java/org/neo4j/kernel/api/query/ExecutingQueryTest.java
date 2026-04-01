@@ -82,7 +82,8 @@ class ExecutingQueryTest {
 
         // when
         query.onCompilationCompleted(
-                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Legacy.legacyVersion()),
+                new CompilerInfo(
+                        "the-planner", RuntimeName.INTERPRETED, emptyList(), CypherVersion.Legacy.legacyVersion()),
                 null,
                 null,
                 0);
@@ -118,7 +119,8 @@ class ExecutingQueryTest {
         // when
         clock.forward(16, TimeUnit.MICROSECONDS);
         query.onCompilationCompleted(
-                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Legacy.legacyVersion()),
+                new CompilerInfo(
+                        "the-planner", RuntimeName.INTERPRETED, emptyList(), CypherVersion.Legacy.legacyVersion()),
                 null,
                 null,
                 0);
@@ -135,7 +137,8 @@ class ExecutingQueryTest {
         // given
         query.onObfuscatorReady(null, 0);
         query.onCompilationCompleted(
-                new CompilerInfo("the-planner", "the-runtime", emptyList(), CypherVersion.Legacy.legacyVersion()),
+                new CompilerInfo(
+                        "the-planner", RuntimeName.INTERPRETED, emptyList(), CypherVersion.Legacy.legacyVersion()),
                 null,
                 null,
                 0);

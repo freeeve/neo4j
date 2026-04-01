@@ -44,6 +44,9 @@ public class ParallelAccessCheck {
 
     public static <T> T performWithCheckDisabled(Supplier<T> operation) {
         try {
+            if (DISABLED.get() != null) {
+                throw new IllegalStateException("Parallel access check is already disabled");
+            }
             DISABLED.set(true);
             return operation.get();
         } finally {

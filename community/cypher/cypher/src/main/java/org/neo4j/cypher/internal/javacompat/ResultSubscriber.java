@@ -231,7 +231,9 @@ public class ResultSubscriber extends PrefetchingResourceIterator<Map<String, Ob
 
     @Override
     public void writeAsStringTo(PrintWriter writer) {
-        ResultStringBuilder stringBuilder = ResultStringBuilder.apply(execution.fieldNames(), context);
+        ResultStringBuilder stringBuilder = context.executingQuery().isParallelRuntime()
+                ? ResultStringBuilder.apply(execution.fieldNames())
+                : ResultStringBuilder.apply(execution.fieldNames(), context);
         try {
             // don't materialize since that will close down the underlying transaction
             // and we need it to be open in order to serialize nodes, relationships, and

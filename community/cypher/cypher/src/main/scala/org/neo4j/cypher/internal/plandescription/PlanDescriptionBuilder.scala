@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.plandescription
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -35,6 +34,7 @@ import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.result.OperatorProfile
 import org.neo4j.cypher.result.QueryProfile
+import org.neo4j.kernel.api.query.RuntimeName
 
 import scala.util.chaining.scalaUtilChainingOps
 
@@ -124,7 +124,7 @@ class PlanDescriptionBuilder(
           cypherVersion
         )
         .addArgument(Runtime(runtimeName.toTextOutput))
-        .addArgument(RuntimeImpl(runtimeName.name))
+        .addArgument(RuntimeImpl(runtimeName.toTextOutput))
 
     val withMetaData = (runtimeMetadata ++ batchSize.map(BatchSize)).foldLeft(description)((plan, metadata) =>
       plan.addArgument(metadata)

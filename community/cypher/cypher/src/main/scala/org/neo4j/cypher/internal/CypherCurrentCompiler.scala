@@ -96,6 +96,7 @@ import org.neo4j.kernel.api.query.DeprecationNotificationsProvider
 import org.neo4j.kernel.api.query.LookupIndexUsage
 import org.neo4j.kernel.api.query.QueryObfuscator
 import org.neo4j.kernel.api.query.RelationshipTypeIndexUsage
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.api.query.SchemaIndexUsage
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.impl.query.NotificationConfiguration
@@ -355,7 +356,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
 
     new CompilerInfo(
       plannerName.name,
-      runtimeName.name,
+      runtimeName,
       nodeLabelIndexUsage.asJava,
       relationshipTypeIndexUsage.asJava,
       lookupIndexUsage.asJava,

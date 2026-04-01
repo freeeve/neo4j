@@ -21,8 +21,6 @@ package org.neo4j.cypher.internal.procs
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.RuntimeName
-import org.neo4j.cypher.internal.SystemCommandRuntimeName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.runtime.ExecutionMode
@@ -33,6 +31,7 @@ import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.cypher.result.RuntimeResult.ConsumptionState
 import org.neo4j.graphdb.QueryStatistics
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.QuerySubscriberAdapter
 import org.neo4j.memory.HeapHighWaterMarkTracker
@@ -122,7 +121,7 @@ abstract class AdministrationChainedExecutionPlan(source: Option[ExecutionPlan])
         if (statistics.containsUpdates()) context.systemUpdates.increase()
     }
 
-  override def runtimeName: RuntimeName = SystemCommandRuntimeName
+  override def runtimeName: RuntimeName = RuntimeName.SYSTEM
 }
 
 object AdministrationChainedExecutionPlan {

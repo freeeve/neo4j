@@ -20,9 +20,7 @@
 package org.neo4j.cypher
 
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.InterpretedRuntimeName
 import org.neo4j.cypher.internal.RewindableExecutionResult
-import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.runtime.ExecutionMode
@@ -34,6 +32,7 @@ import org.neo4j.cypher.planmatching.ExactPlan
 import org.neo4j.cypher.planmatching.PlanInTree
 import org.neo4j.cypher.planmatching.PlanMatcher
 import org.neo4j.cypher.result.RuntimeResult
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.values.virtual.MapValue
 import org.scalatest.matchers.MatchResult
@@ -125,7 +124,7 @@ trait QueryPlanTestSupport {
 object QueryPlanTestSupport {
 
   case class StubExecutionPlan(
-    runtimeName: RuntimeName = InterpretedRuntimeName,
+    runtimeName: RuntimeName = RuntimeName.INTERPRETED,
     metadata: Seq[Argument] = Seq.empty[Argument],
     override val operatorMetadata: Id => Seq[Argument] = _ => Seq.empty[Argument],
     notifications: Set[InternalNotification] = Set.empty[InternalNotification]

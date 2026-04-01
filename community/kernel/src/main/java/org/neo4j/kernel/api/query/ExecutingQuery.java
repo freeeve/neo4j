@@ -469,6 +469,10 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         return this.compilerInfo == null ? "" : this.compilerInfo.runtime();
     }
 
+    public boolean isParallelRuntime() {
+        return this.compilerInfo != null && this.compilerInfo.isParallelRuntime();
+    }
+
     // basic methods
 
     @Override

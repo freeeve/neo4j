@@ -26,12 +26,8 @@ import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.cypher_worker_limit
 import org.neo4j.cypher.internal.CypherRuntime
-import org.neo4j.cypher.internal.InterpretedRuntimeName
 import org.neo4j.cypher.internal.LogicalQuery
-import org.neo4j.cypher.internal.ParallelRuntimeName
-import org.neo4j.cypher.internal.PipelinedRuntimeName
 import org.neo4j.cypher.internal.RuntimeContext
-import org.neo4j.cypher.internal.SlottedRuntimeName
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -64,6 +60,7 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.procedure.CallableProcedure
 import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
 import org.neo4j.kernel.api.procedure.CallableUserFunction
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.kernel.impl.query.NonRecordingQuerySubscriber
@@ -358,11 +355,11 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   case object Parallel extends Runtime
 
   protected def runtimeUsed: Runtime = {
-    runtime.name.toUpperCase match {
-      case InterpretedRuntimeName.name => Interpreted
-      case SlottedRuntimeName.name     => Slotted
-      case PipelinedRuntimeName.name   => Pipelined
-      case ParallelRuntimeName.name    => Parallel
+    RuntimeName.fromName(runtime.name) match {
+      case RuntimeName.INTERPRETED => Interpreted
+      case RuntimeName.SLOTTED     => Slotted
+      case RuntimeName.PIPELINED   => Pipelined
+      case RuntimeName.PARALLEL    => Parallel
     }
   }
 

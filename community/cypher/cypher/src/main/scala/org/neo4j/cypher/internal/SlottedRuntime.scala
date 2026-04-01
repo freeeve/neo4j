@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.runtime.slotted.expressions.SlottedExpressionCo
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherException
 import org.neo4j.exceptions.CantCompileQueryException
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 
 trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] with DebugPrettyPrinter {
@@ -207,7 +208,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
 
       new InterpretedExecutionPlan(
         resultBuilderFactory,
-        SlottedRuntimeName,
+        RuntimeName.SLOTTED,
         query.readOnly,
         transactionMode.startsTransactions,
         metadataGen(),

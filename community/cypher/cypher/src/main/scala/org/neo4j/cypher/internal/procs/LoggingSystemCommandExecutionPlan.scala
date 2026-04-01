@@ -20,8 +20,6 @@
 package org.neo4j.cypher.internal.procs
 
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.RuntimeName
-import org.neo4j.cypher.internal.SystemCommandRuntimeName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.runtime.ExecutionMode
@@ -29,6 +27,7 @@ import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.values.virtual.MapValue
 
@@ -57,7 +56,7 @@ case class LoggingSystemCommandExecutionPlan(
     }
   }
 
-  override def runtimeName: RuntimeName = SystemCommandRuntimeName
+  override def runtimeName: RuntimeName = RuntimeName.SYSTEM
 
   override def metadata: Seq[Argument] = Nil
 

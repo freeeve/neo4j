@@ -22,8 +22,6 @@ package org.neo4j.cypher.internal.procs
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
-import org.neo4j.cypher.internal.RuntimeName
-import org.neo4j.cypher.internal.SystemCommandRuntimeName
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.procs.AdministrationChainedExecutionPlan.formatQuery
@@ -35,6 +33,7 @@ import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.internal.kernel.api.security.StaticAccessMode
+import org.neo4j.kernel.api.query.RuntimeName
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.values.AnyValue
@@ -98,7 +97,7 @@ case class SystemCommandExecutionPlan(
     }
   }
 
-  override def runtimeName: RuntimeName = SystemCommandRuntimeName
+  override def runtimeName: RuntimeName = RuntimeName.SYSTEM
 
   override def metadata: Seq[Argument] = Nil
 
