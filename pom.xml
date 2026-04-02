@@ -143,6 +143,11 @@
     <metrics.version>4.2.38</metrics.version>
     <mockito.version>5.23.0</mockito.version>
     <neo4j-java-driver.version>6.0.4</neo4j-java-driver.version>
+    <!--
+     - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
+     - needs updating.
+     -->
+    <netty.version>4.2.12.Final</netty.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
     <parallel.tests>false</parallel.tests>
     <parquet-floor.version>1.62</parquet-floor.version>
@@ -232,14 +237,10 @@
   <dependencyManagement>
     <dependencies>
 
-      <!--
-       - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
-       - needs updating.
-       -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.2.12.Final</version>
+        <version>${netty.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
