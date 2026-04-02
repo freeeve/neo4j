@@ -2037,13 +2037,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Base directory for capturing any import related context information, i.e. for all imports.")
-    public static final Setting<Path> import_base_context_directory = newBuilder(
-                    "internal.db.import.base_context_directory", PATH, Path.of("imports"))
-            .setDependency(GraphDatabaseSettings.data_directory)
-            .build();
-
-    @Internal
     @Description("Directory for capturing any import related context information for a specific import.")
     public static final Setting<Path> import_context_directory = newBuilder(
                     "internal.db.import.context_directory", PATH, null)

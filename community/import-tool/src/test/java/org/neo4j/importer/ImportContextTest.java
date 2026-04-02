@@ -20,6 +20,7 @@
 package org.neo4j.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 
 import java.io.ByteArrayOutputStream;
@@ -43,7 +44,6 @@ import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.locker.FileLockException;
@@ -72,7 +72,7 @@ class ImportContextTest {
     @BeforeEach
     void setup() {
         config = Config.defaults(neo4j_home, testDir.homePath());
-        importsDir = config.get(GraphDatabaseInternalSettings.import_base_context_directory);
+        importsDir = config.get(logs_directory);
     }
 
     @Test

@@ -37,9 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.cli.CommandTestUtils.capturingExecutionContext;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.databases_root_path;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_base_context_directory;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.initial_default_database;
+import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.configuration.GraphDatabaseSettings.preallocate_logical_logs;
@@ -202,7 +202,7 @@ class ImportCommandTest {
     }
 
     @Test
-    void shouldNotBeAllowedToImportToOnlineDb() throws Exception {
+    void shouldNotBeAllowedToImportToOnlineDb() {
         List<String> nodeIds = nodeIds();
 
         // Started neo4j db
@@ -227,7 +227,7 @@ class ImportCommandTest {
     }
 
     @Test
-    void shouldNotImportOnEmptyExistingDatabase() throws Exception {
+    void shouldNotImportOnEmptyExistingDatabase() {
         // Given a db with default token indexes
         var dbName = createDefaultDatabaseWithTokenIndexes();
         List<String> nodeIds = nodeIds();
@@ -810,7 +810,7 @@ class ImportCommandTest {
     }
 
     @Test
-    void failOnInvalidDatabaseName() throws Exception {
+    void failOnInvalidDatabaseName() {
         List<String> nodeIds = nodeIds();
 
         assertThatThrownBy(() -> runImport(
@@ -1699,7 +1699,7 @@ class ImportCommandTest {
     }
 
     @Test
-    void shouldRespectBufferSizeSetting() throws Exception {
+    void shouldRespectBufferSizeSetting() {
         // GIVEN
         List<String> lines = new ArrayList<>();
         lines.add(":ID,name,:LABEL");
@@ -1858,7 +1858,7 @@ class ImportCommandTest {
         assertThat(testDirectory.getFileSystem().isDirectory(importContextDir)).isTrue();
         assertThat(importContextDir.getFileName()).asString().startsWith(DEFAULT_DATABASE_NAME + "-admin-import-");
         assertThat(importContextDir.getParent())
-                .isEqualTo(Config.defaults(neo4j_home, testDirectory.homePath()).get(import_base_context_directory));
+                .isEqualTo(Config.defaults(neo4j_home, testDirectory.homePath()).get(logs_directory));
 
         var internalLogFile = importContextDir.resolve(ImportContext.LOG_FILE_NAME);
         // THEN go and read the debug.log where it's expected to be and see if there's an IMPORT DONE line in it

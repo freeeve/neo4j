@@ -20,9 +20,9 @@
 package org.neo4j.importer;
 
 import static java.lang.String.format;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_base_context_directory;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_context_directory;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.import_detailed_reporting_interval;
+import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.logging.Level.DEBUG;
 import static org.neo4j.logging.Level.INFO;
 
@@ -126,8 +126,7 @@ public class ImportContext extends Monitor.Delegate implements InternalLogProvid
             boolean includeUpdatesInProgress,
             boolean retainForInstrumentation,
             boolean verbose) {
-        var baseDir = newContextDir(
-                fs, databaseConfig.get(import_base_context_directory).toAbsolutePath(), database.name());
+        var baseDir = newContextDir(fs, databaseConfig.get(logs_directory).toAbsolutePath(), database.name());
         var collectorReportingIsInContextDir = collectorReporting == null;
         var resolvedCollectorPath =
                 collectorReportingIsInContextDir ? baseDir.resolve(DEFAULT_REPORT_FILE_NAME) : collectorReporting;
