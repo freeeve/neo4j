@@ -49,13 +49,6 @@ sealed trait PlannerQuery {
   def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A
 
   /**
-   * @return all recursively included query graphs, with leaf information for Eagerness analysis.
-   *         Query graphs from pattern expressions and pattern comprehensions will generate variable names that might clash with existing names, so this method
-   *         is not safe to use for planning pattern expressions and pattern comprehensions.
-   */
-  def allQGsWithLeafInfo: collection.Seq[QgWithLeafInfo]
-
-  /**
    * Use this method when you are certain that you are dealing with a SinglePlannerQuery, and not a UnionQuery.
    * It will throw an Exception if this is a UnionQuery.
    */
@@ -111,8 +104,6 @@ case class UnionQuery(
 
   override def asSinglePlannerQuery: SinglePlannerQuery =
     throw new IllegalStateException("Called asSinglePlannerQuery on a UnionQuery")
-
-  override def allQGsWithLeafInfo: collection.Seq[QgWithLeafInfo] = lhs.allQGsWithLeafInfo ++ rhs.allQGsWithLeafInfo
 
   override def flattenForeach: PlannerQuery = copy(
     lhs = lhs.flattenForeach,
@@ -353,9 +344,6 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
 
     recurse(in, this)
   }
-
-  override lazy val allQGsWithLeafInfo: collection.Seq[QgWithLeafInfo] =
-    allPlannerQueries.flatMap(q => q.queryGraph.allQGsWithLeafInfo ++ q.horizon.allQueryGraphs)
 
   // Returns list of planner query and all of its tails
   def allPlannerQueries: collection.Seq[SinglePlannerQuery] = {

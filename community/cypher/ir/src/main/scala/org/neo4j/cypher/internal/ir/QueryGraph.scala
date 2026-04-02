@@ -32,9 +32,7 @@ import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.ir.QueryGraph.PredicatesAndLegacyShortestByDependencies
-import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
-import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 import scala.collection.mutable
@@ -109,20 +107,6 @@ final case class QueryGraph private (
     patternRelationships ++
     quantifiedPathPatterns ++
     selectivePathPatterns
-
-  /**
-   * @return all recursively included query graphs, with leaf information for Eagerness analysis.
-   *         Query graphs from pattern expressions and pattern comprehensions will generate variable names that might clash with existing names, so this method
-   *         is not safe to use for planning pattern expressions and pattern comprehensions.
-   */
-  lazy val allQGsWithLeafInfo: Seq[QgWithLeafInfo] = {
-    val iRExpressions: Seq[QgWithLeafInfo] = this.folder.findAllByClass[IRExpression].flatMap((e: IRExpression) =>
-      e.query.allQGsWithLeafInfo
-    )
-    QgWithLeafInfo.qgWithNoStableIdentifierAndOnlyLeaves(this) +:
-      (iRExpressions ++
-        optionalMatches.flatMap(_.allQGsWithLeafInfo))
-  }
 
   // -----------------
   // Override elements

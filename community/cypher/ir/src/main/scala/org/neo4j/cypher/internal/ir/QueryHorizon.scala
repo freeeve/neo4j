@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
-import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
@@ -73,22 +72,6 @@ sealed trait QueryHorizon extends Foldable {
     }
   }
 
-  /**
-   * @return all recursively included query graphs, with leaf information for Eagerness analysis.
-   *         Query graphs from pattern expressions and pattern comprehensions will generate variable names that might clash with existing names, so this method
-   *         is not safe to use for planning pattern expressions and pattern comprehensions.
-   */
-  protected def getAllQGsWithLeafInfo: Seq[QgWithLeafInfo] = {
-    val filtered = dependingExpressions.filter(!_.isInstanceOf[Variable]).toSeq
-    val iRExpressions: Seq[QgWithLeafInfo] = filtered.folder.findAllByClass[IRExpression].flatMap((e: IRExpression) =>
-      e.query.allQGsWithLeafInfo
-    )
-    QgWithLeafInfo.qgWithNoStableIdentifierAndOnlyLeaves(
-      getQueryGraphFromDependingExpressions,
-      isProjectionInFinalPosition
-    ) +: iRExpressions
-  }
-
   protected def getQueryGraphFromDependingExpressions: QueryGraph = {
     val dependencies = dependingExpressions
       .flatMap(_.dependencies)
@@ -99,16 +82,12 @@ sealed trait QueryHorizon extends Foldable {
       selections = Selections.from(dependingExpressions)
     )
   }
-
-  lazy val allQueryGraphs: Seq[QgWithLeafInfo] = getAllQGsWithLeafInfo
 }
 
 final case class PassthroughAllHorizon() extends QueryHorizon {
   override def exposedSymbols(coveredIds: Set[LogicalVariable]): Set[LogicalVariable] = coveredIds
 
   override def dependingExpressions: Seq[Expression] = Seq.empty
-
-  override lazy val allQueryGraphs: Seq[QgWithLeafInfo] = Seq.empty
 
   override def allHints: ListSet[Hint] = ListSet.empty
 
@@ -178,8 +157,6 @@ case class CallSubqueryHorizon(
    * We don't analyze the subquery but just assume that it's doing reads.
    */
   override def couldContainRead: Boolean = true
-
-  override lazy val allQueryGraphs: Seq[QgWithLeafInfo] = super.getAllQGsWithLeafInfo ++ callSubquery.allQGsWithLeafInfo
 }
 
 sealed abstract class QueryProjection extends QueryHorizon {
