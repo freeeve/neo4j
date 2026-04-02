@@ -21,7 +21,6 @@ package org.neo4j.server.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.neo4j.server.configuration.ServerSettings.http_x_forward_allow_hosts;
 import static org.neo4j.server.configuration.ServerSettings.http_x_forward_allow_proxies;
 import static org.neo4j.server.configuration.ServerSettings.http_x_forward_enabled;
@@ -30,7 +29,6 @@ import static org.neo4j.server.configuration.ServerSettings.http_x_forward_priva
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;
 import org.glassfish.jersey.server.ContainerRequest;
@@ -47,13 +45,10 @@ class SecureXForwardFilterTest {
     private AssertableLogProvider logProvider;
     private SecureXForwardFilter filter;
     private ContainerRequest request;
-    private HttpServletRequest httpRequest;
 
     @BeforeEach
     void setUp() {
         logProvider = new AssertableLogProvider();
-        httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
 
         request = new ContainerRequest(
                 URI.create("http://internal.server.com"),
@@ -81,6 +76,18 @@ class SecureXForwardFilterTest {
         // then
         assertThat(request.getBaseUri()).isEqualTo(originalBaseUri);
         LogAssertions.assertThat(logProvider).containsMessages("X-Forward header processing disabled (secure default)");
+    }
+
+    @Test
+    void shouldIgnoreHeadersWhenConfigurationInsecure() {
+        // given
+        var config = Config.defaults(http_x_forward_enabled, true);
+        filter = new SecureXForwardFilter(config, logProvider);
+
+        request.headers(Map.of());
+
+        // when
+        filter.filter(request);
     }
 
     @Test

@@ -28,12 +28,10 @@ import static org.neo4j.server.web.XForwardUtil.X_FORWARD_PROTO_HEADER_KEY;
 
 import java.net.URI;
 import java.util.Set;
-import javax.inject.Provider;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.neo4j.configuration.Config;
 import org.neo4j.logging.InternalLog;
@@ -56,9 +54,6 @@ public class SecureXForwardFilter implements ContainerRequestFilter {
     private final Set<String> allowedHosts;
     private final boolean allowPrivateIps;
     private final InternalLog log;
-
-    @Context
-    private Provider<HttpServletRequest> httpRequestProvider;
 
     public SecureXForwardFilter(Config config, InternalLogProvider logProvider) {
         this.enabled = config.get(http_x_forward_enabled);
@@ -87,6 +82,14 @@ public class SecureXForwardFilter implements ContainerRequestFilter {
             return;
         }
 
+        String xForwardedHost = requestContext.getHeaderString(X_FORWARD_HOST_HEADER_KEY);
+        String xForwardedProto = requestContext.getHeaderString(X_FORWARD_PROTO_HEADER_KEY);
+
+        if (isNullOrEmpty(xForwardedHost) && isNullOrEmpty(xForwardedProto)) {
+            return;
+        }
+
+        // Process validated headers
         String clientIP = extractClientIP(requestContext);
 
         // SECURITY: Only trust configured proxy sources
@@ -95,38 +98,24 @@ public class SecureXForwardFilter implements ContainerRequestFilter {
             return;
         }
 
-        String xForwardedHost = requestContext.getHeaderString(X_FORWARD_HOST_HEADER_KEY);
-        String xForwardedProto = requestContext.getHeaderString(X_FORWARD_PROTO_HEADER_KEY);
-
         // Validate X-Forwarded-Host
         if (xForwardedHost != null && !isValidHost(xForwardedHost, clientIP)) {
             return; // Validation failed, reject silently
         }
 
-        // Process validated headers
-        if (xForwardedHost != null || xForwardedProto != null) {
-            UriInfo uriInfo = requestContext.getUriInfo();
-            URI externalBaseUri = XForwardUtil.externalUri(uriInfo.getBaseUri(), xForwardedHost, xForwardedProto);
-            URI externalRequestUri = XForwardUtil.externalUri(uriInfo.getRequestUri(), xForwardedHost, xForwardedProto);
+        UriInfo uriInfo = requestContext.getUriInfo();
+        URI externalBaseUri = XForwardUtil.externalUri(uriInfo.getBaseUri(), xForwardedHost, xForwardedProto);
+        URI externalRequestUri = XForwardUtil.externalUri(uriInfo.getRequestUri(), xForwardedHost, xForwardedProto);
 
-            requestContext.setRequestUri(externalBaseUri, externalRequestUri);
+        requestContext.setRequestUri(externalBaseUri, externalRequestUri);
 
-            log.debug("Applied X-Forward headers from trusted source " + clientIP + ": host=" + xForwardedHost
-                    + ", proto=" + xForwardedProto);
-        }
+        log.debug("Applied X-Forward headers from trusted source " + clientIP + ": host=" + xForwardedHost + ", proto="
+                + xForwardedProto);
     }
 
     private String extractClientIP(ContainerRequestContext requestContext) {
-        // Use Provider for request-scoped access so the filter works when shared across mounts
-        if (httpRequestProvider != null) {
-            try {
-                HttpServletRequest httpRequest = httpRequestProvider.get();
-                if (httpRequest != null) {
-                    return httpRequest.getRemoteAddr();
-                }
-            } catch (IllegalStateException e) {
-                // Not inside a request scope (e.g. shared filter instance)
-            }
+        if (requestContext.getRequest() instanceof HttpServletRequest servletRequest) {
+            return servletRequest.getRemoteAddr();
         }
 
         // Fallback for unit tests or when request is unavailable
@@ -166,5 +155,9 @@ public class SecureXForwardFilter implements ContainerRequestFilter {
         }
 
         return true;
+    }
+
+    private static boolean isNullOrEmpty(String string) {
+        return string == null || string.isEmpty();
     }
 }

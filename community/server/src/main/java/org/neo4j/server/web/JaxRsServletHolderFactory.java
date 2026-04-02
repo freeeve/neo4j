@@ -94,12 +94,10 @@ public class JaxRsServletHolderFactory {
 
         ResourceConfig resourceConfig = new ResourceConfig()
                 .register(binder)
+                .register(secureXForwardFilter)
                 .packages(packages.toArray(new String[0]))
                 .registerClasses(classes)
                 .property(WADL_FEATURE_DISABLE, String.valueOf(!wadlEnabled));
-
-        // Register secure X-Forward filter instance with configuration
-        resourceConfig.register(secureXForwardFilter);
 
         ServletContainer container = new ServletContainer(resourceConfig);
         return new ServletHolder(container);
