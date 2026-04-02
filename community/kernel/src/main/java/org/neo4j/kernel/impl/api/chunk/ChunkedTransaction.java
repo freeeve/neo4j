@@ -47,7 +47,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     private boolean idGenerated;
     private long lastBatchAppendIndex = UNKNOWN_APPEND_INDEX;
     private long transactionId = UNKNOWN_TX_ID;
-    private LogPositionMetadata logPositionMetadata = NO_METADATA;
+    private LogPositionMetadata logPositionMetadata;
     private StorageEngineTransaction next;
     private long firstAppendIndex;
     private LongConsumer closedCallback;
@@ -86,13 +86,14 @@ public class ChunkedTransaction implements StorageEngineTransaction {
 
     public ChunkedTransaction(
             long transactionId,
+            long transactionSequenceNumber,
             long appendIndex,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             ChunkedCommandBatch chunk) {
         this(
                 cursorContext,
-                UNKNOWN_TX_SEQUENCE_NUMBER,
+                transactionSequenceNumber,
                 storeCursors,
                 Commitment.NO_COMMITMENT,
                 TransactionIdGenerator.EXTERNAL_ID);

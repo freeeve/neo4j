@@ -655,6 +655,7 @@ public class Database extends AbstractDatabase {
                 readOnlyDatabaseChecker,
                 databaseHealth,
                 kernelModule.getTransactionCommitProcess(),
+                transactionIdSequence,
                 clock);
         databaseDependencies.satisfyDependency(multiVersionDatabaseRollbackService);
 

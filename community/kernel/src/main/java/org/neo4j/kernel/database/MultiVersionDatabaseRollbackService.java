@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.api.LeaseClient;
 import org.neo4j.kernel.impl.api.LeaseException;
 import org.neo4j.kernel.impl.api.LeaseService;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
+import org.neo4j.kernel.impl.api.TransactionIdSequence;
 import org.neo4j.kernel.impl.api.chunk.ChunkMetadata;
 import org.neo4j.kernel.impl.api.chunk.ChunkedCommandBatch;
 import org.neo4j.kernel.impl.api.chunk.ChunkedTransaction;
@@ -56,6 +57,7 @@ public class MultiVersionDatabaseRollbackService extends LifecycleAdapter {
     private final DatabaseReadOnlyChecker readOnlyDatabaseChecker;
     private final DatabaseHealth databaseHealth;
     private final TransactionCommitProcess transactionCommitProcess;
+    private final TransactionIdSequence transactionIdSequence;
     private final SystemNanoClock clock;
     private boolean shutdown;
 
@@ -69,6 +71,7 @@ public class MultiVersionDatabaseRollbackService extends LifecycleAdapter {
             DatabaseReadOnlyChecker readOnlyDatabaseChecker,
             DatabaseHealth databaseHealth,
             TransactionCommitProcess transactionCommitProcess,
+            TransactionIdSequence transactionIdSequence,
             SystemNanoClock clock) {
         this.kernelTransactions = kernelTransactions;
         this.internalLog = internalLog;
@@ -79,6 +82,7 @@ public class MultiVersionDatabaseRollbackService extends LifecycleAdapter {
         this.readOnlyDatabaseChecker = readOnlyDatabaseChecker;
         this.databaseHealth = databaseHealth;
         this.transactionCommitProcess = transactionCommitProcess;
+        this.transactionIdSequence = transactionIdSequence;
         this.clock = clock;
     }
 
@@ -133,6 +137,7 @@ public class MultiVersionDatabaseRollbackService extends LifecycleAdapter {
                             ChunkMetadata chunkMetadata = createChunkMetadata(transactionInfo, time, leaseClient);
                             var chunkedTransaction = new ChunkedTransaction(
                                     transactionInfo.transactionId(),
+                                    transactionIdSequence.next(),
                                     transactionInfo.lastBatchAppendIndex(),
                                     CursorContext.NULL_CONTEXT,
                                     StoreCursors.NULL,
