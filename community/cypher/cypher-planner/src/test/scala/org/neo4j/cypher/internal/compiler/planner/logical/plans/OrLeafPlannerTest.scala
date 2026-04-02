@@ -327,12 +327,12 @@ object OrLeafPlannerTest extends AstConstructionTestSupport {
 
   private def conjunction(gen: Gen[Expression]): Gen[Expression] =
     expressions(gen) {
-      exprs => Ands(exprs)(pos)
+      exprs => Ands.create(exprs.toSet)
     }
 
   private def disjunction(gen: Gen[Expression]): Gen[Expression] =
     expressions(gen) {
-      exprs => Ors(exprs)(pos)
+      exprs => Ors.create(ListSet.from(exprs))
     }
 
   private def expressions(gen: Gen[Expression])(f: List[Expression] => Expression): Gen[Expression] =
