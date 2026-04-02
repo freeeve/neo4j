@@ -27,7 +27,7 @@ public class SslResource {
     private final Path trustedDirectory;
     private final Path revokedDirectory;
 
-    SslResource(Path privateKey, Path publicCertificate, Path trustedDirectory, Path revokedDirectory) {
+    public SslResource(Path privateKey, Path publicCertificate, Path trustedDirectory, Path revokedDirectory) {
         this.privateKey = privateKey;
         this.publicCertificate = publicCertificate;
         this.trustedDirectory = trustedDirectory;
