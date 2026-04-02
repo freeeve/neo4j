@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import static org.neo4j.io.fs.ReadableChannel.UNSPECIFIED_CONTENT_TYPE;
-import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.skipDistributedHeaderAndGetKernelVersion;
+import static org.neo4j.kernel.impl.transaction.log.distributed.ReplicatedTransactionHelper.skipDistributedHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.EMPTY_TX;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
@@ -64,47 +64,34 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
         try {
             while (true) {
-                byte versionCode;
-                byte typeCode;
-                // Capture position in case we are at end of file and getContentType() reads off the end
-                channel.getCurrentLogPosition(positionMarker);
-                byte contentType = channel.getContentType();
-                switch (contentType) {
-                    case KERNEL_CONTENT_TYPE, UNSPECIFIED_CONTENT_TYPE -> {
-                        versionCode = channel.markAndGetVersion(positionMarker);
-                        if (versionCode == 0) {
-                            // We reached the end of available records,
-                            // but in pre-allocated file still have space available.
-                            // We reset channel position to restore last read byte in case someone would like to re-read
-                            // or check it again if possible,
-                            // and we report that we reach end of record stream from our point of view.
-                            // Let's double-check that it isn't a corrupt byte by checking part of the tail first
-                            checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
-                            channel.position(positionMarker.getByteOffset());
-                            return null;
-                        }
-
-                        updateParserSet(channel, versionCode);
-
-                        typeCode = channel.get();
-                    }
-
-                    case REPLICATED_TX_CONTENT_TYPE -> {
-                        versionCode = skipDistributedHeaderAndGetKernelVersion(channel);
-
-                        updateParserSet(channel, versionCode);
-
-                        typeCode = channel.get();
-                    }
-
-                    default -> {
-                        versionCode = channel.getVersion();
-
-                        updateParserSet(channel, versionCode);
-
-                        typeCode = EMPTY_TX;
-                    }
+                byte versionCode = channel.markAndGetVersion(positionMarker);
+                if (versionCode == 0) {
+                    // We reached the end of available records,
+                    // but in pre-allocated file still have space available.
+                    // We reset channel position to restore last read byte in case someone would like to re-read
+                    // or check it again if possible,
+                    // and we report that we reach end of record stream from our point of view.
+                    // Let's double-check that it isn't a corrupt byte by checking part of the tail first
+                    checkSmallChunkOfTail(channel, channel.getCurrentLogPosition());
+                    channel.position(positionMarker.getByteOffset());
+                    return null;
                 }
+
+                updateParserSet(channel, versionCode);
+                // Capture position in case we are at end of file and getContentType() reads off the end
+                byte contentType = channel.getContentType();
+                byte typeCode =
+                        switch (contentType) {
+                            case KERNEL_CONTENT_TYPE, UNSPECIFIED_CONTENT_TYPE -> channel.get();
+
+                            case REPLICATED_TX_CONTENT_TYPE -> {
+                                skipDistributedHeader(channel);
+
+                                yield channel.get();
+                            }
+
+                            default -> EMPTY_TX;
+                        };
 
                 LogEntry logEntry = readEntry(channel, versionCode, typeCode, memoryTracker);
                 if (logEntry != LogEntry.SKIP) {

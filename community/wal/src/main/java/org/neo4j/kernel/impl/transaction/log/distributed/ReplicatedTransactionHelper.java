@@ -30,8 +30,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 public class ReplicatedTransactionHelper {
     private ReplicatedTransactionHelper() {}
 
-    public static byte skipDistributedHeaderAndGetKernelVersion(ReadableLogPositionAwareChannel channel)
-            throws IOException {
+    public static void skipDistributedHeader(ReadableLogPositionAwareChannel channel) throws IOException {
         if (!channel.supportsEntrySkipping()) {
             throw new IllegalStateException(
                     "Replicated transactions should only be encountered on entry skippable/envelope channels");
@@ -65,8 +64,5 @@ public class ReplicatedTransactionHelper {
             }
             channel.getCurrentLogPosition(parseProgress);
         }
-        // TODO MERGELOG - currently KernelVersion is inlined rather than in the envelope header
-        // Note also this is also used for envelope only marshalling, but the header will have been separately skipped
-        return channel.get();
     }
 }
