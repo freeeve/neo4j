@@ -19,9 +19,10 @@
  */
 package org.neo4j.kernel.api.index;
 
+import org.neo4j.batchimport.api.IndexImporter;
 import org.neo4j.graphdb.Resource;
 
 /**
  * Reader for an index.
  */
-public interface IndexReader extends Resource {}
+public interface IndexReader extends IndexImporter.Reader, Resource {}

@@ -37,6 +37,13 @@ public interface IndexImporter extends Closeable {
      */
     Writer writer(boolean parallel);
 
+    /**
+     * @return a {@link Reader} for this index, if supported, otherwise {@code null}.
+     */
+    default Reader reader() {
+        return null;
+    }
+
     class EmptyIndexImporter implements IndexImporter, Writer {
         @Override
         public void change(long entity, int[] removals, int[] additions) {}
@@ -84,4 +91,6 @@ public interface IndexImporter extends Closeable {
 
         void yield();
     }
+
+    interface Reader extends Closeable {}
 }
