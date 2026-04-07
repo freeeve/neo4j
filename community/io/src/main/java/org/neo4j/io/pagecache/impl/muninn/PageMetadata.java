@@ -366,7 +366,7 @@ class PageMetadata implements PageReferenceTranslator {
         UnsafeUtil.putLong(offsetPageBinding(pageRef), UNBOUND_PAGE_BINDING);
     }
 
-    static String pageMetadata(long pageRef) {
+    public static String pageMetadata(long pageRef) {
         return "Lock word: " + Long.toHexString(UnsafeUtil.getLong(offsetLock(pageRef))) + "\nAddress: "
                 + Long.toHexString(UnsafeUtil.getLong(offsetAddress(pageRef))) + "\nPrevious/Last TxId: "
                 + Long.toHexString(UnsafeUtil.getLong(offsetPageHorizon(pageRef))) + "\nBinding: "

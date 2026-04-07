@@ -1078,7 +1078,8 @@ public class MuninnPageCache implements PageCache {
                 } catch (OutOfMemoryError oom) {
                     evictorException = oomException;
                 } catch (Throwable th) {
-                    evictorException = new IOException("Eviction thread encountered a problem", th);
+                    evictorException =
+                            new IOException("Eviction thread encountered a problem: " + describePageRef(pageRef), th);
                 }
                 pagesToEvict--;
             }
@@ -1109,7 +1110,8 @@ public class MuninnPageCache implements PageCache {
                 } catch (OutOfMemoryError oom) {
                     evictorException = oomException;
                 } catch (Throwable th) {
-                    evictorException = new IOException("Eviction thread encountered a problem", th);
+                    evictorException =
+                            new IOException("Eviction thread encountered a problem: " + describePageRef(pageRef), th);
                 }
                 if (evictionStatus != NOT_EVICTED) {
                     // here we only decrement this if we actually evicted something or
@@ -1118,6 +1120,19 @@ public class MuninnPageCache implements PageCache {
                 }
             }
         }
+    }
+
+    private String describePageRef(long pageRef) {
+        String metadata = PageMetadata.pageMetadata(pageRef);
+        int swapperId = PageMetadata.getSwapperId(pageRef);
+        try {
+            var swapperAllocation = swapperSet.getAllocation(swapperId);
+            return "Page ref: " + metadata + " of "
+                    + (swapperAllocation != null ? swapperAllocation.swapper.path() : " missing swapper.");
+        } catch (Exception e) {
+            // ignore
+        }
+        return "Page ref: " + metadata + " swapper: " + swapperId;
     }
 
     private void onPageEvictionComplete(AsyncBlockAccessor asyncBlockAccessor, long data, int resultBytes) {
