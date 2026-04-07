@@ -157,15 +157,6 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     )(pos)
   }
 
-  def withFromYield(
-    returnItems: ast.ReturnItems,
-    orderBy: Option[ast.OrderBy] = None,
-    skip: Option[ast.Skip] = None,
-    limit: Option[ast.Limit] = None,
-    where: Option[ast.Where] = None
-  ): ast.With =
-    ast.With(distinct = false, returnItems, orderBy, skip, limit, where = where, withType = ast.ParsedAsYield)(pos)
-
   type Immutable = Boolean
 
   def maybeImmutablePad(immutable: Immutable): String = " " * maybeImmutable(immutable).length

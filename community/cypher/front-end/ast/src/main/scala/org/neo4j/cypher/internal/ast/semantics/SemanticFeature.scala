@@ -33,10 +33,6 @@ object SemanticFeature {
     override def name: String = "show setting"
   }
 
-  case object ShowDatabaseInterpretedRuntime extends SemanticFeature with FeatureToString {
-    override def name: String = "show database on interpreted runtime"
-  }
-
   case object OidcCredentialForwarding extends SemanticFeature with FeatureToString {
     override def name: String = "OIDC credential forwarding"
   }
@@ -144,7 +140,6 @@ object SemanticFeature {
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
     AttributeBasedAccessControl,
-    ShowDatabaseInterpretedRuntime,
     GpmShortestAcyclic
   )
 

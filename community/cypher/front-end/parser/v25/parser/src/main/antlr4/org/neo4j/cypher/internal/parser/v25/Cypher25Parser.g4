@@ -994,7 +994,6 @@ showAdminCommand
    : SHOW (
       showAliases
       | showCurrentUser
-      | showDatabase
       | showPrivileges
       | showRolePrivileges
       | showRoles
@@ -1056,6 +1055,7 @@ composableShowCommandClauses
       | showProcedures
       | showSettings
       | showTransactions
+      | showDatabase
    )
    ;
 
@@ -1999,8 +1999,8 @@ secondsToken
    : SEC | SECOND | SECONDS;
 
 showDatabase
-   : (DEFAULT | HOME) DATABASE showCommandYield?
-   | (DATABASE | DATABASES) symbolicAliasNameOrParameter? showCommandYield?
+   : (DEFAULT | HOME) DATABASE showCommandYieldWhere?
+   | (DATABASE | DATABASES) symbolicAliasNameOrParameter? showCommandYieldWhere?
    ;
 
 aliasName

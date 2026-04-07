@@ -65,7 +65,6 @@ import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
@@ -84,7 +83,6 @@ import org.neo4j.cypher.internal.ast.ShowUserPrivileges
 import org.neo4j.cypher.internal.ast.ShowUsers
 import org.neo4j.cypher.internal.ast.ShowUsersPrivileges
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
-import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Skip
 import org.neo4j.cypher.internal.ast.SortItem
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
@@ -122,11 +120,7 @@ trait DdlShowBuilder extends Cypher25ParserListener {
   final override def exitShowAdminCommand(
     ctx: Cypher25Parser.ShowAdminCommandContext
   ): Unit = {
-    ctx.ast = ctxChild(ctx, 1).ast match {
-      // Kept for SHOW DATABASES which currently gives Seq[Clause]
-      case ast: Seq[Clause @unchecked] => SingleQuery(ast)(pos(ctx))
-      case ast                         => ast
-    }
+    ctx.ast = ctxChild(ctx, 1).ast
   }
 
   final override def exitTerminateCommand(
@@ -574,25 +568,11 @@ trait DdlShowBuilder extends Cypher25ParserListener {
       else if (ctx.DEFAULT() != null) DefaultDatabaseScope()(pos(ctx))
       else AllDatabasesScope()(pos(ctx))
     }
-    if (!semanticFeatures.contains(SemanticFeature.ShowDatabaseInterpretedRuntime)) {
-      ctx.ast = ShowDatabase(
+    ctx.ast = decomposeYield(astOpt(ctx.showCommandYieldWhere()))
+      .buildShowDatabasesClause(
         dbScope,
-        astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
-        cypher5ColumnsOnly = false
-      )(pos(ctx.getParent))
-    } else {
-      val yieldAndReturnPart: Option[(Either[Yield, Where], Option[Return])] =
-        astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()).map {
-          case Left((y, r)) => (Left(y), r)
-          case Right(w)     => (Right(w), None)
-        }
-      val showClause = decomposeYield(yieldAndReturnPart.map(_._1))
-        .buildShowDatabasesClause(
-          dbScope,
-          pos(ctx.getParent)
-        )
-      ctx.ast = showClause +: yieldAndReturnPart.flatMap(_._2).toList
-    }
+        pos(ctx.getParent)
+      )
   }
 
   final override def exitShowAliases(

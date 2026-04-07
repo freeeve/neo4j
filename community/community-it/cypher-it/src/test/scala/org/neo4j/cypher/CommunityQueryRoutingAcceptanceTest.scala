@@ -20,9 +20,13 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
@@ -43,6 +47,9 @@ class CommunityQueryRoutingHttpAcceptanceTest extends CommunityQueryRoutingAccep
 abstract class CommunityQueryRoutingAcceptanceTest extends CypherFunSuite
     with FeatureDatabaseManagementService.TestBase
     with BeforeAndAfterAll {
+
+  override def baseConfig: Config.Builder =
+    super.baseConfig.set(GraphDatabaseInternalSettings.composable_commands, java.lang.Boolean.TRUE)
 
   val db: FeatureDatabaseManagementService = dbms
 
@@ -184,11 +191,72 @@ abstract class CommunityQueryRoutingAcceptanceTest extends CypherFunSuite
   }
 
   test("should route Administration command to System database") {
-    val query = "SHOW DATABASES YIELD name RETURN name"
+    val query = "SHOW USERS YIELD user RETURN user"
 
     Seq(DEFAULT_DATABASE_NAME, SYSTEM_DATABASE_NAME).foreach { sessionDbName =>
       val result = execute(sessionDbName, query)
-      result.toList should equal(List(Map("name" -> "neo4j"), Map("name" -> "system")))
+      result.toList should equal(List(Map("user" -> "neo4j")))
+    }
+  }
+
+  test("should route show database command to System database when it's the only command") {
+    val query = "SHOW DATABASES YIELD name RETURN name"
+    val query2 = "SHOW DATABASES YIELD name"
+    val query3 = "SHOW DATABASES"
+    val query4 = "SHOW DATABASES WHERE name = 'system'"
+
+    Seq(DEFAULT_DATABASE_NAME, SYSTEM_DATABASE_NAME).foreach { sessionDbName =>
+      CypherVersion.values().foreach(cv => {
+        Seq(query, query2).foreach { query =>
+          withClue(cv.description + " " + query + " " + sessionDbName + ": ") {
+            val result = execute(sessionDbName, cv.description + " " + query)
+            result.toList should equal(List(Map("name" -> "neo4j"), Map("name" -> "system")))
+          }
+        }
+
+        Seq(query3, query4).foreach { query =>
+          withClue(cv.description + " " + query + " " + sessionDbName + ": ") {
+            val result = execute(sessionDbName, cv.description + " " + query)
+            result.size should be > 0
+          }
+        }
+      })
+    }
+  }
+
+  test("should not route show database command to System database when it's part of a larger query") {
+    val prefix = "CYPHER 25 "
+    val query1 =
+      "SHOW DATABASES YIELD name CALL db.index.fulltext.listAvailableAnalyzers() YIELD analyzer RETURN DISTINCT name"
+    val query2 =
+      "CALL db.index.fulltext.listAvailableAnalyzers() YIELD analyzer SHOW DATABASES YIELD name RETURN DISTINCT name"
+
+    Seq(query1, query2).foreach { query =>
+      withClue(query) {
+        // On system
+        execute(
+          SYSTEM_DATABASE_NAME,
+          prefix + query
+        ).toList should equal(List(Map("name" -> "neo4j"), Map("name" -> "system")))
+
+        // On default, with explicit routing
+        execute(
+          DEFAULT_DATABASE_NAME,
+          s"$prefix USE $SYSTEM_DATABASE_NAME $query"
+        ).toList should equal(List(Map("name" -> "neo4j"), Map("name" -> "system")))
+
+        // On default
+        val exception = the[CypherExecutorException] thrownBy {
+          execute(DEFAULT_DATABASE_NAME, prefix + query)
+        }
+        exception should be(gqlException(
+          "This is an administration command and it should be executed against the system database: SHOW DATABASES",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_50N42,
+            "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."
+          )
+        ))
+      }
     }
   }
 

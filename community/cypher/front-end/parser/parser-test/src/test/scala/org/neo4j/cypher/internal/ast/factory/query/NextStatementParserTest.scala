@@ -16,14 +16,18 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
+import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.CollectExpression
+import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
 import org.neo4j.cypher.internal.ast.ParsedAsLet
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
 
 class NextStatementParserTest extends AstParsingTestBase {
 
@@ -581,6 +585,43 @@ class NextStatementParserTest extends AstParsingTestBase {
     }
   }
 
+  test("P18") {
+    // Some of the show commands (like show procedures, show/terminate transactions, and Cypher 25 Show databases)
+    // are allowed as part of larger queries
+    // (though this query is likely to fail on NEXT not being allowed on system, and SHOW DATABASES needing to be on system)
+
+    val query =
+      """
+      SHOW DATABASES YIELD name
+      RETURN count(DISTINCT name) AS count
+
+      NEXT
+
+      RETURN count * 2 AS res
+      """
+    query should parseIn[Statement] {
+      case Cypher5 =>
+        _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'ORDER BY', 'LIMIT', 'OFFSET', 'SKIP' or <EOF> (line 5, column 7 (offset: 83))
+                            |"      NEXT"
+                            |       ^""".stripMargin)
+      case _ => _.toAst(
+          nextStatement(
+            singleQuery(
+              ShowDatabasesClause(
+                AllDatabasesScope()(pos),
+                None,
+                List(CommandResultItem("name", varFor("name"))(pos)),
+                yieldAll = false,
+                Some(withFromYield(returnAllItems().withDefaultOrderOnColumns(List("name"))))
+              )(pos),
+              return_(count(varFor("name"), isDistinct = true, ArgumentUnordered).as("count"))
+            ),
+            singleQuery(return_(multiply(varFor("count"), literalInt(2)).as("res")))
+          )
+        )
+    }
+  }
+
   test("N1") {
     val query =
       """
@@ -641,8 +682,8 @@ class NextStatementParserTest extends AstParsingTestBase {
   test("N4") {
     val query =
       """
-      SHOW DATABASES YIELD name
-      RETURN count(DISTINCT name) AS count
+      SHOW USERS YIELD user
+      RETURN count(DISTINCT user) AS count
 
       NEXT
 
@@ -650,7 +691,7 @@ class NextStatementParserTest extends AstParsingTestBase {
       """
     query should parseIn[Statement] {
       _ =>
-        _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'ORDER BY', 'LIMIT', 'OFFSET', 'SKIP' or <EOF> (line 5, column 7 (offset: 83))
+        _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'ORDER BY', 'LIMIT', 'OFFSET', 'SKIP' or <EOF> (line 5, column 7 (offset: 79))
                             |"      NEXT"
                             |       ^""".stripMargin)
     }

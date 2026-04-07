@@ -1472,6 +1472,15 @@ trait AstConstructionTestSupport {
   ): With =
     With(distinct = false, returnAllItems, orderBy, skip, limit, where, withType = withType)(pos)
 
+  def withFromYield(
+    returnItems: ReturnItems,
+    orderBy: Option[OrderBy] = None,
+    skip: Option[Skip] = None,
+    limit: Option[Limit] = None,
+    where: Option[Where] = None
+  ): With =
+    With(distinct = false, returnItems, orderBy, skip, limit, where = where, withType = ParsedAsYield)(pos)
+
   def set_(items: Seq[SetItem]): SetClause =
     SetClause(items)(pos)
 

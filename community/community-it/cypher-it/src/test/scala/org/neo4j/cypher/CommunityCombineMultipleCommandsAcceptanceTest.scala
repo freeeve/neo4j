@@ -19,12 +19,15 @@
  */
 package org.neo4j.cypher
 
+import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparsesable_42I67
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.CantCompileQueryException
+import org.neo4j.exceptions.InvalidSemanticsException
+import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -685,7 +688,96 @@ class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCom
     ))
   }
 
-  test("Should combine all show and terminate commands") {
+  test("Should show databases and procedures on system database") {
+    // GIVEN
+    val query =
+      """SHOW PROCEDURES
+        |  YIELD name AS proc
+        |SHOW DATABASES
+        |  YIELD name AS db, aliases
+        |RETURN db, proc IN aliases AS procedureAlias
+        |ORDER BY db, procedureAlias
+        |""".stripMargin
+
+    // WHEN
+    selectDatabase(SYSTEM_DATABASE_NAME)
+    val result = execute(query)
+
+    // THEN
+    result.toList should be(allProceduresNames.flatMap(_ =>
+      List(
+        Map[String, Any]("db" -> "neo4j", "procedureAlias" -> false),
+        Map[String, Any]("db" -> "system", "procedureAlias" -> false)
+      )
+    ).sortBy(m => (m("db").asInstanceOf[String], m("procedureAlias").asInstanceOf[Boolean])))
+
+    // WHEN
+    selectDatabase(DEFAULT_DATABASE_NAME)
+    val exception = the[NotSystemDatabaseException] thrownBy {
+      execute(query)
+    }
+
+    // THEN
+    exception should be(gqlException(
+      "This is an administration command and it should be executed against the system database: SHOW DATABASES",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N28,
+        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`."
+      )
+    ))
+  }
+
+  test("Should fail to show databases and show indexes due to requiring different databases") {
+    // GIVEN
+    val query =
+      """SHOW HOME DATABASE
+        |  YIELD name AS db
+        |SHOW INDEXES
+        |  YIELD name AS index
+        |RETURN db, index
+        |""".stripMargin
+
+    // WHEN
+    selectDatabase(SYSTEM_DATABASE_NAME)
+    val exceptionSystemDb = the[InvalidSemanticsException] thrownBy {
+      execute(query)
+    }
+
+    // THEN
+    exceptionSystemDb should be(gqlException(
+      s"The following commands are not allowed on a system database: SHOW INDEXES.",
+      InvalidSyntaxStatus.withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_42N17,
+        "error: syntax error or access rule violation - unsupported request. " +
+          "'SHOW INDEXES' is not allowed on the system database."
+      ).withCause(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_42NA9,
+          "error: syntax error or access rule violation - system database rules. " +
+            "The system database supports a restricted set of Cypher clauses. " +
+            "The supported clauses include procedure calls (if the procedure is allowed), a subset of show and terminate commands, and combinations of the two. " +
+            "'YIELD' and 'RETURN' are also permitted when combined with procedure calls, show, or terminate commands."
+        )
+      ))
+    ))
+
+    // WHEN
+    selectDatabase(DEFAULT_DATABASE_NAME)
+    val exceptionDefaultDb = the[NotSystemDatabaseException] thrownBy {
+      execute(query)
+    }
+
+    // THEN
+    exceptionDefaultDb should be(gqlException(
+      "This is an administration command and it should be executed against the system database: SHOW HOME DATABASE",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N28,
+        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`."
+      )
+    ))
+  }
+
+  test("Should combine all show and terminate commands - user database") {
     // GIVEN
     val expectedSetting = allSettings(graph).head
     val expectedProcedure = allProceduresNames.head
@@ -736,6 +828,51 @@ class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCom
     }
   }
 
+  test("Should combine all show and terminate commands - system database") {
+    // GIVEN
+    val expectedSetting = allSettings(graph).head
+    val expectedProcedure = allProceduresNames.head
+    val (unwindQuery, latch) = setupUserWithOneTransaction(Map("setting" -> expectedSetting("name")))
+
+    try {
+      val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
+
+      // WHEN
+      selectDatabase(SYSTEM_DATABASE_NAME)
+      val result = execute(
+        s"""SHOW TRANSACTION '$unwindTransactionId'
+           |YIELD transactionId AS txId, parameters, database
+           |SHOW PROCEDURES
+           |YIELD name AS procedure
+           |WHERE procedure = '$expectedProcedure'
+           |SHOW SETTING parameters.setting
+           |YIELD name AS setting, value
+           |TERMINATE TRANSACTION txId
+           |YIELD message
+           |SHOW USER DEFINED FUNCTIONS EXECUTABLE
+           |YIELD name AS function
+           |WHERE function CONTAINS 'return'
+           |SHOW DATABASES
+           |YIELD name AS db, default
+           |WHERE db = database
+           |RETURN txId, procedure, setting, value, message, function, default""".stripMargin
+      ).toList
+
+      // THEN
+      result should be(List(Map(
+        "txId" -> unwindTransactionId,
+        "procedure" -> expectedProcedure,
+        "setting" -> expectedSetting("name"),
+        "value" -> expectedSetting("value"),
+        "message" -> "Transaction terminated.",
+        "function" -> "test.return.latest",
+        "default" -> true
+      )))
+    } finally {
+      latch.finishAndWaitForAllToFinish()
+    }
+  }
+
   test("Should fail to combine commands other than show and terminate transaction in Cypher 5") {
     // THEN
     List(
@@ -745,7 +882,8 @@ class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCom
       ("SHOW FUNCTIONS YIELD name AS function1", false),
       ("SHOW SETTINGS YIELD name AS setting1", false),
       ("SHOW INDEXES YIELD name AS index1", false),
-      ("SHOW CONSTRAINTS YIELD name AS constraint1", false)
+      ("SHOW CONSTRAINTS YIELD name AS constraint1", false),
+      ("SHOW DATABASES YIELD name AS database1", false)
     ).foreach { case (firstCommand, firstAllowedComposed) =>
       List(
         (s"SHOW TRANSACTIONS YIELD database AS db2 WHERE db2 <> '$SYSTEM_DATABASE_NAME'", true),
@@ -754,7 +892,8 @@ class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCom
         ("SHOW FUNCTIONS YIELD name AS function2", false),
         ("SHOW SETTINGS YIELD name AS setting2", false),
         ("SHOW INDEXES YIELD name AS index2", false),
-        ("SHOW CONSTRAINTS YIELD name AS constraint2", false)
+        ("SHOW CONSTRAINTS YIELD name AS constraint2", false),
+        ("SHOW DATABASES YIELD name AS database2", false)
       ).foreach { case (secondCommand, secondAllowedComposed) =>
         val query = s"CYPHER 5 $firstCommand $secondCommand RETURN *"
         withClue(query) {
@@ -793,7 +932,8 @@ class CommunityCombineMultipleCommandsAcceptanceTest extends CommunityCombineCom
       "SHOW SETTINGS YIELD name",
       "TERMINATE TRANSACTION 'txId' YIELD message",
       "SHOW FUNCTIONS YIELD name",
-      "SHOW CONSTRAINTS YIELD name"
+      "SHOW CONSTRAINTS YIELD name",
+      "SHOW HOME DATABASE YIELD name"
     ).foreach(command =>
       withClue(command + ": ") {
         // WHEN

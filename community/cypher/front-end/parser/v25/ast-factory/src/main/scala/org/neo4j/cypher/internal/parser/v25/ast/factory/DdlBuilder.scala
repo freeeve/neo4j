@@ -70,7 +70,6 @@ import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.ShardDefinition
-import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.StartDatabase
 import org.neo4j.cypher.internal.ast.StatementWithGraph
 import org.neo4j.cypher.internal.ast.StopDatabase
@@ -137,15 +136,7 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.CommandContext
   ): Unit = {
     val useCtx = ctx.useClause()
-    ctx.ast = lastChild[AstRuleCtx](ctx) match {
-      case c: Cypher25Parser.ShowAdminCommandContext => c.ast match {
-          // Kept for SHOW DATABASES which currently gives SingleQuery
-          case sQ: SingleQuery if useCtx != null => SingleQuery(useCtx.ast[UseGraph]() +: sQ.clauses)(pos(ctx))
-          case command: StatementWithGraph if useCtx != null => command.withGraph(Some(useCtx.ast()))
-          case a                                             => a
-        }
-      case c => c.ast[StatementWithGraph].withGraph(astOpt[UseGraph](useCtx))
-    }
+    ctx.ast = lastChild[AstRuleCtx](ctx).ast[StatementWithGraph].withGraph(astOpt[UseGraph](useCtx))
   }
 
   final override def exitDropCommand(

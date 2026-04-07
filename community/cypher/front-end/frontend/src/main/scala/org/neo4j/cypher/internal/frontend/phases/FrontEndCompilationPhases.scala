@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.OidcCredentialForwarding
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.RelationshipPropertyValueAccessRules
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowDatabaseInterpretedRuntime
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
@@ -84,8 +83,7 @@ trait FrontEndCompilationPhases {
     GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> DisableReworkedRewriters.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> EnableParsingOfObfuscatedLiterals.productPrefix,
     GraphDatabaseInternalSettings.cypher_disable_type_checking -> DisableTypeCheckingInSemanticAnalysis.productPrefix,
-    GraphDatabaseInternalSettings.attribute_based_access_control -> AttributeBasedAccessControl.productPrefix,
-    GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> ShowDatabaseInterpretedRuntime.productPrefix
+    GraphDatabaseInternalSettings.attribute_based_access_control -> AttributeBasedAccessControl.productPrefix
   )
 
   val defaultSemanticFeatures: Seq[String] = Seq(
@@ -95,7 +93,6 @@ trait FrontEndCompilationPhases {
     GraphTypes.productPrefix,
     RelationshipPropertyValueAccessRules.productPrefix,
     VariableChecking.productPrefix,
-    ShowDatabaseInterpretedRuntime.productPrefix,
     AttributeBasedAccessControl.productPrefix
   )
 

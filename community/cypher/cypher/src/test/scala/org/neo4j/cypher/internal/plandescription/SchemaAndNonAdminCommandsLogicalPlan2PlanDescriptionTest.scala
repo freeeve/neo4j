@@ -5460,6 +5460,56 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
       )
     )
 
+    assertGood(
+      attach(
+        Apply(
+          ShowDatabases(
+            SingleNamedDatabaseScope(NamespacedName("foo")(pos))(pos),
+            List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy"), commandDefaultColumn("vvv")),
+            List(
+              CommandYieldColumn("xxx", "xxx"),
+              CommandYieldColumn("yyy", "zzz"),
+              CommandYieldColumn("vvv", "vvv")
+            ),
+            yieldAll = false,
+            Set(varFor("xxx"), varFor("zzz"), varFor("vvv")),
+            Set.empty
+          ),
+          ShowSettings(
+            Right(parameter("foo", CTAny)),
+            List(commandDefaultColumn("xxx"), commandDefaultColumn("yyy")),
+            List.empty,
+            yieldAll = true,
+            Set(varFor("xxx"), varFor("yyy")),
+            Set.empty
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "Apply",
+        Seq(
+          planDescription(
+            id,
+            "ShowDatabases",
+            Seq.empty,
+            Seq(details("database(foo), columns(xxx, yyy AS zzz, vvv)")),
+            Set("xxx", "zzz", "vvv")
+          ),
+          planDescription(
+            id,
+            "ShowSettings",
+            Seq.empty,
+            Seq(details("settings($foo), allColumns")),
+            Set("xxx", "yyy")
+          )
+        ),
+        Seq.empty,
+        Set("xxx", "zzz", "vvv", "yyy")
+      )
+    )
+
   }
 
   test("Show/terminate commands together with regular Cypher") {
@@ -5602,6 +5652,42 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         ),
         Seq.empty,
         Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ProduceResult.withNoCachedProperties(
+          ProcedureCall(
+            ShowDatabases(AllDatabasesScope()(pos), List.empty, List.empty, yieldAll = false, Set.empty, Set.empty),
+            call
+          ),
+          Seq(varFor("a"), varFor("b"), varFor("c\nd"))
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ProduceResults",
+        Seq(
+          planDescription(
+            id,
+            "ProcedureCall",
+            Seq(
+              planDescription(
+                id,
+                "ShowDatabases",
+                Seq.empty,
+                Seq(details("allDatabases, defaultColumns")),
+                Set.empty
+              )
+            ),
+            Seq(details("my.proc.foo(a1) :: (x :: INTEGER, y :: LIST<NODE>)")),
+            Set("x", "y")
+          )
+        ),
+        Seq(details(Seq("a", "b", "`c d`"))),
+        Set("x", "y")
       )
     )
   }

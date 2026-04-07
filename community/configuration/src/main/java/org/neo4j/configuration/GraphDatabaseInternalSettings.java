@@ -1393,12 +1393,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .addConstraint(min(0))
             .build();
 
-    @Internal
-    @Description("Execute SHOW DATABASE on the interpreted runtime instead of the admin runtime")
-    public static final Setting<Boolean> cypher_show_database_interpreted_runtime = newBuilder(
-                    "internal.dbms.cypher_show_database_interpreted", BOOL, true)
-            .build();
-
     public enum ExtractLiteral {
         ALWAYS,
         NEVER,

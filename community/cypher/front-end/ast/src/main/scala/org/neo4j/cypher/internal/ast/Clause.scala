@@ -146,6 +146,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.notification.CartesianProductNotification
+import org.neo4j.cypher.internal.notification.IdentifierShadowsVariableNotification
 import org.neo4j.cypher.internal.notification.RedundantOptionalSubquery
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.DeprecatedFeature
@@ -2658,6 +2659,15 @@ object CommandClause {
 
     (orderBy, where)
   }
+
+  // Check if the query should automatically be routed to the system database, for backwards compatibility reasons
+  def shouldRouteToSystem(clauses: Seq[Clause]): Boolean = clauses match {
+    case Seq(_: CommandClauseRouteToSystem, w: With, r: Return) =>
+      w.withType == ParsedAsYield || (w.withType == AddedInRewriteShowCommands && r.returnType == ReturnAddedInRewrite)
+    case Seq(_: CommandClauseRouteToSystem, r: Return) =>
+      r.returnType == ReturnAddedInRewrite
+    case _ => false
+  }
 }
 
 // Yield columns: keeps track of the original name and the yield variable (either same name or renamed)
@@ -3465,6 +3475,21 @@ case class ShowDatabasesClause(
 
   override def getClauseWithoutSubclauses: CommandClause =
     copy(where = None, yieldItems = List.empty, yieldWith = None)(position)
+
+  // Semantic check needs to be split to handle typing
+  override def clauseSpecificSemanticCheck: SemanticCheck = checkDbName() chain super.clauseSpecificSemanticCheck
+
+  private def checkDbName(): SemanticState => Either[SemanticError, SemanticState] = (s: SemanticState) => {
+    dbScope match {
+      case SingleNamedDatabaseScope(dbName: NamespacedName) =>
+        s.symbol(dbName.toString) match {
+          case None => Right(s)
+          case Some(_) =>
+            Right(s.addNotification(IdentifierShadowsVariableNotification(position, dbName.toString, name)))
+        }
+      case _ => Right(s)
+    }
+  }
 }
 
 object ShowDatabasesClause {

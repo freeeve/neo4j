@@ -20,6 +20,8 @@
 package org.neo4j.fabric.planning
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.CommandClause.shouldRouteToSystem
+import org.neo4j.cypher.internal.ast.SingleQuery
 
 sealed trait StatementType {
   // Java access helpers
@@ -52,9 +54,11 @@ object StatementType {
   }
 
   def of(statement: ast.Statement): StatementType =
+    // Since we moved SHOW DATABASES to not be an AdministrationCommand we need to special case it here
     statement match {
-      case q: ast.Query                 => Query(QueryType.of(q))
-      case _: ast.SchemaCommand         => SchemaCommand
-      case _: ast.AdministrationCommand => AdminCommand
+      case sq: SingleQuery if shouldRouteToSystem(sq.clauses) => AdminCommand
+      case q: ast.Query                                       => Query(QueryType.of(q))
+      case _: ast.SchemaCommand                               => SchemaCommand
+      case _: ast.AdministrationCommand                       => AdminCommand
     }
 }

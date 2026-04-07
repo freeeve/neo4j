@@ -26,9 +26,14 @@ import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlExcep
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.InvalidSemanticsException
+import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.graphdb.schema.AnalyzerProvider
+import org.neo4j.service.Services
+
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCombineCommandsAcceptanceTestBase {
   // Tests for combining listing and terminating commands with regular Cypher
@@ -139,11 +144,11 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
 
     // THEN
     exceptionCommandAllowed should be(gqlException(
-      s"The following clauses are not allowed on a system database: MATCH.",
+      "The following clauses are not allowed on a system database: MATCH.",
       InvalidSyntaxStatus.withCause(gqlStatus(
         GqlStatusInfoCodes.STATUS_42N17,
         "error: syntax error or access rule violation - unsupported request. " +
-          s"'MATCH' is not allowed on the system database."
+          "'MATCH' is not allowed on the system database."
       ).withCause(systemDbClauseRules))
     ))
 
@@ -154,11 +159,26 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
 
     // THEN
     exceptionCommandDisallowed should be(gqlException(
-      s"The following clauses are not allowed on a system database: MATCH, SHOW CONSTRAINTS.",
+      "The following clauses are not allowed on a system database: MATCH, SHOW CONSTRAINTS.",
       InvalidSyntaxStatus.withCause(gqlStatus(
         GqlStatusInfoCodes.STATUS_42N17,
         "error: syntax error or access rule violation - unsupported request. " +
-          s"'MATCH, SHOW CONSTRAINTS' is not allowed on the system database."
+          "'MATCH, SHOW CONSTRAINTS' is not allowed on the system database."
+      ).withCause(systemDbClauseRules))
+    ))
+
+    // WHEN
+    val exceptionCommandRequired = the[InvalidSemanticsException] thrownBy {
+      execute("SHOW DATABASES YIELD name MATCH (n) RETURN *")
+    }
+
+    // THEN
+    exceptionCommandRequired should be(gqlException(
+      "The following clauses are not allowed on a system database: MATCH.",
+      InvalidSyntaxStatus.withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_42N17,
+        "error: syntax error or access rule violation - unsupported request. " +
+          "'MATCH' is not allowed on the system database."
       ).withCause(systemDbClauseRules))
     ))
   }
@@ -235,6 +255,50 @@ class CommunityCombineCommandsAndRegularCypherAcceptanceTest extends CommunityCo
       Map("name" -> "indexNode", "labelOrType" -> "Label", "property" -> "prop1"),
       Map("name" -> "indexNode", "labelOrType" -> "Label", "property" -> "prop2"),
       Map("name" -> "indexRel", "labelOrType" -> "REL_TYPE", "property" -> "prop")
+    ))
+  }
+
+  test("Should show databases and procedure call on system database") {
+    // GIVEN
+    val query =
+      """SHOW DATABASES
+        |  YIELD name, aliases
+        |CALL db.index.fulltext.listAvailableAnalyzers()
+        |  YIELD analyzer
+        |RETURN name, analyzer IN aliases AS analyzerAlias
+        |ORDER BY name, analyzerAlias
+        |""".stripMargin
+
+    // This is how the `db.index.fulltext.listAvailableAnalyzers` procedure fetches the analyzers
+    val allFulltextAnalyzers = Services.loadAll(classOf[AnalyzerProvider]).stream.toList.asScala.toList
+
+    // WHEN
+    selectDatabase(GraphDatabaseSettings.SYSTEM_DATABASE_NAME)
+    val result = execute(query)
+
+    // THEN
+    result.toList should be(
+      allFulltextAnalyzers.flatMap(_ =>
+        List(
+          Map[String, Any]("name" -> "neo4j", "analyzerAlias" -> false),
+          Map[String, Any]("name" -> "system", "analyzerAlias" -> false)
+        )
+      ).sortBy(m => (m("name").asInstanceOf[String], m("analyzerAlias").asInstanceOf[Boolean]))
+    )
+
+    // WHEN
+    selectDatabase(GraphDatabaseSettings.DEFAULT_DATABASE_NAME)
+    val exception = the[NotSystemDatabaseException] thrownBy {
+      execute(query)
+    }
+
+    // THEN
+    exception should be(gqlException(
+      "This is an administration command and it should be executed against the system database: SHOW DATABASES",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N28,
+        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`."
+      )
     ))
   }
 }

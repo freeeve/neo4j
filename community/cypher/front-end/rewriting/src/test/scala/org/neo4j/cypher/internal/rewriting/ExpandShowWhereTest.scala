@@ -42,8 +42,9 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
   val rewriterUnderTest: Rewriter = ExpandShowWhere.instance
 
   test("SHOW DATABASES") {
+    // Only the Cypher 5 version of SHOW DATABASES uses the AST caught in ExpandShowWhere
     val originalQuery = "SHOW DATABASES WHERE name STARTS WITH 's'"
-    val original = parseForRewriting(originalQuery)
+    val original = parseForRewriting(CypherVersion.Cypher5, originalQuery)
     val result = rewrite(original)
 
     result match {

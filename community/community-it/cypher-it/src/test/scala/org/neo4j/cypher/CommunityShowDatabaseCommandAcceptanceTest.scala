@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
@@ -44,54 +43,7 @@ import java.time.ZonedDateTime
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class CommunityShowDatabaseCommandAcceptanceTestInterpreted extends CommunityShowDatabaseCommandAcceptanceTest {
-
-  override def databaseConfig(): Map[Setting[_], Object] = {
-    super.databaseConfig() ++ Map(
-      GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> java.lang.Boolean.TRUE,
-      GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25
-    )
-  }
-
-  test("should not show database with invalid yield") {
-    // GIVEN
-    setup()
-
-    // WHEN
-    val exception = the[SyntaxException] thrownBy {
-      execute("SHOW DATABASE $db YIELD foo, bar, baz", dbDefaultMap)
-    }
-
-    // THEN
-    exception.getMessage should startWith("Trying to YIELD non-existing column: `foo`")
-    exception.getMessage should include("(line 1, column 25 (offset: 24))")
-  }
-}
-
-class CommunityShowDatabaseCommandAcceptanceTestAdministration extends CommunityShowDatabaseCommandAcceptanceTest {
-
-  override def databaseConfig(): Map[Setting[_], Object] = {
-    super.databaseConfig() ++ Map(
-      GraphDatabaseInternalSettings.cypher_show_database_interpreted_runtime -> java.lang.Boolean.FALSE
-    )
-  }
-
-  test("should not show database with invalid yield") {
-    // GIVEN
-    setup()
-
-    // WHEN
-    val exception = the[SyntaxException] thrownBy {
-      execute("SHOW DATABASE $db YIELD foo, bar, baz", dbDefaultMap)
-    }
-
-    // THEN
-    exception.getMessage should startWith("Variable `foo` not defined")
-    exception.getMessage should include("(line 1, column 25 (offset: 24))")
-  }
-}
-
-trait CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministrationCommandAcceptanceTestBase
+class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministrationCommandAcceptanceTestBase
     with OptionValues {
 
   private val onlineStatus: String = DatabaseStatus.Online.stringValue()
@@ -101,6 +53,12 @@ trait CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
   protected val dbDefaultMap: Map[String, String] = Map("db" -> DEFAULT_DATABASE_NAME)
   private val nameDefaultMap: Map[String, String] = Map("name" -> DEFAULT_DATABASE_NAME)
   private val nameSystemMap: Map[String, String] = Map("name" -> SYSTEM_DATABASE_NAME)
+
+  override def databaseConfig(): Map[Setting[_], Object] = {
+    super.databaseConfig() ++ Map(
+      GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25
+    )
+  }
 
   test(s"should show database $DEFAULT_DATABASE_NAME") {
     // GIVEN
@@ -599,6 +557,29 @@ trait CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
 
     // THEN
     result.toList should be(List(Map("name" -> DEFAULT_DATABASE_NAME)))
+  }
+
+  test("should not show database with invalid yield") {
+    // GIVEN
+    setup()
+
+    // WHEN
+    val exception = the[SyntaxException] thrownBy {
+      execute("SHOW DATABASE $db YIELD foo, bar, baz", dbDefaultMap)
+    }
+
+    // THEN
+    exception.getMessage should startWith("Trying to YIELD non-existing column: `foo`")
+    exception.getMessage should include("(line 1, column 25 (offset: 24))")
+
+    // WHEN
+    val exceptionCypher5 = the[SyntaxException] thrownBy {
+      execute("CYPHER 5 SHOW DATABASE $db YIELD foo, bar, baz", dbDefaultMap)
+    }
+
+    // THEN
+    exceptionCypher5.getMessage should startWith("Variable `foo` not defined")
+    exceptionCypher5.getMessage should include("(line 1, column 34 (offset: 33))")
   }
 
   test("should not show database with invalid where") {

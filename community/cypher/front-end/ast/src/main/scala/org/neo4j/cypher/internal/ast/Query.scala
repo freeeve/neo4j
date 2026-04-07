@@ -829,11 +829,11 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   }
 
   private def checkUseForRoutedSystemCommand(): SemanticCheck = {
-    // For backward compatibility, SHOW DATBASES is routed to system if it is standalone, but we don't want to allow it to be routed anywhere else,
+    // For backward compatibility, SHOW DATABASES is routed to system if it is standalone, but we don't want to allow it to be routed anywhere else,
     // as this could allow it to get routed to a remote alias.
     partitionedClauses match {
-      case SingleQuery.PartitionedClauses(Some(use), _, _, (_: CommandClauseRouteToSystem) :: _)
-        if use.graphReference.print != SYSTEM_DATABASE_NAME =>
+      case SingleQuery.PartitionedClauses(Some(use), _, _, cs)
+        if CommandClause.shouldRouteToSystem(cs) && use.graphReference.print != SYSTEM_DATABASE_NAME =>
         SemanticError.useClauseWithAdministrationCommand(use.position)
       case _ => success
     }

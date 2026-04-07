@@ -2480,6 +2480,13 @@ class AstGenerator(
     funcType <- oneOf(AllFunctions, BuiltInFunctions, UserDefinedFunctions)
     name <- _identifier
     exec <- option(oneOf(CurrentUser, User(name)(pos)))
+    dbName <- _databaseName
+    scope <- oneOf(
+      SingleNamedDatabaseScope(dbName)(pos),
+      AllDatabasesScope()(pos),
+      DefaultDatabaseScope()(pos),
+      HomeDatabaseScope()(pos)
+    )
     yields <- _yield
     yieldAll <- boolean
     clauseCypher5 <- const((item: List[CommandResultItem], all: Boolean, w: With) =>
@@ -2498,7 +2505,9 @@ class AstGenerator(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowIndexesClause(indexType, None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowCurrentGraphTypeClause(None, item, all, Some(w))(pos)
+        ShowCurrentGraphTypeClause(None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowDatabasesClause(scope, None, item, all, Some(w))(pos)
     )
     clause = if (usesCypher5) clauseCypher5 else clauseCypher25orAbove
   } yield {
@@ -2596,7 +2605,7 @@ class AstGenerator(
     } else {
       oneOf(
         _showIndexes,
-        _showDatabaseNew,
+        _showDatabases,
         _showConstraints,
         _showCurrentGraphType,
         _showProcedures,
@@ -3936,7 +3945,7 @@ class AstGenerator(
 
   // Database commands
 
-  def _showDatabase: Gen[ShowDatabase] = for {
+  def _showDatabaseCypher5: Gen[ShowDatabase] = for {
     dbName <- _databaseName
     scope <- oneOf(
       SingleNamedDatabaseScope(dbName)(pos),
@@ -3945,9 +3954,9 @@ class AstGenerator(
       HomeDatabaseScope()(pos)
     )
     yields <- _eitherYieldOrWhere
-  } yield ShowDatabase(scope, yields, usesCypher5)(pos)
+  } yield ShowDatabase(scope, yields, cypher5ColumnsOnly = true)(pos)
 
-  def _showDatabaseNew: Gen[SingleQuery] = for {
+  def _showDatabases: Gen[SingleQuery] = for {
     dbName <- _databaseName
     use <- option(_use)
     scope <- oneOf(
@@ -4050,7 +4059,7 @@ class AstGenerator(
 
   def _multiDatabaseCommand: Gen[AdministrationCommand] = for {
     cypher5cmds <- oneOf(
-      _showDatabase,
+      _showDatabaseCypher5,
       _createDatabase,
       _createCompositeDatabase,
       _dropDatabase,

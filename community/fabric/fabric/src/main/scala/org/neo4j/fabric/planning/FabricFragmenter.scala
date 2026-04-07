@@ -22,7 +22,7 @@ package org.neo4j.fabric.planning
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.CatalogName
-import org.neo4j.cypher.internal.ast.CommandClauseRouteToSystem
+import org.neo4j.cypher.internal.ast.CommandClause.shouldRouteToSystem
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
@@ -61,12 +61,10 @@ class FabricFragmenter(
     input: Fragment.Init,
     part: ast.Query
   ): Fragment = part match {
-    // This is a special case where we route to system database if the first clause is a route to system command, this is for backward compatibility
+    // This is a special case where we route to system database if it is a standalone route to system command, this is for backward compatibility
     // with SHOW that used to be AdministrationCommand
-    case sq @ SingleQuery((_: CommandClauseRouteToSystem) :: _) =>
-      Fragment.Leaf(Init(systemUse), sq.clauses, produced(sq.clauses))(
-        sq.position
-      )
+    case sq: SingleQuery if shouldRouteToSystem(sq.clauses) =>
+      Fragment.Leaf(Init(systemUse), sq.clauses, produced(sq.clauses))(sq.position)
     case sq: ast.SingleQuery => fragmentSingle(input, sq)
     case uq: ast.Union =>
       Union(input, isDistinct(uq), fragmentQuery(input, uq.lhs), fragmentSingle(input, uq.rhs.singleQuery))(

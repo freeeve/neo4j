@@ -21,7 +21,7 @@ package org.neo4j.router.impl.query
 
 import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.CallClause
-import org.neo4j.cypher.internal.ast.CommandClauseRouteToSystem
+import org.neo4j.cypher.internal.ast.CommandClause.shouldRouteToSystem
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -102,10 +102,10 @@ object StatementType {
 
     statement match {
       // Since we moved SHOW DATABASES to not be an AdministrationCommand we need to special case it here
-      case SingleQuery((_: CommandClauseRouteToSystem) :: _) => StatementType(AdminCommand, maybeContainsUpdates)
-      case _: Query                                          => StatementType(Query, maybeContainsUpdates)
-      case _: SchemaCommand                                  => StatementType(SchemaCommand, maybeContainsUpdates)
-      case _: AdministrationCommand                          => StatementType(AdminCommand, maybeContainsUpdates)
+      case sq: SingleQuery if shouldRouteToSystem(sq.clauses) => StatementType(AdminCommand, maybeContainsUpdates)
+      case _: Query                                           => StatementType(Query, maybeContainsUpdates)
+      case _: SchemaCommand                                   => StatementType(SchemaCommand, maybeContainsUpdates)
+      case _: AdministrationCommand                           => StatementType(AdminCommand, maybeContainsUpdates)
       case x => throw InternalException.internalError(
           this.getClass.getSimpleName,
           s"Expected Query, SchemaCommand or AdministrationCommand but got ${x.getClass}"

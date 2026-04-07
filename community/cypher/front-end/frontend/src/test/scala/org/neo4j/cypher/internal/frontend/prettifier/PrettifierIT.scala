@@ -2315,6 +2315,16 @@ class PrettifierIT extends AbstractPrettifierTest {
         |YIELD *
         |RETURN name""".stripMargin
     ),
+    FailsInCypher5(
+      "show databases yield name as db, home WHERE home show transactions yield transactionId, database WHERE database = db RETURN transactionId",
+      """SHOW DATABASES
+        |YIELD name AS db, home
+        |  WHERE home
+        |SHOW TRANSACTIONS
+        |YIELD transactionId, database
+        |  WHERE database = db
+        |RETURN transactionId""".stripMargin
+    ),
 
     // combine show and terminate commands with regular Cypher
 
@@ -2345,6 +2355,14 @@ class PrettifierIT extends AbstractPrettifierTest {
       """SHOW RANGE INDEXES
         |YIELD *
         |CREATE (:Label {prop: name})""".stripMargin
+    ),
+    FailsInCypher5(
+      "call db.index.fulltext.listAvailableAnalyzers() yield analyzer show database foo yield aliases return analyzer in aliases",
+      """CALL db.index.fulltext.listAvailableAnalyzers()
+        |  YIELD analyzer
+        |SHOW DATABASE foo
+        |YIELD aliases
+        |RETURN analyzer IN aliases""".stripMargin
     )
   )
 
@@ -3182,28 +3200,47 @@ class PrettifierIT extends AbstractPrettifierTest {
   def databaseCommandTests(): Seq[Test] = Seq[Test](
     "show databases" ->
       "SHOW DATABASES",
-    "Show Databases YIELD * where name = 'neo4j' Return *" ->
+    ChangedBetween5And25(
+      "Show Databases YIELD * where name = 'neo4j' Return *",
       """SHOW DATABASES
         |  YIELD *
         |    WHERE name = "neo4j"
         |  RETURN *""".stripMargin,
-    "Show Databases YIELD * Return DISTINCT default, name" ->
+      """SHOW DATABASES
+        |YIELD *
+        |  WHERE name = "neo4j"
+        |RETURN *""".stripMargin
+    ),
+    ChangedBetween5And25(
+      "Show Databases YIELD * Return DISTINCT default, name",
       """SHOW DATABASES
         |  YIELD *
         |  RETURN DISTINCT default, name""".stripMargin,
+      """SHOW DATABASES
+        |YIELD *
+        |RETURN DISTINCT default, name""".stripMargin
+    ),
     "show default database" ->
       "SHOW DEFAULT DATABASE",
     "show database foO_Bar_42" ->
       "SHOW DATABASE foO_Bar_42",
     "show database $foo" ->
       "SHOW DATABASE $foo",
-    "show database $foo yield name order by name skip 1 limit 1 where name='neo4j'" ->
+    ChangedBetween5And25(
+      "show database $foo yield name order by name skip 1 limit 1 where name='neo4j'",
       """SHOW DATABASE $foo
         |  YIELD name
         |    ORDER BY name ASCENDING
         |    SKIP 1
         |    LIMIT 1
         |    WHERE name = "neo4j"""".stripMargin,
+      """SHOW DATABASE $foo
+        |YIELD name
+        |  ORDER BY name ASCENDING
+        |  SKIP 1
+        |  LIMIT 1
+        |  WHERE name = "neo4j"""".stripMargin
+    ),
     "show home database" ->
       "SHOW HOME DATABASE",
     "create database foO_Bar_42" ->
