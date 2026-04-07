@@ -271,6 +271,8 @@ public class KernelTransactionImplementation
     private final LockManager.Client lockClient;
     private volatile long transactionSequenceNumber;
     private LeaseClient leaseClient;
+    // field to check lease id from another thread to perform transaction termination based on difference
+    private volatile int leaseId = NO_LEASE;
     private volatile boolean closing;
     private volatile boolean closed;
     private boolean commit;
@@ -688,6 +690,7 @@ public class KernelTransactionImplementation
         this.monitor = KernelTransaction.NO_MONITOR;
         this.type = type;
         this.leaseClient = leaseService.newClient();
+        this.leaseId = NO_LEASE;
         this.lockClient.initialize(leaseClient, transactionSequenceNumber, memoryTracker, config);
         this.terminationMark = null;
         this.commit = false;
@@ -1070,6 +1073,7 @@ public class KernelTransactionImplementation
     public TransactionState txState() {
         if (txState == null) {
             leaseClient.ensureValid();
+            leaseId = leaseClient.leaseId();
             readOnlyDatabaseChecker.check();
             transactionMonitor.upgradeToWriteTransaction();
             txStateWriter.initialize(
@@ -1522,6 +1526,15 @@ public class KernelTransactionImplementation
         return leaseClient;
     }
 
+    /**
+     * return lease id that was assigned to transaction in case it was switched to be a write transaction
+     * Method does not check if lease is still valid and should only be used for monitoring lease ids from
+     * other threads for example for monitoring.
+     */
+    public int getLeaseId() {
+        return leaseId;
+    }
+
     @Override
     public CursorFactory cursors() {
         return operations.cursors();
@@ -1583,6 +1596,7 @@ public class KernelTransactionImplementation
         terminationReleaseLock.lock();
         Throwable error = null;
         try {
+            leaseId = NO_LEASE;
             try {
                 lockClient.close();
             } catch (RuntimeException | Error e) {
@@ -2028,6 +2042,7 @@ public class KernelTransactionImplementation
 
     public void ensureValid() throws LeaseException {
         leaseClient.ensureValid();
+        this.leaseId = leaseClient.leaseId();
     }
 
     private void registerConfigChangeListeners(LocalConfig config) {

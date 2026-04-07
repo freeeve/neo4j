@@ -430,11 +430,15 @@ public class KernelTransactions extends LifecycleAdapter
      */
     public void terminateOldLeaseTransactions(long currentLeaseId) {
         for (KernelTransactionImplementation tx : allTransactions) {
-            int txLeaseId = tx.leaseClient().leaseId();
-            if (txLeaseId != NO_LEASE && currentLeaseId != txLeaseId) {
+            if (tx.isDataTransaction() && isOldLease(tx, currentLeaseId)) {
                 tx.markForTermination(LeaseExpired);
             }
         }
+    }
+
+    private static boolean isOldLease(KernelTransactionImplementation tx, long currentLeaseId) {
+        int txLeaseId = tx.getLeaseId();
+        return txLeaseId != NO_LEASE && currentLeaseId != txLeaseId;
     }
 
     @Override

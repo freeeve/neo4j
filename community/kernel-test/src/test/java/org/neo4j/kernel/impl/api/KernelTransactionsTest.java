@@ -411,6 +411,59 @@ class KernelTransactionsTest {
     }
 
     @Test
+    void terminateOldLeaseTransactionsSkipsTransactionsWithNoLease() throws Throwable {
+        KernelTransactions kernelTransactions = newKernelTransactions();
+
+        KernelTransaction tx = getKernelTransaction(kernelTransactions);
+
+        kernelTransactions.terminateOldLeaseTransactions(42);
+        assertTrue(tx.getReasonIfTerminated().isEmpty());
+    }
+
+    @Test
+    void doNotTerminateNonWriteOldLeaseTransaction() throws Throwable {
+        int oldLeaseId = 1;
+        int currentLeaseId = 2;
+        KernelTransactions kernelTransactions = newKernelTransactions(leaseServiceWithFixedId(oldLeaseId));
+
+        KernelTransaction tx = getKernelTransaction(kernelTransactions);
+        ((KernelTransactionImplementation) tx).ensureValid();
+
+        kernelTransactions.terminateOldLeaseTransactions(currentLeaseId);
+
+        assertThat(tx.getReasonIfTerminated()).isEmpty();
+    }
+
+    @Test
+    void terminateOldLeaseTransactionsTerminatesTransactionsWithOldLeaseId() throws Throwable {
+        int oldLeaseId = 1;
+        int currentLeaseId = 2;
+        KernelTransactions kernelTransactions = newKernelTransactions(leaseServiceWithFixedId(oldLeaseId));
+
+        KernelTransaction tx = getKernelTransaction(kernelTransactions);
+        ((KernelTransactionImplementation) tx).ensureValid();
+        // mark tx as write
+        tx.dataWrite();
+
+        kernelTransactions.terminateOldLeaseTransactions(currentLeaseId);
+
+        assertEquals(Status.Transaction.LeaseExpired, tx.getReasonIfTerminated().get());
+    }
+
+    @Test
+    void terminateOldLeaseTransactionsSkipsTransactionsWithCurrentLeaseId() throws Throwable {
+        int leaseId = 1;
+        KernelTransactions kernelTransactions = newKernelTransactions(leaseServiceWithFixedId(leaseId));
+
+        KernelTransaction tx = getKernelTransaction(kernelTransactions);
+        ((KernelTransactionImplementation) tx).ensureValid();
+
+        kernelTransactions.terminateOldLeaseTransactions(leaseId);
+
+        assertTrue(tx.getReasonIfTerminated().isEmpty());
+    }
+
+    @Test
     void transactionClosesUnderlyingStoreReaderWhenDisposed() throws Throwable {
         // Given
         StorageReader storeStatement1 = mockedStorageReader();
@@ -685,6 +738,7 @@ class KernelTransactionsTest {
                 Clocks.nanoClock(),
                 mock(AvailabilityGuard.class),
                 Config.defaults(),
+                LeaseService.NO_LEASES,
                 memoryPools);
         assertThat(memoryPools.getDatabasePools()).isEmpty();
 
@@ -765,28 +819,39 @@ class KernelTransactionsTest {
         return newKernelTransactions(mock(TransactionCommitProcess.class));
     }
 
+    private KernelTransactions newKernelTransactions(LeaseService leaseService) throws Throwable {
+        return newKernelTransactions(
+                true, mock(TransactionCommitProcess.class), mockedStorageReader(), Config.defaults(), leaseService);
+    }
+
     private KernelTransactions newKernelTransactions(Config config) throws Throwable {
         return newKernelTransactions(mock(TransactionCommitProcess.class), config);
     }
 
     private KernelTransactions newTestKernelTransactions() throws Throwable {
         return newKernelTransactions(
-                true, mock(TransactionCommitProcess.class), mockedStorageReader(), Config.defaults());
+                true,
+                mock(TransactionCommitProcess.class),
+                mockedStorageReader(),
+                Config.defaults(),
+                LeaseService.NO_LEASES);
     }
 
     private KernelTransactions newKernelTransactions(TransactionCommitProcess commitProcess, Config config)
             throws Throwable {
-        return newKernelTransactions(false, commitProcess, mockedStorageReader(), config);
+        return newKernelTransactions(false, commitProcess, mockedStorageReader(), config, LeaseService.NO_LEASES);
     }
 
     private KernelTransactions newKernelTransactions(TransactionCommitProcess commitProcess) throws Throwable {
-        return newKernelTransactions(false, commitProcess, mockedStorageReader(), Config.defaults());
+        return newKernelTransactions(
+                false, commitProcess, mockedStorageReader(), Config.defaults(), LeaseService.NO_LEASES);
     }
 
     private KernelTransactions newKernelTransactions(
             TransactionCommitProcess commitProcess, StorageReader firstReader, StorageReader... otherReaders)
             throws Throwable {
-        return newKernelTransactions(false, commitProcess, firstReader, Config.defaults(), otherReaders);
+        return newKernelTransactions(
+                false, commitProcess, firstReader, Config.defaults(), LeaseService.NO_LEASES, otherReaders);
     }
 
     private KernelTransactions newKernelTransactions(
@@ -794,6 +859,7 @@ class KernelTransactionsTest {
             TransactionCommitProcess commitProcess,
             StorageReader firstReader,
             Config config,
+            LeaseService leaseService,
             StorageReader... otherReaders)
             throws Throwable {
         LockManager.Client client = mock(LockManager.Client.class);
@@ -814,13 +880,14 @@ class KernelTransactionsTest {
                         any(MemoryTracker.class)))
                 .thenReturn(List.of(mock(StorageCommand.class)));
 
-        return newKernelTransactions(locks, storageEngine, commitProcess, testKernelTransactions, config);
+        return newKernelTransactions(locks, storageEngine, commitProcess, leaseService, testKernelTransactions, config);
     }
 
     private KernelTransactions newKernelTransactions(
             LockManager locks,
             StorageEngine storageEngine,
             TransactionCommitProcess commitProcess,
+            LeaseService leaseService,
             boolean testKernelTransactions,
             Config config) {
         LifeSupport life = new LifeSupport();
@@ -848,6 +915,7 @@ class KernelTransactionsTest {
                     databaseTracers,
                     locks,
                     clock,
+                    leaseService,
                     databaseAvailabilityGuard);
         } else {
             transactions = createTransactions(
@@ -860,6 +928,7 @@ class KernelTransactionsTest {
                     clock,
                     databaseAvailabilityGuard,
                     config,
+                    leaseService,
                     new MemoryPools().pool(MemoryGroup.TRANSACTION, 0, null));
         }
         life.add(transactions);
@@ -876,6 +945,7 @@ class KernelTransactionsTest {
             SystemNanoClock clock,
             AvailabilityGuard databaseAvailabilityGuard,
             Config config,
+            LeaseService leaseService,
             GlobalMemoryGroupTracker memoryGroupTracker) {
         return new KernelTransactions(
                 config,
@@ -905,7 +975,7 @@ class KernelTransactionsTest {
                 mock(IndexStatisticsStore.class),
                 createDependencies(),
                 tracers,
-                LeaseService.NO_LEASES,
+                leaseService,
                 memoryGroupTracker,
                 writable(),
                 TransactionExecutionMonitor.NO_OP,
@@ -929,6 +999,7 @@ class KernelTransactionsTest {
             DatabaseTracers tracers,
             LockManager locks,
             SystemNanoClock clock,
+            LeaseService leaseService,
             AvailabilityGuard databaseAvailabilityGuard) {
         Dependencies dependencies = createDependencies();
         return new TestKernelTransactions(
@@ -947,6 +1018,7 @@ class KernelTransactionsTest {
                 any -> CanWrite.INSTANCE,
                 new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER),
                 mockedTokenHolders(),
+                leaseService,
                 dependencies);
     }
 
@@ -979,6 +1051,22 @@ class KernelTransactionsTest {
         return new TestKernelTransactionHandle(tx);
     }
 
+    private static LeaseService leaseServiceWithFixedId(int fixedLeaseId) {
+        return () -> new LeaseClient() {
+            private int id = LeaseService.NO_LEASE;
+
+            @Override
+            public int leaseId() {
+                return id;
+            }
+
+            @Override
+            public void ensureValid() throws LeaseException {
+                id = fixedLeaseId;
+            }
+        };
+    }
+
     private static KernelTransaction getKernelTransaction(KernelTransactions transactions) {
         return transactions.newInstance(IMPLICIT, AnonymousContext.access(), EMBEDDED_CONNECTION, NO_TIMEOUT);
     }
@@ -1004,6 +1092,7 @@ class KernelTransactionsTest {
                 AccessCapabilityFactory accessCapabilityFactory,
                 CursorContextFactory contextFactory,
                 TokenHolders tokenHolders,
+                LeaseService leaseService,
                 Dependencies databaseDependencies) {
             super(
                     Config.defaults(shutdown_terminated_transaction_wait_timeout, Duration.ZERO),
@@ -1033,7 +1122,7 @@ class KernelTransactionsTest {
                     mock(IndexStatisticsStore.class),
                     databaseDependencies,
                     tracers,
-                    LeaseService.NO_LEASES,
+                    leaseService,
                     new MemoryPools().pool(MemoryGroup.TRANSACTION, 0, null),
                     writable(),
                     TransactionExecutionMonitor.NO_OP,
