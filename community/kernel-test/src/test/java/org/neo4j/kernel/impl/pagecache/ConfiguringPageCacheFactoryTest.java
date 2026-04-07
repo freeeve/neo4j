@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.pagecache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.pagecache_async_io;
+import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_async_io;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.configuration.GraphDatabaseSettings.preallocate_store_files;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;

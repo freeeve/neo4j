@@ -757,6 +757,11 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     public static final Setting<Boolean> pagecache_direct_io =
             newBuilder("server.memory.pagecache.directio", BOOL, false).build();
 
+    @Description("Use async I/O for page cache. "
+            + "Setting is supported only on x86 Linux and only for a subset of operations.")
+    public static final Setting<Boolean> pagecache_async_io =
+            newBuilder("server.memory.pagecache.async", BOOL, false).build();
+
     @Description("Allows the enabling or disabling of the file watcher service. "
             + "This is an auxiliary service but should be left enabled in almost all cases.")
     public static final Setting<Boolean> filewatcher_enabled =

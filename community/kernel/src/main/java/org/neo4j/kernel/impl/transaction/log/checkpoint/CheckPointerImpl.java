@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.neo4j.configuration.GraphDatabaseInternalSettings.pagecache_async_io;
+import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_async_io;
 import static org.neo4j.internal.helpers.Format.duration;
 import static org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo.UNKNOWN_CHECKPOINT_INFO;
 
