@@ -107,26 +107,18 @@ class EnvelopedLogFilesTest {
 
     @BeforeEach
     void setUp() {
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
     }
 
-    private void recreateEnvelopedLogFiles() {
+    private void recreateEnvelopedLogFiles(KernelVersion kernelVersion) {
         var baseFileName = "raft.log";
         var baseFolder = testDirectory.directory("logsFolder");
         var filesHelper = new SequentialFileNameHelper(baseFolder, baseFileName);
         mirroringRepository = new LogsRepository(fs, filesHelper);
+        var logHeaderFactory = new BaseLogHeaderFactory(kernelVersion);
         envelopedLogFiles = new EnvelopedLogFiles(
                 mirroringRepository,
-                (fileVersion, preFileIndex, preFileChecksum, segmentSize, lastTerm) -> LogFormat.fromKernelVersion(
-                                KernelVersion.GLORIOUS_FUTURE)
-                        .newHeader(
-                                fileVersion,
-                                preFileIndex,
-                                lastTerm,
-                                StoreId.UNKNOWN,
-                                segmentSize,
-                                preFileChecksum,
-                                KernelVersion.GLORIOUS_FUTURE),
+                logHeaderFactory,
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,
@@ -175,7 +167,7 @@ class EnvelopedLogFilesTest {
         writeChannel.prepareForFlush().flush();
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         var latestLogIndex = envelopedLogFiles.initialise();
 
         // then
@@ -199,7 +191,7 @@ class EnvelopedLogFilesTest {
         writeChannel.prepareForFlush().flush();
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         var latestLogIndex = envelopedLogFiles.initialise();
 
         // then
@@ -221,7 +213,7 @@ class EnvelopedLogFilesTest {
         writeChannel.prepareForFlush().flush();
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         var latestLogIndex = envelopedLogFiles.initialise();
 
         // then
@@ -245,7 +237,7 @@ class EnvelopedLogFilesTest {
         writeChannel.prepareForFlush().flush();
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         var latestLogIndex = envelopedLogFiles.initialise();
 
         // then
@@ -270,7 +262,7 @@ class EnvelopedLogFilesTest {
         writePseudoPreallocatedFile(1);
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         var latestLogIndex = envelopedLogFiles.initialise();
 
         // then
@@ -1262,7 +1254,7 @@ class EnvelopedLogFilesTest {
         // remove a file in the sequence
         fs.deleteFile(mirroringRepository.pathFor(1L));
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining("Missing log file");
@@ -1286,7 +1278,7 @@ class EnvelopedLogFilesTest {
         fs.renameFile(mirroringRepository.pathFor(1L), mirroringRepository.pathFor(0L));
         fs.renameFile(mirroringRepository.pathFor(2L), mirroringRepository.pathFor(1L));
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining("mismatched logVersion");
@@ -1315,7 +1307,7 @@ class EnvelopedLogFilesTest {
             }
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining(
@@ -1341,7 +1333,7 @@ class EnvelopedLogFilesTest {
             writePseudoPreallocatedFile(logVersion);
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining(
@@ -1394,7 +1386,7 @@ class EnvelopedLogFilesTest {
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining("has lower previousAppendIndex: 2 than previous file");
@@ -1437,7 +1429,7 @@ class EnvelopedLogFilesTest {
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining("has lower previousTerm: 2 than previous file");
@@ -1463,7 +1455,8 @@ class EnvelopedLogFilesTest {
 
     @Test
     void shouldAbortOnLogFormatDowngrade() throws IOException {
-        // create three initial files
+        // create three initial files on V11
+        recreateEnvelopedLogFiles(KernelVersion.GLORIOUS_FUTURE);
         envelopedLogFiles.initialise();
         var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
         var writeChannel = envelopedLogFiles.currentWriteChannel();
@@ -1498,7 +1491,7 @@ class EnvelopedLogFilesTest {
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise())
                 .isInstanceOf(InconsistentLogFilesException.class)
                 .hasMessageContaining("uses LogFormat: V10 but previous file used higher LogFormat");
@@ -1550,7 +1543,7 @@ class EnvelopedLogFilesTest {
             channel.flush();
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThatThrownBy(() -> envelopedLogFiles.initialise()).isInstanceOf(IllegalStateException.class);
     }
 
@@ -1578,7 +1571,7 @@ class EnvelopedLogFilesTest {
         }
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         // should initialise to prev appendIndex 1
         assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
         writeChannel = envelopedLogFiles.currentWriteChannel();
@@ -1628,7 +1621,7 @@ class EnvelopedLogFilesTest {
         }
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         // should initialise to prev appendIndex 1
         assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
         writeChannel = envelopedLogFiles.currentWriteChannel();
@@ -1679,7 +1672,7 @@ class EnvelopedLogFilesTest {
         }
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         // should initialise to prev appendIndex 1
         assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
         writeChannel = envelopedLogFiles.currentWriteChannel();
@@ -1735,7 +1728,7 @@ class EnvelopedLogFilesTest {
             channel.flush();
         }
 
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         assertThat(envelopedLogFiles.initialise()).isEqualTo(lastAppendIndex - 1);
         writeChannel = envelopedLogFiles.currentWriteChannel();
         assertThat(mirroringRepository.logVersionsRange().to()).isEqualTo(3L);
@@ -1783,7 +1776,7 @@ class EnvelopedLogFilesTest {
         }
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         // should initialise to last appendIndex 1
         assertThat(envelopedLogFiles.initialise()).isEqualTo(1L);
         writeChannel = envelopedLogFiles.currentWriteChannel();
@@ -1824,7 +1817,7 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.close();
 
         // when
-        recreateEnvelopedLogFiles();
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
         // should initialise to last appendIndex 2 without any truncation
         assertThat(envelopedLogFiles.initialise()).isEqualTo(2L);
         writeChannel = envelopedLogFiles.currentWriteChannel();

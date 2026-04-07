@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -35,16 +37,16 @@ public class BaseLogHeaderFactory implements LogHeaderFactory {
     @Override
     public LogHeader createLogHeader(
             long newFileVersion, long lastAppendIndex, int lastChecksum, int segmentSize, long preFileTerm) {
-        var version = getCurrentDatabaseVersion();
-        return LogFormat.fromKernelVersion(version)
-                .newHeader(
-                        newFileVersion,
-                        lastAppendIndex,
-                        preFileTerm,
-                        StoreId.UNKNOWN,
-                        segmentSize,
-                        lastChecksum,
-                        version);
+        KernelVersion version = getCurrentDatabaseVersion();
+        Config envelopeEnabledConfig =
+                Config.defaults(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, true);
+        LogFormat logFormat = LogFormat.fromConfigAndKernelVersion(envelopeEnabledConfig, version);
+        if (!logFormat.usesSegments()) {
+            throw new IllegalArgumentException("Unable to find enveloped LogFormat for KernelVersion=" + version
+                    + " found logFormat=" + logFormat);
+        }
+        return logFormat.newHeader(
+                newFileVersion, lastAppendIndex, preFileTerm, StoreId.UNKNOWN, segmentSize, lastChecksum, version);
     }
 
     public void setVersion(KernelVersion databaseVersion) {
