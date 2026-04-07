@@ -95,6 +95,23 @@ class LogPruneConstraintFactoryTest {
         assertEquals("100000 days 524288000 size", threshold.toString());
     }
 
+    @Test
+    void configuringBackupThresholdWithMinMaxSize() {
+        Threshold threshold =
+                getThreshold(new ThresholdConfigValue("backup", ByteUnit.mebiBytes(100), ByteUnit.mebiBytes(50)));
+        assertThat(threshold).isInstanceOf(BackupThreshold.class);
+        assertEquals("backup 0 52428800 size 104857600 size", threshold.toString());
+    }
+
+    @Test
+    void configuringBackupThresholdWithMaxSize() {
+        Threshold threshold = getThreshold(new ThresholdConfigValue("backup", ByteUnit.mebiBytes(100)));
+        assertThat(threshold).isInstanceOf(BackupThreshold.class);
+        ((BackupThreshold) threshold).setBackupAppendIndex(42);
+
+        assertEquals("backup 42 104857600 size", threshold.toString());
+    }
+
     private Threshold getThreshold(ThresholdConfigValue configValue) {
         return getThresholdByType(fsa, logProvider, clock, configValue, "");
     }

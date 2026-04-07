@@ -39,6 +39,7 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.TransactionIdStore;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * This class listens for rotations and does log pruning.
@@ -146,6 +147,11 @@ public class LogPruningImpl implements LogPruning {
     @Override
     public String describeCurrentStrategy() {
         return pruneStrategy.toString();
+    }
+
+    @VisibleForTesting
+    public LogPruneStrategy getPruneStrategy() {
+        return pruneStrategy;
     }
 
     private static class CountingDeleter implements LongConsumer {

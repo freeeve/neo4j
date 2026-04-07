@@ -45,23 +45,32 @@ public class ThresholdConfigParser {
             throw new IllegalArgumentException("Invalid log pruning configuration value '" + configValue + "'");
         }
 
-        final String boolOrNumber = tokens[0];
+        final String firstToken = tokens[0];
 
         if (tokens.length == 1) {
-            return switch (boolOrNumber) {
+            return switch (firstToken) {
                 case "keep_all", "true" -> ThresholdConfigValue.NO_PRUNING;
                 case "keep_none", "false" -> ThresholdConfigValue.KEEP_LAST_FILE;
                 default ->
                     throw new IllegalArgumentException("Invalid log pruning configuration value '" + configValue
-                            + "'. The form is 'true', 'false' or '<number><unit> <type>'. For example, '100k txs' "
+                            + "'. The form is 'true', 'false', '<number><unit> <type>' or `<type> <number><unit>`. For example, '100k txs' "
                             + "will keep the 100 000 latest transactions.");
             };
-        } else {
-            long thresholdValue = parseLongWithUnit(boolOrNumber);
-            String thresholdType = tokens[1];
-            long maxSizeRestriction =
-                    tokens.length > 2 ? parseLongWithUnit(tokens[2]) : ThresholdConfigValue.NO_ADDITIONAL_RESTRICTION;
-            return new ThresholdConfigValue(thresholdType, thresholdValue, maxSizeRestriction);
         }
+        if ("backup".equals(firstToken)) {
+            long minRestriction =
+                    tokens.length > 2 ? parseLongWithUnit(tokens[1]) : ThresholdConfigValue.NO_ADDITIONAL_RESTRICTION;
+            long maxRestriction = parseLongWithUnit(tokens[tokens.length - 1]);
+            if (maxRestriction < minRestriction) {
+                throw new IllegalArgumentException(
+                        "The maximum reserved log restriction must be greater than specified minimum provided restriction.");
+            }
+            return new ThresholdConfigValue(firstToken, maxRestriction, minRestriction);
+        }
+        long thresholdValue = parseLongWithUnit(firstToken);
+        String thresholdType = tokens[1];
+        long maxSizeRestriction =
+                tokens.length > 2 ? parseLongWithUnit(tokens[2]) : ThresholdConfigValue.NO_ADDITIONAL_RESTRICTION;
+        return new ThresholdConfigValue(thresholdType, thresholdValue, maxSizeRestriction);
     }
 }

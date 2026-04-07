@@ -106,6 +106,13 @@ public class LogPruneStrategyFactory {
             case "txs", "entries" -> new EntryCountThreshold(logProvider, thresholdValue);
             case "hours" -> createTimeBasedThreshold(fileSystem, logProvider, clock, configuredThreshold, HOURS);
             case "days" -> createTimeBasedThreshold(fileSystem, logProvider, clock, configuredThreshold, DAYS);
+            case "backup" ->
+                new BackupThreshold(
+                        logProvider,
+                        configuredThreshold.hasAdditionalRestriction()
+                                ? configuredThreshold.additionalRestriction()
+                                : 0,
+                        new FileSizeThreshold(fileSystem, configuredThreshold.value(), logProvider));
             default ->
                 throw new IllegalArgumentException(
                         "Invalid log pruning configuration value '" + originalConfigValue + "'. Invalid type '"

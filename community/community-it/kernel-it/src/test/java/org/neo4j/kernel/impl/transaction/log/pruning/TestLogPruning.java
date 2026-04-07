@@ -153,6 +153,66 @@ class TestLogPruning {
     }
 
     @Test
+    void pruneByBackupWhenMaximumAmountSpecified() throws IOException {
+        int transactionByteSize = figureOutSampleTransactionSizeBytes();
+        int transactionsPerFile = 3;
+        int logThreshold = transactionByteSize * transactionsPerFile;
+        newDb("backup " + logThreshold, 1);
+
+        LogPruningImpl prunning = (LogPruningImpl) db.getDependencyResolver().resolveDependency(LogPruning.class);
+        LogPruneStrategy pruneStrategy = prunning.getPruneStrategy();
+        Threshold threshold = ((ThresholdBasedPruneStrategy) pruneStrategy).getThreshold();
+        ((BackupThreshold) threshold).setBackupAppendIndex(100);
+
+        // When
+        for (int i = 0; i < 100; i++) {
+            doTransaction();
+        }
+
+        int totalLogFileSize = logFileSize();
+        assertThat(totalLogFileSize).isLessThanOrEqualTo(totalLogFileSize * 2);
+    }
+
+    @Test
+    void pruneByBackupWhenMinimumAndMaximumAmountSpecified() throws IOException {
+        int transactionByteSize = figureOutSampleTransactionSizeBytes();
+        int transactionsPerFile = 3;
+        int minimum = 30 * transactionByteSize;
+        int maximum = 60 * transactionByteSize;
+        newDb("backup " + minimum + " " + maximum, 1);
+
+        LogPruningImpl prunning = (LogPruningImpl) db.getDependencyResolver().resolveDependency(LogPruning.class);
+        LogPruneStrategy pruneStrategy = prunning.getPruneStrategy();
+        Threshold threshold = ((ThresholdBasedPruneStrategy) pruneStrategy).getThreshold();
+        ((BackupThreshold) threshold).setBackupAppendIndex(150);
+
+        // When
+        for (int i = 0; i < 100; i++) {
+            doTransaction();
+        }
+
+        int totalLogFileSize = logFileSize();
+        assertThat(totalLogFileSize).isLessThanOrEqualTo(minimum + transactionsPerFile);
+    }
+
+    @Test
+    void pruneByBackupWhenMaximumAmountSpecifiedNoBackup() throws IOException {
+        int transactionByteSize = figureOutSampleTransactionSizeBytes();
+        int transactionsPerFile = 3;
+        int logThreshold = transactionByteSize * transactionsPerFile;
+        newDb("backup " + logThreshold, 1);
+
+        // When
+        for (int i = 0; i < 100; i++) {
+            doTransaction();
+        }
+
+        int totalLogFileSize = logFileSize();
+        double totalTransactions = (double) totalLogFileSize / transactionByteSize;
+        assertTrue(totalTransactions >= 3 && totalTransactions < 4);
+    }
+
+    @Test
     void pruneByFileCount() throws Exception {
         int logsToKeep = 5;
         newDb(logsToKeep + " files", 3);

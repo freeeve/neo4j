@@ -625,7 +625,7 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
                     "db.tx_log.rotation.retention_policy", STRING, "2 days 2G")
             .dynamic()
             .addConstraint(SettingConstraints.matches(
-                    "^(true|keep_all|false|keep_none|(\\d+[KkMmGg]?( (files|size|txs|entries|hours( \\d+[KkMmGg]?)?|days( \\d+[KkMmGg]?)?))))$",
+                    "^(true|keep_all|false|keep_none|backup( \\d+[KkMmGg]?)?( \\d+[KkMmGg]?)?|(\\d+[KkMmGg]?( (files|size|txs|entries|hours( \\d+[KkMmGg]?)?|days( \\d+[KkMmGg]?)?))))$",
                     "Must be `true` or `keep_all`, `false` or `keep_none`, or of format `<number><optional unit> <type> <optional space restriction>`. "
                             + "Valid units are `K`, `M` and `G`. "
                             + "Valid types are `files`, `size`, `txs`, `entries`, `hours` and `days`. "

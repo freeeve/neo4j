@@ -36,7 +36,7 @@ import org.neo4j.time.FakeClock;
 import org.neo4j.time.SystemNanoClock;
 
 class EntryTimespanThresholdTest {
-    private FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
+    private final FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
     private final Path file = mock(Path.class);
     private final LogFileInformation source = mock(LogFileInformation.class);
     private final long version = 4;

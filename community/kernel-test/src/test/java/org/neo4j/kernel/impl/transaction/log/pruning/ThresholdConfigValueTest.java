@@ -19,7 +19,9 @@
  */
 package org.neo4j.kernel.impl.transaction.log.pruning;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,6 +42,43 @@ class ThresholdConfigValueTest {
 
         assertTrue(thresholdConfigValue.hasAdditionalRestriction());
         assertEquals(ByteUnit.mebiBytes(128), thresholdConfigValue.additionalRestriction());
+    }
+
+    @Test
+    void backupStrategyWithMinimalAndMaximumDataToKeep() {
+        var thresholdConfigValue = parse("backup 1M 5M");
+        assertEquals("backup", thresholdConfigValue.type());
+        assertEquals(ByteUnit.mebiBytes(5), thresholdConfigValue.value());
+
+        assertTrue(thresholdConfigValue.hasAdditionalRestriction());
+        assertEquals(ByteUnit.mebiBytes(1), thresholdConfigValue.additionalRestriction());
+    }
+
+    @Test
+    void backupStrategyWithOnlyMaximumDataToKeep() {
+        var thresholdConfigValue = parse("backup 5G");
+        assertEquals("backup", thresholdConfigValue.type());
+        assertEquals(ByteUnit.gibiBytes(5), thresholdConfigValue.value());
+
+        assertFalse(thresholdConfigValue.hasAdditionalRestriction());
+    }
+
+    @Test
+    void backupStrategyWithMissingDataToKeepConfigIsNotValid() {
+        assertThrows(IllegalArgumentException.class, () -> parse("backup"));
+    }
+
+    @Test
+    void backupStrategyWithIncorrectDataIntervalIsNotValid() {
+        assertThatThrownBy(() -> parse("backup 5G 1G"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "The maximum reserved log restriction must be greater than specified minimum provided restriction.");
+    }
+
+    @Test
+    void backupStrategyWithSomeOtherRestrictionsIsNotValid() {
+        assertThrows(IllegalArgumentException.class, () -> parse("backup 17 days"));
     }
 
     @Test

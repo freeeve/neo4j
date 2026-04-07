@@ -1074,7 +1074,12 @@ public class Database extends AbstractDatabase {
                 commandReaderFactory,
                 binarySupportedKernelVersions);
         databaseDependencies.satisfyDependencies(
-                checkPointer, logFiles, logicalTransactionStore, transactionAppender, transactionLogService);
+                checkPointer,
+                logFiles,
+                logicalTransactionStore,
+                transactionAppender,
+                transactionLogService,
+                logPruning);
 
         return new DatabaseTransactionLogModule(checkPointer, transactionAppender, logicalTransactionStore);
     }
