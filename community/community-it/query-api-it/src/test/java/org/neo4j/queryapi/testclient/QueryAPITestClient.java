@@ -121,6 +121,10 @@ public class QueryAPITestClient {
         return sendRequest(request, endpoint.replace("{databaseName}", database) + "/tx", responseHandler);
     }
 
+    public HttpResponse<QueryResponse> sendRawBeginTx(String request) throws IOException, InterruptedException {
+        return sendRawBeginTx(request, responseHandler());
+    }
+
     public HttpResponse<QueryResponse> beginTx(QueryRequest request) throws IOException, InterruptedException {
         return beginTx(request, "neo4j");
     }
@@ -241,6 +245,18 @@ public class QueryAPITestClient {
 
     public HttpResponse<Stream<String>> sendRawJsonl(String rawJson) throws IOException, InterruptedException {
         return sendRaw(rawJson, HttpResponse.BodyHandlers.ofLines());
+    }
+
+    private <T> HttpResponse<T> sendRawBeginTx(String rawJson, HttpResponse.BodyHandler<T> responseHandler)
+            throws IOException, InterruptedException {
+        return client.send(
+                HttpRequest.newBuilder()
+                        .uri(URI.create(endpoint.replace("{databaseName}", "neo4j") + "/tx"))
+                        .header("Content-Type", this.contentType.mimeType())
+                        .header("Accept", this.acceptedContentTypesHeader())
+                        .POST(HttpRequest.BodyPublishers.ofString(rawJson))
+                        .build(),
+                responseHandler);
     }
 
     private <T> HttpResponse<T> sendRaw(String rawJson, HttpResponse.BodyHandler<T> responseHandler)

@@ -20,21 +20,33 @@ package org.neo4j.queryapi.testclient;
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 public enum QueryContentType {
-    UNTYPED("application/json"),
-    TYPED("application/vnd.neo4j.query"),
-    TYPED_V1_0("application/vnd.neo4j.query.v1.0"),
-    TYPED_V1_1("application/vnd.neo4j.query.v1.1"),
-    UNTYPED_L("application/jsonl"),
-    TYPED_L_V1_0("application/vnd.neo4j.query.v1.0+jsonl"),
-    TYPED_L_V1_1("application/vnd.neo4j.query.v1.1+jsonl");
+    UNTYPED("application/json", false, false),
+    TYPED("application/vnd.neo4j.query", true, false),
+    TYPED_V1_0("application/vnd.neo4j.query.v1.0", true, false),
+    TYPED_V1_1("application/vnd.neo4j.query.v1.1", true, false),
+    UNTYPED_L("application/jsonl", false, true),
+    TYPED_L_V1_0("application/vnd.neo4j.query.v1.0+jsonl", true, true),
+    TYPED_L_V1_1("application/vnd.neo4j.query.v1.1+jsonl", true, true);
 
     private final String mimeType;
+    private final boolean typed;
+    private final boolean events;
 
-    QueryContentType(String mimeType) {
+    QueryContentType(String mimeType, boolean typed, boolean events) {
         this.mimeType = mimeType;
+        this.typed = typed;
+        this.events = events;
     }
 
     public String mimeType() {
         return mimeType;
+    }
+
+    public boolean typed() {
+        return typed;
+    }
+
+    public boolean events() {
+        return events;
     }
 }

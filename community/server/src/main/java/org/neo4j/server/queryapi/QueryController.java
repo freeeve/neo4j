@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ConcurrentModificationException;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -84,8 +85,9 @@ public class QueryController {
         }
         Session session = driver.session(Session.class, sessionConfig, sessionAuthToken);
 
+        var txConfig = buildTxConfig(request);
         try {
-            var result = session.run(request.statement(), request.parameters());
+            var result = session.run(request.statement(), request.parametersOrSupplied(Map::of), txConfig);
             var resultContainer = new AutoCommitResultContainer(result, session, request);
             return Response.accepted(resultContainer).build();
         } catch (Neo4jException neo4jException) {
@@ -236,6 +238,9 @@ public class QueryController {
         var txConfigBuilder = TransactionConfig.builder();
         if (request.maxExecutionTime() > 0) {
             txConfigBuilder.withTimeout(Duration.ofSeconds(request.maxExecutionTime()));
+        }
+        if (request.txMetadata() != null) {
+            txConfigBuilder.withMetadata(request.txMetadata());
         }
         return txConfigBuilder.build();
     }

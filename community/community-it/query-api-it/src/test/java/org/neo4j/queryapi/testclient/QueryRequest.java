@@ -32,7 +32,8 @@ public record QueryRequest(
         int maxExecutionTime,
         List<String> bookmarks,
         String impersonatedUser,
-        String txType) {
+        String txType,
+        Map<String, Object> txMetadata) {
 
     public static class Builder {
         private String statement;
@@ -43,6 +44,7 @@ public record QueryRequest(
         private List<String> bookmarks = List.of();
         private String impersonatedUser;
         String txType;
+        private Map<String, Object> txMetadata;
 
         public Builder statement(String statement) {
             this.statement = statement;
@@ -89,6 +91,11 @@ public record QueryRequest(
             return this;
         }
 
+        public Builder txMetadata(Map<String, Object> txMetadata) {
+            this.txMetadata = txMetadata;
+            return this;
+        }
+
         public QueryRequest build() {
             return new QueryRequest(
                     statement,
@@ -98,7 +105,8 @@ public record QueryRequest(
                     maxExecutionTime,
                     bookmarks,
                     impersonatedUser,
-                    txType);
+                    txType,
+                    txMetadata);
         }
     }
 

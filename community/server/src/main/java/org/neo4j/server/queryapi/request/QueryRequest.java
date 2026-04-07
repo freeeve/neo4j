@@ -21,6 +21,7 @@ package org.neo4j.server.queryapi.request;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public record QueryRequest(
         String statement,
@@ -30,17 +31,22 @@ public record QueryRequest(
         int maxExecutionTime,
         List<String> bookmarks,
         String impersonatedUser,
-        String txType) {
+        String txType,
+        Map<String, Object> txMetadata) {
 
     public QueryRequest(String statement, List<String> bookmarks) {
-        this(statement, Map.of(), false, AccessMode.WRITE, 0, bookmarks, null, null);
+        this(statement, Map.of(), false, AccessMode.WRITE, 0, bookmarks, null, null, null);
     }
 
     public QueryRequest(String statement) {
-        this(statement, Map.of(), false, AccessMode.WRITE, 0, List.of(), null, null);
+        this(statement, Map.of(), false, AccessMode.WRITE, 0, List.of(), null, null, null);
     }
 
     public QueryRequest() {
-        this(null, Map.of(), false, AccessMode.WRITE, 0, List.of(), null, null);
+        this(null, Map.of(), false, AccessMode.WRITE, 0, List.of(), null, null, null);
+    }
+
+    public Map<String, Object> parametersOrSupplied(Supplier<Map<String, Object>> parametersSupplier) {
+        return parameters != null ? parameters : parametersSupplier.get();
     }
 }

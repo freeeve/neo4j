@@ -36,6 +36,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -135,7 +138,7 @@ public final class QueryResponseAssertions
             for (int j = 0; j < expectedRecord.size(); j++) {
                 Object unwrapped = unwrapValue(responseRecord.get(j), expectedRecord.get(j));
 
-                Assertions.assertThat(expectedRecord.get(j)).isEqualTo(unwrapped);
+                Assertions.assertThat(unwrapped).isEqualTo(expectedRecord.get(j));
             }
         }
         return this;
@@ -343,6 +346,8 @@ public final class QueryResponseAssertions
             case NUMBER -> unwrapped = unwrapNumber(responseRecord, expectedRecord);
             case STRING -> unwrapped = responseRecord.asText();
             case BOOLEAN -> unwrapped = responseRecord.asBoolean();
+            case OBJECT -> unwrapped = unwrapObject(responseRecord);
+            case ARRAY -> unwrapped = unwrapArray(responseRecord);
             case NULL -> unwrapped = null;
             default -> fail();
         }
@@ -350,6 +355,10 @@ public final class QueryResponseAssertions
     }
 
     private Object unwrapNumber(JsonNode responseValue, Object expectedValue) {
+        if (Objects.isNull(expectedValue)) {
+            return unwrapNumber(responseValue);
+        }
+
         if (expectedValue instanceof Integer) {
             return responseValue.asInt();
         } else if (expectedValue instanceof Double) {
@@ -360,5 +369,24 @@ public final class QueryResponseAssertions
             return (float) responseValue.asDouble();
         }
         return null;
+    }
+
+    private Object unwrapNumber(JsonNode value) {
+        if (value.isIntegralNumber()) {
+            return value.asLong();
+        } else if (value.isFloatingPointNumber()) {
+            return value.asDouble();
+        }
+        return null;
+    }
+
+    private Map<String, Object> unwrapObject(JsonNode responseRecord) {
+        return responseRecord
+                .propertyStream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> unwrapValue(entry.getValue(), null)));
+    }
+
+    private List<Object> unwrapArray(JsonNode responseRecord) {
+        return responseRecord.valueStream().map(v -> unwrapValue(v, null)).collect(Collectors.toList());
     }
 }
