@@ -46,7 +46,7 @@ object Arguments {
   private val VERSION_PATTERN = "(\\d+)\\.{1}(\\d+)(?:\\.(\\d+))?.*".r
 
   val CURRENT_VERSION: String =
-    parseMajorMinorPatch(org.neo4j.kernel.internal.Version.getManifestVersion)
+    parseMajorMinorPatch(selectVersion)
 
   object Details {
 
@@ -58,6 +58,15 @@ object Arguments {
   // For calling the apply method of EstimatedRows from Java
   def estimatedRows(effectiveCardinality: Double): EstimatedRows = {
     EstimatedRows(effectiveCardinality, Some(effectiveCardinality))
+  }
+
+  private def selectVersion: String = {
+    val manifestVersion = org.neo4j.kernel.internal.Version.getManifestVersion
+    if (manifestVersion != null) {
+      manifestVersion
+    } else {
+      "<unknown>"
+    }
   }
 
   /**
