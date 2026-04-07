@@ -192,7 +192,9 @@ object SeedURIOption extends OptionValidator[SeedURI] {
       throw InvalidArgumentsException.invalidStringOption(
         operation,
         KEY,
-        VirtualValues.fromList(multipleUris.asScala.map(Values.stringValue).map(_.asInstanceOf[AnyValue]).toList.asJava)
+        VirtualValues.fromList(
+          multipleUris.get().asScala.map(Values.stringValue).map(_.asInstanceOf[AnyValue]).toList.asJava
+        )
       )
     }
     seedURI

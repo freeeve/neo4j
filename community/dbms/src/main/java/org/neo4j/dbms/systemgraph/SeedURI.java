@@ -23,20 +23,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap, List<String> multipleUris) {
-    public static final SeedURI EMPTY = new SeedURI(Optional.empty(), Map.of(), List.of());
+public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap, Optional<List<String>> multipleUris) {
+    public static final SeedURI EMPTY = new SeedURI(Optional.empty(), Map.of(), Optional.empty());
     public static final String MULTIPLE_URIS_DELIMITER = ";";
+    public static final String MULTIPLE_URIS_UNDEFINED_SERVERS = "undefined_servers";
 
     public static SeedURI single(String singleUri) {
-        return new SeedURI(Optional.of(singleUri), Map.of(), List.of());
+        return new SeedURI(Optional.of(singleUri), Map.of(), Optional.empty());
     }
 
     public static SeedURI sharded(Map<String, String> uriMap) {
-        return new SeedURI(Optional.empty(), Map.copyOf(uriMap), List.of());
+        return new SeedURI(Optional.empty(), Map.copyOf(uriMap), Optional.empty());
     }
 
     public static SeedURI multiple(List<String> multipleUris) {
-        return new SeedURI(Optional.empty(), Map.of(), List.copyOf(multipleUris));
+        return new SeedURI(Optional.empty(), Map.of(), Optional.of(List.copyOf(multipleUris)));
     }
 
     public boolean isEmpty() {
@@ -50,8 +51,7 @@ public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap, Li
     }
 
     public Optional<String> multipleURIsAsString() {
-        return multipleUris.isEmpty()
-                ? Optional.empty()
-                : Optional.of(String.join(MULTIPLE_URIS_DELIMITER, multipleUris));
+        return multipleUris.map(
+                uris -> uris.isEmpty() ? MULTIPLE_URIS_UNDEFINED_SERVERS : String.join(MULTIPLE_URIS_DELIMITER, uris));
     }
 }
