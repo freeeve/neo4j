@@ -20,7 +20,7 @@
 package org.neo4j.test.extension;
 
 import static java.lang.String.format;
-import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
+import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -70,7 +70,7 @@ final class StorageFormatTestCondition implements ExecutionCondition {
         boolean enabledOnMatch = annotation.require(); // Note that 'skip' XOR 'require' is true
         String overrideFormat = System.getProperty(NEO4J_OVERRIDE_STORE_FORMAT);
         if (overrideFormat == null) {
-            overrideFormat = System.getProperty(FACTORY_SUPPLIER_KEY);
+            overrideFormat = FACTORY_SUPPLIER;
         }
 
         if (overrideFormat == null) {

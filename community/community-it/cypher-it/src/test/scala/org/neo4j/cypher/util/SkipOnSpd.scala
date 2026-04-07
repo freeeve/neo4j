@@ -20,13 +20,14 @@
 package org.neo4j.cypher.util
 
 import org.neo4j.cypher.util.Reason.Reason
+import org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER
 import org.neo4j.test.extension.SkipOnSpd.Note
 import org.scalatest.Ignore
 import org.scalatest.Tag
 
 case class SkipOnSpd(details: String = "", note: Note, reason: Option[Reason] = None)
     extends Tag(
-      if ("spd".equals(System.getProperty("NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER"))) classOf[Ignore].getName
+      if ("spd".equals(FACTORY_SUPPLIER)) classOf[Ignore].getName
       else "SpdNotSupported"
     )
 

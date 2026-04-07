@@ -69,6 +69,7 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.logging.NullLogProvider
 import org.neo4j.monitoring.Monitors
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
+import org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER
 import org.neo4j.test.assertion.Assert.assertEventually
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.MatchResult
@@ -107,7 +108,7 @@ trait GraphDatabaseTestSupport
 
   def expectedShardCount: Int = if (runOnSpd) shardCount else 0
 
-  def runOnSpd: Boolean = "spd".equals(System.getProperty("NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER"))
+  def runOnSpd: Boolean = "spd".equals(FACTORY_SUPPLIER)
 
   def databaseConfig(): Map[Setting[_], Object] = Map(
     GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)

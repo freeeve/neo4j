@@ -21,7 +21,7 @@ package org.neo4j.test;
 
 import static java.lang.Boolean.FALSE;
 import static org.neo4j.test.DynamicPorts.OS_SELECTED_DYNAMIC_PORT;
-import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
+import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER;
 import static org.neo4j.util.Preconditions.checkState;
 
 import java.nio.file.Path;
@@ -148,7 +148,7 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
 
     protected TestDatabaseManagementServiceFactorySupplier testDbmsFactory() {
         TestDatabaseManagementServiceFactorySupplier supplier = TestDatabaseManagementServiceFactorySupplier.DEFAULT;
-        String name = System.getProperty(FACTORY_SUPPLIER_KEY);
+        String name = FACTORY_SUPPLIER;
         if (name != null) {
             Collection<TestDatabaseManagementServiceFactorySupplier> factories =
                     Services.loadAll(TestDatabaseManagementServiceFactorySupplier.class);

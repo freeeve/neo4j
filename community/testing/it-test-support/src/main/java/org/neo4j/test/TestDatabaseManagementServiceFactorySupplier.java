@@ -31,7 +31,7 @@ import org.neo4j.time.SystemNanoClock;
 
 @Service
 public interface TestDatabaseManagementServiceFactorySupplier {
-    String FACTORY_SUPPLIER_KEY = "NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER";
+    String FACTORY_SUPPLIER = System.getProperty("NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER");
 
     DatabaseManagementServiceFactory create(
             DbmsInfo dbmsInfo,
