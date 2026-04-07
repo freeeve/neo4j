@@ -541,7 +541,8 @@ abstract class ValueHashJoinTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val lhsByKey = nodes.filter(_.hasLabel(Label.label("LHS"))).groupBy(_.getProperty("key"))
+    val lhsByKey =
+      nodes.filter(_.hasLabel(Label.label("LHS"))).groupBy(_.getProperty("key")).withDefaultValue(Seq.empty)
     val expected = for {
       rhsNode <- nodes.filter(_.hasLabel(Label.label("RHS")))
       lhsNode <- lhsByKey(rhsNode.getProperty("key"))
