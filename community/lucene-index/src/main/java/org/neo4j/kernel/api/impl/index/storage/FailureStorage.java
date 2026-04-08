@@ -83,10 +83,10 @@ public class FailureStorage {
     public synchronized String loadIndexFailure() {
         Path failureFile = failureFile();
         try {
-            if (!fs.fileExists(failureFile) || !isFailed(failureFile)) {
-                return null;
+            if (fs.fileExists(failureFile) && hasFailureMessage(failureFile)) {
+                return readFailure(failureFile);
             }
-            return readFailure(failureFile);
+            return null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -139,7 +139,7 @@ public class FailureStorage {
         return data.length;
     }
 
-    private boolean isFailed(Path failureFile) throws IOException {
+    private boolean hasFailureMessage(Path failureFile) throws IOException {
         try (StoreChannel channel = fs.read(failureFile)) {
             byte[] data = new byte[(int) channel.size()];
             channel.readAll(ByteBuffer.wrap(data));

@@ -172,6 +172,8 @@ class TextIndexCorruptionTest {
                 PartitionedIndexStorage storage = mock(PartitionedIndexStorage.class);
                 when(storage.listFolders()).thenReturn(singletonList(Path.of("/some/path/somewhere/1")));
                 when(storage.openDirectory(any())).thenThrow(error);
+                when(storage.getIndexFailureFile()).thenReturn(Path.of("/a/b/c"));
+                when(storage.getIndexFolder()).thenReturn(Path.of("/a/b"));
                 return storage;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

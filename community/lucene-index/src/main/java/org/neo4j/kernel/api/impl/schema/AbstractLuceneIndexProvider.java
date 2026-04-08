@@ -48,6 +48,7 @@ import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.MinimalIndexAccessor;
+import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -58,9 +59,11 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
     private final IndexStorageFactory indexStorageFactory;
     private final Monitor monitor;
     private final IndexType supportedIndexType;
+    private final FileSystemAbstraction fileSystem;
     protected final Config config;
     protected final DatabaseReadOnlyChecker readOnlyChecker;
     protected final LogProvider logProvider;
+    private final Log log;
 
     public AbstractLuceneIndexProvider(
             KernelVersion minimumRequiredVersion,
@@ -79,7 +82,9 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
         this.monitor = monitors.newMonitor(Monitor.class, descriptor.toString());
         this.indexStorageFactory = buildIndexStorageFactory(fileSystem, directoryFactory);
         this.config = config;
+        this.fileSystem = fileSystem;
         this.logProvider = logProvider;
+        this.log = logProvider.getLog(getClass());
     }
 
     @VisibleForTesting
@@ -124,7 +129,18 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
     public InternalIndexState getInitialState(
             IndexDescriptor descriptor, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions) {
         final var indexStorage = getIndexStorage(descriptor.getId());
-        final var failure = indexStorage.getStoredIndexFailure();
+        try {
+            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getRoot());
+            fileSystem.mkdirs(indexStorage.getIndexFolder());
+        } catch (IOException ex) {
+            ex.addSuppressed(ex);
+            log.warn(
+                    "Failed to create the index folder structure. The exception was added as a suppressed\n"
+                            + "  exception",
+                    ex);
+            return InternalIndexState.FAILED;
+        }
+        String failure = indexStorage.getStoredIndexFailure();
         if (failure != null) {
             return InternalIndexState.FAILED;
         }

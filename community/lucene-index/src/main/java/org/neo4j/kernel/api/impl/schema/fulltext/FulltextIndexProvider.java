@@ -187,6 +187,16 @@ public class FulltextIndexProvider extends IndexProvider {
     public InternalIndexState getInitialState(
             IndexDescriptor index, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions) {
         PartitionedIndexStorage indexStorage = getIndexStorage(index.getId());
+        try {
+            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getRoot());
+            fileSystem.mkdirs(indexStorage.getIndexFolder());
+        } catch (IOException ex) {
+            ex.addSuppressed(ex);
+            log.warn(
+                    "Failed to create the index folder structure. The exception was added as a suppressed  exception.",
+                    ex);
+            return InternalIndexState.FAILED;
+        }
         String failure = indexStorage.getStoredIndexFailure();
         if (failure != null) {
             return InternalIndexState.FAILED;
