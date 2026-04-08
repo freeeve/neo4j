@@ -130,7 +130,7 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
             IndexDescriptor descriptor, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions) {
         final var indexStorage = getIndexStorage(descriptor.getId());
         try {
-            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getRoot());
+            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getParent());
             fileSystem.mkdirs(indexStorage.getIndexFolder());
         } catch (IOException ex) {
             ex.addSuppressed(ex);

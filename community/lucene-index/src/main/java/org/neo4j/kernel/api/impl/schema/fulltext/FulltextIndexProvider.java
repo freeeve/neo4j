@@ -188,7 +188,7 @@ public class FulltextIndexProvider extends IndexProvider {
             IndexDescriptor index, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions) {
         PartitionedIndexStorage indexStorage = getIndexStorage(index.getId());
         try {
-            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getRoot());
+            fileSystem.mkdirs(indexStorage.getIndexFailureFile().getParent());
             fileSystem.mkdirs(indexStorage.getIndexFolder());
         } catch (IOException ex) {
             ex.addSuppressed(ex);
