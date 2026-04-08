@@ -198,13 +198,19 @@ public class ShellStatementParser implements StatementParser {
                     // No longer in comment
                     awaitedRightDelimiter = null;
                 }
-            } else if (current == BACKSLASH) {
+            } else if (current == BACKSLASH && !String.valueOf(BACKTICK).equals(awaitedRightDelimiter)) {
                 // backslash can escape stuff outside of comments (but inside quotes too!)
+                // except inside backtick quoted items, where it does not escape anything.
                 skipNext = true;
             } else if (inQuote(awaitedRightDelimiter)) {
                 if (isRightDelimiter(awaitedRightDelimiter, previous, current)) {
-                    // No longer in quote
-                    awaitedRightDelimiter = null;
+                    // Check if this is a double backtick (escaped backtick)
+                    if (String.valueOf(BACKTICK).equals(awaitedRightDelimiter) && reader.peek() == BACKTICK) {
+                        statement.append((char) reader.read());
+                    } else {
+                        // No longer in quote
+                        awaitedRightDelimiter = null;
+                    }
                 }
             }
             // Not escaped, not in a quote, not in a comment

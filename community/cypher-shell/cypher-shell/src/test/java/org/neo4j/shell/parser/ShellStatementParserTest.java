@@ -94,6 +94,26 @@ class ShellStatementParserTest {
     }
 
     @Test
+    void creativeLabels() throws IOException {
+        assertStatements("CREATE (b:`Foo\\\\``bar`) RETURN b;\n", cypher("CREATE (b:`Foo\\\\``bar`) RETURN b"));
+    }
+
+    @Test
+    void creativeLabels2() throws IOException {
+        assertStatements("CREATE (b:`Foo\\``bar`) RETURN b;\n", cypher("CREATE (b:`Foo\\``bar`) RETURN b"));
+    }
+
+    @Test
+    void backtickQuotedBackslash() throws IOException {
+        assertStatements("CREATE (n:`a\\\\b`);", cypher("CREATE (n:`a\\\\b`)"));
+    }
+
+    @Test
+    void tripleBacktickInBacktick() throws IOException {
+        assertStatements("CREATE (n:`a\\```);", cypher("CREATE (n:`a\\```)"));
+    }
+
+    @Test
     void nestedQuoting() throws IOException {
         assertStatements("go `tick;'single\"double;\nend`;\n", cypher("go `tick;'single\"double;\nend`"));
     }
