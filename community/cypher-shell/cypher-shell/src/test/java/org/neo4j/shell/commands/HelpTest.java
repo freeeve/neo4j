@@ -114,11 +114,12 @@ class HelpTest {
         cmd.execute(List.of("bob"));
 
         // then
-        verify(printer)
-                .printOut("\n" + "usage: \u001B[1m:bob\u001B[22m usage for :bob\n"
-                        + "\n"
-                        + "help for :bob\n"
-                        + "\u001B[m");
+        verify(printer).printOut("""
+
+                        usage: \u001B[1m:bob\u001B[22m usage for :bob
+
+                        help for :bob
+                        \u001B[m""");
     }
 
     private static Command.Factory mockFactory(String name) {

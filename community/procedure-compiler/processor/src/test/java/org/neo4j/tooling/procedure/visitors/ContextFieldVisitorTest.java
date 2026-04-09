@@ -174,10 +174,9 @@ public class ContextFieldVisitorTest {
     }
 
     private String warning(String fieldType, String fieldName) {
-        return String.format(
-                "@org.neo4j.procedure.Context usage warning: found unsupported restricted type <%s> on %2$s.\n"
-                        + "The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.\n"
-                        + "You can ignore this warning by passing the option -AIgnoreContextWarnings to the Java compiler",
-                fieldType, fieldName);
+        return """
+                @org.neo4j.procedure.Context usage warning: found unsupported restricted type <%s> on %2$s.
+                The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.
+                You can ignore this warning by passing the option -AIgnoreContextWarnings to the Java compiler""".formatted(fieldType, fieldName);
     }
 }

@@ -89,9 +89,10 @@ public abstract class ExtensionTestBase {
                 .withWarningCount(2)
                 .withWarningContaining(
                         "@org.neo4j.procedure.Context usage warning: found unsupported restricted type <org.neo4j.kernel.internal"
-                                + ".GraphDatabaseAPI> on BadContextRestrictedTypeField#notOfficiallySupported.\n"
-                                + "  The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.\n"
-                                + "  You can ignore this warning by passing the option -AIgnoreContextWarnings to the Java compiler")
+                                + """
+                                        .GraphDatabaseAPI> on BadContextRestrictedTypeField#notOfficiallySupported.
+                                          The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.
+                                          You can ignore this warning by passing the option -AIgnoreContextWarnings to the Java compiler""")
                 .in(sproc)
                 .onLine(34);
     }

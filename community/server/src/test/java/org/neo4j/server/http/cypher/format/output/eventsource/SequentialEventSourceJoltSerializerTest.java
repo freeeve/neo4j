@@ -84,17 +84,14 @@ public class SequentialEventSourceJoltSerializerTest extends AbstractEventSource
         writeStatementEnd(serializer);
 
         String result = output.toString(UTF_8);
-        assertEquals(
-                "\u001E{\"header\":{\"fields\":[\"column1\",\"column2\"]}}\n"
-                        + "\u001E{\"data\":[{\"U\":\"value1\"},{\"U\":\"value2\"}]}\n"
-                        + "\u001E{\"data\":[]}\n"
-                        + "\u001E{\"error\":{\"errors\":["
-                        + "{\"code\":{\"U\":\"Neo.DatabaseError.Statement.ExecutionFailed\"},\"message\":{\"U\":\"Stuff went wrong!\"}}"
-                        + "]}}\n"
-                        + "\u001E{\"info\":{\"notifications\":[" + DEPRECATION_NOTICE
-                        + "],\"commit\":\"commit/uri/1\"}}\n"
-                        + "\u001E{\"summary\":{}}\n",
-                result);
+        assertEquals("""
+                \u001E{"header":{"fields":["column1","column2"]}}
+                \u001E{"data":[{"U":"value1"},{"U":"value2"}]}
+                \u001E{"data":[]}
+                \u001E{"error":{"errors":[{"code":{"U":"Neo.DatabaseError.Statement.ExecutionFailed"},"message":{"U":"Stuff went wrong!"}}]}}
+                \u001E{"info":{"notifications":[%s],"commit":"commit/uri/1"}}
+                \u001E{"summary":{}}
+                """.formatted(DEPRECATION_NOTICE), result);
     }
 
     @Test
@@ -120,14 +117,12 @@ public class SequentialEventSourceJoltSerializerTest extends AbstractEventSource
         // then
         String result = output.toString(UTF_8);
 
-        assertEquals(
-                "\u001E{\"header\":{\"fields\":[\"column1\",\"column2\"]}}\n"
-                        + "\u001E{\"data\":[{\"U\":\"value1\"},{\"U\":\"value2\"}]}\n"
-                        + "\u001E{\"summary\":{}}\n"
-                        + "\u001E{\"info\":{\"notifications\":[" + FORMAT_DEPRECATION_NOTICE_JSON_SEQ + ","
-                        + DEPRECATION_NOTICE + "],"
-                        + "\"commit\":\"commit/uri/1\"}}\n",
-                result);
+        assertEquals("""
+                \u001E{"header":{"fields":["column1","column2"]}}
+                \u001E{"data":[{"U":"value1"},{"U":"value2"}]}
+                \u001E{"summary":{}}
+                \u001E{"info":{"notifications":[%s,%s],"commit":"commit/uri/1"}}
+                """.formatted(FORMAT_DEPRECATION_NOTICE_JSON_SEQ, DEPRECATION_NOTICE), result);
     }
 
     protected static SequentialEventSourceJoltSerializer getSerializerWith(OutputStream output) {

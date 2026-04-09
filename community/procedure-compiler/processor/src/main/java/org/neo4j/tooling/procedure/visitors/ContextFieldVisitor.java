@@ -103,9 +103,10 @@ class ContextFieldVisitor extends SimpleElementVisitor8<Stream<CompilationMessag
 
             return Stream.of(new ContextFieldWarning(
                     field,
-                    "@%s usage warning: found unsupported restricted type <%s> on %s.\n"
-                            + "The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.\n"
-                            + "You can ignore this warning by passing the option -A%s to the Java compiler",
+                    """
+                            @%s usage warning: found unsupported restricted type <%s> on %s.
+                            The procedure will not load unless declared via the configuration option 'dbms.security.procedures.unrestricted'.
+                            You can ignore this warning by passing the option -A%s to the Java compiler""",
                     Context.class.getName(),
                     fieldType.toString(),
                     fieldFullName(field),

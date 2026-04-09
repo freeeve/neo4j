@@ -359,16 +359,20 @@ class InteractiveShellRunnerTest {
 
         assertThat(exitCode).isEqualTo(EXIT_SUCCESS);
 
-        var expected = "myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome\n" + "> match\n"
-                + "  (n)\n"
-                + "  where n.id = 1\n"
-                + "  \n"
-                + "  ;\n"
-                + "myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome\n"
-                + "> return 1;\n"
-                + "myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome\n"
-                + "> \n";
-        assertThat(out.toString().replace("\r", "")).isEqualTo(expected);
+        var expected = """
+            myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome
+            > match
+              (n)
+              where n.id = 1
+
+              ;
+            myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome
+            > return 1;
+            myusername@TheLongestDbNameEverCreatedInAllOfHistoryAndTheUniversePlusSome
+            >
+            """;
+
+        assertThat(out.toString().replace("\r", "").stripIndent()).isEqualTo(expected);
     }
 
     @Test

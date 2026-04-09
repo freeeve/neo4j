@@ -58,14 +58,13 @@ class TreeWriter implements CountUpdater.CountWriter {
             writer.remove(key);
             return true;
         } else {
-            userLogProvider
-                    .getLog(this.getClass())
-                    .error(
-                            "Key '" + key + "' has a negative count.\n"
-                                    + "This is a serious error which is typically caused by a store corruption\n"
-                                    + "Even thought the database will continue operating, it will do so with reduced functionality\n"
-                                    + "The best cause of action is running the consistency checker, fixing the corruption and rebuilding the count store\n"
-                                    + "Counts for the problematic key will not be available until the count store is rebuilt.\n");
+            userLogProvider.getLog(this.getClass()).error("""
+                        Key '%s' has a negative count.
+                        This is a serious error which is typically caused by a store corruption
+                        Even though the database will continue operating, it will do so with reduced functionality
+                        The best course of action is running the consistency checker, fixing the corruption and rebuilding the count store
+                        Counts for the problematic key will not be available until the count store is rebuilt.
+                        """.formatted(key));
             writer.merge(key, new CountsValue().initialize(GBPTreeGenericCountsStore.INVALID_COUNT), merger);
         }
         return false;

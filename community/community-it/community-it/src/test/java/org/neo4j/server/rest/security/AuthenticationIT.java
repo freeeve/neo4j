@@ -42,8 +42,10 @@ public class AuthenticationIT extends CommunityWebContainerTestBase {
     TestData<RESTRequestGenerator> gen = TestData.producedThrough(RESTRequestGenerator.PRODUCER);
 
     @Test
-    @Documented("Missing authorization\n" + "\n"
-            + "If an +Authorization+ header is not supplied, the server will reply with an error.")
+    @Documented("""
+            Missing authorization
+
+            If an +Authorization+ header is not supplied, the server will reply with an error.""")
     void missing_authorization() throws JsonParseException, IOException {
         // Given
         startServerWithConfiguredUser();
@@ -63,10 +65,12 @@ public class AuthenticationIT extends CommunityWebContainerTestBase {
     }
 
     @Test
-    @Documented("Authenticate to access the server\n" + "\n"
-            + "Authenticate by sending a username and a password to Neo4j using HTTP Basic Auth.\n"
-            + "Requests should include an +Authorization+ header, with a value of +Basic <payload>+,\n"
-            + "where \"payload\" is a base64 encoded string of \"username:password\".")
+    @Documented("""
+            Authenticate to access the server
+
+            Authenticate by sending a username and a password to Neo4j using HTTP Basic Auth.
+            Requests should include an +Authorization+ header, with a value of +Basic <payload>+,
+            where "payload" is a base64 encoded string of "username:password".""")
     void successful_authentication() throws JsonParseException, IOException {
         // Given
         startServerWithConfiguredUser();
@@ -83,8 +87,10 @@ public class AuthenticationIT extends CommunityWebContainerTestBase {
     }
 
     @Test
-    @Documented("Incorrect authentication\n" + "\n"
-            + "If an incorrect username or password is provided, the server replies with an error.")
+    @Documented("""
+            Incorrect authentication
+
+            If an incorrect username or password is provided, the server replies with an error.""")
     void incorrect_authentication() throws JsonParseException, IOException {
         // Given
         startServerWithConfiguredUser();
@@ -105,11 +111,13 @@ public class AuthenticationIT extends CommunityWebContainerTestBase {
     }
 
     @Test
-    @Documented("Required password changes\n" + "\n"
-            + "In some cases, like the very first time Neo4j is accessed, the user will be required to choose\n"
-            + "a new password. The database will signal that a new password is required and deny access.\n"
-            + "\n"
-            + "See <<rest-api-security-user-status-and-password-changing>> for how to set a new password.")
+    @Documented("""
+            Required password changes
+
+            In some cases, like the very first time Neo4j is accessed, the user will be required to choose
+            a new password. The database will signal that a new password is required and deny access.
+
+            See <<rest-api-security-user-status-and-password-changing>> for how to set a new password.""")
     void password_change_required() throws JsonParseException, IOException {
         // Given
         startServer(true);
