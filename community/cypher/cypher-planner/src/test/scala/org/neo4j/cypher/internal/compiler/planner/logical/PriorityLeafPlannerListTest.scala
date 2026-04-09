@@ -35,7 +35,7 @@ class PriorityLeafPlannerListTest extends CypherFunSuite with LogicalPlanningTes
   private val candidates: Set[LogicalPlan] = Set(Argument())
   private val context = mock[LogicalPlanningContext]
 
-  test("should use the priority list if that contains result") {
+  test("should use only the priority list if it contains results") {
     // GIVEN
     val priority = mock[LeafPlannerIterable]
     val fallback = mock[LeafPlannerIterable]

@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.InterestingOrderSelect
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningSupport.RichHint
-import org.neo4j.cypher.internal.compiler.planner.logical.PrioritizeVectorSearchLeafPlannerFeature
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver.extraRequirementForInterestingOrder
@@ -209,7 +208,7 @@ case class SingleComponentPlanner(
     context: LogicalPlanningContext,
     interestingOrderConfig: InterestingOrderConfig
   ): Seed[NodeConnection, LogicalPlan] = {
-    for (pattern <- qg.nodeConnections)
+    val seed = (for (pattern <- qg.nodeConnections)
       yield {
         val plans = planSinglePattern(qg, kit, pattern, bestLeafPlansPerAvailableSymbol, qppInnerPlanner, context)
           .map(plan => kit.select(plan, qg))
@@ -254,24 +253,19 @@ case class SingleComponentPlanner(
             bestWithoutPrefetchedProperties ++ bestWithPrefetchedProperties ++ bestOverallSorted
           }
 
-        if (result.isEmpty) {
-          // If SEARCH is present, we only generate leaf plans for vector search, so it's expected that
-          // with a more complex pattern some relationships might not have a leaf plan to expand from.
-          val hasSearchClause = PrioritizeVectorSearchLeafPlannerFeature {
-            qg.searchClause.nonEmpty
-          }
-
-          if (!hasSearchClause) {
-            throw InternalException.internalError(
-              this.getClass.getSimpleName,
-              "Found no access plan for a pattern relationship in a connected component. This must not happen."
-            )
-          }
-        }
-
         result
-      }
-  }.flatten
+      }).flatten
+    // An entirely empty seed while node connections exist means the IDP has no starting point at
+    // all and cannot plan the component. Individual relationships may have no direct leaf plan —
+    // the IDP reaches them via expansion from adjacent plans — but at least one entry is required.
+    if (seed.isEmpty && qg.nodeConnections.nonEmpty) {
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Found no access plan for pattern relationships in a connected component. This must not happen."
+      )
+    }
+    seed
+  }
 }
 
 trait SingleComponentPlannerTrait {

@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class MergeRelationshipPlanningIntegrationTest
@@ -441,5 +442,106 @@ class MergeRelationshipPlanningIntegrationTest
       .|.allNodeScan("m")
       .allNodeScan("n")
       .build()
+  }
+
+  test("should plan multi-hop MERGE when only some endpoint nodes have a unique index") {
+    // Previously, we would fail any merge pattern with more than one hop and a unique index on only one of the end nodes:
+    // PriorityLeafPlannerList suppresses other leaf plans on that pattern.
+    // However, for initialising the IDP table we assume a leaf plan per symbol, which is why this failed in SingleComponentPlanner.doInitTable.
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("Organization", 10)
+      .setLabelCardinality("Tasks", 10)
+      .setLabelCardinality("Task", 500)
+      .setRelationshipCardinality("()-[:HAS_TASKS]->()", 10)
+      .setRelationshipCardinality("(:Organization)-[:HAS_TASKS]->()", 10)
+      .setRelationshipCardinality("()-[:HAS_TASKS]->(:Tasks)", 10)
+      .setRelationshipCardinality("(:Organization)-[:HAS_TASKS]->(:Tasks)", 10)
+      .setRelationshipCardinality("()-[:HAS_TASK]->()", 500)
+      .setRelationshipCardinality("(:Tasks)-[:HAS_TASK]->()", 500)
+      .setRelationshipCardinality("()-[:HAS_TASK]->(:Task)", 500)
+      .setRelationshipCardinality("(:Tasks)-[:HAS_TASK]->(:Task)", 500)
+      .addNodeIndex("Organization", Seq("id"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, isUnique = true)
+      .build()
+
+    planner.plan(
+      """MERGE (o:Organization {id: $organization_id})-[:HAS_TASKS]->(:Tasks {organization_id: $organization_id})-[:HAS_TASK]->(t:Task {id: $task_id})"""
+    ) should equal(
+      planner.planBuilder()
+        .produceResults()
+        .emptyResult()
+        .merge(
+          Seq(
+            createNodeFull("o", labels = Seq("Organization"), properties = Some("{id: $organization_id}")),
+            createNodeFull("anon_1", labels = Seq("Tasks"), properties = Some("{organization_id: $organization_id}")),
+            createNodeFull("t", labels = Seq("Task"), properties = Some("{id: $task_id}"))
+          ),
+          Seq(
+            createRelationship("anon_0", "o", "HAS_TASKS", "anon_1", OUTGOING),
+            createRelationship("anon_2", "anon_1", "HAS_TASK", "t", OUTGOING)
+          )
+        )
+        .filter("t.id = $task_id", "t:Task")
+        .expandAll("(anon_1)-[anon_2:HAS_TASK]->(t)")
+        .filter("anon_1.organization_id = $organization_id", "anon_1:Tasks")
+        .expandAll("(o)-[anon_0:HAS_TASKS]->(anon_1)")
+        .nodeIndexOperator(
+          "o:Organization(id = ???)",
+          paramExpr = Seq(parameter("organization_id", CTAny)),
+          unique = true
+        )
+        .build()
+    )
+  }
+
+  test("should plan assertSameRelationship on top of multiple unique index seeks under MERGE with bound nodes") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:REL]->()", 100)
+      .addRelationshipIndex("REL", Seq("prop"), existsSelectivity = 1, uniqueSelectivity = 0.01, isUnique = true)
+      .addRelationshipIndex(
+        "REL",
+        Seq("prop2", "prop3"),
+        existsSelectivity = 1,
+        uniqueSelectivity = 0.01,
+        isUnique = true
+      )
+      .build()
+
+    val plan = planner.plan("MATCH (a), (b) MERGE (a)-[r:REL {prop: 123, prop2: 42, prop3: 'welp'}]->(b)")
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults()
+        .emptyResult()
+        .apply()
+        .|.merge(
+          relationships =
+            Seq(createRelationship("r", "a", "REL", "b", OUTGOING, Some("{prop: 123, prop2: 42, prop3: 'welp'}"))),
+          lockNodes = Set("a", "b")
+        )
+        // Two unique indexes cover different properties of the same relationship type.
+        // AssertSameRelationship is required to detect constraint conflicts: if the two index scans
+        // return different relationships, a suitable error should be raised.
+        // Usually, this would be planned by one relationship leaf plan and a filter,
+        // which would simply return no results instead of failing.
+        .|.assertSameRelationship("r")
+        .|.|.filter("a = anon_2", "b = anon_3")
+        .|.|.relationshipIndexOperator(
+          "(anon_2)-[r:REL(prop2 = 42, prop3 = 'welp')]->(anon_3)",
+          argumentIds = Set("a", "b"),
+          unique = true
+        )
+        .|.filter("a = anon_0", "b = anon_1")
+        .|.relationshipIndexOperator(
+          "(anon_0)-[r:REL(prop = 123)]->(anon_1)",
+          argumentIds = Set("a", "b"),
+          unique = true
+        )
+        .cartesianProduct()
+        .|.allNodeScan("b")
+        .allNodeScan("a")
+        .build()
+    )
   }
 }

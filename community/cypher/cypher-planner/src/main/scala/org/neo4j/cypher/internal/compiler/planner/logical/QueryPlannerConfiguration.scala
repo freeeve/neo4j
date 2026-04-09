@@ -126,17 +126,6 @@ object QueryPlannerConfiguration {
     VectorSearchLeafPlanner
   )
 
-  /**
-   * When doing nested index joins, we have certain variables for which we only want to allow certain index plans.
-   * This method returns leaf planners that will not produce any other plans for these variables.
-   */
-  def leafPlannersForNestedIndexJoins: LeafPlannerIterable = {
-    PriorityLeafPlannerList(
-      LeafPlannerList(searchClauseLeafPlanner),
-      LeafPlannerList(allLeafPlanners)
-    )
-  }
-
   val default: QueryPlannerConfiguration = {
     val predicateSelector = steps.Selector(
       pickBestPlanUsingHintsAndCost,
