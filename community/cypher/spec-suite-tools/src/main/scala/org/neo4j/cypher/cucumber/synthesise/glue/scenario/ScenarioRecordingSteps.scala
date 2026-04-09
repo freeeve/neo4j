@@ -156,6 +156,8 @@ case class AssertResults(expected: DataTable, assertion: Result.Assertions) exte
 case class AssertApproxResults(expected: DataTable, rowCount: Int) extends ExpectResults
 sealed trait ExpectError extends RecordedStep
 case class AssertGqlError(expected: ExpectedGqlError) extends ExpectError
-case class AssertGqlWarning(expected: ExpectedGqlNotification) extends ExpectError
+
+/** GQL notifications are not errors; kept out of [[ExpectError]] so filters like `steps[ExpectError](_.isEmpty)` stay meaningful. */
+case class AssertGqlWarning(expected: ExpectedGqlNotification) extends RecordedStep
 case class SideEffects(expected: DataTable) extends RecordedStep
 case class Comment(comment: String) extends RecordedStep

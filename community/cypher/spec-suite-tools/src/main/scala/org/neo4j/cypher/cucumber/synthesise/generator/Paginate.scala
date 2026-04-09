@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.InputPosition
@@ -55,7 +56,7 @@ import scala.util.Random
 class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator with ScenarioRenderer {
   override val name: String = "paginate"
 
-  private val prettifier = Prettifier(ExpressionStringifier())
+  private val prettifier = Prettifier(ExpressionStringifier(alwaysBacktick = true))
   private val counter = new AtomicLong(0)
 
   def pos: InputPosition = InputPosition.NONE
@@ -92,7 +93,13 @@ class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
           val skipLiteral = SignedDecimalIntegerLiteral(skip.toString)(pos.zeroLength)
           val newSkip = ret.skip.map(_.expression).map(Add(_, skipLiteral)(pos)).getOrElse(skipLiteral)
           val newItems = ret.returnItems.items.zipWithIndex.map { case (item, index) =>
-            val name = Variable(columnNames.get(index))(pos, Variable.isIsolatedDefault)
+            val header = columnNames.get(index)
+            val name = item match {
+              case ari: AliasedReturnItem =>
+                logicalVariableForHeader(header, Some(ari.variable))
+              case _ =>
+                logicalVariableForHeader(header, None)
+            }
             AliasedReturnItem(item.expression, name)(pos)
           }
           val newReturn = ret.copy(
@@ -114,6 +121,13 @@ class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
       case _ => None
     }
   }
+
+  /** Keep parser isolation (e.g. `null`) when the result header matches the original projection alias. */
+  private def logicalVariableForHeader(header: String, original: Option[LogicalVariable]): LogicalVariable =
+    original match {
+      case Some(v: Variable) if v.name == header => Variable(v.name)(pos, v.isIsolated)
+      case _                                     => Variable(header)(pos, Variable.isIsolatedDefault)
+    }
 
   private def generateScenario(
     scenario: RecordedScenario,

@@ -20,17 +20,19 @@
 package org.neo4j.cypher.cucumber.synthesise.generator
 
 import io.cucumber.datatable.DataTable
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlNotification
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
-import org.neo4j.cypher.cucumber.synthesise.generator.Filter.containsAst
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.doNotContainAst
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExpectError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecuted
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedScenario
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedStep
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.SetupExecution
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.TestExecution
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.NodePattern
-import org.neo4j.cypher.internal.expressions.PatternPart
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionLeafName
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -47,15 +49,18 @@ class AddIndex(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
   private val counter = new AtomicLong(0)
 
   override def filter: Filter = super.filter
-    .steps[HavingExecuted](_.nonEmpty)
+    .steps[SetupExecution](_.nonEmpty)
     .steps[ExpectError](_.isEmpty)
     .setupQueries(_.forall(doNotContainAst[SchemaCommand]))
-    .testQueries(_.exists(q => containsAst[PatternPart](q) && containsAst[LabelExpressionLeafName](q)))
+    .scenario(scenario => labelsAndProps(scenario).values.exists(_.nonEmpty))
 
   def generateScenarios(filteredScenarios: View[RecordedScenario]): IterableOnce[GeneratedScenario] = {
     filteredScenarios
       .map(scenario => scenario -> labelsAndProps(scenario))
-      .collect { case (scenario, propsByLabel) if propsByLabel.nonEmpty => generateScenario(scenario, propsByLabel) }
+      .collect {
+        case (scenario, propsByLabel) if propsByLabel.values.exists(_.nonEmpty) =>
+          generateScenario(scenario, propsByLabel)
+      }
   }
 
   private def generateScenario(
@@ -70,7 +75,7 @@ class AddIndex(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
       .filter(_.height() > 2)
 
     val (label, props) = if (examples.isDefined) ("<label>", "<props>") else (exampleRows.head(0), exampleRows.head(1))
-    val steps = scenario.steps.prependedAll(Seq(
+    val steps = relaxNotificationAssertionsForSynthesizedIndexScenario(scenario.steps).prependedAll(Seq(
       HavingExecuted(s"CREATE INDEX FOR (n:$label) ON ($props) // Generated query"),
       HavingExecuted("CALL db.awaitIndexes() // Generated query")
     ))
@@ -106,5 +111,26 @@ class AddIndex(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
           } yield labelName -> propKey
           SkipChildren(acc.concat(result))
     }
+  }
+
+  /**
+   * CREATE INDEX (+ await) can change planner slots and thus 03N96 (and similar) notification text while codes stay
+   * meaningful. AddIndex only checks index behaviour, so keep code expectations and accept any description
+   * (`${regex:.*}` matches [[org.neo4j.cypher.cucumber.glue.regular.steps.RegularErrorSteps.buildRegexFromTemplate]]).
+   */
+  private def relaxNotificationAssertionsForSynthesizedIndexScenario(steps: Seq[RecordedStep]): Seq[RecordedStep] =
+    steps.map {
+      case AssertGqlWarning(exp) => AssertGqlWarning(relaxNotificationExpectation(exp))
+      case step                  => step
+    }
+
+  private def relaxNotificationExpectation(exp: ExpectedGqlNotification): ExpectedGqlNotification = {
+    val rows = exp.warnings.map { w =>
+      val codeCell = if (w.optional) s"${w.code}?" else w.code
+      java.util.List.of[String](codeCell, "${regex:.*}")
+    }
+    ExpectedGqlNotification(
+      DataTable.create((java.util.List.of("code", "description") +: rows).asJava)
+    )
   }
 }

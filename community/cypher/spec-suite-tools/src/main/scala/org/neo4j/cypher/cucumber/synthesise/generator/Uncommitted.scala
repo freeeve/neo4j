@@ -23,6 +23,7 @@ import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.containsAst
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.doNotContainAst
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.isNotCommand
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.CommitTransaction
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Execute
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExecuteControl
@@ -36,6 +37,7 @@ import org.neo4j.cypher.cucumber.synthesise.glue.scenario.QueryExecution
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedScenario
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RecordedStep
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RegisterProcedure
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.RegisterUserFunction
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.TransactionHandling
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.expressions.PatternPart
@@ -52,6 +54,7 @@ class Uncommitted(val args: CucumberSalad.Ingredients) extends ScenarioGenerator
 
   override def filter: Filter = super.filter
     .steps[ExpectError](_.isEmpty)
+    .steps[AssertGqlWarning](_.isEmpty)
     .steps[TransactionHandling](_.isEmpty)
     .testQueries(_.exists(containsAst[PatternPart]))
     .queries[Execute](_.forall(doNotContainAst[InTransactionsParameters]))
@@ -81,9 +84,10 @@ object Uncommitted {
             case ExecuteControl(cypher) => Seq(ExecuteControlInOpenTx(cypher))
             case step                   => Seq(step)
           }
-        case e: QueryExecution    => Seq(CommitTransaction, e, OpenTransaction)
-        case p: RegisterProcedure => Seq(CommitTransaction, p, OpenTransaction)
-        case step                 => Seq(step)
+        case e: QueryExecution       => Seq(CommitTransaction, e, OpenTransaction)
+        case p: RegisterProcedure    => Seq(CommitTransaction, p, OpenTransaction)
+        case f: RegisterUserFunction => Seq(CommitTransaction, f, OpenTransaction)
+        case step                    => Seq(step)
       }
       .prepended(OpenTransaction)
       .appended(CommitTransaction)

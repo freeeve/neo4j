@@ -19,20 +19,15 @@
  */
 package org.neo4j.cypher.cucumber.user.function;
 
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
 public class PassThroughFunction {
 
-    @Context
-    public Transaction transaction;
-
     @UserFunction("test.passThrough")
     @Description("Pass-through")
-    public Object nodeHash(@Name("input") Object input) {
-        return input;
+    public Object passThrough(@Name("value") Object value) {
+        return value;
     }
 }

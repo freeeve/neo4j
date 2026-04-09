@@ -48,7 +48,6 @@ import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Execute
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExecuteControl
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExecuteControlInOpenTx
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExecuteInOpenTx
-import org.neo4j.cypher.cucumber.synthesise.glue.scenario.ExpectError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecuted
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.HavingExecutedInOpenTx
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.OpenTransaction
@@ -256,12 +255,10 @@ trait ScenarioRenderer {
       render(s"Then the result should be$orderString$precisionString:", expected)
     case AssertResults(_, Result.ParallelOverride(_, _)) => ??? // TODO
     case AssertApproxResults(_, _)                       => ??? // TODO
-    case error: ExpectError => error match {
-        case AssertGqlError(ExpectedGqlError(table, _)) =>
-          render(s"Then an error should be raised:", table)
-        case AssertGqlWarning(ExpectedGqlNotification(table, _)) =>
-          render(s"Then warnings should be raised:", table)
-      }
+    case AssertGqlWarning(ExpectedGqlNotification(table, _)) =>
+      render(s"Then notifications should be raised:", table)
+    case AssertGqlError(ExpectedGqlError(table, _)) =>
+      render(s"Then an error should be raised:", table)
     case SideEffects(expected) if expected.isEmpty =>
       "And no side effects"
     case SideEffects(expected) =>
