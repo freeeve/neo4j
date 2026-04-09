@@ -405,18 +405,22 @@ object NotificationWrapping {
       )
 
     case IdentifierShadowsVariableNotification(position, identifier, clause) =>
-      NotificationCodeWithDescription.identifierShadowingVariable(position.asInputPosition, identifier, clause)
+      NotificationCodeWithDescription.identifierShadowingVariable(
+        position.withOffset(offset).asInputPosition,
+        identifier,
+        clause
+      )
 
     case DeprecatedIdentifierWhitespaceUnicode(position, unicode, identifier) =>
       NotificationCodeWithDescription.deprecatedIdentifierWhitespaceUnicode(
-        position.asInputPosition,
+        position.withOffset(offset).asInputPosition,
         unicode,
         identifier
       )
 
     case DeprecatedIdentifierUnicode(position, unicode, identifier) =>
       NotificationCodeWithDescription.deprecatedIdentifierUnicode(
-        position.asInputPosition,
+        position.withOffset(offset).asInputPosition,
         unicode,
         identifier
       )
@@ -429,6 +433,8 @@ object NotificationWrapping {
       )
 
     case DeprecatedEagerAnalyzerPreParserOption(position) =>
+      // Not using .withOffset(offset) is intentional.
+      // This notification is generated from the pre-parser and thus should not be offset.
       NotificationCodeWithDescription
         .deprecatedEagerAnalyzerPreParserOption(position.asInputPosition)
 

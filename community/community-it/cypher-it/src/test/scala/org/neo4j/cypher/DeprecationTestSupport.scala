@@ -39,11 +39,13 @@ trait DeprecationTestSupport extends Suite with Matchers {
     queries: Seq[String],
     shouldContainNotification: Boolean,
     details: String,
+    position: InputPosition,
     createNotification: (InputPosition, String) => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject],
     cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values
   ): Unit = {
     cypherVersions.foreach { version =>
+      val adjustedPos = adjustPosition(position, version)
       queries.foreach(query => {
         withClue(s"Failed in Cypher version ${version.version} for query '$query' \n") {
           val transaction = dbms.begin()
@@ -52,9 +54,9 @@ trait DeprecationTestSupport extends Suite with Matchers {
             val notifications: Iterable[Notification] = result.getNotifications()
             val hasNotification =
               notifications.exists(notification =>
-                matchesCode(notification, details, createNotification)
+                matchesCode(notification, details, adjustedPos, createNotification)
               )
-            withClue(notifications) {
+            withClue(s"Got $notifications, expected ${createNotification(adjustedPos, details)}") {
               hasNotification should be(shouldContainNotification)
             }
 
@@ -62,10 +64,18 @@ trait DeprecationTestSupport extends Suite with Matchers {
             gqlStatusObjects.size should be(expectedGqlStatusObjects.size)
 
             val actualGqlStatusObject = gqlStatusObjects.map(gso =>
-              TestGqlStatusObject(gso.gqlStatus(), gso.statusDescription(), gso.getSeverity, gso.getClassification)
+              TestGqlStatusObject(
+                gso.gqlStatus(),
+                gso.statusDescription(),
+                gso.getSeverity,
+                gso.getClassification,
+                gso.getPosition
+              )
             )
 
-            actualGqlStatusObject should contain theSameElementsAs expectedGqlStatusObjects
+            actualGqlStatusObject should contain theSameElementsAs expectedGqlStatusObjects.map(gso =>
+              withAdjustedPosition(gso, version)
+            )
           } finally {
             transaction.rollback()
           }
@@ -77,6 +87,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
   def assertNotification(
     queries: Seq[String],
     shouldContainNotification: Boolean,
+    position: InputPosition,
     createNotification: InputPosition => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject]
   ): Unit = {
@@ -84,6 +95,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
       queries,
       shouldContainNotification,
       "",
+      position,
       (pos, _) => createNotification(pos),
       expectedGqlStatusObjects,
       CypherVersionOption.values
@@ -93,6 +105,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
   def assertNotification(
     queries: Seq[String],
     shouldContainNotification: Boolean,
+    position: InputPosition,
     createNotification: InputPosition => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject],
     cypherVersions: Set[CypherVersionOption]
@@ -101,9 +114,34 @@ trait DeprecationTestSupport extends Suite with Matchers {
       queries,
       shouldContainNotification,
       "",
+      position,
       (pos, _) => createNotification(pos),
       expectedGqlStatusObjects,
       cypherVersions
+    )
+  }
+
+  private def adjustPosition(position: InputPosition, cypherVersion: CypherVersionOption): InputPosition = {
+    val prefix = s"EXPLAIN CYPHER ${cypherVersion.version} "
+    val prefixLength = prefix.length
+    position match {
+      case InputPosition.empty => position
+      case pos if pos.getLine.equals(1) =>
+        new InputPosition(pos.getOffset + prefixLength, 1, pos.getColumn + prefixLength)
+      case pos => new InputPosition(pos.getOffset + prefixLength, pos.getLine, pos.getColumn)
+    }
+  }
+
+  private def withAdjustedPosition(
+    testObject: TestGqlStatusObject,
+    cypherVersion: CypherVersionOption
+  ): TestGqlStatusObject = {
+    TestGqlStatusObject(
+      testObject.gqlStatus,
+      testObject.statusDescription,
+      testObject.severity,
+      testObject.classification,
+      adjustPosition(testObject.position, cypherVersion)
     )
   }
 
@@ -151,26 +189,29 @@ trait DeprecationTestSupport extends Suite with Matchers {
   private def matchesCode(
     notification: Notification,
     details: String,
+    position: InputPosition,
     createNotification: (InputPosition, String) => Notification
   ): Boolean = {
-    // In this test class we are not interested in the exact input position
-    val expected = createNotification(InputPosition.empty, details)
+    val expected = createNotification(position, details)
     notification.getCode.equals(expected.getCode) &&
     notification.getDescription.equals(expected.getDescription) &&
     notification.getSeverity.equals(expected.getSeverity)
+    notification.getPosition.equals(expected.getPosition)
   }
 
   case class TestGqlStatusObject(
     gqlStatus: String,
     statusDescription: String,
     severity: SeverityLevel,
-    classification: NotificationClassification
+    classification: NotificationClassification,
+    position: InputPosition
   )
 
   val testOmittedResult: TestGqlStatusObject = TestGqlStatusObject(
     StandardGqlStatusObject.OMITTED_RESULT.gqlStatus(),
     StandardGqlStatusObject.OMITTED_RESULT.statusDescription(),
     SeverityLevel.UNKNOWN,
-    NotificationClassification.UNKNOWN
+    NotificationClassification.UNKNOWN,
+    InputPosition.empty
   )
 }
