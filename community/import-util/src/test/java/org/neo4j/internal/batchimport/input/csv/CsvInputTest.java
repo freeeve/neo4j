@@ -154,7 +154,7 @@ class CsvInputTest {
 
     private final Extractors extractors = new Extractors(',', ',');
 
-    private InputEntity visitor = new InputEntity();
+    private final InputEntity visitor = new InputEntity();
     private final Groups groups = new Groups();
     private final Group globalGroup = groups.getOrCreate(null);
     private InputChunk chunk;
@@ -657,7 +657,7 @@ class CsvInputTest {
 
     @ParameterizedTest
     @EnumSource(MultilineSetting.class)
-    void shouldNotParsePointPropertyValuesWithDuplicateKeys(MultilineSetting setting) throws Exception {
+    void shouldNotParsePointPropertyValuesWithDuplicateKeys(MultilineSetting setting) {
         // GIVEN
         DataFactory data = data("""
                 :ID,name,point:Point
@@ -1290,7 +1290,7 @@ class CsvInputTest {
 
     @ParameterizedTest
     @EnumSource(MultilineSetting.class)
-    void shouldPropagateExceptionFromFailingDecorator(MultilineSetting setting) throws Exception {
+    void shouldPropagateExceptionFromFailingDecorator(MultilineSetting setting) {
         // GIVEN
         RuntimeException failure = new RuntimeException("FAILURE");
         Iterable<DataFactory> data = datas(CsvInputTest.data(":ID,name\n1,Mattias", new FailingNodeDecorator(failure)));
@@ -2091,6 +2091,8 @@ class CsvInputTest {
         // The variable groups has a global id space created already without id-type:int.
         // Passing that in would fail.
         var testSpecificGroups = new Groups();
+        var group = testSpecificGroups.getOrCreate(null);
+        testSpecificGroups.bindIdType(group, "id", "int");
 
         // when using string id-type in the input
         try (var input = new CsvInput(
@@ -2107,12 +2109,7 @@ class CsvInputTest {
             input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
             try (var nodes = input.nodes(EMPTY).iterator()) {
                 // then
-                assertNextNode(
-                        nodes,
-                        testSpecificGroups.getOrCreate(null, "int"),
-                        123,
-                        properties("id", 123, "prop", "val"),
-                        labels());
+                assertNextNode(nodes, group, 123, properties("id", 123, "prop", "val"), labels());
                 assertFalse(readNext(nodes));
             }
         }
@@ -2806,7 +2803,62 @@ class CsvInputTest {
     }
 
     @Test
-    void shouldFailOnCompositeIdColumnsForDifferntGroups() throws IOException {
+    void shouldHandleCompositeIDsOfMixedTypes() throws IOException {
+        // given
+        var nodeData = writeFile(
+                "nodes",
+                "id1:ID(g1){id-type: string},id2:ID(g1){id-type: int},name,:LABEL",
+                "ABC,123,First,Person",
+                "ABC,456,Second,Person");
+        var relData = writeFile(
+                "relationships", ":START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE", "ABC,123,ABC,456,T1");
+
+        try (var input = new CsvInput(
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), nodeData)),
+                defaultFormatNodeFileHeader(),
+                datas(DataFactories.data(NO_DECORATOR, defaultCharset(), relData)),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
+
+            var group = groups.getOrCreate("g1");
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                var labels = Set.of("Person");
+                assertNextNode(
+                        nodes,
+                        group,
+                        "ABC%c123".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "ABC", "id2", 123, "name", "First"),
+                        labels);
+                assertNextNode(
+                        nodes,
+                        group,
+                        "ABC%c456".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "ABC", "id2", 456, "name", "Second"),
+                        labels);
+                assertFalse(readNext(nodes));
+            }
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        group,
+                        "ABC%c123".formatted(IdValueBuilder.DELIMITER),
+                        group,
+                        "ABC%c456".formatted(IdValueBuilder.DELIMITER),
+                        "T1",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldFailOnCompositeIdColumnsForDifferentGroups() throws IOException {
         // given
         var file = writeFile(
                 "nodes", ":ID(group1),:ID(group2),name,:LABEL", "ABC,123,First,Person", "ABC,456,Second,Person");

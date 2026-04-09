@@ -141,13 +141,12 @@ record ParquetColumn(
         return configuration.get("label");
     }
 
-    IdType relationshipColumnIdType(Groups groups) {
+    IdType relationshipColumnIdType(Groups groups, int idIndex) {
         IdType columnIdType = columnIdType();
         if (columnIdType != null) {
             return columnIdType;
         }
-        var groupType = groups.get(groupName()).specificIdType();
-
+        var groupType = groups.getSpecificIdType(groupName(), idIndex);
         return groupType != null ? IdType.valueOf(groupType) : null;
     }
 

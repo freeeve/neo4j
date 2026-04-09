@@ -21,20 +21,28 @@ package org.neo4j.internal.batchimport.input;
 
 import static org.neo4j.util.Preconditions.checkState;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.factory.primitive.ObjectIntMaps;
+import org.eclipse.collections.api.map.primitive.MutableObjectIntMap;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.ReadableGroups;
+import org.neo4j.csv.reader.VectorExtractor;
 
 /**
  * Mapping from name to {@link Group}. Assigns proper {@link Group#id() ids} to created groups.
  */
 public class Groups implements ReadableGroups {
+    private final Map<Group, IdTypeIndexing> groupIdTypeIndexing = Maps.mutable.empty();
     private final Map<String, Group> byName = new HashMap<>();
     private final List<Group> byId = new ArrayList<>();
     private int nextId = 0;
@@ -42,44 +50,51 @@ public class Groups implements ReadableGroups {
     public Groups() {}
 
     /**
-     * {@link #getOrCreate(String, String)} w/o specific {@link IdType}.
-     */
-    public Group getOrCreate(String name) {
-        return getOrCreate(name, null);
-    }
-
-    /**
      * @param name group name or {@code null} for the "global" group.
-     * @param specificIdType optional type that IDs in this group should be parsed as,
      * otherwise if {@code null} the globally defined {@link IdType} is used.
      * @return {@link Group} for the given name. If the group doesn't already exist it will be created
      * with a new id. If {@code name} is {@code null} then the "global" group is returned.
      * This method also prevents mixing global and non-global groups, i.e. if first call is {@code null},
      * then consecutive calls have to specify {@code null} name as well. The same holds true for non-null values.
      */
-    public synchronized Group getOrCreate(String name, String specificIdType) {
+    public synchronized Group getOrCreate(String name) {
         Group group = byName.get(name);
         if (group == null) {
-            byName.put(name, group = new Group(nextId++, name, specificIdType));
+            byName.put(name, group = new Group(nextId++, name));
             byId.add(group);
-        } else {
-            checkState(
-                    Objects.equals(specificIdType, group.specificIdType()),
-                    "Group '%s' has different specific type in different places. Was created with '%s' and later used with '%s'",
-                    group.name(),
-                    group.specificIdType(),
-                    specificIdType);
         }
         return group;
     }
 
+    public synchronized String getSpecificIdType(String groupName, int idTypeIndex) {
+        return internalGetSpecificIdType(internalGet(groupName), idTypeIndex);
+    }
+
+    public synchronized String getSpecificIdType(Group group, int idTypeIndex) {
+        return internalGetSpecificIdType(group, idTypeIndex);
+    }
+
+    public synchronized String bindIdType(Group group, String column, String specificIdType) throws HeaderException {
+        if (specificIdType != null && VectorExtractor.COL_NAME.equals(specificIdType.toUpperCase(Locale.ROOT))) {
+            throw new HeaderException("vector is not allowed as an id-type");
+        }
+
+        IdTypeIndexing indexing = groupIdTypeIndexing.computeIfAbsent(group, k -> new IdTypeIndexing());
+        String boundType = indexing.bind(column, specificIdType);
+        checkState(
+                Objects.equals(specificIdType, boundType),
+                "Group '%s' has a different specific type for column '%s'."
+                        + " Was created with '%s' and later used with '%s'",
+                group.name(),
+                column,
+                boundType,
+                specificIdType);
+        return boundType;
+    }
+
     @Override
     public synchronized Group get(String name) {
-        Group group = byName.get(name);
-        if (group == null) {
-            throw new HeaderException("Group '" + name + "' not found. Available groups are: " + groupNames());
-        }
-        return group;
+        return internalGet(name);
     }
 
     @Override
@@ -110,5 +125,40 @@ public class Groups implements ReadableGroups {
     @Override
     public int hashCode() {
         return Objects.hash(byName, byId, nextId);
+    }
+
+    private Group internalGet(String name) {
+        Group group = byName.get(name);
+        if (group == null) {
+            throw new HeaderException("Group '" + name + "' not found. Available groups are: " + groupNames());
+        }
+        return group;
+    }
+
+    private String internalGetSpecificIdType(Group group, int idTypeIndex) {
+        IdTypeIndexing indexing = groupIdTypeIndexing.get(group);
+        return (indexing == null) ? null : indexing.get(idTypeIndex);
+    }
+
+    private static class IdTypeIndexing implements Serializable {
+
+        private final MutableObjectIntMap<String> idTypeTracking = ObjectIntMaps.mutable.empty();
+
+        private final List<String> idTypes = Lists.mutable.empty();
+
+        private String bind(String column, String specificIdType) {
+            if (idTypeTracking.containsKey(column)) {
+                return idTypes.get(idTypeTracking.get(column));
+            } else {
+                var nextIndex = idTypes.size();
+                idTypes.add(specificIdType);
+                idTypeTracking.put(column, nextIndex);
+                return specificIdType;
+            }
+        }
+
+        private String get(int ix) {
+            return (ix < idTypes.size()) ? idTypes.get(ix) : null;
+        }
     }
 }

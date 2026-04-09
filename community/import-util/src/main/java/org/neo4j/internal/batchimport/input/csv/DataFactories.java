@@ -43,6 +43,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.api.factory.primitive.IntIntMaps;
+import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.collection.RawIterator;
@@ -426,44 +430,38 @@ public class DataFactories {
         Map<String, String> options = new HashMap<>();
 
         // The options
-        {
-            int optionsStartIndex = rawHeaderField.lastIndexOf('{');
-            if (optionsStartIndex != -1) {
-                int optionsEndIndex = rawHeaderField.lastIndexOf('}');
-                Preconditions.checkState(
-                        optionsEndIndex != -1 && optionsEndIndex > optionsStartIndex,
-                        "Expected a closing '}' in header %s of '%s'",
-                        rawHeaderField,
-                        sourceDescription);
-                String rawOptions =
-                        rawHeaderField.substring(optionsStartIndex, optionsEndIndex + 1); // including the curlies
-                options = Value.parseStringMap(rawOptions);
-                rawHeaderField = cutOut(rawHeaderField, optionsStartIndex, optionsEndIndex);
-            }
+        int optionsStartIndex = rawHeaderField.lastIndexOf('{');
+        if (optionsStartIndex != -1) {
+            int optionsEndIndex = rawHeaderField.lastIndexOf('}');
+            Preconditions.checkState(
+                    optionsEndIndex != -1 && optionsEndIndex > optionsStartIndex,
+                    "Expected a closing '}' in header %s of '%s'",
+                    rawHeaderField,
+                    sourceDescription);
+            String rawOptions =
+                    rawHeaderField.substring(optionsStartIndex, optionsEndIndex + 1); // including the curlies
+            options = Value.parseStringMap(rawOptions);
+            rawHeaderField = cutOut(rawHeaderField, optionsStartIndex, optionsEndIndex);
         }
 
         int typeIndex = rawHeaderField.lastIndexOf(':');
 
         // The group
-        {
-            int groupStartIndex = rawHeaderField.lastIndexOf('(');
-            if (groupStartIndex != -1 && typeIndex != -1 && groupStartIndex > typeIndex) {
-                int groupEndIndex = rawHeaderField.lastIndexOf(')');
-                Preconditions.checkState(
-                        groupEndIndex != -1 && groupEndIndex > groupStartIndex,
-                        "Expected a closing ')' in header of '%s'",
-                        sourceDescription);
-                groupName = rawHeaderField.substring(groupStartIndex + 1, groupEndIndex);
-                rawHeaderField = cutOut(rawHeaderField, groupStartIndex, groupEndIndex);
-            }
+        int groupStartIndex = rawHeaderField.lastIndexOf('(');
+        if (groupStartIndex != -1 && typeIndex != -1 && groupStartIndex > typeIndex) {
+            int groupEndIndex = rawHeaderField.lastIndexOf(')');
+            Preconditions.checkState(
+                    groupEndIndex != -1 && groupEndIndex > groupStartIndex,
+                    "Expected a closing ')' in header of '%s'",
+                    sourceDescription);
+            groupName = rawHeaderField.substring(groupStartIndex + 1, groupEndIndex);
+            rawHeaderField = cutOut(rawHeaderField, groupStartIndex, groupEndIndex);
         }
 
         // The type
-        {
-            if (typeIndex != -1) {
-                type = rawHeaderField.substring(typeIndex + 1);
-                rawHeaderField = rawHeaderField.substring(0, typeIndex);
-            }
+        if (typeIndex != -1) {
+            type = rawHeaderField.substring(typeIndex + 1);
+            rawHeaderField = rawHeaderField.substring(0, typeIndex);
         }
 
         // The name
@@ -511,6 +509,7 @@ public class DataFactories {
                 Extractor<?> defaultIdExtractor,
                 Groups groups,
                 Monitor monitor) {
+            var name = spec.name();
             // For nodes it's simply ID,LABEL,PROPERTY. typeSpec can be either ID,LABEL or a type of property,
             // like 'int' or 'string_array' or similar, or empty for 'string' property.
             Type type;
@@ -518,15 +517,16 @@ public class DataFactories {
             Group group = null;
             if (Type.ID.matches(spec.type())) {
                 type = Type.ID;
-                group = groups.getOrCreate(spec.group(), spec.options().get("id-type"));
-                if (group.specificIdType() == null) {
-                    extractor = defaultIdExtractor;
-                } else if (VectorExtractor.COL_NAME.equals(
-                        group.specificIdType().toUpperCase(Locale.ROOT))) {
+                var idType = spec.options().get("id-type");
+                if (idType != null && VectorExtractor.COL_NAME.equals(idType.toUpperCase(Locale.ROOT))) {
                     throw new HeaderException("vector is not allowed as an id-type");
-                } else {
-                    extractor = parsePropertyType(sourceDescription, group.specificIdType(), null, extractors);
                 }
+
+                group = groups.getOrCreate(spec.group());
+                groups.bindIdType(group, name, idType);
+                extractor = (idType == null)
+                        ? defaultIdExtractor
+                        : parsePropertyType(sourceDescription, idType, null, extractors);
             } else if (Type.LABEL.matches(spec.type())) {
                 type = Type.LABEL;
                 extractor = extractors.stringArray();
@@ -536,11 +536,14 @@ public class DataFactories {
             } else {
                 return null;
             }
-            return new Header.Entry(spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), null);
+            return new Header.Entry(spec.rawEntry(), name, type, group, extractor, spec.options(), null);
         }
     }
 
     private static class DefaultRelationshipFileHeaderParser extends AbstractDefaultFileHeaderParser {
+
+        private final MutableMap<RelIdGroup, MutableIntIntMap> relIdGroupTypes = Maps.mutable.empty();
+
         DefaultRelationshipFileHeaderParser(Supplier<ZoneId> defaultTimeZone, boolean normalizeTypes) {
             // Don't have TYPE as mandatory since a decorator could provide that
             super(defaultTimeZone, normalizeTypes, Type.START_ID, Type.END_ID);
@@ -564,11 +567,13 @@ public class DataFactories {
 
                 // Here we don't need to protect against vector as an id-type, wince we just read
                 // existing groups, we don't create new groups.
-                if (group.specificIdType() == null) {
-                    extractor = defaultIdExtractor;
-                } else {
-                    extractor = parsePropertyType(sourceDescription, group.specificIdType(), null, extractors);
-                }
+                var entryIndexIdTypes = relIdGroupTypes.getIfAbsentPut(
+                        new RelIdGroup(group, type == Type.START_ID), IntIntMaps.mutable::empty);
+                var idIndex = entryIndexIdTypes.getIfAbsentPut(entryIndex, entryIndexIdTypes::size);
+                var specificIdType = groups.getSpecificIdType(group, idIndex);
+                extractor = (specificIdType == null)
+                        ? defaultIdExtractor
+                        : parsePropertyType(sourceDescription, specificIdType, null, extractors);
             } else if (Type.TYPE.matches(spec.type())) {
                 type = Type.TYPE;
                 extractor = extractors.string();
@@ -577,6 +582,8 @@ public class DataFactories {
             }
             return new Header.Entry(spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), null);
         }
+
+        private record RelIdGroup(Group group, boolean isStart) {}
     }
 
     private static CSVHeaderInformation parseOptionalParameter(String typeSpec, Map<String, String> options) {

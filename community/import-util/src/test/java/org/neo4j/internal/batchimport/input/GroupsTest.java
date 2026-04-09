@@ -20,11 +20,14 @@
 package org.neo4j.internal.batchimport.input;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.batchimport.api.input.Group;
+import org.neo4j.csv.reader.VectorExtractor;
 import org.neo4j.test.Race;
 
 class GroupsTest {
@@ -140,5 +143,43 @@ class GroupsTest {
         final var groups = new Groups();
         final var g1_0 = groups.getOrCreate("foo");
         assertThat(groups.get(0)).isEqualTo(g1_0);
+    }
+
+    @Test
+    void shouldValidateSpecificIdTypesForAGroup() {
+        var groupName = "foo";
+        var keyWithLongType = "id1";
+        var keyWithStringType = "id2";
+        var keyWithVectorType = "id3";
+        var longType = "long";
+        var stringType = "string";
+
+        var groups = new Groups();
+        var group = groups.getOrCreate(groupName);
+
+        assertThat(groups.getSpecificIdType(group, 0)).isNull();
+        assertThat(groups.getSpecificIdType(group, 1)).isNull();
+
+        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithLongType, longType));
+        assertThat(groups.getSpecificIdType(group, 1)).isNull();
+
+        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithLongType, longType));
+        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithStringType, stringType));
+
+        assertThatThrownBy(() -> groups.bindIdType(group, keyWithLongType, stringType))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContainingAll(
+                        "Group",
+                        groupName,
+                        "has a different specific type for column",
+                        keyWithLongType,
+                        "Was created with",
+                        longType,
+                        "and later used with",
+                        stringType);
+
+        assertThatThrownBy(() -> groups.bindIdType(group, keyWithVectorType, VectorExtractor.COL_NAME))
+                .isInstanceOf(HeaderException.class)
+                .hasMessage("vector is not allowed as an id-type");
     }
 }

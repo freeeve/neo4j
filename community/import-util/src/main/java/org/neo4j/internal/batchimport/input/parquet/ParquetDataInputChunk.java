@@ -64,6 +64,7 @@ import org.neo4j.values.storable.VectorValue;
  * One chunk equals one file.
  */
 class ParquetDataInputChunk implements ParquetInputChunk {
+
     private ParquetData parquetDataFile;
     private Groups groups;
     private Supplier<ZoneId> defaultTimezoneSupplier;
@@ -124,16 +125,21 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             return false;
         }
 
-        var columns = parquetDataFile.columns();
+        List<ParquetColumn> columns = parquetDataFile.columns();
         List<Object> readData = iterator.next();
         List<String> labels = new ArrayList<>(filteredLabelsOrTypes);
-        StringBuilder idValue = new StringBuilder();
-        StringBuilder startIdValue = new StringBuilder();
-        StringBuilder endIdValue = new StringBuilder();
-        var type = filteredLabelsOrTypes.isEmpty()
+
+        List<Object> idValues = new ArrayList<>();
+        List<Object> startIdValues = new ArrayList<>();
+        List<Object> endIdValues = new ArrayList<>();
+
+        int startIdTypeIndex = 0;
+        int endIdTypeIndex = 0;
+
+        String type = filteredLabelsOrTypes.isEmpty()
                 ? ""
                 : filteredLabelsOrTypes.iterator().next();
-        var isRelationshipEntity = false;
+        boolean isRelationshipEntity = false;
         for (int i = 0; i < readData.size(); i++) {
             var parquetColumn = columns.get(i);
             Object readDatum = readData.get(i);
@@ -142,19 +148,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             }
             // node
             if (parquetColumn.isIdColumn()) {
-                if (idType == IdType.STRING
-                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
-                    if (!idValue.isEmpty()) {
-                        idValue.append(ParquetInput.DELIMITER);
-                    }
-                    idValue.append(resolveIdByType(readDatum, null));
-                } else if (idType == IdType.INTEGER || parquetColumn.columnIdType() == IdType.INTEGER) {
-                    entityToHydrate.id(resolveIdByType(readDatum, parquetColumn.columnIdType()), nodeIdGroup);
-                } else {
-                    entityToHydrate.id((Long) resolveIdByType(readDatum, parquetColumn.columnIdType()));
-                }
-                boolean isActualIdColumn = idType == IdType.ACTUAL && parquetColumn.isIdColumn();
-                if (!isActualIdColumn && parquetColumn.hasPropertyName()) {
+                idValues.add(resolveIdByType(readDatum, parquetColumn.columnIdType()));
+                if (idType != IdType.ACTUAL && parquetColumn.hasPropertyName()) {
                     entityToHydrate.property(parquetColumn.propertyName(), convertType(readDatum, parquetColumn), true);
                 }
             }
@@ -185,29 +180,13 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             }
             // relationship
             if (parquetColumn.isStartId()) {
-                if (idType == IdType.STRING
-                        && (parquetColumn.relationshipColumnIdType(groups) == IdType.STRING
-                                || parquetColumn.relationshipColumnIdType(groups) == null)) {
-                    if (!startIdValue.isEmpty()) {
-                        startIdValue.append(ParquetInput.DELIMITER);
-                    }
-                    startIdValue.append(resolveIdByType(readDatum, null));
-                } else {
-                    entityToHydrate.startId(resolveIdByType(readDatum, null), relationshipStartIdGroup);
-                }
+                startIdValues.add(
+                        resolveIdByType(readDatum, parquetColumn.relationshipColumnIdType(groups, startIdTypeIndex++)));
                 isRelationshipEntity = true;
             }
             if (parquetColumn.isEndId()) {
-                if (idType == IdType.STRING
-                        && (parquetColumn.relationshipColumnIdType(groups) == IdType.STRING
-                                || parquetColumn.relationshipColumnIdType(groups) == null)) {
-                    if (!endIdValue.isEmpty()) {
-                        endIdValue.append(ParquetInput.DELIMITER);
-                    }
-                    endIdValue.append(resolveIdByType(readDatum, null));
-                } else {
-                    entityToHydrate.endId(resolveIdByType(readDatum, null), relationshipEndIdGroup);
-                }
+                endIdValues.add(
+                        resolveIdByType(readDatum, parquetColumn.relationshipColumnIdType(groups, endIdTypeIndex++)));
                 isRelationshipEntity = true;
             }
             if (parquetColumn.isType()) {
@@ -222,17 +201,37 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         if (isRelationshipEntity && type != null && !type.isBlank()) {
             entityToHydrate.type(type);
         }
-        if (idType == IdType.STRING && !idValue.isEmpty()) {
-            entityToHydrate.id(idValue.toString(), nodeIdGroup);
+        if (!idValues.isEmpty()) {
+            var id = convertIdValues(idValues);
+            if (idType == IdType.ACTUAL) {
+                entityToHydrate.id((Long) id);
+            } else {
+                entityToHydrate.id(id, nodeIdGroup);
+            }
         }
-        if (idType == IdType.STRING && !startIdValue.isEmpty()) {
-            entityToHydrate.startId(resolveIdByType(startIdValue.toString(), null), relationshipStartIdGroup);
+        if (!startIdValues.isEmpty()) {
+            entityToHydrate.startId(convertIdValues(startIdValues), relationshipStartIdGroup);
         }
-        if (idType == IdType.STRING && !endIdValue.isEmpty()) {
-            entityToHydrate.endId(resolveIdByType(endIdValue.toString(), null), relationshipEndIdGroup);
+        if (!endIdValues.isEmpty()) {
+            entityToHydrate.endId(convertIdValues(endIdValues), relationshipEndIdGroup);
         }
         entityToHydrate.endOfEntity();
         return true;
+    }
+
+    private static Object convertIdValues(List<Object> idValues) {
+        if (idValues.size() == 1) {
+            return idValues.getFirst();
+        } else {
+            var idValue = new StringBuilder();
+            for (var value : idValues) {
+                if (!idValue.isEmpty()) {
+                    idValue.append(ParquetInput.DELIMITER);
+                }
+                idValue.append(value);
+            }
+            return idValue.toString();
+        }
     }
 
     private Object convertType(Object object, ParquetColumn parquetColumn) {
@@ -455,11 +454,17 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         };
     }
 
-    private boolean isEmptyString(Object object) {
+    private Collection<String> readLabelsFromEntry(Object readDatum) {
+        return labelCache.computeIfAbsent(
+                readDatum,
+                (read) -> filterEmptyLabelsAndTrim(Arrays.asList(read.toString().split(arrayDelimiter))));
+    }
+
+    private static boolean isEmptyString(Object object) {
         return object instanceof String stringValue && stringValue.isEmpty();
     }
 
-    private Object resolveIdByType(Object id, IdType columnIdType) {
+    private static Object resolveIdByType(Object id, IdType columnIdType) {
         if (id instanceof String stringId) {
             return stringId;
         } else if (id instanceof Long longId) {
@@ -467,20 +472,17 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         } else if (id instanceof Integer intId) {
             if (columnIdType == IdType.INTEGER) {
                 return intId;
+            } else if (columnIdType == IdType.STRING) {
+                return String.valueOf(intId);
+            } else {
+                return intId.longValue();
             }
-            return intId.longValue();
         }
 
         throw new IllegalArgumentException("Cannot convert id of type " + id.getClass());
     }
 
-    private Collection<String> filterEmptyLabelsAndTrim(Collection<String> labels) {
+    private static Collection<String> filterEmptyLabelsAndTrim(Collection<String> labels) {
         return labels.stream().filter(s -> !s.isEmpty()).map(String::trim).collect(Collectors.toSet());
-    }
-
-    private Collection<String> readLabelsFromEntry(Object readDatum) {
-        return labelCache.computeIfAbsent(
-                readDatum,
-                (read) -> filterEmptyLabelsAndTrim(Arrays.asList(read.toString().split(arrayDelimiter))));
     }
 }

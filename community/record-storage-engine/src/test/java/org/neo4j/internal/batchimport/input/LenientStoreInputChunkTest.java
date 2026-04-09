@@ -60,7 +60,7 @@ class LenientStoreInputChunkTest {
     private final PropertyStore propertyStore = mock(PropertyStore.class);
     private final ReadBehaviour readBehaviour = mock(ReadBehaviour.class);
     private final TokenHolders tokenHolders = mock(TokenHolders.class);
-    private final Group group = new Group(0, "group", null);
+    private final Group group = new Group(0, "group");
 
     @BeforeEach
     void setUp() {
