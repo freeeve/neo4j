@@ -127,7 +127,7 @@ trait FragmentTestUtils {
     override def withSemanticTable(s: SemanticTable): BaseState = this
     override def withSemanticState(s: SemanticState): BaseState = this
     override def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState = this
-    override def withResolvedParams(p: Set[String]): BaseState = this
+    override protected def withResolvedParams(p: Set[String]): BaseState = this
     override def withObfuscationMetadata(o: ObfuscationMetadata): BaseState = this
     override def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState = this
     override def withSemanticsUpToDate(b: Boolean): BaseState = this

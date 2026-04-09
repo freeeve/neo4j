@@ -199,7 +199,7 @@ case class ResolveSimpleDynamicExpressions(parameters: MapValue)
       from.withStatement(rewritten)
     else
       from.withStatement(rewritten)
-        .withResolvedParams(resolvedParameters.result())
+        .withResolvedParamsAdded(resolvedParameters.result())
   }
 
   override def name: String = "ResolveSimpleDynamicExpressions"

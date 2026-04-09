@@ -113,7 +113,7 @@ case class LogicalPlanState(
   override def withParams(p: Map[AutoExtractedParameter, Expression]): LogicalPlanState =
     copy(maybeExtractedParams = Some(p))
 
-  override def withResolvedParams(p: Set[String]): LogicalPlanState = copy(maybeResolvedParams = Some(p))
+  override protected def withResolvedParams(p: Set[String]): LogicalPlanState = copy(maybeResolvedParams = Some(p))
 
   override def withObfuscationMetadata(o: ObfuscationMetadata): LogicalPlanState =
     copy(maybeObfuscationMetadata = Some(o))

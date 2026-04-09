@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.IndexComparatorFactory
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.planning.TransformingPlanner.preventCaching
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
@@ -361,6 +362,9 @@ object TransformingPlanner {
     case _ => Volcano
   }
 
+  private def preventCaching(state: BaseState): Boolean =
+    state.maybeResolvedParams.exists(_.nonEmpty)
+
   trait Transformers[Context <: BaseContext] {
 
     /** Normalize a parsed statement, usually to prepare for caching. */
@@ -463,7 +467,7 @@ final class TransformingPlanner private[planning] (
         val parsedQuery = parseQuery()
         val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
         // We don't want to cache any query when a parameter has been solved
-        if (!plannerConfig.planSystemCommands && parsedQuery.maybeResolvedParams.isEmpty)
+        if (!plannerConfig.planSystemCommands && !preventCaching(parsedQuery))
           caches.astCache.put(key, value)
         value
       }
@@ -479,7 +483,7 @@ final class TransformingPlanner private[planning] (
     parsingNotifications: Set[InternalNotification]
   ): Unit = {
     // We don't want to cache any query when a parameter has been solved
-    if (plannerConfig.planSystemCommands || parsedQuery.maybeResolvedParams.nonEmpty) {
+    if (plannerConfig.planSystemCommands || preventCaching(parsedQuery)) {
       return
     }
     val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
@@ -709,7 +713,7 @@ final class TransformingPlanner private[planning] (
 
     val compilerWithExpressionCodeGenOption = new CompilerWithExpressionCodeGenOption[CacheableLogicalPlan] {
       override def compile(): CacheableLogicalPlan =
-        createPlan(shouldBeCached = syntacticQuery.maybeResolvedParams.isEmpty)
+        createPlan(shouldBeCached = !preventCaching(preparedQuery))
       override def compileWithExpressionCodeGen(): CacheableLogicalPlan = compile()
       override def maybeCompileWithExpressionCodeGen(
         hitCount: Int,

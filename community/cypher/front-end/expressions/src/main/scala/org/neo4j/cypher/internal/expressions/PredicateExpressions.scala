@@ -102,14 +102,17 @@ case class Or(lhs: Expression, rhs: Expression)(val position: InputPosition) ext
 
 object Ors {
 
-  def create(exprs: ListSet[Expression]): Expression = {
+  def create(exprs: Iterable[Expression]): Expression = {
     val size = exprs.size
-    if (size == 0)
+    if (size == 0) {
       False()(InputPosition.NONE)
-    else if (size == 1)
-      exprs.head
-    else
-      Ors(exprs)(exprs.head.position)
+    } else {
+      val distinct = ListSet.from(exprs)
+      if (distinct.size == 1)
+        distinct.head
+      else
+        Ors(exprs)(exprs.head.position)
+    }
   }
 
   def apply(exprs: IterableOnce[Expression])(position: InputPosition): Ors = {

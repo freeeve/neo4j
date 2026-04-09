@@ -79,7 +79,7 @@ case class TestState(
 
   override def withParams(p: Map[AutoExtractedParameter, Expression]): TestState = fail("not implemented")
 
-  override def withResolvedParams(p: Set[String]): TestState = fail("not implemented")
+  override protected def withResolvedParams(p: Set[String]): TestState = fail("not implemented")
 
   override def withObfuscationMetadata(o: ObfuscationMetadata): TestState = fail("not implemented")
 

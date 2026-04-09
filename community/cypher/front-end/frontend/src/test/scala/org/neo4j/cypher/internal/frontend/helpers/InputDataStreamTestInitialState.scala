@@ -71,7 +71,8 @@ case class InputDataStreamTestInitialState(
   override def withParams(p: Map[AutoExtractedParameter, Expression]): InputDataStreamTestInitialState =
     copy(maybeExtractedParams = Some(p))
 
-  override def withResolvedParams(p: Set[String]): InputDataStreamTestInitialState = copy(maybeResolvedParams = Some(p))
+  override protected def withResolvedParams(p: Set[String]): InputDataStreamTestInitialState =
+    copy(maybeResolvedParams = Some(p))
 
   override def withReturnColumns(cols: Seq[String]): InputDataStreamTestInitialState =
     copy(maybeReturnColumns = Some(cols))

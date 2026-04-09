@@ -70,7 +70,10 @@ trait BaseState extends SimpleBaseState {
   def withSemanticTable(s: SemanticTable): BaseState
   def withSemanticState(s: SemanticState): BaseState
   def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState
-  def withResolvedParams(p: Set[String]): BaseState
+
+  final def withResolvedParamsAdded(p: Set[String]): BaseState =
+    withResolvedParams(maybeResolvedParams.fold(p)(_.union(p)))
+  protected def withResolvedParams(p: Set[String]): BaseState
   def withObfuscationMetadata(o: ObfuscationMetadata): BaseState
   def withSemanticsUpToDate(b: Boolean): BaseState
 }
@@ -109,7 +112,7 @@ case class InitialState(
   override def withParams(p: Map[AutoExtractedParameter, Expression]): InitialState =
     copy(maybeExtractedParams = Some(p))
 
-  override def withResolvedParams(p: Set[String]): InitialState = copy(maybeResolvedParams = Some(p))
+  override protected def withResolvedParams(p: Set[String]): InitialState = copy(maybeResolvedParams = Some(p))
 
   override def withObfuscationMetadata(o: ObfuscationMetadata): InitialState = copy(maybeObfuscationMetadata = Some(o))
 
