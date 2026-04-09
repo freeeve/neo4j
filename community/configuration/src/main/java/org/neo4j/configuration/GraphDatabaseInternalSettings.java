@@ -498,6 +498,19 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description(
+            "The threshold of the LIMIT of a Top operator (planned with ORDER BY + LIMIT) to change the memory tracking "
+                    + "strategy. If the LIMIT is less than or equal to the threshold, a more precise memory tracking strategy is used."
+                    + "If it is above the threshold, a more approximate estimation strategy is used. "
+                    + "NOTE: This setting is dynamic, but changing it will not affect already running queries. "
+                    + "Setting this to zero will disable precise memory tracking, and apply the same approximate strategy as prior to "
+                    + "the introduction of this setting.")
+    public static final Setting<Long> cypher_pipelined_memory_top_operator_memory_tracking_strategy_threshold =
+            newBuilder("internal.cypher.pipelined.memory.top_operator_memory_tracking_strategy_threshold", LONG, 10000L)
+                    .dynamic()
+                    .build();
+
+    @Internal
+    @Description(
             "Maximum number of queries that the Cypher worker threads for the parallel runtime will start working on concurrently. "
                     + "If set to 0, a default value of `server.cypher.parallel.worker_limit` will be chosen.")
     public static final Setting<Integer> cypher_max_active_queries_count = newBuilder(

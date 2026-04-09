@@ -143,6 +143,10 @@ class CypherConfiguration private (val config: Config) {
   def pipelinedBatchSizeSmall: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small)
   def pipelinedBatchSizeBig: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big)
   def pipelinedBatchReuse: CypherPipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.fromConfig(config)
+
+  def pipelinedTopOperatorMemoryTrackingStrategyThreshold: Long =
+    config.get(GraphDatabaseInternalSettings.cypher_pipelined_memory_top_operator_memory_tracking_strategy_threshold)
+
   val doSchedulerTracing: Boolean = config.get(GraphDatabaseInternalSettings.enable_pipelined_runtime_trace)
   val schedulerTracingFile: File = config.get(GraphDatabaseInternalSettings.pipelined_scheduler_trace_filename).toFile
   val recompilationLimit: Int = config.get(GraphDatabaseInternalSettings.cypher_expression_recompilation_limit)

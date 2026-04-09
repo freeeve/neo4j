@@ -27,7 +27,8 @@ import org.neo4j.memory.HeapEstimatorCacheConfig
 
 case class QueryRuntimeConfig(
   heapEstimatorCacheConfig: HeapEstimatorCacheConfig,
-  morselReuseConfig: MorselReuseConfig = MorselReuseConfig.DEFAULT
+  morselReuseConfig: MorselReuseConfig,
+  memoryTrackingConfig: MemoryTrackingConfig
 ) {
 
   def withHeapEstimatorCacheConfig(heapEstimatorCacheConfig: HeapEstimatorCacheConfig): QueryRuntimeConfig = {
@@ -57,12 +58,17 @@ object QueryRuntimeConfig {
           MorselReuseConfig.ReuseRemainingRowsOnly
         case CypherPipelinedBatchReuseOption.disabled =>
           MorselReuseConfig.NeverReuse
-      }
+      },
+      memoryTrackingConfig = MemoryTrackingConfig(
+        topOperatorTrackingStrategyThreshold = config.pipelinedTopOperatorMemoryTrackingStrategyThreshold
+      )
     )
   }
 
   final val DEFAULT: QueryRuntimeConfig = QueryRuntimeConfig(
-    HeapEstimatorCacheConfig.DEFAULT
+    HeapEstimatorCacheConfig.DEFAULT,
+    MorselReuseConfig.DEFAULT,
+    MemoryTrackingConfig.DEFAULT
   )
 }
 
@@ -73,4 +79,12 @@ object MorselReuseConfig {
   case object FullReuse extends MorselReuseConfig
   case object ReuseRemainingRowsOnly extends MorselReuseConfig
   case object NeverReuse extends MorselReuseConfig
+}
+
+case class MemoryTrackingConfig(
+  topOperatorTrackingStrategyThreshold: Long
+)
+
+object MemoryTrackingConfig {
+  val DEFAULT: MemoryTrackingConfig = MemoryTrackingConfig(10000L)
 }
