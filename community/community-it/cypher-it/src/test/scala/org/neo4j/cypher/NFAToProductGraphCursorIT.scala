@@ -392,15 +392,5 @@ object NFAToProductGraphCursorIT {
       )
     }
 
-    def multiRelExpansion(
-      other: NFAStateWrapper,
-      relPredicates: Seq[NFA.RelationshipExpansionPredicate],
-      nodePredicates: Seq[NFA.NodeExpansionPredicate]
-    ): Unit = {
-      parent.builder.addTransition(
-        state,
-        NFA.MultiRelationshipExpansionTransition(relPredicates, nodePredicates, None, other.state.id)
-      )
-    }
   }
 }

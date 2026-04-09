@@ -35,8 +35,6 @@ public interface SignpostTracking {
 
     boolean validate(SignpostStack stack);
 
-    boolean isValid(SignpostStack stack);
-
     void clear();
 
     static SignpostTracking trailMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
@@ -74,11 +72,6 @@ public interface SignpostTracking {
         }
 
         @Override
-        public boolean isValid(SignpostStack stack) {
-            return true;
-        }
-
-        @Override
         public void clear() {
             // do nothing
         }
@@ -86,14 +79,11 @@ public interface SignpostTracking {
 
     final class TrailModeSignPostTracking implements SignpostTracking {
         private final HeapTrackingLongObjectHashMap<BitSet> relationshipPresenceAtDepth;
-        private final BitSet targetTrails;
         private final BitSet protectFromPruning;
         private final PPBFSHooks hooks;
 
         TrailModeSignPostTracking(MemoryTracker memoryTracker, PPBFSHooks hooks) {
             this.relationshipPresenceAtDepth = HeapTrackingLongObjectHashMap.createLongObjectHashMap(memoryTracker);
-            this.targetTrails = new BitSet();
-            this.targetTrails.set(0);
             this.protectFromPruning = new BitSet();
             this.hooks = hooks;
         }
@@ -137,7 +127,6 @@ public interface SignpostTracking {
         public void onPushed(TwoWaySignpost signpost, SignpostStack stack) {
             int size = stack.size();
             this.protectFromPruning.set(size - 1, false);
-            targetTrails.set(size, targetTrails.get(size - 1) && distanceToDuplicate(stack.headSignpost()) == 0);
             if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
                 var depths = this.relationshipPresenceAtDepth.get(rel.relId);
                 if (depths == null) {
@@ -145,17 +134,6 @@ public interface SignpostTracking {
                     this.relationshipPresenceAtDepth.put(rel.relId, depths);
                 }
                 depths.set(size - 1);
-            } else if (signpost instanceof TwoWaySignpost.MultiRelSignpost multiRel) {
-                for (long relId : multiRel.rels) {
-                    var depths = this.relationshipPresenceAtDepth.get(relId);
-                    if (depths == null) {
-                        depths = new BitSet();
-                        this.relationshipPresenceAtDepth.put(relId, depths);
-                    }
-                    // here we take advantage of the fact that multi rel signposts already have relationship uniqueness,
-                    // so we can compress them into a single bit of the depth bitset per rel
-                    depths.set(size - 1);
-                }
             }
         }
 
@@ -171,16 +149,6 @@ public interface SignpostTracking {
                     if (bitset.length() > i + 1) {
                         hooks.invalidTrail(stack);
                         return false;
-                    }
-                } else if (signpost instanceof TwoWaySignpost.MultiRelSignpost rels) {
-                    for (int j = 0; j < rels.rels.length; j++) {
-                        long relId = rels.rels[j];
-                        var bitset = relationshipPresenceAtDepth.get(relId);
-                        assert bitset.get(i);
-                        if (bitset.length() > i + 1) {
-                            hooks.invalidTrail(stack);
-                            return false;
-                        }
                     }
                 }
 
@@ -202,14 +170,6 @@ public interface SignpostTracking {
                 if (depths.isEmpty()) {
                     relationshipPresenceAtDepth.remove(rel.relId);
                 }
-            } else if (signpost instanceof TwoWaySignpost.MultiRelSignpost relsSignpost) {
-                for (long relId : relsSignpost.rels) {
-                    var depths = relationshipPresenceAtDepth.get(relId);
-                    depths.clear(stack.size());
-                    if (depths.isEmpty()) {
-                        relationshipPresenceAtDepth.remove(relId);
-                    }
-                }
             }
         }
 
@@ -229,39 +189,8 @@ public interface SignpostTracking {
                     return 0;
                 }
                 return last - 1 - next;
-            } else if (signpost instanceof TwoWaySignpost.MultiRelSignpost rels) {
-                var min = 0;
-                for (var relId : rels.rels) {
-                    var stack = relationshipPresenceAtDepth.get(relId);
-                    if (stack == null) {
-                        continue;
-                    }
-                    int last = stack.length();
-                    if (last == 0) {
-                        continue;
-                    }
-
-                    int next = stack.previousSetBit(last - 2);
-                    if (next == -1) {
-                        continue;
-                    }
-
-                    int value = last - 1 - next;
-
-                    if (min == 0) {
-                        min = value;
-                    } else {
-                        min = Math.min(min, value);
-                    }
-                }
-                return min;
             }
             return 0;
-        }
-
-        @Override
-        public boolean isValid(SignpostStack stack) {
-            return this.targetTrails.get(stack.size());
         }
 
         @Override

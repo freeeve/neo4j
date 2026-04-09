@@ -45,8 +45,7 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
         `(s) ((a)-->(b))* (t)`,
         `(s) ((a)-->(b))+ (t)`,
         `(s) ((a)--(b))+ (t)`,
-        `(s) ((a)--(b)--(c))* (t)`,
-        `(s) ((a)--(b)--(c))* (t) [single transition]`
+        `(s) ((a)--(b)--(c))* (t)`
       )
       graph <- testGraphs
       into <- Seq(true, false)

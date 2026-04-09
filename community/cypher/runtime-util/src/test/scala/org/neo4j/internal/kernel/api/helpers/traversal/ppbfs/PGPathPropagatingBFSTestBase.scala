@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
-import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
@@ -34,9 +33,7 @@ import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.EventRecorder
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.LoggingPPBFSHooks
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.VisualizingPPBSHooks
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.MultiRelationshipExpansion
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.PGStateBuilder
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.PGStateBuilder.MultiRelationshipBuilder.r
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.State
 import org.neo4j.kernel.api.AssertOpen
 import org.neo4j.memory.EmptyMemoryTracker
@@ -212,61 +209,6 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
      * Note that this does not truncate the result set by K, since that would be nondeterministic for non-grouped cases */
     def allPaths()(implicit ev: A =:= TracedPath): Seq[TracedPath] = {
 
-      def recurseMultiRelExpansion(
-        stack: List[PathEntity],
-        node: Long,
-        rels: List[MultiRelationshipExpansion.Rel],
-        nodes: List[MultiRelationshipExpansion.Node],
-        targetState: State,
-        totalDepth: Int
-      ): Seq[TracedPath] = {
-        (rels, nodes) match {
-          case (r :: rels, n :: nodes) =>
-            for {
-              (rel, dir) <- graph.nodeRels(node).toSeq
-              nextNode = dir match {
-                case RelationshipDirection.OUTGOING => rel.target
-                case RelationshipDirection.INCOMING => rel.source
-                case RelationshipDirection.LOOP     => node
-                case _                              => fail("inexhaustive match")
-              }
-              if dir.matches(r.direction) &&
-                r.predicate.test(TraversedRel(rel, node)) &&
-                n.predicate.test(nextNode) &&
-                (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
-
-              newStack = new PathEntity(n.slotOrName, nextNode, EntityType.NODE) ::
-                new PathEntity(r.slotOrName, rel.id, EntityType.RELATIONSHIP) ::
-                stack
-
-              path <- recurseMultiRelExpansion(newStack, nextNode, rels, nodes, targetState, totalDepth)
-            } yield path
-
-          case (r :: Nil, Nil) =>
-            for {
-              (rel, dir) <- graph.nodeRels(node).toSeq
-              nextNode = dir match {
-                case RelationshipDirection.OUTGOING => rel.target
-                case RelationshipDirection.INCOMING => rel.source
-                case RelationshipDirection.LOOP     => node
-                case _                              => fail("inexhaustive match")
-              }
-              if dir.matches(r.direction) &&
-                r.predicate.test(TraversedRel(rel, node)) &&
-                targetState.test(nextNode) &&
-                (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
-
-              newStack = new PathEntity(targetState.slotOrName, nextNode, EntityType.NODE) ::
-                new PathEntity(r.slotOrName, rel.id, EntityType.RELATIONSHIP) ::
-                stack
-
-              path <- recurse(newStack, nextNode, targetState, totalDepth)
-            } yield path
-
-          case _ => fail("badly formatted multi rel expansion")
-        }
-      }
-
       def recurse(stack: List[PathEntity], node: Long, state: State, totalDepth: Int): Seq[TracedPath] = {
         if (maxDepth != -1 && totalDepth > maxDepth) {
           Seq.empty
@@ -298,23 +240,11 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
             path <- recurse(newStack, nextNode, re.targetState(), totalDepth + 1)
           } yield path
 
-          val multRelExpansions = for {
-            mre <- state.getMultiRelationshipExpansions
-            path <- recurseMultiRelExpansion(
-              stack,
-              node,
-              mre.rels.toList,
-              mre.nodes.toList,
-              mre.targetState,
-              totalDepth + mre.length()
-            )
-          } yield path
-
           val wholePath = Option.when(state.isFinalState && (intoTarget == -1L || intoTarget == node))(new TracedPath(
             stack.reverse
           )).toSeq
 
-          wholePath ++ nodeJuxtapositions ++ relExpansions ++ multRelExpansions
+          wholePath ++ nodeJuxtapositions ++ relExpansions
         }
       }
 
@@ -387,21 +317,8 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
   protected val `(s) ((a)-->(b))+ (t)`: Nfa = nfa("s" |> ("a" --> "b" +) |> "t")
   protected val `(s) ((a)--(b))+ (t)`: Nfa = nfa("s" |> ("a" -- "b" +) |> "t")
 
-  protected val `(s) ((a)--(b)--(c))* (t)`: Nfa = nfa("(s) ((a)--(b)--(c))* (t)") { sb =>
-    val s = sb.newState("s", isStartState = true)
-    val a = sb.newState("a")
-    val c = sb.newState("c")
-    val t = sb.newState("t", isFinalState = true)
-
-    s.addNodeJuxtaposition(a)
-    a.addMultiRelationshipExpansion(c, r().n("b").r())
-    c.addNodeJuxtaposition(a)
-    c.addNodeJuxtaposition(t)
-    s.addNodeJuxtaposition(t)
-  }
-
-  protected val `(s) ((a)--(b)--(c))* (t) [single transition]`: Nfa =
-    nfa("(s) ((a)--(b)--(c))* (t) [single transition]") { sb =>
+  protected val `(s) ((a)--(b)--(c))* (t)`: Nfa =
+    nfa("(s) ((a)--(b)--(c))* (t)") { sb =>
       val s = sb.newState("s", isStartState = true)
       val a = sb.newState("a")
       val b = sb.newState("b")
@@ -416,17 +333,6 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
       s.addNodeJuxtaposition(t)
     }
 
-  protected val `(s) ((a)-->(b)<--(c))+ (t)`: Nfa = nfa("(s) ((a)-->(b)<--(c))+ (t)") { sb =>
-    val s = sb.newState("s", isStartState = true)
-    val a = sb.newState("a")
-    val c = sb.newState("c")
-    val t = sb.newState("t", isFinalState = true)
-
-    s.addNodeJuxtaposition(a)
-    a.addMultiRelationshipExpansion(c, r(direction = Direction.OUTGOING).n("b").r(direction = Direction.INCOMING))
-    c.addNodeJuxtaposition(a)
-    c.addNodeJuxtaposition(t)
-  }
 }
 
 object PGPathPropagatingBFSTestBase {

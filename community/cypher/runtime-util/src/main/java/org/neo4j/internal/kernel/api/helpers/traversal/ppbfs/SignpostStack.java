@@ -203,10 +203,6 @@ public class SignpostStack {
         return signpost;
     }
 
-    public boolean isValid() {
-        return signpostTracking.isValid(this);
-    }
-
     public boolean canAbandonTraceBranch() {
         return signpostTracking.canAbandonTraceBranch(this);
     }

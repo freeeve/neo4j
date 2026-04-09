@@ -19,11 +19,8 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs;
 
-import java.util.Arrays;
 import java.util.Objects;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName;
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.MultiRelationshipExpansion;
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.RelationshipExpansion;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.memory.Measurable;
@@ -96,29 +93,6 @@ public abstract sealed class TwoWaySignpost implements Measurable {
     public static NodeSignpost fromNodeJuxtaposition(
             MemoryTracker mt, NodeState prevNode, NodeState forwardNode, Lengths lengths) {
         return allocate(mt, new NodeSignpost(prevNode, forwardNode, lengths));
-    }
-
-    public static MultiRelSignpost fromMultiRel(
-            MemoryTracker mt,
-            NodeState prevNode,
-            long[] rels,
-            long[] nodes,
-            MultiRelationshipExpansion expansion,
-            NodeState forwardNode,
-            Lengths lengths) {
-        return allocate(mt, new MultiRelSignpost(prevNode, rels, nodes, forwardNode, expansion, lengths));
-    }
-
-    public static MultiRelSignpost fromMultiRel(
-            MemoryTracker mt,
-            NodeState prevNode,
-            long[] rels,
-            long[] nodes,
-            MultiRelationshipExpansion expansion,
-            NodeState forwardNode,
-            int sourceLength,
-            Lengths lengths) {
-        return allocate(mt, new MultiRelSignpost(prevNode, rels, nodes, forwardNode, expansion, sourceLength, lengths));
     }
 
     private static <T extends TwoWaySignpost> T allocate(MemoryTracker mt, T signpost) {
@@ -355,147 +329,6 @@ public abstract sealed class TwoWaySignpost implements Measurable {
         @Override
         public int hashCode() {
             return Objects.hash(prevNode, forwardNode);
-        }
-    }
-
-    public static final class MultiRelSignpost extends TwoWaySignpost {
-
-        public final long[] rels;
-        public final long[] nodes;
-        public final MultiRelationshipExpansion transition;
-
-        private MultiRelSignpost(
-                NodeState prevNode,
-                long[] rels,
-                long[] nodes,
-                NodeState forwardNode,
-                MultiRelationshipExpansion transition,
-                int lengthFromSource,
-                Lengths lengths) {
-            super(prevNode, forwardNode, lengthFromSource, lengths);
-            this.rels = rels;
-            this.nodes = nodes;
-            this.transition = transition;
-
-            assert rels.length == transition.rels().length;
-            assert nodes.length == transition.nodes().length;
-        }
-
-        @Override
-        public void materialize(PathWriter pathWriter) {
-            pathWriter.writeNode(prevNode.state().slotOrName(), prevNode.id());
-
-            for (int i = 0; i < nodes.length; i++) {
-                var rel = rels[i];
-                var relSlot = transition.rels()[i].slotOrName();
-                pathWriter.writeRel(relSlot, rel);
-
-                var node = nodes[i];
-                var nodeSlot = transition.nodes()[i].slotOrName();
-                pathWriter.writeNode(nodeSlot, node);
-            }
-
-            var lastRel = rels[rels.length - 1];
-            var lastSlot = transition.rels()[transition.rels().length - 1].slotOrName();
-
-            pathWriter.writeRel(lastSlot, lastRel);
-        }
-
-        private MultiRelSignpost(
-                NodeState prevNode,
-                long[] rels,
-                long[] nodes,
-                NodeState forwardNode,
-                MultiRelationshipExpansion transition,
-                Lengths lengths) {
-            super(prevNode, forwardNode, lengths);
-            this.rels = rels;
-            this.nodes = nodes;
-            this.transition = transition;
-
-            assert rels.length == transition.rels().length;
-            assert nodes.length == transition.nodes().length;
-        }
-
-        @Override
-        public long estimatedHeapUsage() {
-            return SHALLOW_SIZE
-                    + lengths.estimatedHeapUsage()
-                    + HeapEstimator.sizeOf(rels)
-                    + HeapEstimator.sizeOf(nodes);
-        }
-
-        private static long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(MultiRelSignpost.class);
-
-        @Override
-        public int entityCount() {
-            return 1 + rels.length + nodes.length;
-        }
-
-        @Override
-        public int dataGraphLength() {
-            return transition.length();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MultiRelSignpost that = (MultiRelSignpost) o;
-            // we can skip comparing interior nodes because those are implied by the relationships
-            return prevNode == that.prevNode && forwardNode == that.forwardNode && Arrays.equals(rels, that.rels);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(prevNode, forwardNode, Arrays.hashCode(rels));
-        }
-
-        @Override
-        public String toString() {
-            var sb = new StringBuilder("MRE ").append(prevNode);
-            if (transition.rels()[0].direction() == Direction.INCOMING) {
-                sb.append("<");
-            }
-            sb.append("-[");
-
-            for (int i = 0; i < transition.length(); i++) {
-                var rel = transition.rels()[i];
-                if (rel.slotOrName() != SlotOrName.none()) {
-                    sb.append(rel.slotOrName()).append("@");
-                }
-
-                sb.append(rels[i]).append("]-");
-                if (rel.direction() == Direction.OUTGOING) {
-                    sb.append(">");
-                }
-
-                if (i < nodes.length) {
-                    sb.append("(");
-                    var node = transition.nodes()[i];
-                    if (node.slotOrName() != SlotOrName.none()) {
-                        sb.append(node.slotOrName()).append("@");
-                    }
-                    sb.append(nodes[i]).append(")");
-                    if (transition.rels()[i + 1].direction() == Direction.INCOMING) {
-                        sb.append("<");
-                    }
-                    sb.append("-[");
-                }
-            }
-
-            sb.append(forwardNode);
-
-            if (minTargetDistance != NO_TARGET_DISTANCE) {
-                sb.append(", minTargetDistance: ").append(minTargetDistance);
-            }
-
-            var sourceLengths = lengths.renderSourceLengths();
-            if (!sourceLengths.isEmpty()) {
-                sb.append(", sourceLengths: ").append(sourceLengths);
-            }
-
-            return sb.toString();
         }
     }
 }

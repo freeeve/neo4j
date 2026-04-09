@@ -28,8 +28,6 @@ public interface TraversalPathModeFactory {
 
     Lengths lengths();
 
-    MREValidator mreValidator();
-
     static TraversalPathModeFactory trailMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
         return new TraversalPathModeFactory() {
             @Override
@@ -40,11 +38,6 @@ public interface TraversalPathModeFactory {
             @Override
             public Lengths lengths() {
                 return Lengths.trailMode();
-            }
-
-            @Override
-            public MREValidator mreValidator() {
-                return MREValidator.TRAIL_MODE;
             }
         };
     }
@@ -59,11 +52,6 @@ public interface TraversalPathModeFactory {
             @Override
             public Lengths lengths() {
                 return Lengths.walkMode();
-            }
-
-            @Override
-            public MREValidator mreValidator() {
-                return MREValidator.WALK_MODE;
             }
         };
     }

@@ -25,9 +25,6 @@ import org.neo4j.function.Predicates
 import org.neo4j.graphdb.Direction
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.MultiRelationshipExpansion
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.MultiRelationshipExpansion.CompoundPredicate
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.PGStateBuilder.MultiRelationshipBuilder
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.RelationshipExpansion
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.State
 import org.neo4j.memory.EmptyMemoryTracker
@@ -76,29 +73,4 @@ class TwoWaySignpostTest extends CypherFunSuite {
     mt.estimatedHeapMemory() shouldBe actual
   }
 
-  test("memory allocation on construction of multi rel signpost") {
-    val mt = new LocalMemoryTracker()
-    val gs = new GlobalState(null, null, SearchMode.Unidirectional, EmptyMemoryTracker.INSTANCE, PPBFSHooks.NULL, 1)
-
-    val s1 = new State(1, SlotOrName.none, Predicates.ALWAYS_TRUE_LONG, false, false)
-    val s2 = new State(2, SlotOrName.none, Predicates.ALWAYS_TRUE_LONG, false, false)
-
-    val prevNode = new NodeState(gs, 1, s1, 3, ls)
-    val forwardNode = new NodeState(gs, 2, s2, 3, ls)
-
-    val mre = {
-      val builder = MultiRelationshipBuilder.empty
-        .r()
-        .n()
-        .r()
-
-      new MultiRelationshipExpansion(s1, builder.rels.toArray, builder.nodes.toArray, CompoundPredicate.ALWAYS_TRUE, s2)
-    }
-
-    val signpost = TwoWaySignpost.fromMultiRel(mt, prevNode, Array(1L, 2L), Array(3L), mre, forwardNode, 0, ls)
-
-    val actual = meter.measureDeep(signpost) - deduplicatedSize(prevNode, forwardNode, mre)
-
-    mt.estimatedHeapMemory() shouldBe actual
-  }
 }

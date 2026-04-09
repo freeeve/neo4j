@@ -28,7 +28,6 @@ import java.util.function.Predicate;
 import org.neo4j.collection.trackable.HeapTracking;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
 import org.neo4j.collection.trackable.HeapTrackingCollections;
-import org.neo4j.collection.trackable.HeapTrackingLongArrayList;
 import org.neo4j.collection.trackable.HeapTrackingUnifiedMap;
 import org.neo4j.function.Predicates;
 import org.neo4j.graphdb.Direction;
@@ -37,15 +36,12 @@ import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities;
 import org.neo4j.internal.kernel.api.helpers.traversal.ReversedRelTraversalEntities;
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks;
-import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.MultiRelationshipExpansion;
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.ProductGraphTraversalCursor;
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.RelationshipPredicate;
 import org.neo4j.internal.kernel.api.helpers.traversal.productgraph.State;
-import org.neo4j.kernel.impl.util.ValueUtils;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.RelationshipSelection;
-import org.neo4j.values.virtual.VirtualRelationshipValue;
 
 final class BFSExpander implements AutoCloseable {
     private final MemoryTracker mt;
@@ -168,119 +164,6 @@ final class BFSExpander implements AutoCloseable {
         });
     }
 
-    private void multiHopDFS(NodeState startNode, MultiRelationshipExpansion expansion, TraversalDirection direction) {
-        var rels = new VirtualRelationshipValue[expansion.length()];
-        var nodes = new long[expansion.length() - 1];
-
-        var nodeTree = new HeapTrackingLongArrayList[expansion.length() + 1];
-        nodeTree[0] = HeapTrackingLongArrayList.newLongArrayList(1, mt);
-        nodeTree[0].add(startNode.id());
-        HeapTrackingArrayList<VirtualRelationshipValue>[] relTree = new HeapTrackingArrayList[expansion.length()];
-
-        int depth = 0;
-        MREValidator mreValidator = tracker.mreValidator();
-        while (depth != -1) {
-            assert depth <= expansion.length()
-                    : "Multi-hop depth first search should never exceed total expansion length";
-            if (nodeTree[depth] == null || nodeTree[depth].isEmpty()) {
-                // exhausted this branch, backtrack up by 1 level
-                if (depth > 0) {
-                    rels[direction.isBackward() ? (rels.length - depth) : depth - 1] = null;
-
-                    if (depth <= nodes.length) {
-                        nodes[direction.isBackward() ? (nodes.length - depth) : depth - 1] = 0;
-                    }
-                }
-
-                depth--;
-            } else if (depth == expansion.length()) {
-                // reached the final node of the traversal; evaluate the path and add a signpost if necessary
-                var endNode = nodeTree[depth].removeLast();
-                var rel = relTree[depth - 1].removeLast();
-                rels[direction.isBackward() ? (rels.length - depth) : depth - 1] = rel;
-
-                var start = direction.isBackward() ? endNode : startNode.id();
-                var end = direction.isBackward() ? startNode.id() : endNode;
-
-                if (expansion.compoundPredicate().test(start, rels, nodes, end)) {
-                    var nextNode = encounter(endNode, expansion.endState(direction), direction);
-
-                    var relIds = new long[rels.length];
-                    for (int i = 0; i < rels.length; i++) {
-                        relIds[i] = rels[i].id();
-                    }
-
-                    switch (direction) {
-                        case FORWARD -> {
-                            var signpost = TwoWaySignpost.fromMultiRel(
-                                    mt,
-                                    startNode,
-                                    relIds,
-                                    nodes.clone(),
-                                    expansion,
-                                    nextNode,
-                                    foundNodes.forwardDepth(),
-                                    tracker.lengths());
-                            if (globalState.searchMode == SearchMode.Unidirectional
-                                    || !nextNode.hasSourceSignpost(signpost)) {
-                                nextNode.addSourceSignpost(signpost, foundNodes.forwardDepth());
-                            }
-                        }
-                        case BACKWARD -> {
-                            var signpost = TwoWaySignpost.fromMultiRel(
-                                    mt, nextNode, relIds, nodes.clone(), expansion, startNode, tracker.lengths());
-                            if (!nextNode.hasTargetSignpost(signpost)) {
-                                var addedSignpost = startNode.upsertSourceSignpost(signpost);
-                                addedSignpost.setMinTargetDistance(
-                                        foundNodes.backwardDepth(), PGPathPropagatingBFS.Phase.Expansion);
-                            }
-                        }
-                    }
-                }
-
-            } else {
-                // traverse deeper into the tree
-                var node = nodeTree[depth].removeLast();
-                if (depth > 0) {
-                    var rel = relTree[depth - 1].removeLast();
-                    rels[direction.isBackward() ? (rels.length - depth) : depth - 1] = rel;
-
-                    if (depth <= nodes.length) {
-                        nodes[direction.isBackward() ? (nodes.length - depth) : depth - 1] = node;
-                    }
-                }
-
-                var relHop = expansion.rel(depth, direction);
-                var nodePredicate = expansion.nodePredicate(depth, direction);
-
-                boolean canExpand = false;
-                for (var it = relCursor.iterator(node, relHop.types(), relHop.getDirection(direction));
-                        it.hasNext(); ) {
-                    var rel = it.next();
-                    if (mreValidator.validateRelationships(direction, depth, rels, rel)) {
-                        if (cachedRelPredicate(relHop.predicate(), rel, direction)
-                                && cachedNodePredicate(nodePredicate, rel.otherNodeReference())) {
-                            if (nodeTree[depth + 1] == null) {
-                                nodeTree[depth + 1] = HeapTrackingLongArrayList.newLongArrayList(mt);
-                            }
-                            nodeTree[depth + 1].add(rel.otherNodeReference());
-
-                            if (relTree[depth] == null) {
-                                relTree[depth] = HeapTrackingArrayList.newArrayList(mt);
-                            }
-                            relTree[depth].add(ValueUtils.fromRelationshipCursor(rel));
-                            canExpand = true;
-                        }
-                    }
-                }
-
-                if (canExpand) {
-                    depth++;
-                }
-            }
-        }
-    }
-
     public void expand() {
         foundNodes.openBuffer();
         var direction = foundNodes.getNextExpansionDirection();
@@ -294,14 +177,6 @@ final class BFSExpander implements AutoCloseable {
             for (var nodeState : statesById) {
                 if (nodeState != null) {
                     statesList.add(nodeState.state());
-
-                    // iterate over any var-length transitions and add them to the appropriate priority queue at depth +
-                    // length
-                    for (var mre : nodeState.state().getMultiRelationshipExpansions(direction)) {
-                        // here we subtract 1 to account for the initial source/target nodes being discovered at depth 0
-                        var depth = foundNodes.depth(direction) - 1 + mre.length();
-                        foundNodes.enqueueScheduled(depth, nodeState, mre, direction);
-                    }
                 }
             }
 
@@ -347,14 +222,6 @@ final class BFSExpander implements AutoCloseable {
                     }
                 }
             }
-        }
-
-        // look in the priority queue to see if there are any var-length transitions to expand at this depth.
-        // if there are then run DFS on them and add the final node states to the collection
-        for (var mre = foundNodes.dequeueScheduled(direction);
-                mre != null;
-                mre = foundNodes.dequeueScheduled(direction)) {
-            multiHopDFS(mre.start(), mre.expansion(), direction);
         }
 
         foundNodes.commitBuffer(direction);
