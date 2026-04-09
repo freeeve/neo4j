@@ -46,8 +46,12 @@ public abstract class StatefulFieldExtension<T> implements TestInstancePostProce
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
-        Class<?> clazz = testInstance.getClass();
         Object instance = createInstance(context);
+        injectInto(testInstance, instance);
+    }
+
+    protected void injectInto(Object testInstance, Object value) throws Exception {
+        Class<?> clazz = testInstance.getClass();
         Field[] declaredFields = FieldUtils.getAllFields(clazz);
         for (Field declaredField : declaredFields) {
             if (declaredField.isAnnotationPresent(Inject.class)
@@ -59,7 +63,7 @@ public abstract class StatefulFieldExtension<T> implements TestInstancePostProce
                                     + "and should not have any manually assigned value.",
                             declaredField.getName(), clazz.getName()));
                 }
-                declaredField.set(testInstance, instance);
+                declaredField.set(testInstance, value);
             }
         }
     }
