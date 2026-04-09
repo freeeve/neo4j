@@ -75,7 +75,6 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.io.pagecache.context.CursorContext
 import org.neo4j.kernel.api.ExecutionContext
 import org.neo4j.kernel.api.KernelTransaction
@@ -655,81 +654,6 @@ trait WriteQueryContext extends IndexProviderContext {
   def dropIndexRule(name: String): Unit
 
   def createConstraint(constraint: ConstraintCommand.Create): Unit
-
-  /* throws if failed or pre-existing */
-  def createNodeKeyConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createRelationshipKeyConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createNodeUniqueConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createRelationshipUniqueConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createNodePropertyExistenceConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createRelationshipPropertyExistenceConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createNodePropertyTypeConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit
-
-  /* throws if failed or pre-existing */
-  def createRelationshipPropertyTypeConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit
-
-  /* always dependent (without name), throws if failed or pre-existing */
-  def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit
-
-  /* always dependent (without name), throws if failed or pre-existing */
-  def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit
-
-  /* always dependent (without name), throws if failed or pre-existing */
-  def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit
 
   def dropNamedConstraint(name: String, allowDependent: Boolean): Unit
 

@@ -407,8 +407,18 @@ public sealed interface SchemaCommand extends Serializable {
 
             ConstraintPrototype toPrototype(TokenHolders tokenHolders);
 
-            record NodeUniqueness(String name, String label, List<String> properties, boolean ifNotExists)
+            record NodeUniqueness(
+                    String name,
+                    String label,
+                    List<String> properties,
+                    IndexProviderDescriptor providerDescriptor,
+                    boolean ifNotExists)
                     implements Create {
+
+                public NodeUniqueness(String name, String label, List<String> properties, boolean ifNotExists) {
+                    this(name, label, properties, RANGE_DESCRIPTOR, ifNotExists);
+                }
+
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -428,7 +438,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forLabel(
                             tokenHolders.labelForName(label), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema);
+                    final var backingIndex =
+                            backingIndex(schema, providerDescriptor == null ? RANGE_DESCRIPTOR : providerDescriptor);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.uniqueForSchema(schema, backingIndex.getIndexType()),
@@ -465,7 +476,18 @@ public sealed interface SchemaCommand extends Serializable {
                 }
             }
 
-            record NodeKey(String name, String label, List<String> properties, boolean ifNotExists) implements Create {
+            record NodeKey(
+                    String name,
+                    String label,
+                    List<String> properties,
+                    IndexProviderDescriptor providerDescriptor,
+                    boolean ifNotExists)
+                    implements Create {
+
+                public NodeKey(String name, String label, List<String> properties, boolean ifNotExists) {
+                    this(name, label, properties, RANGE_DESCRIPTOR, ifNotExists);
+                }
+
                 @Override
                 public EntityType entityType() {
                     return EntityType.NODE;
@@ -485,7 +507,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forLabel(
                             tokenHolders.labelForName(label), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema);
+                    final var backingIndex =
+                            backingIndex(schema, providerDescriptor == null ? RANGE_DESCRIPTOR : providerDescriptor);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.keyForSchema(schema, backingIndex.getIndexType()),
@@ -530,8 +553,18 @@ public sealed interface SchemaCommand extends Serializable {
                 }
             }
 
-            record RelationshipUniqueness(String name, String type, List<String> properties, boolean ifNotExists)
+            record RelationshipUniqueness(
+                    String name,
+                    String type,
+                    List<String> properties,
+                    IndexProviderDescriptor providerDescriptor,
+                    boolean ifNotExists)
                     implements Create {
+
+                public RelationshipUniqueness(String name, String type, List<String> properties, boolean ifNotExists) {
+                    this(name, type, properties, RANGE_DESCRIPTOR, ifNotExists);
+                }
+
                 @Override
                 public EntityType entityType() {
                     return EntityType.RELATIONSHIP;
@@ -551,7 +584,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forRelType(
                             tokenHolders.relationshipForName(type), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema);
+                    final var backingIndex =
+                            backingIndex(schema, providerDescriptor == null ? RANGE_DESCRIPTOR : providerDescriptor);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.uniqueForSchema(schema, backingIndex.getIndexType()),
@@ -589,8 +623,18 @@ public sealed interface SchemaCommand extends Serializable {
                 }
             }
 
-            record RelationshipKey(String name, String type, List<String> properties, boolean ifNotExists)
+            record RelationshipKey(
+                    String name,
+                    String type,
+                    List<String> properties,
+                    IndexProviderDescriptor providerDescriptor,
+                    boolean ifNotExists)
                     implements Create {
+
+                public RelationshipKey(String name, String type, List<String> properties, boolean ifNotExists) {
+                    this(name, type, properties, RANGE_DESCRIPTOR, ifNotExists);
+                }
+
                 @Override
                 public EntityType entityType() {
                     return EntityType.RELATIONSHIP;
@@ -610,7 +654,8 @@ public sealed interface SchemaCommand extends Serializable {
                 public ConstraintPrototype toPrototype(TokenHolders tokenHolders) {
                     final var schema = SchemaDescriptors.forRelType(
                             tokenHolders.relationshipForName(type), tokenHolders.propertiesForName(properties));
-                    final var backingIndex = backingIndex(schema);
+                    final var backingIndex =
+                            backingIndex(schema, providerDescriptor == null ? RANGE_DESCRIPTOR : providerDescriptor);
                     final var constraintDescriptor = withName(
                             name,
                             ConstraintDescriptorFactory.keyForSchema(schema, backingIndex.getIndexType()),

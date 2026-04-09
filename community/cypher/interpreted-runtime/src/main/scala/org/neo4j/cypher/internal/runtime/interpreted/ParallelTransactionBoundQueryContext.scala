@@ -47,7 +47,6 @@ import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -167,72 +166,8 @@ object ParallelTransactionBoundQueryContext {
 
     override def createConstraint(constraint: ConstraintCommand.Create): Unit = unsupported()
 
-    override def createNodeKeyConstraint(
-      labelId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = unsupported()
-
-    override def createRelationshipKeyConstraint(
-      relTypeId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = unsupported()
-
-    override def createNodeUniqueConstraint(
-      labelId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = unsupported()
-
-    override def createRelationshipUniqueConstraint(
-      relTypeId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = unsupported()
-
-    override def createNodePropertyExistenceConstraint(
-      labelId: Int,
-      propertyKeyId: Int,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit =
-      unsupported()
-
-    override def createRelationshipPropertyExistenceConstraint(
-      relTypeId: Int,
-      propertyKeyId: Int,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = unsupported()
-
-    override def createNodePropertyTypeConstraint(
-      labelId: Int,
-      propertyKeyId: Int,
-      propertyTypes: PropertyTypeSet,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = unsupported()
-
-    override def createRelationshipPropertyTypeConstraint(
-      relTypeId: Int,
-      propertyKeyId: Int,
-      propertyTypes: PropertyTypeSet,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = unsupported()
-
-    override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = unsupported()
-
-    override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = unsupported()
-
-    override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = unsupported()
-
     override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = unsupported()
+
     override def detachDeleteNode(id: Long): Int = unsupported()
     override def assertSchemaWritesAllowed(): Unit = unsupported()
     override def getDatabaseContextProvider: DatabaseContextProvider[DatabaseContext] = unsupported()

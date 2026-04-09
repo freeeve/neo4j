@@ -74,7 +74,6 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
@@ -443,71 +442,6 @@ object StaticEvaluation {
     ): ClosingLongIterator = notAvailable()
 
     override def createConstraint(constraint: ConstraintCommand.Create): Unit = notAvailable()
-
-    override def createNodeKeyConstraint(
-      labelId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = notAvailable()
-
-    override def createRelationshipKeyConstraint(
-      relTypeId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = notAvailable()
-
-    override def createNodeUniqueConstraint(
-      labelId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = notAvailable()
-
-    override def createRelationshipUniqueConstraint(
-      relTypeId: Int,
-      propertyKeyIds: Seq[Int],
-      name: Option[String],
-      provider: Option[IndexProviderDescriptor]
-    ): Unit = notAvailable()
-
-    override def createNodePropertyExistenceConstraint(
-      labelId: Int,
-      propertyKeyId: Int,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit =
-      notAvailable()
-
-    override def createRelationshipPropertyExistenceConstraint(
-      relTypeId: Int,
-      propertyKeyId: Int,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = notAvailable()
-
-    override def createNodePropertyTypeConstraint(
-      labelId: Int,
-      propertyKeyId: Int,
-      propertyTypes: PropertyTypeSet,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = notAvailable()
-
-    override def createRelationshipPropertyTypeConstraint(
-      relTypeId: Int,
-      propertyKeyId: Int,
-      propertyTypes: PropertyTypeSet,
-      name: Option[String],
-      dependent: Boolean
-    ): Unit = notAvailable()
-
-    override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = notAvailable()
-
-    override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = notAvailable()
-
-    override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = notAvailable()
 
     override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = notAvailable()
 

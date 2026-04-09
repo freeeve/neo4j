@@ -45,7 +45,6 @@ import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -310,103 +309,6 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
         if (c.endpointType() == EndpointType.START) relSourceLabelConstraintsAdded.increase()
         if (c.endpointType() == EndpointType.END) relTargetLabelConstraintsAdded.increase()
     }
-  }
-
-  override def createNodeKeyConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    inner.createNodeKeyConstraint(labelId, propertyKeyIds, name, provider)
-    nodeKeyConstraintsAdded.increase()
-  }
-
-  override def createRelationshipKeyConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    inner.createRelationshipKeyConstraint(relTypeId, propertyKeyIds, name, provider)
-    relKeyConstraintsAdded.increase()
-  }
-
-  override def createNodeUniqueConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    inner.createNodeUniqueConstraint(labelId, propertyKeyIds, name, provider)
-    nodePropUniquenessConstraintsAdded.increase()
-  }
-
-  override def createRelationshipUniqueConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    inner.createRelationshipUniqueConstraint(relTypeId, propertyKeyIds, name, provider)
-    relPropUniquenessConstraintsAdded.increase()
-  }
-
-  override def createNodePropertyExistenceConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = {
-    inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name, dependent)
-    nodePropertyExistenceConstraintsAdded.increase()
-  }
-
-  override def createRelationshipPropertyExistenceConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = {
-    inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name, dependent)
-    relPropertyExistenceConstraintsAdded.increase()
-  }
-
-  override def createNodePropertyTypeConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = {
-    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name, dependent)
-    nodePropertyTypeConstraintsAdded.increase()
-  }
-
-  override def createRelationshipPropertyTypeConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = {
-    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name, dependent)
-    relPropertyTypeConstraintsAdded.increase()
-  }
-
-  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = {
-    inner.createLabelExistenceConstraint(labelId, impliedLabelId)
-    nodeLabelExistenceConstraintsAdded.increase()
-  }
-
-  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = {
-    inner.createRelationshipSourceLabelConstraint(relTypeId, labelId)
-    relSourceLabelConstraintsAdded.increase()
-  }
-
-  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = {
-    inner.createRelationshipTargetLabelConstraint(relTypeId, labelId)
-    relTargetLabelConstraintsAdded.increase()
   }
 
   override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = {

@@ -114,7 +114,6 @@ import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.SchemaNameUtil
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_PROPERTY_KEY
@@ -450,7 +449,7 @@ sealed class TransactionBoundQueryContext(
             getOrCreateLabelId(c.label()),
             propertyKeyIds(c.properties()),
             Option(c.name()),
-            None
+            Option(c.providerDescriptor())
           )
         transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
       case c: ConstraintCommand.Create.RelationshipKey =>
@@ -458,7 +457,7 @@ sealed class TransactionBoundQueryContext(
           getOrCreateRelTypeId(c.`type`()),
           propertyKeyIds(c.properties()),
           Option(c.name),
-          None
+          Option(c.providerDescriptor())
         )
         transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
       case c: ConstraintCommand.Create.NodeUniqueness =>
@@ -467,7 +466,7 @@ sealed class TransactionBoundQueryContext(
             getOrCreateLabelId(c.label()),
             propertyKeyIds(c.properties()),
             Option(c.name()),
-            None
+            Option(c.providerDescriptor())
           )
         transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
       case c: ConstraintCommand.Create.RelationshipUniqueness =>
@@ -475,7 +474,7 @@ sealed class TransactionBoundQueryContext(
           getOrCreateRelTypeId(c.`type`()),
           propertyKeyIds(c.properties()),
           Option(c.name),
-          None
+          Option(c.providerDescriptor())
         )
         transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
       case c: ConstraintCommand.Create.NodeExistence =>
@@ -507,57 +506,17 @@ sealed class TransactionBoundQueryContext(
       case c: ConstraintCommand.Create.NodeLabelExistence =>
         transactionalContext.schemaWrite.nodeLabelExistenceConstraintCreate(
           SchemaDescriptors.forNodeLabelExistence(getOrCreateLabelId(c.label())),
-          null,
+          c.name(),
           getOrCreateLabelId(c.requiredLabel())
         )
       case c: ConstraintCommand.Create.RelationshipEndpointLabel =>
         transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
           SchemaDescriptors.forRelationshipEndpointLabel(getOrCreateRelTypeId(c.`type`())),
-          null,
+          c.name(),
           getOrCreateLabelId(c.requiredLabel()),
           c.endpointType()
         )
     }
-  }
-
-  override def createNodeKeyConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    val indexPrototype = getNodeUniqueIndexPrototype(labelId, propertyKeyIds, name, provider)
-    transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
-  }
-
-  override def createRelationshipKeyConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    val indexPrototype = getRelationshipUniqueIndexPrototype(relTypeId, propertyKeyIds, name, provider)
-    transactionalContext.schemaWrite.keyConstraintCreate(indexPrototype)
-  }
-
-  override def createNodeUniqueConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    val indexPrototype = getNodeUniqueIndexPrototype(labelId, propertyKeyIds, name, provider)
-    transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
-  }
-
-  override def createRelationshipUniqueConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit = {
-    val indexPrototype = getRelationshipUniqueIndexPrototype(relTypeId, propertyKeyIds, name, provider)
-    transactionalContext.schemaWrite.uniquePropertyConstraintCreate(indexPrototype)
   }
 
   private def getNodeUniqueIndexPrototype(
@@ -583,81 +542,6 @@ sealed class TransactionBoundQueryContext(
   ) =
     provider.map(provider => IndexPrototype.uniqueForSchema(descriptor, provider))
       .getOrElse(IndexPrototype.uniqueForSchema(descriptor)).withName(name.orNull)
-
-  override def createNodePropertyExistenceConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    transactionalContext.schemaWrite.nodePropertyExistenceConstraintCreate(
-      SchemaDescriptors.forLabel(labelId, propertyKeyId),
-      name.orNull,
-      dependent
-    )
-
-  override def createRelationshipPropertyExistenceConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    transactionalContext.schemaWrite.relationshipPropertyExistenceConstraintCreate(
-      SchemaDescriptors.forRelType(relTypeId, propertyKeyId),
-      name.orNull,
-      dependent
-    )
-
-  override def createNodePropertyTypeConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    transactionalContext.schemaWrite.propertyTypeConstraintCreate(
-      SchemaDescriptors.forLabel(labelId, propertyKeyId),
-      name.orNull,
-      propertyTypes,
-      dependent
-    )
-
-  override def createRelationshipPropertyTypeConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    transactionalContext.schemaWrite.propertyTypeConstraintCreate(
-      SchemaDescriptors.forRelType(relTypeId, propertyKeyId),
-      name.orNull,
-      propertyTypes,
-      dependent
-    )
-
-  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit =
-    transactionalContext.schemaWrite.nodeLabelExistenceConstraintCreate(
-      SchemaDescriptors.forNodeLabelExistence(labelId),
-      null,
-      impliedLabelId
-    )
-
-  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit =
-    transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
-      SchemaDescriptors.forRelationshipEndpointLabel(relTypeId),
-      null,
-      labelId,
-      EndpointType.START
-    )
-
-  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit =
-    transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
-      SchemaDescriptors.forRelationshipEndpointLabel(relTypeId),
-      null,
-      labelId,
-      EndpointType.END
-    )
 
   override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit =
     transactionalContext.schemaWrite.constraintDrop(name, allowDependent)

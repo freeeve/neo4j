@@ -74,7 +74,6 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand
 import org.neo4j.internal.schema.SchemaDescriptor
-import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.index.IndexUsageStats
@@ -781,103 +780,6 @@ class ExceptionTranslatingQueryContext(override val inner: QueryContext)
 
   override def createConstraint(constraint: ConstraintCommand.Create): Unit =
     translateException(tokenNameLookup, inner.createConstraint(constraint))
-
-  override def createNodeKeyConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createNodeKeyConstraint(labelId, propertyKeyIds, name, provider)
-    )
-
-  override def createRelationshipKeyConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createRelationshipKeyConstraint(relTypeId, propertyKeyIds, name, provider)
-    )
-
-  override def createNodeUniqueConstraint(
-    labelId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createNodeUniqueConstraint(labelId, propertyKeyIds, name, provider)
-    )
-
-  override def createRelationshipUniqueConstraint(
-    relTypeId: Int,
-    propertyKeyIds: Seq[Int],
-    name: Option[String],
-    provider: Option[IndexProviderDescriptor]
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createRelationshipUniqueConstraint(relTypeId, propertyKeyIds, name, provider)
-    )
-
-  override def createNodePropertyExistenceConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name, dependent)
-    )
-
-  override def createRelationshipPropertyExistenceConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit =
-    translateException(
-      tokenNameLookup,
-      inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name, dependent)
-    )
-
-  override def createNodePropertyTypeConstraint(
-    labelId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = translateException(
-    tokenNameLookup,
-    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name, dependent)
-  )
-
-  override def createRelationshipPropertyTypeConstraint(
-    relTypeId: Int,
-    propertyKeyId: Int,
-    propertyTypes: PropertyTypeSet,
-    name: Option[String],
-    dependent: Boolean
-  ): Unit = translateException(
-    tokenNameLookup,
-    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name, dependent)
-  )
-
-  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit =
-    translateException(tokenNameLookup, inner.createLabelExistenceConstraint(labelId, impliedLabelId))
-
-  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit =
-    translateException(tokenNameLookup, inner.createRelationshipSourceLabelConstraint(relTypeId, labelId))
-
-  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit =
-    translateException(tokenNameLookup, inner.createRelationshipTargetLabelConstraint(relTypeId, labelId))
 
   override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit =
     translateException(tokenNameLookup, inner.dropNamedConstraint(name, allowDependent))

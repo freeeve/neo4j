@@ -35,6 +35,10 @@ public interface SchemaCommandUtils {
         return IndexPrototype.uniqueForSchema(schema, RANGE_DESCRIPTOR);
     }
 
+    static IndexPrototype backingIndex(SchemaDescriptor schema, IndexProviderDescriptor providerDescriptor) {
+        return IndexPrototype.uniqueForSchema(schema, providerDescriptor);
+    }
+
     static IndexPrototype withName(String name, IndexPrototype prototype, TokenNameLookup tokenNameLookup) {
         if (name != null && !name.isEmpty()) {
             return prototype.withName(name);

@@ -43,7 +43,6 @@ import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Property
-import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.notification.IndexOrConstraintAlreadyExistsNotification
 import org.neo4j.cypher.internal.notification.IndexOrConstraintDoesNotExistNotification
@@ -68,7 +67,10 @@ import org.neo4j.internal.schema.ConstraintType.PROPERTY_TYPE
 import org.neo4j.internal.schema.ConstraintType.RELATIONSHIP_ENDPOINT_LABEL
 import org.neo4j.internal.schema.ConstraintType.UNIQUE
 import org.neo4j.internal.schema.ConstraintType.UNIQUE_EXISTS
+import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create
 import org.neo4j.values.virtual.MapValue
+
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
  * Create the schema write functions for the community and enterprise constraint command SchemaExecutionPlan's.
@@ -93,9 +95,14 @@ object ConstraintCommandPlanner {
           .convert(cypherVersion, options, params)
           .toOptionNotification
       val indexProvider = maybeIndexProvider.flatMap(_.provider)
-      val labelId = ctx.getOrCreateLabelId(label.name)
-      val propertyKeyIds = props.map(p => propertyToId(ctx)(p.propertyKey).id)
-      ctx.createNodeKeyConstraint(labelId, propertyKeyIds, constraintName, indexProvider)
+      val propertyKeys = props.map(p => p.propertyKey.name)
+      ctx.createConstraint(new Create.NodeKey(
+        constraintName.orNull,
+        label.name,
+        propertyKeys.asJava,
+        indexProvider.orNull,
+        false
+      ))
       SuccessResult(notifications)
     }
 
@@ -114,9 +121,14 @@ object ConstraintCommandPlanner {
           .convert(cypherVersion, options, params)
           .toOptionNotification
       val indexProvider = maybeIndexProvider.flatMap(_.provider)
-      val relId = ctx.getOrCreateRelTypeId(relType.name)
-      val propertyKeyIds = props.map(p => propertyToId(ctx)(p.propertyKey).id)
-      ctx.createRelationshipKeyConstraint(relId, propertyKeyIds, constraintName, indexProvider)
+      val propertyKeys = props.map(p => p.propertyKey.name)
+      ctx.createConstraint(new Create.RelationshipKey(
+        constraintName.orNull,
+        relType.name,
+        propertyKeys.asJava,
+        indexProvider.orNull,
+        false
+      ))
       SuccessResult(notifications)
     }
 
@@ -135,9 +147,14 @@ object ConstraintCommandPlanner {
           .convert(cypherVersion, options, params)
           .toOptionNotification
       val indexProvider = maybeIndexProvider.flatMap(_.provider)
-      val labelId = ctx.getOrCreateLabelId(label.name)
-      val propertyKeyIds = props.map(p => propertyToId(ctx)(p.propertyKey).id)
-      ctx.createNodeUniqueConstraint(labelId, propertyKeyIds, constraintName, indexProvider)
+      val propertyKeys = props.map(p => p.propertyKey.name)
+      ctx.createConstraint(new Create.NodeUniqueness(
+        constraintName.orNull,
+        label.name,
+        propertyKeys.asJava,
+        indexProvider.orNull,
+        false
+      ))
       SuccessResult(notifications)
     }
 
@@ -156,9 +173,14 @@ object ConstraintCommandPlanner {
           .convert(cypherVersion, options, params)
           .toOptionNotification
       val indexProvider = maybeIndexProvider.flatMap(_.provider)
-      val relTypeId = ctx.getOrCreateRelTypeId(relType.name)
-      val propertyKeyIds = props.map(p => propertyToId(ctx)(p.propertyKey).id)
-      ctx.createRelationshipUniqueConstraint(relTypeId, propertyKeyIds, constraintName, indexProvider)
+      val propertyKeys = props.map(p => p.propertyKey.name)
+      ctx.createConstraint(new Create.RelationshipUniqueness(
+        constraintName.orNull,
+        relType.name,
+        propertyKeys.asJava,
+        indexProvider.orNull,
+        false
+      ))
       SuccessResult(notifications)
     }
 
@@ -174,8 +196,13 @@ object ConstraintCommandPlanner {
       // Assert empty options
       PropertyExistenceOrTypeConstraintOptionsConverter("node", "existence", indexContext(ctx))
         .convert(cypherVersion, options, params)
-      (ctx.createNodePropertyExistenceConstraint(_, _, _, dependent = false))
-        .tupled(labelPropWithName(ctx)(label, prop.head.propertyKey, constraintName))
+      ctx.createConstraint(new Create.NodeExistence(
+        constraintName.orNull,
+        label.name,
+        prop.head.propertyKey.name,
+        false,
+        false
+      ))
       SuccessResult()
     }
 
@@ -191,8 +218,13 @@ object ConstraintCommandPlanner {
       // Assert empty options
       PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "existence", indexContext(ctx))
         .convert(cypherVersion, options, params)
-      (ctx.createRelationshipPropertyExistenceConstraint(_, _, _, dependent = false))
-        .tupled(typePropWithName(ctx)(relType, prop.head.propertyKey, constraintName))
+      ctx.createConstraint(new Create.RelationshipExistence(
+        constraintName.orNull,
+        relType.name,
+        prop.head.propertyKey.name,
+        false,
+        false
+      ))
       SuccessResult()
     }
 
@@ -209,14 +241,14 @@ object ConstraintCommandPlanner {
       // Assert empty options
       PropertyExistenceOrTypeConstraintOptionsConverter("node", "type", indexContext(ctx))
         .convert(cypherVersion, options, params)
-      val (labelId, propId, _) = labelPropWithName(ctx)(label, prop.head.propertyKey, constraintName)
-      ctx.createNodePropertyTypeConstraint(
-        labelId,
-        propId,
+      ctx.createConstraint(new Create.NodePropertyType(
+        constraintName.orNull,
+        label.name,
+        prop.head.propertyKey.name,
         PropertyTypeMapper.asPropertyTypeSet(propertyType),
-        constraintName,
-        dependent = false
-      )
+        false,
+        false
+      ))
       SuccessResult()
     }
 
@@ -233,14 +265,14 @@ object ConstraintCommandPlanner {
       // Assert empty options
       PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "type", indexContext(ctx))
         .convert(cypherVersion, options, params)
-      val (relTypeId, propId, _) = typePropWithName(ctx)(relType, prop.head.propertyKey, constraintName)
-      ctx.createRelationshipPropertyTypeConstraint(
-        relTypeId,
-        propId,
+      ctx.createConstraint(new Create.RelationshipPropertyType(
+        constraintName.orNull,
+        relType.name,
+        prop.head.propertyKey.name,
         PropertyTypeMapper.asPropertyTypeSet(propertyType),
-        constraintName,
-        dependent = false
-      )
+        false,
+        false
+      ))
       SuccessResult()
     }
 
@@ -344,20 +376,6 @@ object ConstraintCommandPlanner {
     }
 
   // Help methods
-
-  private def labelPropWithName(ctx: QueryContext)(
-    label: LabelName,
-    prop: PropertyKeyName,
-    name: Option[String]
-  ): (Int, Int, Option[String]) =
-    (ctx.getOrCreateLabelId(label.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
-
-  private def typePropWithName(ctx: QueryContext)(
-    relType: RelTypeName,
-    prop: PropertyKeyName,
-    name: Option[String]
-  ): (Int, Int, Option[String]) =
-    (ctx.getOrCreateRelTypeId(relType.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
 
   private def convertConstraintTypeToConstraintMatcher(
     assertion: CreateConstraintType

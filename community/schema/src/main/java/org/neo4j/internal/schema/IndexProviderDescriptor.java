@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.schema;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -26,7 +27,7 @@ import java.util.Objects;
  * <br>
  * <strong>PLEASE NOTE</strong> that any new name/version pairs must be added to {@link AllIndexProviderDescriptors}
  */
-public record IndexProviderDescriptor(String key, String version) {
+public record IndexProviderDescriptor(String key, String version) implements Serializable {
 
     public IndexProviderDescriptor {
         Objects.requireNonNull(key, "Key must not be null.");
