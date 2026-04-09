@@ -347,78 +347,81 @@ public class CypherTypeException extends Neo4jException {
     }
 
     public static CypherTypeException addTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
-        return new CypherTypeException(gql, String.format("Cannot add `%s` and `%s`", leftTypeName, rightTypeName));
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            List<String> expectedRightCypherTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, expectedRightCypherTypes, rightCypherType);
+        return new CypherTypeException(
+                gql, String.format("Cannot add `%s` and `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException subtractTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            String expectedRightCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, List.of(expectedRightCypherType), rightCypherType);
         return new CypherTypeException(
-                gql, String.format("Cannot subtract `%s` from `%s`", rightTypeName, leftTypeName));
+                gql, String.format("Cannot subtract `%s` from `%s`", legacyRightTypeName, legacyLeftTypeName));
     }
 
     public static CypherTypeException divideTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
-        return new CypherTypeException(gql, String.format("Cannot divide `%s` by `%s`", leftTypeName, rightTypeName));
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            List<String> expectedRightCypherTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, expectedRightCypherTypes, rightCypherType);
+        return new CypherTypeException(
+                gql, String.format("Cannot divide `%s` by `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException multiplyTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            List<String> expectedRightCypherTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, expectedRightCypherTypes, rightCypherType);
         return new CypherTypeException(
-                gql, String.format("Cannot multiply `%s` and `%s`", leftTypeName, rightTypeName));
+                gql, String.format("Cannot multiply `%s` and `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException modulusTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            List<String> expectedRightCypherTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, expectedRightCypherTypes, rightCypherType);
         return new CypherTypeException(
-                gql, String.format("Cannot calculate modulus of `%s` and `%s`", leftTypeName, rightTypeName));
+                gql,
+                String.format("Cannot calculate modulus of `%s` and `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException powerTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            List<String> expectedRightCypherTypes) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, expectedRightCypherTypes, rightCypherType);
         return new CypherTypeException(
-                gql, String.format("Cannot raise `%s` to the power of `%s`", leftTypeName, rightTypeName));
+                gql, String.format("Cannot raise `%s` to the power of `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException concatenationTypeMismatch(
-            String leftPretty,
-            String leftTypeName,
-            String rightTypeName,
-            String leftCypherType,
-            String rightCypherType) {
-        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+            String rightPretty,
+            String legacyLeftTypeName,
+            String legacyRightTypeName,
+            String rightCypherType,
+            String expectedRightCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(rightPretty, List.of(expectedRightCypherType), rightCypherType);
         return new CypherTypeException(
-                gql, String.format("Cannot concatenate `%s` and `%s`", leftTypeName, rightTypeName));
+                gql, String.format("Cannot concatenate `%s` and `%s`", legacyLeftTypeName, legacyRightTypeName));
     }
 
     public static CypherTypeException propertyParamIsNotMap(String got, String gotPretty, String gotCypherType) {

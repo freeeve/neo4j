@@ -25,17 +25,24 @@ import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
+import java.util.List;
 import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.ArrayValue;
+import org.neo4j.values.storable.DateTimeValue;
+import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntegralValue;
+import org.neo4j.values.storable.LocalDateTimeValue;
+import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.PointValue;
+import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TextValue;
+import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.VirtualValues;
@@ -54,6 +61,13 @@ public final class CypherMath {
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
         }
+
+        // Generic error message expected type
+        List<String> expectedTypes = List.of(
+                FloatingPointValue.CYPHER_TYPE_NAME,
+                IntegralValue.CYPHER_TYPE_NAME,
+                StringValue.CYPHER_TYPE_NAME,
+                ListValue.CYPHER_TYPE_NAME);
 
         if (lhs instanceof NumberValue l && rhs instanceof NumberValue r) {
             try {
@@ -109,6 +123,7 @@ public final class CypherMath {
             if (rhs instanceof DurationValue rhsDuration) {
                 return lhsTemporal.plus(rhsDuration);
             }
+            expectedTypes = List.of(DurationValue.CYPHER_TYPE_NAME, ListValue.CYPHER_TYPE_NAME);
         }
         if (lhs instanceof DurationValue lhsDuration) {
             if (rhs instanceof TemporalValue<?, ?> rhsTemporal) {
@@ -117,18 +132,26 @@ public final class CypherMath {
             if (rhs instanceof DurationValue rhsDuration) {
                 return lhsDuration.add(rhsDuration);
             }
+            expectedTypes = List.of(
+                    DurationValue.CYPHER_TYPE_NAME,
+                    DateValue.CYPHER_TYPE_NAME,
+                    TimeValue.CYPHER_TYPE_NAME,
+                    LocalTimeValue.CYPHER_TYPE_NAME,
+                    DateTimeValue.CYPHER_TYPE_NAME,
+                    LocalDateTimeValue.CYPHER_TYPE_NAME,
+                    ListValue.CYPHER_TYPE_NAME);
         }
 
         if (lhs == null) {
             throw CypherTypeException.addTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(), "NULL", rhs.getTypeName(), CypherTypeValueMapper.valueType(rhs), expectedTypes);
         } else {
             throw CypherTypeException.addTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
-                    CypherTypeValueMapper.valueType(lhs),
-                    CypherTypeValueMapper.valueType(rhs));
+                    CypherTypeValueMapper.valueType(rhs),
+                    expectedTypes);
         }
     }
 
@@ -136,6 +159,8 @@ public final class CypherMath {
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
         }
+
+        String expectedType = null;
 
         // numbers
 
@@ -151,19 +176,36 @@ public final class CypherMath {
             if (rhs instanceof DurationValue rhsDuration) {
                 return lhsTemporal.minus(rhsDuration);
             }
+            expectedType = DurationValue.CYPHER_TYPE_NAME;
         }
         if (lhs instanceof DurationValue lhsDuration) {
             if (rhs instanceof DurationValue rhsDuration) {
                 return lhsDuration.sub(rhsDuration);
             }
+            expectedType = DurationValue.CYPHER_TYPE_NAME;
         }
 
         if (lhs == null) {
             throw CypherTypeException.subtractTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(),
+                    "NULL",
+                    rhs.getTypeName(),
+                    CypherTypeValueMapper.valueType(rhs),
+                    "INTEGER | FLOAT or DURATION");
         } else {
+            if (lhs instanceof NumberValue) {
+                expectedType = "INTEGER | FLOAT";
+            }
+            if (expectedType != null) {
+                throw CypherTypeException.subtractTypeMismatch(
+                        rhs.prettyPrint(),
+                        lhs.getTypeName(),
+                        rhs.getTypeName(),
+                        CypherTypeValueMapper.valueType(rhs),
+                        expectedType);
+            }
             throw CypherTypeException.subtractTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
                     CypherTypeValueMapper.valueType(lhs),
@@ -175,6 +217,10 @@ public final class CypherMath {
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
         }
+
+        // Generic error message expected type
+        List<String> expectedTypes = List.of(
+                FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME, DurationValue.CYPHER_TYPE_NAME);
 
         if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
             try {
@@ -188,6 +234,7 @@ public final class CypherMath {
             if (rhs instanceof NumberValue rhsNumber) {
                 return lhsDuration.mul(rhsNumber);
             }
+            expectedTypes = List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME);
         }
         if (rhs instanceof DurationValue rhsDuration) {
             if (lhs instanceof NumberValue lhsNumber) {
@@ -197,14 +244,14 @@ public final class CypherMath {
 
         if (lhs == null) {
             throw CypherTypeException.multiplyTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(), "NULL", rhs.getTypeName(), CypherTypeValueMapper.valueType(rhs), expectedTypes);
         } else {
             throw CypherTypeException.multiplyTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
-                    CypherTypeValueMapper.valueType(lhs),
-                    CypherTypeValueMapper.valueType(rhs));
+                    CypherTypeValueMapper.valueType(rhs),
+                    expectedTypes);
         }
     }
 
@@ -233,14 +280,18 @@ public final class CypherMath {
 
         if (lhs == null) {
             throw CypherTypeException.divideTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(),
+                    "NULL",
+                    rhs.getTypeName(),
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         } else {
             throw CypherTypeException.divideTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
-                    CypherTypeValueMapper.valueType(lhs),
-                    CypherTypeValueMapper.valueType(rhs));
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         }
     }
 
@@ -261,14 +312,18 @@ public final class CypherMath {
 
         if (lhs == null) {
             throw CypherTypeException.modulusTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(),
+                    "NULL",
+                    rhs.getTypeName(),
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         } else {
             throw CypherTypeException.modulusTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
-                    CypherTypeValueMapper.valueType(lhs),
-                    CypherTypeValueMapper.valueType(rhs));
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         }
     }
 
@@ -281,14 +336,18 @@ public final class CypherMath {
 
         if (lhs == null) {
             throw CypherTypeException.powerTypeMismatch(
-                    "null", "NULL", rhs.getTypeName(), "NULL", CypherTypeValueMapper.valueType(rhs));
+                    rhs.prettyPrint(),
+                    "NULL",
+                    rhs.getTypeName(),
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         } else {
             throw CypherTypeException.powerTypeMismatch(
-                    lhs.prettyPrint(),
+                    rhs.prettyPrint(),
                     lhs.getTypeName(),
                     rhs.getTypeName(),
-                    CypherTypeValueMapper.valueType(lhs),
-                    CypherTypeValueMapper.valueType(rhs));
+                    CypherTypeValueMapper.valueType(rhs),
+                    List.of(FloatingPointValue.CYPHER_TYPE_NAME, IntegralValue.CYPHER_TYPE_NAME));
         }
     }
 }

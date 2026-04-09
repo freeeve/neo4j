@@ -65,6 +65,7 @@ import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
 
 public abstract class ListValue extends VirtualValue implements SequenceValue, Iterable<AnyValue> {
+    public static final String CYPHER_TYPE_NAME = "LIST";
 
     public static final int LIST_DEPTH_COMPACTION_THRESHOLD = 128;
 

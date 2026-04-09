@@ -32,6 +32,8 @@ import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.VirtualValues;
 
 public abstract class StringValue extends TextValue {
+    public static final String CYPHER_TYPE_NAME = "STRING";
+
     protected abstract String value();
 
     @Override

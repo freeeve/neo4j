@@ -23,6 +23,8 @@ import org.neo4j.hashing.HashFunction;
 import org.neo4j.values.utils.ValueMath;
 
 public abstract class FloatingPointValue extends NumberValue {
+    public static final String CYPHER_TYPE_NAME = "FLOAT";
+
     @Override
     public long longValue() {
         return (long) doubleValue();

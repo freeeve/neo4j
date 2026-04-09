@@ -24,6 +24,8 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.utils.ValueMath;
 
 public abstract class IntegralValue extends NumberValue {
+    public static final String CYPHER_TYPE_NAME = "INTEGER";
+
     public static long safeCastIntegral(String name, AnyValue value, long defaultValue) {
         if (value == null || value == Values.NO_VALUE) {
             return defaultValue;
