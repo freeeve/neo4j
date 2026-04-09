@@ -3717,7 +3717,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     if (enabled) {
       if (tree == null) {
         if (wholePlan) {
-          throw new IllegalStateException("Must call produceResult before adding other operators.")
+          throw new IllegalStateException("Must call produceResults before adding other operators.")
         } else {
           tree = new Tree(operatorBuilder)
           looseEnds += tree

@@ -150,6 +150,9 @@ object LogicalPlanToPlanBuilderString {
   def apply(logicalPlan: LogicalPlan, extra: LogicalPlan => String, planPrefixDot: LogicalPlan => String): String =
     render(logicalPlan, Some(extra), Some(planPrefixDot))
 
+  def applyWith(logicalPlan: LogicalPlan, customParam: LogicalPlan => Option[Param]): String =
+    render(logicalPlan, None, None, customParam)
+
   /**
    * To be used as parameter `extra` on {LogicalPlanToPlanBuilderString#apply} to print the ids of the plan operators.
    *
@@ -181,14 +184,15 @@ object LogicalPlanToPlanBuilderString {
   private def render(
     logicalPlan: LogicalPlan,
     extra: Option[LogicalPlan => String],
-    planPrefixDot: Option[LogicalPlan => String]
+    planPrefixDot: Option[LogicalPlan => String],
+    customParam: LogicalPlan => Option[Param] = _ => None
   ) = {
     def planRepresentation(plan: LogicalPlan): String = {
       val sb = new mutable.StringBuilder()
       sb ++= planPrefixDot.fold(".")(_.apply(plan))
       sb ++= pre(plan)
       sb += '('
-      sb ++= par(plan).toString
+      sb ++= customParam(plan).getOrElse(par(plan)).toString
       sb += ')'
       extra.foreach(e => sb ++= e.apply(plan))
 
@@ -2714,6 +2718,9 @@ object LogicalPlanToPlanBuilderString {
 
     def setParam[A](set: Iterable[A])(implicit toParam: ToParam[A]): Param =
       collection("Set", set)
+
+    def optionalSetParam[A](set: Iterable[A])(implicit toParam: ToParam[A]): Param =
+      if (set.isEmpty) Empty else setParam(set)
 
     def mapParam[A, K: ToParam, V: ToParam](map: Iterable[A])(key: A => K, value: A => V): Param =
       collection("Map", map)(x => tupleArrow(key(x), value(x)))
