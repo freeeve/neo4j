@@ -250,10 +250,9 @@ public class KernelTransactionTimeoutMonitorIT {
         @Override
         public void run() {
             while (!terminated) {
-                Set<KernelTransactionHandle> activeTransactions = transactions.activeTransactions();
-                for (KernelTransactionHandle activeTransaction : activeTransactions) {
-                    assertThat(activeTransaction.getTransactionHorizon()).isGreaterThan(1);
-                    assertThat(activeTransaction.getHighestGapFreeTxId()).isGreaterThan(1);
+                for (var monitoredTransaction : transactions.allTransactions()) {
+                    assertThat(monitoredTransaction.getTransactionHorizon()).isGreaterThan(1);
+                    assertThat(monitoredTransaction.getHighestGapFreeTxId()).isGreaterThan(1);
                 }
             }
         }

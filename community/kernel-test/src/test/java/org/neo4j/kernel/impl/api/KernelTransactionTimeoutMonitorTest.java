@@ -92,10 +92,8 @@ class KernelTransactionTimeoutMonitorTest {
         Set<KernelTransactionHandle> transactions = new HashSet<>();
         KernelTransactionImplementation tx1 = prepareTxMock(3, 1, 3, status);
         KernelTransactionImplementation tx2 = prepareTxMock(4, 1, 8, status);
-        KernelTransactionImplementationHandle handle1 =
-                new KernelTransactionImplementationHandle(tx1, fakeClock, tx1.concurrentCursorContextLookup());
-        KernelTransactionImplementationHandle handle2 =
-                new KernelTransactionImplementationHandle(tx2, fakeClock, tx1.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle1 = new KernelTransactionImplementationHandle(tx1, fakeClock);
+        KernelTransactionImplementationHandle handle2 = new KernelTransactionImplementationHandle(tx2, fakeClock);
         transactions.add(handle1);
         transactions.add(handle2);
 
@@ -130,10 +128,8 @@ class KernelTransactionTimeoutMonitorTest {
         Set<KernelTransactionHandle> transactions = new HashSet<>();
         KernelTransactionImplementation tx1 = prepareTxMock(7, 3, 0, TransactionTimedOut);
         KernelTransactionImplementation tx2 = prepareTxMock(8, 4, 0, TransactionTimedOut);
-        KernelTransactionImplementationHandle handle1 =
-                new KernelTransactionImplementationHandle(tx1, fakeClock, tx1.concurrentCursorContextLookup());
-        KernelTransactionImplementationHandle handle2 =
-                new KernelTransactionImplementationHandle(tx2, fakeClock, tx1.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle1 = new KernelTransactionImplementationHandle(tx1, fakeClock);
+        KernelTransactionImplementationHandle handle2 = new KernelTransactionImplementationHandle(tx2, fakeClock);
         transactions.add(handle1);
         transactions.add(handle2);
 
@@ -170,8 +166,7 @@ class KernelTransactionTimeoutMonitorTest {
         var initializationTrace = traceProvider.getTraceInfo();
         when(tx1.getInitializationTrace()).thenReturn(initializationTrace);
 
-        KernelTransactionImplementationHandle handle1 =
-                new KernelTransactionImplementationHandle(tx1, fakeClock, tx1.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle1 = new KernelTransactionImplementationHandle(tx1, fakeClock);
         transactions.add(handle1);
 
         when(kernelTransactions.activeTransactions()).thenReturn(transactions);
@@ -226,8 +221,7 @@ class KernelTransactionTimeoutMonitorTest {
                         new TerminationMark(Status.Transaction.TransactionMarkedAsFailed, fakeClock.nanos())));
         when(tx1.getInitializationTrace()).thenReturn(TransactionInitializationTrace.NONE);
 
-        KernelTransactionImplementationHandle handle1 =
-                new KernelTransactionImplementationHandle(tx1, fakeClock, tx1.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle1 = new KernelTransactionImplementationHandle(tx1, fakeClock);
         transactions.add(handle1);
 
         when(kernelTransactions.activeTransactions()).thenReturn(transactions);

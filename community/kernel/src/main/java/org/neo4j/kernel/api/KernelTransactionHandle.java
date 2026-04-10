@@ -181,8 +181,4 @@ public interface KernelTransactionHandle {
      * @return additional status or empty string if not available.
      */
     String getStatusDetails();
-
-    long getHighestGapFreeTxId();
-
-    long getTransactionHorizon();
 }

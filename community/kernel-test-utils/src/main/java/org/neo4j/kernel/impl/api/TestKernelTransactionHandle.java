@@ -161,16 +161,6 @@ public class TestKernelTransactionHandle implements KernelTransactionHandle {
     }
 
     @Override
-    public long getHighestGapFreeTxId() {
-        return tx.cursorContext().getVersionContext().highestGapFree();
-    }
-
-    @Override
-    public long getTransactionHorizon() {
-        return tx.cursorContext().getVersionContext().oldestVisibilityHorizon();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

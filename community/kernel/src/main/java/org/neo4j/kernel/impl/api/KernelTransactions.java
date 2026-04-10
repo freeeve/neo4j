@@ -80,6 +80,7 @@ import org.neo4j.kernel.impl.api.chunk.TransactionRollbackProcess;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
+import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitoringRecord;
 import org.neo4j.kernel.impl.api.transaction.serial.DatabaseSerialGuard;
 import org.neo4j.kernel.impl.api.transaction.serial.MultiVersionDatabaseSerialGuard;
 import org.neo4j.kernel.impl.api.txid.TransactionIdGenerator;
@@ -106,6 +107,7 @@ import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactory;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.ElementIdMapper;
 
 /**
@@ -372,11 +374,22 @@ public class KernelTransactions extends LifecycleAdapter
     }
 
     public long oldestActiveTransactionSequenceNumber() {
+        return oldestActiveTransaction(true);
+    }
+
+    public long earliestTransactionSequenceNumber() {
+        return oldestActiveTransaction(false);
+    }
+
+    private long oldestActiveTransaction(boolean filterTransactions) {
         long oldestTransactionSequenceNumber = Long.MAX_VALUE;
         for (KernelTransactionImplementation transaction : allTransactions) {
-            if (transaction.isOpen() && !transaction.isTerminated()) {
-                oldestTransactionSequenceNumber =
-                        Math.min(oldestTransactionSequenceNumber, transaction.getTransactionSequenceNumber());
+            if (filterTransactions && (transaction.isTerminated() || !transaction.isOpen())) {
+                continue;
+            }
+            long tsn = transaction.getTransactionSequenceNumber();
+            if (tsn != TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE) {
+                oldestTransactionSequenceNumber = Math.min(oldestTransactionSequenceNumber, tsn);
             }
         }
         return oldestTransactionSequenceNumber;
@@ -392,17 +405,6 @@ public class KernelTransactions extends LifecycleAdapter
         return startTime;
     }
 
-    public long earliestTransactionSequenceNumber() {
-        long sequenceNumber = Long.MAX_VALUE;
-        for (KernelTransactionImplementation transaction : allTransactions) {
-            long transactionSequenceNumber = transaction.getTransactionSequenceNumber();
-            if (transactionSequenceNumber > TransactionIdSequence.TRANSACTION_SEQUENCE_INITIAL_VALUE) {
-                sequenceNumber = Math.min(sequenceNumber, transactionSequenceNumber);
-            }
-        }
-        return sequenceNumber;
-    }
-
     /**
      * Give an approximate set of all transactions currently executing. In contrast to {@link #activeTransactions}, this also includes transactions in the
      * closing state, e.g. committing or rolling back. This is not guaranteed to be exact, as transactions may stop and start while this set is gathered.
@@ -415,6 +417,10 @@ public class KernelTransactions extends LifecycleAdapter
                 .map(this::createHandle)
                 .filter(h -> h.isOpen() || h.isClosing())
                 .collect(toSet());
+    }
+
+    public Iterable<TransactionMonitoringRecord> allTransactions() {
+        return allTransactions.stream().map(this::createMonitoringRecord).toList();
     }
 
     @Override
@@ -589,14 +595,16 @@ public class KernelTransactions extends LifecycleAdapter
 
     /**
      * Create new handle for the given transaction.
-     * <p>
-     * <b>Note:</b> this method is package-private for testing <b>only</b>.
-     *
      * @param tx transaction to wrap.
      * @return transaction handle.
      */
+    @VisibleForTesting
     KernelTransactionHandle createHandle(KernelTransactionImplementation tx) {
-        return new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        return new KernelTransactionImplementationHandle(tx, clock);
+    }
+
+    TransactionMonitoringRecord createMonitoringRecord(KernelTransactionImplementation tx) {
+        return new TransactionMonitoringRecord(tx, tx.concurrentCursorContextLookup());
     }
 
     private void assertRunning() {

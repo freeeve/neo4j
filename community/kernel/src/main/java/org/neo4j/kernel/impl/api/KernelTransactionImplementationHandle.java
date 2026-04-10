@@ -29,8 +29,6 @@ import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
-import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.TerminationMark;
@@ -65,11 +63,8 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     private final TransactionInitializationTrace initializationTrace;
     private final KernelTransactionStamp transactionStamp;
     private final String databaseName;
-    private final long highestGapFreeTxId;
-    private final long transactionHorizon;
 
-    KernelTransactionImplementationHandle(
-            KernelTransactionImplementation tx, SystemNanoClock clock, CursorContext cursorContext) {
+    KernelTransactionImplementationHandle(KernelTransactionImplementation tx, SystemNanoClock clock) {
         this.transactionStamp = new KernelTransactionStamp(tx);
         this.startTime = tx.startTime();
         this.startTimeNanos = tx.startTimeNanos();
@@ -82,9 +77,6 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
         this.initializationTrace = tx.getInitializationTrace();
         this.clientInfo = tx.clientInfo();
         this.databaseName = tx.getDatabaseName();
-        var versionContext = cursorContext.getVersionContext();
-        this.highestGapFreeTxId = versionContext.highestGapFree();
-        this.transactionHorizon = transactionHorizon(versionContext);
         this.tx = tx;
         this.clock = clock;
     }
@@ -206,16 +198,6 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
     }
 
     @Override
-    public long getHighestGapFreeTxId() {
-        return highestGapFreeTxId;
-    }
-
-    @Override
-    public long getTransactionHorizon() {
-        return transactionHorizon;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -248,18 +230,6 @@ class KernelTransactionImplementationHandle implements KernelTransactionHandle {
                 + statusDetails + '\'' + ", initializationTrace="
                 + initializationTrace + ", transactionStamp="
                 + transactionStamp + ", databaseName='"
-                + databaseName + '\'' + ", highestGapFreeTxId="
-                + highestGapFreeTxId + ", transactionHorizon="
-                + transactionHorizon + '}';
-    }
-
-    private long transactionHorizon(VersionContext versionContext) {
-        // if transaction has already started committing its horizon is oldestVisibleTransactionNumber which was
-        // recorded at the time commit started
-        if (versionContext.initializedForWrite()) {
-            return versionContext.oldestVisibilityHorizon();
-        }
-        // otherwise, its horizon is the latest gap free closed transaction at the time it started
-        return versionContext.highestGapFree();
+                + databaseName + '\'' + '}';
     }
 }

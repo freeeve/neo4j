@@ -55,8 +55,7 @@ class KernelTransactionImplementationHandleTest {
                         .create("test"));
         when(tx.getTransactionSequenceNumber()).thenReturn(userTransactionId);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
 
         assertTrue(handle.isOpen());
     }
@@ -75,8 +74,7 @@ class KernelTransactionImplementationHandleTest {
                 .thenReturn(initialUserTransactionId)
                 .thenReturn(nextUserTransactionId);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
 
         assertFalse(handle.isOpen());
     }
@@ -92,8 +90,7 @@ class KernelTransactionImplementationHandleTest {
                         .create("test"));
         when(tx.getTransactionSequenceNumber()).thenReturn(userTransactionId);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
         handle.markForTermination(terminationReason);
 
         verify(tx).markForTermination(userTransactionId, terminationReason);
@@ -108,8 +105,7 @@ class KernelTransactionImplementationHandleTest {
         when(tx.getTransactionSequenceNumber()).thenReturn(42L);
         when(tx.markForTermination(anyLong(), any())).thenReturn(true);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
         assertTrue(handle.markForTermination(Status.Transaction.Terminated));
     }
 
@@ -122,8 +118,7 @@ class KernelTransactionImplementationHandleTest {
         when(tx.getTransactionSequenceNumber()).thenReturn(42L);
         when(tx.markForTermination(anyLong(), any())).thenReturn(false);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
         assertFalse(handle.markForTermination(Status.Transaction.Terminated));
     }
 
@@ -136,8 +131,7 @@ class KernelTransactionImplementationHandleTest {
         when(tx.isOpen()).thenReturn(true);
         when(tx.getTransactionSequenceNumber()).thenReturn(2L).thenReturn(3L);
 
-        KernelTransactionImplementationHandle handle =
-                new KernelTransactionImplementationHandle(tx, clock, tx.concurrentCursorContextLookup());
+        KernelTransactionImplementationHandle handle = new KernelTransactionImplementationHandle(tx, clock);
         assertSame(TransactionExecutionStatistic.NOT_AVAILABLE, handle.transactionStatistic());
     }
 

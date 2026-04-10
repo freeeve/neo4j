@@ -77,23 +77,21 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         // assume that no one will need
         // data before that point of history
         var oldestGapFreeClosedTransactionId = transactionIdStore.getHighestGapFreeClosedTransactionId();
-        var executingTransactions = kernelTransactions.executingTransactions();
+        var monitoringRecords = kernelTransactions.allTransactions();
         long previousHorizon = oldestVisibilityHorizon.getAcquire();
-        KernelTransactionHandle firstEncounteredIncorrectHandle = null;
+        TransactionMonitoringRecord firstEncounteredIncorrectTransaction = null;
 
         long minHighestGapFree = oldestGapFreeClosedTransactionId;
         long minCleanupHorizon = oldestGapFreeClosedTransactionId;
 
-        for (var txHandle : executingTransactions) {
-            if (txHandle.terminationMark().isEmpty()) {
-                minHighestGapFree = Math.min(minHighestGapFree, txHandle.getHighestGapFreeTxId());
+        for (var monitoringRecord : monitoringRecords) {
+            minHighestGapFree = Math.min(minHighestGapFree, monitoringRecord.getHighestGapFreeTxId());
 
-                if (minHighestGapFree < previousHorizon && firstEncounteredIncorrectHandle == null) {
-                    firstEncounteredIncorrectHandle = txHandle;
-                }
-
-                minCleanupHorizon = Math.min(minCleanupHorizon, txHandle.getTransactionHorizon());
+            if (minHighestGapFree < previousHorizon && firstEncounteredIncorrectTransaction == null) {
+                firstEncounteredIncorrectTransaction = monitoringRecord;
             }
+
+            minCleanupHorizon = Math.min(minCleanupHorizon, monitoringRecord.getTransactionHorizon());
         }
         var populationJobs = indexingService.getPopulationJobs();
         IndexPopulationJob firstEncounteredIncorrectJob = null;
@@ -112,8 +110,8 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         if (multiVersion && minHighestGapFree < previousHorizon) {
             databaseHealth.panic(new Exception("Global visibility horizon went backwards from " + previousHorizon
                     + " to " + minHighestGapFree + ". Gap free closed tx id: "
-                    + oldestGapFreeClosedTransactionId + ". Incorrect handle:"
-                    + firstEncounteredIncorrectHandle + ". Incorrect index job: "
+                    + oldestGapFreeClosedTransactionId + ". Incorrect transaction:"
+                    + firstEncounteredIncorrectTransaction + ". Incorrect index job: "
                     + firstEncounteredIncorrectJob));
             return;
         }
@@ -141,9 +139,10 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
     @Override
     public long youngestObservableHorizon() {
         long youngestHorizon = Long.MIN_VALUE;
-        for (var monitoredTx : getActiveTransactions()) {
-            if (monitoredTx.terminationMark().isEmpty()) {
-                youngestHorizon = Math.max(youngestHorizon, monitoredTx.kernelTransaction.getTransactionHorizon());
+        for (var monitoredTx : kernelTransactions.allTransactions()) {
+            long transactionHorizon = monitoredTx.getTransactionHorizon();
+            if (Long.MAX_VALUE != transactionHorizon) {
+                youngestHorizon = Math.max(youngestHorizon, transactionHorizon);
             }
         }
         return youngestHorizon;

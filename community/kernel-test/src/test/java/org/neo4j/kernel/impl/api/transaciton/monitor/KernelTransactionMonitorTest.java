@@ -39,6 +39,7 @@ import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.monitor.KernelTransactionMonitor;
+import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitoringRecord;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.TransactionId;
@@ -109,13 +110,10 @@ class KernelTransactionMonitorTest {
         assertEquals(1, transactionMonitor.oldestVisibilityHorizon());
         assertEquals(1, transactionMonitor.oldestCleanupHorizon());
 
-        KernelTransactionHandle txHandle = mock(KernelTransactionHandle.class);
-        when(txHandle.isSchemaTransaction()).thenReturn(true);
-        when(txHandle.startTime()).thenReturn(17L);
-        when(txHandle.timeout()).thenReturn(new TransactionTimeout(Duration.ofMinutes(1), TransactionTimedOut));
-        when(txHandle.getTransactionHorizon()).thenReturn(5L);
-        when(txHandle.getHighestGapFreeTxId()).thenReturn(15L);
-        when(kernelTransactions.executingTransactions()).thenReturn(Iterators.asSet(txHandle));
+        var record = mock(TransactionMonitoringRecord.class);
+        when(record.getTransactionHorizon()).thenReturn(5L);
+        when(record.getHighestGapFreeTxId()).thenReturn(15L);
+        when(kernelTransactions.allTransactions()).thenReturn(Iterators.asSet(record));
 
         // one active transaction - new boundaries
         when(transactionIdStore.getHighestGapFreeClosedTransactionId()).thenReturn(20L);
@@ -124,7 +122,7 @@ class KernelTransactionMonitorTest {
         assertEquals(15, transactionMonitor.oldestVisibilityHorizon());
         assertEquals(5, transactionMonitor.oldestCleanupHorizon());
 
-        when(kernelTransactions.executingTransactions()).thenReturn(emptySet());
+        when(kernelTransactions.allTransactions()).thenReturn(emptySet());
 
         // no active transaction again - new boundary based on last closed tx
         transactionMonitor.run();

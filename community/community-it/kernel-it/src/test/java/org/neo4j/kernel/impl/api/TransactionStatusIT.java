@@ -44,9 +44,7 @@ public class TransactionStatusIT {
         var kernelTransaction = transaction.kernelTransaction();
         transaction.close();
         var handle = new KernelTransactionImplementationHandle(
-                (KernelTransactionImplementation) kernelTransaction,
-                nanoClock(),
-                ((KernelTransactionImplementation) kernelTransaction).concurrentCursorContextLookup());
+                (KernelTransactionImplementation) kernelTransaction, nanoClock());
         assertSame(NONE, handle.transactionInitialisationTrace());
     }
 
@@ -56,9 +54,7 @@ public class TransactionStatusIT {
         var kernelTransaction = transaction.kernelTransaction();
         transaction.close();
         var handle = new KernelTransactionImplementationHandle(
-                (KernelTransactionImplementation) kernelTransaction,
-                nanoClock(),
-                ((KernelTransactionImplementation) kernelTransaction).concurrentCursorContextLookup());
+                (KernelTransactionImplementation) kernelTransaction, nanoClock());
         assertFalse(handle.clientInfo().isPresent());
     }
 
@@ -68,9 +64,7 @@ public class TransactionStatusIT {
         var kernelTransaction = transaction.kernelTransaction();
         transaction.close();
         var handle = new KernelTransactionImplementationHandle(
-                (KernelTransactionImplementation) kernelTransaction,
-                nanoClock(),
-                ((KernelTransactionImplementation) kernelTransaction).concurrentCursorContextLookup());
+                (KernelTransactionImplementation) kernelTransaction, nanoClock());
         assertDoesNotThrow(() -> TransactionId.formatTransactionId("test", handle.getTransactionSequenceNumber()));
     }
 }
