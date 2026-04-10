@@ -52,6 +52,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.logical.plans.DatabaseTypeFilter.All
 import org.neo4j.cypher.internal.util.attribution.IdGen
+import org.neo4j.exceptions.InternalException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.graphdb.security.AuthorizationViolationException
 
@@ -133,13 +134,43 @@ case class CheckNativeAuthentication()(implicit idGen: IdGen) extends SecurityAd
 
 case class ShowRoles(
   source: PrivilegePlan,
-  withUsers: Boolean,
-  withAuthRules: Boolean,
+  extensionType: ShowRoles.ShowRolesExtensionType,
   showAll: Boolean,
   override val returnColumns: List[LogicalVariable],
   yields: Option[Yield],
   returns: Option[Return]
 )(implicit idGen: IdGen) extends SecurityAdministrationLogicalPlan(Some(source))
+
+object ShowRoles {
+
+  def apply(
+    source: PrivilegePlan,
+    withUsers: Boolean,
+    withAuthRules: Boolean,
+    showAll: Boolean,
+    returnColumns: List[LogicalVariable],
+    yields: Option[Yield],
+    returns: Option[Return]
+  )(implicit idGen: IdGen): ShowRoles = {
+    val extensionType = (withUsers, withAuthRules) match {
+      case (false, false) => ShowRoles.NoExtension
+      case (true, false)  => ShowRoles.Users
+      case (false, true)  => ShowRoles.AuthRules
+      case (true, true) =>
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Cannot show both users and auth rules in the same command"
+        )
+    }
+    ShowRoles(source, extensionType, showAll, returnColumns, yields, returns)(idGen)
+  }
+
+  sealed trait ShowRolesExtensionType
+  case object NoExtension extends ShowRolesExtensionType
+  case object Users extends ShowRolesExtensionType
+  case object AuthRules extends ShowRolesExtensionType
+
+}
 
 case class CreateRole(
   source: SecurityAdministrationLogicalPlan,
