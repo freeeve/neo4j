@@ -192,13 +192,13 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrors(
       SemanticError(
         GqlHelper.getGql42001_22NB1(
-          java.util.List.of("LIST"),
+          java.util.List.of("STRING", "LIST"),
           "INTEGER",
           39,
           1,
           40
         ),
-        "Type mismatch: expected List<T> but was Integer",
+        "Type mismatch: expected String or List<T> but was Integer",
         p(39, 1, 40).withInputLength(1)
       )
     )

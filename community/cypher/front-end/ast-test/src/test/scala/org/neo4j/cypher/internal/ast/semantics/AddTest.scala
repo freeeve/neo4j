@@ -30,8 +30,10 @@ import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
 import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
+import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTVector
 
 class AddTest extends InfixExpressionTestBase(Add(_, _)(DummyPosition(0))) {
 
@@ -52,11 +54,33 @@ class AddTest extends InfixExpressionTestBase(Add(_, _)(DummyPosition(0))) {
   test("shouldHandleAllSpecializations") {
     testValidTypes(CTString, CTString)(CTString)
     testValidTypes(CTString, CTInteger)(CTString)
-    testValidTypes(CTString, CTFloat)(CTString)
     testValidTypes(CTInteger, CTString)(CTString)
+    testValidTypes(CTString, CTFloat)(CTString)
+    testValidTypes(CTFloat, CTString)(CTString)
+    testValidTypes(CTString, CTBoolean)(CTString)
+    testValidTypes(CTBoolean, CTString)(CTString)
+    testValidTypes(CTString, CTDuration)(CTString)
+    testValidTypes(CTDuration, CTString)(CTString)
+    testValidTypes(CTString, CTDate)(CTString)
+    testValidTypes(CTDate, CTString)(CTString)
+    testValidTypes(CTString, CTTime)(CTString)
+    testValidTypes(CTTime, CTString)(CTString)
+    testValidTypes(CTString, CTLocalTime)(CTString)
+    testValidTypes(CTLocalTime, CTString)(CTString)
+    testValidTypes(CTString, CTDateTime)(CTString)
+    testValidTypes(CTDateTime, CTString)(CTString)
+    testValidTypes(CTString, CTLocalDateTime)(CTString)
+    testValidTypes(CTLocalDateTime, CTString)(CTString)
+    testValidTypes(CTString, CTPoint)(CTString)
+    testValidTypes(CTPoint, CTString)(CTString)
+    testValidTypes(CTString, CTVector)(CTString)
+    testValidTypes(CTVector, CTString)(CTString)
+
+    testValidTypes(CTString, CTList(CTAny))(CTList(CTAny))
+    testValidTypes(CTList(CTAny), CTString)(CTList(CTAny))
+
     testValidTypes(CTInteger, CTInteger)(CTInteger)
     testValidTypes(CTInteger, CTFloat)(CTFloat)
-    testValidTypes(CTFloat, CTString)(CTString)
     testValidTypes(CTFloat, CTInteger)(CTFloat)
     testValidTypes(CTFloat, CTFloat)(CTFloat)
     testValidTypes(CTDuration, CTDuration)(CTDuration)
@@ -117,7 +141,7 @@ class AddTest extends InfixExpressionTestBase(Add(_, _)(DummyPosition(0))) {
       "Type mismatch: expected Float, Integer, String or List<T> but was Boolean"
     )
     testInvalidApplication(CTDuration, CTBoolean)(
-      "Type mismatch: expected Duration, Date, Time, LocalTime, LocalDateTime, DateTime or List<T> but was Boolean"
+      "Type mismatch: expected String, Duration, Date, Time, LocalTime, LocalDateTime, DateTime or List<T> but was Boolean"
     )
   }
 

@@ -1107,6 +1107,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       (types(e.expression)(s) constrain CTList(CTAny)).unwrapLists
   }
 
+  private val allSimpleTypes = CTBoolean.covariant | CTString.covariant | CTInteger.covariant | CTFloat.covariant |
+    CTDate.covariant | CTLocalTime.covariant | CTTime.covariant | CTLocalDateTime.covariant | CTDateTime.covariant |
+    CTDuration.covariant | CTPoint.covariant | CTVector.covariant
+
   private def infixAddRhsTypes(lhs: Expression): TypeGenerator = s => {
     val lhsTypes = types(lhs)(s)
 
@@ -1114,6 +1118,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     // "a" + "b" => "ab"
     // "a" + 1 => "a1"
     // "a" + 1.1 => "a1.1"
+    // "a" + T => "axx"
+
     // Numbers
     // 1 + "b" => "1b"
     // 1 + 1 => 2
@@ -1121,12 +1127,24 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     // 1.1 + "b" => "1.1b"
     // 1.1 + 1 => 2.1
     // 1.1 + 1.1 => 2.2
+
     // Temporals
     // T + Duration => T
     // Duration + T => T
     // Duration + Duration => Duration
-    val valueTypes =
-      if (lhsTypes containsAny (CTInteger.covariant | CTFloat.covariant | CTString.covariant)) {
+
+    // Other types
+    // T + "b" => "xxb"
+
+    val stringTypes =
+      if (lhsTypes containsAny CTString.covariant) {
+        allSimpleTypes
+      } else {
+        TypeSpec.none
+      }
+
+    val numberTypes =
+      if (lhsTypes containsAny (CTInteger.covariant | CTFloat.covariant)) {
         CTString.covariant | CTInteger.covariant | CTFloat.covariant
       } else {
         TypeSpec.none
@@ -1136,17 +1154,25 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         lhsTypes containsAny (CTDate.covariant | CTTime.covariant | CTLocalTime.covariant |
           CTDateTime.covariant | CTLocalDateTime.covariant | CTDuration.covariant)
       ) {
-        CTDuration.covariant
+        CTString.covariant | CTDuration.covariant
       } else {
         TypeSpec.none
       }
     val durationTypes =
       if (lhsTypes containsAny CTDuration.covariant) {
-        CTDate.covariant | CTTime.covariant | CTLocalTime.covariant |
+        CTString.covariant | CTDate.covariant | CTTime.covariant | CTLocalTime.covariant |
           CTDateTime.covariant | CTLocalDateTime.covariant | CTDuration.covariant
       } else {
         TypeSpec.none
       }
+
+    val otherTypes =
+      if (lhsTypes containsAny (CTBoolean.covariant | CTPoint.covariant | CTVector.covariant)) {
+        CTString.covariant
+      } else {
+        TypeSpec.none
+      }
+
     // [a] + [b] => [a, b]
     val listTypes = (lhsTypes leastUpperBounds CTList(CTAny) constrain CTList(CTAny)).covariant
 
@@ -1156,7 +1182,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     // a + [b] => [a, b]
     val rhsListTypes = CTList(CTAny).covariant
 
-    valueTypes | lhsListTypes | rhsListTypes | temporalTypes | durationTypes
+    stringTypes | numberTypes | lhsListTypes | rhsListTypes | temporalTypes | durationTypes | otherTypes
   }
 
   private def infixAddOutputTypes(lhs: Expression, rhs: Expression): TypeGenerator = s => {
@@ -1174,10 +1200,12 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     // "a" + "b" => "ab"
     // "a" + 1 => "a1"
     // "a" + 1.1 => "a1.1"
+    // "a" + T => "axx"
     // 1 + "b" => "1b"
     // 1.1 + "b" => "1.1b"
+    // T + "b" => "xxb"
     val stringTypes: TypeSpec =
-      when(CTString.covariant, CTInteger.covariant | CTFloat.covariant | CTString.covariant)(CTString)
+      when(CTString.covariant, allSimpleTypes)(CTString)
 
     // 1 + 1 => 2
     // 1 + 1.1 => 2.1

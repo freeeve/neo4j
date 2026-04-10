@@ -123,7 +123,8 @@ public final class CypherMath {
             if (rhs instanceof DurationValue rhsDuration) {
                 return lhsTemporal.plus(rhsDuration);
             }
-            expectedTypes = List.of(DurationValue.CYPHER_TYPE_NAME, ListValue.CYPHER_TYPE_NAME);
+            expectedTypes =
+                    List.of(StringValue.CYPHER_TYPE_NAME, DurationValue.CYPHER_TYPE_NAME, ListValue.CYPHER_TYPE_NAME);
         }
         if (lhs instanceof DurationValue lhsDuration) {
             if (rhs instanceof TemporalValue<?, ?> rhsTemporal) {
@@ -133,6 +134,7 @@ public final class CypherMath {
                 return lhsDuration.add(rhsDuration);
             }
             expectedTypes = List.of(
+                    StringValue.CYPHER_TYPE_NAME,
                     DurationValue.CYPHER_TYPE_NAME,
                     DateValue.CYPHER_TYPE_NAME,
                     TimeValue.CYPHER_TYPE_NAME,
