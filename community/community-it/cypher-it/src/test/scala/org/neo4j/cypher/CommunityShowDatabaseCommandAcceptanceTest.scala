@@ -54,7 +54,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
   private val nameDefaultMap: Map[String, String] = Map("name" -> DEFAULT_DATABASE_NAME)
   private val nameSystemMap: Map[String, String] = Map("name" -> SYSTEM_DATABASE_NAME)
 
-  override def databaseConfig(): Map[Setting[_], Object] = {
+  override def databaseConfig(): Map[Setting[?], Object] = {
     super.databaseConfig() ++ Map(
       GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25
     )
@@ -304,7 +304,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     val format =
       db.getDependencyResolver.resolveDependency(classOf[MetadataProvider]).getStoreId.getStoreVersionUserString
 
-    if (dbmsDefaultQueryLanguage equals CypherVersion.Cypher25) {
+    if (dbmsDefaultQueryLanguage `equals` CypherVersion.Cypher25) {
       result should have size 32
       result should contain.allOf(
         "currentPropertyShardReplicas" -> null,
@@ -482,10 +482,10 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
 
     // THEN
     result should contain allElementsOf homeOrDefaultDb(DEFAULT_DATABASE_NAME)
-    result("replicationLag") shouldBe 0
-    result("lastCommittedTxn") shouldBe null
+    result("replicationLag") shouldEqual 0
+    result("lastCommittedTxn") shouldEqual null
     result("serverID") should beAValidUUID()
-    result("databaseID") shouldBe dbId
+    result("databaseID") shouldEqual dbId
     result("creationTime") shouldBe a[ZonedDateTime]
     (ZonedDateTime.now().toEpochSecond - result("creationTime").asInstanceOf[
       ZonedDateTime
@@ -494,11 +494,11 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     (ZonedDateTime.now().toEpochSecond - result("lastStartTime").asInstanceOf[
       ZonedDateTime
     ].toEpochSecond) should be < 300L
-    result("lastStopTime") shouldBe null
-    result("currentPrimariesCount") shouldBe 1
-    result("currentSecondariesCount") shouldBe 0
-    result("requestedPrimariesCount") shouldBe null
-    result("requestedSecondariesCount") shouldBe null
+    result("lastStopTime") shouldEqual null
+    result("currentPrimariesCount") shouldEqual 1
+    result("currentSecondariesCount") shouldEqual 0
+    result("requestedPrimariesCount") shouldEqual null
+    result("requestedSecondariesCount") shouldEqual null
   }
 
   test("should show database with yield verbose columns should produce verbose but not polled columns") {
@@ -706,7 +706,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     resetLogs() // Don't keep the cumulative logs in memory to avoid OOM
   }
 
-  protected def setup(config: Map[Setting[_], Object] = Map.empty): Unit = {
+  protected def setup(config: Map[Setting[?], Object] = Map.empty): Unit = {
     managementService = graphDatabaseFactory(Path.of("test")).impermanent().setConfig(
       (databaseConfig() ++ config).asJava
     ).setInternalLogProvider(logProvider).build()

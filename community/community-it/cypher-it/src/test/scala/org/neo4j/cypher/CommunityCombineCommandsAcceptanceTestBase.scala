@@ -31,7 +31,7 @@ import java.nio.file.NoSuchFileException
 class CommunityCombineCommandsAcceptanceTestBase extends TransactionCommandAcceptanceTestSupport
     with ShowSettingsAcceptanceTestSupport {
 
-  override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
+  override def databaseConfig(): Map[Setting[?], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.composable_commands -> TRUE,
     GraphDatabaseInternalSettings.graph_type_enabled -> TRUE,
     GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher25

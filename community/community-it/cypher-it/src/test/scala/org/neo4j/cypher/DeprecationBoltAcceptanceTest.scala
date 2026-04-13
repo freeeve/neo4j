@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 
 class DeprecationBoltAcceptanceTest extends DeprecationAcceptanceTestBase {
 
-  val boltConfig: Map[Setting[_], Object] =
+  val boltConfig: Map[Setting[?], Object] =
     Map(
       BoltConnector.enabled -> java.lang.Boolean.TRUE,
       BoltConnector.listen_address -> new SocketAddress("localhost", 0)

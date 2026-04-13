@@ -31,7 +31,7 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite with GraphIcing with SampleGraphs {
 
   // Make sure that background sampling is disabled so we can test `updatesSinceEstimation`
-  override def databaseConfig(): Map[Setting[_], Object] =
+  override def databaseConfig(): Map[Setting[?], Object] =
     super.databaseConfig() + (index_background_sampling_enabled -> java.lang.Boolean.FALSE)
 
   test("retrieve empty") {

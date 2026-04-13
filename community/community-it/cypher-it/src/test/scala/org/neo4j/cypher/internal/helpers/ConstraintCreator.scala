@@ -37,7 +37,7 @@ object UniquenessConstraintCreator extends ConstraintCreator {
 
   override def toString = "Uniqueness Constraint"
 
-  override def other = NodeKeyConstraintCreator
+  override def other: ConstraintCreator = NodeKeyConstraintCreator
 
   def typeName = "UNIQUENESS"
 }
@@ -49,7 +49,7 @@ object NodeKeyConstraintCreator extends ConstraintCreator {
 
   override def toString = "NODE KEY Constraint"
 
-  override def other = UniquenessConstraintCreator
+  override def other: ConstraintCreator = UniquenessConstraintCreator
 
   def typeName = "NODE_KEY"
 }

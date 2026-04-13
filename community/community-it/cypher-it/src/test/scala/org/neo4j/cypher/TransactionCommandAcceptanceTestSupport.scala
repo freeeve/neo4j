@@ -68,7 +68,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     threading.after()
   }
 
-  override def databaseConfig(): Map[Setting[_], Object] =
+  override def databaseConfig(): Map[Setting[?], Object] =
     super.databaseConfig() ++ Map(auth_enabled -> java.lang.Boolean.TRUE)
 
   protected def assertCorrectDefaultMap(
@@ -244,7 +244,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     if (!checkCypher5Values) {
       withClue("currentQueryProgress") {
         val currentQueryProgress = resultMap("currentQueryProgress")
-        currentQueryProgress.isInstanceOf[Map[_, _]] should be(true)
+        currentQueryProgress.isInstanceOf[Map[?, ?]] should be(true)
         val progressMap = currentQueryProgress.asInstanceOf[Map[String, AnyRef]]
         val progressKeys = Seq(
           "nodesCreated",

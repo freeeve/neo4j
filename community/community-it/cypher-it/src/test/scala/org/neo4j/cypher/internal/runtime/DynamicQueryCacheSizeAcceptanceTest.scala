@@ -36,7 +36,7 @@ import java.lang.Boolean.TRUE
 
 class DynamicQueryCacheSizeAcceptanceTest extends ExecutionEngineFunSuite with CacheCountsTestSupport with Eventually {
 
-  override def databaseConfig(): Map[Setting[_], Object] = {
+  override def databaseConfig(): Map[Setting[?], Object] = {
     Map(
       GraphDatabaseSettings.query_cache_size -> Int.box(1),
       GraphDatabaseInternalSettings.cypher_enable_runtime_monitors -> TRUE

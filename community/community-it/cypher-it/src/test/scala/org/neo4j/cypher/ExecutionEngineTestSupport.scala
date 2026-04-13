@@ -65,7 +65,7 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 trait ExecutionEngineTestSupport extends ExecutionEngineHelper {
-  self: CypherFunSuite with GraphDatabaseTestSupport =>
+  self: CypherFunSuite & GraphDatabaseTestSupport =>
 
   var eengine: ExecutionEngine = _
 
@@ -83,7 +83,7 @@ trait ExecutionEngineTestSupport extends ExecutionEngineHelper {
 
   override def executeScalar[T](q: String, params: (String, Any)*): T =
     try {
-      super.executeScalar[T](q, params: _*)
+      super.executeScalar[T](q, params *)
     } catch {
       case e: ScalarFailureException => fail(e.getMessage)
     }

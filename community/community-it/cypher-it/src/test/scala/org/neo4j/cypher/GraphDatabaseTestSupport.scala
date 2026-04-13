@@ -110,12 +110,12 @@ trait GraphDatabaseTestSupport
 
   def runOnSpd: Boolean = "spd".equals(FACTORY_SUPPLIER)
 
-  def databaseConfig(): Map[Setting[_], Object] = Map(
+  def databaseConfig(): Map[Setting[?], Object] = Map(
     GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)
     // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
   )
 
-  protected def spdDatabaseConfig(): Map[Setting[_], Object] = Map()
+  protected def spdDatabaseConfig(): Map[Setting[?], Object] = Map()
 
   def dependencies(): Option[Dependencies] = None
 
@@ -143,9 +143,9 @@ trait GraphDatabaseTestSupport
   }
 
   protected def startGraphDatabase(
-    config: Map[Setting[_], Object] = databaseConfig(),
+    config: Map[Setting[?], Object] = databaseConfig(),
     maybeExternalDatabase: Option[(String, String)] = externalDatabase,
-    maybeProvider: Option[(AbstractIndexProviderFactory[_ <: IndexProvider], IndexProviderDescriptor)] = None,
+    maybeProvider: Option[(AbstractIndexProviderFactory[? <: IndexProvider], IndexProviderDescriptor)] = None,
     maybeExternalPath: Option[Path] = None
   ): Unit = {
     val (databaseFactory, dbName) = (maybeExternalDatabase, maybeExternalPath) match {
@@ -230,9 +230,8 @@ trait GraphDatabaseTestSupport
   }
 
   // Runs code inside of a transaction. Will mark the transaction as successful if no exception is thrown
+  // Scala 3: no `inTestTx(=> T)` overload — it is ambiguous with `InternalTransaction => T`; use `inTestTx(_ => ...)`.
   protected def inTestTx[T](f: InternalTransaction => T, txType: Type = Type.IMPLICIT): T = withTx(f, txType)
-
-  protected def inTestTx[T](f: => T): T = inTestTx(_ => f)
 
   protected def withTx[T](f: InternalTransaction => T, txType: Type = Type.IMPLICIT): T = {
     if (tx == null) {
@@ -306,7 +305,7 @@ trait GraphDatabaseTestSupport
     new TestDatabaseManagementServiceBuilder(databaseRootDir)
 
   protected def restartWithConfig(
-    config: Map[Setting[_], Object] = databaseConfig(),
+    config: Map[Setting[?], Object] = databaseConfig(),
     maybeExternalPath: Option[Path] = None
   ): Unit = {
     managementService.shutdown()
@@ -314,7 +313,7 @@ trait GraphDatabaseTestSupport
   }
 
   protected def restartWithIndexProvider(
-    factory: AbstractIndexProviderFactory[_ <: IndexProvider],
+    factory: AbstractIndexProviderFactory[? <: IndexProvider],
     provider: IndexProviderDescriptor
   ): Unit = {
     managementService.shutdown()
@@ -342,12 +341,12 @@ trait GraphDatabaseTestSupport
   }
 
   def assertInTx(f: => Option[String]): Unit = {
-    inTestTx {
+    inTestTx(_ =>
       f match {
         case Some(error) => fail(error)
         case _           =>
       }
-    }
+    )
   }
 
   def resampleIndexes(): Unit = {
@@ -362,17 +361,11 @@ trait GraphDatabaseTestSupport
     tx.asInstanceOf[InternalTransaction].kernelTransaction()
   }
 
-  def nodeId(n: Node) = inTestTx {
-    n.getId
-  }
+  def nodeId(n: Node) = inTestTx(_ => n.getId)
 
-  def relationshipId(r: Relationship) = inTestTx {
-    r.getId
-  }
+  def relationshipId(r: Relationship) = inTestTx(_ => r.getId)
 
-  def labels(n: Node) = inTestTx {
-    n.getLabels.iterator().asScala.map(_.toString).toSet
-  }
+  def labels(n: Node) = inTestTx(_ => n.getLabels.iterator().asScala.map(_.toString).toSet)
 
   def countNodes() = graph.withTx(tx => {
     Iterables.count(tx.getAllNodes).toInt
@@ -409,7 +402,7 @@ trait GraphDatabaseTestSupport
     })
   }
 
-  def createLabeledNode(labels: String*): Node = createLabeledNode(Map[String, Any](), labels: _*)
+  def createLabeledNode(labels: String*): Node = createLabeledNode(Map[String, Any](), labels *)
 
   def createNode(values: (String, Any)*): Node = createNode(values.toMap)
 

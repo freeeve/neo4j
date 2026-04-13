@@ -43,7 +43,7 @@ abstract class QueryCachingTest(executionPlanCacheSize: Int =
   GraphDatabaseInternalSettings.query_execution_plan_cache_size.defaultValue()) extends CypherFunSuite
     with GraphDatabaseTestSupport with TableDrivenPropertyChecks {
 
-  override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
+  override def databaseConfig(): Map[Setting[?], Object] = super.databaseConfig() ++ Map(
     // String cache JIT compiles on the first hit
     GraphDatabaseInternalSettings.cypher_expression_recompilation_limit -> Integer.valueOf(2),
     GraphDatabaseInternalSettings.cypher_enable_runtime_monitors -> java.lang.Boolean.TRUE,

@@ -27,7 +27,7 @@ import org.neo4j.graphdb.config.Setting
 
 class CommunityRoleAdministrationCommandAcceptanceTest extends CommunityAdministrationCommandAcceptanceTestBase {
 
-  override def databaseConfig(): Map[Setting[_], Object] =
+  override def databaseConfig(): Map[Setting[?], Object] =
     super.databaseConfig() ++ Map(auth_enabled -> java.lang.Boolean.TRUE)
 
   test("should fail on showing roles from community") {

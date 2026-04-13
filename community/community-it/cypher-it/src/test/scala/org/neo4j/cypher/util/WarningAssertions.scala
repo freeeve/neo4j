@@ -30,7 +30,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 trait WarningAssertions {
-  self: Assertions with Matchers =>
+  self: Assertions & Matchers =>
 
   def shouldHaveWarning(result: Result, statusCode: Status, detailMessage: String, gqlStatus: String): Unit = {
     val notifications: Iterable[Notification] = result.getNotifications.asScala

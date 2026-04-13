@@ -605,7 +605,7 @@ class TransactionBoundQueryContextTest extends CypherFunSuite with CreateTempFil
     indexes.keys.toList should equal(List(index1))
   }
 
-  private def startGraph(config: (Setting[_], Object)*): Unit = {
+  private def startGraph(config: (Setting[?], Object)*): Unit = {
     val configs = config.toMap
     managementService = new TestDatabaseManagementServiceBuilder().impermanent().setConfig(configs.asJava).build()
     graphOps = managementService.database(DEFAULT_DATABASE_NAME)

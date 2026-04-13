@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 trait ShowSettingsAcceptanceTestSupport extends GraphDatabaseTestSupport {
   self: CypherFunSuite =>
 
-  abstract override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
+  abstract override def databaseConfig(): Map[Setting[?], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseSettings.auth_enabled -> TRUE
   )
 

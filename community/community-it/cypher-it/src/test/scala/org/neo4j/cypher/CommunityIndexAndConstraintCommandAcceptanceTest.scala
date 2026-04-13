@@ -64,9 +64,9 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       .foreach(i => i.drop())
   })
 
-  private def anyMap(elems: (String, Any)*): Map[String, Any] = Map[String, Any](elems: _*)
+  private def anyMap(elems: (String, Any)*): Map[String, Any] = Map[String, Any](elems *)
 
-  override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
+  override def databaseConfig(): Map[Setting[?], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.dependent_constraints_enabled -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE

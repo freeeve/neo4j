@@ -33,7 +33,6 @@ import org.neo4j.exceptions.Neo4jException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
 import org.scalatest.OptionValues
-import org.scalatest.enablers.Messaging.messagingNatureOfThrowable
 import org.scalatest.matchers.BeMatcher
 import org.scalatest.prop.TableDrivenPropertyChecks.forEvery
 import org.scalatest.prop.Tables.Table
@@ -577,7 +576,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     resetLogs() // Don't keep the cumulative logs in memory to avoid OOM
   }
 
-  private def setup(config: Map[Setting[_], Object] = Map.empty): Unit = {
+  private def setup(config: Map[Setting[?], Object] = Map.empty): Unit = {
     managementService = graphDatabaseFactory(Path.of("test")).impermanent().setConfig(
       config.asJava
     ).setInternalLogProvider(logProvider).build()

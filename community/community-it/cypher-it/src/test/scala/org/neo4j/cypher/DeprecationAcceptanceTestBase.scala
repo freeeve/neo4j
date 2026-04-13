@@ -66,7 +66,8 @@ import org.neo4j.notifications.NotificationDetail.deprecatedName
 import org.neo4j.notifications.NotificationDetail.deprecationNotificationDetail
 import org.scalatest.BeforeAndAfterAll
 
-abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeAndAfterAll with DeprecationTestSupport {
+abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeAndAfterAll
+    with DeprecationTestSupport {
 
   override def beforeAll(): Unit = {
     // Used for testing deprecated procedures

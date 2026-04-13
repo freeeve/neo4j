@@ -20,18 +20,18 @@
 package org.neo4j.internal.collector
 
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers
 
-class DataCollectorMatchersTest extends AnyFunSuite {
+class DataCollectorMatchersTest extends AnyFunSuite with Matchers {
 
   test("arraySafeEquals") {
-    DataCollectorMatchers.arraySafeEquals(Array(), Seq()) shouldBe true
-    DataCollectorMatchers.arraySafeEquals(Array(1), Seq(1)) shouldBe true
-    DataCollectorMatchers.arraySafeEquals(Array(), Seq(1)) shouldBe false
-    DataCollectorMatchers.arraySafeEquals(Array(1), Seq()) shouldBe false
-    DataCollectorMatchers.arraySafeEquals(Array(1), Seq(2)) shouldBe false
-    DataCollectorMatchers.arraySafeEquals(Array(Array(1)), Array(Seq(1))) shouldBe true
-    DataCollectorMatchers.arraySafeEquals(Seq(Array(1)), Seq(Seq(1))) shouldBe false
+    DataCollectorMatchers.arraySafeEquals(Array.empty[Any], Seq.empty) shouldEqual true
+    DataCollectorMatchers.arraySafeEquals(Array(1), Seq(1)) shouldEqual true
+    DataCollectorMatchers.arraySafeEquals(Array.empty[Any], Seq(1)) shouldEqual false
+    DataCollectorMatchers.arraySafeEquals(Array(1), Seq()) shouldEqual false
+    DataCollectorMatchers.arraySafeEquals(Array(1), Seq(2)) shouldEqual false
+    DataCollectorMatchers.arraySafeEquals(Array(Array(1)), Array(Seq(1))) shouldEqual true
+    DataCollectorMatchers.arraySafeEquals(Seq(Array(1)), Seq(Seq(1))) shouldEqual false
 
     val equalTuples =
       Seq((1, 1), ("1", "1"), (Array(3, 4), Seq(3, 4)), (Seq(5), Array(5)), (Array(Array(1)), Array(Seq(1))))
@@ -40,7 +40,7 @@ class DataCollectorMatchersTest extends AnyFunSuite {
       val firstSequence = testDatum.map(_._1).toArray
       val secondSequence = testDatum.map(_._2).toArray
       withClue(firstSequence) {
-        DataCollectorMatchers.arraySafeEquals(firstSequence, secondSequence) shouldBe true
+        DataCollectorMatchers.arraySafeEquals(firstSequence, secondSequence) shouldEqual true
       }
     }
     val unequalData = for {
@@ -53,7 +53,7 @@ class DataCollectorMatchersTest extends AnyFunSuite {
       val firstSequence = testDatum._1.toArray
       val secondSequence = testDatum._2.toArray
       withClue(firstSequence) {
-        DataCollectorMatchers.arraySafeEquals(firstSequence, secondSequence) shouldBe false
+        DataCollectorMatchers.arraySafeEquals(firstSequence, secondSequence) shouldEqual false
       }
     }
   }

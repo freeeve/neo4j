@@ -444,7 +444,7 @@ trait GraphIcing {
               }
               value.writeTo(pp)
               NameUtil.escapeBackticks(setting) -> pp.value()
-          })(Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER))
+          })(using Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER))
       }
     }
 

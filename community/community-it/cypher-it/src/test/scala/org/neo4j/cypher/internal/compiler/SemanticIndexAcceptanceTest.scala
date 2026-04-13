@@ -137,7 +137,7 @@ class SemanticIndexAcceptanceTest extends ExecutionEngineFunSuite with CypherSca
       dimension <- Gen.oneOf(allNonGeographicCRSDimensions)
       coordinates <- Gen.listOfN(dimension, arbitrary[Double].retryUntil(java.lang.Double.isFinite(_)))
       crs <- Gen.oneOf(allNonGeographicCRS(dimension))
-    } yield Values.pointValue(crs, coordinates: _*)
+    } yield Values.pointValue(crs, coordinates *)
 
   def wgs84_3D_pointGen: Gen[PointValue] =
     for {
@@ -172,14 +172,14 @@ class SemanticIndexAcceptanceTest extends ExecutionEngineFunSuite with CypherSca
   def dateTimeGen: Gen[DateTimeValue] =
     for {
       epochSecondsUTC <- arbitrary[Int]
-      nanosOfSecond <- Gen.chooseNum(0, TemporalUtil.NANOS_PER_SECOND - 1)
+      nanosOfSecond <- Gen.chooseNum(0L, TemporalUtil.NANOS_PER_SECOND - 1L)
       timeZone <- Gen.oneOf(zoneIdGen, zoneOffsetGen)
     } yield DateTimeValue.datetime(epochSecondsUTC, nanosOfSecond, timeZone)
 
   def localDateTimeGen: Gen[LocalDateTimeValue] =
     for {
       epochSeconds <- arbitrary[Int]
-      nanosOfSecond <- Gen.chooseNum(0, TemporalUtil.NANOS_PER_SECOND - 1)
+      nanosOfSecond <- Gen.chooseNum(0L, TemporalUtil.NANOS_PER_SECOND - 1L)
     } yield LocalDateTimeValue.localDateTime(epochSeconds, nanosOfSecond)
 
   def zoneIdGen: Gen[ZoneId] = Gen.oneOf(timeZones)
@@ -253,6 +253,6 @@ class SemanticIndexAcceptanceTest extends ExecutionEngineFunSuite with CypherSca
   }
 
   private def modifyPoint(f: Double => Double)(in: PointValue): PointValue =
-    Values.pointValue(in.getCoordinateReferenceSystem, in.coordinate().map(f): _*)
+    Values.pointValue(in.getCoordinateReferenceSystem, in.coordinate().map(f) *)
 
 }

@@ -57,9 +57,9 @@ trait LoggingTestSupport extends GraphDatabaseTestSupport {
     resetLogs()
   }
 
-  protected def exceptionWithMessage(message: String): ErrorGqlStatusObject with Exception = argThat(
-    new ArgumentMatcher[ErrorGqlStatusObject with Exception] {
-      override def matches(e: ErrorGqlStatusObject with Exception): Boolean = e.legacyMessage().equals(message)
+  protected def exceptionWithMessage(message: String): ErrorGqlStatusObject & Exception = argThat(
+    new ArgumentMatcher[ErrorGqlStatusObject & Exception] {
+      override def matches(e: ErrorGqlStatusObject & Exception): Boolean = e.legacyMessage().equals(message)
 
       override def toString: String = s"<GQL status with message: \"$message\">"
     }

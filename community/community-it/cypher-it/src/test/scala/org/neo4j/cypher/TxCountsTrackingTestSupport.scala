@@ -22,7 +22,7 @@ package org.neo4j.cypher
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 trait TxCountsTrackingTestSupport {
-  self: CypherFunSuite with GraphDatabaseTestSupport with ExecutionEngineTestSupport =>
+  self: CypherFunSuite & GraphDatabaseTestSupport & ExecutionEngineTestSupport =>
 
   def prepareAndTrackTxCounts[T](f: => T): (T, TxCounts) = {
     // prepare

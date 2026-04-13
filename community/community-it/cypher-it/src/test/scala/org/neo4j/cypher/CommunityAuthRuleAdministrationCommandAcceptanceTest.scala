@@ -25,7 +25,7 @@ import org.neo4j.graphdb.config.Setting
 
 class CommunityAuthRuleAdministrationCommandAcceptanceTest extends CommunityAdministrationCommandAcceptanceTestBase {
 
-  override def databaseConfig(): Map[Setting[_], Object] =
+  override def databaseConfig(): Map[Setting[?], Object] =
     super.databaseConfig() ++ Map(
       default_language -> CypherVersion.Cypher25
     )

@@ -49,7 +49,6 @@ import org.neo4j.server.security.SecureHasher
 import org.neo4j.server.security.SystemGraphCredential
 import org.neo4j.server.security.auth.SecurityTestUtils
 import org.neo4j.server.security.systemgraph.SecurityGraphHelper.NATIVE_AUTH
-import org.scalatest.enablers.Messaging.messagingNatureOfThrowable
 
 import java.util
 import java.util.Collections
@@ -72,7 +71,7 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
   private val wrongPassword = "wrongpassword"
   private val alterDefaultUserQuery = s"ALTER USER $defaultUsername SET PASSWORD '$password' CHANGE NOT REQUIRED"
 
-  override def databaseConfig(): Map[Setting[_], Object] =
+  override def databaseConfig(): Map[Setting[?], Object] =
     super.databaseConfig() ++ Map(
       auth_enabled -> java.lang.Boolean.TRUE
     )
@@ -474,10 +473,10 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       "SHOW CURRENT USER",
       resultHandler = (row, _) => {
         // THEN
-        row.get("user") should be(username)
-        row.get("roles") should be(null)
-        row.get("passwordChangeRequired") shouldBe false
-        row.get("suspended") shouldBe null
+        row.get("user") shouldEqual username
+        row.get("roles") shouldEqual null
+        row.get("passwordChangeRequired") shouldEqual false
+        row.get("suspended") shouldEqual null
       }
     ) should be(1)
   }
@@ -495,7 +494,7 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       resultHandler = (row, _) => {
         // THEN
         row.get("user") should be(username)
-        row.get("passwordChangeRequired") shouldBe false
+        row.get("passwordChangeRequired") shouldEqual false
       }
     ) should be(1)
   }
@@ -512,10 +511,10 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       "SHOW CURRENT USER",
       resultHandler = (row, _) => {
         // THEN
-        row.get("user") should be(username)
-        row.get("roles") should be(null)
-        row.get("passwordChangeRequired") shouldBe false
-        row.get("suspended") shouldBe null
+        row.get("user") shouldEqual username
+        row.get("roles") shouldEqual null
+        row.get("passwordChangeRequired") shouldEqual false
+        row.get("suspended") shouldEqual null
       }
     ) should be(1)
   }
