@@ -616,6 +616,26 @@ class ParquetInputTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("listTypes")
+    void shouldReadListTypesWithHeader(String fileName, List<?> expectedList, String listMappedAs) throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/" + fileName);
+        var nodeFile = Path.of(fileUrl.toURI());
+        Path headerFile = createHeaderFile(
+                List.of(":ID", "name:string", "aList:%s".formatted(listMappedAs), ":Label"),
+                List.of(":ID", "name", "aList", ":Label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.of(new FileGroup(headerFile, nodeFile))), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(readNext(nodes));
+        }
+    }
+
     @Test
     void shouldReadListTypesWithSingleEntry() throws Exception {
         // GIVEN
@@ -4225,13 +4245,13 @@ class ParquetInputTest {
 
     private static Stream<Arguments> listTypes() {
         return Stream.of(
-                Arguments.of("list.parquet", List.of("a", "b", "c")),
-                Arguments.of("list_int32.parquet", List.of(123, 234, 345)),
-                Arguments.of("list_int64.parquet", List.of(123L, 234L, 345L)),
-                Arguments.of("list_int128.parquet", List.of(123d, 234d, 345d)),
-                Arguments.of("list_float.parquet", List.of(1.01f, 2.21f, 3.23f)),
-                Arguments.of("list_double.parquet", List.of(1.01d, 2.21d, 3.23d)),
-                Arguments.of("list_boolean.parquet", List.of(true, false, true)));
+                Arguments.of("list.parquet", List.of("a", "b", "c"), "string[]"),
+                Arguments.of("list_int32.parquet", List.of(123, 234, 345), "int[]"),
+                Arguments.of("list_int64.parquet", List.of(123L, 234L, 345L), "long[]"),
+                Arguments.of("list_int128.parquet", List.of(123d, 234d, 345d), "double[]"),
+                Arguments.of("list_float.parquet", List.of(1.01f, 2.21f, 3.23f), "float[]"),
+                Arguments.of("list_double.parquet", List.of(1.01d, 2.21d, 3.23d), "double[]"),
+                Arguments.of("list_boolean.parquet", List.of(true, false, true), "boolean[]"));
     }
 
     private static Stream<Arguments> emptyListTypes() {

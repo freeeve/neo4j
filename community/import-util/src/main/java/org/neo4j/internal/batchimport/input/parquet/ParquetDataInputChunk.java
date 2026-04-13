@@ -248,7 +248,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             } else if (parquetColumn.columnType() == ParquetColumnType.VECTOR) {
                 return convertVectorType(object, parquetColumn);
             } else if (object instanceof List<?> listValue) {
-                return toArrayValue(listValue, parquetColumn);
+                return toArrayValue(listValue, parquetColumn.withoutArray());
             }
 
             return switch (parquetColumn.columnType()) {

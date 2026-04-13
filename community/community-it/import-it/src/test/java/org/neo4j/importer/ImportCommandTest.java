@@ -2782,6 +2782,69 @@ class ImportCommandTest {
         }
     }
 
+    @Test
+    void shouldHandleParquetInputWithVariousListTypes() throws Exception {
+        // given a parquet file with various list types and an associated header file explictly setting the property
+        // type
+        var nodes = getClass().getResource("/org/neo4j/importer/parquet/list_types.parquet");
+        var header = getClass().getResource("/org/neo4j/importer/parquet/list_types_header.csv");
+
+        // when
+        List<String> args = Lists.mutable.of("--nodes", "ParquetList=" + header.toString() + "," + nodes.toString());
+        args.add("--input-type=parquet");
+
+        runImport(args.toArray(new String[0]));
+
+        // then
+        try (var tx = getDatabaseApi().beginTx()) {
+            var importedNode = tx.getAllNodes().stream().findFirst().get();
+
+            assertThat(importedNode.getPropertyKeys()).hasSize(7);
+
+            // Verify c_list_string property
+            var c_list_string = importedNode.getProperty("c_list_string");
+            assertThat(c_list_string).isInstanceOf(String[].class);
+            String[] strArray = (String[]) c_list_string;
+            assertThat(strArray).hasSize(3);
+            assertThat(strArray).containsExactly("a", "b", "c");
+
+            // Verify c_list_int32 property
+            var c_list_int32 = importedNode.getProperty("c_list_int32");
+            assertThat(c_list_int32).isInstanceOf(long[].class);
+            long[] int32Array = (long[]) c_list_int32;
+            assertThat(int32Array).hasSize(3);
+            assertThat(int32Array).containsExactly(123L, 234L, 345L);
+
+            // Verify c_list_int64 property
+            var c_list_int64 = importedNode.getProperty("c_list_int64");
+            assertThat(c_list_int64).isInstanceOf(long[].class);
+            long[] int64Array = (long[]) c_list_int64;
+            assertThat(int64Array).hasSize(3);
+            assertThat(int64Array).containsExactly(123L, 234L, 345L);
+
+            // Verify c_list_float property
+            var c_list_float = importedNode.getProperty("c_list_float");
+            assertThat(c_list_float).isInstanceOf(double[].class);
+            double[] floatArray = (double[]) c_list_float;
+            assertThat(floatArray).hasSize(3);
+            assertThat(floatArray).containsExactly(1.01, 2.21, 3.23);
+
+            // Verify c_list_double property
+            var c_list_double = importedNode.getProperty("c_list_double");
+            assertThat(c_list_double).isInstanceOf(double[].class);
+            double[] doubleArray = (double[]) c_list_double;
+            assertThat(doubleArray).hasSize(3);
+            assertThat(doubleArray).containsExactly(1.01, 2.21, 3.23);
+
+            // Verify c_list_boolean property
+            var c_list_boolean = importedNode.getProperty("c_list_boolean");
+            assertThat(c_list_boolean).isInstanceOf(boolean[].class);
+            boolean[] booleanArray = (boolean[]) c_list_boolean;
+            assertThat(booleanArray).hasSize(3);
+            assertThat(booleanArray).containsExactly(true, false, true);
+        }
+    }
+
     private Path createParquetFile(String name, List<org.apache.parquet.schema.Type> types, List<Object[]> data)
             throws Exception {
         Path path = testDirectory.file(name);
