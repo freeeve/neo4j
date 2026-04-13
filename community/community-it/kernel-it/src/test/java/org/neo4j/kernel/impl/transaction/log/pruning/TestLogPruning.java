@@ -192,7 +192,7 @@ class TestLogPruning {
         }
 
         int totalLogFileSize = logFileSize();
-        assertThat(totalLogFileSize).isLessThanOrEqualTo(minimum + transactionsPerFile);
+        assertThat(totalLogFileSize).isLessThanOrEqualTo(minimum + (transactionsPerFile * transactionByteSize));
     }
 
     @Test
