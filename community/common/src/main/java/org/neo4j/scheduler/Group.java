@@ -63,7 +63,7 @@ public enum Group {
      */
     INDEX_POPULATION_WORK("IndexPopulationWork", ExecutorServiceFactory.cached()),
     /** Background index sampling */
-    INDEX_SAMPLING("IndexSampling"),
+    INDEX_SAMPLING("IndexSampling", true),
     /** Background index update applier, for eventually consistent indexes. */
     INDEX_UPDATING("IndexUpdating"),
     INDEX_REFRESHING("IndexRefreshing"),
