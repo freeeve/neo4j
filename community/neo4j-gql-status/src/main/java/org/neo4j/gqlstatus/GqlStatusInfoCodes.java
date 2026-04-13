@@ -2481,10 +2481,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N81(
             "Expected { %s }, but got { %s }.",
             new GqlParams.GqlParam[] {
-                new NonSensitiveGqlParam(GqlParams.StringParam.param, List.of(CYPHER_VARIABLE)),
-                new NonSensitiveGqlParam(GqlParams.ListParam.paramList, List.of(CYPHER_VARIABLE))
+                new NonSensitiveGqlParam(GqlParams.ListParam.paramList1, List.of(CYPHER_VARIABLE)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.paramList2, List.of(CYPHER_VARIABLE))
             },
-            Map.of(GqlParams.ListParam.paramList, GqlParams.JoinStyle.ANDED),
+            Map.of(
+                    GqlParams.ListParam.paramList1,
+                    GqlParams.JoinStyle.ANDED,
+                    GqlParams.ListParam.paramList2,
+                    GqlParams.JoinStyle.ANDED),
             "missing request parameter",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N82(

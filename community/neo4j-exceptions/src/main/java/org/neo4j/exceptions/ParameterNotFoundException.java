@@ -19,7 +19,7 @@
  */
 package org.neo4j.exceptions;
 
-import java.util.stream.Collectors;
+import java.util.List;
 import java.util.stream.StreamSupport;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -33,15 +33,23 @@ public class ParameterNotFoundException extends Neo4jException {
 
     public static ParameterNotFoundException expectedParam(String expectedParam, Iterable<String> gotParams) {
         var gql = GqlHelper.getGql42001_42N81(
-                expectedParam,
-                StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
+                List.of(expectedParam),
+                StreamSupport.stream(gotParams.spliterator(), false).toList());
         return new ParameterNotFoundException(gql, String.format("Expected parameter(s): %s", expectedParam));
+    }
+
+    public static ParameterNotFoundException expectedParamList(
+            String expectedParamsString, List<String> expectedParams, Iterable<String> gotParams) {
+        var gql = GqlHelper.getGql42001_42N81(
+                expectedParams,
+                StreamSupport.stream(gotParams.spliterator(), false).toList());
+        return new ParameterNotFoundException(gql, String.format("Expected parameter(s): %s", expectedParamsString));
     }
 
     public static ParameterNotFoundException expectedParamNamed(String expectedParam, Iterable<String> gotParams) {
         var gql = GqlHelper.getGql42001_42N81(
-                expectedParam,
-                StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
+                List.of(expectedParam),
+                StreamSupport.stream(gotParams.spliterator(), false).toList());
         return new ParameterNotFoundException(gql, String.format("Expected a parameter named %s", expectedParam));
     }
 

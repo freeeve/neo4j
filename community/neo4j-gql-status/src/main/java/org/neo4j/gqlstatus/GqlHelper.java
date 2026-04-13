@@ -1328,11 +1328,11 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N81(String param, List<?> paramList) {
+    public static ErrorGqlStatusObject getGql42001_42N81(List<String> expectedParameters, List<String> gotParameters) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N81)
-                        .withParam(GqlParams.StringParam.param, param)
-                        .withParam(GqlParams.ListParam.paramList, paramList)
+                        .withParam(GqlParams.ListParam.paramList1, expectedParameters)
+                        .withParam(GqlParams.ListParam.paramList2, gotParameters)
                         .build())
                 .build();
     }
