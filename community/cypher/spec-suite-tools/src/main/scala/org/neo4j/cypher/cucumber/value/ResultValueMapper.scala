@@ -35,6 +35,7 @@ import org.neo4j.driver.internal.value.ListValue
 import org.neo4j.driver.internal.value.MapValue
 import org.neo4j.driver.internal.value.NodeValue
 import org.neo4j.driver.internal.value.PathValue
+import org.neo4j.driver.internal.value.PointValue
 import org.neo4j.driver.internal.value.RelationshipValue
 import org.neo4j.driver.internal.value.VectorValue
 import org.neo4j.graphdb.Entity
@@ -79,6 +80,7 @@ final object ResultValueMapper extends ValueMapper {
       case path: PathValue             => convertDriverPath(path.asPath())
       case float: FloatValue           => java.lang.Double.valueOf(float.asDouble() + 0.0)
       case vector: VectorValue         => convertVector(vector)
+      case point: PointValue           => convertPoint(point)
       case durationValue: DurationValue => // Yes, durations are treated as strings here
         val d = durationValue.asIsoDuration()
         duration(d.months(), d.days(), d.seconds(), d.nanoseconds()).toString
@@ -129,6 +131,15 @@ final object ResultValueMapper extends ValueMapper {
           val coordinateArray: Array[Double] = vec.elements().asInstanceOf[Array[Double]]
           Values.float64Vector(coordinateArray: _*)
       }
+    }
+
+    private def convertPoint(point: PointValue): org.neo4j.values.storable.Value = {
+      val p = point.asPoint()
+      val crs = org.neo4j.values.storable.CoordinateReferenceSystem.get(p.srid())
+      val coordinates =
+        if (java.lang.Double.isNaN(p.z())) Array(p.x(), p.y())
+        else Array(p.x(), p.y(), p.z())
+      Values.pointValue(crs, coordinates: _*)
     }
   }
 
