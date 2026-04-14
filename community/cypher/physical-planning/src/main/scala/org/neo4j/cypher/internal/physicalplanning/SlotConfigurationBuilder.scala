@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.physicalplanning
 
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.macros.AssertMacros3
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.ApplyPlanSlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.CachedPropertySlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.DuplicatedSlotKey
@@ -145,7 +145,7 @@ final class SlotConfigurationBuilder private (
    * NOTE: method can only test keys that are either 'original key' or alias, MUST NOT be called on keys that are neither (i.e., do not exist in the configuration).
    */
   private def isAlias(key: String): Boolean = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+    AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
       get(key).isDefined,
       s"Ran `isAlias` on $key which is not part of the slot configuration."
     )
@@ -229,7 +229,7 @@ final class SlotConfigurationBuilder private (
   }
 
   def newLong(key: String, nullable: Boolean, typ: CypherType): SlotConfigurationBuilder = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+    AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
       typ == CTNode || typ == CTRelationship,
       s"Invalid type: $typ. Part of the runtime implementation depends on this, for example pipelined ForEach"
     )

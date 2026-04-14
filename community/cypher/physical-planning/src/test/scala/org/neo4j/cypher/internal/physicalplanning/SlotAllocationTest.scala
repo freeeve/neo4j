@@ -91,10 +91,10 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.ListType
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
 //noinspection NameBooleanParameters
-class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport {
+class SlotAllocationTest extends CypherFunSuite3 with AstConstructionTestSupport {
   implicit val idGen: IdGen = new SequentialIdGen()
   private val LABEL = labelName("label")
   private val semanticTable = CachableSemanticTable(SemanticTable())
@@ -1600,8 +1600,8 @@ class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport 
 
     val semanticTableWithList =
       SemanticTable(ASTAnnotationMap(list -> ExpressionTypeInfo(
-        ListType(CTInteger, isNullable = true)(InputPosition.NONE),
-        Some(ListType(CTAny, isNullable = true)(InputPosition.NONE))
+        ListType(CTInteger, isNullable = true)(InputPosition.NONE).invariant,
+        Some(ListType(CTAny, isNullable = true)(InputPosition.NONE).invariant)
       )))
 
     // when
@@ -1645,8 +1645,8 @@ class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport 
 
     val semanticTableWithList =
       SemanticTable(ASTAnnotationMap(list -> ExpressionTypeInfo(
-        ListType(CTNode, isNullable = true)(InputPosition.NONE),
-        Some(ListType(CTNode, isNullable = true)(InputPosition.NONE))
+        ListType(CTNode, isNullable = true)(InputPosition.NONE).invariant,
+        Some(ListType(CTNode, isNullable = true)(InputPosition.NONE).invariant)
       )))
 
     // when

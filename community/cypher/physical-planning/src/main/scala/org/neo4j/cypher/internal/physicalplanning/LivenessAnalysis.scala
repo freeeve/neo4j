@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.MultiEntityLogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.Projection
-import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.macros.AssertMacros3
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.LiveVariables
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -91,7 +91,7 @@ object LivenessAnalysis {
 
     val live = new LiveVariables()
     result.foreach { case (planId, liveForPlan) =>
-      AssertMacros.checkOnlyWhenAssertionsAreEnabled(!live.isDefinedAt(planId))
+      AssertMacros3.checkOnlyWhenAssertionsAreEnabled(!live.isDefinedAt(planId))
       live.set(planId, liveForPlan)
     }
     live

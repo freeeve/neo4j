@@ -1961,6 +1961,7 @@
                 <ignoredUnusedDeclaredDependency>org.scala-lang:scala-reflect</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros-scala3</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
                 <!-- lucene-backward-codecs are used for shading, not currently for code paths dependency plugin recognises -->
                 <ignoredUnusedDeclaredDependency>org.apache.lucene:lucene-backward-codecs</ignoredUnusedDeclaredDependency>
@@ -1972,6 +1973,7 @@
                 <ignoredUsedUndeclaredDependency>com.neo4j:*</ignoredUsedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredNonTestScopedDependencies>
+                <ignoredNonTestScopedDependency>org.neo4j:neo4j-graphdb-api</ignoredNonTestScopedDependency>
                 <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
                 <ignoredNonTestScopedDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredNonTestScopedDependency>
               </ignoredNonTestScopedDependencies>

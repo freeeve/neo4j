@@ -65,7 +65,7 @@ import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
 object SlottedRewriterTest {
 
@@ -81,11 +81,13 @@ object SlottedRewriterTest {
         NullCheckVariable(offset, RelationshipFromSlot(offset, name))
       case RefSlot(offset, _, _) =>
         ReferenceFromSlot(offset, name)
+      case slot =>
+        throw new IllegalArgumentException(s"Unexpected slot type: $slot")
     }
   }
 }
 
-class SlottedRewriterTest extends CypherFunSuite with AstConstructionTestSupport {
+class SlottedRewriterTest extends CypherFunSuite3 with AstConstructionTestSupport {
   implicit val idGen: SequentialIdGen = new SequentialIdGen()
   private val xProp = prop("x", "prop")
   private val xPropKey = prop("x", "propertyKey")
