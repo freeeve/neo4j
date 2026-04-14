@@ -19,7 +19,7 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestAcyclic
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlHelper
 
@@ -27,10 +27,10 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
-  private def runWithShortestAcyclic(query: String) =
-    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), features = GpmShortestAcyclic)
+  private def runWithFeatureShortestWithExplicitPathMode(query: String) =
+    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), features = GpmShortestWithExplicitPathMode)
 
-  private def runWithoutShortestAcyclic(query: String) =
+  private def runWithoutFeatureShortestWithExplicitPathMode(query: String) =
     runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5))
 
   private def errMatchModePathModeUnsupported(pathMode: String, pos: InputPosition): SemanticError =
@@ -167,23 +167,14 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
     runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
-  test("Gpm shortest with ACYCLIC path modes is behind a semantic feature flag") {
-    val query = "MATCH SHORTEST 25 ACYCLIC PATH GROUPS (n)-->(m) RETURN *"
-    runWithShortestAcyclic(query).hasNoErrors
-    runWithoutShortestAcyclic(query).hasErrors(errGpmShortestWithPathMode("ACYCLIC", p(6, 1, 7)))
-  }
-
-  // Temporary restriction
-  test("doesn't allow mixing gpm shortest with explicit path modes (except for ACYCLIC)") {
-    Seq("TRAIL", "WALK").foreach(explicitPathMode =>
-      runWith(
-        s"MATCH SHORTEST 25 $explicitPathMode PATH GROUPS (n)-->(m) RETURN *",
-        disabledCypherVersions = Set(CypherVersion.Cypher5)
-      ).hasErrors(errGpmShortestWithPathMode(
-        explicitPathMode,
-        p(6, 1, 7)
-      ))
-    )
+  test("Gpm shortest with explicit path mode is behind a semantic feature flag") {
+    Seq("ACYCLIC", "TRAIL", "WALK").foreach { explicitPathMode =>
+      val query = s"MATCH SHORTEST 25 $explicitPathMode PATH GROUPS (n)-->(m) RETURN *"
+      runWithFeatureShortestWithExplicitPathMode(query).hasNoErrors
+      runWithoutFeatureShortestWithExplicitPathMode(query).hasErrors(
+        errGpmShortestWithPathMode(explicitPathMode, p(6, 1, 7))
+      )
+    }
   }
 
   // Temporary restriction
