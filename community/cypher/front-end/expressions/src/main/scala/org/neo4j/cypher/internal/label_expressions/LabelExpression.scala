@@ -210,7 +210,9 @@ sealed trait LabelExpression extends ASTNode with HasMappableExpressions[LabelEx
   def flatten: Seq[LabelExpressionLeafName]
 }
 
-trait LabelExpressionLeafName extends SymbolicName
+trait LabelExpressionLeafName extends SymbolicName {
+  def name: String
+}
 
 trait LabelExpressionDynamicLeafExpression extends ASTNode
     with HasMappableExpressions[LabelExpressionDynamicLeafExpression] {
