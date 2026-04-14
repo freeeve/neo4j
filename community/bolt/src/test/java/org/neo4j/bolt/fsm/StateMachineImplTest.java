@@ -572,12 +572,15 @@ class StateMachineImplTest {
         Throwable wrappedThrowable = captorError.wrappedThrowable();
 
         Assertions.assertThat(wrappedThrowable).isInstanceOf(AdmissionControlException.class);
-        ErrorGqlStatusObjectAssertions.assertThat((AdmissionControlException) wrappedThrowable)
+        AdmissionControlException ex = (AdmissionControlException) wrappedThrowable;
+        ErrorGqlStatusObjectAssertions.assertThat(ex)
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N59)
                 .hasStatusDescription(
                         "error: system configuration or operation exception - internal resource exhaustion. "
                                 + "The DBMS is unable to handle the request, please retry later or contact the system operator. "
                                 + "More information is present in the logs.");
+
+        Assertions.assertThat(ex.gqlStatusObject().diagnosticRecord()).containsEntry("_idempotent", true);
     }
 
     public static Stream<AdmissionControlResponse> responses() {

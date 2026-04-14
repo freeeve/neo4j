@@ -42,6 +42,7 @@ public final class AdmissionControlException extends StateMachineException imple
 
     public static AdmissionControlException resourceExhaustion() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N59)
+                .withDiagnosticRecordProperty(BoltDiagnosticRecordProperty.IDEMPOTENT, true)
                 .build();
         var legacyMessage = Status.Request.ResourceExhaustion.code().description();
         return new AdmissionControlException(gql, legacyMessage);
