@@ -21,6 +21,10 @@ package org.neo4j.kernel.impl.index.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.kernel.impl.index.vector.VectorSSFQueryResult.field;
+import static org.neo4j.kernel.impl.index.vector.VectorSSFTemporalTestHelper.generateTestZonedDateTimeStrings;
+import static org.neo4j.kernel.impl.index.vector.VectorSSFTemporalTestHelper.generateTestZonedTimeStrings;
+import static org.neo4j.kernel.impl.index.vector.VectorSSFTemporalTestHelper.sortByDateTimeZoneOffsetAndId;
+import static org.neo4j.kernel.impl.index.vector.VectorSSFTemporalTestHelper.sortByTimeZoneOffsetAndId;
 
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -175,7 +179,6 @@ public class VectorSSFTemporalCompatibilityTest extends VectorSSFTestBase {
         var RESULT_SIZE = 50;
         var results = queryNodeIndex(
                 RESULT_SIZE, allQuery("name"), rangeQuery("birthdatetime", fromTime, true, toTime, true));
-        results = new ArrayList<>(results);
         results.sort(Comparator.comparing(v -> ((Integer) v.getValue("id").asObjectCopy())));
         assertThat(results).hasSize(3);
     }
@@ -292,7 +295,6 @@ public class VectorSSFTemporalCompatibilityTest extends VectorSSFTestBase {
             var toTime = mapper.apply(inputs.get(upper));
             var results =
                     queryNodeIndex(resultSize, allQuery("name"), rangeQuery(fieldName, fromTime, true, toTime, true));
-            results = new ArrayList<>(results);
             results.sort(Comparator.comparing(v -> ((Integer) v.getValue("id").asObjectCopy())));
             assertThat(results)
                     .as("%d: From %d(%s) to %d(%s)", i, lower, fromTime, upper, toTime)
@@ -352,7 +354,6 @@ public class VectorSSFTemporalCompatibilityTest extends VectorSSFTestBase {
             var toTime = mapper.apply(inputs.get(upper));
             var results = queryNodeIndex(
                     RESULT_SIZE, allQuery("name"), rangeQuery(fieldName, Values.NO_VALUE, true, toTime, true));
-            results = new ArrayList<>(results);
             results.sort(Comparator.comparing(v -> ((Integer) v.getValue("id").asObjectCopy())));
             int expected = 0;
             for (var nodeIndex : timesWithNode) {
@@ -395,7 +396,6 @@ public class VectorSSFTemporalCompatibilityTest extends VectorSSFTestBase {
             var fromTime = mapper.apply(inputs.get(lower));
             var results = queryNodeIndex(
                     RESULT_SIZE, allQuery("name"), rangeQuery(fieldName, fromTime, true, Values.NO_VALUE, true));
-            results = new ArrayList<>(results);
             results.sort(Comparator.comparing(v -> ((Integer) v.getValue("id").asObjectCopy())));
             int firstExpectedIndex = 0;
             for (var nodeIndex : timesWithNode) {
@@ -414,70 +414,5 @@ public class VectorSSFTemporalCompatibilityTest extends VectorSSFTestBase {
             }
         }
         return assertThat(true);
-    }
-
-    /// Build a comprehensive list of DateTimeValues with zone offset and zone id
-    /// this can be sorted (via `sortByDateTimeZoneOffsetAndId`)
-    /// and used to validate that
-    /// 1. Cypher respects the order, as we expect that it already does
-    /// 2.
-    private List<String> generateTestZonedDateTimeStrings() {
-        var dates = List.of("2019-06-01", "2019-06-02", "2019-06-03");
-        var hours = new ArrayList<>();
-        for (int i = 0; i < 24; i++) {
-            hours.add(String.format("%02d:00:00.000", i));
-        }
-        var offsets = List.of(
-                        "-1100", "-1000", "-0900", "-0800", "-0700", "-0600", "-0500", "-0400", "-0300", "-0200",
-                        "-0100", "+0000", "+0100", "+0200", "+0300", "+0400", "+0500", "+0600", "+0700", "+0800",
-                        "+0900", "+1000", "+1100")
-                .reversed();
-        var allDateTimes = new ArrayList<String>();
-        for (var date : dates) {
-            for (var hour : hours) {
-                for (var zone : ZoneId.getAvailableZoneIds()) {
-                    allDateTimes.add(String.format("%sT%s[%s]", date, hour, zone));
-                }
-                for (var offset : offsets) {
-                    allDateTimes.add(String.format("%sT%s%s", date, hour, offset));
-                }
-            }
-        }
-        return allDateTimes;
-    }
-
-    private List<String> sortByDateTimeZoneOffsetAndId(List<String> dates) {
-
-        dates.sort((o1, o2) -> Values.COMPARATOR.compare(
-                DateTimeValue.parse(o1, ZoneId::systemDefault), DateTimeValue.parse(o2, ZoneId::systemDefault)));
-        return dates;
-    }
-
-    private List<String> generateTestZonedTimeStrings() {
-        var hours = new ArrayList<>();
-        for (int i = 0; i < 24; i++) {
-            hours.add(String.format("%02d:00:00.000", i));
-        }
-        var offsets = List.of(
-                        "-1100", "-1000", "-0900", "-0800", "-0700", "-0600", "-0500", "-0400", "-0300", "-0200",
-                        "-0100", "+0000", "+0100", "+0200", "+0300", "+0400", "+0500", "+0600", "+0700", "+0800",
-                        "+0900", "+1000", "+1100")
-                .reversed();
-        var allTimes = new ArrayList<String>();
-        for (var hour : hours) {
-            // Here we do not use names (timezone ids) - they are not valid for raw times
-            for (var offset : offsets) {
-                allTimes.add(String.format("%s%s", hour, offset));
-            }
-        }
-
-        return allTimes;
-    }
-
-    private List<String> sortByTimeZoneOffsetAndId(List<String> times) {
-
-        times.sort((o1, o2) -> Values.COMPARATOR.compare(
-                TimeValue.parse(o1, ZoneId::systemDefault), TimeValue.parse(o2, ZoneId::systemDefault)));
-        return times;
     }
 }

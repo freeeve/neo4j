@@ -44,6 +44,7 @@ public interface IndexQuery {
         STRING_CONTAINS,
         FULLTEXT_SEARCH,
         NEAREST_NEIGHBORS,
-        ENTITY_FILTER
+        ENTITY_FILTER,
+        IN_SET
     }
 }

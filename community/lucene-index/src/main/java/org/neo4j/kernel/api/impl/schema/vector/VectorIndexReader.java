@@ -144,23 +144,33 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
         return predicate;
     }
 
+    private static final List<IndexQueryType> validIndexQueryTypes = List.of(
+            IndexQueryType.ALL,
+            IndexQueryType.EXISTS,
+            IndexQueryType.NOT_EXISTS,
+            IndexQueryType.EXACT,
+            IndexQueryType.RANGE,
+            IndexQueryType.IN_SET);
+
     private void validateFilteredQueryPredicates(PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         propertyFiltersForEach(predicates, predicate -> {
             if (predicate == null) {
                 throw nullVectorQueryFilter(
                         msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                        validIndexQueryTypes,
                         predicates);
             }
             IndexQueryType type = predicate.type();
             switch (type) {
-                case ALL, EXISTS, NOT_EXISTS, EXACT, RANGE -> {
+                case ALL, EXISTS, NOT_EXISTS, EXACT, RANGE, IN_SET -> {
                     // Each filter predicate is independent of others;
                     // so we can support arbitrary combinations range and exact predicates
                 }
                 default ->
                     throw invalidVectorQueryFilter(
                             msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
+                            validIndexQueryTypes,
                             predicate,
                             predicates);
             }

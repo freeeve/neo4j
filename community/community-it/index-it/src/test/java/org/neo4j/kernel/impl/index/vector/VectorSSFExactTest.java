@@ -26,13 +26,23 @@ import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.TRUE;
 
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.TokenRead;
+import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
+/// Test exact queries of single-stage-filter properties
+/// Parameterizes the query builder to also test inSetQuery for the same single property
 class VectorSSFExactTest extends VectorSSFTestBase {
 
-    @Test
-    void singleString() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void singleString(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "name");
         createTestNode(Map.of("id", 10, "name", "Alice", EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "name", "Bob", EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -40,13 +50,14 @@ class VectorSSFExactTest extends VectorSSFTestBase {
         createTestNode(Map.of("id", 40, "name", "Ted", EMBEDDING_NAME, EMBEDDINGS.get(4)));
         createTestNode(Map.of("id", 50, "name", "Bob", EMBEDDING_NAME, EMBEDDINGS.get(5)));
 
-        assertThat(queryNodeIndex(exactQuery("name", Values.of("Bob"))))
+        assertThat(queryNodeIndex(queryBuilder.build("name", Values.of("Bob"))))
                 .hasSize(2)
                 .have(field("name", "Bob"));
     }
 
-    @Test
-    void singleInteger() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void singleInteger(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -55,27 +66,32 @@ class VectorSSFExactTest extends VectorSSFTestBase {
         createTestNode(Map.of("id", 40, "name", "Ted", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(5)));
         createTestNode(Map.of("id", 50, "name", "Bob", "age", 45, EMBEDDING_NAME, EMBEDDINGS.get(6)));
 
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(75))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(75))))
                 .singleElement()
                 .has(field("id", 1));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(74)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(76)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(75.0f))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(74)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(76)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(75.0f))))
                 .singleElement()
                 .has(field("id", 1));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(75.5f)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(75.5f)))).isEmpty();
 
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(23)))).hasSize(2).have(field("age", 23));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(45)))).hasSize(2).have(field("age", 45));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(18))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(23))))
+                .hasSize(2)
+                .have(field("age", 23));
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(45))))
+                .hasSize(2)
+                .have(field("age", 45));
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(18))))
                 .singleElement()
                 .has(field("age", 18))
                 .has(field("name", "Bob"));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(21)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(21)))).isEmpty();
     }
 
-    @Test
-    void stringAndInteger() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void stringAndInteger(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "name", "age", "shoesize");
         createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "name", "Bob", "age", 18, EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -83,14 +99,16 @@ class VectorSSFExactTest extends VectorSSFTestBase {
         createTestNode(Map.of("id", 40, "name", "Ted", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(4)));
         createTestNode(Map.of("id", 50, "name", "Bob", "age", 45, EMBEDDING_NAME, EMBEDDINGS.get(5)));
 
-        assertThat(queryNodeIndex(exactQuery("name", Values.of("Bob")), exactQuery("age", Values.of(45))))
+        assertThat(queryNodeIndex(
+                        queryBuilder.build("name", Values.of("Bob")), queryBuilder.build("age", Values.of(45))))
                 .singleElement()
                 .has(field("name", "Bob"))
                 .has(field("age", 45));
     }
 
-    @Test
-    void stringAndIntegerAndFloat() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void stringAndIntegerAndFloat(QueryBuilder queryBuilder) throws Exception {
 
         // in order to break the index id ordering being 1,2,3
         createTestNode(Map.of("id", 103, "priority", 15, "story", "Once upon a time", "age", 128));
@@ -107,67 +125,74 @@ class VectorSSFExactTest extends VectorSSFTestBase {
 
         // order of exact queries consistent with the index
         assertThat(queryNodeIndex(
-                        exactQuery("name", Values.of("Bob")),
-                        exactQuery("age", Values.of(45)),
-                        exactQuery("shoesize", Values.of(8.5))))
+                        queryBuilder.build("name", Values.of("Bob")),
+                        queryBuilder.build("age", Values.of(45)),
+                        queryBuilder.build("shoesize", Values.of(8.5))))
                 .singleElement()
                 .has(field("name", "Bob"))
                 .has(field("age", 45));
 
         assertThat(queryNodeIndex(
-                        exactQuery("name", Values.of("Bob")), allQuery("age"), exactQuery("shoesize", Values.of(8.5))))
+                        queryBuilder.build("name", Values.of("Bob")),
+                        allQuery("age"),
+                        queryBuilder.build("shoesize", Values.of(8.5))))
                 .hasSize(2)
                 .have(field("name", "Bob"));
     }
 
-    @Test
-    void singleBoolean() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void singleBoolean(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "authorized");
         createTestNode(Map.of("id", 1, "authorized", true, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 2, "authorized", false, EMBEDDING_NAME, EMBEDDINGS.get(2)));
 
         assertThat(queryNodeIndex()).hasSize(2);
-        assertThat(queryNodeIndex(exactQuery("authorized", TRUE)))
+        assertThat(queryNodeIndex(queryBuilder.build("authorized", TRUE)))
                 .singleElement()
                 .has(field("id", 1));
-        assertThat(queryNodeIndex(exactQuery("authorized", FALSE)))
+        assertThat(queryNodeIndex(queryBuilder.build("authorized", FALSE)))
                 .singleElement()
                 .has(field("id", 2));
     }
 
-    @Test
-    void singleFloat() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void singleFloat(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75.0f, EMBEDDING_NAME, EMBEDDINGS.get(1)));
 
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(75.0f))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(75.0f))))
                 .singleElement()
                 .has(field("id", 1));
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(74.0f)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(76.0f)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(75))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(74.0f)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(76.0f)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(75))))
                 .singleElement()
                 .has(field("id", 1));
     }
 
-    @Test
-    void extremeFloatValues() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void extremeFloatValues(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75, EMBEDDING_NAME, EMBEDDINGS.get(1)));
 
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(Integer.MAX_VALUE))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(Integer.MAX_VALUE))))
                 .isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(Integer.MIN_VALUE))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(Integer.MIN_VALUE))))
                 .isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(Float.NaN)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(Float.NEGATIVE_INFINITY))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(Float.NaN))))
                 .isEmpty();
-        assertThat(queryNodeIndex(exactQuery("age", Values.of(Float.POSITIVE_INFINITY))))
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(Float.NEGATIVE_INFINITY))))
+                .isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(Float.POSITIVE_INFINITY))))
                 .isEmpty();
     }
 
-    @Test
-    void durations() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideQueryBuilders")
+    void durations(QueryBuilder queryBuilder) throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "duration");
         createTestNode(Map.of("id", 10, "duration", duration(0, 0, 0, 1000_000), EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "duration", duration(0, 0, 1, 0), EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -175,20 +200,32 @@ class VectorSSFExactTest extends VectorSSFTestBase {
         createTestNode(Map.of("id", 40, "duration", duration(0, 1, 1, 0), EMBEDDING_NAME, EMBEDDINGS.get(4)));
         createTestNode(Map.of("id", 50, "duration", duration(1, 1, 1, 1), EMBEDDING_NAME, EMBEDDINGS.get(5)));
 
-        assertThat(queryNodeIndex(exactQuery("duration", duration(0, 0, 0, 1000_000))))
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(0, 0, 0, 1000_000))))
                 .singleElement()
                 .has(field("id", 10));
-        assertThat(queryNodeIndex(exactQuery("duration", duration(0, 0, 1, 0))))
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(0, 0, 1, 0))))
                 .singleElement()
                 .has(field("id", 20));
-        assertThat(queryNodeIndex(exactQuery("duration", duration(0, 1, 1, 0))))
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(0, 1, 1, 0))))
                 .singleElement()
                 .has(field("id", 40));
-        assertThat(queryNodeIndex(exactQuery("duration", duration(1, 1, 1, 1))))
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(1, 1, 1, 1))))
                 .singleElement()
                 .has(field("id", 50));
-        assertThat(queryNodeIndex(exactQuery("duration", duration(1, 1, 1, 0)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("duration", duration(1, 1, 0, 0)))).isEmpty();
-        assertThat(queryNodeIndex(exactQuery("duration", duration(1, 0, 0, 0)))).isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(1, 1, 1, 0))))
+                .isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(1, 1, 0, 0))))
+                .isEmpty();
+        assertThat(queryNodeIndex(queryBuilder.build("duration", duration(1, 0, 0, 0))))
+                .isEmpty();
+    }
+
+    private interface QueryBuilder {
+        Function<TokenRead, PropertyIndexQuery> build(String propertyKey, Value value);
+    }
+
+    private static Stream<Arguments> provideQueryBuilders() {
+        return Stream.of(Arguments.of((QueryBuilder) VectorSSFTestBase::exactQuery), Arguments.of((QueryBuilder)
+                VectorSSFTestBase::inSetQuerySingleton));
     }
 }

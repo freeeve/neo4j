@@ -31,6 +31,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher.InRangeEntityConsumer;
@@ -133,12 +134,17 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     }
 
     protected <E extends Exception> E invalidVectorQueryFilter(
-            Function<String, E> constructor, PropertyIndexQuery invalidPredicate, PropertyIndexQuery... predicates) {
+            Function<String, E> constructor,
+            java.util.List<IndexQueryType> validFilterTypes,
+            PropertyIndexQuery invalidPredicate,
+            PropertyIndexQuery... predicates) {
         final var indexType = descriptor.getIndexType();
+        String validTypes = String.join(
+                " or ", validFilterTypes.stream().map(Enum::toString).toList());
         return constructor.apply(
-                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be "
-                                + "an exact query"
-                                + " or a range query). "
+                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be of type "
+                                + validTypes
+                                + "). "
                                 + "Invalid filter type was: %s. "
                                 + "Invalid predicate was: %s. "
                                 + "Index query was: %s ")
@@ -146,12 +152,16 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     }
 
     protected <E extends Exception> E nullVectorQueryFilter(
-            Function<String, E> constructor, PropertyIndexQuery... predicates) {
+            Function<String, E> constructor,
+            java.util.List<IndexQueryType> validFilterTypes,
+            PropertyIndexQuery... predicates) {
         final var indexType = descriptor.getIndexType();
+        String validTypes = String.join(
+                " or ", validFilterTypes.stream().map(Enum::toString).toList());
         return constructor.apply(
-                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be "
-                                + "an exact query"
-                                + " or a range query). "
+                ("Tried to query a %s index with a query predicate which is not an accepted filter type (must be of type "
+                                + validTypes
+                                + "). "
                                 + "Invalid filter type was: null."
                                 + "Invalid predicate was: null."
                                 + "Index query was: %s ")

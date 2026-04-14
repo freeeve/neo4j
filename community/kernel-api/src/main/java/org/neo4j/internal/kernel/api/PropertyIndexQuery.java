@@ -31,6 +31,9 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.Equality;
+import org.neo4j.values.SequenceValue;
+import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.PointValue;
@@ -96,6 +99,11 @@ public abstract class PropertyIndexQuery implements IndexQuery {
             return new IncomparableExactPredicate(propertyKeyId, exactValue);
         }
         return new ExactPredicate(propertyKeyId, exactValue);
+    }
+
+    public static InSetPredicate inSet(int propertyKeyId, ArrayValue values) {
+
+        return new InSetPredicate(propertyKeyId, values);
     }
 
     /**
@@ -535,8 +543,10 @@ public abstract class PropertyIndexQuery implements IndexQuery {
             // A little something about NaN.
             // For range queries with numbers we need to redefine the upper bound from NaN to positive infinity.
             // The reason is that we do not want to find NaNs for seeks, but for full scans we do.
-            // The index will treat open upper bound (null) as scan to highest possible value. According to the index
-            // this is NaN, but we don't want to include that so we translate null to Double.POSITIVE_INFINITY here.
+            // The index will treat open upper bound (null) as scan to the highest possible value.
+            // According to the index this is NaN,
+            // but we don't want to include that so we translate null to Double
+            // .POSITIVE_INFINITY here.
             super(
                     propertyKeyId,
                     ValueGroup.NUMBER,
@@ -1013,6 +1023,43 @@ public abstract class PropertyIndexQuery implements IndexQuery {
         @Override
         public IndexQueryType type() {
             return IndexQueryType.ENTITY_FILTER;
+        }
+    }
+
+    public static final class InSetPredicate extends PropertyIndexQuery {
+
+        private final ArrayValue values;
+
+        private InSetPredicate(int propertyKeyId, ArrayValue values) {
+            super(propertyKeyId);
+            this.values = values;
+        }
+
+        @Override
+        public boolean acceptsValue(Value value) {
+            if (value instanceof SequenceValue sequenceValue) {
+                for (AnyValue anyValue : sequenceValue) {
+                    if (anyValue.ternaryEquals(value) == Equality.TRUE) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
+
+        @Override
+        public ValueGroup valueGroup() {
+            return values.valueGroup();
+        }
+
+        public ArrayValue values() {
+            return values;
+        }
+
+        @Override
+        public IndexQueryType type() {
+            return IndexQueryType.IN_SET;
         }
     }
 }

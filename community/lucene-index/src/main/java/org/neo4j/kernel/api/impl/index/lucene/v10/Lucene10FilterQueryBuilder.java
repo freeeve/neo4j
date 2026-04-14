@@ -45,6 +45,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExistsPredicate;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.InSetPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableExactPredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.IncomparableRangePredicate;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.NotExistsPredicate;
@@ -55,6 +56,8 @@ import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleInte
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.TemporalOffsetWithId;
 import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.TemporalWithZone;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.FloatingPointValue;
@@ -89,6 +92,7 @@ final class Lucene10FilterQueryBuilder {
             case ExactPredicate exactPredicate -> queryForExact(propertyIndex, exactPredicate);
             case IncomparableRangePredicate<?> ignored -> MatchNoDocsQuery.INSTANCE;
             case RangePredicate<?> rangePredicate -> queryForRange(propertyIndex, rangePredicate);
+            case InSetPredicate inSetPredicate -> queryForInSet(propertyIndex, inSetPredicate);
             case null, default ->
                 throw new IllegalArgumentException("Unexpected filter query predicate. Expected one of ["
                         + IndexQueryType.EXISTS
@@ -100,6 +104,8 @@ final class Lucene10FilterQueryBuilder {
                         + IndexQueryType.RANGE
                         + ", "
                         + IndexQueryType.ENTITY_FILTER
+                        + ", "
+                        + IndexQueryType.IN_SET
                         + "]. Provided: "
                         + predicate);
         };
@@ -126,8 +132,8 @@ final class Lucene10FilterQueryBuilder {
         return new TermInSetQuery(ENTITY_ID_KEY, idStrings);
     }
 
-    private Query queryForExact(int propertyIndex, ExactPredicate predicate) {
-        return switch (predicate.value()) {
+    private Query singleValueQuery(int propertyIndex, Value value) {
+        return switch (value) {
             case NoValue ignore -> MatchNoDocsQuery.INSTANCE;
             case BooleanValue b ->
                 Lucene10ValueFields.BooleanField.newExactQuery(
@@ -181,7 +187,30 @@ final class Lucene10FilterQueryBuilder {
             case DurationValue d -> exactDurationQuery(d, propertyIndex);
 
             case null -> null;
-            default -> throw typeNotSupported(predicate.value());
+            default -> throw typeNotSupported(value);
+        };
+    }
+
+    private Query queryForExact(int propertyIndex, ExactPredicate predicate) {
+        return singleValueQuery(propertyIndex, predicate.value());
+    }
+
+    private Query queryForInSet(int propertyIndex, InSetPredicate predicate) {
+
+        ArrayValue values = predicate.values();
+        List<Query> queries = new ArrayList<>(values.intSize());
+        for (AnyValue anyValue : values) {
+            if (anyValue instanceof Value value) {
+                Query valueQuery = singleValueQuery(propertyIndex, value);
+                if (!(valueQuery instanceof MatchNoDocsQuery)) {
+                    queries.add(valueQuery);
+                }
+            }
+        }
+        return switch (queries.size()) {
+            case 0 -> MatchNoDocsQuery.INSTANCE;
+            case 1 -> queries.getFirst();
+            default -> anyQuery(queries);
         };
     }
 

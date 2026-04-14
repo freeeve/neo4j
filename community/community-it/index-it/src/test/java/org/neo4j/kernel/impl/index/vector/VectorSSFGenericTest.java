@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
@@ -78,6 +79,19 @@ class VectorSSFGenericTest extends VectorSSFTestBase {
                         "index with a query predicate which is not an accepted filter type",
                         "Invalid filter type was",
                         IndexQueryType.FULLTEXT_SEARCH.name());
+    }
+
+    @Test
+    void invalidFilterQueryValue() {
+        createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
+        createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(1)));
+        assertThatThrownBy(() -> queryNodeIndex(exactQuery("age", Values.uuidValue(42L, 42L))))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        "Status: 22G03",
+                        "Subcondition: invalid value type",
+                        "Message: Expected the value 00000000-0000-002a-0000-00000000002a to be of type INTEGER, FLOAT, STRING, BOOLEAN, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME or DURATION, but was of type UUID.",
+                        "Subcondition: invalid type");
     }
 
     @Test

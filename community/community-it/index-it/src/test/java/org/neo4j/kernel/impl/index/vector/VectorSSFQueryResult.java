@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.assertj.core.api.Condition;
 import org.neo4j.exceptions.KernelException;
@@ -39,11 +40,11 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 class VectorSSFQueryResult {
-    final long entityId;
-    final float score;
-    List<String> labels = new ArrayList<>();
-    List<String> types = new ArrayList<>();
-    Map<String, Value> values = new HashMap<>();
+    private final long entityId;
+    private final float score;
+    private final List<String> labels = new ArrayList<>();
+    private final List<String> types = new ArrayList<>();
+    private final Map<String, Value> values = new HashMap<>();
 
     public float score() {
         return score;
@@ -113,6 +114,22 @@ class VectorSSFQueryResult {
         return queryResult;
     }
 
+    public long getEntityId() {
+        return entityId;
+    }
+
+    public Map<String, Value> mapForKeys(String... keys) {
+        final Map<String, Value> result = new HashMap<>(keys.length);
+        for (String key : keys) {
+            result.put(key, values.get(key));
+        }
+        return result;
+    }
+
+    public static Function<VectorSSFQueryResult, Object> extractor(String key) {
+        return result -> result.values.get(key).asObject();
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this)
@@ -126,4 +143,6 @@ class VectorSSFQueryResult {
         Value value = Values.of(o);
         return new Condition<VectorSSFQueryResult>(s -> s.getValue(key).equals(value), "value %s=%s", key, value);
     }
+
+    static class ResultList extends ArrayList<VectorSSFQueryResult> {}
 }
