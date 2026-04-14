@@ -75,6 +75,7 @@ import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
@@ -103,6 +104,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
+@Disabled("Disabled since 25/10/24 whilst debugging test framework issues")
 @TestDirectoryExtension
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ConnectionTrackingIT {
