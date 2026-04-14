@@ -45,6 +45,9 @@ import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.virtual.ListValue;
+import org.neo4j.values.virtual.MapValue;
+import org.neo4j.values.virtual.VirtualNodeValue;
+import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
 
 /**
@@ -142,6 +145,12 @@ public final class CypherMath {
                     DateTimeValue.CYPHER_TYPE_NAME,
                     LocalDateTimeValue.CYPHER_TYPE_NAME,
                     ListValue.CYPHER_TYPE_NAME);
+        }
+
+        // Only lists can be added to nodes, relationships and maps.
+        // Positive cases are covered under 'List addition' above
+        if (lhs instanceof VirtualNodeValue || lhs instanceof VirtualRelationshipValue || lhs instanceof MapValue) {
+            expectedTypes = List.of(ListValue.CYPHER_TYPE_NAME);
         }
 
         if (lhs == null) {
