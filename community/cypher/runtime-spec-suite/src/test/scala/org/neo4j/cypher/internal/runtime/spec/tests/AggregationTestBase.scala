@@ -1037,10 +1037,10 @@ abstract class AggregationTestBase[CONTEXT <: RuntimeContext](
         null,
         0,
         0,
-        0,
-        0,
-        0,
-        0
+        null,
+        null,
+        null,
+        null
       )
   }
 
