@@ -99,6 +99,7 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.arguments.KernelVersionSource;
 import org.neo4j.test.extension.Inject;
@@ -963,7 +964,13 @@ class TransactionLogFileTest {
         try (StoreChannel storeChannel = fileSystem.write(filesHelper.getFileForVersion(version))) {
             LogFormat logFormat = LogFormat.fromKernelVersion(kernelVersion);
             LogHeader logHeader = logFormat.newHeader(
-                    version, lastAppendIndex, LogHeader.UNKNOWN_TERM, STORE_ID, 256, BASE_TX_CHECKSUM, kernelVersion);
+                    version,
+                    lastAppendIndex,
+                    LogHeader.UNKNOWN_TERM,
+                    StoreIdentifier.newStoreIdentifier(STORE_ID),
+                    256,
+                    BASE_TX_CHECKSUM,
+                    kernelVersion);
             writeLogHeader(storeChannel, logHeader, INSTANCE);
         }
     }

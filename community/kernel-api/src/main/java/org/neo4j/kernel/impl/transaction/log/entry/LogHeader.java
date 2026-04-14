@@ -24,7 +24,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LO
 import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 public class LogHeader {
     /**
@@ -37,7 +37,7 @@ public class LogHeader {
     private final LogFormat logFormatVersion;
     private final long logVersion;
     private final long lastAppendIndex;
-    private final StoreId storeId;
+    private final StoreIdentifier storeIdentifier;
     private final LogPosition startPosition;
     private final int segmentBlockSize;
     private final long lastTerm;
@@ -49,7 +49,7 @@ public class LogHeader {
             long logVersion,
             long lastAppendIndex,
             long lastTerm,
-            StoreId storeId,
+            StoreIdentifier storeIdentifier,
             long headerSize,
             int segmentBlockSize,
             int previousLogFileChecksum,
@@ -57,7 +57,7 @@ public class LogHeader {
         this.logFormatVersion = LogFormat.fromByteVersion(logFormatVersion);
         this.logVersion = logVersion;
         this.lastAppendIndex = lastAppendIndex;
-        this.storeId = storeId;
+        this.storeIdentifier = storeIdentifier;
         this.segmentBlockSize = segmentBlockSize;
         this.lastTerm = lastTerm;
         if (segmentBlockSize != UNKNOWN_LOG_SEGMENT_SIZE) {
@@ -74,7 +74,7 @@ public class LogHeader {
         logFormatVersion = logHeader.logFormatVersion;
         logVersion = version;
         lastAppendIndex = logHeader.lastAppendIndex;
-        storeId = logHeader.storeId;
+        storeIdentifier = logHeader.storeIdentifier;
         segmentBlockSize = logHeader.segmentBlockSize;
         startPosition = new LogPosition(version, logHeader.startPosition.getByteOffset());
         previousLogFileChecksum = logHeader.previousLogFileChecksum;
@@ -86,7 +86,7 @@ public class LogHeader {
         logFormatVersion = logHeader.logFormatVersion;
         logVersion = version;
         lastAppendIndex = newLastAppendIndex;
-        storeId = logHeader.storeId;
+        storeIdentifier = logHeader.storeIdentifier;
         segmentBlockSize = logHeader.segmentBlockSize;
         startPosition = new LogPosition(version, logHeader.startPosition.getByteOffset());
         previousLogFileChecksum = checksum;
@@ -106,8 +106,8 @@ public class LogHeader {
         return logVersion;
     }
 
-    public StoreId getStoreId() {
-        return storeId;
+    public StoreIdentifier getStoreIdentifier() {
+        return storeIdentifier;
     }
 
     public int getSegmentBlockSize() {
@@ -142,7 +142,7 @@ public class LogHeader {
         return logFormatVersion == logHeader.logFormatVersion
                 && logVersion == logHeader.logVersion
                 && lastAppendIndex == logHeader.lastAppendIndex
-                && Objects.equals(storeId, logHeader.storeId)
+                && Objects.equals(storeIdentifier, logHeader.storeIdentifier)
                 && Objects.equals(startPosition, logHeader.startPosition)
                 && segmentBlockSize == logHeader.segmentBlockSize
                 && previousLogFileChecksum == logHeader.previousLogFileChecksum
@@ -156,7 +156,7 @@ public class LogHeader {
                 logFormatVersion,
                 logVersion,
                 lastAppendIndex,
-                storeId,
+                storeIdentifier,
                 startPosition,
                 segmentBlockSize,
                 previousLogFileChecksum,
@@ -168,7 +168,7 @@ public class LogHeader {
     public String toString() {
         return "LogHeader{" + "logFormatVersion=" + logFormatVersion + ", logVersion=" + logVersion
                 + ", lastAppendIndex=" + lastAppendIndex + ", lastTerm="
-                + lastTerm + ", storeId=" + storeId + ", startPosition=" + startPosition
+                + lastTerm + ", storeIdentifier=" + storeIdentifier + ", startPosition=" + startPosition
                 + ", segmentBlockSize="
                 + segmentBlockSize + ", previousLogFileChecksum=" + previousLogFileChecksum + ", kernelVersion="
                 + kernelVersion + '}';

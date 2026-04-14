@@ -122,6 +122,10 @@ public class StoreId extends StoreVersionIdentifier {
                 && super.isSameOrUpgradeSuccessor(anotherId);
     }
 
+    public boolean isSameOrUpgradeSuccessor(StoreIdentifier anotherId) {
+        return random == anotherId.randomValueIdentifier();
+    }
+
     /**
      * Checks if the store version represented by this store ID is known to and fully supported by these binaries.
      * <p>

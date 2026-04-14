@@ -109,7 +109,7 @@ import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngine;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -344,7 +344,7 @@ class BatchingTransactionAppenderTest {
                 0,
                 BASE_APPEND_INDEX,
                 LogHeader.UNKNOWN_TERM,
-                StoreId.UNKNOWN,
+                StoreIdentifier.UNKNOWN,
                 512,
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);

@@ -76,7 +76,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StorageCommand;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -114,7 +114,7 @@ class EnvelopeReadChannelTest {
                             42,
                             1,
                             10,
-                            StoreId.UNKNOWN,
+                            StoreIdentifier.UNKNOWN,
                             segmentSize,
                             previousLogFileChecksum,
                             LatestVersions.LATEST_KERNEL_VERSION));

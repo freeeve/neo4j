@@ -77,6 +77,7 @@ import org.neo4j.storageengine.api.GeneratedStore;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreGenerator;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.StoreSeeder;
 
 /**
@@ -236,8 +237,8 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 StorageEngineFactory.selectStorageEngine(fs, databaseLayout).orElseThrow();
         var logTailMetadata =
                 new LogTailMetadataFactoryImpl(fs).getLogTailMetadata(config, databaseLayout, storageEngineFactory);
-        var existingStoreId = logTailMetadata.getStoreId().orElseThrow();
-        if (!existingStoreId.equals(storeId)) {
+        StoreIdentifier existingStoreId = logTailMetadata.getStoreIdentifier().orElseThrow();
+        if (!existingStoreId.matches(storeId)) {
             throw new IllegalStateException(
                     "Existing " + existingStoreId + " of " + databaseLayout + " doesn't match expected " + storeId);
         }

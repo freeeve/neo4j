@@ -31,7 +31,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.enveloped.PruneStrategy.PruneConstraint;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -130,7 +130,8 @@ class LogPruningByEntryStrategyTest {
 
             LogFormat.writeLogHeader(
                     channel.channel(),
-                    LogFormat.V11.newHeader(version, prevIndex, 0, StoreId.UNKNOWN, 246, 1, KernelVersion.V2026_01),
+                    LogFormat.V11.newHeader(
+                            version, prevIndex, 0, StoreIdentifier.UNKNOWN, 246, 1, KernelVersion.V2026_01),
                     EmptyMemoryTracker.INSTANCE);
             channel.channel().flush();
         }

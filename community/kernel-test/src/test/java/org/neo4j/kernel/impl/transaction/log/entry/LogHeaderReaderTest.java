@@ -43,6 +43,7 @@ import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -287,7 +288,7 @@ class LogHeaderReaderTest {
                                 logVersion,
                                 previousCommittedTx,
                                 LogHeader.UNKNOWN_TERM,
-                                storeId,
+                                StoreIdentifier.newStoreIdentifier(storeId),
                                 UNKNOWN_LOG_SEGMENT_SIZE,
                                 BASE_TX_CHECKSUM,
                                 null);
@@ -329,7 +330,7 @@ class LogHeaderReaderTest {
                                 logVersion,
                                 appendIndex,
                                 LogHeader.UNKNOWN_TERM,
-                                storeId,
+                                StoreIdentifier.newStoreIdentifier(storeId),
                                 UNKNOWN_LOG_SEGMENT_SIZE,
                                 BASE_TX_CHECKSUM,
                                 null);
@@ -367,7 +368,13 @@ class LogHeaderReaderTest {
                             int checksum,
                             long term) {
                         return LogFormat.V10.newHeader(
-                                logVersion, appendIndex, term, storeId, segmentSize, checksum, LATEST_KERNEL_VERSION);
+                                logVersion,
+                                appendIndex,
+                                term,
+                                StoreIdentifier.newStoreIdentifier(storeId),
+                                segmentSize,
+                                checksum,
+                                LATEST_KERNEL_VERSION);
                     }
                 });
     }

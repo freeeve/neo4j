@@ -32,7 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionId;
 
 public class LogTailInformation implements LogTailMetadata {
@@ -42,7 +42,7 @@ public class LogTailInformation implements LogTailMetadata {
     public final long currentLogVersion;
     public final byte firstLogEntryVersionAfterCheckpoint;
     private final boolean hasRecordsToRecover;
-    private final StoreId storeId;
+    private final StoreIdentifier storeIdentifier;
     private final KernelVersionProvider fallbackKernelVersionProvider;
     private final LogFormatVersionProvider logFormatProvider;
     private final LastAppendBatchInfoProvider lastAppendBatchInfoProvider;
@@ -56,7 +56,8 @@ public class LogTailInformation implements LogTailMetadata {
             byte firstLogEntryVersionAfterCheckpoint,
             KernelVersionProvider fallbackKernelVersionProvider,
             LogFormatVersionProvider logFormatProvider,
-            LastAppendBatchInfoProvider lastAppendBatchInfoProvider) {
+            LastAppendBatchInfoProvider lastAppendBatchInfoProvider,
+            StoreIdentifier storeIdentifier) {
         this(
                 null,
                 hasRecordsToRecover,
@@ -64,7 +65,7 @@ public class LogTailInformation implements LogTailMetadata {
                 filesNotFound,
                 currentLogVersion,
                 firstLogEntryVersionAfterCheckpoint,
-                null,
+                storeIdentifier,
                 fallbackKernelVersionProvider,
                 logFormatProvider,
                 lastAppendBatchInfoProvider);
@@ -77,7 +78,7 @@ public class LogTailInformation implements LogTailMetadata {
             boolean filesNotFound,
             long currentLogVersion,
             byte firstLogEntryVersionAfterCheckpoint,
-            StoreId storeId,
+            StoreIdentifier storeIdentifier,
             KernelVersionProvider fallbackKernelVersionProvider,
             LogFormatVersionProvider logFormatProvider,
             LastAppendBatchInfoProvider lastAppendBatchInfoProvider) {
@@ -87,7 +88,7 @@ public class LogTailInformation implements LogTailMetadata {
         this.currentLogVersion = currentLogVersion;
         this.firstLogEntryVersionAfterCheckpoint = firstLogEntryVersionAfterCheckpoint;
         this.hasRecordsToRecover = hasRecordsToRecover;
-        this.storeId = storeId;
+        this.storeIdentifier = storeIdentifier;
         this.fallbackKernelVersionProvider = fallbackKernelVersionProvider;
         this.logFormatProvider = logFormatProvider;
         this.lastAppendBatchInfoProvider = lastAppendBatchInfoProvider;
@@ -116,8 +117,8 @@ public class LogTailInformation implements LogTailMetadata {
     }
 
     @Override
-    public Optional<StoreId> getStoreId() {
-        return Optional.ofNullable(storeId);
+    public Optional<StoreIdentifier> getStoreIdentifier() {
+        return Optional.ofNullable(storeIdentifier);
     }
 
     @Override
@@ -131,7 +132,7 @@ public class LogTailInformation implements LogTailMetadata {
                 + firstAppendIndexAfterLastCheckPoint + ", filesNotFound="
                 + filesNotFound + ", currentLogVersion=" + currentLogVersion + ", firstLogEntryVersionAfterCheckpoint="
                 + firstLogEntryVersionAfterCheckpoint
-                + ", hasRecordsToRecover=" + hasRecordsToRecover + '}';
+                + ", hasRecordsToRecover=" + hasRecordsToRecover + ", storeIdentifier= " + storeIdentifier + '}';
     }
 
     @Override

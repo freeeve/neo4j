@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 class LogHeaderCacheTest {
     @Test
@@ -55,7 +56,7 @@ class LogHeaderCacheTest {
                         1,
                         3,
                         LogHeader.UNKNOWN_TERM,
-                        new StoreId(1, 2, "engine-1", "format-1", 3, 4),
+                        StoreIdentifier.newStoreIdentifier(new StoreId(1, 2, "engine-1", "format-1", 3, 4)),
                         LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                         BASE_TX_CHECKSUM,
                         LATEST_KERNEL_VERSION));
@@ -77,7 +78,7 @@ class LogHeaderCacheTest {
                         1,
                         3,
                         LogHeader.UNKNOWN_TERM,
-                        new StoreId(1, 2, "engine-1", "format-1", 3, 4),
+                        StoreIdentifier.newStoreIdentifier(new StoreId(1, 2, "engine-1", "format-1", 3, 4)),
                         LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                         BASE_TX_CHECKSUM,
                         LATEST_KERNEL_VERSION));

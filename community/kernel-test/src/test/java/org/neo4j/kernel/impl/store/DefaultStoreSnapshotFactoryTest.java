@@ -50,7 +50,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.internal.DatabaseLogProvider;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.StoreResource;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -88,7 +88,7 @@ class DefaultStoreSnapshotFactoryTest {
         LogFiles logFiles = mock(LogFiles.class);
         LogFile logFile = mock(LogFile.class);
         when(logFile.extractHeader(1))
-                .thenReturn(LATEST_LOG_FORMAT.newHeader(1, 1, 1, StoreId.UNKNOWN, 1, 1, LATEST_KERNEL_VERSION));
+                .thenReturn(LATEST_LOG_FORMAT.newHeader(1, 1, 1, StoreIdentifier.UNKNOWN, 1, 1, LATEST_KERNEL_VERSION));
         when(logFiles.getLogFile()).thenReturn(logFile);
         when(database.getDependencyResolver()).thenReturn(dependenciesOf(checkPointer, logFiles));
         when(database.getDatabaseAvailabilityGuard()).thenReturn(availabilityGuard);

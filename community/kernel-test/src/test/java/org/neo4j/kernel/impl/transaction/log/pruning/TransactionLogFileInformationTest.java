@@ -50,6 +50,7 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.LatestVersions;
 
 class TransactionLogFileInformationTest {
@@ -99,7 +100,7 @@ class TransactionLogFileInformationTest {
                 2,
                 baseId + 1L,
                 LogHeader.UNKNOWN_TERM,
-                storeId,
+                StoreIdentifier.newStoreIdentifier(storeId),
                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
@@ -129,7 +130,7 @@ class TransactionLogFileInformationTest {
                 2,
                 4,
                 LogHeader.UNKNOWN_TERM,
-                storeId,
+                StoreIdentifier.newStoreIdentifier(storeId),
                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
@@ -157,7 +158,7 @@ class TransactionLogFileInformationTest {
                 2,
                 4,
                 LogHeader.UNKNOWN_TERM,
-                storeId,
+                StoreIdentifier.newStoreIdentifier(storeId),
                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);

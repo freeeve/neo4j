@@ -109,6 +109,7 @@ import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageFilesState;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -957,7 +958,7 @@ class TransactionLogsRecoveryTest {
                 logVersion,
                 3L,
                 LogEnvelopeHeader.UNSPECIFIED_TERM,
-                storeId,
+                StoreIdentifier.newStoreIdentifier(storeId),
                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);

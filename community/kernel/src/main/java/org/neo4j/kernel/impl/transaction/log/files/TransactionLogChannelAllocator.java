@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 public class TransactionLogChannelAllocator {
     private final TransactionLogFilesContext logFilesContext;
@@ -143,7 +144,7 @@ public class TransactionLogChannelAllocator {
                                 version,
                                 lastAppendIndex,
                                 LogHeader.UNKNOWN_TERM,
-                                logFilesContext.getStoreId(),
+                                StoreIdentifier.newStoreIdentifier(logFilesContext.getStoreId()),
                                 logFilesContext.getEnvelopeSegmentBlockSizeBytes(),
                                 previousLogFileChecksum,
                                 kernelVersion);

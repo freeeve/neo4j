@@ -25,13 +25,21 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 public class BaseLogHeaderFactory implements LogHeaderFactory {
 
     private volatile KernelVersion currentAppendedDatabaseVersion;
+    private final StoreIdentifier storeIdentifier;
 
-    public BaseLogHeaderFactory(KernelVersion currentAppendedDatabaseVersion) {
+    public BaseLogHeaderFactory(KernelVersion currentAppendedDatabaseVersion, StoreIdentifier storeIdentifier) {
         this.currentAppendedDatabaseVersion = currentAppendedDatabaseVersion;
+        this.storeIdentifier = storeIdentifier;
+    }
+
+    public BaseLogHeaderFactory(KernelVersion currentAppendedDatabaseVersion, StoreId storeId) {
+        this.currentAppendedDatabaseVersion = currentAppendedDatabaseVersion;
+        this.storeIdentifier = StoreIdentifier.newStoreIdentifier(storeId);
     }
 
     @Override
@@ -46,7 +54,7 @@ public class BaseLogHeaderFactory implements LogHeaderFactory {
                     + " found logFormat=" + logFormat);
         }
         return logFormat.newHeader(
-                newFileVersion, lastAppendIndex, preFileTerm, StoreId.UNKNOWN, segmentSize, lastChecksum, version);
+                newFileVersion, lastAppendIndex, preFileTerm, storeIdentifier, segmentSize, lastChecksum, version);
     }
 
     public void setVersion(KernelVersion databaseVersion) {

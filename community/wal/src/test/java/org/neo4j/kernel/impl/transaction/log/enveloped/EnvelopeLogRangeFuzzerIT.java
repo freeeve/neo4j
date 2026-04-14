@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -46,7 +47,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -216,7 +217,8 @@ public class EnvelopeLogRangeFuzzerIT {
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
-                                StoreId.UNKNOWN,
+                                StoreIdentifier.newStoreIdentifier(
+                                        ThreadLocalRandom.current().nextLong()),
                                 segmentSize,
                                 preFileChecksum,
                                 KernelVersion.GLORIOUS_FUTURE),

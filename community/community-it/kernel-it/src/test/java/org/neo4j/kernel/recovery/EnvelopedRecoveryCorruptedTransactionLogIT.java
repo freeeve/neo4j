@@ -59,6 +59,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionIdStore;
 
 class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransactionLogIT {
@@ -178,7 +179,7 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
         StoreId badStoreId = StoreId.generateNew("block", "block", 1, 2);
         return Stream.of(
                 Arguments.of(StoreId.UNKNOWN, false, false),
-                Arguments.of(StoreId.UNKNOWN, true, true),
+                Arguments.of(StoreId.UNKNOWN, true, false),
                 Arguments.of(badStoreId, false, false),
                 Arguments.of(badStoreId, true, false));
     }
@@ -229,7 +230,7 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
                             currentHeader.getLogVersion(),
                             currentHeader.getLastAppendIndex(),
                             currentHeader.getLastTerm(),
-                            storeId,
+                            StoreIdentifier.newStoreIdentifier(storeId),
                             currentHeader.getSegmentBlockSize(),
                             currentHeader.getPreviousLogFileChecksum(),
                             currentHeader.getKernelVersion());

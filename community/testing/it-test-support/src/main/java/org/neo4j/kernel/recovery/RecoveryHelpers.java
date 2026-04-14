@@ -89,7 +89,12 @@ public final class RecoveryHelpers {
     }
 
     public static boolean logsContainCheckpoint(DatabaseLayout dbLayout, FileSystemAbstraction fs) throws IOException {
-        Optional<CheckpointInfo> latestCheckpoint = getLatestCheckpointInfo(dbLayout, fs, null);
+        return logsContainCheckpoint(dbLayout, fs, null);
+    }
+
+    public static boolean logsContainCheckpoint(DatabaseLayout dbLayout, FileSystemAbstraction fs, Config config)
+            throws IOException {
+        Optional<CheckpointInfo> latestCheckpoint = getLatestCheckpointInfo(dbLayout, fs, config);
         return latestCheckpoint.isPresent();
     }
 

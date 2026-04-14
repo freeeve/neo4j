@@ -57,7 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -106,7 +106,7 @@ class EnvelopeFuzzerTest {
                 INITIAL_LOG_VERSION,
                 BASE_APPEND_INDEX,
                 LogHeader.UNKNOWN_TERM,
-                StoreId.UNKNOWN,
+                StoreIdentifier.UNKNOWN,
                 segmentSize,
                 initialChecksum,
                 KERNEL_VERSION);
@@ -254,7 +254,7 @@ class EnvelopeFuzzerTest {
                             currentVersion.intValue(),
                             lastAppendIndex,
                             LogHeader.UNKNOWN_TERM,
-                            StoreId.UNKNOWN,
+                            StoreIdentifier.UNKNOWN,
                             segmentSize,
                             previousChecksum,
                             KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);

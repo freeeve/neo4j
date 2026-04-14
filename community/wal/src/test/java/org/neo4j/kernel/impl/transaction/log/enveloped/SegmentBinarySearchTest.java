@@ -26,6 +26,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEAD
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
@@ -38,7 +39,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -91,7 +92,8 @@ class SegmentBinarySearchTest {
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
-                                StoreId.UNKNOWN,
+                                StoreIdentifier.newStoreIdentifier(
+                                        ThreadLocalRandom.current().nextLong()),
                                 segmentSize,
                                 preFileChecksum,
                                 KernelVersion.GLORIOUS_FUTURE),

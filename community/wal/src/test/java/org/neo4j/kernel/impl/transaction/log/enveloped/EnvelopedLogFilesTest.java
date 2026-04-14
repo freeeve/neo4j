@@ -60,6 +60,7 @@ import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -115,7 +116,8 @@ class EnvelopedLogFilesTest {
         var baseFolder = testDirectory.directory("logsFolder");
         var filesHelper = new SequentialFileNameHelper(baseFolder, baseFileName);
         mirroringRepository = new LogsRepository(fs, filesHelper);
-        var logHeaderFactory = new BaseLogHeaderFactory(kernelVersion);
+        var logHeaderFactory = new BaseLogHeaderFactory(
+                kernelVersion, StoreIdentifier.newStoreIdentifier(new StoreId(0, 12345, "", "", 1, 1)));
         envelopedLogFiles = new EnvelopedLogFiles(
                 mirroringRepository,
                 logHeaderFactory,
@@ -1378,7 +1380,7 @@ class EnvelopedLogFilesTest {
                             headerOfLastFile.getLogVersion(),
                             2, // out of order as previous file is on appendIndex 11
                             headerOfLastFile.getLastTerm(),
-                            headerOfLastFile.getStoreId(),
+                            headerOfLastFile.getStoreIdentifier(),
                             segmentBlockSize,
                             headerOfLastFile.getPreviousLogFileChecksum(),
                             headerOfLastFile.getKernelVersion());
@@ -1421,7 +1423,7 @@ class EnvelopedLogFilesTest {
                             headerOfLastFile.getLogVersion(),
                             headerOfLastFile.getLastTerm(), // out of order as previous file is on appendIndex 11
                             2L,
-                            headerOfLastFile.getStoreId(),
+                            headerOfLastFile.getStoreIdentifier(),
                             segmentBlockSize,
                             headerOfLastFile.getPreviousLogFileChecksum(),
                             headerOfLastFile.getKernelVersion());
@@ -1440,7 +1442,7 @@ class EnvelopedLogFilesTest {
         // create a non enveloped log file
         try (var channel = mirroringRepository.createWriteChannel(0L).channel()) {
             LogHeader newHeader = LogFormat.V9.newHeader(
-                    0L, -1, -1, StoreId.UNKNOWN, segmentBlockSize, 100, KernelVersion.GLORIOUS_FUTURE);
+                    0L, -1, -1, StoreIdentifier.UNKNOWN, segmentBlockSize, 100, KernelVersion.GLORIOUS_FUTURE);
             channel.position(0);
             LogFormat.writeLogHeader(channel, newHeader, EmptyMemoryTracker.INSTANCE);
             var zeros = new byte[segmentBlockSize];
@@ -1483,7 +1485,9 @@ class EnvelopedLogFilesTest {
                     headerOfLastFile.getLogVersion(),
                     headerOfLastFile.getLastAppendIndex(),
                     headerOfLastFile.getLastTerm(),
-                    headerOfLastFile.getStoreId(),
+                    // V10 needs a full storeId in its headers so use what we got in V11 and make a compatible one
+                    StoreIdentifier.newStoreIdentifier(new StoreId(
+                            0, headerOfLastFile.getStoreIdentifier().randomValueIdentifier(), "", "", 1, 1)),
                     segmentBlockSize,
                     headerOfLastFile.getPreviousLogFileChecksum(),
                     headerOfLastFile.getKernelVersion());

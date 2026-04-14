@@ -51,6 +51,20 @@ class StoreIdTest {
         assertFalse(storeId.isSameOrUpgradeSuccessor(new StoreId(1234, 789, ENGINE_1, FORMAT_FAMILY_2, 3, 7)));
     }
 
+    @Test
+    void testCompatibilityCheckWithLong() {
+        StoreId storeId = new StoreId(1234, 789, ENGINE_1, FORMAT_FAMILY_1, 3, 7);
+        StoreIdentifier storeIdentifier = StoreIdentifier.newStoreIdentifier(storeId);
+        StoreIdentifier limitedStoreId = StoreIdentifier.newStoreIdentifier(789);
+        assertTrue(storeId.isSameOrUpgradeSuccessor(limitedStoreId));
+        assertTrue(limitedStoreId.isSameOrUpgradeSuccessor(storeId));
+        assertTrue(storeIdentifier.isSameOrUpgradeSuccessor(storeId));
+        assertTrue(limitedStoreId.matches(storeId));
+        assertTrue(storeIdentifier.matches(storeId));
+        assertTrue(limitedStoreId.isSameOrUpgradeSuccessor(new StoreId(1234, 789, ENGINE_1, FORMAT_FAMILY_1, 3, 7)));
+        assertFalse(limitedStoreId.isSameOrUpgradeSuccessor(new StoreId(1234, 666, ENGINE_1, FORMAT_FAMILY_1, 3, 7)));
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void testSerialization(boolean betaVersion) throws IOException {

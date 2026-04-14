@@ -813,8 +813,7 @@ public class Database extends AbstractDatabase {
         try (var cursorContext = contextFactory.create(STORE_ID_VALIDATOR_TAG)) {
             validateStoreId(
                     tailMetadata,
-                    storageEngineFactory.retrieveStoreId(fs, databaseLayout, databasePageCache, cursorContext),
-                    databaseConfig);
+                    storageEngineFactory.retrieveStoreId(fs, databaseLayout, databasePageCache, cursorContext));
         }
     }
 

@@ -37,7 +37,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 public final class LogChannelUtils {
 
@@ -120,7 +120,7 @@ public final class LogChannelUtils {
                 0,
                 BASE_APPEND_INDEX,
                 LogHeader.UNKNOWN_TERM,
-                StoreId.UNKNOWN,
+                StoreIdentifier.UNKNOWN,
                 logFormat.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 kernelVersion);

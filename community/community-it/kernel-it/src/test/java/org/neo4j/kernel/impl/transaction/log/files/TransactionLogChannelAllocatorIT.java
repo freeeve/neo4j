@@ -66,6 +66,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -105,7 +106,7 @@ class TransactionLogChannelAllocatorIT {
                             1,
                             1,
                             1,
-                            STORE_ID,
+                            StoreIdentifier.newStoreIdentifier(STORE_ID),
                             LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                             1,
                             LATEST_KERNEL_VERSION),
@@ -132,7 +133,7 @@ class TransactionLogChannelAllocatorIT {
                             1,
                             1,
                             1,
-                            STORE_ID,
+                            StoreIdentifier.newStoreIdentifier(STORE_ID),
                             LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                             1,
                             LATEST_KERNEL_VERSION),

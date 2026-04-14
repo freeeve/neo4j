@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -93,7 +94,7 @@ class ReaderLogVersionBridgeTest {
                         version + 1,
                         2L,
                         LogHeader.UNKNOWN_TERM,
-                        storeId,
+                        StoreIdentifier.newStoreIdentifier(storeId),
                         LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                         BASE_TX_CHECKSUM,
                         LATEST_KERNEL_VERSION);

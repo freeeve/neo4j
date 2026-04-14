@@ -34,7 +34,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -94,7 +94,7 @@ class LogFileBinarySearchTest {
                                 fileVersion,
                                 preFileIndex,
                                 lastTerm,
-                                StoreId.UNKNOWN,
+                                StoreIdentifier.newStoreIdentifier(0),
                                 segmentSize,
                                 preFileChecksum,
                                 KernelVersion.GLORIOUS_FUTURE),

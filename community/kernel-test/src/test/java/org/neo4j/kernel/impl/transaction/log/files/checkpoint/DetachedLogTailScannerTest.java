@@ -415,6 +415,20 @@ class DetachedLogTailScannerTest {
         assertFalse(logTailInformation.logsMissing());
     }
 
+    @Test
+    void tailShouldContainStoreIdOnNoCheckpointIfFilesExist() throws Exception {
+        // given
+        setupLogFiles(2, logFile());
+
+        // when
+        var logTailInformation = logFiles.getTailMetadata();
+
+        // then
+        assertLatestCheckPoint(false, false, UNKNOWN_APPEND_INDEX, false, logTailInformation);
+        assertFalse(logTailInformation.logsMissing());
+        assertThat(logTailInformation.getStoreIdentifier()).isPresent();
+    }
+
     @ParameterizedTest
     @MethodSource("params")
     void oneLogFileNoCheckPointsOneStart(int startLogVersion, int endLogVersion) throws Exception {

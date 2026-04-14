@@ -74,7 +74,7 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
 import org.neo4j.kernel.recovery.LogTailScannerMonitor;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionId;
 
 public class DetachedLogTailScanner {
@@ -93,7 +93,6 @@ public class DetachedLogTailScanner {
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final LogPosition maxPosition;
     private final LogFormatVersionProvider fallbackLogFormatVersionProvider;
-    private final boolean mergeLogsEnabled;
 
     private LogTailMetadata logTail;
 
@@ -116,7 +115,6 @@ public class DetachedLogTailScanner {
         this.monitor = monitor;
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
         this.maxPosition = tailReadingMaxPosition;
-        this.mergeLogsEnabled = context.config().get(GraphDatabaseInternalSettings.merged_log);
     }
 
     public LogTailInformation findLogTail() {
@@ -183,7 +181,7 @@ public class DetachedLogTailScanner {
                 lowestLogVersion == UNKNOWN,
                 highestLogVersion,
                 postCheckPointInfo.getEntryVersion(),
-                checkpoint.storeId(),
+                StoreIdentifier.newStoreIdentifier(checkpoint.storeId()),
                 fallbackKernelVersionProvider,
                 () -> logFormatVersion,
                 new DetachedLogTailAppendIndexProvider(
@@ -210,6 +208,7 @@ public class DetachedLogTailScanner {
             throws IOException {
         var logPosition = LogPosition.UNSPECIFIED;
         var kernelVersion = EARLIEST;
+        StoreIdentifier storeId = null;
         LogFormatVersionProvider logFormat = fallbackLogFormatVersionProvider;
         if (logFile.versionExists(lowestLogVersion)) {
             LogHeader logHeader = logFile.extractHeader(lowestLogVersion);
@@ -217,6 +216,7 @@ public class DetachedLogTailScanner {
                 logPosition = logHeader.getStartPosition();
                 kernelVersion = logHeader.getLogFormatVersion().getFromKernelVersion();
                 logFormat = logHeader::getLogFormatVersion;
+                storeId = logHeader.getStoreIdentifier();
             }
         }
 
@@ -247,7 +247,8 @@ public class DetachedLogTailScanner {
                         UNKNOWN_APPEND_INDEX,
                         startPosition,
                         memoryTracker,
-                        maxPosition));
+                        maxPosition),
+                storeId);
     }
 
     private static LogPosition getLogStartPosition(LogFile logFile, long lowestLogVersion) throws IOException {
@@ -283,11 +284,10 @@ public class DetachedLogTailScanner {
         if (logHeader == null) {
             return false;
         }
-        StoreId headerStoreId = logHeader.getStoreId();
+        StoreIdentifier headerStoreId = logHeader.getStoreIdentifier();
         return headerStoreId == null
                 || headerStoreId.isSameOrUpgradeSuccessor(checkpointInfo.storeId())
-                || checkpointInfo.storeId().isSameOrUpgradeSuccessor(headerStoreId)
-                || (mergeLogsEnabled && headerStoreId.equals(StoreId.UNKNOWN));
+                || checkpointInfo.storeId().isSameOrUpgradeSuccessor(headerStoreId);
     }
 
     private LegacyPostCheckpointInfo getLegacyPostCheckPointInfo(LogFile logFile, LogPosition logPosition)

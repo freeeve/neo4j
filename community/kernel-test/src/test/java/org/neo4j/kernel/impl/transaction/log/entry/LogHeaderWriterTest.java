@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.LOG_VERSION_MASK;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V10;
@@ -40,6 +41,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -60,7 +62,7 @@ class LogHeaderWriterTest {
 
     private long expectedLogVersion;
     private long expectedAppendIndex;
-    private StoreId expectedStoreId;
+    private StoreIdentifier expectedStoreId;
     private int expectedBlockSize;
     private int expectedChecksum;
     private long expectedTerm;
@@ -69,13 +71,13 @@ class LogHeaderWriterTest {
     void setUp() {
         expectedLogVersion = random.nextLong(0, LOG_VERSION_MASK);
         expectedAppendIndex = random.nextLong(0, Long.MAX_VALUE);
-        expectedStoreId = new StoreId(
+        expectedStoreId = StoreIdentifier.newStoreIdentifier(new StoreId(
                 random.nextLong(),
                 random.nextLong(),
                 "engine-" + random.nextInt(0, 255),
                 "format-" + random.nextInt(0, 255),
                 random.nextInt(0, 127),
-                random.nextInt(0, 127));
+                random.nextInt(0, 127)));
         expectedBlockSize = 1 << random.nextInt(7, 10);
         expectedChecksum = random.nextInt();
         expectedTerm = random.nextLong(0, Long.MAX_VALUE);
@@ -113,7 +115,12 @@ class LogHeaderWriterTest {
         final var encodedLogVersions = result.getLong();
         final var txId = V10.compareTo(logFormat) > 0 ? result.getLong() : -1;
         final var appendIndex = V9.compareTo(logFormat) <= 0 ? result.getLong() : -1;
-        StoreId storeId = StoreIdSerialization.deserializeWithFixedSize(result);
+        StoreIdentifier storeId;
+        if (logFormat == LogFormat.V11) {
+            storeId = StoreIdentifier.newStoreIdentifier(result.getLong());
+        } else {
+            storeId = StoreIdentifier.newStoreIdentifier(StoreIdSerialization.deserializeWithFixedSize(result));
+        }
 
         assertEquals(encodeLogVersion(expectedLogVersion, logFormat.getVersionByte()), encodedLogVersions);
         assertEquals(logFormat.getVersionByte(), decodeLogFormatVersion(encodedLogVersions));
@@ -123,7 +130,7 @@ class LogHeaderWriterTest {
         } else if (V10.compareTo(logFormat) > 0) {
             assertEquals(expectedAppendIndex, txId);
         }
-        assertEquals(expectedStoreId, storeId);
+        assertTrue(storeId.matches(expectedStoreId.storeId()));
 
         if (logFormat == V10) {
             assertEquals(expectedBlockSize, result.getInt());

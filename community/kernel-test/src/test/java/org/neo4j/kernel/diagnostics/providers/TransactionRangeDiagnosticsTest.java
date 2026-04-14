@@ -56,6 +56,7 @@ import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFact
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
@@ -271,7 +272,8 @@ class TransactionRangeDiagnosticsTest {
                                 version,
                                 headerAppendIndex,
                                 LogHeader.UNKNOWN_TERM,
-                                new StoreId(12345, 56789, "engine-1", "format-1", 1, 1),
+                                StoreIdentifier.newStoreIdentifier(
+                                        new StoreId(12345, 56789, "engine-1", "format-1", 1, 1)),
                                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                                 BASE_TX_CHECKSUM,
                                 LATEST_KERNEL_VERSION));

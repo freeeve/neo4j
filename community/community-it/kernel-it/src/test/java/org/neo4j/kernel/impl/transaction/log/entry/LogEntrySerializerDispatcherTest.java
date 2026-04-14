@@ -57,7 +57,7 @@ import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.Leases;
 import org.neo4j.storageengine.api.StorageEngineFactory;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.test.arguments.KernelVersionSource;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -84,7 +84,7 @@ class LogEntrySerializerDispatcherTest {
                 1,
                 2,
                 LogHeader.UNKNOWN_TERM,
-                StoreId.UNKNOWN,
+                StoreIdentifier.UNKNOWN,
                 logFormat.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 version);

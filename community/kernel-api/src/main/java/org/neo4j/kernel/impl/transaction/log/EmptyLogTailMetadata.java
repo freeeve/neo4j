@@ -28,7 +28,7 @@ import java.util.Optional;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.storageengine.api.StoreIdentifier;
 import org.neo4j.storageengine.api.TransactionId;
 
 public class EmptyLogTailMetadata implements LogTailMetadata {
@@ -64,7 +64,7 @@ public class EmptyLogTailMetadata implements LogTailMetadata {
     }
 
     @Override
-    public Optional<StoreId> getStoreId() {
+    public Optional<StoreIdentifier> getStoreIdentifier() {
         return Optional.empty();
     }
 

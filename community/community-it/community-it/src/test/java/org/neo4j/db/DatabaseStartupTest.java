@@ -134,7 +134,8 @@ class DatabaseStartupTest {
             var originalId = metadataProvider.getStoreId();
             var newStoreId = new StoreId(
                     System.currentTimeMillis() + 1,
-                    originalId.getRandom(),
+                    // Make sure to change the random - from logformat V11 only the random value connects logs and store
+                    originalId.getRandom() + 1,
                     originalId.getStorageEngineName(),
                     originalId.getFormatName(),
                     originalId.getMajorVersion(),

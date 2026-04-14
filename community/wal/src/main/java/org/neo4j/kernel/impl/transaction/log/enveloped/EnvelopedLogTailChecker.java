@@ -42,6 +42,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionExceptio
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.StoreIdentifier;
 
 public class EnvelopedLogTailChecker {
     private final LogsRepository logsRepository;
@@ -156,6 +157,7 @@ public class EnvelopedLogTailChecker {
         long expectedLogVersion = versionRange.from();
         long lastHeaderTerm = -1L;
         long lastHeaderAppendIndex = -1L;
+        StoreIdentifier storeIdentifier = null;
         LogFormat lastLogFormat = LogFormat.V10;
 
         for (long version = versionRange.from(); version <= versionRange.to(); version++) {
@@ -239,6 +241,14 @@ public class EnvelopedLogTailChecker {
                             + " than previous file with header previousTerm: " + lastHeaderTerm);
                 }
                 lastHeaderTerm = logHeader.getLastTerm();
+
+                if (logHeader.getStoreIdentifier() == null
+                        || (storeIdentifier != null && !storeIdentifier.equals(logHeader.getStoreIdentifier()))) {
+                    throw new InconsistentLogFilesException("Log File: " + logsRepository.pathFor(version)
+                            + " has inconsistent storeIdentifier: " + logHeader.getStoreIdentifier()
+                            + " than previous file with storeIdentifier: " + storeIdentifier);
+                }
+                storeIdentifier = logHeader.getStoreIdentifier();
             } catch (NoSuchFileException e) {
                 throw new InconsistentLogFilesException("Missing log file: "
                         + logsRepository.pathFor(expectedLogVersion) + " expected for version " + expectedLogVersion);

@@ -86,7 +86,8 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
                         LATEST_LOG_FORMAT_PROVIDER,
-                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
+                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER,
+                        null));
 
         // when
         RecoveryStartInformation recoveryStartInformation =
@@ -201,7 +202,8 @@ class RecoveryStartInformationProviderTest {
                         kernelVersion.version(),
                         kernelProv,
                         LATEST_LOG_FORMAT_PROVIDER,
-                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
+                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER,
+                        null));
         when(logFiles.getLogFile().getLogRangeInfo()).thenReturn(new LogRangeInfo(0, null, 0, null));
 
         // when
@@ -228,7 +230,8 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
                         LATEST_LOG_FORMAT_PROVIDER,
-                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
+                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER,
+                        null));
 
         RecoveryStartInformation recoveryStartInformation =
                 new RecoveryStartInformationProvider(logFiles, monitor, Config.defaults()).get();
@@ -250,7 +253,8 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
                         LATEST_LOG_FORMAT_PROVIDER,
-                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
+                        EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER,
+                        null));
 
         // when
         final String expectedMessage = "No check point found in any log file and transaction log "
