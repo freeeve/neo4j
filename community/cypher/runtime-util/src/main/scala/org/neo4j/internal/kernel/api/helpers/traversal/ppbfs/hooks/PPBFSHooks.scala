@@ -60,9 +60,9 @@ abstract class PPBFSHooks {
   def validateSourceLength(nodeState: NodeState, lengthFromSource: Int, tracedLengthToTarget: Int): Unit = {}
 
   // PathTracer
-  def returnPath(signposts: SignpostStack): Unit = {}
-  def foundPath(signposts: SignpostStack): Unit = {}
-  def invalidTrail(signposts: SignpostStack): Unit = {}
+  def returned(signposts: SignpostStack): Unit = {}
+  def found(signposts: SignpostStack): Unit = {}
+  def invalid(signposts: SignpostStack): Unit = {}
   def skippingDuplicateRelationship(signposts: SignpostStack): Unit = {}
   def pushSignpost(signposts: SignpostStack): Unit = {}
   def popSignpost(signposts: SignpostStack, popped: TwoWaySignpost): Unit = {}

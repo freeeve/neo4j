@@ -1644,6 +1644,242 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     )
   }
 
+  /**
+   * Acyclic mode
+   */
+  test("acyclic does not allow node revisits in undirected traversal") {
+    // Graph: (n1)-->(n2) with one relationship
+    // NFA: (s) ((a)--(b))+ (t) — undirected
+    // Trail: allows (n1)-->(n2) only (single rel, can't reuse)
+    // Acyclic: same result (n1)-->(n2) only — backtracking would revisit n1
+    val graph = `(n1)-->(n2)`
+
+    val paths = fixture()
+      .withGraph(graph.graph)
+      .from(graph.n1)
+      .withNfa(`(s) ((a)--(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .paths()
+
+    paths shouldBe Seq(
+      Seq(graph.n1, graph.n1, graph.r1_2, graph.n2, graph.n2)
+    )
+  }
+
+  test("acyclic filters paths with node revisits in cycle graph") {
+    // Graph: triangle (a)-->(b)-->(c)-->(a)
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    val c = g.node()
+    val r_ab = g.rel(a, b)
+    val r_bc = g.rel(b, c)
+    g.rel(c, a)
+    val graph = g.build()
+
+    val paths = fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .paths()
+
+    // Acyclic: a->b (length 1), a->b->c (length 2)
+    // The full cycle a->b->c->a is forbidden because node 'a' is revisited
+    paths shouldBe Seq(
+      Seq(a, a, r_ab, b, b),
+      Seq(a, a, r_ab, b, b, r_bc, c, c)
+    )
+  }
+
+  test("acyclic with self-loops filters them out") {
+    // Graph: node 'a' with two self-loops, plus a->b
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    g.rel(a, a)
+    g.rel(a, a)
+    val ab = g.rel(a, b)
+    val graph = g.build()
+
+    val paths = fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .paths()
+
+    paths shouldBe Seq(
+      Seq(a, a, ab, b, b)
+    )
+  }
+
+  test("acyclic assertExpected on cycle graph") {
+    // Use assertExpected to validate the DFS reference implementation agrees
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    val c = g.node()
+    g.rel(a, b)
+    g.rel(b, c)
+    g.rel(c, a)
+    val graph = g.build()
+
+    fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic undirected 3-node chain — source n1") {
+    val graph = `(n1)-->(n2)-->(n3)`
+    fixture()
+      .withGraph(graph.graph)
+      .from(graph.n1)
+      .withNfa(`(s) ((a)--(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic undirected 3-node chain — source n2") {
+    val graph = `(n1)-->(n2)-->(n3)`
+    fixture()
+      .withGraph(graph.graph)
+      .from(graph.n2)
+      .withNfa(`(s) ((a)--(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic undirected 3-node chain — source n3") {
+    val graph = `(n1)-->(n2)-->(n3)`
+    fixture()
+      .withGraph(graph.graph)
+      .from(graph.n3)
+      .withNfa(`(s) ((a)--(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic diamond graph — multiple shortest paths to same target") {
+    // Graph: a→b, a→c, b→d, c→d — diamond shape
+    // Both a→b→d and a→c→d are shortest acyclic paths (length 2)
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    val c = g.node()
+    val d = g.node()
+    g.rel(a, b)
+    g.rel(a, c)
+    g.rel(b, d)
+    g.rel(c, d)
+    val graph = g.build()
+
+    fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic source=target with directed cycle should return no non-trivial paths") {
+    // Graph: a→b→c→a — triangle
+    // Source = a, looking for paths ((a)-->(b))+ that end at a
+    // The only way back to a is a→b→c→a which revisits a — forbidden in acyclic
+    // So no paths should be returned (the NFA has separate start/final states, so no zero-length path)
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    val c = g.node()
+    g.rel(a, b)
+    g.rel(b, c)
+    g.rel(c, a)
+    val graph = g.build()
+
+    val paths = fixture()
+      .withGraph(graph)
+      .from(a)
+      .into(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .paths()
+
+    paths shouldBe empty
+  }
+
+  test("acyclic multiple targets at same depth with shared signposts") {
+    // Graph: a→b→c, a→b→d, d→a — shared edge a→b leads to both acyclic and cyclic paths
+    // Target c at depth 2: a→b→c (acyclic ✓)
+    // Target d at depth 2: a→b→d (acyclic ✓)
+    // But path a→b→d→a→... would be cyclic (revisits a)
+    // Verifies shared signpost a→b is not damaged by cycle detection on other branches
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val b = g.node()
+    val c = g.node()
+    val d = g.node()
+    g.rel(a, b)
+    g.rel(b, c)
+    g.rel(b, d)
+    g.rel(d, a) // creates potential cycle
+    val graph = g.build()
+
+    fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
+  test("acyclic single node with start=final state returns single node path") {
+    // Source = target with zero-length NFA (start state IS final state)
+    // The single node path is valid in acyclic mode (no edges, no revisits)
+    // The NFA (s) ((a)-->(b))* (t) has NJ from s→a→...→t, so zero-length path visits 3 NFA states
+    val g = InMemoryGraph.builder
+    val a = g.node()
+    val graph = g.build()
+
+    val paths = fixture()
+      .withGraph(graph)
+      .from(a)
+      .withNfa(`(s) ((a)-->(b))* (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .paths()
+
+    // Zero-length path: node a appears once per NFA state traversed (s→a→t via node juxtapositions)
+    paths shouldBe Seq(Seq(a, a, a))
+  }
+
+  test("acyclic complete graph K4") {
+    // 4-node complete directed graph — many potential cycles
+    // Exercises the tracker with high connectivity
+    val g = InMemoryGraph.builder
+    val nodes = (0 until 4).map(_ => g.node())
+    for (i <- nodes; j <- nodes; if i != j) g.rel(i, j)
+    val graph = g.build()
+
+    fixture()
+      .withGraph(graph)
+      .from(nodes.head)
+      .withNfa(`(s) ((a)-->(b))+ (t)`)
+      .withPathMode(TraversalPathMode.Acyclic)
+      .withMaxDepth(10)
+      .assertExpected()
+  }
+
   /*******************
    * Memory tracking *
    *******************/

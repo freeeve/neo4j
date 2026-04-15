@@ -34,7 +34,7 @@ private[ppbfs] class EventPPBFSHooks(recorder: EventRecorder) extends PPBFSHooks
     recorder.propagateLengthPair(nodeData.id(), lengthFromSource, lengthToTarget)
   }
 
-  override def returnPath(signposts: SignpostStack): Unit = {
+  override def returned(signposts: SignpostStack): Unit = {
     recorder.returnPath(TracedPath.fromSignpostStack(signposts).entities.map(_.id): _*)
   }
 

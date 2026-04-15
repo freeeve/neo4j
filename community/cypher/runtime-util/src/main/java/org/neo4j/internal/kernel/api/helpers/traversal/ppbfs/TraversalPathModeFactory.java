@@ -55,4 +55,18 @@ public interface TraversalPathModeFactory {
             }
         };
     }
+
+    static TraversalPathModeFactory acyclicMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
+        return new TraversalPathModeFactory() {
+            @Override
+            public SignpostTracking twoWaySignpostTracking() {
+                return SignpostTracking.acyclicMode(memoryTracker, hooks);
+            }
+
+            @Override
+            public Lengths lengths() {
+                return Lengths.acyclicMode();
+            }
+        };
+    }
 }

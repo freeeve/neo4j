@@ -49,11 +49,15 @@ public interface Lengths extends Measurable {
     boolean isWalkMode();
 
     static Lengths trailMode() {
-        return new TrailModeLengths();
+        return new ValidatingLengths();
     }
 
     static Lengths walkMode() {
-        return new WalkModeLengths();
+        return new NonValidatingLengths();
+    }
+
+    static Lengths acyclicMode() {
+        return new ValidatingLengths();
     }
 
     /**
@@ -63,7 +67,7 @@ public interface Lengths extends Measurable {
      * <p>
      * Implemented by interleaving multiple indexes into a single bitset, in order to conserve memory (we create many of these).
      */
-    final class TrailModeLengths extends BitSet implements Lengths {
+    final class ValidatingLengths extends BitSet implements Lengths {
         private enum Type {
             SEEN(0),
             VALIDATED(1);
@@ -78,7 +82,7 @@ public interface Lengths extends Measurable {
         private static final int FACTOR = Type.values().length;
 
         private static final long SHALLOW_SIZE =
-                HeapEstimator.shallowSizeOfInstance(TrailModeLengths.class) + HeapEstimator.sizeOfLongArray(1);
+                HeapEstimator.shallowSizeOfInstance(ValidatingLengths.class) + HeapEstimator.sizeOfLongArray(1);
 
         @Override
         public boolean validatedAt(int length) {
@@ -156,11 +160,11 @@ public interface Lengths extends Measurable {
     }
 
     /**
-     * As TrailModeLengths but does not track relationship uniqueness
+     * Like ValidatingLengths but does not track uniqueness
      */
-    class WalkModeLengths extends BitSet implements Lengths {
+    class NonValidatingLengths extends BitSet implements Lengths {
 
-        private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(WalkModeLengths.class);
+        private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(NonValidatingLengths.class);
 
         @Override
         public boolean validatedAt(int length) {

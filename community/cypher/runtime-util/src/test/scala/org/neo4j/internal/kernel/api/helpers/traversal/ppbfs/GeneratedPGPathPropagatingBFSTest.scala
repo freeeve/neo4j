@@ -20,7 +20,6 @@
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
-import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.GraphOperations
 import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
@@ -50,8 +49,9 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
       graph <- testGraphs
       into <- Seq(true, false)
       grouped <- Seq(true, false)
-      pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Walk)
-      k <- if (pathMode == Trail) Seq(Int.MaxValue, 1, 2) else Seq(1, 2, 5)
+      pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Walk, TraversalPathMode.Acyclic)
+      k <- if (pathMode == TraversalPathMode.Trail || pathMode == TraversalPathMode.Acyclic) Seq(Int.MaxValue, 1, 2)
+      else Seq(1, 2, 5)
     } {
       var f = fixture()
         .withGraph(graph.graph)
@@ -83,6 +83,7 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
 
   for {
     template <- Seq(CobwebGraph, DewyCobwebGraph, HierarchicalCluster)
+    pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Acyclic)
   } {
     val seed = Random.nextLong()
     val localRandom = new Random(seed)
@@ -95,13 +96,14 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
     for {
       query <- template.queries(graph)
     } {
-      test(s"graph: ${template.name}, pattern: ${query.nfa}, k: ${query.k}, seed: $seed") {
+      test(s"graph: ${template.name}, pattern: ${query.nfa}, k: ${query.k}, pathMode: ${pathMode}, seed: $seed") {
         for { source <- sources } {
           fixture()
             .withGraph(graph.graph)
             .withNfa(query.nfa)
             .from(source)
             .withK(query.k)
+            .withPathMode(pathMode)
             .assertExpected()
         }
       }

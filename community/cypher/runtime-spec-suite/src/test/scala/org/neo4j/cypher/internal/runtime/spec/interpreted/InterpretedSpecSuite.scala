@@ -176,6 +176,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.SetRelationshipPropertyTestB
 import org.neo4j.cypher.internal.runtime.spec.tests.ShortestPathTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.SkipTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.SortTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.StatefulShortestPathAcyclicModeTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.StatefulShortestPathPropagationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.StatefulShortestPathTrailModeTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.StatefulShortestPathWalkModeTestBase
@@ -500,6 +501,9 @@ class InterpretedStatefulShortestPathTrailModeTest
 
 class InterpretedStatefulShortestPathWalkModeTest
     extends StatefulShortestPathWalkModeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedStatefulShortestPathAcyclicModeTest
+    extends StatefulShortestPathAcyclicModeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedStatefulShortestPathPropagationTrailModeTest
     extends StatefulShortestPathPropagationTestBase(

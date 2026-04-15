@@ -123,16 +123,16 @@ class LoggingPPBFSHooks(minLevel: Level) extends PPBFSHooks {
     log(Debug, "duplicate rels skipped" -> renderPath(signposts))
   }
 
-  override def returnPath(signposts: SignpostStack): Unit = {
-    log(Info, "tracedPath" -> renderPath(signposts))
+  override def returned(signposts: SignpostStack): Unit = {
+    log(Info, "path" -> renderPath(signposts))
   }
 
-  override def foundPath(signposts: SignpostStack): Unit = {
-    log(Info, "tracedPath" -> renderPath(signposts))
+  override def found(signposts: SignpostStack): Unit = {
+    log(Info, "path" -> renderPath(signposts))
   }
 
-  override def invalidTrail(signposts: SignpostStack): Unit = {
-    log(Info, "invalidTrail" -> renderPath(signposts))
+  override def invalid(signposts: SignpostStack): Unit = {
+    log(Info, "path" -> renderPath(signposts))
   }
 
   override def schedule(

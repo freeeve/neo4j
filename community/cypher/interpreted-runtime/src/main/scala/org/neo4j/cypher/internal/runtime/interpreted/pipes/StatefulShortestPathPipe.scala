@@ -177,7 +177,7 @@ object StatefulShortestPathPipe {
     case TraversalPathMode.Trail =>
       TraversalPathModeFactory.trailMode(memoryTracker, hooks)
     case TraversalPathMode.Walk    => TraversalPathModeFactory.walkMode()
-    case TraversalPathMode.Acyclic => ??? // TODO: implement when we implement acyclic for shortest
+    case TraversalPathMode.Acyclic => TraversalPathModeFactory.acyclicMode(memoryTracker, hooks)
   }
 
   def getPathCount(kExpression: Expression, inputRow: CypherRow, state: QueryState): Int = {

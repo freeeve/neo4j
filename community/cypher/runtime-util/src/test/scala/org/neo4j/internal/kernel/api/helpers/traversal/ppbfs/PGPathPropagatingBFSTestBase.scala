@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
+import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.InMemoryGraph
@@ -132,8 +133,11 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     def filter(predicate: A => Boolean): FixtureBuilder[A] = copy(predicate = predicate)
 
     def tracker(memoryTracker: MemoryTracker, hooks: PPBFSHooks): TraversalPathModeFactory =
-      if (pathMode == TraversalPathMode.Walk) TraversalPathModeFactory.walkMode()
-      else TraversalPathModeFactory.trailMode(memoryTracker, hooks)
+      pathMode match {
+        case TraversalPathMode.Walk    => TraversalPathModeFactory.walkMode()
+        case TraversalPathMode.Trail   => TraversalPathModeFactory.trailMode(memoryTracker, hooks)
+        case TraversalPathMode.Acyclic => TraversalPathModeFactory.acyclicMode(memoryTracker, hooks)
+      }
 
     def build(createPathTracer: (MemoryTracker, PPBFSHooks) => PathTracer[A] =
       (memoryTracker, hooks) => new PathTracer(memoryTracker, tracker(memoryTracker, hooks), hooks)) =
@@ -228,10 +232,14 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
               case RelationshipDirection.LOOP     => node
               case _                              => fail("inexhaustive match")
             }
-            if dir.matches(re.direction) &&
-              re.testRelationship(TraversedRel(rel, node), TraversalDirection.FORWARD) &&
-              re.targetState().test(nextNode) &&
-              (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
+            matchesDirection = dir.matches(re.direction)
+            matchesRelFilter = re.testRelationship(TraversedRel(rel, node), TraversalDirection.FORWARD)
+            matchesNodePredicate = re.targetState().test(nextNode)
+            hasUniqueRelationship = pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id)
+            hasUniqueNode = pathMode != TraversalPathMode.Acyclic || !stack.exists(e =>
+              e.entityType == EntityType.NODE && e.id == nextNode
+            )
+            if matchesDirection && matchesRelFilter && matchesNodePredicate && hasUniqueRelationship && hasUniqueNode
 
             newStack = PathEntity.fromNode(re.targetState(), nextNode) ::
               PathEntity.fromRel(re, rel.id) ::

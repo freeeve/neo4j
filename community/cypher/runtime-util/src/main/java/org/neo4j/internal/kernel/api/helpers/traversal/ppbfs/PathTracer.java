@@ -142,7 +142,7 @@ public final class PathTracer<Row> extends PrefetchingIterator<Row> {
                     Preconditions.checkState(
                             stack.lengthFromSource() == 0,
                             "Attempting to return a path that does not reach the source");
-                    hooks.returnPath(stack);
+                    hooks.returned(stack);
                     return toRow.apply(stack);
                 }
             }

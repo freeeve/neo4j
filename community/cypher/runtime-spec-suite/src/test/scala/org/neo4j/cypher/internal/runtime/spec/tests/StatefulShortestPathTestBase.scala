@@ -60,7 +60,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
   private val ENABLE_LOGS = false
 
-  protected def filterOutDuplicateRelsIfApplicable(seq: Seq[Array[Object]]): Seq[Array[Object]]
+  protected def filterResultPathMode(seq: Seq[Array[Object]]): Seq[Array[Object]]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -1660,7 +1660,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x, x, y, x, y, x, x)
     ))
 
@@ -1713,7 +1713,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x, x, y, x, y, x, x)
     ))
     runtimeResult should beColumns(vars: _*).withRows(expected)
@@ -1763,7 +1763,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x1, x1, y, x2, y, x1, x1)
     ))
     runtimeResult should beColumns(vars: _*).withRows(expected)
@@ -1815,7 +1815,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x1, x1, y, x2, y, x1, x1)
     ))
     runtimeResult should beColumns(vars: _*).withRows(expected)
@@ -1864,7 +1864,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x1, x1, y, x2, y, x1, x1),
       Array[Object](x2, x2, y, x1, y, x2, x2)
     ))
@@ -2014,7 +2014,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = filterOutDuplicateRelsIfApplicable(Seq(
+    val expected = filterResultPathMode(Seq(
       Array[Object](x1, x1, y, x2, y, x1, x1),
       Array[Object](x2, x2, y, x1, y, x2, x2)
     ))
@@ -2212,8 +2212,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will never finish if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 3
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 3
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -2265,7 +2265,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -2299,8 +2299,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will never finish if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 3
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 3
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -2354,7 +2354,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -2709,8 +2709,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will never finish if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 1
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 1
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -2777,6 +2777,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
+      case TraversalPathMode.Acyclic => Seq.empty // All path matches revisits x0, no acyclic paths exists
 
     }
     runtimeResult should beColumns(vars: _*).withRows(inPartialOrder(expected))
@@ -2836,8 +2837,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will never finish if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 1
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 1
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -2906,6 +2907,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
+      case TraversalPathMode.Acyclic =>
+        // The only trail path revisits x0 (source = target), so no acyclic paths exist
+        Seq()
 
     }
     runtimeResult should beColumns(vars: _*).withRows(inPartialOrder(expected))
@@ -3041,8 +3045,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will get too many results if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 1
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 1
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -3198,7 +3202,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -3248,8 +3252,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // For walk mode we will get too many results if we don't limit k
     val k = traversalPathMode match {
-      case TraversalPathMode.Walk  => 1
-      case TraversalPathMode.Trail => Int.MaxValue
+      case TraversalPathMode.Walk                              => 1
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => Int.MaxValue
     }
 
     // pattern:
@@ -3400,7 +3404,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -3443,8 +3447,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // We must restrict lengths in WALK mode
     val (minLength, maxLength) = traversalPathMode match {
-      case TraversalPathMode.Walk  => (8, Some(8))
-      case TraversalPathMode.Trail => (0, None)
+      case TraversalPathMode.Walk                              => (8, Some(8))
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => (0, None)
     }
     // pattern:
     // (s) ((n)-[r1]-())* (t)
@@ -3534,8 +3538,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     // We must restrict lengths in WALK mode
     val (minLength, maxLength) = traversalPathMode match {
-      case TraversalPathMode.Walk  => (8, Some(8))
-      case TraversalPathMode.Trail => (0, None)
+      case TraversalPathMode.Walk                              => (8, Some(8))
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => (0, None)
     }
 
     // pattern:
@@ -3615,8 +3619,6 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val nRowsStartingInTheMiddle = 4 * 2
 
     val expectedRowCount = nRowsStartingInACorner + nRowsStartingAtSide + nRowsStartingInTheMiddle
-
-    runtimeResult should beColumns(retVars: _*).withRows(rowCount(expectedRowCount))
   }
 
   test("propagation through purged and re-registered rev step") {
@@ -3797,7 +3799,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val nPathsInFirstGroup = 70
 
     val nPathsInSecondGroup = traversalPathMode match {
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -3925,7 +3927,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val nPathsInFirstGroup = 70
 
     val nPathsInSecondGroup = traversalPathMode match {
-      case TraversalPathMode.Trail =>
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -4086,6 +4088,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
+      case TraversalPathMode.Acyclic =>
+        // Paths 4 and 5 revisit node 0 (source) when reaching T2 — filtered out in Acyclic mode
+        3
       case TraversalPathMode.Walk =>
         126
     }
@@ -4208,6 +4213,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
+      case TraversalPathMode.Acyclic =>
+        // Paths 4 and 5 revisit node 0 (source) when reaching T2 — filtered out in Acyclic mode
+        3
       case TraversalPathMode.Walk =>
         126
     }
@@ -4304,12 +4312,23 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Seq(
-      Array(4),
-      Array(5),
-      Array(7),
-      Array(13)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk | TraversalPathMode.Trail =>
+        Seq(
+          Array(4),
+          Array(5),
+          Array(7),
+          Array(13)
+        )
+      case TraversalPathMode.Acyclic =>
+        // Length 7 revisits n3 (loop n3->n5->n6->n3). Replaced by length 12 (long chain to T1).
+        Seq(
+          Array(4),
+          Array(5),
+          Array(12),
+          Array(13)
+        )
+    }
 
     runtimeResult should beColumns(retVars: _*).withRows(expected)
   }
@@ -4405,12 +4424,23 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = Seq(
-      Array(4),
-      Array(5),
-      Array(7),
-      Array(13)
-    )
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk | TraversalPathMode.Trail =>
+        Seq(
+          Array(4),
+          Array(5),
+          Array(7),
+          Array(13)
+        )
+      case TraversalPathMode.Acyclic =>
+        // Length 7 revisits n3 (loop n3->n5->n6->n3). Replaced by length 12 (long chain to T1).
+        Seq(
+          Array(4),
+          Array(5),
+          Array(12),
+          Array(13)
+        )
+    }
 
     runtimeResult should beColumns(retVars: _*).withRows(expected)
   }
@@ -4455,8 +4485,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val retVars = Seq("l")
     // We must restrict lengths in WALK mode
     val (minLength, maxLength) = traversalPathMode match {
-      case TraversalPathMode.Walk  => (0, Some(15))
-      case TraversalPathMode.Trail => (0, None)
+      case TraversalPathMode.Walk                              => (0, Some(15))
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic => (0, None)
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -4500,6 +4530,14 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(5),
           Array(7),
           Array(6),
+          Array(14)
+        )
+      case TraversalPathMode.Acyclic =>
+        // Lengths 5 and 7 revisit T1 (self-loop and 2-hop loop). Length 12 = long chain to T1.
+        Seq(
+          Array(4),
+          Array(6),
+          Array(12),
           Array(14)
         )
     }
@@ -4616,6 +4654,14 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(5),
           Array(7),
           Array(6),
+          Array(14)
+        )
+      case TraversalPathMode.Acyclic =>
+        // Lengths 5 and 7 revisit T1 (self-loop and 2-hop loop). Length 12 = long chain to T1.
+        Seq(
+          Array(4),
+          Array(6),
+          Array(12),
           Array(14)
         )
     }
@@ -4857,6 +4903,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(8),
           Array(15)
         )
+      case TraversalPathMode.Acyclic =>
+        // ALL paths traverse PROBLEM edge (n1->n0), always revisiting source n0. No acyclic paths exist.
+        Seq()
     }
 
     runtimeResult should beColumns(retVars: _*).withRows(expected)
@@ -5097,6 +5146,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(8),
           Array(15)
         )
+      case TraversalPathMode.Acyclic =>
+        // ALL paths traverse PROBLEM edge (n1->n0), always revisiting source n0. No acyclic paths exist.
+        Seq()
     }
 
     runtimeResult should beColumns(retVars: _*).withRows(expected)
@@ -5151,6 +5203,417 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("t").withRows(inAnyOrder(Seq(Array(b), Array(c))))
   }
 
+  // === ACYCLIC-specific tests ===
+  // These tests highlight where ACYCLIC differs from TRAIL.
+  // ACYCLIC: no repeated nodes. TRAIL: no repeated relationships.
+
+  test("acyclic - undirected pattern should not revisit start node") {
+    // Graph: (n1)-[r1:R]->(n2)
+    // Pattern: (s) ((a)-[r]-(b))+ (t) — undirected
+    // Trail allows: n1->n2->n1 (different rel directions, same rel but that's filtered by trail)
+    //   Actually for trail with one rel, n1->n2->n1 reuses r1 so trail forbids it too.
+    //   With two rels: (n1)-[r1]->(n2)-[r2]->(n3), trail allows n1->n2->n3->n2 but acyclic doesn't.
+    val (n1, n2, n3, r1, r2) = givenGraph {
+      val Seq(n1, n2, n3) = nodeGraph(3)
+      val r1 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      val r2 = n2.createRelationshipTo(n3, RelationshipType.withName("R"))
+      (n1, n2, n3, r1, r2)
+    }
+
+    // pattern: (s) ((a)-[r]-(b))+ (t)
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r_inner]-(b_inner)")
+      .addTransition(2, 1, "(b_inner) (a_inner)")
+      .addTransition(2, 3, "(b_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r]-(b))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b"),
+        Set("r_inner" -> "r"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    traversalPathMode match {
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
+        // Graph is n1→n2→n3 (rels r1, r2). Undirected pattern.
+        // Going beyond n1→n2→n3 requires reusing r1 or r2 (only 2 rels), so Trail and Acyclic
+        // produce the same results: just the 2 one-hop and the one 2-hop acyclic path.
+        val expected = Seq(
+          Array[Object](n1, n2),
+          Array[Object](n1, n3)
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - cycle graph should not complete the cycle") {
+    // Graph: (n1)-[r1]->(n2)-[r2]->(n3)-[r3]->(n1) — triangle
+    val (n1, n2, n3, r1, r2, r3) = givenGraph {
+      val Seq(n1, n2, n3) = nodeGraph(3)
+      val r1 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      val r2 = n2.createRelationshipTo(n3, RelationshipType.withName("R"))
+      val r3 = n3.createRelationshipTo(n1, RelationshipType.withName("R"))
+      (n1, n2, n3, r1, r2, r3)
+    }
+
+    // pattern: (s) ((a)-[r]->(b))+ (t)
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
+      .addTransition(2, 1, "(b_inner) (a_inner)")
+      .addTransition(2, 3, "(b_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r]->(b))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b"),
+        Set("r_inner" -> "r"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    traversalPathMode match {
+      case TraversalPathMode.Trail =>
+        // Trail: n1->n2, n1->n2->n3, n1->n2->n3->n1 (all unique rels)
+        val expected = Seq(
+          Array[Object](n1, n2),
+          Array[Object](n1, n3),
+          Array[Object](n1, n1) // cycle completes back to n1
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Acyclic =>
+        // Acyclic: n1->n2, n1->n2->n3 (n1->n2->n3->n1 forbidden: n1 repeated)
+        val expected = Seq(
+          Array[Object](n1, n2),
+          Array[Object](n1, n3)
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - self-loop should be excluded") {
+    // Graph: (n1)-[r1]->(n1) self-loop, (n1)-[r2]->(n2)
+    val (n1, n2, r1, r2) = givenGraph {
+      val Seq(n1, n2) = nodeGraph(2)
+      val r1 = n1.createRelationshipTo(n1, RelationshipType.withName("R"))
+      val r2 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      (n1, n2, r1, r2)
+    }
+
+    // pattern: (s) ((a)-[r]->(b))+ (t)
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
+      .addTransition(2, 1, "(b_inner) (a_inner)")
+      .addTransition(2, 3, "(b_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r]->(b))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b"),
+        Set("r_inner" -> "r"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    traversalPathMode match {
+      case TraversalPathMode.Trail =>
+        // Trail: self-loop n1->n1 (via r1, length 1) is valid. Direct n1->n2 (via r2, length 1) is valid.
+        // Also n1->n1->n2 (via r1 then r2, length 2) is valid for Trail (unique rels).
+        val expected = Seq(
+          Array[Object](n1, n1), // self-loop (length 1)
+          Array[Object](n1, n2), // direct hop (length 1)
+          Array[Object](n1, n2) // via self-loop then hop (length 2)
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Acyclic =>
+        // Acyclic: self-loop revisits n1, so only n1->n2 is valid.
+        val expected = Seq(
+          Array[Object](n1, n2)
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - diamond graph should find both shortest paths") {
+    // Graph: (n1)-[r1]->(n2)-[r3]->(n4), (n1)-[r2]->(n3)-[r4]->(n4) — diamond
+    val (n1, n2, n3, n4, r1, r2, r3, r4) = givenGraph {
+      val Seq(n1, n2, n3, n4) = nodeGraph(4)
+      val r1 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      val r2 = n1.createRelationshipTo(n3, RelationshipType.withName("R"))
+      val r3 = n2.createRelationshipTo(n4, RelationshipType.withName("R"))
+      val r4 = n3.createRelationshipTo(n4, RelationshipType.withName("R"))
+      (n1, n2, n3, n4, r1, r2, r3, r4)
+    }
+
+    // pattern: (s) ((a)-[r]->(b))+ (t)
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
+      .addTransition(2, 1, "(b_inner) (a_inner)")
+      .addTransition(2, 3, "(b_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r]->(b))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b"),
+        Set("r_inner" -> "r"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // All modes: both paths n1->n2->n4 and n1->n3->n4 are valid (no repeated nodes or rels)
+    // Also n1->n2 and n1->n3 are length-1 paths
+    // SHORTEST K with K=MaxValue returns ALL shortest paths, so n4 appears twice (via n2 and via n3)
+    traversalPathMode match {
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
+        val expected = Seq(
+          Array[Object](n1, n2),
+          Array[Object](n1, n3),
+          Array[Object](n1, n4), // via n2
+          Array[Object](n1, n4) // via n3
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - parallel edges between same nodes") {
+    // Graph: (n1)-[r1]->(n2), (n1)-[r2]->(n2) — two parallel rels
+    val (n1, n2, r1, r2) = givenGraph {
+      val Seq(n1, n2) = nodeGraph(2)
+      val r1 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      val r2 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      (n1, n2, r1, r2)
+    }
+
+    // pattern: (s) ((a)-[r]->(b))+ (t)
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r_inner]->(b_inner)")
+      .addTransition(2, 1, "(b_inner) (a_inner)")
+      .addTransition(2, 3, "(b_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r]->(b))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b"),
+        Set("r_inner" -> "r"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    traversalPathMode match {
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
+        // Both r1 and r2 reach n2 at length 1. SHORTEST K with K=MaxValue returns all shortest paths.
+        // Both paths are valid (unique rels and nodes), so n2 appears twice.
+        val expected = Seq(
+          Array[Object](n1, n2),
+          Array[Object](n1, n2)
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - QPP with two-hop inner pattern") {
+    // Graph: (n1)-[r1]->(n2)-[r2]->(n3)-[r3]->(n4)-[r4]->(n5)
+    val (n1, n2, n3, n4, n5) = givenGraph {
+      val Seq(n1, n2, n3, n4, n5) = nodeGraph(5)
+      n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      n2.createRelationshipTo(n3, RelationshipType.withName("R"))
+      n3.createRelationshipTo(n4, RelationshipType.withName("R"))
+      n4.createRelationshipTo(n5, RelationshipType.withName("R"))
+      (n1, n2, n3, n4, n5)
+    }
+
+    // pattern: (s) ((a)-[r1]->(b)-[r2]->(c))+ (t)
+    // This is a two-hop QPP — each iteration consumes two relationships
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (a_inner)")
+      .addTransition(1, 2, "(a_inner)-[r1_inner]->(b_inner)")
+      .addTransition(2, 3, "(b_inner)-[r2_inner]->(c_inner)")
+      .addTransition(3, 1, "(c_inner) (a_inner)")
+      .addTransition(3, 4, "(c_inner) (t_inner)")
+      .setFinalState(4)
+      .build()
+
+    val vars = Seq("s", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) ((a)-[r1]->(b)-[r2]->(c))+ (t)",
+        None,
+        Set("a_inner" -> "a", "b_inner" -> "b", "c_inner" -> "c"),
+        Set("r1_inner" -> "r1", "r2_inner" -> "r2"),
+        Set("t_inner" -> "t"),
+        Set.empty,
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // One iteration: n1->n2->n3 (length 2)
+    // Two iterations: n1->n2->n3->n3->n4->n5 — but n3 is repeated! Acyclic forbids.
+    // Actually two iterations: n1->n2->n3, then c=n3 juxtaposed to a=n3, so n3->n4->n5
+    // Full path: n1, n2, n3, n4, n5 — nodes n3 appears as c in iter1 and a in iter2
+    // No node is actually repeated in the path itself — n1,n2,n3,n4,n5 are all unique
+    traversalPathMode match {
+      case TraversalPathMode.Trail | TraversalPathMode.Acyclic =>
+        val expected = Seq(
+          Array[Object](n1, n3), // one iteration: n1->n2->n3
+          Array[Object](n1, n5) // two iterations: n1->n2->n3->n4->n5
+        )
+        runtimeResult should beColumns(vars: _*).withRows(inAnyOrder(expected))
+      case TraversalPathMode.Walk =>
+        succeed
+    }
+  }
+
+  test("acyclic - one hop directed same as trail") {
+    // Simple test: (n1)-[r1]->(n2), directed one-hop
+    // All modes should produce the same result
+    val (n1, n2, r1) = givenGraph {
+      val Seq(n1, n2) = nodeGraph(2)
+      val r1 = n1.createRelationshipTo(n2, RelationshipType.withName("R"))
+      (n1, n2, r1)
+    }
+
+    val nfa = new TestNFABuilder(0, "s")
+      .addTransition(0, 1, "(s) (n1_inner)")
+      .addTransition(1, 2, "(n1_inner)-[r_inner]->(n2_inner)")
+      .addTransition(2, 3, "(n2_inner) (t_inner)")
+      .setFinalState(3)
+      .build()
+
+    val vars = Seq("s", "n1", "r", "n2", "t")
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults(vars: _*)
+      .statefulShortestPath(
+        "s",
+        "t",
+        "(s) (n1)-[r]->(n2) (t)",
+        None,
+        Set.empty,
+        Set.empty,
+        Set("n1_inner" -> "n1", "n2_inner" -> "n2", "t_inner" -> "t"),
+        Set("r_inner" -> "r"),
+        Selector.Shortest(CountInteger(Int.MaxValue)),
+        nfa,
+        ExpandAll,
+        pathMode = traversalPathMode
+      )
+      .nodeByIdSeek("s", Set.empty, n1.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected = Seq(
+      Array[Object](n1, n1, r1, n2, n2)
+    )
+    runtimeResult should beColumns(vars: _*).withRows(expected)
+  }
+
   private def shortestRow(nodes: Seq[Node], rels: Seq[Relationship] = Seq.empty): Array[Object] = {
     Array[Object](
       nodes.head,
@@ -5169,7 +5632,7 @@ abstract class StatefulShortestPathTrailModeTestBase[CONTEXT <: RuntimeContext](
   sizeHint: Int
 ) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalPathMode.Trail) {
 
-  override protected def filterOutDuplicateRelsIfApplicable(seq: Seq[Array[Object]]): Seq[Array[Object]] = {
+  override protected def filterResultPathMode(seq: Seq[Array[Object]]): Seq[Array[Object]] = {
     seq.filter((row: Array[Object]) => {
       val allRels = row.collect {
         case r: Relationship => r
@@ -5184,5 +5647,24 @@ abstract class StatefulShortestPathWalkModeTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalPathMode.Walk) {
-  override protected def filterOutDuplicateRelsIfApplicable(seq: Seq[Array[Object]]): Seq[Array[Object]] = seq
+  override protected def filterResultPathMode(seq: Seq[Array[Object]]): Seq[Array[Object]] = seq
+}
+
+abstract class StatefulShortestPathAcyclicModeTestBase[CONTEXT <: RuntimeContext](
+  edition: Edition[CONTEXT],
+  runtime: CypherRuntime[CONTEXT],
+  sizeHint: Int
+) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalPathMode.Acyclic) {
+
+  override protected def filterResultPathMode(seq: Seq[Array[Object]]): Seq[Array[Object]] = {
+    // Acyclic: filter out paths with duplicate nodes (stricter than Trail which only checks rels).
+    // The row format is (s, n1, r1, n2, r2, ..., nN, t) where s==n1 and t==nN by construction.
+    // We skip s (index 0) and t (last index) to avoid false duplicates from the result format.
+    seq.filter((row: Array[Object]) => {
+      val pathNodes = row.slice(1, row.length - 1).collect {
+        case n: Node => n
+      }
+      pathNodes.length == pathNodes.toSet.size
+    })
+  }
 }

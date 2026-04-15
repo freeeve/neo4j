@@ -20,7 +20,6 @@
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs;
 
 import java.util.BitSet;
-import org.neo4j.collection.trackable.HeapTrackingLongObjectHashMap;
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks;
 import org.neo4j.memory.MemoryTracker;
 
@@ -39,6 +38,10 @@ public interface SignpostTracking {
 
     static SignpostTracking trailMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
         return new TrailModeSignPostTracking(memoryTracker, hooks);
+    }
+
+    static SignpostTracking acyclicMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
+        return new AcyclicModeSignPostTracking(memoryTracker, hooks);
     }
 
     static SignpostTracking walkMode() {
@@ -78,12 +81,12 @@ public interface SignpostTracking {
     };
 
     final class TrailModeSignPostTracking implements SignpostTracking {
-        private final HeapTrackingLongObjectHashMap<BitSet> relationshipPresenceAtDepth;
+        private final DepthPresenceTracker relationshipPresence;
         private final BitSet protectFromPruning;
         private final PPBFSHooks hooks;
 
         TrailModeSignPostTracking(MemoryTracker memoryTracker, PPBFSHooks hooks) {
-            this.relationshipPresenceAtDepth = HeapTrackingLongObjectHashMap.createLongObjectHashMap(memoryTracker);
+            this.relationshipPresence = new DepthPresenceTracker(memoryTracker);
             this.protectFromPruning = new BitSet();
             this.hooks = hooks;
         }
@@ -102,7 +105,9 @@ public interface SignpostTracking {
          * */
         @Override
         public boolean canAbandonTraceBranch(SignpostStack stack) {
-            int dup = distanceToDuplicate(stack.headSignpost());
+            var head = stack.headSignpost();
+            if (!(head instanceof TwoWaySignpost.RelSignpost)) return false;
+            int dup = relationshipPresence.distanceToDuplicate(((TwoWaySignpost.RelSignpost) head).relId);
 
             if (dup == 0) {
                 return false;
@@ -128,12 +133,14 @@ public interface SignpostTracking {
             int size = stack.size();
             this.protectFromPruning.set(size - 1, false);
             if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
-                var depths = this.relationshipPresenceAtDepth.get(rel.relId);
-                if (depths == null) {
-                    depths = new BitSet();
-                    this.relationshipPresenceAtDepth.put(rel.relId, depths);
-                }
-                depths.set(size - 1);
+                relationshipPresence.add(rel.relId, size - 1);
+            }
+        }
+
+        @Override
+        public void onPopped(TwoWaySignpost signpost, SignpostStack stack) {
+            if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
+                relationshipPresence.remove(rel.relId, stack.size());
             }
         }
 
@@ -144,10 +151,9 @@ public interface SignpostTracking {
                 TwoWaySignpost signpost = stack.signpost(i);
                 sourceLength += signpost.dataGraphLength();
                 if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
-                    var bitset = relationshipPresenceAtDepth.get(rel.relId);
-                    assert bitset.get(i);
-                    if (bitset.length() > i + 1) {
-                        hooks.invalidTrail(stack);
+                    assert relationshipPresence.isPresent(rel.relId, i);
+                    if (relationshipPresence.isPresentBeyond(rel.relId, i)) {
+                        hooks.invalid(stack);
                         return false;
                     }
                 }
@@ -163,39 +169,111 @@ public interface SignpostTracking {
         }
 
         @Override
-        public void onPopped(TwoWaySignpost signpost, SignpostStack stack) {
-            if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
-                var depths = relationshipPresenceAtDepth.get(rel.relId);
-                depths.clear(stack.size());
-                if (depths.isEmpty()) {
-                    relationshipPresenceAtDepth.remove(rel.relId);
+        public void clear() {
+            relationshipPresence.clear();
+        }
+    }
+
+    /**
+     * Acyclic mode tracking: ensures no node appears more than once in a path.
+     * Uses a {@link DepthPresenceTracker} (nodeId to positions) to track
+     * where each node appears in the current path, mirroring Trail's relationship tracking.
+     *
+     * <p>Node positions use a +1 offset from signpost indices so the target node fits at position 0:
+     * position 0 = target, position S = prevNode of signpost pushed when stack.size() == S.
+     */
+    final class AcyclicModeSignPostTracking implements SignpostTracking {
+        private final DepthPresenceTracker nodePresence;
+        private final BitSet protectFromPruning;
+        private final PPBFSHooks hooks;
+
+        AcyclicModeSignPostTracking(MemoryTracker memoryTracker, PPBFSHooks hooks) {
+            this.nodePresence = new DepthPresenceTracker(memoryTracker);
+            this.protectFromPruning = new BitSet();
+            this.hooks = hooks;
+        }
+
+        @Override
+        public boolean isProtectedFromPruning(SignpostStack stack) {
+            return protectFromPruning.get(stack.size());
+        }
+
+        @Override
+        public boolean canAbandonTraceBranch(SignpostStack stack) {
+            var head = stack.headSignpost();
+            if (!(head instanceof TwoWaySignpost.RelSignpost)) return false;
+            int dup = nodePresence.distanceToDuplicate(head.prevNode.id());
+
+            if (dup == 0) {
+                return false;
+            }
+
+            // Cap to stack.size() because the duplicate may be with the target node (position 0),
+            // which has no corresponding signpost. In that case dup == stack.size() and dup + 1
+            // would exceed the number of signposts on the stack.
+            int numSignposts = Math.min(dup + 1, stack.size());
+            int sourceLength = stack.lengthFromSource();
+            for (int i = 0; i < numSignposts; i++) {
+                var candidate = stack.signpost(stack.size() - 1 - i);
+
+                if (!candidate.prevNode.validatedAtLength(sourceLength)) {
+                    return false;
                 }
+
+                sourceLength += candidate.dataGraphLength();
+            }
+
+            this.protectFromPruning.set(stack.size() - numSignposts, stack.size() - 1, true);
+            return true;
+        }
+
+        @Override
+        public void onPushed(TwoWaySignpost signpost, SignpostStack stack) {
+            int size = stack.size();
+            this.protectFromPruning.set(size - 1, false);
+            // A node signpost at size == 1 indicates the start node, which should also be tracked
+            // It would be missed by only looking at relationship signposts
+            if (signpost instanceof TwoWaySignpost.RelSignpost || size == 1) {
+                nodePresence.add(signpost.prevNode.id(), size);
             }
         }
 
-        private int distanceToDuplicate(TwoWaySignpost signpost) {
-            if (signpost instanceof TwoWaySignpost.RelSignpost rel) {
-                var stack = relationshipPresenceAtDepth.get(rel.relId);
-                if (stack == null) {
-                    return 0;
-                }
-                int last = stack.length();
-                if (last == 0) {
-                    return 0;
+        @Override
+        public void onPopped(TwoWaySignpost signpost, SignpostStack stack) {
+            if (signpost instanceof TwoWaySignpost.RelSignpost) {
+                nodePresence.remove(signpost.prevNode.id(), stack.size() + 1);
+            }
+        }
+
+        @Override
+        public boolean validate(SignpostStack stack) {
+            int sourceLength = 0;
+            for (int i = stack.size() - 1; i >= 0; i--) {
+                TwoWaySignpost signpost = stack.signpost(i);
+                sourceLength += signpost.dataGraphLength();
+
+                if (signpost instanceof TwoWaySignpost.RelSignpost || i == 0) {
+                    assert nodePresence.isPresent(signpost.prevNode.id(), i + 1);
+                    if (nodePresence.isPresentBeyond(signpost.prevNode.id(), i + 1)) {
+                        hooks.invalid(stack);
+                        return false;
+                    }
                 }
 
-                int next = stack.previousSetBit(last - 2);
-                if (next == -1) {
-                    return 0;
+                if (!signpost.isValidatedAtLength(sourceLength)) {
+                    signpost.validate(sourceLength);
+                    if (!signpost.forwardNode.validatedAtLength(sourceLength)) {
+                        signpost.forwardNode.setValidatedAtLength(sourceLength, stack.dgLength() - sourceLength);
+                    }
                 }
-                return last - 1 - next;
             }
-            return 0;
+            return true;
         }
 
         @Override
         public void clear() {
-            relationshipPresenceAtDepth.clear();
+            nodePresence.clear();
+            protectFromPruning.clear();
         }
     }
 }
