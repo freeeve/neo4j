@@ -59,7 +59,6 @@ import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipTypeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromLongSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromRefSlot
-import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromSlotOrAlias
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.ast.ExpressionVariable
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
@@ -113,13 +112,13 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
     case e: RelationshipElementIdFromSlot =>
       val varName = expressions.Variable(nameFromLongSlot(slots, e.offset, ctx))(InputPosition.NONE, isIsolated = false)
       ElementId.asInvocation(varName)(InputPosition.NONE).asCanonicalStringVal
-    case e: VariableRef        => nameFromSlotOrAlias(slots, e.variableName, ctx)
-    case e: ExpressionVariable => nameFromSlotOrAlias(slots, e.name, ctx)
+    case e: VariableRef        => nameFromSlotOrAlias(e.variableName, ctx)
+    case e: ExpressionVariable => nameFromSlotOrAlias(e.name, ctx)
     case e                     => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
   }
 
   private def backtickPropertyAccess(ctx: ExpressionStringifier, ee: LogicalProperty) = {
-    val name = nameFromSlotOrAlias(slots, ee.map.asCanonicalStringVal, ctx)
+    val name = nameFromSlotOrAlias(ee.map.asCanonicalStringVal, ctx)
     name + "." + ctx.backtick(ee.propertyKey.name)
   }
 
@@ -136,17 +135,17 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
         )
     }
   }
-}
 
-object RuntimeExpressionStringifier {
-
-  def nameFromSlotOrAlias(slots: SlotConfiguration, variableName: String, ctx: ExpressionStringifier): String = {
+  def nameFromSlotOrAlias(variableName: String, ctx: ExpressionStringifier): String = {
     slots(variableName) match {
       case KeyedSlot(VariableSlotKey(name), _, _) => ctx.backtick(name)
       case KeyedSlot(key, _, _) =>
         throw new IllegalStateException(s"Expected a VariableSlotKey for `$variableName` but found $key")
     }
   }
+}
+
+object RuntimeExpressionStringifier {
 
   def nameFromLongSlot(slots: SlotConfiguration, offset: Int, ctx: ExpressionStringifier): String = {
     slots.nameOfSlot(offset, longSlot = true) match {
