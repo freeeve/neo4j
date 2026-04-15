@@ -42,7 +42,8 @@ trait DeprecationTestSupport extends Suite with Matchers {
     position: InputPosition,
     createNotification: (InputPosition, String) => Notification,
     expectedGqlStatusObjects: List[TestGqlStatusObject],
-    cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values
+    cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values,
+    allowPositionTolerance: Boolean = false
   ): Unit = {
     cypherVersions.foreach { version =>
       val adjustedPos = adjustPosition(position, version)
@@ -73,9 +74,31 @@ trait DeprecationTestSupport extends Suite with Matchers {
               )
             )
 
-            actualGqlStatusObject should contain theSameElementsAs expectedGqlStatusObjects.map(gso =>
-              withAdjustedPosition(gso, version)
-            )
+            // This path is currently only used for deprecations involving `IS` and `:`
+            // as their positions can be shifted due to parsing to the same AST. The current
+            // decision is that it is not valuable to track which the original syntax was used
+            // for the AST. This can change in the future and will invalidate this relaxation
+            // of the assertion. Allowing for a diff of 3 should cover all cases and
+            // remove any potential flakiness.
+            if (allowPositionTolerance) {
+              val adjusted = expectedGqlStatusObjects.map(gso => withAdjustedPosition(gso, version))
+              actualGqlStatusObject.size should be(adjusted.size)
+              actualGqlStatusObject.zip(adjusted).foreach { case (actual, expected) =>
+                actual.gqlStatus should be(expected.gqlStatus)
+                actual.statusDescription should be(expected.statusDescription)
+                actual.severity should be(expected.severity)
+                actual.classification should be(expected.classification)
+                if (actual.position != InputPosition.empty && expected.position != InputPosition.empty) {
+                  Math.abs(actual.position.getOffset - expected.position.getOffset) should be <= 3
+                  Math.abs(actual.position.getColumn - expected.position.getColumn) should be <= 3
+                  actual.position.getLine should be(expected.position.getLine)
+                }
+              }
+            } else {
+              actualGqlStatusObject should contain theSameElementsAs expectedGqlStatusObjects.map(gso =>
+                withAdjustedPosition(gso, version)
+              )
+            }
           } finally {
             transaction.rollback()
           }
@@ -120,6 +143,25 @@ trait DeprecationTestSupport extends Suite with Matchers {
       cypherVersions
     )
   }
+
+  def assertNotificationWithPositionTolerance(
+    queries: Seq[String],
+    shouldContainNotification: Boolean,
+    position: InputPosition,
+    createNotification: InputPosition => Notification,
+    expectedGqlStatusObjects: List[TestGqlStatusObject],
+    cypherVersions: Set[CypherVersionOption] = CypherVersionOption.values
+  ): Unit =
+    assertNotification(
+      queries,
+      shouldContainNotification,
+      "",
+      position,
+      (pos, _) => createNotification(pos),
+      expectedGqlStatusObjects,
+      cypherVersions,
+      allowPositionTolerance = true
+    )
 
   private def adjustPosition(position: InputPosition, cypherVersion: CypherVersionOption): InputPosition = {
     val prefix = s"EXPLAIN CYPHER ${cypherVersion.version} "

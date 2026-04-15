@@ -1047,7 +1047,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
     }
     queries.foreach {
       case (query, labels, position) =>
-        assertNotification(
+        assertNotificationWithPositionTolerance(
           Seq(query),
           shouldContainNotification = true,
           new InputPosition(position.getOffset + labels.head._2, position.getLine, position.getColumn + labels.head._2),
