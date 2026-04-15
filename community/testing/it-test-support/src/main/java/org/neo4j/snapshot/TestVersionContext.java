@@ -21,7 +21,6 @@ package org.neo4j.snapshot;
 
 import java.io.PrintStream;
 import org.neo4j.common.DependencyResolver;
-import org.neo4j.cypher.internal.javacompat.SnapshotExecutionEngine;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.io.pagecache.context.OldestVisibilityHorizonFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
@@ -32,7 +31,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.TransactionIdStore;
 
 /**
- * A {@link VersionContext} that can be injected in tests to verify the behavior of {@link SnapshotExecutionEngine}.
+ * A {@link VersionContext} that can be injected in tests to verify the behaviour of mvcc.
  */
 public class TestVersionContext extends TransactionVersionContext {
     private volatile boolean wrongLastClosedTxId;
