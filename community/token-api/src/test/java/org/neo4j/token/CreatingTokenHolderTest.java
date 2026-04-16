@@ -21,10 +21,7 @@ package org.neo4j.token;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -57,7 +54,7 @@ class CreatingTokenHolderTest {
 
     @Test
     void mustKnownItsTokenType() {
-        assertEquals("Dummy", holder.getTokenType());
+        assertThat(holder.getTokenType()).isEqualTo("Dummy");
     }
 
     @Test
@@ -98,7 +95,7 @@ class CreatingTokenHolderTest {
         int[] ids = new int[1];
         holder.getOrCreateInternalIds(names, ids);
         assertThat(ids[0]).isEqualTo(42);
-        assertThrows(TokenNotFoundException.class, () -> holder.getInternalTokenById(42));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getInternalTokenById(42));
         holder.addToken(new NamedToken("token", 42, true));
 
         holder.getOrCreateInternalIds(names, ids);
@@ -116,15 +113,15 @@ class CreatingTokenHolderTest {
 
         names = new String[] {"a", "X", "b"};
         ids = new int[] {-1, -1, -1};
-        assertTrue(holder.getIdsByNames(names, ids));
-        assertThat(ids[0]).isEqualTo(1);
+        assertThat(holder.getIdsByNames(names, ids)).isTrue();
+        assertThat(ids[0]).isOne();
         assertThat(ids[1]).isEqualTo(-1);
         assertThat(ids[2]).isEqualTo(2);
 
         names = new String[] {"a", "b"};
         ids = new int[] {-1, -1};
-        assertFalse(holder.getIdsByNames(names, ids));
-        assertThat(ids[0]).isEqualTo(1);
+        assertThat(holder.getIdsByNames(names, ids)).isFalse();
+        assertThat(ids[0]).isOne();
         assertThat(ids[1]).isEqualTo(2);
     }
 
@@ -141,14 +138,14 @@ class CreatingTokenHolderTest {
         assertThat(ids.length).isEqualTo(5);
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isIn(42, 43);
-        assertThat(ids[2]).isEqualTo(1);
+        assertThat(ids[2]).isOne();
         assertThat(ids[3]).isIn(42, 43);
         assertThat(ids[4]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(44);
 
         // But not added to registry
-        assertThrows(TokenNotFoundException.class, () -> holder.getTokenById(42));
-        assertThrows(TokenNotFoundException.class, () -> holder.getTokenById(43));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getTokenById(42));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getTokenById(43));
     }
 
     @Test
@@ -164,14 +161,14 @@ class CreatingTokenHolderTest {
         assertThat(ids.length).isEqualTo(5);
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isIn(42, 43);
-        assertThat(ids[2]).isEqualTo(1);
+        assertThat(ids[2]).isOne();
         assertThat(ids[3]).isIn(42, 43);
         assertThat(ids[4]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(44);
 
         // But not added to registry
-        assertThrows(TokenNotFoundException.class, () -> holder.getInternalTokenById(42));
-        assertThrows(TokenNotFoundException.class, () -> holder.getInternalTokenById(43));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getInternalTokenById(42));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getInternalTokenById(43));
     }
 
     @Test
@@ -244,18 +241,19 @@ class CreatingTokenHolderTest {
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isEqualTo(2);
         assertThat(ids[2]).isEqualTo(42);
-        assertThat(ids[3]).isEqualTo(1);
+        assertThat(ids[3]).isOne();
         assertThat(ids[4]).isEqualTo(42);
         assertThat(ids[5]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(43);
 
         // But not added to registry
-        assertThrows(TokenNotFoundException.class, () -> holder.getTokenById(42));
+        assertThatExceptionOfType(TokenNotFoundException.class).isThrownBy(() -> holder.getTokenById(42));
     }
 
     @Test
     void batchTokenCreateMustThrowOnArraysOfDifferentLengths() {
-        assertThrows(IllegalArgumentException.class, () -> holder.getOrCreateIds(new String[3], new int[2]));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> holder.getOrCreateIds(new String[3], new int[2]));
     }
 
     @Test
@@ -280,7 +278,7 @@ class CreatingTokenHolderTest {
         for (NamedToken token : expectedTokens) {
             expected.put(token.name(), token);
         }
-        assertEquals(expected, existing);
+        assertThat(existing).isEqualTo(expected);
     }
 
     private static NamedToken token(String name, int id) {

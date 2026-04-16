@@ -21,10 +21,7 @@ package org.neo4j.token;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -55,7 +52,7 @@ class RegisteringCreatingTokenHolderTest {
 
     @Test
     void mustKnownItsTokenType() {
-        assertEquals("Dummy", holder.getTokenType());
+        assertThat(holder.getTokenType()).isEqualTo("Dummy");
     }
 
     @Test
@@ -104,15 +101,15 @@ class RegisteringCreatingTokenHolderTest {
 
         names = new String[] {"a", "X", "b"};
         ids = new int[] {-1, -1, -1};
-        assertTrue(holder.getIdsByNames(names, ids));
-        assertThat(ids[0]).isEqualTo(1);
+        assertThat(holder.getIdsByNames(names, ids)).isTrue();
+        assertThat(ids[0]).isOne();
         assertThat(ids[1]).isEqualTo(-1);
         assertThat(ids[2]).isEqualTo(2);
 
         names = new String[] {"a", "b"};
         ids = new int[] {-1, -1};
-        assertFalse(holder.getIdsByNames(names, ids));
-        assertThat(ids[0]).isEqualTo(1);
+        assertThat(holder.getIdsByNames(names, ids)).isFalse();
+        assertThat(ids[0]).isOne();
         assertThat(ids[1]).isEqualTo(2);
     }
 
@@ -129,7 +126,7 @@ class RegisteringCreatingTokenHolderTest {
         assertThat(ids.length).isEqualTo(5);
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isIn(42, 43);
-        assertThat(ids[2]).isEqualTo(1);
+        assertThat(ids[2]).isOne();
         assertThat(ids[3]).isIn(42, 43);
         assertThat(ids[4]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(44);
@@ -152,7 +149,7 @@ class RegisteringCreatingTokenHolderTest {
         assertThat(ids.length).isEqualTo(5);
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isIn(42, 43);
-        assertThat(ids[2]).isEqualTo(1);
+        assertThat(ids[2]).isOne();
         assertThat(ids[3]).isIn(42, 43);
         assertThat(ids[4]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(44);
@@ -226,7 +223,7 @@ class RegisteringCreatingTokenHolderTest {
         assertThat(ids[0]).isEqualTo(2);
         assertThat(ids[1]).isEqualTo(2);
         assertThat(ids[2]).isEqualTo(42);
-        assertThat(ids[3]).isEqualTo(1);
+        assertThat(ids[3]).isOne();
         assertThat(ids[4]).isEqualTo(42);
         assertThat(ids[5]).isEqualTo(3);
         assertThat(nextId.get()).isEqualTo(43);
@@ -237,7 +234,8 @@ class RegisteringCreatingTokenHolderTest {
 
     @Test
     void batchTokenCreateMustThrowOnArraysOfDifferentLengths() {
-        assertThrows(IllegalArgumentException.class, () -> holder.getOrCreateIds(new String[3], new int[2]));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> holder.getOrCreateIds(new String[3], new int[2]));
     }
 
     @Test
@@ -262,7 +260,7 @@ class RegisteringCreatingTokenHolderTest {
         for (NamedToken token : expectedTokens) {
             expected.put(token.name(), token);
         }
-        assertEquals(expected, existing);
+        assertThat(existing).isEqualTo(expected);
     }
 
     private static NamedToken token(String name, int id) {
