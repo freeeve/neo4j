@@ -372,7 +372,6 @@ BSD License
   asm-tree
   asm-util
   Hamcrest Core
-  ParaNamer Core
   Zstandard
 ------------------------------------------------------------------------------
 

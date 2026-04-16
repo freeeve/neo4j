@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.graphcounts
 
+import org.json4s.AsJsonInput
 import org.json4s.CustomSerializer
 import org.json4s.DefaultFormats
 import org.json4s.FileInput
@@ -54,6 +55,9 @@ object GraphCountsJson {
   val allFormatsExceptRowSerializer: Formats =
     DefaultFormats + IndexTypeSerializer + IndexProviderSerializer + ConstraintTypeSerializer + SchemaValueTypes.Serializer + EndpointTypeSerializer
   val allFormats: Formats = allFormatsExceptRowSerializer + RowSerializer
+
+  implicit private val jsonFileInput: AsJsonInput[FileInput] = AsJsonInput.fromFunction(identity)
+  implicit private val jsonStringInput: AsJsonInput[StringInput] = AsJsonInput.fromFunction(identity)
 
   /**
    * Given a JSON file obtained from the data collector, e.g. via

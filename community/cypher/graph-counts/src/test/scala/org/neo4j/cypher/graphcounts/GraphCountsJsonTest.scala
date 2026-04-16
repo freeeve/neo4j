@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.graphcounts
 
+import org.json4s.AsJsonInput
 import org.json4s.Formats
 import org.json4s.StringInput
 import org.json4s.native.Json
@@ -35,6 +36,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 class GraphCountsJsonTest extends CypherFunSuite {
 
   implicit val formats: Formats = allFormats
+  implicit val jsonInputConverter: AsJsonInput[StringInput] = AsJsonInput.fromFunction(identity)
 
   test("Constraint") {
     JsonMethods.parse(StringInput(

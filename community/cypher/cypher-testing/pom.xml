@@ -27,19 +27,19 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.json4s</groupId>
+      <groupId>io.github.json4s</groupId>
       <artifactId>json4s-ast_${scala.binary.version}</artifactId>
       <version>${json4s.version}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.json4s</groupId>
+      <groupId>io.github.json4s</groupId>
       <artifactId>json4s-core_${scala.binary.version}</artifactId>
       <version>${json4s.version}</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.json4s</groupId>
+      <groupId>io.github.json4s</groupId>
       <artifactId>json4s-native_${scala.binary.version}</artifactId>
       <scope>compile</scope>
     </dependency>

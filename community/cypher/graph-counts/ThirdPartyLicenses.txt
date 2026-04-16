@@ -16,6 +16,7 @@ Apache Software License, Version 2.0
   json4s-ast
   json4s-core
   json4s-native
+  json4s-native-core
   json4s-scalap
   Scala Reflect
 ------------------------------------------------------------------------------
@@ -270,7 +271,6 @@ SUCH DAMAGE.
 ------------------------------------------------------------------------------
 BSD License
   ANTLR 4 Runtime
-  ParaNamer Core
 ------------------------------------------------------------------------------
 
 Copyright (c) <year>, <copyright holder>

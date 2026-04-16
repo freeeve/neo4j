@@ -126,7 +126,7 @@
     <jdk25.custom.options />
     <jersey.version>2.46</jersey.version>
     <jetty.version>12.1.8</jetty.version>
-    <json4s.version>3.6.11</json4s.version>
+    <json4s.version>4.1.0</json4s.version>
     <jsr305.version>3.0.2</jsr305.version>
     <junit.version>6.0.3</junit.version>
     <license-text.header>license/neo4j_gpl_v3/header.txt</license-text.header>
@@ -1048,6 +1048,12 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>io.github.json4s</groupId>
+        <artifactId>json4s-native_${scala.binary.version}</artifactId>
+        <version>${json4s.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.apache.directory.server</groupId>
         <artifactId>apacheds-server-integ</artifactId>
         <version>${apache.directory.server.version}</version>
@@ -1098,12 +1104,6 @@
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest</artifactId>
         <version>3.0</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.json4s</groupId>
-        <artifactId>json4s-native_${scala.binary.version}</artifactId>
-        <version>${json4s.version}</version>
         <scope>test</scope>
       </dependency>
 
@@ -1959,7 +1959,7 @@
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>com.lihaoyi:pprint_${scala.binary.version}</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.scala-lang:scala-reflect</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>io.github.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros-scala3</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
@@ -1975,7 +1975,7 @@
               <ignoredNonTestScopedDependencies>
                 <ignoredNonTestScopedDependency>org.neo4j:neo4j-graphdb-api</ignoredNonTestScopedDependency>
                 <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
-                <ignoredNonTestScopedDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredNonTestScopedDependency>
+                <ignoredNonTestScopedDependency>io.github.json4s:json4s-native_${scala.binary.version}</ignoredNonTestScopedDependency>
               </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
