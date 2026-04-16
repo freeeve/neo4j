@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
@@ -1313,6 +1314,7 @@ class FabricPlannerTest
         inferSchemaParts = CypherInferSchemaPartsOption.default,
         statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
         planVarExpandInto = CypherPlanVarExpandInto.default,
+        plannerVersionOption = CypherPlannerVersionOption.latest,
         pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.default,
         pipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.default,
         heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.default

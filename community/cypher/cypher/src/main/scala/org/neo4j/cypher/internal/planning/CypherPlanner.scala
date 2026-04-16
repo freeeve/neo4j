@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCac
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.systemPipeLine
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
+import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations
 import org.neo4j.cypher.internal.compiler.planner.logical.CachedSimpleMetricsFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.debug.DebugPrinter
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ComponentConnectorPlanner
@@ -658,6 +659,9 @@ final class TransformingPlanner private[planning] (
       options.queryOptions.inferSchemaParts,
       options.queryOptions.statefulShortestPlanningModeOption,
       options.queryOptions.planVarExpandInto,
+      CypherPlannerVersionWithOptimisations.allSupportedOptimisations(
+        options.queryOptions.plannerVersionOption
+      ),
       databaseReferenceRepository,
       transactionalContextWrapper.databaseId,
       log,

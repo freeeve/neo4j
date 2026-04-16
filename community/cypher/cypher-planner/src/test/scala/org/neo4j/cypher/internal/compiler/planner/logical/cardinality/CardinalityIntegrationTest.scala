@@ -843,6 +843,32 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     )
   }
 
+  test("Infer labels of intermediate nodes if the cypher version supports MERGE_LABEL_INFO optimisation") {
+    val allNodes: Double = 300
+    val personNodes: Double = 20
+    val knowsRelationships: Double = 30
+    val hasMemberRelationships: Double = 25
+
+    val config = plannerBuilder()
+      .setPlannerVersion(GraphDatabaseInternalSettings.CypherPlannerVersion.EXPERIMENTAL)
+      .enableMinimumGraphStatistics()
+      .setAllNodesCardinality(allNodes)
+      .setLabelCardinality("Person", personNodes)
+      .setRelationshipCardinality("()-[:KNOWS]->()", knowsRelationships)
+      .setRelationshipCardinality("(:Person)-[:KNOWS]->()", knowsRelationships)
+      .setRelationshipCardinality("()-[:KNOWS]->(:Person)", knowsRelationships)
+      .setRelationshipCardinality("()-[:HAS_MEMBER]->()", hasMemberRelationships)
+      .setRelationshipCardinality("(:Person)-[:HAS_MEMBER]->()", hasMemberRelationships)
+      .setRelationshipCardinality("()-[:HAS_MEMBER]->(:Person)", hasMemberRelationships)
+      .build()
+
+    queryShouldHaveCardinality(
+      config,
+      "MATCH (person)<-[friendship:KNOWS]-(friend)-[membership:HAS_MEMBER]->(forum)",
+      knowsRelationships * hasMemberRelationships / personNodes // since we can infer that friend:Person
+    )
+  }
+
   test("Infer label of intermediate node with one incoming relationships") {
     val allNodes: Double = 300
     val personNodes: Double = 20

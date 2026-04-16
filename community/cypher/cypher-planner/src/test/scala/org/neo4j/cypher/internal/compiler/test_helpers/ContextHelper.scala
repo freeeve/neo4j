@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.compiler.UpdateStrategy
 import org.neo4j.cypher.internal.compiler.defaultUpdateStrategy
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.PlannerContextImpl
+import org.neo4j.cypher.internal.compiler.planner.CypherPlannerVersionWithOptimisations
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
@@ -43,6 +44,7 @@ import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -85,6 +87,8 @@ object ContextHelper extends MockitoSugar {
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption =
       CypherStatefulShortestPlanningModeOption.default,
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
+    plannerVersion: CypherPlannerVersionWithOptimisations =
+      CypherPlannerVersionWithOptimisations.fromQueryOption(CypherPlannerVersionOption.latest),
     databaseReferenceRepository: DatabaseReferenceRepository = mockDatabaseReferenceRepository,
     databaseId: NamedDatabaseId = mockDatabaseId,
     internalNotificationStats: InternalNotificationStats = new InternalNotificationStats(),
@@ -113,6 +117,7 @@ object ContextHelper extends MockitoSugar {
       materializedEntitiesMode,
       statefulShortestPlanningMode,
       planVarExpandInto,
+      plannerVersion.allSupportedOptimisations,
       databaseReferenceRepository,
       databaseId,
       NullLog.getInstance(),

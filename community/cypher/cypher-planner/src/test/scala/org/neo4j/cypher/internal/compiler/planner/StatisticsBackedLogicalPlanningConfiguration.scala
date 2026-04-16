@@ -190,6 +190,7 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
           s"""No cardinality set for relationship $relDef. Please specify using
              |.setRelationshipCardinality("$relDef", cardinality)""".stripMargin
         )
+
       def getForAllRelationshipsMatching: Option[Double] = {
         Option.when(relDef.relType.isEmpty) {
           val matchingRels = relationships.filter(r =>
@@ -257,6 +258,7 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
 
     object EntityType {
       final case class Node(label: String) extends EntityType
+
       final case class Relationship(relType: String) extends EntityType
     }
   }
@@ -362,6 +364,7 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
 
   object DatabaseFormat {
     case object Block extends DatabaseFormat
+
     case object Aligned extends DatabaseFormat
 
     def default: DatabaseFormat = Block
@@ -404,6 +407,14 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
   def addProperty(prop: String): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     this.copy(tokens = tokens.addProperty(prop))
+  }
+
+  def setPlannerVersion(version: GraphDatabaseInternalSettings.CypherPlannerVersion)
+    : StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    withSetting(
+      GraphDatabaseInternalSettings.cypher_planner_version,
+      version
+    )
   }
 
   def setDatabaseMode(databaseMode: DatabaseMode): StatisticsBackedLogicalPlanningConfigurationBuilder =
@@ -778,6 +789,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     }
 
     var id = initialId - 1
+
     def nextId(): Int = {
       id += 1
       id
@@ -1851,7 +1863,11 @@ class StatisticsBackedLogicalPlanningConfiguration(
     )).result
 
     val exceptionFactory = Neo4jCypherExceptionFactory(queryString, Some(pos))
-    val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(planContext, labelInference)
+    val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(
+      planContext,
+      labelInference,
+      CypherPlannerVersionWithOptimisations.allSupportedOptimisations(cc.plannerVersion)
+    )
     val metrics = SimpleMetricsFactory.newMetrics(
       planContext,
       simpleExpressionEvaluator,

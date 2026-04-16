@@ -59,6 +59,7 @@ case class CypherQueryOptions(
   inferSchemaParts: CypherInferSchemaPartsOption,
   statefulShortestPlanningModeOption: CypherStatefulShortestPlanningModeOption,
   planVarExpandInto: CypherPlanVarExpandInto,
+  plannerVersionOption: CypherPlannerVersionOption,
   pipelinedBatchSizePresetOption: CypherPipelinedBatchSizePresetOption,
   pipelinedBatchReuseOption: CypherPipelinedBatchReuseOption,
   heapEstimatorCacheOption: CypherHeapEstimatorCacheOption
@@ -780,6 +781,50 @@ case object CypherPlanVarExpandInto
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherPlanVarExpandInto] = singleOptionReader()
 
+}
+
+sealed abstract class CypherPlannerVersionOption(name: String) extends CypherKeyValueOption(name) {
+  override def companion: CypherPlannerVersionOption.type = CypherPlannerVersionOption
+  override def relevantForLogicalPlanCacheKey: Boolean = true
+}
+
+case object CypherPlannerVersionOption extends CypherOptionCompanion[CypherPlannerVersionOption](
+      name = "plannerVersion",
+      setting = Some(GraphDatabaseInternalSettings.cypher_planner_version),
+      cypherConfigField = Some(_.plannerVersion)
+    ) {
+  case object experimental extends CypherPlannerVersionOption("experimental")
+  case object next extends CypherPlannerVersionOption("next")
+  case object v2026_04 extends CypherPlannerVersionOption("v2026_04")
+  case object v2026_03 extends CypherPlannerVersionOption("v2026_03")
+  // New Planner version release: update the default value to the new version
+  val latest: CypherPlannerVersionOption = v2026_04
+  val LATEST_ALIAS: String = "latest"
+
+  override def default: CypherPlannerVersionOption = latest
+
+  def values: Set[CypherPlannerVersionOption] = this.supportedValues.toSet
+
+  // We want to override supported values to avoid sorting by name.
+  override def supportedValues: Seq[CypherPlannerVersionOption] = Seq(
+    experimental,
+    next,
+    v2026_04,
+    v2026_03
+  )
+
+  override def fromValue(input: String): CypherPlannerVersionOption = OptionReader.canonical(input) match {
+    case LATEST_ALIAS => latest
+    case _            => super.fromValue(input)
+  }
+
+  implicit val hasDefault: OptionDefault[CypherPlannerVersionOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherPlannerVersionOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherPlannerVersionOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherPlannerVersionOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherPlannerVersionOption] = singleOptionReader()
 }
 
 sealed abstract class CypherPipelinedBatchSizePresetOption(val preset: String) extends CypherKeyValueOption(preset) {

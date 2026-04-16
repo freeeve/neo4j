@@ -20,6 +20,8 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.planner.Optimisation
+import org.neo4j.cypher.internal.compiler.planner.Optimisation.MergeLabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -64,9 +66,13 @@ object LabelInferenceStrategy {
 
   def fromConfig(
     planContext: PlanContext,
-    labelInferenceOption: CypherInferSchemaPartsOption
+    labelInferenceOption: CypherInferSchemaPartsOption,
+    plannerVersionOptimisations: Set[Optimisation]
   ): LabelInferenceStrategy = {
-    if (labelInferenceOption == CypherInferSchemaPartsOption.mostSelectiveLabel)
+    if (
+      labelInferenceOption == CypherInferSchemaPartsOption.mostSelectiveLabel ||
+      plannerVersionOptimisations.contains(MergeLabelInfo)
+    )
       new InferOnlyIfNoOtherLabel(planContext)
     else
       NoInference

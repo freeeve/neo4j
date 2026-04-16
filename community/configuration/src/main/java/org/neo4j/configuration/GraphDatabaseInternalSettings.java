@@ -248,6 +248,21 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     StatefulShortestPlanningMode.CARDINALITY_HEURISTIC)
             .build();
 
+    public enum CypherPlannerVersion {
+        EXPERIMENTAL, // The version with a set of experimental optimisations that could go into later releases
+        NEXT, // Upcoming version
+        LATEST, // Alias to the latest version (immediately following this entry)
+        // Planner version update: add the latest version here just after LATEST
+        V2026_04,
+        V2026_03
+    }
+
+    @Internal
+    @Description("Cypher planner version. Controls which planner optimisations are active.")
+    public static final Setting<CypherPlannerVersion> cypher_planner_version = newBuilder(
+                    "internal.cypher.planner_version", ofEnum(CypherPlannerVersion.class), CypherPlannerVersion.LATEST)
+            .build();
+
     public enum PlanVarExpandInto {
         /**
          * Plan expandInto using regular cost estimation

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
+import org.neo4j.cypher.internal.compiler.planner.Optimisation.MergeLabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.test_helpers.TestGraphStatistics
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -56,7 +57,8 @@ class LabelInferenceStrategyTest extends CypherFunSuite with AstConstructionTest
           .toMap
     )
 
-    val labelInference = LabelInferenceStrategy.fromConfig(planContext, CypherInferSchemaPartsOption.mostSelectiveLabel)
+    val labelInference =
+      LabelInferenceStrategy.fromConfig(planContext, CypherInferSchemaPartsOption.mostSelectiveLabel, Set.empty)
 
     def inferLabelsGivenRelTypes(relTypes: Seq[String]): LabelInfo = {
       val relTypeNames = relTypes.map(relTypeName(_))
@@ -84,6 +86,44 @@ class LabelInferenceStrategyTest extends CypherFunSuite with AstConstructionTest
 
     val relTypesAboveLimit = semanticTable.resolvedRelTypeNames.keySet.toSeq
     inferLabelsGivenRelTypes(relTypesAboveLimit) shouldBe LabelInfo.empty
+  }
+
+  test("MergeLabelInfo optimisation should be equivalent to CypherInferSchemaPartsOption.mostSelectiveLabel") {
+    val planContext = testPlanContext(
+      mostCommonLabelGivenRelationshipTypeFunc = _ => Seq(1),
+      labels = Seq(LabelDesc(id = 1, name = "A", cardinality = 100))
+    )
+
+    val semanticTable = SemanticTable(
+      resolvedRelTypeNames = Map("REL" -> RelTypeId(1))
+    )
+
+    val patternRel = PatternRelationship(
+      v"r",
+      (v"n", v"m"),
+      SemanticDirection.OUTGOING,
+      Seq(relTypeName("REL")),
+      SimplePatternLength
+    )
+
+    val nodeConnections = Seq(patternRel)
+
+    // 1. With mostSelectiveLabel option
+    val strategy1 =
+      LabelInferenceStrategy.fromConfig(planContext, CypherInferSchemaPartsOption.mostSelectiveLabel, Set.empty)
+    val (inferred1, _) = strategy1.inferLabels(semanticTable, LabelInfo.empty, nodeConnections)
+    inferred1 should not be LabelInfo.empty
+
+    // 2. With MergeLabelInfo optimisation
+    val strategy2 =
+      LabelInferenceStrategy.fromConfig(planContext, CypherInferSchemaPartsOption.off, Set(MergeLabelInfo))
+    val (inferred2, _) = strategy2.inferLabels(semanticTable, LabelInfo.empty, nodeConnections)
+    inferred2 shouldBe inferred1
+
+    // 3. Without either
+    val strategy3 = LabelInferenceStrategy.fromConfig(planContext, CypherInferSchemaPartsOption.off, Set.empty)
+    val (inferred3, _) = strategy3.inferLabels(semanticTable, LabelInfo.empty, nodeConnections)
+    inferred3 shouldBe LabelInfo.empty
   }
 
   private case class LabelDesc(id: Int, name: String, cardinality: Int)

@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.options.CypherPipelinedBatchReuseOption
 import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.graphdb.config.Setting
@@ -129,6 +130,9 @@ class CypherConfiguration private (val config: Config) {
 
   val planVarExpandInto: CypherPlanVarExpandInto =
     CypherPlanVarExpandInto.fromConfig(config)
+
+  val plannerVersion: CypherPlannerVersionOption =
+    CypherPlannerVersionOption.fromConfig(config)
 
   val errorIfShortestPathFallbackUsedAtRuntime: Boolean =
     config.get(GraphDatabaseSettings.forbid_exhaustive_shortestpath)

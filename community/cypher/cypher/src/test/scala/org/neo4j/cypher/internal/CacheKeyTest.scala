@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
@@ -84,6 +85,7 @@ class CacheKeyTest extends CypherFunSuite {
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,
       planVarExpandInto = CypherPlanVarExpandInto.minimumCost,
+      plannerVersionOption = CypherPlannerVersionOption.v2026_03,
       pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.small,
       pipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.pack,
       heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled
@@ -91,7 +93,7 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.cacheKey
       .shouldEqual(
-        """PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03"""
       )
 
     val derivedOptions = CypherQueryOptions.derivedOptions(options, CypherConfiguration.fromConfig(Config.defaults()))
@@ -122,6 +124,7 @@ class CacheKeyTest extends CypherFunSuite {
       inferSchemaParts = CypherInferSchemaPartsOption.mostSelectiveLabel,
       statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.allIfPossible,
       planVarExpandInto = CypherPlanVarExpandInto.minimumCost,
+      plannerVersionOption = CypherPlannerVersionOption.v2026_03,
       pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.small,
       pipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.pack,
       heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled
@@ -129,13 +132,25 @@ class CacheKeyTest extends CypherFunSuite {
 
     options.logicalPlanCacheKey
       .shouldEqual(
-        """updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost"""
+        """updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03"""
       )
 
     val derivedOptions = CypherQueryOptions.derivedOptions(options, CypherConfiguration.fromConfig(Config.defaults()))
     derivedOptions.cacheKey
       .shouldEqual(
         """BatchSize(128,128)"""
+      )
+  }
+
+  test("cachekey with plannerVersion latest should be the same as the default version") {
+    val options = CypherQueryOptions.defaultOptions.copy(plannerVersionOption = CypherPlannerVersionOption.latest)
+    options.cacheKey
+      .shouldEqual(
+        ""
+      )
+    options.logicalPlanCacheKey
+      .shouldEqual(
+        ""
       )
   }
 }

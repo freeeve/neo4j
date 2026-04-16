@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.SyntaxExceptionCreator
 import org.neo4j.cypher.internal.compiler.UpdateStrategy
+import org.neo4j.cypher.internal.compiler.planner.Optimisation
 import org.neo4j.cypher.internal.compiler.planner.logical.ExpressionEvaluator
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics
 import org.neo4j.cypher.internal.compiler.planner.logical.MetricsFactory
@@ -72,6 +73,7 @@ trait PlannerContext extends BaseContext {
   def materializedEntitiesMode: Boolean
   def statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption
   def planVarExpandInto: CypherPlanVarExpandInto
+  def optimisations: Set[Optimisation]
   def databaseReferenceRepository: DatabaseReferenceRepository
   def databaseId: NamedDatabaseId
   def log: Log
@@ -154,6 +156,7 @@ final class PlannerContextImpl(
   override val materializedEntitiesMode: Boolean,
   override val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
   override val planVarExpandInto: CypherPlanVarExpandInto,
+  override val optimisations: Set[Optimisation],
   override val databaseReferenceRepository: DatabaseReferenceRepository,
   override val databaseId: NamedDatabaseId,
   override val log: Log,
@@ -191,6 +194,7 @@ final class PlannerContextImpl(
     materializedEntitiesMode = materializedEntitiesMode,
     statefulShortestPlanningMode = statefulShortestPlanningMode,
     planVarExpandInto = planVarExpandInto,
+    optimisations = optimisations,
     databaseReferenceRepository = databaseReferenceRepository,
     databaseId = databaseId,
     log = log,
@@ -231,6 +235,7 @@ object PlannerContext {
     labelInference: CypherInferSchemaPartsOption,
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
     planVarExpandInto: CypherPlanVarExpandInto,
+    optimisations: Set[Optimisation],
     databaseReferenceRepository: DatabaseReferenceRepository,
     databaseId: NamedDatabaseId,
     log: Log,
@@ -242,8 +247,7 @@ object PlannerContext {
     shadowedFunctions: Set[String]
   ): PlannerContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
-
-    val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(planContext, labelInference)
+    val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(planContext, labelInference, optimisations)
 
     val metrics = metricsFactory.newMetrics(
       planContext,
@@ -273,6 +277,7 @@ object PlannerContext {
       materializedEntitiesMode,
       statefulShortestPlanningMode,
       planVarExpandInto,
+      optimisations,
       databaseReferenceRepository,
       databaseId,
       log,
