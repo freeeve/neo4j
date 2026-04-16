@@ -22,12 +22,13 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.cypher.util.DontRunOnSpdBuild
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 abstract class CommunityAdministrationCommandAcceptanceTestBase extends ExecutionEngineFunSuite
-    with GraphDatabaseTestSupport with LoggingTestSupport {
+    with GraphDatabaseTestSupport with LoggingTestSupport with DontRunOnSpdBuild {
 
   val param: String = s"$$param"
   val paramName: String = "param"
