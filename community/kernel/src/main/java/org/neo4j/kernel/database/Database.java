@@ -1372,7 +1372,7 @@ public class Database extends AbstractDatabase {
     }
 
     /**
-     * Called on the server that owns the new lease when a new lease is acquired in a cluster.
+     * Called when a new lease is acquired in a cluster.
      * This method must not perform any actions that can block for a long time. Any long-running
      * actions must be run in other threads. Any transactions created as a result of a call to
      * this method that fail to replicate should not be retried immediately. Instead, they should
