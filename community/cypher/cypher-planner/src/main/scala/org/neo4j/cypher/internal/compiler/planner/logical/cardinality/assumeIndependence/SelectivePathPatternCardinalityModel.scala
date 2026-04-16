@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SelectivePathPattern
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.Selector
-import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Fby
 import org.neo4j.cypher.internal.util.Last
@@ -55,6 +55,8 @@ trait SelectivePathPatternCardinalityModel
     // Here we need to inline back the predicates to the QPPs since we cannot handle ForAllRepetitions in cardinality estimation.
     val sppWithInlinedPredicates = expandSolverStep.inlineQPPPredicates(selectivePathPattern, Set.empty)
 
+    val pathMode = TraversalPathMode.getFromPredicates(selectivePathPattern.selections.predicates.map(_.expr))
+
     sppWithInlinedPredicates.selector match {
       case Selector.Any(k) =>
         anyPathPatternCardinality(
@@ -65,7 +67,8 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k.effectiveCardinality
+          k = k.effectiveCardinality,
+          pathMode = pathMode
         )
       case Selector.Shortest(k) =>
         // whether we want any paths or the shortest paths doesn't change the cardinality, it only dictates which paths are going to be returned
@@ -77,7 +80,8 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k.effectiveCardinality
+          k = k.effectiveCardinality,
+          pathMode = pathMode
         )
       case Selector.ShortestGroups(k) =>
         shortestGroupsPathPatternCardinality(
@@ -88,7 +92,8 @@ trait SelectivePathPatternCardinalityModel
           leftNodeCardinality = leftNodeCardinality,
           rightNodeCardinality = rightNodeCardinality,
           boundaryNodePredicates,
-          k = k.effectiveCardinality
+          k = k.effectiveCardinality,
+          pathMode = pathMode
         )
     }
   }
@@ -101,9 +106,11 @@ trait SelectivePathPatternCardinalityModel
     leftNodeCardinality: Cardinality,
     rightNodeCardinality: Cardinality,
     boundaryNodePredicates: Set[Predicate],
-    k: Long
+    k: Long,
+    pathMode: TraversalPathMode
   ): Cardinality = {
-    val patternCardinality = pathPatternCardinality(context, labelInfo, pathPattern, selections, boundaryNodePredicates)
+    val patternCardinality =
+      pathPatternCardinality(context, labelInfo, pathPattern, selections, boundaryNodePredicates, pathMode)
     Cardinality.min(patternCardinality, leftNodeCardinality * rightNodeCardinality * Multiplier(k))
   }
 
@@ -115,10 +122,11 @@ trait SelectivePathPatternCardinalityModel
     leftNodeCardinality: Cardinality,
     rightNodeCardinality: Cardinality,
     boundaryNodePredicates: Set[Predicate],
-    k: Long
+    k: Long,
+    pathMode: TraversalPathMode
   ): Cardinality = {
     val increasinglyLargerPatternsCardinalities = increasinglyLargerPatterns(pathPattern).map(resizedPattern =>
-      pathPatternCardinality(context, labelInfo, resizedPattern, selections, boundaryNodePredicates)
+      pathPatternCardinality(context, labelInfo, resizedPattern, selections, boundaryNodePredicates, pathMode)
     )
 
     increasinglyLargerPatternsCardinalities
@@ -134,7 +142,8 @@ trait SelectivePathPatternCardinalityModel
     labelInfo: LabelInfo,
     pathPattern: NodeConnections[ExhaustiveNodeConnection],
     selections: Selections,
-    boundaryNodePredicates: Set[Predicate]
+    boundaryNodePredicates: Set[Predicate],
+    pathMode: TraversalPathMode
   ): Cardinality = {
     val predicates = QueryGraphPredicates.partitionSelections(labelInfo, selections.labelInfo, selections)
     val patternCardinality = pathPattern.connections match {
@@ -144,8 +153,10 @@ trait SelectivePathPatternCardinalityModel
             context,
             predicates.allLabelInfo,
             predicates.uniqueRelationships,
+            predicates.uniqueNodes,
             head,
-            boundaryNodePredicates
+            boundaryNodePredicates,
+            pathMode
           )
         tail.foldLeft(headCardinality) { case (cardinality, connection) =>
           val connectionCardinality =
@@ -153,8 +164,10 @@ trait SelectivePathPatternCardinalityModel
               context,
               predicates.allLabelInfo,
               predicates.uniqueRelationships,
+              predicates.uniqueNodes,
               connection,
-              boundaryNodePredicates
+              boundaryNodePredicates,
+              pathMode
             )
           val leftNodeCardinality =
             getNodeCardinality(context, predicates.allLabelInfo, connection.left).getOrElse(Cardinality.EMPTY)
@@ -170,8 +183,10 @@ trait SelectivePathPatternCardinalityModel
           context,
           predicates.allLabelInfo,
           predicates.uniqueRelationships,
+          predicates.uniqueNodes,
           head,
-          boundaryNodePredicates
+          boundaryNodePredicates,
+          pathMode
         )
     }
 
@@ -184,8 +199,10 @@ trait SelectivePathPatternCardinalityModel
     context: QueryGraphCardinalityContext,
     labelInfo: LabelInfo,
     uniqueRelationships: Set[LogicalVariable],
+    uniqueNodes: Set[LogicalVariable],
     exhaustiveNodeConnection: ExhaustiveNodeConnection,
-    boundaryNodePredicates: Set[Predicate]
+    boundaryNodePredicates: Set[Predicate],
+    pathMode: TraversalPathMode
   ): Cardinality =
     exhaustiveNodeConnection match {
       case relationship: PatternRelationship =>
@@ -201,10 +218,10 @@ trait SelectivePathPatternCardinalityModel
           labelInfo,
           quantifiedPathPattern,
           uniqueRelationships,
-          Set.empty, // Fixme: update when selective path patterns can be combined with explicit path modes like ACYCLIC
+          uniqueNodes,
           boundaryNodePredicates,
           Set.empty,
-          Trail // Fixme: update when selective path patterns can be combined with explicit path modes like ACYCLIC
+          pathMode
         )
     }
 }

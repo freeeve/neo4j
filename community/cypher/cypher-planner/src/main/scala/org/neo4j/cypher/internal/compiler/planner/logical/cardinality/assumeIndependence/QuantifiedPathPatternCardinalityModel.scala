@@ -327,7 +327,7 @@ trait QuantifiedPathPatternCardinalityModel extends NodeCardinalityModel with Pa
                     // What is left is the node uniqueness between the node in the QPP to nodes outside the QPP
                     // Example:
                     //   MATCH ACYCLIC (n1)((a)--(b)){3,5}(n2)--(n3)((c)--(d)--(e)){2,3}(n4),
-                    //   while we are currently in the estimation of ()((c)--(d)){2,3}() for i=2
+                    //   while we are currently in the estimation of ()((c)--(d)--(e)){2,3}() for i=2
                     // nbInnerNodes = 3 {c, d, e}
                     // nbNodesInChainAtIterationI = 5 {c1, d1, e1_c2, d2, e2}
                     // nodesOutsideTheQpp = 5 (assume 4 iteration of the QPP with quantifier {3,5}) {n1a1, b1_a2, b2_a3, b3_a4, b4}

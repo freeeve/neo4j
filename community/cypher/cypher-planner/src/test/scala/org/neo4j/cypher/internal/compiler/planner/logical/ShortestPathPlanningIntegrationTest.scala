@@ -23,9 +23,11 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.ALL_IF_POSSIBLE
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.CARDINALITY_HEURISTIC
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.INTO_ONLY
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
@@ -61,6 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
@@ -5264,5 +5267,183 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         .allNodeScan("s")
         .build()
     )
+  }
+
+  private val `nfa_(n)-[:S]->{3,4}(m)` = new TestNFABuilder(0, "n")
+    .addTransition(0, 1, "(n) (anon_0)")
+    .addTransition(1, 2, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(2, 3, "(anon_2) (anon_0)")
+    .addTransition(3, 4, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(4, 5, "(anon_2) (anon_0)")
+    .addTransition(5, 6, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(6, 7, "(anon_2) (anon_0)")
+    .addTransition(6, 9, "(anon_2) (m)")
+    .addTransition(7, 8, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(8, 9, "(anon_2) (m)")
+    .setFinalState(9)
+    .build()
+
+  private val `nfa_(n)-[:S]->{1,4}(m)` = new TestNFABuilder(0, "n")
+    .addTransition(0, 1, "(n) (anon_0)")
+    .addTransition(1, 2, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(2, 3, "(anon_2) (anon_0)")
+    .addTransition(2, 9, "(anon_2) (m)")
+    .addTransition(3, 4, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(4, 5, "(anon_2) (anon_0)")
+    .addTransition(4, 9, "(anon_2) (m)")
+    .addTransition(5, 6, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(6, 7, "(anon_2) (anon_0)")
+    .addTransition(6, 9, "(anon_2) (m)")
+    .addTransition(7, 8, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
+    .addTransition(8, 9, "(anon_2) (m)")
+    .setFinalState(9)
+    .build()
+
+  test(
+    "should plan Shortest Acyclic groups"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:S]->()", 400)
+      .addSemanticFeature(GpmShortestWithExplicitPathMode)
+      .build()
+
+    val query =
+      """MATCH SHORTEST 25 ACYCLIC GROUPS (n)-[:S]->{3,4}(m) RETURN *
+        |""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) shouldEqual planner.planBuilder()
+      .produceResults("m", "n")
+      .statefulShortestPath(
+        sourceNode = "n",
+        targetNode = "m",
+        solvedExpressionString = "SHORTEST 25 GROUPS (n) ((`anon_0`)-[`anon_1`]->(`anon_2`)){3, 4} (m)",
+        nonInlinedPreFilters = None,
+        groupNodes = Set.empty,
+        groupRelationships = Set(),
+        singletonNodeVariables = Set(("m", "m")),
+        singletonRelationshipVariables = Set(),
+        selector = StatefulShortestPath.Selector.ShortestGroups(CountInteger(25)),
+        nfa = `nfa_(n)-[:S]->{3,4}(m)`,
+        mode = ExpandAll,
+        reverseGroupVariableProjections = false,
+        minLength = 3,
+        maxLength = Some(4),
+        pathMode = Acyclic
+      )
+      .allNodeScan("n")
+      .build()
+  }
+
+  test(
+    "should plan Shortest N Acyclic"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:S]->()", 400)
+      .addSemanticFeature(GpmShortestWithExplicitPathMode)
+      .build()
+
+    val query =
+      """MATCH SHORTEST 25 ACYCLIC (n)-[:S]->{3,4}(m) RETURN *
+        |""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) shouldEqual planner.planBuilder()
+      .produceResults("m", "n")
+      .statefulShortestPath(
+        sourceNode = "n",
+        targetNode = "m",
+        solvedExpressionString = "SHORTEST 25 (n) ((`anon_0`)-[`anon_1`]->(`anon_2`)){3, 4} (m)",
+        nonInlinedPreFilters = None,
+        groupNodes = Set.empty,
+        groupRelationships = Set(),
+        singletonNodeVariables = Set(("m", "m")),
+        singletonRelationshipVariables = Set(),
+        selector = StatefulShortestPath.Selector.Shortest(CountInteger(25)),
+        nfa = `nfa_(n)-[:S]->{3,4}(m)`,
+        mode = ExpandAll,
+        reverseGroupVariableProjections = false,
+        minLength = 3,
+        maxLength = Some(4),
+        pathMode = Acyclic
+      )
+      .allNodeScan("n")
+      .build()
+  }
+
+  test(
+    "should plan any Shortest Acyclic"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:S]->()", 400)
+      .addSemanticFeature(GpmShortestWithExplicitPathMode)
+      .build()
+
+    val query =
+      """MATCH ANY SHORTEST ACYCLIC (n)-[:S]->{3,4}(m) RETURN *
+        |""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) shouldEqual planner.planBuilder()
+      .produceResults("m", "n")
+      .statefulShortestPath(
+        sourceNode = "n",
+        targetNode = "m",
+        solvedExpressionString = "SHORTEST 1 (n) ((`anon_0`)-[`anon_1`]->(`anon_2`)){3, 4} (m)",
+        nonInlinedPreFilters = None,
+        groupNodes = Set.empty,
+        groupRelationships = Set(),
+        singletonNodeVariables = Set(("m", "m")),
+        singletonRelationshipVariables = Set(),
+        selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+        nfa = `nfa_(n)-[:S]->{3,4}(m)`,
+        mode = ExpandAll,
+        reverseGroupVariableProjections = false,
+        minLength = 3,
+        maxLength = Some(4),
+        pathMode = Acyclic
+      )
+      .allNodeScan("n")
+      .build()
+  }
+
+  test(
+    "should not rewrite GPM Shortest Acyclic to shortestPath()"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setRelationshipCardinality("()-[:S]->()", 400)
+      .addSemanticFeature(GpmShortestWithExplicitPathMode)
+      .withSetting(GraphDatabaseInternalSettings.stateful_shortest_planning_mode, INTO_ONLY)
+      .build()
+
+    // Removing `ACYCLIC` will cause `.statefulShortestPath(` to be rewritten into `.shortestPath(`
+    val query =
+      """MATCH ANY SHORTEST ACYCLIC (n)-[:S]->{1,4}(m) RETURN *
+        |""".stripMargin
+
+    planner.plan(CypherVersion.Cypher25, query) shouldEqual planner.planBuilder()
+      .produceResults("m", "n")
+      .statefulShortestPath(
+        sourceNode = "n",
+        targetNode = "m",
+        solvedExpressionString = "SHORTEST 1 (n) ((`anon_0`)-[`anon_1`]->(`anon_2`)){1, 4} (m)",
+        nonInlinedPreFilters = None,
+        groupNodes = Set.empty,
+        groupRelationships = Set(),
+        singletonNodeVariables = Set(),
+        singletonRelationshipVariables = Set(),
+        selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+        nfa = `nfa_(n)-[:S]->{1,4}(m)`,
+        mode = ExpandInto,
+        reverseGroupVariableProjections = false,
+        minLength = 1,
+        maxLength = Some(4),
+        pathMode = Acyclic
+      )
+      .cartesianProduct()
+      .|.allNodeScan("n")
+      .allNodeScan("m")
+      .build()
   }
 }

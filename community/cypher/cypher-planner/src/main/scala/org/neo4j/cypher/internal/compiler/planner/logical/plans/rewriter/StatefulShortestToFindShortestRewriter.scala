@@ -74,6 +74,7 @@ import scala.collection.Set
  *  4.2 AND relationship is undirected. (then the startNode = endNode is not supported)
  * 5.0 Minimum bound must be 0 or 1 for QPP
  * 6.0 Selection asks for shortest 1
+ * 7.0 The path mode should be Trail or Walk
  *
  * If a Shortest pattern follows these rules we can rewrite it into a legacy shortest path.
  */
@@ -316,7 +317,7 @@ case class StatefulShortestToFindShortestRewriter(
       qpp.variableGroupings,
       statefulShortestPath.source.availableSymbols,
       insideRepeat = false,
-      startNode = None // ACYCLIC path mode with SHORTEST is not yet supported
+      repeatStartNode = None // not needed when insideRepeat = false
     ).predicates.map(_.extracted)
 
     // The rest are iterable all(), none(), etc predicates, already in the inlineable form.

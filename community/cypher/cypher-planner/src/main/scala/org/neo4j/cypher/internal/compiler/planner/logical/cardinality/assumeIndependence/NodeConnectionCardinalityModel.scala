@@ -75,7 +75,7 @@ trait NodeConnectionCardinalityModel
               // so this should not matter. But it would technically be false in the case of shortest path queries if that should be used with this
               insideRepeat = false,
               // always assume that the processing starts from the LHS
-              startNode = quantifiedPathPattern.getGroupVariable(quantifiedPathPattern.leftBinding.inner)
+              repeatStartNode = quantifiedPathPattern.getGroupVariable(quantifiedPathPattern.leftBinding.inner)
             )
 
           quantifiedPathPattern.copy(selections =

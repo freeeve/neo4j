@@ -20,7 +20,9 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 /**
@@ -30,6 +32,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport {
   private val allNodes: Double = 1000.0
   private val allRels: Double = 50000.0
+  private val rRels: Double = 100.0
 
   private val cardinalityChain1Rel2Nodes = allRels * DEFAULT_NODES_UNIQUENESS_SELECTIVITY.factor
 
@@ -56,10 +59,13 @@ class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityI
 
   private def cardinalityChainWithNRels(n: Int): Double = {
     val nbNodes = n + 1
-    allRels * Math.pow(allRels / allNodes, n - 1) * Math.pow(
-      DEFAULT_NODES_UNIQUENESS_SELECTIVITY.factor,
-      ((nbNodes - 1) * nbNodes) / 2.0
-    )
+    allRels * Math.pow(allRels / allNodes, n - 1) *
+      RepetitionCardinalityModel.nodeUniquenessSelectivity(nbNodes, 1).factor
+  }
+
+  private def cardinalityChainWithNRelsWithLabelR(n: Int): Double = {
+    val nbNodes = n + 1
+    rRels * Math.pow(rRels / allNodes, n - 1) * RepetitionCardinalityModel.nodeUniquenessSelectivity(nbNodes, 1).factor
   }
 
   private val planner =
@@ -67,6 +73,7 @@ class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityI
       .enableGraphTypes()
       .setAllNodesCardinality(allNodes)
       .setAllRelationshipsCardinality(allRels)
+      .setRelationshipCardinality("()-[:R]->()", rRels)
 
   test("Single relationship") {
     queryShouldHaveCardinality(
@@ -326,4 +333,91 @@ class AcyclicCardinalityIntegrationTest extends CypherFunSuite with CardinalityI
     )
   }
 
+  // The aim of the tests with SHORTEST is to make sure that WHEN the pattern cardinality is used, THEN acyclic semantics are taken into account
+  test("ANY SHORTEST ACYCLIC (n1)-[]->{2,3}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH ANY SHORTEST ACYCLIC (n1)-[]->{2,3}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is not used, because it is larger than 'allNodes * allNodes'
+      allNodes * allNodes
+    )
+  }
+
+  test("ANY SHORTEST ACYCLIC (n1)-[:R]->{2,3}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH ANY SHORTEST ACYCLIC (n1)-[:R]->{2,3}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is used, because it is lower than 'allNodes * allNodes'
+      cardinalityChainWithNRelsWithLabelR(2) + cardinalityChainWithNRelsWithLabelR(3)
+    )
+  }
+
+  test("MATCH SHORTEST 5 ACYCLIC (n1)-[]->{2,3}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH SHORTEST 5 ACYCLIC (n1)-[]->{2,3}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[]->{2,3}(n2)' is not used, because it is larger than 'allNodes * allNodes * 5'
+      allNodes * allNodes * 5
+    )
+  }
+
+  test("MATCH SHORTEST 500 ACYCLIC (n1)-[]->{2,3}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH SHORTEST 500 ACYCLIC (n1)-[]->{2,3}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[]->{2,3}(n2)' is used, because it is smaller than 'allNodes * allNodes * 500'
+      cardinalityChain2Rels3Nodes + cardinalityChain3Rels4Nodes
+    )
+  }
+
+  test("MATCH SHORTEST 5 ACYCLIC (n1)-[:R]->{2,3}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH SHORTEST 5 ACYCLIC (n1)-[:R]->{2,3}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is used, because it is lower than 'allNodes * allNodes * 5'
+      cardinalityChainWithNRelsWithLabelR(2) + cardinalityChainWithNRelsWithLabelR(3)
+    )
+  }
+
+  test("SHORTEST 1 ACYCLIC GROUP (n1)-[]->{2,5}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH SHORTEST 1 ACYCLIC GROUP (n1)-[]->{2,5}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,2}(n2)' is used, because that is already larger than 'allNodes * allNodes'
+      cardinalityChain2Rels3Nodes
+    )
+  }
+
+  test("SHORTEST 1 ACYCLIC GROUP (n1)-[:R]->{2,5}(n2)") {
+    queryShouldHaveCardinality(
+      planner
+        .addSemanticFeature(GpmShortestWithExplicitPathMode)
+        .build(),
+      CypherVersion.Cypher25,
+      "MATCH SHORTEST 1 ACYCLIC GROUP (n1)-[:R]->{2,5}(n2)",
+      // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,5}(n2)' is used, because all {2,2}, (2,3), {2,4} and {2,5} are lower than 'allNodes * allNodes'
+      cardinalityChainWithNRelsWithLabelR(2)
+        + cardinalityChainWithNRelsWithLabelR(3)
+        + cardinalityChainWithNRelsWithLabelR(4)
+        + cardinalityChainWithNRelsWithLabelR(5)
+    )
+  }
 }

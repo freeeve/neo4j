@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.expressions.DisjointNodes
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NodeUniquenessPredicate
 import org.neo4j.cypher.internal.expressions.NoneOfNodes
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Property
@@ -346,7 +347,7 @@ object expandSolverStep {
         quantifiedPathPattern.variableGroupings,
         availableVars,
         insideRepeat = true,
-        startNode = qppInnerStartNodeGroupVariable
+        repeatStartNode = qppInnerStartNodeGroupVariable
       )
 
     val innerPlanPredicates = extractedPredicates.predicates.map(_.original)
@@ -632,7 +633,7 @@ object expandSolverStep {
                     variableGrouping,
                     availableSymbols,
                     insideRepeat = false,
-                    startNode = None // ACYCLIC path mode with selective path patterns not yet supported
+                    repeatStartNode = None // not needed when insideRepeat = false
                   )
                   val singletonVariables = variableGrouping.map(_.singleton)
                   val filteredPredicates = extracted.predicates
@@ -738,9 +739,11 @@ object expandSolverStep {
       case far: ForAllRepetitions =>
         far.originalInnerPredicate match {
           case _: RelationshipUniquenessPredicate => false
+          case _: NodeUniquenessPredicate         => false
           case _                                  => true
         }
       case _: RelationshipUniquenessPredicate => false
+      case _: NodeUniquenessPredicate         => false
       case _                                  => true
     })
 

@@ -429,16 +429,17 @@ object extractQppPredicates {
   /**
    * @param insideRepeat whether the pre-filter position is on the RHS of a Repeat.
    *                     Thus, whether Unique may be extracted into an IsRepeatTrailUnique.
+   * @param repeatStartNode the startNode of Repeat. This can be None when `insideRepeat` = false
    */
   def apply(
     predicates: Seq[Expression],
     availableLocalSymbols: Set[VariableGrouping],
     availableNonLocalSymbols: Set[LogicalVariable],
     insideRepeat: Boolean,
-    startNode: Option[LogicalVariable]
+    repeatStartNode: Option[LogicalVariable]
   ): ExtractedPredicates = {
     val solvables = filterSolvablePredicates(predicates, availableLocalSymbols, availableNonLocalSymbols)
-    val extracted = getExtractablePredicates(solvables, availableLocalSymbols, insideRepeat, startNode)
+    val extracted = getExtractablePredicates(solvables, availableLocalSymbols, insideRepeat, repeatStartNode)
     val requiredSymbols = getRequiredNonLocalSymbols(extracted, availableLocalSymbols)
     ExtractedPredicates(requiredSymbols, extracted)
   }
