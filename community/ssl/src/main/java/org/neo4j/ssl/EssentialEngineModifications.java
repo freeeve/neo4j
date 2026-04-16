@@ -25,10 +25,12 @@ import javax.net.ssl.SSLEngine;
 public class EssentialEngineModifications implements Function<SSLEngine, SSLEngine> {
     private final String[] tlsVersions;
     private final boolean isClient;
+    private final String[] namedGroups;
 
-    public EssentialEngineModifications(String[] tlsVersions, boolean isClient) {
+    public EssentialEngineModifications(String[] tlsVersions, boolean isClient, String[] namedGroups) {
         this.tlsVersions = tlsVersions;
         this.isClient = isClient;
+        this.namedGroups = namedGroups;
     }
 
     /**
@@ -43,6 +45,13 @@ public class EssentialEngineModifications implements Function<SSLEngine, SSLEngi
             sslEngine.setEnabledProtocols(tlsVersions);
         }
         sslEngine.setUseClientMode(isClient);
+
+        if (namedGroups.length != 0) {
+            var existingParams = sslEngine.getSSLParameters();
+            existingParams.setNamedGroups(namedGroups);
+            sslEngine.setSSLParameters(existingParams);
+        }
+
         return sslEngine;
     }
 }

@@ -161,7 +161,11 @@ public class SslPolicy {
     }
 
     public ChannelHandler nettyClientHandler(Channel channel, SslContext sslContext) {
-        return new ClientSideOnConnectSslHandler(channel, sslContext, verifyHostname, tlsVersions);
+        return new ClientSideOnConnectSslHandler(channel, sslContext, verifyHostname, tlsVersions, new String[] {});
+    }
+
+    public ChannelHandler nettyClientHandler(Channel channel, SslContext sslContext, String[] namedGroups) {
+        return new ClientSideOnConnectSslHandler(channel, sslContext, verifyHostname, tlsVersions, namedGroups);
     }
 
     public PrivateKey privateKey() {

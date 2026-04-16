@@ -42,12 +42,16 @@ public class ClientSideOnConnectSslHandler extends ChannelDuplexHandler {
     private final Collection<Function<SSLEngine, SSLEngine>> engineModifications;
 
     ClientSideOnConnectSslHandler(
-            Channel channel, SslContext sslContext, boolean verifyHostname, String[] tlsVersions) {
+            Channel channel,
+            SslContext sslContext,
+            boolean verifyHostname,
+            String[] tlsVersions,
+            String[] namedGroups) {
         this.pipeline = channel.pipeline();
         this.sslContext = sslContext;
 
         this.engineModifications = new ArrayList<>();
-        engineModifications.add(new EssentialEngineModifications(tlsVersions, true));
+        engineModifications.add(new EssentialEngineModifications(tlsVersions, true, namedGroups));
         if (verifyHostname) {
             engineModifications.add(new ClientSideHostnameVerificationEngineModification());
         }
