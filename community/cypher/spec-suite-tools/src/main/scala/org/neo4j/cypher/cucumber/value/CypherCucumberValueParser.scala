@@ -62,6 +62,7 @@ object CypherCucumberValueParser {
 
   private def cypherValue[X: P](implicit asDriverParameter: Boolean): P[AnyRef] =
     string |
+      uuid |
       float |
       double |
       integer |
@@ -111,6 +112,21 @@ object CypherCucumberValueParser {
     }
 
   private def nanValue[X: P]: P[java.lang.Double] = P("NaN").!.map(_ => Double.NaN)
+
+  private def hex[X: P](n: Int) = P(CharIn("a-fA-F0-9").rep(exactly = n))
+
+  private def uuidBody[X: P] = P(
+    hex(8) ~ "-" ~ hex(4) ~ "-" ~ hex(4) ~ "-" ~ hex(4) ~ "-" ~ hex(12)
+  )
+
+  private def uuid[X: P](implicit asDriverParameter: Boolean): P[AnyRef] =
+    P("UUID(\"" ~ uuidBody.! ~ "\")").map { uuidString =>
+      if (asDriverParameter) {
+        org.neo4j.driver.Values.value(java.util.UUID.fromString(uuidString))
+      } else {
+        Values.uuidValue(uuidString)
+      }
+    }
 
   private def vectorCoordinateType[X: P]: P[java.lang.String] = P(CharsWhileIn("A-Za-z0-9")).!
 

@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.util.symbols.PathType;
 import org.neo4j.cypher.internal.util.symbols.PointType;
 import org.neo4j.cypher.internal.util.symbols.RelationshipType;
 import org.neo4j.cypher.internal.util.symbols.StringType;
+import org.neo4j.cypher.internal.util.symbols.UUIDType;
 import org.neo4j.cypher.internal.util.symbols.VectorType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
@@ -83,6 +84,7 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDArray;
 import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
@@ -97,6 +99,7 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     private static final NullType NULL_CYPHER_TYPE_NAME = new NullType(dummyPos);
     private static final BooleanType BOOLEAN_CYPHER_TYPE_NAME = new BooleanType(false, dummyPos);
     private static final StringType STRING_CYPHER_TYPE_NAME = new StringType(false, dummyPos);
+    private static final UUIDType UUID_CYPHER_TYPE_NAME = new UUIDType(false, dummyPos);
     private static final Integer8Type INTEGER8_CYPHER_TYPE_NAME = new Integer8Type(false, dummyPos);
     private static final Integer16Type INTEGER16_CYPHER_TYPE_NAME = new Integer16Type(false, dummyPos);
     private static final Integer32Type INTEGER32_CYPHER_TYPE_NAME = new Integer32Type(false, dummyPos);
@@ -133,6 +136,7 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     private static final ListType LIST_BOOLEAN_CYPHER_TYPE_NAME =
             new ListType(BOOLEAN_CYPHER_TYPE_NAME, false, dummyPos);
     private static final ListType LIST_STRING_CYPHER_TYPE_NAME = new ListType(STRING_CYPHER_TYPE_NAME, false, dummyPos);
+    private static final ListType LIST_UUID_CYPHER_TYPE_NAME = new ListType(UUID_CYPHER_TYPE_NAME, false, dummyPos);
     private static final ListType LIST_INTEGER_CYPHER_TYPE_NAME =
             new ListType(INTEGER_CYPHER_TYPE_NAME, false, dummyPos);
     private static final ListType LIST_FLOAT_CYPHER_TYPE_NAME = new ListType(FLOAT_CYPHER_TYPE_NAME, false, dummyPos);
@@ -261,6 +265,11 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     }
 
     @Override
+    public CypherType mapUUIDArray(UUIDArray value) {
+        return LIST_UUID_CYPHER_TYPE_NAME;
+    }
+
+    @Override
     public CypherType mapBooleanArray(BooleanArray value) {
         return LIST_BOOLEAN_CYPHER_TYPE_NAME;
     }
@@ -357,6 +366,6 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
 
     @Override
     public CypherType mapUUID(UUIDValue value) {
-        throw new UnsupportedOperationException("UIDs are not supported in Cypher for the time being");
+        return UUID_CYPHER_TYPE_NAME;
     }
 }

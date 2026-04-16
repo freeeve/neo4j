@@ -871,6 +871,7 @@ typeName
    | BOOLEAN
    | VARCHAR
    | STRING
+   | UUID
    | INT
    | SIGNED? INTEGER
    | INTEGER64
@@ -2434,6 +2435,7 @@ unescapedSymbolicNameString_
    | TYPE
    | TYPED
    | TYPES
+   | UUID
    | UNION
    | UNIQUE
    | UNIQUENESS

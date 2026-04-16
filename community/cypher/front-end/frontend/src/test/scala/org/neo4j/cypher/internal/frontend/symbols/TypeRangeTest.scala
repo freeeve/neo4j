@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.TypeRange
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -62,6 +63,7 @@ class TypeRangeTest extends CypherFunSuite {
 
     val rangeOfListAny = TypeRange(CTList(CTAny), CTList(CTAny))
     rangeOfListAny.contains(CTVector) should equal(false)
+    rangeOfListAny.contains(CTUUID) should equal(false)
     rangeOfListAny.contains(CTInteger) should equal(false)
     rangeOfListAny.contains(CTNumber) should equal(false)
     rangeOfListAny.contains(CTString) should equal(false)
@@ -75,6 +77,7 @@ class TypeRangeTest extends CypherFunSuite {
     val rangeRootedAtAny = TypeRange(CTAny, None)
     rangeRootedAtAny.contains(CTAny) should equal(true)
     rangeRootedAtAny.contains(CTString) should equal(true)
+    rangeRootedAtAny.contains(CTUUID) should equal(true)
     rangeRootedAtAny.contains(CTNumber) should equal(true)
     rangeRootedAtAny.contains(CTInteger) should equal(true)
     rangeRootedAtAny.contains(CTFloat) should equal(true)
@@ -122,6 +125,7 @@ class TypeRangeTest extends CypherFunSuite {
 
     val rangeRootedAtListAny = TypeRange(CTList(CTAny), None)
     rangeRootedAtListAny.contains(CTList(CTString)) should equal(true)
+    rangeRootedAtListAny.contains(CTList(CTUUID)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTInteger)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTVector)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTAny)) should equal(true)
@@ -204,6 +208,7 @@ class TypeRangeTest extends CypherFunSuite {
 
     val rangeOfNumber = TypeRange(CTNumber, CTNumber)
     rangeOfNumber & TypeRange(CTString, None) should equal(None)
+    rangeOfNumber & TypeRange(CTUUID, None) should equal(None)
     rangeOfNumber & TypeRange(CTBoolean, CTBoolean) should equal(None)
 
     val rangeOfAny = TypeRange(CTAny, CTAny)
@@ -246,6 +251,7 @@ class TypeRangeTest extends CypherFunSuite {
     TypeRange(CTList(CTAny), None).hasDefiniteSize should equal(false)
 
     TypeRange(CTString, None).hasDefiniteSize should equal(true)
+    TypeRange(CTUUID, None).hasDefiniteSize should equal(true)
     TypeRange(CTNumber, None).hasDefiniteSize should equal(true)
 
     TypeRange(CTAny, CTInteger).hasDefiniteSize should equal(true)
@@ -265,6 +271,7 @@ class TypeRangeTest extends CypherFunSuite {
     TypeRange(CTAny, None).without(CTInteger) should equal(Some(TypeRange(CTAny, CTInteger.parentType)))
     TypeRange(CTInteger, None).without(CTNumber) should equal(None)
     TypeRange(CTInteger, None).without(CTString) should equal(Some(TypeRange(CTInteger, None)))
+    TypeRange(CTInteger, None).without(CTUUID) should equal(Some(TypeRange(CTInteger, None)))
     TypeRange(CTAny, CTNumber).without(CTString) should equal(Some(TypeRange(CTAny, CTNumber)))
   }
 

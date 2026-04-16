@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CypherExecutionException
@@ -192,6 +193,7 @@ object SignatureResolver {
 
   private def asCypherType(neoType: AnyType): CypherType = neoType match {
     case Neo4jTypes.NTString        => CTString
+    case Neo4jTypes.NTUUID          => CTUUID
     case Neo4jTypes.NTInteger       => CTInteger
     case Neo4jTypes.NTFloat         => CTFloat
     case Neo4jTypes.NTNumber        => CTNumber

@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
 
 class ValueTypeTest extends FunctionTestBase("valueType") {
@@ -49,6 +50,7 @@ class ValueTypeTest extends FunctionTestBase("valueType") {
     testValidTypes(CTAny)(CTString)
     testValidTypes(CTBoolean)(CTString)
     testValidTypes(CTString)(CTString)
+    testValidTypes(CTUUID)(CTString)
     testValidTypes(CTNumber)(CTString)
     testValidTypes(CTFloat)(CTString)
     testValidTypes(CTInteger)(CTString)
@@ -73,5 +75,6 @@ class ValueTypeTest extends FunctionTestBase("valueType") {
     testValidTypes(CTDuration | CTNode)(CTString)
     testValidTypes(CTGeometry | CTBoolean)(CTString)
     testValidTypes(CTString | CTBoolean)(CTString)
+    testValidTypes(CTUUID | CTBoolean)(CTString)
   }
 }

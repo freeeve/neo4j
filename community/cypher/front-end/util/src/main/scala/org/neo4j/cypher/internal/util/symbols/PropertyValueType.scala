@@ -30,6 +30,7 @@ case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) e
   def expandToTypes: List[CypherType] = List(
     BooleanType(isNullable)(position),
     StringType(isNullable)(position),
+    UUIDType(isNullable)(position),
     IntegerType(isNullable)(position),
     FloatType(isNullable)(position),
     DateType(isNullable)(position),
@@ -42,6 +43,7 @@ case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) e
     VectorType(None, None, isNullable)(position),
     ListType(BooleanType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(StringType(isNullable = false)(position), isNullable = isNullable)(position),
+    ListType(UUIDType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(DateType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(LocalTimeType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(ZonedTimeType(isNullable = false)(position), isNullable = isNullable)(position),

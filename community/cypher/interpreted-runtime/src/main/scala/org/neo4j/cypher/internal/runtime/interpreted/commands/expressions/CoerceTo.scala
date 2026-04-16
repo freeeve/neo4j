@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.util.symbols.PathType
 import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -83,6 +84,7 @@ object CoerceTo {
     case _: PointType           => Neo4jTypes.NTPoint
     case _: RelationshipType    => Neo4jTypes.NTRelationship
     case _: StringType          => Neo4jTypes.NTString
+    case _: UUIDType            => Neo4jTypes.NTUUID
     case _: VectorType          => Neo4jTypes.NTVector
     case _: ZonedDateTimeType   => Neo4jTypes.NTDateTime
     case _: ZonedTimeType       => Neo4jTypes.NTTime

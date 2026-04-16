@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
 import org.neo4j.cypher.internal.util.symbols.LocalTimeType
 import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -63,6 +64,7 @@ import org.neo4j.internal.schema.constraints.SchemaValueType.LOCAL_DATETIME
 import org.neo4j.internal.schema.constraints.SchemaValueType.LOCAL_TIME
 import org.neo4j.internal.schema.constraints.SchemaValueType.POINT
 import org.neo4j.internal.schema.constraints.SchemaValueType.STRING
+import org.neo4j.internal.schema.constraints.SchemaValueType.UUID
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_DATETIME
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_TIME
 
@@ -82,6 +84,7 @@ object PropertyTypeMapper {
   private def asSingleConstrainableType(propertyType: CypherType): ConstrainableType = propertyType match {
     case _: BooleanType       => BOOLEAN
     case _: StringType        => STRING
+    case _: UUIDType          => UUID
     case _: IntegerType       => INTEGER
     case _: FloatType         => FLOAT
     case _: DateType          => DATE
@@ -127,6 +130,7 @@ object PropertyTypeMapper {
     val cypherTypeList = propertyTypeSet.values().toList.map {
       case BOOLEAN        => BooleanType(isNullable = true)(InputPosition.NONE)
       case STRING         => StringType(isNullable = true)(InputPosition.NONE)
+      case UUID           => UUIDType(isNullable = true)(InputPosition.NONE)
       case INTEGER        => IntegerType(isNullable = true)(InputPosition.NONE)
       case FLOAT          => FloatType(isNullable = true)(InputPosition.NONE)
       case DATE           => DateType(isNullable = true)(InputPosition.NONE)

@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -102,6 +103,7 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
@@ -776,6 +778,14 @@ public class ProcedureCompilationTest {
         return in;
     }
 
+    public UUID testMethod(UUID in) {
+        return in;
+    }
+
+    public UUIDValue testMethod(UUIDValue in) {
+        return in;
+    }
+
     public LocalDateTimeValue testMethod(LocalDateTimeValue in) {
         return in;
     }
@@ -843,6 +853,7 @@ public class ProcedureCompilationTest {
     private Map<Type, Method> typeMaps() {
         Map<Type, Method> methodHashMap = new HashMap<>();
         methodHashMap.put(String.class, method("testMethod", String.class));
+        methodHashMap.put(UUID.class, method("testMethod", UUID.class));
         methodHashMap.put(long.class, method("testMethod", long.class));
         methodHashMap.put(Long.class, method("testMethod", Long.class));
         methodHashMap.put(double.class, method("testMethod", double.class));
@@ -876,6 +887,7 @@ public class ProcedureCompilationTest {
         methodHashMap.put(TextValue.class, method("testMethod", TextValue.class));
         methodHashMap.put(DurationValue.class, method("testMethod", DurationValue.class));
         methodHashMap.put(VectorValue.class, method("testMethod", VectorValue.class));
+        methodHashMap.put(UUIDValue.class, method("testMethod", UUIDValue.class));
 
         // safety check, make sure we are testing all types
         Set<Type> types = new Cypher5TypeCheckers().allTypes();

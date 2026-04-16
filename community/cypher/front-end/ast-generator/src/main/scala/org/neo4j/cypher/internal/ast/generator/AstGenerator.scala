@@ -605,6 +605,7 @@ import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.util.UnicodeHelper
 import org.reflections.Reflections
@@ -2691,6 +2692,7 @@ class AstGenerator(
 
     innerTypes = if (usesCypher5) {
       innerTypes.filter {
+        case _: UUIDType          => false
         case _: VectorType        => false
         case _: PropertyValueType => false
         case _                    => true

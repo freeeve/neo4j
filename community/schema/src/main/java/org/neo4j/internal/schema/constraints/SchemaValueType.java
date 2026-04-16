@@ -27,6 +27,7 @@ import org.neo4j.graphdb.schema.PropertyType;
 public enum SchemaValueType implements ConstrainableType {
     BOOLEAN("BOOLEAN", Ordering.BOOLEAN_ORDER),
     STRING("STRING", Ordering.STRING_ORDER),
+    UUID("UUID", Ordering.UUID_ORDER),
     INTEGER("INTEGER", Ordering.INTEGER_ORDER),
     FLOAT("FLOAT", Ordering.FLOAT_ORDER),
     DATE("DATE", Ordering.DATE_ORDER),
@@ -36,7 +37,6 @@ public enum SchemaValueType implements ConstrainableType {
     ZONED_DATETIME("ZONED DATETIME", Ordering.ZONED_DATETIME_ORDER),
     DURATION("DURATION", Ordering.DURATION_ORDER),
     POINT("POINT", Ordering.POINT_ORDER),
-    UUID("UUID", Ordering.UUID_ORDER),
 
     LIST_BOOLEAN("LIST<BOOLEAN NOT NULL>", Ordering.LIST_BOOLEAN_ORDER),
     LIST_STRING("LIST<STRING NOT NULL>", Ordering.LIST_STRING_ORDER),
@@ -86,6 +86,7 @@ public enum SchemaValueType implements ConstrainableType {
     public static SchemaValueType fromPublicApi(PropertyType propertyType) {
         return switch (propertyType) {
             case BOOLEAN -> SchemaValueType.BOOLEAN;
+            case UUID -> SchemaValueType.UUID;
             case STRING -> SchemaValueType.STRING;
             case INTEGER -> SchemaValueType.INTEGER;
             case FLOAT -> SchemaValueType.FLOAT;
@@ -96,9 +97,9 @@ public enum SchemaValueType implements ConstrainableType {
             case ZONED_TIME -> SchemaValueType.ZONED_TIME;
             case LOCAL_TIME -> SchemaValueType.LOCAL_TIME;
             case POINT -> SchemaValueType.POINT;
-            case UUID -> SchemaValueType.UUID;
             case LIST_BOOLEAN_NOT_NULL -> SchemaValueType.LIST_BOOLEAN;
             case LIST_STRING_NOT_NULL -> SchemaValueType.LIST_STRING;
+            case LIST_UUID_NOT_NULL -> SchemaValueType.LIST_UUID;
             case LIST_INTEGER_NOT_NULL -> SchemaValueType.LIST_INTEGER;
             case LIST_FLOAT_NOT_NULL -> SchemaValueType.LIST_FLOAT;
             case LIST_DATE_NOT_NULL -> SchemaValueType.LIST_DATE;
@@ -108,7 +109,6 @@ public enum SchemaValueType implements ConstrainableType {
             case LIST_ZONED_DATETIME_NOT_NULL -> SchemaValueType.LIST_ZONED_DATETIME;
             case LIST_DURATION_NOT_NULL -> SchemaValueType.LIST_DURATION;
             case LIST_POINT_NOT_NULL -> SchemaValueType.LIST_POINT;
-            case LIST_UUID_NOT_NULL -> SchemaValueType.LIST_UUID;
             case VECTOR ->
                 throw new IllegalArgumentException("Using PropertyType.VECTOR is not supported via the API."
                         + " Please use a Cypher statement instead.");
@@ -120,6 +120,7 @@ public enum SchemaValueType implements ConstrainableType {
         return switch (this) {
             case BOOLEAN -> PropertyType.BOOLEAN;
             case STRING -> PropertyType.STRING;
+            case UUID -> PropertyType.UUID;
             case INTEGER -> PropertyType.INTEGER;
             case FLOAT -> PropertyType.FLOAT;
             case DURATION -> PropertyType.DURATION;
@@ -130,6 +131,7 @@ public enum SchemaValueType implements ConstrainableType {
             case LOCAL_TIME -> PropertyType.LOCAL_TIME;
             case LIST_BOOLEAN -> PropertyType.LIST_BOOLEAN_NOT_NULL;
             case LIST_STRING -> PropertyType.LIST_STRING_NOT_NULL;
+            case LIST_UUID -> PropertyType.LIST_UUID_NOT_NULL;
             case LIST_INTEGER -> PropertyType.LIST_INTEGER_NOT_NULL;
             case LIST_FLOAT -> PropertyType.LIST_FLOAT_NOT_NULL;
             case LIST_DATE -> PropertyType.LIST_DATE_NOT_NULL;
@@ -140,8 +142,6 @@ public enum SchemaValueType implements ConstrainableType {
             case LIST_DURATION -> PropertyType.LIST_DURATION_NOT_NULL;
             case LIST_POINT -> PropertyType.LIST_POINT_NOT_NULL;
             case POINT -> PropertyType.POINT;
-            case UUID -> PropertyType.UUID;
-            case LIST_UUID -> PropertyType.LIST_UUID_NOT_NULL;
         };
     }
 }

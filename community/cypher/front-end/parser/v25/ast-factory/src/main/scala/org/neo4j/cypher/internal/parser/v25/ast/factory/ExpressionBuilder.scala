@@ -70,6 +70,7 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -914,6 +915,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           case Cypher25Parser.PATH | Cypher25Parser.PATHS        => PathType(isNullable = true)(p)
           case Cypher25Parser.ANY                                => AnyType(isNullable = true)(p)
           case Cypher25Parser.VECTOR                             => VectorType(None, None, isNullable = true)(p)
+          case Cypher25Parser.UUID                               => UUIDType(isNullable = true)(p)
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 2 => firstToken match {

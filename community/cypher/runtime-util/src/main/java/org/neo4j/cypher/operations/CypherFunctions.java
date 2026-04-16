@@ -43,6 +43,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,6 +92,7 @@ import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type;
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType;
 import org.neo4j.cypher.internal.util.symbols.RelationshipType;
 import org.neo4j.cypher.internal.util.symbols.StringType;
+import org.neo4j.cypher.internal.util.symbols.UUIDType;
 import org.neo4j.cypher.internal.util.symbols.VectorType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
@@ -137,6 +139,7 @@ import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.TemporalValue;
 import org.neo4j.values.storable.TextValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueRepresentation;
@@ -163,6 +166,14 @@ import org.neo4j.values.virtual.VirtualValues;
 public final class CypherFunctions {
     private static final String[] POINT_KEYS =
             new String[] {"crs", "x", "y", "z", "longitude", "latitude", "height", "srid"};
+
+    /*
+     * The random number generator used by this class to create random
+     * based UUIDs. In a holder class to defer initialization until needed.
+     */
+    private static class Holder {
+        static final SecureRandom numberGenerator = new SecureRandom();
+    }
 
     private CypherFunctions() {
         throw new UnsupportedOperationException("Do not instantiate");
@@ -551,6 +562,105 @@ public final class CypherFunctions {
 
     public static TextValue randomUuid() {
         return stringValue(UUID.randomUUID().toString());
+    }
+
+    public static AnyValue generateUUID() {
+        return Values.uuidValue(ofEpochMillis(System.currentTimeMillis()));
+    }
+
+    // Generate a V7 UUID
+    // This is not cryptographically secure.
+    static UUID ofEpochMillis(long timestamp) {
+        if ((timestamp >> 48) != 0) {
+            throw new IllegalArgumentException("Supplied timestamp: " + timestamp + " does not fit within 48 bits");
+        }
+
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        long random1 = rng.nextLong();
+        long random2 = rng.nextLong();
+
+        long msb = (timestamp << 16) // 48-bit timestamp in upper bits
+                | 0x7000L // version 7
+                | (random1 & 0x0FFFL); // 12 bits of random data
+
+        long lsb = 0x8000_0000_0000_0000L // variant field at bits 63 & 62 (always "2")
+                | (random2 & 0x3FFF_FFFF_FFFF_FFFFL); // 62 bits of random data
+
+        return new UUID(msb, lsb);
+    }
+
+    public static AnyValue UUIDFromString(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (in instanceof TextValue string) {
+            try {
+                return Values.uuidValue(string.stringValue());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidArgumentException(
+                        GqlHelper.getGql22N38_22N04(
+                                "uuid",
+                                string.stringValue(),
+                                "input",
+                                List.of(
+                                        "The UUID string must consist of 32 hexadecimal digits displayed in 5 groups, separated by 4 hyphens.")),
+                        "The argument `input` in the `uuid()` function must be a valid uuid string.");
+            }
+        }
+        throw notAString("uuid", in);
+    }
+
+    public static AnyValue UUIDFromLongs(AnyValue mostSigBits, AnyValue leastSigBits) {
+        if (mostSigBits == NO_VALUE || leastSigBits == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (mostSigBits instanceof IntegralValue msb && leastSigBits instanceof IntegralValue lsb) {
+            return Values.uuidValue(msb.longValue(), lsb.longValue());
+        }
+        if (!(mostSigBits instanceof IntegralValue)) {
+            throw CypherTypeException.functionArgumentWrongType(
+                    "uuid() requires integers",
+                    "uuid",
+                    mostSigBits.prettify(),
+                    List.of("INTEGER"),
+                    CypherTypeValueMapper.valueType(mostSigBits));
+        }
+        throw CypherTypeException.functionArgumentWrongType(
+                "uuid() requires integers",
+                "uuid",
+                leastSigBits.prettify(),
+                List.of("INTEGER"),
+                CypherTypeValueMapper.valueType(leastSigBits));
+    }
+
+    public static AnyValue UUIDMostSignificantBits(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (in instanceof UUIDValue uuid) {
+            return Values.longValue(uuid.getMostSignificantBits());
+        }
+        throw CypherTypeException.functionArgumentWrongType(
+                "uuid.mostSignificantBits() requires a uuid",
+                "uuid.mostSignificantBits",
+                in.prettify(),
+                List.of("UUID"),
+                CypherTypeValueMapper.valueType(in));
+    }
+
+    public static AnyValue UUIDLeastSignificantBits(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (in instanceof UUIDValue uuid) {
+            return Values.longValue(uuid.getLeastSignificantBits());
+        }
+        throw CypherTypeException.functionArgumentWrongType(
+                "uuid.leastSignificantBits() requires a uuid",
+                "uuid.leastSignificantBits",
+                in.prettify(),
+                List.of("UUID"),
+                CypherTypeValueMapper.valueType(in));
     }
 
     // TODO: Support better calculations, like https://en.wikipedia.org/wiki/Vincenty%27s_formulae
@@ -2741,6 +2851,8 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (in instanceof TextValue text) {
             return text;
+        } else if (in instanceof UUIDValue uuidValue) {
+            return stringValue(uuidValue.prettyPrint());
         } else if (in instanceof NumberValue number) {
             return stringValue(number.prettyPrint());
         } else if (in instanceof BooleanValue b) {
@@ -2749,11 +2861,11 @@ public final class CypherFunctions {
             return stringValue(in.toString());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    "Invalid input for function 'toString()': Expected a String, Float, Integer, Boolean, Temporal or Duration, got: "
+                    "Invalid input for function 'toString()': Expected a String, UUID, Float, Integer, Boolean, Temporal or Duration, got: "
                             + in,
                     "toString",
                     in.prettify(),
-                    List.of("STRING", "FLOAT", "INTEGER", "BOOLEAN", "TEMPORAL", "DURATION"),
+                    List.of("STRING", "UUID", "FLOAT", "INTEGER", "BOOLEAN", "TEMPORAL", "DURATION"),
                     CypherTypeValueMapper.valueType(in));
         }
     }
@@ -2764,7 +2876,8 @@ public final class CypherFunctions {
                 || in instanceof BooleanValue
                 || in instanceof TemporalValue
                 || in instanceof DurationValue
-                || in instanceof PointValue) {
+                || in instanceof PointValue
+                || in instanceof UUIDValue) {
             return toString(in);
         } else {
             return NO_VALUE;
@@ -3222,6 +3335,7 @@ public final class CypherFunctions {
             Map.ofEntries(
                     Map.entry(BooleanType.class, List.of(ValueRepresentation.BOOLEAN)),
                     Map.entry(StringType.class, List.of(ValueRepresentation.UTF8_TEXT, ValueRepresentation.UTF16_TEXT)),
+                    Map.entry(UUIDType.class, List.of(ValueRepresentation.UUID)),
                     Map.entry(
                             IntegerType.class,
                             List.of(
@@ -3252,6 +3366,7 @@ public final class CypherFunctions {
             LIST_INNER_TYPE_TO_REPRESENTATIONS = Map.ofEntries(
                     Map.entry(BooleanType.class, List.of(ValueRepresentation.BOOLEAN_ARRAY)),
                     Map.entry(StringType.class, List.of(ValueRepresentation.TEXT_ARRAY)),
+                    Map.entry(UUIDType.class, List.of(ValueRepresentation.UUID_ARRAY)),
                     Map.entry(
                             IntegerType.class,
                             List.of(

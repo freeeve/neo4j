@@ -38,6 +38,7 @@ import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPoint;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTRelationship;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTUUID;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTVector;
 import static org.neo4j.values.SequenceValue.IterationPreference.RANDOM_ACCESS;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -70,6 +71,7 @@ import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
@@ -209,6 +211,23 @@ public final class CypherCoercions {
             return NO_VALUE;
         }
         throw cantCoerce(value, "Boolean");
+    }
+
+    public static UUIDValue asUUIDValue(AnyValue value) {
+        assert value != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (!(value instanceof UUIDValue)) {
+            throw cantCoerce(value, "UUID");
+        }
+        return (UUIDValue) value;
+    }
+
+    public static AnyValue asUUIDValueOrNull(AnyValue value) {
+        if (value instanceof UUIDValue uuidValue) {
+            return uuidValue;
+        } else if (value == NO_VALUE) {
+            return NO_VALUE;
+        }
+        throw cantCoerce(value, "UUID");
     }
 
     public static NumberValue asNumberValue(AnyValue value) {
@@ -357,6 +376,7 @@ public final class CypherCoercions {
     private static final Map<Class<? extends Neo4jTypes.AnyType>, CypherCoercions.Coercer> STATIC_CONVERTERS =
             Map.ofEntries(
                     Map.entry(NTAny.getClass(), (a, ignore2, cursors) -> a),
+                    Map.entry(NTUUID.getClass(), (a, ignore2, cursors) -> asUUIDValueOrNull(a)),
                     Map.entry(NTString.getClass(), (a, ignore2, cursors) -> asTextValueOrNull(a)),
                     Map.entry(NTNumber.getClass(), (a, ignore2, cursors) -> asNumberValueOrNull(a)),
                     Map.entry(NTInteger.getClass(), (a, ignore2, cursors) -> asIntegralValueOrNull(a)),
@@ -451,6 +471,7 @@ class ListCoercer implements CypherCoercions.Coercer {
             case LOCAL_TIME_ARRAY -> target == NTLocalTime;
             case DURATION_ARRAY -> target == NTDuration;
             case TEXT_ARRAY -> target == NTString;
+            case UUID_ARRAY -> target == NTUUID;
             case BOOLEAN_ARRAY -> target == NTBoolean;
             case INT64_ARRAY -> target == NTInteger || target == NTNumber;
             case FLOAT64_ARRAY -> target == NTFloat || target == NTNumber;
@@ -469,6 +490,7 @@ class ListCoercer implements CypherCoercions.Coercer {
             case LOCAL_TIME -> target == NTLocalTime;
             case DURATION -> target == NTDuration;
             case UTF16_TEXT, UTF8_TEXT -> target == NTString;
+            case UUID -> target == NTUUID;
             case BOOLEAN -> target == NTBoolean;
             case INT64, INT32, INT16, INT8, FLOAT64, FLOAT32 -> target == NTNumber;
             case INT8_VECTOR, INT16_VECTOR, INT32_VECTOR, INT64_VECTOR, FLOAT32_VECTOR, FLOAT64_VECTOR ->

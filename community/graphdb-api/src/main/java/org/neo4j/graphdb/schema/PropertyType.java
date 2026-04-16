@@ -30,6 +30,7 @@ import org.neo4j.annotations.api.PublicApi;
 public enum PropertyType {
     BOOLEAN,
     STRING,
+    UUID,
     INTEGER,
     FLOAT,
     DATE,
@@ -41,6 +42,7 @@ public enum PropertyType {
     POINT,
     LIST_BOOLEAN_NOT_NULL,
     LIST_STRING_NOT_NULL,
+    LIST_UUID_NOT_NULL,
     LIST_INTEGER_NOT_NULL,
     LIST_FLOAT_NOT_NULL,
     LIST_DATE_NOT_NULL,
@@ -57,8 +59,5 @@ public enum PropertyType {
      * This value can be returned from {@link ConstraintDefinition#getPropertyType()}. It does not specify the
      * coordinate type and dimension. If that information is needed, Cypher must be used.
      */
-    VECTOR,
-
-    UUID,
-    LIST_UUID_NOT_NULL,
+    VECTOR
 }

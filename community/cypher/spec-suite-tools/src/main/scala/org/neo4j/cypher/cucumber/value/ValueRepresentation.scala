@@ -22,6 +22,9 @@ package org.neo4j.cypher.cucumber.value
 import org.neo4j.cypherdsl.core.Cypher
 import org.neo4j.cypherdsl.core.renderer.Configuration
 import org.neo4j.cypherdsl.core.renderer.GeneralizedRenderer
+import org.neo4j.values.storable.UUIDValue
+import org.neo4j.values.storable.Value
+import org.neo4j.values.storable.VectorValue
 
 import java.util
 import java.util.Objects
@@ -69,6 +72,9 @@ object ValueRepresentation {
     )
 
     def render(value: AnyRef): String = value match {
+      case uuid: UUIDValue     => s"UUID(\"${uuid.prettyPrint()}\")"
+      case vector: VectorValue => vector.prettyPrint()
+      case v: Value            => render(v.asObject())
       case e: NoIdEntity => e match {
           case NoIdNode(labels, props) =>
             val labelsString = if (labels.isEmpty) "" else ":" + String.join(":", labels)

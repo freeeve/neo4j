@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
@@ -43,6 +44,7 @@ class CypherTypeTest extends CypherFunSuite {
     CTInteger8.parents should equal(Seq(CTInteger16, CTInteger32, CTInteger, CTNumber, CTAny))
     CTFloat32.parents should equal(Seq(CTFloat, CTNumber, CTAny))
     CTNumber.parents should equal(Seq(CTAny))
+    CTUUID.parents should equal(Seq(CTAny))
     CTAny.parents should equal(Seq())
     CTList(CTString).parents should equal(Seq(CTList(CTAny), CTAny))
 
@@ -61,7 +63,9 @@ class CypherTypeTest extends CypherFunSuite {
     CTNumber.isAssignableFrom(CTInteger8) should equal(true)
     CTNumber.isAssignableFrom(CTFloat32) should equal(true)
     CTAny.isAssignableFrom(CTString) should equal(true)
+    CTAny.isAssignableFrom(CTUUID) should equal(true)
     CTList(CTString).isAssignableFrom(CTList(CTString)) should equal(true)
+    CTList(CTUUID).isAssignableFrom(CTList(CTUUID)) should equal(true)
     CTList(CTNumber).isAssignableFrom(CTList(CTInteger)) should equal(true)
     CTInteger.isAssignableFrom(CTNumber) should equal(false)
     CTList(CTInteger).isAssignableFrom(CTList(CTString)) should equal(false)
@@ -80,6 +84,7 @@ class CypherTypeTest extends CypherFunSuite {
     assertLeastUpperBound(CTNumber, CTList(CTAny), CTAny)
     assertLeastUpperBound(CTInteger, CTFloat, CTNumber)
     assertLeastUpperBound(CTMap, CTFloat, CTAny)
+    assertLeastUpperBound(CTUUID, CTFloat, CTAny)
     assertLeastUpperBound(
       ClosedDynamicUnionType(Set(CTFloat, CTInteger))(
         InputPosition.NONE
@@ -108,6 +113,7 @@ class CypherTypeTest extends CypherFunSuite {
     assertGreatestLowerBound(CTNumber, CTList(CTAny), None)
     assertGreatestLowerBound(CTInteger, CTFloat, None)
     assertGreatestLowerBound(CTMap, CTFloat, None)
+    assertGreatestLowerBound(CTUUID, CTFloat, None)
     assertGreatestLowerBound(CTBoolean, CTList(CTAny), None)
     assertGreatestLowerBound(
       ClosedDynamicUnionType(Set(CTFloat, CTInteger))(

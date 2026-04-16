@@ -1400,6 +1400,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .addConstraint(min(0))
             .build();
 
+    @Internal
+    @Description("Set this to enable the use of UUID types in Cypher.")
+    public static final Setting<Boolean> cypher_uuid_type_enabled = newBuilder(
+                    "internal.cypher.uuid_type_enabled", BOOL, false)
+            .immutable()
+            .build();
+
     public enum ExtractLiteral {
         ALWAYS,
         NEVER,

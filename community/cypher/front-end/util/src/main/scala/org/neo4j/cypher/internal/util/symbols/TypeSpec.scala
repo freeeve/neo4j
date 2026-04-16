@@ -59,6 +59,7 @@ object TypeSpec {
     CTBoolean,
     CTFloat,
     CTInteger,
+    CTUUID,
     CTMap,
     CTNode,
     CTNumber,

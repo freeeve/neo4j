@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.NothingType
@@ -47,6 +48,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("all types should contain all") {
     TypeSpec.all contains CTAny should equal(true)
     TypeSpec.all contains CTString should equal(true)
+    TypeSpec.all contains CTUUID should equal(true)
     TypeSpec.all contains CTNumber should equal(true)
     TypeSpec.all contains CTInteger should equal(true)
     TypeSpec.all contains CTInteger32 should equal(true)
@@ -66,6 +68,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("should return true if contains") {
     CTNumber.covariant contains CTInteger should equal(true)
     CTNumber.covariant contains CTString should equal(false)
+    CTNumber.covariant contains CTUUID should equal(false)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE).covariant contains CTInteger should equal(true)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE).covariant contains CTString should equal(true)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE).covariant contains CTPath should equal(false)
@@ -74,10 +77,12 @@ class TypeSpecTest extends CypherFunSuite {
     anyCollection contains CTList(CTString) should equal(true)
     anyCollection contains CTList(CTInteger) should equal(true)
     anyCollection contains CTList(CTAny) should equal(true)
+    anyCollection contains CTList(CTUUID) should equal(true)
     anyCollection contains CTList(CTVector) should equal(true)
     anyCollection contains CTList(CTList(CTInteger)) should equal(true)
     anyCollection contains CTBoolean should equal(false)
     anyCollection contains CTVector should equal(false)
+    anyCollection contains CTUUID should equal(false)
     anyCollection contains CTAny should equal(false)
     anyCollection contains ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) should equal(false)
   }
@@ -120,6 +125,7 @@ class TypeSpecTest extends CypherFunSuite {
     TypeSpec.all containsAll TypeSpec.all should equal(true)
     CTNumber.covariant containsAll CTNumber.covariant should equal(true)
     CTVector.covariant containsAll CTVector.covariant should equal(true)
+    CTUUID.covariant containsAll CTUUID.covariant should equal(true)
     TypeSpec.all containsAll CTNumber.covariant should equal(true)
     CTNumber.covariant containsAll TypeSpec.all should equal(false)
     CTBoolean.covariant containsAll TypeSpec.union(CTNumber, CTBoolean) should equal(false)
@@ -136,12 +142,14 @@ class TypeSpecTest extends CypherFunSuite {
     CTList(CTAny).covariant containsAll CTList(CTNumber) should equal(true)
     CTList(CTAny).covariant containsAll CTList(CTAny) should equal(true)
     CTList(CTAny).covariant containsAll CTList(CTList(CTString)) should equal(true)
+    CTList(CTAny).covariant containsAll CTList(CTList(CTUUID)) should equal(true)
     CTList(CTAny).covariant containsAll CTAny should equal(false)
   }
 
   test("should union") {
     CTNumber.covariant | CTString.covariant should equal(CTNumber | CTFloat | CTInteger | CTString)
     CTVector.covariant | CTString.covariant should equal(CTVector | CTString)
+    CTUUID.covariant | CTString.covariant should equal(CTUUID | CTString)
     CTNumber.covariant | CTBoolean should equal(CTNumber | CTFloat | CTInteger | CTBoolean)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) | CTBoolean should equal(
       CTString | CTInteger | CTBoolean
@@ -160,6 +168,7 @@ class TypeSpecTest extends CypherFunSuite {
     TypeSpec.all & CTVector should equal(CTVector.invariant)
     CTNumber.covariant & CTInteger should equal(CTInteger.invariant)
     CTNumber.covariant & CTString should equal(TypeSpec.none)
+    CTNumber.covariant & CTUUID should equal(TypeSpec.none)
     CTVector.covariant & CTBoolean should equal(TypeSpec.none)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) & CTInteger should equal(CTInteger.invariant)
     ClosedDynamicUnionType(Set(CTString, CTBoolean))(InputPosition.NONE) & CTInteger should equal(TypeSpec.none)
@@ -207,6 +216,7 @@ class TypeSpecTest extends CypherFunSuite {
     (CTInteger | CTString | CTMap) constrain CTNumber should equal(CTInteger.invariant)
     (CTInteger | CTList(CTString)) constrain CTList(CTAny) should equal(CTList(CTString).invariant)
     (CTInteger | CTList(CTMap)) constrain CTList(CTNode) should equal(TypeSpec.none)
+    (CTUUID | CTList(CTMap)) constrain CTList(CTNode) should equal(TypeSpec.none)
     (CTInteger | CTList(CTString)) constrain CTAny should equal(CTInteger | CTList(CTString))
   }
 
@@ -292,6 +302,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("leastUpperBounds with leaf type") {
     TypeSpec.all leastUpperBounds CTInteger should equal(CTAny | CTNumber | CTInteger)
     TypeSpec.all leastUpperBounds CTVector should equal(CTAny | CTVector)
+    TypeSpec.all leastUpperBounds CTUUID should equal(CTAny | CTUUID)
   }
 
   test("leastUpperBounds with list") {
@@ -316,6 +327,7 @@ class TypeSpecTest extends CypherFunSuite {
     mergedSet.contains(CTList(CTList(CTString))) should equal(true)
     mergedSet.contains(CTList(CTList(CTInteger))) should equal(true)
     mergedSet.contains(CTList(CTList(CTNumber))) should equal(true)
+    mergedSet.contains(CTList(CTList(CTUUID))) should equal(true)
     mergedSet.contains(CTList(CTList(CTAny))) should equal(true)
     mergedSet.contains(CTList(CTString)) should equal(false)
     mergedSet.contains(CTList(CTNumber)) should equal(false)
@@ -348,6 +360,7 @@ class TypeSpecTest extends CypherFunSuite {
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTString should equal(false)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTNumber should equal(false)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTVector should equal(false)
+    (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTUUID should equal(false)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTAny should equal(true)
   }
 
@@ -383,6 +396,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("should identify coercions") {
     CTFloat.covariant.coercions should equal(TypeSpec.none)
     CTVector.covariant.coercions should equal(TypeSpec.none)
+    CTUUID.covariant.coercions should equal(TypeSpec.none)
     CTInteger.covariant.coercions should equal(CTFloat.invariant)
     (CTFloat | CTInteger).coercions should equal(CTFloat.invariant)
     CTList(CTAny).covariant.coercions should equal(CTBoolean.invariant)
@@ -456,17 +470,22 @@ class TypeSpecTest extends CypherFunSuite {
 
     CTList(CTInteger) coerceOrConvert CTList(CTBoolean) should equal(CTList(CTInteger).invariant)
     CTList(CTInteger) coerceOrConvert CTList(CTAny) should equal(CTList(CTAny).invariant)
+    CTList(CTUUID) coerceOrConvert CTList(CTAny) should equal(CTList(CTAny).invariant)
   }
 
   test("equal TypeSpecs should equal") {
     CTString.invariant should equal(CTString.invariant)
     CTVector.invariant should equal(CTVector.invariant)
+    CTUUID.invariant should equal(CTUUID.invariant)
 
     CTString.invariant should equal(CTString.covariant)
     CTString.covariant should equal(CTString.invariant)
 
     CTVector.invariant should equal(CTVector.covariant)
     CTVector.covariant should equal(CTVector.invariant)
+
+    CTUUID.invariant should equal(CTUUID.covariant)
+    CTUUID.covariant should equal(CTUUID.invariant)
 
     CTFloat | CTInteger | CTNumber should equal(CTNumber | CTInteger | CTFloat)
     CTNumber.covariant should equal(CTNumber | CTInteger | CTFloat)
@@ -523,6 +542,7 @@ class TypeSpecTest extends CypherFunSuite {
     (CTList(CTAny).covariant leastUpperBounds CTList(CTAny)).hasDefiniteSize should equal(true)
 
     ClosedDynamicUnionType(Set(CTString, CTFloat))(InputPosition.NONE).hasDefiniteSize should equal(true)
+    ClosedDynamicUnionType(Set(CTString, CTUUID))(InputPosition.NONE).hasDefiniteSize should equal(true)
     ClosedDynamicUnionType(Set(CTString, CTList(CTAny)))(InputPosition.NONE).covariant.hasDefiniteSize should equal(
       false
     )
@@ -546,6 +566,7 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("should format two types") {
     (CTAny | CTNode).mkString("", ", ", " or ", "") should equal("Any or Node")
+    (CTAny | CTUUID).mkString("", ", ", " or ", "") should equal("Any or UUID")
     (CTRelationship | CTNode).mkString("-", ", ", " or ", "-") should equal("-Node or Relationship-")
     ClosedDynamicUnionType(Set(CTFloat, CTInteger))(
       InputPosition.NONE
@@ -576,6 +597,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("should format to string for definite sized set") {
     CTAny.invariant.mkString(", ") should equal("Any")
     CTString.invariant.mkString(", ") should equal("String")
+    CTUUID.invariant.mkString(", ") should equal("UUID")
     CTNumber.covariant.mkString(", ") should equal("Float, Integer, Number")
     (CTNumber.covariant | CTBoolean.covariant).mkString(", ") should equal("Boolean, Float, Integer, Number")
     CTNumber.contravariant.mkString(", ") should equal("Any, Number")

@@ -122,6 +122,8 @@ class CypherConfiguration private (val config: Config) {
 
   val labelInference: CypherInferSchemaPartsOption = CypherInferSchemaPartsOption.fromConfig(config)
 
+  val uuidTypeEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_uuid_type_enabled)
+
   val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption =
     CypherStatefulShortestPlanningModeOption.fromConfig(config)
 

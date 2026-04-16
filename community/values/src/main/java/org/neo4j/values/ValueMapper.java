@@ -80,6 +80,7 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDArray;
 import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
@@ -279,6 +280,10 @@ public interface ValueMapper<Base> {
     }
 
     Base mapUUID(UUIDValue value);
+
+    default Base mapUUIDArray(UUIDArray value) {
+        return mapSequence(value);
+    }
 
     abstract class JavaMapper implements ValueMapper<Object> {
         @Override

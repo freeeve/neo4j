@@ -24,6 +24,7 @@ import static java.lang.Long.parseLong;
 import static org.neo4j.internal.kernel.api.procs.DefaultParameterValue.ntBoolean;
 import static org.neo4j.internal.kernel.api.procs.DefaultParameterValue.ntFloat;
 import static org.neo4j.internal.kernel.api.procs.DefaultParameterValue.ntInteger;
+import static org.neo4j.internal.kernel.api.procs.DefaultParameterValue.ntUUID;
 import static org.neo4j.internal.kernel.api.procs.DefaultParameterValue.nullValue;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTAny;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTBoolean;
@@ -40,6 +41,7 @@ import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTMap;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTNumber;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTUUID;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTVector;
 
 import java.lang.reflect.ParameterizedType;
@@ -55,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.neo4j.cypher.internal.CypherVersion;
@@ -80,6 +83,7 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.UUIDValue;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
@@ -90,6 +94,7 @@ public class Cypher5TypeCheckers {
     private static final ExpressionEvaluator CYPHER_5_EVALUATOR = Evaluator.expressionEvaluator(CypherVersion.Cypher5);
 
     private static final Function<String, DefaultParameterValue> PARSE_STRING = DefaultParameterValue::ntString;
+    private static final Function<String, DefaultParameterValue> PARSE_UUID = s -> ntUUID(UUID.fromString(s));
     private static final Function<String, DefaultParameterValue> PARSE_INTEGER = s -> ntInteger(parseLong(s));
     private static final Function<String, DefaultParameterValue> PARSE_FLOAT = s -> ntFloat(parseDouble(s));
     private static final Function<String, DefaultParameterValue> PARSE_NUMBER =
@@ -109,6 +114,7 @@ public class Cypher5TypeCheckers {
             PARSE_STRING);
     private static final DefaultValueConverter TO_ANY = new DefaultValueConverter(NTAny, PARSE_ANY);
     private static final DefaultValueConverter TO_STRING = new DefaultValueConverter(NTString, PARSE_STRING);
+    private static final DefaultValueConverter TO_UUID = new DefaultValueConverter(NTUUID, PARSE_UUID);
     private static final DefaultValueConverter TO_INTEGER = new DefaultValueConverter(NTInteger, PARSE_INTEGER);
     private static final DefaultValueConverter TO_BOXED_INTEGER = TO_INTEGER.orNull();
     private static final DefaultValueConverter TO_FLOAT = new DefaultValueConverter(NTFloat, PARSE_FLOAT);
@@ -137,6 +143,7 @@ public class Cypher5TypeCheckers {
     private void registerScalarsAndCollections() {
         registerType(String.class, TO_STRING);
         registerType(TextValue.class, TO_STRING);
+        registerType(UUID.class, TO_UUID);
         registerType(long.class, TO_INTEGER);
         registerType(Long.class, TO_BOXED_INTEGER);
         registerType(IntegralValue.class, TO_BOXED_INTEGER);
@@ -168,6 +175,7 @@ public class Cypher5TypeCheckers {
         registerType(LocalTimeValue.class, new DefaultValueConverter(NTLocalTime));
         registerType(TemporalAmount.class, new DefaultValueConverter(NTDuration));
         registerType(DurationValue.class, new DefaultValueConverter(NTDuration));
+        registerType(UUIDValue.class, new DefaultValueConverter(NTUUID));
         registerType(VectorValue.class, new DefaultValueConverter(NTVector));
     }
 

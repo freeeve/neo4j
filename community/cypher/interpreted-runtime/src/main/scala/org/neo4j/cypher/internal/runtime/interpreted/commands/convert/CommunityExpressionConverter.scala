@@ -138,6 +138,9 @@ import org.neo4j.cypher.internal.expressions.functions.ToStringOrNull
 import org.neo4j.cypher.internal.expressions.functions.ToUpper
 import org.neo4j.cypher.internal.expressions.functions.Trim
 import org.neo4j.cypher.internal.expressions.functions.Type
+import org.neo4j.cypher.internal.expressions.functions.UUIDConstructor
+import org.neo4j.cypher.internal.expressions.functions.UUIDLeastSignificantBits
+import org.neo4j.cypher.internal.expressions.functions.UUIDMostSignificantBits
 import org.neo4j.cypher.internal.expressions.functions.ValueType
 import org.neo4j.cypher.internal.expressions.functions.VectorDimensionCount
 import org.neo4j.cypher.internal.expressions.functions.VectorDistance
@@ -954,6 +957,29 @@ case class CommunityExpressionConverter(
       case ValueType => commands.expressions.ValueTypeFunction(self.toCommandExpression(id, invocation.arguments.head))
       case VectorDimensionCount =>
         commands.expressions.VectorDimensionCountFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case UUIDConstructor => if (invocation.arguments.isEmpty) {
+          commands.expressions.UUIDConstructorFunction(
+            None,
+            None
+          )
+        } else if (invocation.arguments.size == 1) {
+          commands.expressions.UUIDConstructorFunction(
+            Some(self.toCommandExpression(id, invocation.arguments.head))
+          )
+        } else {
+          commands.expressions.UUIDConstructorFunction(
+            Some(self.toCommandExpression(id, invocation.arguments.head)),
+            Some(self.toCommandExpression(id, invocation.arguments(1)))
+          )
+        }
+      case UUIDLeastSignificantBits =>
+        commands.expressions.UUIDLeastSignificantBits(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
+      case UUIDMostSignificantBits =>
+        commands.expressions.UUIDMostSignificantBits(
+          self.toCommandExpression(id, invocation.arguments.head)
+        )
       case VectorDistance =>
         commands.expressions.VectorDistanceFunction(
           self.toCommandExpression(id, invocation.arguments.head),

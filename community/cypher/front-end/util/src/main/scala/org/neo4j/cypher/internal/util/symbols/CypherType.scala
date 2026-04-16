@@ -224,6 +224,7 @@ object CypherType {
   private def allTypes(isNullable: Boolean): Set[CypherType] = Set(
     BooleanType(isNullable)(InputPosition.NONE),
     StringType(isNullable)(InputPosition.NONE),
+    UUIDType(isNullable)(InputPosition.NONE),
     IntegerType(isNullable)(InputPosition.NONE),
     FloatType(isNullable)(InputPosition.NONE),
     DateType(isNullable)(InputPosition.NONE),

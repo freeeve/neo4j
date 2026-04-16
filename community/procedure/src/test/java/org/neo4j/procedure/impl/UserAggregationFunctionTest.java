@@ -263,7 +263,7 @@ public class UserAggregationFunctionTest {
                 + "java.lang.Double, java.lang.Long, java.lang.Number, java.lang.Object, "
                 + "java.lang.String, java.time.LocalDate, java.time.LocalDateTime, "
                 + "java.time.LocalTime, java.time.OffsetTime, java.time.ZonedDateTime, "
-                + "java.time.temporal.TemporalAmount, java.util.List, java.util.Map, long]");
+                + "java.time.temporal.TemporalAmount, java.util.List, java.util.Map, java.util.UUID, long]");
 
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> compile(FunctionWithInvalidOutput.class))
                 .isInstanceOf(ProcedureException.class)

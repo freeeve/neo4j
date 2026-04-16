@@ -2547,6 +2547,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   )
 
   val cypher25OnlyTypes: Seq[String] = Seq(
+    "UUID",
     "INT64",
     "INTEGER64",
     "FLOAT64",
@@ -3216,7 +3217,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             |                                                 ^""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 49 (offset: 48))
+          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 49 (offset: 48))
             |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS TYPED"
             |                                                 ^""".stripMargin
         )
@@ -3231,7 +3232,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             |                                              ^""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 46 (offset: 45))
+          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 46 (offset: 45))
             |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS ::"
             |                                              ^""".stripMargin
         )
@@ -3246,7 +3247,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             |                                           ^""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 43 (offset: 42))
+          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 43 (offset: 42))
             |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p ::"
             |                                           ^""".stripMargin
         )
@@ -3261,7 +3262,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             |                                            ^""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'TYPED': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+          """Invalid input 'TYPED': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
             |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: TYPED"
             |                                            ^""".stripMargin
         )
@@ -3277,7 +3278,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             |                                            ^""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          """Invalid input 'UNIQUE': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+          """Invalid input 'UNIQUE': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
             |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: UNIQUE"
             |                                            ^""".stripMargin
         )

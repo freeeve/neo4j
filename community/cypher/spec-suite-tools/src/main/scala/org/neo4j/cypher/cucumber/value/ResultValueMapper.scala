@@ -85,8 +85,9 @@ final object ResultValueMapper extends ValueMapper {
         val d = durationValue.asIsoDuration()
         duration(d.months(), d.days(), d.seconds(), d.nanoseconds()).toString
       case _ => value.asObject() match {
-          case temporal: Temporal => temporal.toString // Yes, temporals are treated as strings here
-          case other              => other
+          case uuid: java.util.UUID => Values.uuidValue(uuid)
+          case temporal: Temporal   => temporal.toString // Yes, temporals are treated as strings here
+          case other                => other
         }
     }
 
@@ -162,6 +163,7 @@ final object ResultValueMapper extends ValueMapper {
       case array: Array[_]                => convertList(java.util.Arrays.asList(array: _*))
       case temporal: Temporal             => temporal.toString // Yes, temporals are treated as strings here
       case temporalAmount: TemporalAmount => temporalAmount.toString // Yes, also temporal amounts
+      case uuid: java.util.UUID           => Values.uuidValue(uuid)
       case value                          => value
     }
 
@@ -209,7 +211,9 @@ final object ResultValueMapper extends ValueMapper {
       case map: util.Map[_, _] => map.values().stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
       case list: util.List[_]  => list.stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
       case _: Entity | _: Path | _: java.lang.Integer | _: java.lang.Float | _: java.lang.Short | _: java.lang.Byte |
-        _: Array[_] | _: Temporal | _: TemporalAmount => true
+        _: Array[
+          _
+        ] | _: Temporal | _: TemporalAmount | _: java.util.UUID => true
       case _ => false
     }
   }

@@ -216,6 +216,7 @@ public interface NamingRestrictions {
                         "time.*",
                         "tx.*",
                         "unsupported.*",
+                        "uuid.*",
                         "vector.*");
         };
     }
@@ -268,7 +269,9 @@ public interface NamingRestrictions {
                 "coll.max",
                 "coll.min",
                 "coll.remove",
-                "coll.sort");
+                "coll.sort",
+                "uuid.leastSignificantBits",
+                "uuid.mostSignificantBits");
 
         var cypher25All = new java.util.ArrayList<>(combined);
         cypher25All.addAll(cypher25Additional);

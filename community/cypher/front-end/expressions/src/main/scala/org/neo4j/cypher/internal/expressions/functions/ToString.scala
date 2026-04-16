@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTUUID
 
 case object ToString extends Function {
   override def name = "toString"
@@ -38,6 +39,7 @@ case object ToString extends Function {
     CTInteger,
     CTBoolean,
     CTString,
+    CTUUID,
     CTDuration,
     CTDate,
     CTTime,

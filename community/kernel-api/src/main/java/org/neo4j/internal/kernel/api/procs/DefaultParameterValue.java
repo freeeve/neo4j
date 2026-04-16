@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.neo4j.values.ValueMapper;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.virtual.VirtualNodeValue;
@@ -52,6 +53,10 @@ public class DefaultParameterValue {
 
     public static DefaultParameterValue ntString(String value) {
         return new DefaultParameterValue(value, Neo4jTypes.NTString);
+    }
+
+    public static DefaultParameterValue ntUUID(UUID value) {
+        return new DefaultParameterValue(value, Neo4jTypes.NTUUID);
     }
 
     public static DefaultParameterValue ntInteger(long value) {

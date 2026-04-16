@@ -63,6 +63,9 @@ import org.neo4j.cypher.internal.expressions.functions.Reverse
 import org.neo4j.cypher.internal.expressions.functions.Tail
 import org.neo4j.cypher.internal.expressions.functions.ToBoolean
 import org.neo4j.cypher.internal.expressions.functions.ToString
+import org.neo4j.cypher.internal.expressions.functions.UUIDConstructor
+import org.neo4j.cypher.internal.expressions.functions.UUIDLeastSignificantBits
+import org.neo4j.cypher.internal.expressions.functions.UUIDMostSignificantBits
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -126,15 +129,28 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
             }
           )
 
-        case _: Function =>
-          when(invocation.distinct) {
-            error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
+        case f: Function => whenState(
+            !_.features.contains(SemanticFeature.UUIDType) && isUUIDFunction(f)
+          ) {
+            error(SemanticError.uuidTypeNotSupported("UUID Type", invocation.position))
           } chain
+            when(invocation.distinct) {
+              error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
+            } chain
             SemanticExpressionCheck.check(ctx, invocation.arguments) chain
             semanticCheck(ctx, invocation)
       }
     })
   }
+
+  // Remove once the feature flag for uuids is removed :)
+  private def isUUIDFunction(function: Function): Boolean =
+    function match {
+      case UUIDConstructor          => true
+      case UUIDMostSignificantBits  => true
+      case UUIDLeastSignificantBits => true
+      case _                        => false
+    }
 
   private def checkNoNestedAggregateFunctions(invocation: FunctionInvocation): SemanticCheck =
     invocation.args.collectFirst {

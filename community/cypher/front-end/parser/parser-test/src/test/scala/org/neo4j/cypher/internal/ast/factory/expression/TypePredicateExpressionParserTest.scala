@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -296,7 +297,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |            ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
+          """Invalid input '': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
             |"RETURN x ::"
             |            ^""".stripMargin
         )
@@ -341,7 +342,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |             ^""".stripMargin
         )
       case _ => _.withMessage(
-          """Invalid input 'NOT': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+          """Invalid input 'NOT': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
             |"RETURN x :: NOT NULL"
             |             ^""".stripMargin
         )
@@ -405,7 +406,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |             ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'FLOAT32': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+          """Invalid input 'FLOAT32': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
             |"RETURN x :: FLOAT32"
             |             ^""".stripMargin
         )
@@ -420,7 +421,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |             ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'INTEGER8': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+          """Invalid input 'INTEGER8': expected 'ANY', 'ARRAY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LIST', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'UUID', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
             |"RETURN x :: INTEGER8"
             |             ^""".stripMargin
         )
@@ -450,7 +451,8 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
     "INT64",
     "INTEGER64",
     "FLOAT64",
-    "VECTOR"
+    "VECTOR",
+    "UUID"
   )
 
   test("all combinations of types should behave") {
@@ -656,6 +658,9 @@ object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
     ("STRING", StringType(isNullable = true)(pos)),
     ("STRING NOT NULL", StringType(isNullable = false)(pos)),
     ("STRING!", StringType(isNullable = false)(pos)),
+    ("UUID", UUIDType(isNullable = true)(pos)),
+    ("UUID NOT NULL", UUIDType(isNullable = false)(pos)),
+    ("UUID!", UUIDType(isNullable = false)(pos)),
     ("INTEGER", IntegerType(isNullable = true)(pos)),
     ("INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
     ("INTEGER!", IntegerType(isNullable = false)(pos)),

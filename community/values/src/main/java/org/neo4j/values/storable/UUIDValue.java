@@ -24,6 +24,7 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.UUID;
 import org.neo4j.hashing.HashFunction;
+import org.neo4j.values.Comparison;
 import org.neo4j.values.ValueMapper;
 
 public class UUIDValue extends ScalarValue {
@@ -50,12 +51,36 @@ public class UUIDValue extends ScalarValue {
         return compareUUIDs(uuid, other.uuid);
     }
 
+    @Override
+    public Comparison unsafeTernaryCompareTo(Value otherValue) {
+        // UUID values are not comparable under Comparability semantics,
+        // unless they are equal.
+        if (equals(otherValue)) {
+            return Comparison.EQUAL;
+        } else {
+            return Comparison.UNDEFINED;
+        }
+    }
+
+    @Override
+    public boolean isIncomparableType() {
+        return true;
+    }
+
     public static int compareUUIDs(UUID o1, UUID o2) {
         return compareUUIDs(
                 o1.getMostSignificantBits(),
                 o1.getLeastSignificantBits(),
                 o2.getMostSignificantBits(),
                 o2.getLeastSignificantBits());
+    }
+
+    public long getMostSignificantBits() {
+        return uuid.getMostSignificantBits();
+    }
+
+    public long getLeastSignificantBits() {
+        return uuid.getLeastSignificantBits();
     }
 
     public static int compareUUIDs(long o1Msb, long o1Lsb, long o2Msb, long o2Lsb) {

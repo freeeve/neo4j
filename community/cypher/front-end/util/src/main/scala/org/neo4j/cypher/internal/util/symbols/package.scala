@@ -23,6 +23,7 @@ package object symbols {
   val CTBoolean: BooleanType = BooleanType(isNullable = true)(InputPosition.NONE)
   val CTString: StringType = StringType(isNullable = true)(InputPosition.NONE)
   val CTStringNotNull: StringType = CTString.withIsNullable(false)
+  val CTUUID: UUIDType = UUIDType(isNullable = true)(InputPosition.NONE)
   val CTNumber: NumberType = NumberType(isNullable = true)(InputPosition.NONE)
   val CTFloat: FloatType = FloatType(isNullable = true)(InputPosition.NONE)
   val CTFloat32: Float32Type = Float32Type(isNullable = true)(InputPosition.NONE)

@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -50,6 +51,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
   private val allowedPropertyTypes = List(
     BooleanType(isNullable = true)(InputPosition.NONE),
     StringType(isNullable = true)(InputPosition.NONE),
+    UUIDType(isNullable = true)(InputPosition.NONE),
     IntegerType(isNullable = true)(InputPosition.NONE),
     FloatType(isNullable = true)(InputPosition.NONE),
     DateType(isNullable = true)(InputPosition.NONE),
@@ -61,6 +63,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
     PointType(isNullable = true)(InputPosition.NONE),
     ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
     ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(UUIDType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
     ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
     ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
     ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
@@ -76,6 +79,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
     AnyType(isNullable = false)(InputPosition.NONE),
     BooleanType(isNullable = false)(InputPosition.NONE),
     StringType(isNullable = false)(InputPosition.NONE),
+    UUIDType(isNullable = false)(InputPosition.NONE),
     IntegerType(isNullable = false)(InputPosition.NONE),
     FloatType(isNullable = false)(InputPosition.NONE),
     DateType(isNullable = false)(InputPosition.NONE),
@@ -87,6 +91,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
     PointType(isNullable = false)(InputPosition.NONE),
     ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
     ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(UUIDType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
     ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
     ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
     ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),

@@ -22,6 +22,7 @@ package org.neo4j.values.storable;
 import java.util.Arrays;
 import java.util.UUID;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.ValueMapper;
 
 public class UUIDArray extends NonPrimitiveArray<UUID> {
     private final UUID[] value;
@@ -43,6 +44,11 @@ public class UUIDArray extends NonPrimitiveArray<UUID> {
     @Override
     protected UUID[] value() {
         return value;
+    }
+
+    @Override
+    public <T> T map(ValueMapper<T> mapper) {
+        return mapper.mapUUIDArray(this);
     }
 
     @Override

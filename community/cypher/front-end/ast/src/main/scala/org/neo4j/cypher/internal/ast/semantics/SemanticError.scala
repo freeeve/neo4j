@@ -1834,6 +1834,15 @@ object SemanticError {
     )
   }
 
+  def uuidTypeNotSupported(item: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_51N26(item, "UUID types", position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      "The UUID type is not supported.",
+      position
+    )
+  }
+
   def unsupportedPathModeWithVarLength(
     varLengthRel: String,
     pathMode: String,

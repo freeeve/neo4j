@@ -16,11 +16,17 @@
  */
 package org.neo4j.cypher.internal.util.symbols
 
-object CypherTypeOrder extends Enumeration {
-  type CypherTypeOrder = Value
+import org.neo4j.cypher.internal.util.InputPosition
 
-  val NOTHING, NULL, BOOLEAN, STRING, UUID, INTEGER8, INTEGER16, INTEGER32, INTEGER, FLOAT32, FLOAT, DATE, LOCAL_TIME,
-    ZONED_TIME, LOCAL_DATETIME, ZONED_DATETIME, DURATION, POINT, NODE, RELATIONSHIP, VECTOR, MAP, LIST, PATH,
-    CLOSED_DYNAMIC_UNION, ANY = Value
+case class UUIDType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
+  override val parentType: CypherType = CTAny
+  override val toClassString: String = "UUID"
+  override val toCypherTypeString: String = "UUID"
+  override def sortOrder: Int = CypherTypeOrder.UUID.id
 
+  override def couldBeStoredInProperty: Boolean = true
+
+  override def withIsNullable(isNullable: Boolean): UUIDType = this.copy(isNullable = isNullable)(position)
+
+  override def withPosition(newPosition: InputPosition): UUIDType = this.copy()(position = newPosition)
 }

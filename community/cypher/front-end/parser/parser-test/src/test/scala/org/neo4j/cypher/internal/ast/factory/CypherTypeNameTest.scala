@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.UUIDType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
@@ -75,6 +76,7 @@ class CypherTypeNameTest extends CypherFunSuite {
   private val setOfAllPropertyTypes: Set[CypherType] = Set(
     BooleanType(isNullable = true)(pos),
     StringType(isNullable = true)(pos),
+    UUIDType(isNullable = true)(pos),
     IntegerType(isNullable = true)(pos),
     FloatType(isNullable = true)(pos),
     DateType(isNullable = true)(pos),
@@ -87,6 +89,7 @@ class CypherTypeNameTest extends CypherFunSuite {
     VectorType(None, None, isNullable = true)(pos),
     ListType(BooleanType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(StringType(isNullable = false)(pos), isNullable = true)(pos),
+    ListType(UUIDType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(DateType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(LocalTimeType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(ZonedTimeType(isNullable = false)(pos), isNullable = true)(pos),
@@ -117,6 +120,7 @@ class CypherTypeNameTest extends CypherFunSuite {
     List[(String, Boolean => CypherType)](
       ("BOOLEAN", BooleanType(_)(pos)),
       ("STRING", StringType(_)(pos)),
+      ("UUID", UUIDType(_)(pos)),
       ("INTEGER", IntegerType(_)(pos)),
       ("FLOAT", FloatType(_)(pos)),
       ("DATE", DateType(_)(pos)),

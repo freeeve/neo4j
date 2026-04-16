@@ -77,6 +77,10 @@ object SemanticFeature {
     override def name: String = "vector search with complex pattern"
   }
 
+  case object UUIDType extends SemanticFeature with FeatureToString {
+    override def name: String = "UUID type"
+  }
+
   case object LocalCallables extends SemanticFeature with FeatureToString {
     override def name: String = "local callables"
   }
@@ -132,6 +136,7 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorSearchWithComplexPattern,
+    UUIDType,
     LocalCallables,
     ScopeQueries,
     VariableChecking,

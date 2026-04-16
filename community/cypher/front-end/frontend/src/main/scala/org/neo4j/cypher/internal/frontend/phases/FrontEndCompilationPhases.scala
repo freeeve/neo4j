@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.OidcCredentialFor
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.RelationshipPropertyValueAccessRules
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UUIDType
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
@@ -77,6 +78,7 @@ trait FrontEndCompilationPhases {
     GraphDatabaseInternalSettings.graph_type_enabled -> GraphTypes.productPrefix,
     GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> ExperimentalCypherVersions.productPrefix,
     GraphDatabaseInternalSettings.relationship_property_value_access_rules -> RelationshipPropertyValueAccessRules.productPrefix,
+    GraphDatabaseInternalSettings.cypher_uuid_type_enabled -> UUIDType.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_local_callables -> LocalCallables.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_scope_queries -> ScopeQueries.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_variable_checker -> VariableChecking.productPrefix,

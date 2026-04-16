@@ -40,6 +40,7 @@ object Category extends Enumeration {
   val STRING = "String"
   val SPATIAL = "Spatial"
   val GRAPH = "Graph"
+  val UUID = "UUID"
   val VECTOR = "Vector"
   val SECURITY = "Security"
 }
@@ -118,6 +119,7 @@ object Function {
     PercentileDiscAlias,
     Percentiles,
     Point,
+    Properties,
     Keys,
     Radians,
     Rand,
@@ -161,18 +163,20 @@ object Function {
     ToStringOrNull,
     ToUpper,
     Timestamp,
-    Properties,
     Trim,
     Type,
     Upper,
+    UUIDConstructor,
+    UUIDLeastSignificantBits,
+    UUIDMostSignificantBits,
     ValueType,
-    WithinBBox,
     VectorDimensionCount,
     VectorDistance,
     VectorNorm,
     VectorValueConstructor,
     VectorSimilarityEuclidean,
     VectorSimilarityCosine,
+    WithinBBox,
     ZonedDateTime,
     ZonedTime
   )
