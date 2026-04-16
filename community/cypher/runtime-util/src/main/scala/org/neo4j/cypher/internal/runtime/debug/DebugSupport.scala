@@ -46,6 +46,7 @@ object DebugSupport {
   final val DEBUG_GENERATED_SOURCE_CODE = false
   final val DEBUG_GENERATED_IR_CODE = false
   final val DEBUG_MORSEL_REUSE = false
+  final val DEBUG_BATCH_FORMATION = false
 
   /** LOGS */
 
@@ -68,6 +69,7 @@ object DebugSupport {
   final val CONCURRENT_TRANSACTIONS_WORKER = new DebugLog(DEBUG_CONCURRENT_TRANSACTIONS, BrightBlue)
   final val GENERATED_IR_CODE = new DebugLog(DEBUG_GENERATED_IR_CODE, "")
   final val MORSEL_REUSE = new DebugLog(DEBUG_MORSEL_REUSE, "")
+  final val BATCH_FORMATION = new DebugLog(DEBUG_BATCH_FORMATION, BrightYellow)
 
   /** COLORS AND FORMATTING **/
 

@@ -382,7 +382,7 @@ case object NonRecoverableError extends TransactionStatus {
   override def profileInformation: InterpretedProfileInformation = null
 }
 
-sealed trait TransactionBatch {
+trait TransactionBatch {
   def rows: EagerBuffer[CypherRow]
 
   def close(): Unit = {
@@ -393,13 +393,15 @@ sealed trait TransactionBatch {
   def shouldRetryAgain(): Boolean
   def retriedCount: Int
   def retryTimeout: Duration
+
+  def isMarker: Boolean = false
 }
 
 class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends TransactionBatch {
 
   override def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
     val firstState = retryLogic.newRetryState()
-    new RetryableTransactionBatch(rows, firstState, firstState.computeNextRetryState())
+    new ImmutableRetryableTransactionBatch(rows, firstState, firstState.computeNextRetryState())
   }
 
   override def toString: String = s"FreshTransactionBatch(rowCount=${rows.size()})"
@@ -414,21 +416,26 @@ class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends Transactio
     throw new UnsupportedOperationException("retryTimeout is not supported for FreshTransactionBatch")
 }
 
-class RetryableTransactionBatch(
-  val rows: EagerBuffer[CypherRow],
-  private val retryState: RetryState, // Used in the retry priority queue to compare batches scheduled for retry
-  private val nextRetryState: RetryState // Used by tasks to see if we shouldRetryAgain on failure
-) extends TransactionBatch {
+trait RetryableTransactionBatch extends TransactionBatch {
+  def nanosUntilRetry(): Long
+  private[pipes] def retryState: RetryState
+}
 
-  def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
-    new RetryableTransactionBatch(rows, nextRetryState, nextRetryState.computeNextRetryState())
+class ImmutableRetryableTransactionBatch(
+  val rows: EagerBuffer[CypherRow],
+  override private[pipes] val retryState: RetryState, // Used in the retry priority queue to compare batches scheduled for retry
+  private val nextRetryState: RetryState // Used by tasks to see if we shouldRetryAgain on failure
+) extends RetryableTransactionBatch {
+
+  override def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch = {
+    new ImmutableRetryableTransactionBatch(rows, nextRetryState, nextRetryState.computeNextRetryState())
   }
 
-  def nanosUntilRetry(): Long = {
+  override def nanosUntilRetry(): Long = {
     retryState.nanosUntilRetry()
   }
 
-  def shouldRetryAgain(): Boolean = {
+  override def shouldRetryAgain(): Boolean = {
     nextRetryState.shouldRetryAgain()
   }
 

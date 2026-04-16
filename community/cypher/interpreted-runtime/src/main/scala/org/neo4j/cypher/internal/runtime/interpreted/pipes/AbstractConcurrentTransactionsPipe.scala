@@ -48,8 +48,11 @@ abstract class AbstractConcurrentTransactionsPipe(
   batchSize: Expression,
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
-  retryPolicy: TransactionRetryPolicy
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
 ) extends PipeWithSource(source) {
+
+  private[this] val batchByArray = batchBy.toArray
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
   protected def nullRows(value: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow]
@@ -77,7 +80,16 @@ abstract class AbstractConcurrentTransactionsPipe(
     val concurrencyLong = evaluateConcurrency(concurrency, state)
 
     val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
-    val inputBatchIterator = input.eagerGrouped(batchSizeLong, memoryTracker)
+
+    val deadlockPreventionLogic: TransactionDeadlockPreventionLogic = if (batchByArray.nonEmpty) {
+      // Use concurrency times 2 rounded up to the nearest multiple of 64 as the max batches in formation
+      val maxBatchesInFormation = ((concurrencyLong.toInt * 2) + 63) & ~63 // TODO: Make this configurable?
+      new ConcurrentTransactionsDeadlockPreventionLogic(batchByArray, maxBatchesInFormation)
+    } else {
+      NoopTransactionDeadlockPreventionLogic
+    }
+
+    val inputBatchIterator = deadlockPreventionLogic.batchIterator(input, state, batchSizeLong, memoryTracker)
 
     retryLogic match {
       case Some(retryLogic) =>
@@ -87,19 +99,28 @@ abstract class AbstractConcurrentTransactionsPipe(
           innerPipeInTx,
           memoryTracker,
           state,
-          retryLogic
+          retryLogic,
+          deadlockPreventionLogic
         )
       case None =>
-        new ConcurrentTransactionsIterator(concurrencyLong, inputBatchIterator, innerPipeInTx, memoryTracker, state)
+        new ConcurrentTransactionsIterator(
+          concurrencyLong,
+          inputBatchIterator,
+          innerPipeInTx,
+          memoryTracker,
+          state,
+          deadlockPreventionLogic
+        )
     }
   }
 
   private class ConcurrentTransactionsIterator(
     maxConcurrency: Long,
-    input: ClosingIterator[EagerBuffer[CypherRow]],
+    input: ClosingIterator[TransactionBatch],
     innerPipe: TransactionPipeWrapper,
     memoryTracker: MemoryTracker,
-    queryState: QueryState
+    queryState: QueryState,
+    deadlockPreventionLogic: TransactionDeadlockPreventionLogic
   ) extends PrefetchingIterator[CypherRow] {
     protected val inputQueueMaxCapacity: Int = maxConcurrency.toInt
     private val outputQueueMaxCapacity: Int = maxConcurrency.toInt
@@ -172,7 +193,12 @@ abstract class AbstractConcurrentTransactionsPipe(
       taskResult
     }
 
-    protected def processTaskResult(taskResult: TaskOutputResult): Unit = {}
+    protected def processTaskResult(taskResult: TaskOutputResult): Unit = {
+      // Notify deadlock prevention logic that the batch completed (if not being retried)
+      if (taskResult.completedBatch != null) {
+        deadlockPreventionLogic.onBatchCompleted(taskResult.completedBatch)
+      }
+    }
 
     final protected def drainOutputQueue(error: Throwable = null): Unit = {
       while (pendingTaskCount > 0) {
@@ -204,13 +230,30 @@ abstract class AbstractConcurrentTransactionsPipe(
     private def saturateInputQueue(): Boolean = {
       var addedToQueue: Boolean = false
 
-      if (inputQueue.size() < inputQueueMaxCapacity && input.hasNext) {
-        inputQueue.add(TransactionBatch(input.next()))
-        addedToQueue = true
-        logMessage("Queued an input batch")
+      if (inputQueue.size() < inputQueueMaxCapacity) {
+        checkAndUpdateCompletedBatches()
+        if (input.hasNext) {
+          val batch = input.next()
+          if (!batch.isMarker) {
+            inputQueue.add(batch)
+            addedToQueue = true
+            logMessage("Queued an input batch")
+          }
+        }
       }
 
       addedToQueue
+    }
+
+    private def checkAndUpdateCompletedBatches(): Unit = {
+      if (deadlockPreventionLogic.requiresBatchCompletedNotification && pendingTaskCount > 0) {
+        outputQueue.forEach { taskOutputResult =>
+          if (taskOutputResult.completedBatch != null) {
+            // NOTE: It is ok to call onBatchCompleted multiple times for the same batch as it is idempotent.
+            deadlockPreventionLogic.onBatchCompleted(taskOutputResult.completedBatch)
+          }
+        }
+      }
     }
 
     final protected def ensureActiveTasks(): Boolean = {
@@ -218,7 +261,7 @@ abstract class AbstractConcurrentTransactionsPipe(
         if (activeTaskCount.get() < maxConcurrency.toInt) {
           if (activeTaskCount.getAndIncrement() < maxConcurrency.toInt) {
             val input = nextAvailableInput()
-            if (input != null) {
+            if (input != null && !input.isMarker) {
               executeTask(input)
               pendingTaskCount += 1
               logMessage("Created new task")
@@ -236,7 +279,7 @@ abstract class AbstractConcurrentTransactionsPipe(
         return inputQueue.poll()
       }
       if (input.hasNext) {
-        return TransactionBatch(input.next())
+        return input.next()
       }
       throw new NoSuchElementException()
     }
@@ -306,12 +349,20 @@ abstract class AbstractConcurrentTransactionsPipe(
 
   private class RetryConcurrentTransactionsIterator(
     maxConcurrency: Long,
-    input: ClosingIterator[EagerBuffer[CypherRow]],
+    input: ClosingIterator[TransactionBatch],
     innerPipe: TransactionPipeWrapper,
     memoryTracker: MemoryTracker,
     queryState: QueryState,
-    retryLogic: TransactionRetryLogic
-  ) extends ConcurrentTransactionsIterator(maxConcurrency, input, innerPipe, memoryTracker, queryState) {
+    retryLogic: TransactionRetryLogic,
+    deadlockPreventionLogic: TransactionDeadlockPreventionLogic
+  ) extends ConcurrentTransactionsIterator(
+        maxConcurrency,
+        input,
+        innerPipe,
+        memoryTracker,
+        queryState,
+        deadlockPreventionLogic
+      ) {
 
     // We have a limit to the retry queue size, so we switch to prioritize retry batches over new input batches
     // to avoid running out of heap in case we get a lot of failed batches.
@@ -340,7 +391,7 @@ abstract class AbstractConcurrentTransactionsPipe(
         return inputQueue.poll()
       }
       if (input.hasNext) {
-        return TransactionBatch(input.next())
+        return input.next()
       }
       if (!retryQueue.isEmpty) {
         return null
@@ -393,6 +444,7 @@ abstract class AbstractConcurrentTransactionsPipe(
       }
       if (taskResult.retryBatch != null) {
         val batch = taskResult.retryBatch
+        require(taskResult.completedBatch == null)
         taskResult.status match {
           case _: Commit =>
             checkOnlyWhenAssertionsAreEnabled(batch.retriedCount > 0, "Expected the batch to have been retried")
@@ -402,6 +454,8 @@ abstract class AbstractConcurrentTransactionsPipe(
             logMessage("Adding batch to retry queue")
             retryQueue.add(retryableBatch)
         }
+      } else {
+        super.processTaskResult(taskResult)
       }
     }
   }
@@ -510,8 +564,24 @@ abstract class AbstractConcurrentTransactionsPipe(
           withStatus(nullRows(batch.rows, state), transactionStatus)
       }
 
-      val retryBatchOrNull = if (shouldRetry) batch else null
-      TaskOutputResult(transactionStatus, resultsWithStatusIteratorOrNull, nonRecoverableErrorOrNull, retryBatchOrNull)
+      // Pass the batch as either retryBatch or completedBatch, and the other one as null
+      if (shouldRetry) {
+        TaskOutputResult(
+          transactionStatus,
+          resultsWithStatusIteratorOrNull,
+          nonRecoverableErrorOrNull,
+          retryBatch = batch,
+          completedBatch = null
+        )
+      } else {
+        TaskOutputResult(
+          transactionStatus,
+          resultsWithStatusIteratorOrNull,
+          nonRecoverableErrorOrNull,
+          retryBatch = null,
+          completedBatch = batch
+        )
+      }
     }
   }
 
@@ -548,8 +618,24 @@ abstract class AbstractConcurrentTransactionsPipe(
           val output = batch.rows.autoClosingIterator().asClosingIterator
           withStatus(output, transactionStatus)
         }
-      val retryBatchOrNull = if (shouldRetry) batch else null
-      TaskOutputResult(transactionStatus, resultsWithStatusIteratorOrNull, nonRecoverableErrorOrNull, retryBatchOrNull)
+      // Pass the batch as either retryBatch or completedBatch, and the other one as null
+      if (shouldRetry) {
+        TaskOutputResult(
+          transactionStatus,
+          resultsWithStatusIteratorOrNull,
+          nonRecoverableErrorOrNull,
+          retryBatch = batch,
+          completedBatch = null
+        )
+      } else {
+        TaskOutputResult(
+          transactionStatus,
+          resultsWithStatusIteratorOrNull,
+          nonRecoverableErrorOrNull,
+          retryBatch = null,
+          completedBatch = batch
+        )
+      }
     }
   }
 
@@ -557,7 +643,8 @@ abstract class AbstractConcurrentTransactionsPipe(
     status: TransactionStatus,
     outputIterator: ClosingIterator[CypherRow] = null,
     nonRecoverableError: Throwable = null,
-    retryBatch: TransactionBatch = null
+    retryBatch: TransactionBatch = null,
+    completedBatch: TransactionBatch = null
   ) {
 
     override def toString: String = {

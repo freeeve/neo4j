@@ -41,8 +41,17 @@ abstract class AbstractConcurrentTransactionsLegacyPipe(
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   statusVariableOpt: Option[String],
-  retryPolicy: TransactionRetryPolicy
-) extends AbstractConcurrentTransactionsPipe(source, inner, batchSize, concurrency, onErrorBehaviour, retryPolicy) {
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
+) extends AbstractConcurrentTransactionsPipe(
+      source,
+      inner,
+      batchSize,
+      concurrency,
+      onErrorBehaviour,
+      retryPolicy,
+      batchBy
+    ) {
 
   override protected def withStatus(
     output: ClosingIterator[CypherRow],
@@ -61,7 +70,8 @@ case class ConcurrentTransactionApplyLegacyPipe(
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   nullableVariables: Set[String],
   statusVariableOpt: Option[String],
-  retryPolicy: TransactionRetryPolicy
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsLegacyPipe(
       source,
@@ -70,7 +80,8 @@ case class ConcurrentTransactionApplyLegacyPipe(
       concurrency,
       onErrorBehaviour,
       statusVariableOpt,
-      retryPolicy
+      retryPolicy,
+      batchBy
     ) {
 
   private lazy val nullEntries: Seq[(String, AnyValue)] = {
@@ -112,7 +123,8 @@ case class ConcurrentTransactionForeachLegacyPipe(
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   statusVariableOpt: Option[String],
-  retryPolicy: TransactionRetryPolicy
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsLegacyPipe(
       source,
@@ -121,7 +133,8 @@ case class ConcurrentTransactionForeachLegacyPipe(
       concurrency,
       onErrorBehaviour,
       statusVariableOpt,
-      retryPolicy
+      retryPolicy,
+      batchBy
     ) {
 
   override protected def nullRows(lhs: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow] = {

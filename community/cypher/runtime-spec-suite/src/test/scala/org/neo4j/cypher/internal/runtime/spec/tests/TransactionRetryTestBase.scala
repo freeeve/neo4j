@@ -341,6 +341,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
   val defaultNumberOfBatches: Int = 20 // sizeHint / 10
   val shortRetryTimeoutSeconds = 0.2
   val inputVarName = "i"
+  val batchByVarName = "j"
   val statusVarName = "s"
   val random = new Random()
   val seed: Long = System.currentTimeMillis()
@@ -405,7 +406,8 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     reportStatus: Boolean,
     batchSize: Int,
     morselSize: Int = getConfig.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small),
-    query: QueryTemplate = QueryTemplate.Simple
+    query: QueryTemplate = QueryTemplate.Simple,
+    batchBy: Boolean = false
   ) {
 
     def inExpectedOrder(rows: Iterable[Array[_]]): RowsMatcher = {
@@ -416,10 +418,10 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     }
 
     override def toString: String =
-      s"concurrency=$concurrency onErrorBehaviour=$onErrorBehaviour plan=$applyOrForeach reportStatus=$reportStatus batchSize=$batchSize morselSize=$morselSize, query=$query"
+      s"concurrency=$concurrency onErrorBehaviour=$onErrorBehaviour plan=$applyOrForeach reportStatus=$reportStatus batchSize=$batchSize morselSize=$morselSize, query=$query, batchBy=$batchBy"
 
     def codeString: String =
-      s"${this.getClass.getSimpleName}(concurrency=$concurrency, onErrorBehaviour=$onErrorBehaviour, applyOrForeach=ApplyOrForeach.$applyOrForeach, reportStatus=$reportStatus, batchSize=$batchSize, morselSize=$morselSize, query=$query)"
+      s"${this.getClass.getSimpleName}(concurrency=$concurrency, onErrorBehaviour=$onErrorBehaviour, applyOrForeach=ApplyOrForeach.$applyOrForeach, reportStatus=$reportStatus, batchSize=$batchSize, morselSize=$morselSize, query=$query, batchBy=$batchBy)"
   }
 
   case class TestCaseConfig(
@@ -835,9 +837,19 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     reportStatus <- if (onErrorBehaviour != OnErrorRetryThenFail) Seq(true, false) else Seq(false)
     batchSize <- random.shuffle(batchSizesToTest).take(nBatchSizesToTest)
     morselSize <- if (isPipelined) random.shuffle(morselSizesToTest).take(nMorselSizesToTest) else Seq(1)
+    batchByEnabled <- if (concurrency != Serial) Seq(false, true) else Seq(false)
     query <- Seq(QueryTemplate.Simple, QueryTemplate.Complex)
     params =
-      TestCaseParameters(concurrency, onErrorBehaviour, applyOrForeach, reportStatus, batchSize, morselSize, query)
+      TestCaseParameters(
+        concurrency,
+        onErrorBehaviour,
+        applyOrForeach,
+        reportStatus,
+        batchSize,
+        morselSize,
+        query,
+        batchByEnabled
+      )
   } yield {
 
     test(s"Transaction retry should succeed when no errors: $params") {
@@ -981,7 +993,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
   }
 
   def runTest(config: TestCaseConfig): RecordingRuntimeResult = {
-    val input = createInput(config.nRows)
+    val input = createInput(config.nRows, config.params.batchBy)
     val query = createTestQueryWithInput(config)
     val parametersClue =
       s"Test parameters:\nval params = ${config.params.codeString}\nval nBatches = ${config.nBatches}\nval retryTimeoutSeconds = ${config.retryTimeoutSeconds}\n\n"
@@ -1000,9 +1012,12 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     result
   }
 
-  def createInput(nRows: Int): InputValues = {
+  def createInput(nRows: Int, batchBy: Boolean = false): InputValues = {
+    // Range sized so ~50% of batches share at least one j value with another batch
+    val rangeSize = math.max(2, nRows * 3 / 4)
     val rows = (0 until nRows).map { i =>
-      Array[Any](i)
+      if (batchBy) Array[Any](i, random.nextInt(rangeSize))
+      else Array[Any](i)
     }
     inputValues(rows: _*)
   }
@@ -1057,6 +1072,8 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     }
     val reportAs = if (params.reportStatus) Some(statusVarName) else None
     val resultColumns = Seq(inputVarName) ++ reportAs
+    val inputVars = if (params.batchBy) Seq(inputVarName, batchByVarName) else Seq(inputVarName)
+    val batchByExprs = if (params.batchBy) Seq(batchByVarName) else Seq.empty
     val qt = config.params.query
     config.params.applyOrForeach match {
       case ApplyOrForeach.Apply =>
@@ -1076,7 +1093,8 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
             concurrency = params.concurrency,
             onErrorBehaviour = params.onErrorBehaviour,
             maybeReportAs = reportAs,
-            maybeRetryParameters = retryParams
+            maybeRetryParameters = retryParams,
+            batchBy = batchByExprs
           )
           .planIf(qt.reducerOnRhs)(_
             .|.unwind(s"l1 as $inputVarName")
@@ -1100,7 +1118,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           .|.prober(config.innerProbe)
           .|.argument(inputVarName)
           .prober(config.inputProbe)
-          .input(variables = Seq(inputVarName))
+          .input(variables = inputVars)
           .build(readOnly = false)
 
       case ApplyOrForeach.Foreach =>
@@ -1112,12 +1130,13 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
             concurrency = params.concurrency,
             onErrorBehaviour = params.onErrorBehaviour,
             maybeReportAs = reportAs,
-            maybeRetryParameters = retryParams
+            maybeRetryParameters = retryParams,
+            batchBy = batchByExprs
           )
           .|.prober(config.innerProbe)
           .|.argument(inputVarName)
           .prober(config.inputProbe)
-          .input(variables = Seq(inputVarName))
+          .input(variables = inputVars)
           .build(readOnly = false)
     }
   }

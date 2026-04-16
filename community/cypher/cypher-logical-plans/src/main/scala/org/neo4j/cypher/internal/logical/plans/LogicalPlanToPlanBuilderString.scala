@@ -1831,10 +1831,28 @@ object LogicalPlanToPlanBuilderString {
         )
       case Eager(_, reasons) =>
         Param.collection("ListSet", reasons)(r => eagernessReasonStr(r))
-      case TransactionForeach(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
-        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
-      case TransactionApply(_, _, batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters) =>
-        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters)
+      case TransactionForeach(
+          _,
+          _,
+          batchSize,
+          concurrency,
+          onErrorBehaviour,
+          maybeReportAs,
+          maybeRetryParameters,
+          batchBy
+        ) =>
+        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters, batchBy)
+      case TransactionApply(
+          _,
+          _,
+          batchSize,
+          concurrency,
+          onErrorBehaviour,
+          maybeReportAs,
+          maybeRetryParameters,
+          batchBy
+        ) =>
+        callInTxParams(batchSize, concurrency, onErrorBehaviour, maybeReportAs, maybeRetryParameters, batchBy)
       case RunQueryAt(_, query, graphReference, parameters, importsAsParameters, columns) =>
         params(
           "query" -> StringEscapeUtils.escapeJava(query).quoted,
@@ -2443,7 +2461,8 @@ object LogicalPlanToPlanBuilderString {
     concurrency: TransactionConcurrency,
     onErrorBehaviour: InTransactionsOnErrorBehaviour,
     maybeReportAs: Option[LogicalVariable],
-    maybeRetryParams: Option[InTransactionsRetryParameters]
+    maybeRetryParams: Option[InTransactionsRetryParameters],
+    batchBy: Seq[Expression]
   ) =
     params(
       batchSize,
@@ -2458,7 +2477,8 @@ object LogicalPlanToPlanBuilderString {
           s"Some(InTransactionsRetryParameters(Some(DecimalDoubleLiteral(\"${expressionStringifier(timeoutExpr)}\")(InputPosition.NONE)))(InputPosition.NONE))"
         case _ =>
           "None"
-      })
+      }),
+      "batchBy" -> batchBy.map(_.quoted)
     )
 
   /** Typeclass providing a standardised way to encode particular types as parameter strings.

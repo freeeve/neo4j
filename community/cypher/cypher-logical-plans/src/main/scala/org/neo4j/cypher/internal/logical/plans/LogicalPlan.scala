@@ -5250,7 +5250,8 @@ case class TransactionApply(
   concurrency: TransactionConcurrency,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   maybeReportAs: Option[LogicalVariable],
-  maybeRetryParameters: Option[InTransactionsRetryParameters]
+  maybeRetryParameters: Option[InTransactionsRetryParameters],
+  batchBy: Seq[Expression] = Seq.empty
 )(
   implicit idGen: IdGen
 ) extends LogicalBinaryPlan(idGen) with ApplyPlan {
@@ -5312,7 +5313,8 @@ case class TransactionForeach(
   concurrency: TransactionConcurrency,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   maybeReportAs: Option[LogicalVariable],
-  maybeRetryParameters: Option[InTransactionsRetryParameters]
+  maybeRetryParameters: Option[InTransactionsRetryParameters],
+  batchBy: Seq[Expression] = Seq.empty
 )(
   implicit idGen: IdGen
 ) extends LogicalBinaryPlan(idGen) with ApplyPlan {

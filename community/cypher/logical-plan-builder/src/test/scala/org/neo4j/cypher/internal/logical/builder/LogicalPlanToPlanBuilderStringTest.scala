@@ -3184,6 +3184,18 @@ class LogicalPlanToPlanBuilderStringTest
   )
 
   testPlan(
+    "transactionForeach with batchBy",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .transactionForeach(batchBy = Seq("x"))
+      .|.emptyResult()
+      .|.create(createNode("y"))
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
     "transactionForeach with OnErrorContinue",
     new TestPlanBuilder()
       .produceResults("x")
@@ -3265,6 +3277,17 @@ class LogicalPlanToPlanBuilderStringTest
     new TestPlanBuilder()
       .produceResults("x", "y")
       .transactionApply(42)
+      .|.create(createNode("y"))
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
+    "transactionApply with batchBy",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .transactionApply(batchBy = Seq("x"))
       .|.create(createNode("y"))
       .|.argument("x")
       .allNodeScan("x")

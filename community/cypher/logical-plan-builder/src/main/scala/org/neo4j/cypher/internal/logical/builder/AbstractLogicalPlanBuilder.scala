@@ -3341,7 +3341,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorFail,
     maybeReportAs: Option[String] = None,
-    maybeRetryParameters: Option[InTransactionsRetryParameters] = None
+    maybeRetryParameters: Option[InTransactionsRetryParameters] = None,
+    batchBy: Seq[String] = Seq.empty
   ): IMPL =
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
       TransactionForeach(
@@ -3351,7 +3352,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         concurrency,
         onErrorBehaviour,
         maybeReportAs.map(varFor),
-        maybeRetryParameters
+        maybeRetryParameters,
+        batchBy.map(parseExpression)
       )(_)
     ))
 
@@ -3360,7 +3362,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorRetryThenFail,
     maybeReportAs: Option[String] = None,
-    maybeRetryTimeout: Option[FiniteDuration] = None
+    maybeRetryTimeout: Option[FiniteDuration] = None,
+    batchBy: Seq[String] = Seq.empty
   ): IMPL = {
     val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos.zeroLength))
     transactionForeach(
@@ -3368,22 +3371,25 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       concurrency,
       onErrorBehaviour,
       maybeReportAs,
-      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos))
+      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos)),
+      batchBy
     )
   }
 
   def transactionApply(
     batchSize: Long,
     concurrency: Int
-  ): IMPL =
+  ): IMPL = {
     transactionApply(batchSize = batchSize, concurrency = TransactionConcurrency.Concurrent(concurrency))
+  }
 
   def transactionApply(
     batchSize: Long = TransactionForeach.defaultBatchSize,
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorFail,
     maybeReportAs: Option[String] = None,
-    maybeRetryParameters: Option[InTransactionsRetryParameters] = None
+    maybeRetryParameters: Option[InTransactionsRetryParameters] = None,
+    batchBy: Seq[String] = Seq.empty
   ): IMPL =
     appendAtCurrentIndent(BinaryOperator((lhs, rhs) =>
       TransactionApply(
@@ -3393,7 +3399,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         concurrency,
         onErrorBehaviour,
         maybeReportAs.map(varFor),
-        maybeRetryParameters
+        maybeRetryParameters,
+        batchBy.map(parseExpression)
       )(_)
     ))
 
@@ -3402,7 +3409,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     concurrency: TransactionConcurrency = TransactionConcurrency.Serial,
     onErrorBehaviour: InTransactionsOnErrorBehaviour = OnErrorRetryThenFail,
     maybeReportAs: Option[String] = None,
-    maybeRetryTimeout: Option[FiniteDuration] = None
+    maybeRetryTimeout: Option[FiniteDuration] = None,
+    batchBy: Seq[String] = Seq.empty
   ): IMPL = {
     val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos.zeroLength))
     transactionApply(
@@ -3410,7 +3418,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       concurrency,
       onErrorBehaviour,
       maybeReportAs,
-      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos))
+      Some(InTransactionsRetryParameters(maybeDurationExpr)(pos)),
+      batchBy
     )
   }
 

@@ -52,8 +52,17 @@ abstract class AbstractConcurrentTransactionsSlottedPipe(
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   statusSlot: Option[Slot],
-  retryPolicy: TransactionRetryPolicy
-) extends AbstractConcurrentTransactionsPipe(source, inner, batchSize, concurrency, onErrorBehaviour, retryPolicy) {
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
+) extends AbstractConcurrentTransactionsPipe(
+      source,
+      inner,
+      batchSize,
+      concurrency,
+      onErrorBehaviour,
+      retryPolicy,
+      batchBy
+    ) {
 
   private[this] val statusMapper = statusSlot.map(_.offset) match {
     case Some(statusOffset) => (output: runtime.ClosingIterator[CypherRow], status: TransactionStatus) => {
@@ -79,7 +88,8 @@ case class ConcurrentTransactionApplySlottedPipe(
   nullableSlots: Set[Slot],
   statusSlot: Option[Slot],
   argumentSize: SlotConfiguration.Size,
-  retryPolicy: TransactionRetryPolicy
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsSlottedPipe(
       source,
@@ -88,7 +98,8 @@ case class ConcurrentTransactionApplySlottedPipe(
       concurrency,
       onErrorBehaviour,
       statusSlot,
-      retryPolicy
+      retryPolicy,
+      batchBy
     ) {
 
   private[this] val nullableLongOffsets =
@@ -133,7 +144,8 @@ case class ConcurrentTransactionForeachSlottedPipe(
   concurrency: Option[Expression],
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   statusSlot: Option[Slot],
-  retryPolicy: TransactionRetryPolicy
+  retryPolicy: TransactionRetryPolicy,
+  batchBy: Seq[Expression]
 )(val id: Id = Id.INVALID_ID)
     extends AbstractConcurrentTransactionsSlottedPipe(
       source,
@@ -142,7 +154,8 @@ case class ConcurrentTransactionForeachSlottedPipe(
       concurrency,
       onErrorBehaviour,
       statusSlot,
-      retryPolicy
+      retryPolicy,
+      batchBy
     ) {
 
   override protected def nullRows(lhs: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow] = {

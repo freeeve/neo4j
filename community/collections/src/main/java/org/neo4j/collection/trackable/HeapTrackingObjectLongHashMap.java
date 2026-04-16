@@ -37,11 +37,11 @@ public class HeapTrackingObjectLongHashMap<K> extends ObjectLongHashMap<K> imple
     protected final MemoryTracker memoryTracker;
     private int trackedCapacity;
 
-    public static <V> HeapTrackingObjectLongHashMap<V> createObjectLongHashMap(MemoryTracker memoryTracker) {
+    public static <K> HeapTrackingObjectLongHashMap<K> createObjectLongHashMap(MemoryTracker memoryTracker) {
         return createObjectLongHashMap(memoryTracker, DEFAULT_INITIAL_CAPACITY);
     }
 
-    public static <V> HeapTrackingObjectLongHashMap<V> createObjectLongHashMap(
+    public static <K> HeapTrackingObjectLongHashMap<K> createObjectLongHashMap(
             MemoryTracker memoryTracker, int initialCapacity) {
         memoryTracker.allocateHeap(SHALLOW_SIZE + arraysHeapSize(initialCapacity));
         return new HeapTrackingObjectLongHashMap<>(memoryTracker, initialCapacity);

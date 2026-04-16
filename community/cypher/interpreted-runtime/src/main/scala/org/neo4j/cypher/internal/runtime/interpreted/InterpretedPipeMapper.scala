@@ -2227,7 +2227,8 @@ case class InterpretedPipeMapper(
           TransactionConcurrency.Serial,
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          _
         ) =>
         TransactionForeachPipe(
           lhs,
@@ -2249,7 +2250,8 @@ case class InterpretedPipeMapper(
           TransactionConcurrency.Serial,
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          _
         ) =>
         TransactionApplyPipe(
           lhs,
@@ -2272,7 +2274,8 @@ case class InterpretedPipeMapper(
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          batchBy
         ) =>
         ConcurrentTransactionForeachLegacyPipe(
           lhs,
@@ -2285,7 +2288,8 @@ case class InterpretedPipeMapper(
             onErrorBehaviour,
             maybeRetryParameters,
             expressionConverters.toCommandExpression(id, _)
-          )
+          ),
+          batchBy.map(expressionConverters.toCommandExpression(id, _))
         )(id = id)
 
       case TransactionApply(
@@ -2295,7 +2299,8 @@ case class InterpretedPipeMapper(
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          batchBy
         ) =>
         ConcurrentTransactionApplyLegacyPipe(
           lhs,
@@ -2309,7 +2314,8 @@ case class InterpretedPipeMapper(
             onErrorBehaviour,
             maybeRetryParameters,
             expressionConverters.toCommandExpression(id, _)
-          )
+          ),
+          batchBy.map(expressionConverters.toCommandExpression(id, _))
         )(id = id)
 
       case repeat @ RepeatAcyclic(

@@ -47,5 +47,6 @@ class DebugSupportTest extends CypherFunSuite {
     DebugSupport.DEBUG_GENERATED_SOURCE_CODE shouldBe false
     DebugSupport.DEBUG_GENERATED_IR_CODE shouldBe false
     DebugSupport.DEBUG_MORSEL_REUSE shouldBe false
+    DebugSupport.DEBUG_BATCH_FORMATION shouldBe false
   }
 }

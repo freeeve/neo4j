@@ -2015,7 +2015,8 @@ class SlottedPipeMapper(
           TransactionConcurrency.Serial,
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          _
         ) =>
         TransactionForeachSlottedPipe(
           lhs,
@@ -2037,7 +2038,8 @@ class SlottedPipeMapper(
           TransactionConcurrency.Serial,
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          _
         ) =>
         TransactionApplySlottedPipe(
           lhs,
@@ -2061,7 +2063,8 @@ class SlottedPipeMapper(
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          batchBy
         ) =>
         ConcurrentTransactionForeachSlottedPipe(
           lhs,
@@ -2074,7 +2077,8 @@ class SlottedPipeMapper(
             onErrorBehaviour,
             maybeRetryParameters,
             expressionConverters.toCommandExpression(id, _)
-          )
+          ),
+          batchBy.map(expressionConverters.toCommandExpression(id, _))
         )(id = id)
 
       case TransactionApply(
@@ -2084,7 +2088,8 @@ class SlottedPipeMapper(
           TransactionConcurrency.Concurrent(maybeConcurrency),
           onErrorBehaviour,
           maybeReportAs,
-          maybeRetryParameters
+          maybeRetryParameters,
+          batchBy
         ) =>
         ConcurrentTransactionApplySlottedPipe(
           lhs,
@@ -2099,7 +2104,8 @@ class SlottedPipeMapper(
             onErrorBehaviour,
             maybeRetryParameters,
             expressionConverters.toCommandExpression(id, _)
-          )
+          ),
+          batchBy.map(expressionConverters.toCommandExpression(id, _))
         )(id = id)
 
       case SelectOrSemiApply(_, _, expression) =>
