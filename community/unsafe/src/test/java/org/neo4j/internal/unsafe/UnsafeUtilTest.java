@@ -21,10 +21,6 @@ package org.neo4j.internal.unsafe;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.unsafe.UnsafeUtil.allocateMemory;
 import static org.neo4j.internal.unsafe.UnsafeUtil.arrayBaseOffset;
 import static org.neo4j.internal.unsafe.UnsafeUtil.arrayIndexScale;
@@ -144,8 +140,8 @@ class UnsafeUtilTest {
         long aByteOffset = getFieldOffset(Obj.class, "aByte");
         obj = new Obj();
         putByte(obj, aByteOffset, (byte) 1);
-        assertThat(obj.aByte).isEqualTo((byte) 1);
-        assertThat(getByte(obj, aByteOffset)).isEqualTo((byte) 1);
+        assertThat(obj.aByte).isOne();
+        assertThat(getByte(obj, aByteOffset)).isOne();
         obj.aByte = 0;
         assertThat(obj).isEqualTo(new Obj());
     }
@@ -157,29 +153,29 @@ class UnsafeUtilTest {
         long address = allocateMemory(sizeInBytes, tracker);
         try {
             putByte(address, (byte) 1);
-            assertThat(getByte(address)).isEqualTo((byte) 1);
+            assertThat(getByte(address)).isOne();
             setMemory(address, sizeInBytes, (byte) 0);
-            assertThat(getByte(address)).isEqualTo((byte) 0);
+            assertThat(getByte(address)).isZero();
 
             putShort(address, (short) 1);
-            assertThat(getShort(address)).isEqualTo((short) 1);
+            assertThat(getShort(address)).isOne();
             setMemory(address, sizeInBytes, (byte) 0);
-            assertThat(getShort(address)).isEqualTo((short) 0);
+            assertThat(getShort(address)).isZero();
 
             putInt(address, 1);
-            assertThat(getInt(address)).isEqualTo(1);
+            assertThat(getInt(address)).isOne();
             setMemory(address, sizeInBytes, (byte) 0);
-            assertThat(getInt(address)).isEqualTo(0);
+            assertThat(getInt(address)).isZero();
 
             putLong(address, 1);
-            assertThat(getLong(address)).isEqualTo(1L);
+            assertThat(getLong(address)).isOne();
             setMemory(address, sizeInBytes, (byte) 0);
-            assertThat(getLong(address)).isEqualTo(0L);
+            assertThat(getLong(address)).isZero();
 
             putLongVolatile(address, 1);
-            assertThat(getLongVolatile(address)).isEqualTo(1L);
+            assertThat(getLongVolatile(address)).isOne();
             setMemory(address, sizeInBytes, (byte) 0);
-            assertThat(getLongVolatile(address)).isEqualTo(0L);
+            assertThat(getLongVolatile(address)).isZero();
         } finally {
             free(address, sizeInBytes, tracker);
         }
@@ -189,9 +185,9 @@ class UnsafeUtilTest {
     void compareAndSwapLongField() {
         Obj obj = new Obj();
         long aLongOffset = getFieldOffset(Obj.class, "aLong");
-        assertTrue(compareAndSwapLong(obj, aLongOffset, 0, 5));
-        assertFalse(compareAndSwapLong(obj, aLongOffset, 0, 5));
-        assertTrue(compareAndSwapLong(obj, aLongOffset, 5, 0));
+        assertThat(compareAndSwapLong(obj, aLongOffset, 0, 5)).isTrue();
+        assertThat(compareAndSwapLong(obj, aLongOffset, 0, 5)).isFalse();
+        assertThat(compareAndSwapLong(obj, aLongOffset, 5, 0)).isTrue();
         assertThat(obj).isEqualTo(new Obj());
     }
 
@@ -199,7 +195,7 @@ class UnsafeUtilTest {
     void getAndSetLongField() {
         Obj obj = new Obj();
         long offset = getFieldOffset(Obj.class, "aLong");
-        assertThat(getAndSetLong(obj, offset, 42L)).isEqualTo(0L);
+        assertThat(getAndSetLong(obj, offset, 42L)).isZero();
         assertThat(getAndSetLong(obj, offset, -1)).isEqualTo(42L);
     }
 
@@ -213,9 +209,9 @@ class UnsafeUtilTest {
         scale = arrayIndexScale(bytes.getClass());
         base = arrayBaseOffset(bytes.getClass());
         putByte(bytes, arrayOffset(1, base, scale), (byte) -1);
-        assertThat(bytes[0]).isEqualTo((byte) 0);
+        assertThat(bytes[0]).isZero();
         assertThat(bytes[1]).isEqualTo((byte) -1);
-        assertThat(bytes[2]).isEqualTo((byte) 0);
+        assertThat(bytes[2]).isZero();
     }
 
     @Test
@@ -232,7 +228,7 @@ class UnsafeUtilTest {
 
         // THEN
         free(p, sizeInBytes, tracker);
-        assertEquals(value, readValue);
+        assertThat(readValue).isEqualTo(value);
     }
 
     @Test
@@ -249,7 +245,7 @@ class UnsafeUtilTest {
 
         // THEN
         free(p, sizeInBytes, tracker);
-        assertEquals(value, readValue);
+        assertThat(readValue).isEqualTo(value);
     }
 
     @Test
@@ -266,7 +262,7 @@ class UnsafeUtilTest {
 
         // THEN
         free(p, sizeInBytes, tracker);
-        assertEquals(value, readValue);
+        assertThat(readValue).isEqualTo(value);
     }
 
     @Test
@@ -278,13 +274,13 @@ class UnsafeUtilTest {
             setMemory(address, sizeInBytes, (byte) 0);
             ByteBuffer a = newDirectByteBuffer(address, sizeInBytes);
             assertThat(a).isNotSameAs(newDirectByteBuffer(address, sizeInBytes));
-            assertThat(a.hasArray()).isEqualTo(false);
-            assertThat(a.isDirect()).isEqualTo(true);
+            assertThat(a.hasArray()).isFalse();
+            assertThat(a.isDirect()).isTrue();
             assertThat(a.capacity()).isEqualTo(sizeInBytes);
             assertThat(a.limit()).isEqualTo(sizeInBytes);
-            assertThat(a.position()).isEqualTo(0);
+            assertThat(a.position()).isZero();
             assertThat(a.remaining()).isEqualTo(sizeInBytes);
-            assertThat(getByte(address)).isEqualTo((byte) 0);
+            assertThat(getByte(address)).isZero();
             a.put((byte) -1);
             assertThat(getByte(address)).isEqualTo((byte) -1);
 
@@ -316,7 +312,7 @@ class UnsafeUtilTest {
     @Test
     void closeNativeByteBufferWithUnsafe() {
         ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024);
-        assertDoesNotThrow(() -> UnsafeUtil.invokeCleaner(directBuffer));
+        assertThatCode(() -> UnsafeUtil.invokeCleaner(directBuffer)).doesNotThrowAnyException();
     }
 
     @Test

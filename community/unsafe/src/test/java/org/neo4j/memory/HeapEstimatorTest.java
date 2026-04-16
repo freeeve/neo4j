@@ -20,7 +20,6 @@
 package org.neo4j.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.memory.HeapEstimator.OBJECT_ALIGNMENT_BYTES;
 import static org.neo4j.memory.HeapEstimator.OBJECT_HEADER_BYTES;
 import static org.neo4j.memory.HeapEstimator.OBJECT_REFERENCE_BYTES;
@@ -34,13 +33,13 @@ class HeapEstimatorTest {
     void alignObjectSize() {
         for (int i = 0; i <= 1024; i++) {
             long aligned = HeapEstimator.alignObjectSize(i);
-            assertEquals(0, aligned % OBJECT_ALIGNMENT_BYTES);
+            assertThat(aligned % OBJECT_ALIGNMENT_BYTES).isZero();
         }
     }
 
     @Test
     void shouldNotOverflowOnInsanelyBigClass() {
-        assertThat(shallowSizeOfInstanceWithObjectReferences(536870912)).isGreaterThan(0L);
+        assertThat(shallowSizeOfInstanceWithObjectReferences(536870912)).isPositive();
     }
 
     @Test
