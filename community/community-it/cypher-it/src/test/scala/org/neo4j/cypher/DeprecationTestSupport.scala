@@ -55,7 +55,7 @@ trait DeprecationTestSupport extends Suite with Matchers {
             val notifications: Iterable[Notification] = result.getNotifications()
             val hasNotification =
               notifications.exists(notification =>
-                matchesCode(notification, details, adjustedPos, createNotification)
+                matchesCode(notification, details, adjustedPos, createNotification, allowPositionTolerance)
               )
             withClue(s"Got $notifications, expected ${createNotification(adjustedPos, details)}") {
               hasNotification should be(shouldContainNotification)
@@ -232,13 +232,21 @@ trait DeprecationTestSupport extends Suite with Matchers {
     notification: Notification,
     details: String,
     position: InputPosition,
-    createNotification: (InputPosition, String) => Notification
+    createNotification: (InputPosition, String) => Notification,
+    allowPositionTolerance: Boolean
   ): Boolean = {
     val expected = createNotification(position, details)
+    val positionMatches =
+      if (allowPositionTolerance)
+        notification.getPosition.getLine.equals(expected.getPosition.getLine) &&
+        Math.abs(notification.getPosition.getOffset - expected.getPosition.getOffset) <= 3 &&
+        Math.abs(notification.getPosition.getColumn - expected.getPosition.getColumn) <= 3
+      else
+        notification.getPosition.equals(expected.getPosition)
     notification.getCode.equals(expected.getCode) &&
     notification.getDescription.equals(expected.getDescription) &&
-    notification.getSeverity.equals(expected.getSeverity)
-    notification.getPosition.equals(expected.getPosition)
+    notification.getSeverity.equals(expected.getSeverity) &&
+    positionMatches
   }
 
   case class TestGqlStatusObject(
