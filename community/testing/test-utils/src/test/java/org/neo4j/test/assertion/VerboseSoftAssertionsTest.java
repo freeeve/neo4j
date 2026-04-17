@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 
 class VerboseSoftAssertionsTest {
     @Test
-    public void shouldDisplayTheErrorCauseAndTheCauseFirstStackTraceElements() {
+    public void shouldDisplayTheErrorCauseAndStackTrace() {
         assertThatThrownBy(() -> {
                     SoftAssertions softly = new VerboseSoftAssertions();
                     try {
@@ -38,9 +38,34 @@ class VerboseSoftAssertionsTest {
                     softly.assertAll();
                 })
                 .isInstanceOf(AssertionError.class)
-                .hasMessageStartingWith(format("%nThe following assertion failed:%n" + "1) def"))
-                .hasMessageContaining(format(
-                        "cause message: abc%n" + "cause first five stack trace elements:%n" + "\tat %s.",
-                        this.getClass().getName()));
+                .hasMessageStartingWith(
+                        format("%nThe following assertion failed:%n" + "1) java.lang.AssertionError: def"))
+                .hasMessageContaining("Caused by: java.lang.RuntimeException: abc");
+    }
+
+    @Test
+    public void shouldDisplayTheErrorCauseAndNestedStackTrace() {
+        assertThatThrownBy(() -> {
+                    SoftAssertions softly = new VerboseSoftAssertions();
+                    try {
+                        try {
+                            foo();
+                        } catch (RuntimeException e) {
+                            throw new RuntimeException("abc", e);
+                        }
+                    } catch (RuntimeException e) {
+                        softly.fail("def", e);
+                    }
+                    softly.assertAll();
+                })
+                .isInstanceOf(AssertionError.class)
+                .hasMessageStartingWith(
+                        format("%nThe following assertion failed:%n" + "1) java.lang.AssertionError: def"))
+                .hasMessageContaining("Caused by: java.lang.RuntimeException: abc")
+                .hasMessageContaining("Caused by: java.lang.RuntimeException: foo");
+    }
+
+    private void foo() {
+        throw new RuntimeException("foo");
     }
 }

@@ -19,9 +19,12 @@
  */
 package org.neo4j.test.assertion;
 
-import static org.assertj.core.util.Throwables.describeErrors;
+import static org.assertj.core.groups.FieldsOrPropertiesExtractor.extract;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
+import java.util.function.Function;
 import org.assertj.core.api.SoftAssertionError;
 import org.assertj.core.api.SoftAssertions;
 
@@ -32,11 +35,19 @@ import org.assertj.core.api.SoftAssertions;
  * `org.opentest4j.MultipleFailuresError`. So we circumvent that.
  */
 public class VerboseSoftAssertions extends SoftAssertions {
+
+    private static final Function<Throwable, String> ERROR_DESCRIPTION_EXTRACTOR = throwable -> {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        throwable.printStackTrace(ps);
+        return baos.toString();
+    };
+
     @Override
     public void assertAll() {
         List<AssertionError> errors = assertionErrorsCollected();
         if (!errors.isEmpty()) {
-            throw new SoftAssertionError(describeErrors(errors));
+            throw new SoftAssertionError(extract(errors, ERROR_DESCRIPTION_EXTRACTOR));
         }
     }
 }
