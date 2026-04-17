@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.counts;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.counts.GBPTreeCountsStore.relationshipKey;
 
 import java.util.Set;
@@ -39,7 +39,7 @@ class CountsLayoutTest {
                 for (int e = -1; e < 10; e++) {
                     // then
                     CountsKey key = relationshipKey(s, t, e);
-                    assertTrue(keys.add(key));
+                    assertThat(keys.add(key)).isTrue();
                 }
             }
         }

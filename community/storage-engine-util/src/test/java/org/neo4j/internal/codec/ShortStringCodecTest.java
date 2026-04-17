@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.codec;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.codec.ShortStringCodec.DATE;
 import static org.neo4j.internal.codec.ShortStringCodec.NUMERICAL;
 import static org.neo4j.internal.codec.ShortStringCodec.bitMask;
@@ -28,10 +28,10 @@ import org.junit.jupiter.api.Test;
 
 class ShortStringCodecTest {
     @Test
-    void testMasks() {
-        assertEquals(0, 1 & ~bitMask(NUMERICAL));
-        assertEquals(0, 2 & ~bitMask(DATE));
-        assertEquals(NUMERICAL.bitMask(), 3 & ~bitMask(DATE));
-        assertEquals(0, NUMERICAL.bitMask() & ~bitMask(NUMERICAL, DATE));
+    void shouldComputeNonOverlappingBitMasksForCodecs() {
+        assertThat(1 & ~bitMask(NUMERICAL)).isZero();
+        assertThat(2 & ~bitMask(DATE)).isZero();
+        assertThat(3 & ~bitMask(DATE)).isEqualTo(NUMERICAL.bitMask());
+        assertThat(NUMERICAL.bitMask() & ~bitMask(NUMERICAL, DATE)).isZero();
     }
 }

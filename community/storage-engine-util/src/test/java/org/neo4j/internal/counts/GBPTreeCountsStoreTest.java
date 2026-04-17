@@ -20,11 +20,9 @@
 package org.neo4j.internal.counts;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.collections.api.factory.Sets.immutable;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.counts.GBPTreeCountsStore.NO_MONITOR;
@@ -106,17 +104,18 @@ class GBPTreeCountsStoreTest {
     void applySeveralChunksOfSameTransaction() {
         long txId = BASE_TX_ID + 1;
 
-        assertDoesNotThrow(() -> {
-            for (int i = 0; i < 100; i++) {
-                try (var updater = countsStore.updater(txId, false, NULL_CONTEXT)) {
-                    updater.incrementNodeCount(LABEL_ID_1, 10);
-                }
-            }
+        assertThatCode(() -> {
+                    for (int i = 0; i < 100; i++) {
+                        try (var updater = countsStore.updater(txId, false, NULL_CONTEXT)) {
+                            updater.incrementNodeCount(LABEL_ID_1, 10);
+                        }
+                    }
 
-            try (var updater = countsStore.updater(txId, true, NULL_CONTEXT)) {
-                updater.incrementNodeCount(LABEL_ID_1, 10);
-            }
-        });
+                    try (var updater = countsStore.updater(txId, true, NULL_CONTEXT)) {
+                        updater.incrementNodeCount(LABEL_ID_1, 10);
+                    }
+                })
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -136,9 +135,11 @@ class GBPTreeCountsStoreTest {
         countsStore.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
 
         // when/then
-        assertEquals(15, countsStore.nodeCount(LABEL_ID_1, NULL_CONTEXT));
-        assertEquals(5, countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2, NULL_CONTEXT));
-        assertEquals(7, countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2, NULL_CONTEXT));
+        assertThat(countsStore.nodeCount(LABEL_ID_1, NULL_CONTEXT)).isEqualTo(15);
+        assertThat(countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2, NULL_CONTEXT))
+                .isEqualTo(5);
+        assertThat(countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2, NULL_CONTEXT))
+                .isEqualTo(7);
 
         // and when
         try (CountsUpdater updater = countsStore.updater(++txId, true, NULL_CONTEXT)) {
@@ -148,9 +149,11 @@ class GBPTreeCountsStoreTest {
         }
 
         // then
-        assertEquals(8, countsStore.nodeCount(LABEL_ID_1, NULL_CONTEXT));
-        assertEquals(0, countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2, NULL_CONTEXT));
-        assertEquals(5, countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2, NULL_CONTEXT));
+        assertThat(countsStore.nodeCount(LABEL_ID_1, NULL_CONTEXT)).isEqualTo(8);
+        assertThat(countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2, NULL_CONTEXT))
+                .isZero();
+        assertThat(countsStore.relationshipCount(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2, NULL_CONTEXT))
+                .isEqualTo(5);
     }
 
     @Test
@@ -173,23 +176,24 @@ class GBPTreeCountsStoreTest {
             }
         };
         openCountsStore(builder);
-        assertTrue(builder.lastCommittedTxIdCalled);
-        assertTrue(builder.initializeCalled);
-        assertEquals(10, countsStore.nodeCount(labelId, NULL_CONTEXT));
-        assertEquals(0, countsStore.nodeCount(labelId2, NULL_CONTEXT));
-        assertEquals(14, countsStore.relationshipCount(labelId, relationshipTypeId, labelId2, NULL_CONTEXT));
+        assertThat(builder.lastCommittedTxIdCalled).isTrue();
+        assertThat(builder.initializeCalled).isTrue();
+        assertThat(countsStore.nodeCount(labelId, NULL_CONTEXT)).isEqualTo(10);
+        assertThat(countsStore.nodeCount(labelId2, NULL_CONTEXT)).isZero();
+        assertThat(countsStore.relationshipCount(labelId, relationshipTypeId, labelId2, NULL_CONTEXT))
+                .isEqualTo(14);
 
         // and when
         checkpointAndRestartCountsStore();
         // Re-applying a txId below or equal to the "rebuild transaction id" should not apply it
         incrementNodeCount(rebuiltAtTransactionId - 1, labelId, 100);
-        assertEquals(10, countsStore.nodeCount(labelId, NULL_CONTEXT));
+        assertThat(countsStore.nodeCount(labelId, NULL_CONTEXT)).isEqualTo(10);
         incrementNodeCount(rebuiltAtTransactionId, labelId, 100);
-        assertEquals(10, countsStore.nodeCount(labelId, NULL_CONTEXT));
+        assertThat(countsStore.nodeCount(labelId, NULL_CONTEXT)).isEqualTo(10);
 
         // then
         incrementNodeCount(rebuiltAtTransactionId + 1, labelId, 100);
-        assertEquals(110, countsStore.nodeCount(labelId, NULL_CONTEXT));
+        assertThat(countsStore.nodeCount(labelId, NULL_CONTEXT)).isEqualTo(110);
     }
 
     @Test
@@ -218,12 +222,11 @@ class GBPTreeCountsStoreTest {
 
         // then
         String dump = out.toString();
-        assertThat(dump).contains(keyToString(nodeKey(LABEL_ID_1)) + " = 10");
         assertThat(dump)
-                .contains(keyToString(relationshipKey(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2)) + " = 3");
-        assertThat(dump)
-                .contains(keyToString(relationshipKey(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2)) + " = 7");
-        assertThat(dump).contains("Highest gap-free txId: " + txId);
+                .contains(keyToString(nodeKey(LABEL_ID_1)) + " = 10")
+                .contains(keyToString(relationshipKey(LABEL_ID_1, RELATIONSHIP_TYPE_ID_1, LABEL_ID_2)) + " = 3")
+                .contains(keyToString(relationshipKey(LABEL_ID_1, RELATIONSHIP_TYPE_ID_2, LABEL_ID_2)) + " = 7")
+                .contains("Highest gap-free txId: " + txId);
     }
 
     private void incrementNodeCount(long txId, int labelId, int delta) {

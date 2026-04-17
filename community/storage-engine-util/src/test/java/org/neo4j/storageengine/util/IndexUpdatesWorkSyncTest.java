@@ -75,7 +75,7 @@ class IndexUpdatesWorkSyncTest {
         var sentUpdates = queueUpdatesInParallel(index, threads, workSync, contextFactory);
 
         // then
-        assertThat(appliedUpdates).isEqualTo(sentUpdates);
+        assertThat(appliedUpdates).hasSameElementsAs(sentUpdates);
         assertThat(concurrentlyApplyingThreads.get()).isZero();
     }
 
@@ -113,7 +113,7 @@ class IndexUpdatesWorkSyncTest {
         var sentUpdates = queueUpdatesInParallel(index, threads, workSync, contextFactory);
 
         // then
-        assertThat(appliedUpdates).isEqualTo(sentUpdates);
+        assertThat(appliedUpdates).hasSameElementsAs(sentUpdates);
         assertThat(applyingThreads).hasSize(threads);
     }
 

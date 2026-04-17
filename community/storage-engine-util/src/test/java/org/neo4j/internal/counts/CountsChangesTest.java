@@ -279,7 +279,7 @@ class CountsChangesTest {
         Iterator<CountsKey> expectedChangesIterator = expectedChanges.iterator();
         for (Map.Entry<CountsKey, AtomicLong> change : sortedChanges) {
             CountsKey expectedChange = expectedChangesIterator.next();
-            assertThat(comparator.compare(expectedChange, change.getKey())).isEqualTo(0);
+            assertThat(comparator.compare(expectedChange, change.getKey())).isZero();
         }
     }
 
