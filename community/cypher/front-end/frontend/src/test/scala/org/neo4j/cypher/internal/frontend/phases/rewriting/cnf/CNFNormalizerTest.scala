@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnal
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer.steps
 import org.neo4j.cypher.internal.frontend.phases.transitiveEqualities
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
+import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor
 import org.neo4j.cypher.internal.rewriting.PredicateTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
@@ -296,7 +297,7 @@ class TestContext(
   override def cypherVersion: CypherVersion =
     language.getOrElse(throw new UnsupportedOperationException("This context do not support cypher version"))
   override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
-  override def notificationLogger: InternalNotificationLogger = ???
+  override def notificationLogger: InternalNotificationLogger = devNullLogger
   override def cypherExceptionFactory: CypherExceptionFactory = ???
   override def errorHandler: Seq[SemanticErrorDef] => Unit = _ => ()
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider

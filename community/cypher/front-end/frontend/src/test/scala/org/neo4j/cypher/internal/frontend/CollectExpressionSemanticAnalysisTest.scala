@@ -332,14 +332,19 @@ class CollectExpressionSemanticAnalysisTest extends SubqueryExpressionSemanticAn
       disabledVersions = Set(CypherVersion.Cypher5)
     ).hasErrors(
       SemanticError(
+        getGql42001_42N22(22, 1, 23),
+        "A Collect Expression must end with a single return column.",
+        p(22, 1, 23)
+      ),
+      SemanticError(
         getGql42001_42N71(32, 1, 33),
         "Query cannot conclude with MATCH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
         p(32, 1, 33)
       ),
       SemanticError(
-        getGql42001_42N22(22, 1, 23),
-        "A Collect Expression must end with a single return column.",
-        p(22, 1, 23)
+        getGql42001_42I58("a", 57, 1, 58),
+        "Creating an entity (a) and referencing that entity in a property definition in the same CREATE is not allowed. Only reference variables created in earlier clauses.",
+        p(57, 1, 58)
       )
     )
   }

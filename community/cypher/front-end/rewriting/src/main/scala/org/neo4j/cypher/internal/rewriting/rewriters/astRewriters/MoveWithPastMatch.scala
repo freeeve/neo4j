@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.MoveWithPastMatch.isMovableWith
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.ASTRewriterFactory
@@ -54,7 +54,7 @@ case object MoveWithPastMatch extends StepSequencer.Step with ASTRewriterFactory
   ): Rewriter = MoveWithPastMatch(cancellationChecker).instance
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
-    ContainsNoReturnAll // It's better to know the variables in WITH already
+    ContainsNoExpandableClauses // It's better to know the variables in WITH already
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(

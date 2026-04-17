@@ -20,7 +20,9 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -30,12 +32,15 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ShortestPathVariableDeduplicator
 
-  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
-    SemanticAnalysis(Some(false)) andThen
+  override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] = {
+    ScopeSurveyor andThen
+      ExpandClauses andThen
+      SemanticAnalysis(Some(false)) andThen
       AstRewriting() andThen
       SemanticAnalysis(Some(false)) andThen
       flattenBooleanOperators andThen
       SemanticAnalysis(Some(false))
+  }
 
   test("should rewrite repeated interior nodes and leave exterior nodes") {
     assertRewritten(

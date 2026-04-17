@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.phases.RewriteProcedureCalls
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
@@ -1284,7 +1283,7 @@ class RewriteLocalProcedureCallsTest extends CypherFunSuite with TestName with A
   private def initContext(cypherVersion: CypherVersion) =
     ContextHelper.create(
       cypherVersion,
-      semanticFeatures = Seq(LocalCallables, VariableChecking),
+      semanticFeatures = Seq(LocalCallables),
       planContext = PlanContextMock
     )
 

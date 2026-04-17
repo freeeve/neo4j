@@ -262,7 +262,9 @@ public final class SettingMigrators {
                 "internal.dbms.index.skip_default_indexes_on_creation",
                 "internal.cypher.vector_search_enabled",
                 "internal.dbms.vector_single_stage_filtering_enabled",
-                "internal.dbms.cypher_show_database_interpreted");
+                "internal.dbms.cypher_show_database_interpreted",
+                "internal.cypher.enable_variable_checker",
+                "internal.cypher.disable_reworked_rewriters");
 
         private static final Collection<Mapping> LEGACY_UNSUPPORTED_SETTINGS_MAPPING = List.of(
                 new Mapping("dbms.capabilities.blocked", "internal.dbms.capabilities.blocked"),

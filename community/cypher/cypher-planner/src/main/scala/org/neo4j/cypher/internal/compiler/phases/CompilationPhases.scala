@@ -154,6 +154,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
     ScopeSurveyor andThen
       ExtractLocalDefinitions andThen
       RewriteProcedureCalls andThen
+      ScopeSurveyor andThen
       AmbiguousAggregationAnalysis andThen
       ProcedureAndFunctionDeprecationWarnings andThen
       ProcedureWarnings andThen

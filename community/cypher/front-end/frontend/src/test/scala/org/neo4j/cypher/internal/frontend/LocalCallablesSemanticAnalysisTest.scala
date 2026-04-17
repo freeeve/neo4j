@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.FeatureError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
@@ -84,7 +83,7 @@ class LocalCallablesSemanticAnalysisTest
   }
 
   def runWithoutLC(): AnalysisAssertions = {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), VariableChecking)
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5))
   }
 
   def runWithLC(): AnalysisAssertions = {
@@ -96,8 +95,7 @@ class LocalCallablesSemanticAnalysisTest
         ),
         Some(TryRewriteProcedureCalls(makeResolverMock))
       ),
-      LocalCallables,
-      VariableChecking
+      LocalCallables
     )
   }
 

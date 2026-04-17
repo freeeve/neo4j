@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState
@@ -150,9 +149,7 @@ import scala.annotation.tailrec
 case object ExpandClauses extends StatementRewriter with StepSequencer.Step with ParsePipelineTransformerFactory {
 
   override def instance(from: BaseState, context: BaseContext): Rewriter =
-    if (context.semanticFeatures.contains(DisableReworkedRewriters)) Rewriter.noop
-    else
-      getRewriter(from.scopeState(), from.anonymousVariableNameGenerator, context.cypherVersion)
+    getRewriter(from.scopeState(), from.anonymousVariableNameGenerator, context.cypherVersion)
 
   override def preConditions: Set[Condition] =
     Set(
@@ -164,7 +161,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
       SubqueriesInMutatingPatternsIsolated
     )
 
-  override def postConditions: Set[Condition] = { Set(ContainsNoExpandableClauses) }
+  override def postConditions: Set[Condition] = Set(ContainsNoExpandableClauses)
 
   override def invalidatedConditions: Set[Condition] =
     Set(ProjectionClausesHaveSemanticInfo, UpToDateScopes)

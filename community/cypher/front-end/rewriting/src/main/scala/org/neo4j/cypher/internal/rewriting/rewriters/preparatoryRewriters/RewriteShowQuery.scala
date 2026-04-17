@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.ASTNode
@@ -55,7 +55,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(
     // Introduces WITH * and RETURN *
-    ContainsNoReturnAll,
+    ContainsNoExpandableClauses,
     // It can invalidate this condition by introducing WITH and RETURN clauses
     ProjectionClausesHaveSemanticInfo
   )

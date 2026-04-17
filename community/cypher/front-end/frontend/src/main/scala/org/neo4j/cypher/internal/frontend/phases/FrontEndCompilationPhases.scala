@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AttributeBasedAccessControl
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ComposableCommands
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableReworkedRewriters
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableTypeCheckingInSemanticAnalysis
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ExperimentalCypherVersions
@@ -34,13 +33,10 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.RelationshipPrope
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UUIDType
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandNext
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
@@ -54,7 +50,6 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnal
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnresolveShadowedFunctions
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.WrapAndExpandProcedureCall
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.rewriting.Deprecations
@@ -81,8 +76,6 @@ trait FrontEndCompilationPhases {
     GraphDatabaseInternalSettings.cypher_uuid_type_enabled -> UUIDType.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_local_callables -> LocalCallables.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_scope_queries -> ScopeQueries.productPrefix,
-    GraphDatabaseInternalSettings.cypher_enable_variable_checker -> VariableChecking.productPrefix,
-    GraphDatabaseInternalSettings.cypher_disable_reworked_rewriters -> DisableReworkedRewriters.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> EnableParsingOfObfuscatedLiterals.productPrefix,
     GraphDatabaseInternalSettings.cypher_disable_type_checking -> DisableTypeCheckingInSemanticAnalysis.productPrefix,
     GraphDatabaseInternalSettings.attribute_based_access_control -> AttributeBasedAccessControl.productPrefix
@@ -94,7 +87,6 @@ trait FrontEndCompilationPhases {
     OidcCredentialForwarding.productPrefix,
     GraphTypes.productPrefix,
     RelationshipPropertyValueAccessRules.productPrefix,
-    VariableChecking.productPrefix,
     AttributeBasedAccessControl.productPrefix
   )
 
@@ -121,9 +113,6 @@ trait FrontEndCompilationPhases {
     StepSequencer[StepSequencer.Step with ParsePipelineTransformerFactory]().orderSteps(
       Set(
         CollectSyntaxUsageMetrics,
-        ExpandNext,
-        ExpandWhen,
-        UnwrapTopLevelBraces,
         ExpandClauses,
         IsolateSubqueriesInMutatingPatterns,
         PreparatoryRewriting,
@@ -189,9 +178,6 @@ trait FrontEndCompilationPhases {
     parameters: MapValue
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
-      IfContext((conf: BaseContext) => conf.semanticFeatures.contains(DisableReworkedRewriters))(
-        ExpandStarRewriter
-      ) andThen
       TryRewriteProcedureCalls(resolver) andThen
       ObfuscationMetadataCollection andThen
       SemanticAnalysis(warn = Some(true))

@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsAggregate
-import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.util.ASTNode
@@ -215,28 +214,5 @@ object ReturnItems {
 
   object ReturnVariables {
     def empty: ReturnVariables = ReturnVariables(includeExisting = false, Seq.empty)
-  }
-
-  def checkAmbiguousGrouping(returnItems: ReturnItems): Option[SemanticError] = {
-    val returnItemExprs = returnItems.items.map(_.expression).toSet
-    // FullSubqueryExpressions can contain aggregates, but they also contain a whole query so that isn't relevant for this check.
-    val aggregationExpressions = returnItemExprs.collect {
-      case expr if expr.containsAggregate && !expr.isInstanceOf[FullSubqueryExpression] => expr
-    }
-    val newGroupingVariables = returnItemExprs.collect { case expr: LogicalVariable => expr }
-    val newPropertiesUsedForGrouping = returnItemExprs.collect { case v @ LogicalProperty(LogicalVariable(_), _) => v }
-
-    val ambiguousAggregationExpressions = aggregationExpressions
-      .flatMap(aggItem =>
-        AmbiguousAggregation.ambiguousExpressions(aggItem, newGroupingVariables, newPropertiesUsedForGrouping)
-      )
-
-    if (ambiguousAggregationExpressions.nonEmpty) {
-      val variables = ambiguousAggregationExpressions.map(_.asCanonicalStringVal).toSeq
-      val pos = ambiguousAggregationExpressions.head.position
-      Some(SemanticError.invalidReferenceToGroupingExpression(variables, pos))
-    } else {
-      None
-    }
   }
 }

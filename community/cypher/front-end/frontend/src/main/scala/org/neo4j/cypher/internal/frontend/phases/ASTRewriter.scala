@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.rewriting.RewriterStep
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
@@ -30,7 +31,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddVarLengthBo
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CombineSetProperty
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.CypherTypeNormalizationRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.DesugarMapProjection
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FixedLengthShortestToAllRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.FoldConstants
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.GQLAliasFunctionNameRewriter
@@ -75,7 +75,6 @@ object ASTRewriter {
         CombineSetProperty,
         CypherTypeNormalizationRewriter,
         DesugarMapProjection,
-        ExpandStar,
         FixedLengthShortestToAllRewriter,
         FoldConstants,
         GQLAliasFunctionNameRewriter,
@@ -100,6 +99,7 @@ object ASTRewriter {
       ),
       initialConditions = SemanticInfoAvailable ++ Set(
         ReturnItemsAreAliased,
+        ContainsNoExpandableClauses,
         ExpressionsHaveComputedDependencies,
         ContainsNoNodesOfType[PatternComprehension]()
       )

@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
@@ -73,17 +72,16 @@ case class SemanticAnalysis(warn: Option[Boolean])
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))
       state.notifications.foreach(context.notificationLogger.log)
 
-    // feature flag here
-    val allErrors = if (context.semanticFeatures.contains(VariableChecking)) {
+    val allErrors = {
       val saErrors = errors.filter(VariableChecker.isNotImplementedCode)
       val vcErrors = if (from.maybeSemantics.isEmpty) {
+        // When we have disconnected the error checking parts from scoping and type checking in SemanticAnalysis
+        // The ScopeSurveyor can be run in the normal pipeline instead of manually here.
         val upToDateScopes = ScopeSurveyor.process(from, context)
-        // Until we remove the feature flag we won't be able to set the correct dependencies for the transformer
-        //  without causing a lot of unnecessary rerunning of the ScopeSurveyor. Instead, we run it manually here.
         VariableChecker.gatherAllErrors(upToDateScopes, context)
       } else Seq.empty
       (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
-    } else errors
+    }
 
     context.errorHandler(allErrors)
 

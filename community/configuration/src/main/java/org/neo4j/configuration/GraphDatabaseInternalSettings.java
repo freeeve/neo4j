@@ -403,17 +403,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_scope_queries", BOOL, false).build();
 
     @Internal
-    @Description("Set this to enable the use of the variable checker in semantic analysis.")
-    public static final Setting<Boolean> cypher_enable_variable_checker =
-            newBuilder("internal.cypher.enable_variable_checker", BOOL, true).build();
-
-    @Internal
-    @Description("Set this to disable the use of reworked rewriters.")
-    public static final Setting<Boolean> cypher_disable_reworked_rewriters = newBuilder(
-                    "internal.cypher.disable_reworked_rewriters", BOOL, false)
-            .build();
-
-    @Internal
     @Description("Enable parsing of obfuscated literals")
     public static final Setting<Boolean> cypher_enable_parsing_of_obfuscated_literals = newBuilder(
                     "internal.cypher.enable_parsing_of_obfuscated_literals", BOOL, false)

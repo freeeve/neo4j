@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.ProcedureCallWrappedAndExpanded
 import org.neo4j.cypher.internal.rewriting.conditions.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
@@ -59,7 +59,7 @@ case object WrapAndExpandProcedureCall extends StatementRewriter with ParsePipel
   override def postConditions: Set[StepSequencer.Condition] = Set(ProcedureCallWrappedAndExpanded)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] =
-    Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo, UpToDateScopes)
+    Set(ContainsNoExpandableClauses, ProjectionClausesHaveSemanticInfo, UpToDateScopes)
 
   private def expandWhere(call: UnresolvedCall): Seq[Clause] = call match {
     case unresolved @ UnresolvedCall(_, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _, _) =>

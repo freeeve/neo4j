@@ -180,17 +180,8 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   /**
    * Return a copy of this query where the mapping function f is applied
    * to each returning single query, regardless if this a single query or a union query.
-   *
-   * If nextFirst is set to true the first query in the Next statement will be updated, not the last.
    */
-  def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query
-
-  def getLastSingleQuery: SingleQuery
-
-  /**
-   * Used in UnwrapTopLevelBraces
-   */
-  def getQuery(fromUnion: Boolean): Query
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query
 }
 
 sealed trait PartQuery extends Query {
@@ -241,11 +232,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   private val getCommandClauses: Seq[CommandClause] =
     clauses.filter(_.isInstanceOf[CommandClause]).map(_.asInstanceOf[CommandClause])
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = f(this)
-
-  override def getQuery(fromUnion: Boolean): Query = this
-
-  override def getLastSingleQuery: SingleQuery = this
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(this)
 
   lazy val partitionedClauses: SingleQuery.PartitionedClauses = SingleQuery.partitionClauses(clauses)
 
@@ -981,24 +968,10 @@ case class TopLevelBraces(
 
   override def singleQuery: SingleQuery = wrapQuery(query, position)
 
-  override def getLastSingleQuery: SingleQuery = query.getLastSingleQuery
-
   override def clauses: Seq[Clause] = singleQuery.clauses
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(query.mapEachSingleQuery(f, nextFirst))(position)
-
-  override def getQuery(fromUnion: Boolean): Query = if (fromUnion) {
-    wrapQuery(query, position)
-  } else {
-    query.getQuery(fromUnion) match {
-      case u @ UnionDistinct(lhs, rhs) => u.copy(lhs = lhs.getQuery(true), rhs = rhs.singleQuery)(u.position)
-      case u @ UnionAll(lhs, rhs)      => u.copy(lhs = lhs.getQuery(true), rhs = rhs.singleQuery)(u.position)
-      case wh @ ConditionalQueryWhen(branches, default) =>
-        wh.copy(branches = branches.map(_.wrapInnerQuery), default = default.map(_.wrapInnerQuery))(wh.position)
-      case q => q
-    }
-  }
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(query.mapEachSingleQuery(f))(position)
 
   private def wrapQuery(innerQuery: Query, position: InputPosition): SingleQuery = {
     val lastClause =
@@ -1099,10 +1072,6 @@ sealed trait Union extends Query {
   def rhs: PartQuery
 
   def unionMappings: List[UnionMapping]
-
-  override def getQuery(fromUnion: Boolean): Query = this
-
-  override def getLastSingleQuery: SingleQuery = rhs.getLastSingleQuery
 
   override def returnVariables: ReturnVariables = ReturnVariables(
     // If either side of the UNION has a RETURN *,
@@ -1381,8 +1350,8 @@ final case class UnionAll(lhs: Query, rhs: PartQuery)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
 
   override def withoutImportingWithAndGraphSelection: Option[UnionAll] = {
     val lhsOpt = lhs.withoutImportingWithAndGraphSelection
@@ -1400,8 +1369,8 @@ final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
 
   override def withoutImportingWithAndGraphSelection: Option[UnionDistinct] = {
     val lhsOpt = lhs.withoutImportingWithAndGraphSelection
@@ -1419,8 +1388,8 @@ final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: L
   val position: InputPosition
 ) extends ProjectingUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
 
   override def withoutImportingWithAndGraphSelection: Option[ProjectingUnionAll] = {
     val lhsOpt = lhs.withoutImportingWithAndGraphSelection
@@ -1438,8 +1407,8 @@ final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappin
   val position: InputPosition
 ) extends ProjectingUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
 
   override def withoutImportingWithAndGraphSelection: Option[ProjectingUnionDistinct] = {
     val lhsOpt = lhs.withoutImportingWithAndGraphSelection
@@ -1512,10 +1481,8 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
   override def finalScope(scope: Scope): Scope =
     if (scope.children.size < 1) Scope.empty else scope.children.last
 
-  def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): ConditionalQueryBranch =
-    copy(query = query.mapEachSingleQuery(f, nextFirst).asInstanceOf[PartQuery])(position)
-
-  def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery): ConditionalQueryBranch =
+    copy(query = query.mapEachSingleQuery(f).asInstanceOf[PartQuery])(position)
 
   def withoutImportingWith: Option[ConditionalQueryBranch] =
     query.withoutImportingWithAndGraphSelection.map(q => ConditionalQueryBranch(predicate, q)(position))
@@ -1536,10 +1503,6 @@ case class ConditionalQueryWhen(
   private def allBranches: Seq[ConditionalQueryBranch] = branches ++ default
 
   override def containsUpdates: Boolean = allBranches.exists(_.query.containsUpdates)
-
-  override def getQuery(fromUnion: Boolean): Query = this
-
-  override def getLastSingleQuery: SingleQuery = branches.last.query.getLastSingleQuery
 
   override def returnVariables: ReturnVariables =
     allBranches.foldLeft(ReturnVariables.empty)((acc, branch) => acc.merge(branch.query.returnVariables))
@@ -1662,8 +1625,8 @@ case class ConditionalQueryWhen(
   override def getGraphSelections: Seq[GraphSelection] =
     (allBranches.map(_.getGraphSelections) ++ default.map(_.getGraphSelections)).flatten
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
-    copy(branches.map(_.mapEachSingleQuery(f, nextFirst)), default.map(_.mapEachSingleQuery(f, nextFirst)))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(branches.map(_.mapEachSingleQuery(f)), default.map(_.mapEachSingleQuery(f)))(position)
 }
 
 case object NextStatement extends UnaliasedNotAllowed {
@@ -1701,16 +1664,8 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   override def getGraphSelections: Seq[GraphSelection] =
     queries.flatMap(_.getGraphSelections)
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = {
-    if (nextFirst)
-      copy(queries.head.mapEachSingleQuery(f, nextFirst) +: queries.tail)(position)
-    else
-      copy(queries.dropRight(1) :+ lastQuery.mapEachSingleQuery(f))(position)
-  }
-
-  override def getQuery(fromUnion: Boolean): Query = this
-
-  override def getLastSingleQuery: SingleQuery = queries.last.getLastSingleQuery
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(queries.dropRight(1) :+ lastQuery.mapEachSingleQuery(f))(position)
 
   override def returnVariables: ReturnVariables = lastQuery.returnVariables
 
@@ -1854,18 +1809,9 @@ case class QueryWithLocalDefinitions(
   /**
    * Return a copy of this query where the mapping function f is applied
    * to each returning single query, regardless if this a single query or a union query.
-   *
-   * If nextFirst is set to true the first query in the Next statement will be updated, not the last.
    */
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean): Query =
-    query.mapEachSingleQuery(f, nextFirst)
-
-  override def getLastSingleQuery: SingleQuery = query.getLastSingleQuery
-
-  /**
-   * Used in UnwrapTopLevelBraces
-   */
-  override def getQuery(fromUnion: Boolean): Query = query.getQuery(fromUnion)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    query.mapEachSingleQuery(f)
 
   /**
    * All variables that are explicitly listed to be returned from this statement.

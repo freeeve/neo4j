@@ -425,10 +425,13 @@ abstract class SubqueryExpressionSemanticAnalysisTest(exprType: String, postFix:
        |}
        |""".stripMargin
   ) {
-    run().hasError(
+    run().hasErrors(
       getGql42001_42N07("y", 99 + keyword.length, 6, 26),
       "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      InputPosition(99 + keyword.length, 6, 26)
+      InputPosition(99 + keyword.length, 6, 26),
+      getGql42001_42N07("y", 82 + keyword.length, 6, 9),
+      "The variable `y` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      InputPosition(82 + keyword.length, 6, 9)
     )
   }
 }

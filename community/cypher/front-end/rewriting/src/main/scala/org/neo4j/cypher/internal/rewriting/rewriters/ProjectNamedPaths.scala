@@ -51,7 +51,7 @@ import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNamedPathOnlyForShortestPath
-import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoExpandableClauses
 import org.neo4j.cypher.internal.rewriting.conditions.NoUnnamedNodesAndRelationships
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddQuantifiedPathAnonymousVariableGroupings
@@ -393,7 +393,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // This rewriter needs to know the expanded return items
-    ContainsNoReturnAll,
+    ContainsNoExpandableClauses,
     // RepeatPathStep assumes everything is named
     NoUnnamedNodesAndRelationships,
     // We rely on padded nodes between QPPs

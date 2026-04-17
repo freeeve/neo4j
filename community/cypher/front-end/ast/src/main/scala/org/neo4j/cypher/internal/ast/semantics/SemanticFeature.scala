@@ -89,14 +89,6 @@ object SemanticFeature {
     override def name: String = "scope queries"
   }
 
-  case object VariableChecking extends SemanticFeature with FeatureToString {
-    override def name: String = "variable checking"
-  }
-
-  case object DisableReworkedRewriters extends SemanticFeature with FeatureToString {
-    override def name: String = "disable reworked rewriters"
-  }
-
   case object EnableParsingOfObfuscatedLiterals extends SemanticFeature with FeatureToString {
     override def name: String = "enable parsing of obfuscated literals"
   }
@@ -139,8 +131,6 @@ object SemanticFeature {
     UUIDType,
     LocalCallables,
     ScopeQueries,
-    VariableChecking,
-    DisableReworkedRewriters,
     EnableParsingOfObfuscatedLiterals,
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,

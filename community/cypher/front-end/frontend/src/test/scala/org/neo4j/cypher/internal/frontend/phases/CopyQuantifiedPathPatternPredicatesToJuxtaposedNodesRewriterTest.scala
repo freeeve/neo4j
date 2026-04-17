@@ -20,8 +20,10 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.expressions.PlusQuantifier
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -30,6 +32,8 @@ class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriterTest
 
   override def preProcessTransformer: Transformer[BaseContext, BaseState, BaseState] =
     ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
+      ScopeSurveyor andThen
+      ExpandClauses andThen
       SemanticAnalysis(Some(false)) andThen
       AstRewriting() andThen
       SemanticAnalysis(Some(false)) andThen

@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VariableChecking
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
@@ -243,7 +242,7 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
 
     if (!invalidSemantics && phaseTestConfig.checkSemantics) {
       val checkContext =
-        ContextHelper.create(version, from, phaseTestConfig.semanticFeatures :+ VariableChecking, databaseReference)
+        ContextHelper.create(version, from, phaseTestConfig.semanticFeatures, databaseReference)
       checkSemanticsTransformer.transform(initialState, checkContext)
     }
 
