@@ -20,8 +20,8 @@
 package org.neo4j.pki;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.InputStream;
 import java.security.KeyException;
@@ -195,7 +195,7 @@ class PemParserTest {
 
     static void invalidPrivateKey(String res, String password) throws Exception {
         PemParser parser = new PemParser(res(res));
-        assertThrows(KeyException.class, () -> parser.getPrivateKey(password));
+        assertThatExceptionOfType(KeyException.class).isThrownBy(() -> parser.getPrivateKey(password));
     }
 
     static void verifyPublicKey(String res, Class<? extends PublicKey> expectedType) throws Exception {

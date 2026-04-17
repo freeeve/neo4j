@@ -21,8 +21,7 @@ package org.neo4j.pki;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.IOException;
@@ -61,7 +60,7 @@ class PkiUtilsTest {
         // Then
         // Attempt to load certificate
         var certificates = PkiUtils.loadCertificates(fileSystem, cPath);
-        assertThat(certificates.length).isGreaterThan(0);
+        assertThat(certificates.length).isPositive();
 
         // Attempt to load private key
         PrivateKey pk = PkiUtils.loadPrivateKey(fileSystem, pkPath, null);
@@ -79,7 +78,7 @@ class PkiUtilsTest {
         var certificates = PkiUtils.loadCertificates(fileSystem, pemCertificate);
 
         // Then
-        assertThat(certificates.length).isEqualTo(1);
+        assertThat(certificates.length).isOne();
     }
 
     @Test
@@ -93,7 +92,7 @@ class PkiUtilsTest {
         var pk = PkiUtils.loadPrivateKey(fileSystem, privateKey, null);
 
         // Then
-        assertNotNull(pk);
+        assertThat(pk).isNotNull();
     }
 
     @Test
@@ -112,7 +111,8 @@ class PkiUtilsTest {
         URL resource = SslResourceBuilder.class.getResource("test-certificates/encrypted/private.key");
         copy(requireNonNull(resource), keyFile);
 
-        assertThrows(KeyException.class, () -> PkiUtils.loadPrivateKey(fileSystem, keyFile, null));
+        assertThatExceptionOfType(KeyException.class)
+                .isThrownBy(() -> PkiUtils.loadPrivateKey(fileSystem, keyFile, null));
     }
 
     private void copy(URL in, Path outFile) throws IOException {
