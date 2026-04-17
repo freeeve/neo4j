@@ -31,7 +31,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.index.Envelope;
 
-public class SpaceFillingCurveTest {
+class SpaceFillingCurveTest {
     //
     // Set of tests for 2D ZOrderCurve at various levels
     //
@@ -542,10 +542,10 @@ public class SpaceFillingCurveTest {
 
     @Test
     void shouldRotate3DNPointsLeft() {
-        assertThat(rotateNPointLeft(0b000)).isEqualTo(0b000);
+        assertThat(rotateNPointLeft(0b000)).isZero();
         assertThat(rotateNPointLeft(0b001)).isEqualTo(0b010);
         assertThat(rotateNPointLeft(0b010)).isEqualTo(0b100);
-        assertThat(rotateNPointLeft(0b100)).isEqualTo(0b001);
+        assertThat(rotateNPointLeft(0b100)).isOne();
         assertThat(rotateNPointLeft(0b011)).isEqualTo(0b110);
         assertThat(rotateNPointLeft(0b110)).isEqualTo(0b101);
         assertThat(rotateNPointLeft(0b101)).isEqualTo(0b011);
@@ -554,10 +554,10 @@ public class SpaceFillingCurveTest {
 
     @Test
     void shouldRotate3DNPointsRight() {
-        assertThat(rotateNPointRight(0b000)).isEqualTo(0b000);
+        assertThat(rotateNPointRight(0b000)).isZero();
         assertThat(rotateNPointRight(0b001)).isEqualTo(0b100);
         assertThat(rotateNPointRight(0b100)).isEqualTo(0b010);
-        assertThat(rotateNPointRight(0b010)).isEqualTo(0b001);
+        assertThat(rotateNPointRight(0b010)).isOne();
         assertThat(rotateNPointRight(0b011)).isEqualTo(0b101);
         assertThat(rotateNPointRight(0b101)).isEqualTo(0b110);
         assertThat(rotateNPointRight(0b110)).isEqualTo(0b011);
@@ -864,9 +864,9 @@ public class SpaceFillingCurveTest {
 
     private static void assertTiles(
             List<SpaceFillingCurve.LongRange> results, SpaceFillingCurve.LongRange... expected) {
-        assertThat(results.size())
+        assertThat(results)
                 .as("Result differ: " + results + " != " + Arrays.toString(expected))
-                .isEqualTo(expected.length);
+                .hasSize(expected.length);
         for (int i = 0; i < results.size(); i++) {
             assertThat(results.get(i))
                     .as("Result at " + i + " should be the same")

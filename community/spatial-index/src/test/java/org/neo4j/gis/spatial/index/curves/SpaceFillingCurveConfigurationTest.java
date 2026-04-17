@@ -45,8 +45,8 @@ class SpaceFillingCurveConfigurationTest {
         SpaceFillingCurveConfiguration partialOverlapConf = new PartialOverlapConfiguration();
         // search area is a line, thus having a search area = 0
         Envelope range = new Envelope(-180, 180, -90, 90);
-        assertThat(partialOverlapConf.maxDepth(range, range, 2, 30)).isEqualTo(1);
-        assertThat(standardConfiguration.maxDepth(range, range, 2, 30)).isEqualTo(1);
+        assertThat(partialOverlapConf.maxDepth(range, range, 2, 30)).isOne();
+        assertThat(standardConfiguration.maxDepth(range, range, 2, 30)).isOne();
     }
 
     @Test

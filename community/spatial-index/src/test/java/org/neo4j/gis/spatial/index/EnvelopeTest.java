@@ -20,9 +20,8 @@
 package org.neo4j.gis.spatial.index;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.assertj.core.data.Offset.offset;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -73,7 +72,7 @@ class EnvelopeTest {
     }
 
     @Test
-    void testWithSideRatioNotTooSmall2D() {
+    void withSideRatioNotTooSmall2D() {
         // No change expected
         double[] from = new double[] {0, 0};
         double[] to = new double[] {1, 1};
@@ -81,8 +80,8 @@ class EnvelopeTest {
         Envelope envelope = new Envelope(from, to).withSideRatioNotTooSmall();
         double[] expectedFrom = new double[] {0, 0};
         double[] expectedTo = new double[] {1, 1};
-        assertArrayEquals(expectedFrom, envelope.min, 0.0001);
-        assertArrayEquals(expectedTo, envelope.max, 0.0001);
+        assertThat(envelope.min).containsExactly(expectedFrom, within(0.0001));
+        assertThat(envelope.max).containsExactly(expectedTo, within(0.0001));
 
         // Expected to change
         final double bigValue = 100;
@@ -90,13 +89,13 @@ class EnvelopeTest {
         to = new double[] {bigValue, smallValue};
         Envelope envelope2 = new Envelope(from, to).withSideRatioNotTooSmall();
         double[] expectedTo2 = new double[] {bigValue, bigValue / Envelope.MAXIMAL_ENVELOPE_SIDE_RATIO};
-        assertArrayEquals(expectedFrom, envelope2.min, 0.0001);
-        assertArrayEquals(expectedTo2, envelope2.max, 0.00001);
+        assertThat(envelope2.min).containsExactly(expectedFrom, within(0.0001));
+        assertThat(envelope2.max).containsExactly(expectedTo2, within(0.00001));
     }
 
     // Works for any number of dimensions, and 4 is more interesting than 3
     @Test
-    void testWithSideRatioNotTooSmall4D() {
+    void withSideRatioNotTooSmall4D() {
         // No change expected
         double[] from = new double[] {0, 0, 0, 0};
         double[] to = new double[] {1, 1, 1, 1};
@@ -104,8 +103,8 @@ class EnvelopeTest {
         Envelope envelope = new Envelope(from, to).withSideRatioNotTooSmall();
         double[] expectedFrom = new double[] {0, 0, 0, 0};
         double[] expectedTo = new double[] {1, 1, 1, 1};
-        assertArrayEquals(expectedFrom, envelope.min, 0.0001);
-        assertArrayEquals(expectedTo, envelope.max, 0.0001);
+        assertThat(envelope.min).containsExactly(expectedFrom, within(0.0001));
+        assertThat(envelope.max).containsExactly(expectedTo, within(0.0001));
 
         // Expected to change
         final double bigValue = 107;
@@ -118,8 +117,8 @@ class EnvelopeTest {
             12,
             bigValue / Envelope.MAXIMAL_ENVELOPE_SIDE_RATIO
         };
-        assertArrayEquals(expectedFrom, envelope2.min, 0.00001);
-        assertArrayEquals(expectedTo2, envelope2.max, 0.00001);
+        assertThat(envelope2.min).containsExactly(expectedFrom, within(0.00001));
+        assertThat(envelope2.max).containsExactly(expectedTo2, within(0.00001));
     }
 
     private static void makeAndTestEnvelope(double[] min, double[] max, double[] width) {
@@ -160,10 +159,12 @@ class EnvelopeTest {
         assertThat(env.getArea()).as("Expected area to be correct").isEqualTo(area);
         assertThat(env.getArea()).as("Expected copied area to be correct").isEqualTo(copy.getArea());
         assertThat(env.getArea()).as("Expected intersected area to be correct").isEqualTo(intersection.getArea());
-        assertTrue(env.intersects(copy), "Expected copied envelope to intersect");
+        assertThat(env.intersects(copy))
+                .as("Expected copied envelope to intersect")
+                .isTrue();
         assertThat(env.overlap(copy))
                 .as("Expected copied envelope to intersect completely")
-                .isEqualTo(1.0);
+                .isOne();
     }
 
     private static void testDoesNotOverlap(Envelope left, Envelope right) {
