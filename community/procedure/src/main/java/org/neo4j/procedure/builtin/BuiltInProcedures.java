@@ -249,8 +249,8 @@ public class BuiltInProcedures {
     @SystemProcedure
     @NotThreadSafe
     @Description(
-            "Triggers an index resample and waits for it to complete, and after that clears query caches. After this "
-                    + "procedure has finished queries will be planned using the latest database statistics.")
+            "Triggers an index resample and waits for its completion. If the wait time is 0, it skips waiting."
+                    + " After that, the procedure clears query caches. Once the process is complete, queries are planned using the latest database statistics.")
     @Procedure(name = "db.prepareForReplanning", mode = READ)
     public void prepareForReplanning(
             @Name(value = "timeOutSeconds", defaultValue = "300", description = "The maximum time to wait in seconds.")
