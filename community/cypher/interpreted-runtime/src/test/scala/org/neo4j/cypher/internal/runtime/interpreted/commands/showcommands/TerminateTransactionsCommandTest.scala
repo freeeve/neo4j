@@ -23,6 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
 import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
@@ -146,14 +147,54 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
 
   // Tests
 
-  test("terminate transaction should give back correct values") {
+  test("terminate transaction should give back correct values - Cypher 25") {
     // Set-up which transactions is executing:
     val (txHandle1, txHandle2, txHandle3) = setupTxHandles()
     when(userTxRegistry.executingTransactions).thenReturn(Set(txHandle1, txHandle2).asJava)
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1, tx2, tx3)), columns, List.empty)
+    val terminateTx =
+      TerminateTransactionsCommand(Left(List(tx1, tx2, tx3)), columns, List.empty, CypherVersion.Cypher25)
+    val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    result should have size 3
+    val sortedResult = result.sortBy(m => m("transactionId").asInstanceOf[StringValue].stringValue())
+    checkResult(
+      sortedResult.head,
+      txId = tx1,
+      username = username,
+      message = "Transaction terminated."
+    )
+    checkResult(
+      sortedResult(1),
+      txId = tx2,
+      username = AuthSubject.AUTH_DISABLED.executingUser(),
+      message = "Transaction terminated."
+    )
+    checkResult(
+      sortedResult(2),
+      txId = tx3,
+      username = username,
+      message = "Transaction terminated."
+    )
+
+    // Verify markedForTermination calls
+    verify(txHandle1, times(1)).markForTermination(Status.Transaction.Terminated)
+    verify(txHandle2, times(1)).markForTermination(Status.Transaction.Terminated)
+    verify(txHandle3, times(1)).markForTermination(Status.Transaction.Terminated)
+  }
+
+  test("terminate transaction should give back correct values - Cypher 5") {
+    // Set-up which transactions is executing:
+    val (txHandle1, txHandle2, txHandle3) = setupTxHandles()
+    when(userTxRegistry.executingTransactions).thenReturn(Set(txHandle1, txHandle2).asJava)
+    when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
+
+    // When
+    val terminateTx =
+      TerminateTransactionsCommand(Left(List(tx1, tx2, tx3)), columns, List.empty, CypherVersion.Cypher5)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -191,7 +232,8 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When: given transactions not ordered by id
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx2, tx3, tx1)), columns, List.empty)
+    val terminateTx =
+      TerminateTransactionsCommand(Left(List(tx2, tx3, tx1)), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then: will collect the transactions by database
@@ -211,7 +253,8 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
 
     // Then
     the[InvalidSemanticsException] thrownBy {
-      TerminateTransactionsCommand(emptyList, columns, List.empty).originalNameRows(queryState, initialCypherRow)
+      TerminateTransactionsCommand(emptyList, columns, List.empty, CypherVersion.Cypher25)
+        .originalNameRows(queryState, initialCypherRow)
     } should (
       have message
         "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
@@ -223,7 +266,8 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
 
     // Then
     the[InvalidSemanticsException] thrownBy {
-      TerminateTransactionsCommand(emptyExpression, columns, List.empty).originalNameRows(queryState, initialCypherRow)
+      TerminateTransactionsCommand(emptyExpression, columns, List.empty, CypherVersion.Cypher25)
+        .originalNameRows(queryState, initialCypherRow)
     } should (have message
       "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
       and be(gqlStatus(
@@ -238,7 +282,8 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set.empty[KernelTransactionHandle].asJava)
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List("unknown-transaction-1")), columns, List.empty)
+    val terminateTx =
+      TerminateTransactionsCommand(Left(List("unknown-transaction-1")), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -261,7 +306,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(txHandle1.isClosing).thenReturn(true)
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -284,7 +329,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(systemTxRegistry.executingTransactions).thenReturn(Set(txHandle3).asJava)
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -327,7 +372,8 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1, tx2, tx3)), columns, List.empty)
+    val terminateTx =
+      TerminateTransactionsCommand(Left(List(tx1, tx2, tx3)), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -369,7 +415,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     when(securityContext.allowsAdminAction(any())).thenReturn(PermissionState.EXPLICIT_DENY)
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, List.empty, CypherVersion.Cypher25)
     val result = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -423,7 +469,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1, tx3)), columns, List.empty)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx1, tx3)), columns, List.empty, CypherVersion.Cypher25)
     terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -475,7 +521,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     })
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx3, tx2)), columns, List.empty)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx3, tx2)), columns, List.empty, CypherVersion.Cypher25)
     terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
@@ -504,7 +550,7 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     )
 
     // When
-    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, yieldColumns)
+    val terminateTx = TerminateTransactionsCommand(Left(List(tx1)), columns, yieldColumns, CypherVersion.Cypher25)
     val resultOriginal = terminateTx.originalNameRows(queryState, initialCypherRow).toList
 
     // Then

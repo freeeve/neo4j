@@ -131,7 +131,7 @@ case class ShowTransactionsCommand(
       requestedColumnsNames.contains(currentQueryProgressColumn)
 
   override def originalNameRows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {
-    val ids = Command.extractNames(givenIds, state, baseRow, "SHOW TRANSACTIONS")
+    val ids = Command.extractNames(givenIds, state, baseRow, "SHOW TRANSACTIONS", cypherVersion)
     val ctx = state.query
     val securityContext = ctx.transactionalContext.securityContext
     val trackQueryCpuTime =

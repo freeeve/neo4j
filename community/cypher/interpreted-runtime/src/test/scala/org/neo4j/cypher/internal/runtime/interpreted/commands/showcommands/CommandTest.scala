@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.MutableMaps
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
@@ -28,8 +29,11 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ListLi
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Literal
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ParameterFromSlot
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
@@ -40,7 +44,7 @@ class CommandTest extends ShowCommandTestBase {
     val names = List("foo", "bar", "baz", "bar", "foo")
 
     // When
-    val result = Command.extractNames(Left(names), queryState, initialCypherRow, "")
+    val result = Command.extractNames(Left(names), queryState, initialCypherRow, "", CypherVersion.Cypher25)
 
     // Then
     result should have size 3
@@ -55,7 +59,7 @@ class CommandTest extends ShowCommandTestBase {
 
     // Then
     the[ParameterWrongTypeException] thrownBy {
-      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "")
+      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "", CypherVersion.Cypher25)
     } should have message "Expected a string or a list of strings, but got: Boolean('true')"
   }
 
@@ -67,7 +71,7 @@ class CommandTest extends ShowCommandTestBase {
 
     // Then
     the[ParameterWrongTypeException] thrownBy {
-      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "")
+      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "", CypherVersion.Cypher25)
     } should have message "Expected a string, but got: Boolean('true')"
   }
 
@@ -82,7 +86,13 @@ class CommandTest extends ShowCommandTestBase {
     // Then
     val originOperation = "rxdtfcyvgbhnjkml,dfgh"
     val thrown = the[ParameterWrongTypeException] thrownBy {
-      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, originOperation)
+      Command.extractNames(
+        Right(expression),
+        queryStateWithParams,
+        initialCypherRow,
+        originOperation,
+        CypherVersion.Cypher25
+      )
     }
 
     thrown.gqlStatusObject() match {
@@ -99,7 +109,8 @@ class CommandTest extends ShowCommandTestBase {
       QueryStateHelper.emptyWith(query = ctx, params = Array(Values.stringValue("Hello!")))
 
     // When
-    val result = Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "")
+    val result =
+      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "", CypherVersion.Cypher25)
 
     // Then
     result should have size 1
@@ -119,7 +130,8 @@ class CommandTest extends ShowCommandTestBase {
       QueryStateHelper.emptyWith(query = ctx, params = Array(paramValue))
 
     // When
-    val result = Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "")
+    val result =
+      Command.extractNames(Right(expression), queryStateWithParams, initialCypherRow, "", CypherVersion.Cypher25)
 
     // Then
     result should have size 3
@@ -140,11 +152,106 @@ class CommandTest extends ShowCommandTestBase {
     val listExpression = ListLiteral(paramExpression, variableExpression, stringConcatExpression)
 
     // When
-    val result = Command.extractNames(Right(listExpression), queryStateWithParams, expressionCypherRow, "")
+    val result = Command.extractNames(
+      Right(listExpression),
+      queryStateWithParams,
+      expressionCypherRow,
+      "",
+      CypherVersion.Cypher25
+    )
 
     // Then
     result should have size 3
     result should contain theSameElementsAs List("Hello!", "Goodbye!", "Hi!")
+  }
+
+  test("`extractNames` should pass through nulls in Cypher 25") {
+    // Given
+    val paramValue = VirtualValues.list(
+      Values.stringValue("Hello!"),
+      Values.NO_VALUE,
+      Values.stringValue("Hi!"),
+      Values.NO_VALUE
+    )
+    val queryStateWithParams =
+      QueryStateHelper.emptyWith(query = ctx, params = Array(Values.NO_VALUE, paramValue))
+
+    // When
+    val expressionNullDirectly = ParameterFromSlot(0, "name")
+    val resultNullDirectly = Command.extractNames(
+      Right(expressionNullDirectly),
+      queryStateWithParams,
+      initialCypherRow,
+      "",
+      CypherVersion.Cypher25
+    )
+
+    // Then
+    resultNullDirectly should be(List(null))
+
+    // When
+    val expressionNullInList = ParameterFromSlot(1, "name")
+    val resultNullInList = Command.extractNames(
+      Right(expressionNullInList),
+      queryStateWithParams,
+      initialCypherRow,
+      "",
+      CypherVersion.Cypher25
+    )
+
+    // Then
+    resultNullInList should have size 3
+    resultNullInList should contain theSameElementsAs List("Hello!", null, "Hi!")
+  }
+
+  test("`extractNames` should get exception on nulls in Cypher 5") {
+    // Given
+    val queryStateWithParams =
+      QueryStateHelper.emptyWith(query = ctx, params = Array(Values.NO_VALUE, VirtualValues.list(Values.NO_VALUE)))
+
+    // Then
+    val expressionNullDirectly = ParameterFromSlot(0, "name")
+    val exceptionNullDirectly = the[ParameterWrongTypeException] thrownBy {
+      Command.extractNames(
+        Right(expressionNullDirectly),
+        queryStateWithParams,
+        initialCypherRow,
+        "*command*",
+        CypherVersion.Cypher5
+      )
+    }
+    exceptionNullDirectly should be(gqlException(
+      "Expected a string or a list of strings, but got: NO_VALUE",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22G03,
+        "error: data exception - invalid value type"
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N27,
+        "error: data exception - invalid entity type. Invalid input '<null>' for *command*. Expected to be STRING or LIST<STRING>."
+      ))
+    ))
+
+    // Then
+    val expressionNullInList = ParameterFromSlot(1, "name")
+    val exceptionNullInList = the[ParameterWrongTypeException] thrownBy {
+      Command.extractNames(
+        Right(expressionNullInList),
+        queryStateWithParams,
+        initialCypherRow,
+        "*command*",
+        CypherVersion.Cypher5
+      )
+    }
+    exceptionNullInList should be(gqlException(
+      "Expected a string, but got: NO_VALUE",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22G03,
+        "error: data exception - invalid value type"
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N27,
+        "error: data exception - invalid entity type. Invalid input '<null>' for *command*. Expected to be STRING."
+      ))
+    ))
   }
 
 }

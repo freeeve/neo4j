@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.NoValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.virtual.MapValue
 
@@ -73,10 +74,13 @@ case class ParameterName(expression: Expression)(val position: InputPosition) ex
   def getNameParts(
     params: ParameterProvider,
     defaultNamespace: String,
-    emulateGetNameFields: Boolean = false
+    emulateGetNameFields: Boolean = false,
+    allowAndPassThroughNullInput: Boolean = false
   ): (Option[String], String, String, String) = {
     val paramValue = params.get(expression)
-    if (!paramValue.isInstanceOf[TextValue]) {
+    if (allowAndPassThroughNullInput && paramValue.isInstanceOf[NoValue]) {
+      (None, null, null, null)
+    } else if (!paramValue.isInstanceOf[TextValue]) {
       throw ParameterWrongTypeException.expectedParameterToBeString42N51(
         false,
         // On the SHOW DATABASE path, we might be using slotted parameters
@@ -88,7 +92,7 @@ case class ParameterName(expression: Expression)(val position: InputPosition) ex
       def backtick(s: String) = ExpressionStringifier().backtick(s)
       val paramStringValue = paramValue.asInstanceOf[TextValue].stringValue()
       val namePartsSplit = paramStringValue.split('.')
-      // To not loose trailing dots we add in the empty string that followed it
+      // To not lose trailing dots we add in the empty string that followed it
       val nameParts = if (paramStringValue.endsWith(".")) namePartsSplit :+ "" else namePartsSplit
       if (nameParts.length == 1) {
         (None, nameParts(0), nameParts(0), backtick(nameParts(0)))

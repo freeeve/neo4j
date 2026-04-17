@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.SettingImpl
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.defaultValueColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.descriptionColumn
 import org.neo4j.cypher.internal.ast.ShowSettingsClause.isDeprecatedColumn
@@ -47,7 +48,8 @@ import scala.util.Try
 case class ShowSettingsCommand(
   givenNames: Either[List[String], Expression],
   columns: List[CommandDefaultColumn],
-  yieldColumns: List[CommandYieldColumn]
+  yieldColumns: List[CommandYieldColumn],
+  cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
 
   private def asMap[T](config: Config)(setting: SettingImpl[T]): Map[String, AnyValue] = requestedColumnsNames.map {
@@ -72,7 +74,7 @@ case class ShowSettingsCommand(
   }.toMap[String, AnyValue]
 
   override def originalNameRows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {
-    val names = Command.extractNames(givenNames, state, baseRow, "SHOW SETTINGS")
+    val names = Command.extractNames(givenNames, state, baseRow, "SHOW SETTINGS", cypherVersion)
     val config = state.query.getConfig
     val txContext = state.query.transactionalContext
     val accessMode = txContext.securityContext.mode()

@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.messageColumn
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.transactionIdColumn
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause.usernameColumn
@@ -44,11 +45,12 @@ import org.neo4j.values.storable.Values
 case class TerminateTransactionsCommand(
   givenIds: Either[List[String], Expression],
   columns: List[CommandDefaultColumn],
-  yieldColumns: List[CommandYieldColumn]
+  yieldColumns: List[CommandYieldColumn],
+  cypherVersion: CypherVersion
 ) extends Command(columns, yieldColumns) {
 
   override def originalNameRows(state: QueryState, baseRow: CypherRow): ClosingIterator[Map[String, AnyValue]] = {
-    val ids = Command.extractNames(givenIds, state, baseRow, "TERMINATE TRANSACTIONS")
+    val ids = Command.extractNames(givenIds, state, baseRow, "TERMINATE TRANSACTIONS", cypherVersion)
     if (ids.isEmpty) throw InvalidSemanticsException.missingTransactionId()
 
     val ctx = state.query
@@ -65,6 +67,7 @@ case class TerminateTransactionsCommand(
 
     val (transactionsByDatabase, otherTxIds) =
       ids.foldLeft[(Map[NamedDatabaseId, Set[TransactionId]], Set[TransactionId])]((Map.empty, Set.empty)) {
+        case ((accMap, accSet), null) => (accMap, accSet + null)
         case ((accMap, accSet), idText) =>
           val id = TransactionId.parse(idText)
           val namedDatabaseId = databaseIdRepository.getByName(id.database)
@@ -113,7 +116,7 @@ case class TerminateTransactionsCommand(
           getResultMap(txId, username, message)
         })
     }
-    // Add 'transaction not found' results for the ids on non-existing databases as well
+    // Add 'transaction not found' results for the ids on non-existing databases and null as well
     val updatedWithExtraRows = rows ++ otherTxIds.map(txId =>
       getResultMap(txId, null, "Transaction not found.")
     )
@@ -123,10 +126,11 @@ case class TerminateTransactionsCommand(
 
   private def getResultMap(txId: TransactionId, username: String, message: String): Map[String, AnyValue] =
     requestedColumnsNames.map {
-      case `transactionIdColumn` => transactionIdColumn -> Values.stringValue(txId.toString)
-      case `usernameColumn`      => usernameColumn -> Values.stringOrNoValue(username)
-      case `messageColumn`       => messageColumn -> Values.stringValue(message)
-      case unknown               =>
+      case `transactionIdColumn` =>
+        transactionIdColumn -> (if (txId == null) Values.NO_VALUE else Values.stringValue(txId.toString))
+      case `usernameColumn` => usernameColumn -> Values.stringOrNoValue(username)
+      case `messageColumn`  => messageColumn -> Values.stringValue(message)
+      case unknown          =>
         // This match should cover all existing columns but we get scala warnings
         // on non-exhaustive match due to it being string values
         throw InternalException.internalError(

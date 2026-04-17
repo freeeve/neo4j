@@ -89,7 +89,8 @@ class DatabaseListParameterTransformerFunction(
         showDatabaseService.getSingleNamedDatabase(
           namedDatabaseScope.database,
           MapBasedParameterProvider(userParams),
-          showDatabaseServiceContext
+          showDatabaseServiceContext,
+          ignoreNullInput = false
         )
       case _ => (showDatabaseService.getAllDatabases(showDatabaseServiceContext), Set.empty)
     }

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.logical.plans.CommandDefaultColumn
 import org.neo4j.cypher.internal.logical.plans.CommandYieldColumn
 import org.neo4j.cypher.internal.runtime.ClosingIterator
@@ -29,6 +30,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expres
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.NoValue
 import org.neo4j.values.storable.StringValue
 import org.neo4j.values.virtual.ListValue
 
@@ -85,13 +87,14 @@ abstract class Command(
 
 object Command {
 
-  // Get the string values from `names`, removing possible duplicates
+  // Get the string values from `names`, removing possible duplicates (keeps NO_VALUE/null)
   // names could for example be the id lists for `SHOW TRANSACTIONS ['id1', 'id2']`
   protected[showcommands] def extractNames(
     names: Either[List[String], Expression],
     state: QueryState,
     baseRow: CypherRow,
-    originOperation: String
+    originOperation: String,
+    cypherVersion: CypherVersion
   ): List[String] =
     names match {
       case Left(ls) => ls.toSet.toList
@@ -101,7 +104,8 @@ object Command {
           case l: ListValue =>
             val list = l.iterator().asScala
             list.map {
-              case s: StringValue => s.stringValue()
+              case s: StringValue                                                     => s.stringValue()
+              case _: NoValue if cypherVersion.isEqualOrAfter(CypherVersion.Cypher25) => null
               case x =>
                 throw ParameterWrongTypeException.expectedStringButGotValue(
                   originOperation,
@@ -109,6 +113,7 @@ object Command {
                   x.prettify()
                 )
             }.toSet.toList
+          case _: NoValue if cypherVersion.isEqualOrAfter(CypherVersion.Cypher25) => List(null)
           case x =>
             throw ParameterWrongTypeException.expectedStringOrStringList(
               originOperation,

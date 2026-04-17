@@ -75,7 +75,8 @@ case class ShowDatabaseCommand(
         val (results, notifications) = showService.getSingleNamedDatabase(
           database,
           SlotBasedParameterProvider(state),
-          context
+          context,
+          ignoreNullInput = true
         )
         state.notifications.addAll(notifications.asJava)
         results

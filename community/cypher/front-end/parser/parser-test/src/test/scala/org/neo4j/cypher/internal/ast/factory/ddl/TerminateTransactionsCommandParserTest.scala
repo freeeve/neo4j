@@ -168,6 +168,18 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
     ))
   }
 
+  test("TERMINATE TRANSACTIONS ['db1-transaction-123', null]") {
+    assertAst(singleQuery(
+      TerminateTransactionsClause(
+        Right(listOf("db1-transaction-123", nullLiteral)),
+        List.empty,
+        yieldAll = false,
+        None,
+        None
+      )(pos)
+    ))
+  }
+
   test("TERMINATE TRANSACTION foo") {
     assertAst(singleQuery(
       TerminateTransactionsClause(Right(varFor("foo")), List.empty, yieldAll = false, None, None)(pos)
@@ -869,6 +881,10 @@ class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaComm
   }
 
   test("TERMINATE TRANSACTIONS 'db-transaction-123', $param") {
+    failsParsing[Statements]
+  }
+
+  test("TERMINATE TRANSACTIONS 'db-transaction-123', null") {
     failsParsing[Statements]
   }
 

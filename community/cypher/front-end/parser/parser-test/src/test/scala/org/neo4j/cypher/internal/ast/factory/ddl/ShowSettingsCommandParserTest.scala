@@ -49,6 +49,12 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
       )
     }
 
+    test(s"SHOW $settingKeyword null") {
+      assertAst(
+        singleQuery(ShowSettingsClause(Right(nullLiteral), None, List.empty, yieldAll = false, None)(defaultPos))
+      )
+    }
+
     test(s"SHOW $settingKeyword $$param") {
       assertAst(
         singleQuery(
@@ -696,6 +702,14 @@ class ShowSettingsCommandParserTest extends AdministrationAndSchemaCommandParser
     failsParsing[Statements].withSyntaxError(
       """Invalid input '$': expected a string (line 1, column 21 (offset: 20))
         |"SHOW SETTING 'bar', $foo"
+        |                     ^""".stripMargin
+    )
+  }
+
+  test("SHOW SETTING 'bar', null") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'null': expected a string (line 1, column 21 (offset: 20))
+        |"SHOW SETTING 'bar', null"
         |                     ^""".stripMargin
     )
   }

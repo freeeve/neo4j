@@ -1198,14 +1198,14 @@ case class InterpretedPipeMapper(
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
-        CommandPipe(TerminateTransactionsCommand(newIds, t.defaultColumns, t.yieldColumns))(id)
+        CommandPipe(TerminateTransactionsCommand(newIds, t.defaultColumns, t.yieldColumns, cypherVersion))(id)
 
       case s: ShowSettings =>
         val newNames = s.names match {
           case Right(e) => Right(buildExpression(e))
           case Left(l)  => Left(l)
         }
-        CommandPipe(ShowSettingsCommand(newNames, s.defaultColumns, s.yieldColumns))(id)
+        CommandPipe(ShowSettingsCommand(newNames, s.defaultColumns, s.yieldColumns, cypherVersion))(id)
 
       // System database only
       case s: ShowDatabases =>

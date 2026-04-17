@@ -60,7 +60,8 @@ trait ShowDatabaseService {
   def getSingleNamedDatabase(
     name: DatabaseName,
     params: ParameterProvider,
-    context: ShowDatabaseServiceContext
+    context: ShowDatabaseServiceContext,
+    ignoreNullInput: Boolean
   ): (Seq[ShowDatabaseResult], Set[InternalNotification])
 }
 
@@ -107,9 +108,12 @@ class TransactionBoundShowDatabaseService(
   def getSingleNamedDatabase(
     name: DatabaseName,
     params: ParameterProvider,
-    context: ShowDatabaseServiceContext
+    context: ShowDatabaseServiceContext,
+    ignoreNullInput: Boolean
   ): (Seq[ShowDatabaseResult], Set[InternalNotification]) = {
-    val (references, notifications) = nameResolver.resolveDatabaseNameToReference(name, params, context.cypherVersion)
+    val (references, notifications) =
+      nameResolver.resolveDatabaseNameToReference(name, params, context.cypherVersion, ignoreNullInput)
+
     (getDatabaseDetails(references, context), notifications)
   }
 

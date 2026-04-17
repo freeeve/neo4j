@@ -42,7 +42,8 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
   private[topology] def resolveDatabaseNameToReference(
     namedDatabase: DatabaseName,
     params: ParameterProvider,
-    cypherVersion: CypherVersion
+    cypherVersion: CypherVersion,
+    ignoreNullInput: Boolean
   ): (Set[DatabaseReference], Set[InternalNotification]) = {
     val databaseReferences = referenceResolver.getAllDatabaseReferences.asScala
     val (name, namespace, notifications)
@@ -68,14 +69,26 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
             (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
           }
         case pn: ParameterName =>
-          val (namespace, name, _, _) = pn.getNameParts(params, DEFAULT_NAMESPACE)
-          val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
-          normalizedNamespace match {
-            case None => (new NormalizedDatabaseName(name), None, Set.empty[InternalNotification])
-            case Some(ns) =>
-              databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
-                .map(_ => (new NormalizedDatabaseName(name), normalizedNamespace, Set.empty[InternalNotification]))
-                .getOrElse((new NormalizedDatabaseName(ns.name() + "." + name), None, Set.empty[InternalNotification]))
+          val (namespace, name, _, _) = pn.getNameParts(
+            params,
+            DEFAULT_NAMESPACE,
+            allowAndPassThroughNullInput = ignoreNullInput
+          )
+          if (name == null) {
+            (null, None, Set.empty[InternalNotification])
+          } else {
+            val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
+            normalizedNamespace match {
+              case None => (new NormalizedDatabaseName(name), None, Set.empty[InternalNotification])
+              case Some(ns) =>
+                databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
+                  .map(_ => (new NormalizedDatabaseName(name), normalizedNamespace, Set.empty[InternalNotification]))
+                  .getOrElse((
+                    new NormalizedDatabaseName(ns.name() + "." + name),
+                    None,
+                    Set.empty[InternalNotification]
+                  ))
+            }
           }
       }
 
@@ -107,6 +120,8 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
         // Cypher 5: find reference by namespace/name split
         namespace match {
           case None => databaseReferences.collect {
+              // ignore null values
+              case _ if name == null => Set.empty
               // database
               case ref if ref.isPrimary && ref.alias().equals(name) => Set(ref)
               // alias
@@ -114,6 +129,8 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
                 primaryByNamedDatabaseId(ref.namedDatabaseId())
             }.flatten.toSet
           case Some(namespace) => databaseReferences.collect {
+              // ignore null values
+              case _ if name == null => Set.empty
               // composite constituent
               case c: DatabaseReferenceImpl.Composite if c.alias().equals(namespace) =>
                 c.constituents().asScala
@@ -124,6 +141,8 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
       case _ =>
         // Cypher 25+: find reference by full/display name
         databaseReferences.collect {
+          // ignore null values
+          case _ if name == null => Set.empty
           // database
           case ref if ref.isPrimary && ref.fullName().name().equals(displayName(namespace, name)) => Set(ref)
           // composite constituent

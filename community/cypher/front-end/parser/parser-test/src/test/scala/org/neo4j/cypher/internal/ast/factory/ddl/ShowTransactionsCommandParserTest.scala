@@ -217,6 +217,21 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
     )
   }
 
+  test("SHOW TRANSACTIONS [null]") {
+    assertAstVersionBased(fromCypher5 =>
+      singleQuery(
+        ShowTransactionsClause(
+          Right(listOf(nullLiteral)),
+          None,
+          List.empty,
+          yieldAll = false,
+          None,
+          fromCypher5
+        )(pos)
+      )
+    )
+  }
+
   test("SHOW TRANSACTION foo") {
     assertAstVersionBased(fromCypher5 =>
       singleQuery(
@@ -1065,6 +1080,10 @@ class ShowTransactionsCommandParserTest extends AdministrationAndSchemaCommandPa
   }
 
   test("SHOW TRANSACTIONS 'db-transaction-123', $param") {
+    failsParsing[Statements]
+  }
+
+  test("SHOW TRANSACTIONS 'db-transaction-123', null") {
     failsParsing[Statements]
   }
 

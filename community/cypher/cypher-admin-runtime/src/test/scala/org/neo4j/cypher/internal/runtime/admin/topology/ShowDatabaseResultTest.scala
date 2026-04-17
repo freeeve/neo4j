@@ -42,7 +42,7 @@ import java.util.UUID
 
 class ShowDatabaseResultTest extends CypherFunSuite3 {
 
-  test("should create ShowDatabaseResult for regualar db") {
+  test("should create ShowDatabaseResult for regular db") {
     val details = makeDatabaseDetails(TYPE_STANDARD)
 
     val result = ShowDatabaseResult(
