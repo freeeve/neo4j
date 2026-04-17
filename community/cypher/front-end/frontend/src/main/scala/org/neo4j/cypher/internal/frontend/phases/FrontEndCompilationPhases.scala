@@ -199,8 +199,7 @@ trait FrontEndCompilationPhases {
 
   // Phase 1.1 (Fabric)
   def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    UnresolveShadowedFunctions andThen
-      SemanticAnalysis(warn = Some(true)) andThen
+    SemanticAnalysis(warn = Some(true)) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       SemanticAnalysis(warn = Some(false))
