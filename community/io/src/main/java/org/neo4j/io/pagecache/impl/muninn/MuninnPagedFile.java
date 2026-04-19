@@ -1024,19 +1024,26 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         int chunkIndex = computeChunkIndex(filePageId);
         int[] chunk = translationTable[chunkId];
 
-        assert checkMemoryState(chunk, chunkIndex, pageRef);
+        assert checkMemoryState(chunk, chunkIndex, pageRef, filePageId);
         if (!multiVersioned && contextVersionUpdates) {
             setHighestEvictedTransactionId(getAndResetLastModifiedTransactionId(pageRef));
         }
         translationTableSetVolatile(chunk, chunkIndex, UNMAPPED_TTE);
     }
 
-    private boolean checkMemoryState(int[] chunk, int chunkIndex, long pageRef) {
-        int latestState = translationTableGetVolatile(chunk, chunkIndex);
-        if (latestState != UNMAPPED_TTE && pageRef == this.pageMetadata.deref(latestState)) {
+    private boolean checkMemoryState(int[] chunk, int chunkIndex, long pageRef, long filePageId) {
+        int currentPageId = translationTableGetVolatile(chunk, chunkIndex);
+        long currentPageRef = currentPageId != UNMAPPED_TTE ? this.pageMetadata.deref(currentPageId) : -1;
+        if (currentPageId != UNMAPPED_TTE && pageRef == currentPageRef) {
             return true;
         }
-        throw new AssertionError("Locked page ref " + pageRef + " differs from latest memory state: " + latestState);
+        var pageMeta = PageMetadata.pageMetadata(pageRef);
+        var currentPageMeta = currentPageRef != -1 ? PageMetadata.pageMetadata(currentPageRef) : "<no ref>";
+        throw new AssertionError("Locked page ref " + pageRef + "(pageId=" + pageMetadata.toId(pageRef)
+                + ").\nPage meta: " + pageMeta + "\nDiffers from the latest memory state for filePageId "
+                + filePageId + " pagecache pageId "
+                + currentPageId + " ref " + currentPageRef + ".\nCurrent page meta: " + currentPageMeta
+                + "\nCurrent file swapperId " + swapperId);
     }
 
     private void setHighestEvictedTransactionId(long modifiedTransactionId) {
