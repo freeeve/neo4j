@@ -47,7 +47,7 @@ class VectorTypeTest {
     void shouldReturnInternedInstanceWhenInferringVectorType(Value val, ConstrainableType expected) {
         var actual = TypeRepresentation.infer(val);
         // Check object identity
-        assertThat(expected).isSameAs(actual);
+        assertThat(actual).isSameAs(expected);
     }
 
     @ParameterizedTest
@@ -55,13 +55,13 @@ class VectorTypeTest {
     void shouldReturnInternedInstanceWhenDeserializingVectorType(Value ignored, ConstrainableType expected) {
         var actual = TypeRepresentation.deserialize(expected.serialize());
         // Check object identity
-        assertThat(expected).isSameAs(actual);
+        assertThat(actual).isSameAs(expected);
     }
 
     @ParameterizedTest
     @MethodSource("historicalSerializations")
     void shouldDeserializeHistoricalSerializationFormat(String serialized, VectorType expected) {
-        assertThat(expected).isSameAs(TypeRepresentation.deserialize(serialized));
+        assertThat(TypeRepresentation.deserialize(serialized)).isSameAs(expected);
     }
 
     static Stream<Arguments> historicalSerializations() {
