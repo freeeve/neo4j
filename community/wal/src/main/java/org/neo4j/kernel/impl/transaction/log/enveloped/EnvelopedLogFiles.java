@@ -50,7 +50,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private final int writerBufferedBlocks;
     private final MemoryTracker memoryTracker;
     private final LogRotation logRotation;
-    private final LogTracers logTracers = LogTracers.NULL; // TODO: Use these when log is merged
+    private final LogTracers logTracers;
     private final LogsRepository logsRepository;
     private final long maxFileSize;
     private final LogHeaderFactory logHeaderFactory;
@@ -70,7 +70,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             MemoryTracker memoryTracker,
             PruneStrategy pruneStrategy,
             ChannelNativeAccessor channelNativeAccessor,
-            InternalLogProvider logProvider) {
+            InternalLogProvider logProvider,
+            LogTracers logTracers) {
         if (totalSegments < MINIMUM_SEGMENTS) {
             throw new IllegalArgumentException(
                     String.format("Must have at least %d segments. Got %d", MINIMUM_SEGMENTS, totalSegments));
@@ -86,6 +87,30 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         this.logFilesPruner = new LogFilesPruner(logsRepository, pruneStrategy);
         this.logProvider = logProvider;
         this.log = logProvider.getLog(EnvelopedLogFiles.class);
+        this.logTracers = logTracers;
+    }
+
+    public EnvelopedLogFiles(
+            LogsRepository logsRepository,
+            LogHeaderFactory logHeaderFactory,
+            int segmentBlockSize,
+            int writerBufferedBlocks,
+            int totalSegments,
+            MemoryTracker memoryTracker,
+            PruneStrategy pruneStrategy,
+            ChannelNativeAccessor channelNativeAccessor,
+            InternalLogProvider logProvider) {
+        this(
+                logsRepository,
+                logHeaderFactory,
+                segmentBlockSize,
+                writerBufferedBlocks,
+                totalSegments,
+                memoryTracker,
+                pruneStrategy,
+                channelNativeAccessor,
+                logProvider,
+                LogTracers.NULL); // TODO MERGELOGS LogTracers currently only used in tests
     }
 
     public EnvelopeWriteChannel currentWriteChannel() {
@@ -268,6 +293,10 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             logsRepository.deleteLogFilesFrom(version + 1);
             currentWriteChannel = openWriteChannel(version, position);
             appendingChannel = envelopedWriteChannel(currentWriteChannel, -1, Integer.MAX_VALUE, prevTerm);
+        } else {
+            // delete any (empty) trailing files before trimming
+            // so that we don't create a broken checksum chain due to the stale headers
+            logsRepository.deleteLogFilesFrom(version + 1);
         }
         appendingChannel.truncateToPosition(position, prevChecksum, fromIndex - 1, prevTerm);
         if (offset > 0) {

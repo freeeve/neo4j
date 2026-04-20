@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,6 +50,12 @@ import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.filename.SequentialFileNameHelper;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.AppendTransactionEvent;
+import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
+import org.neo4j.kernel.impl.transaction.log.LogFileCreateEvent;
+import org.neo4j.kernel.impl.transaction.log.LogFileFlushEvent;
+import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
+import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.StoreChannelNativeAccessor;
@@ -56,6 +63,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -112,6 +120,10 @@ class EnvelopedLogFilesTest {
     }
 
     private void recreateEnvelopedLogFiles(KernelVersion kernelVersion) {
+        recreateEnvelopedLogFiles(kernelVersion, LogTracers.NULL);
+    }
+
+    private void recreateEnvelopedLogFiles(KernelVersion kernelVersion, LogTracers logTracers) {
         var baseFileName = "raft.log";
         var baseFolder = testDirectory.directory("logsFolder");
         var filesHelper = new SequentialFileNameHelper(baseFolder, baseFileName);
@@ -129,7 +141,8 @@ class EnvelopedLogFilesTest {
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
                 new StoreChannelNativeAccessor(
                         fs, NativeAccessProvider.getNativeAccess(), NullLogProvider.getInstance(), s -> {}),
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                logTracers);
     }
 
     @AfterEach
@@ -2034,6 +2047,137 @@ class EnvelopedLogFilesTest {
                 envelopeReadChannel.goToEndOfEntry();
             }
         }
+    }
+
+    private static class RotationInterruptor implements LogTracers {
+        public static final String BLOCK_ROTATION = "Block rotation";
+        private final LogAppendEvent logAppendEvent = new LogAppendEvent() {
+            @Override
+            public void appendedBytes(long bytes) {}
+
+            @Override
+            public void close() {}
+
+            @Override
+            public void setLogRotated(boolean logRotated) {}
+
+            @Override
+            public AppendTransactionEvent beginAppendTransaction(int appendItems) {
+                return null;
+            }
+
+            @Override
+            public LogForceWaitEvent beginLogForceWait() {
+                return null;
+            }
+
+            @Override
+            public LogForceEvent beginLogForce() {
+                return null;
+            }
+
+            @Override
+            public LogRotateEvent beginLogRotate() {
+
+                throw new RuntimeException(BLOCK_ROTATION);
+            }
+        };
+
+        @Override
+        public LogFileCreateEvent createLogFile() {
+            return LogFileCreateEvent.NULL;
+        }
+
+        @Override
+        public void openLogFile(Path filePath) {}
+
+        @Override
+        public void closeLogFile(Path filePath) {}
+
+        @Override
+        public LogAppendEvent logAppend() {
+            return logAppendEvent;
+        }
+
+        @Override
+        public LogFileFlushEvent flushFile() {
+            return LogFileFlushEvent.NULL;
+        }
+
+        @Override
+        public long appendedBytes() {
+            return 0;
+        }
+
+        @Override
+        public long numberOfLogRotations() {
+            return 0;
+        }
+
+        @Override
+        public long logRotationAccumulatedTotalTimeMillis() {
+            return 0;
+        }
+
+        @Override
+        public long lastLogRotationTimeMillis() {
+            return 0;
+        }
+
+        @Override
+        public long numberOfFlushes() {
+            return 0;
+        }
+
+        @Override
+        public long lastTransactionLogAppendBatch() {
+            return 0;
+        }
+
+        @Override
+        public long batchesAppended() {
+            return 0;
+        }
+
+        @Override
+        public long rolledbackBatches() {
+            return 0;
+        }
+
+        @Override
+        public long rolledbackBatchedTransactions() {
+            return 0;
+        }
+    }
+
+    @Test
+    void adversarialFileTest() throws Exception {
+        envelopedLogFiles.initialise();
+
+        // Create data that overflows into new file
+        var largeData = new byte[segmentBlockSize];
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8));
+        while (mirroringRepository.latestVersion() < 1) {
+            writeData(writeChannel, largeData);
+        }
+        envelopedLogFiles.close();
+        // clip end to make incomplete entry in file
+        try (var truncator = mirroringRepository.createWriteChannel(1L)) {
+            truncator.channel().truncate(segmentBlockSize + HEADER_SIZE);
+        }
+        // restart to truncate and roll due to broken last entry
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
+        long index = envelopedLogFiles.initialise();
+        envelopedLogFiles.close();
+        // recreate again to do an interrupted truncate before rotation leaving the final empty file stranded
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION, new RotationInterruptor());
+        envelopedLogFiles.initialise();
+        assertThatThrownBy(() -> envelopedLogFiles.truncate(index)).hasMessage(RotationInterruptor.BLOCK_ROTATION);
+        envelopedLogFiles.close();
+        // recreate again
+        recreateEnvelopedLogFiles(LatestVersions.LATEST_KERNEL_VERSION);
+        envelopedLogFiles.initialise();
     }
 
     private byte[][] shuffledMessages(byte[] messageOne, byte[] messageTwo, byte[] messageThree, byte[] messageFour) {
