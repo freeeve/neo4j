@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection.LabelAndRelTypeInfo
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
-import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.macros.AssertMacros3
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes.EffectiveCardinalities.MISSING
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.CachedPropertiesPerPlan
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
@@ -83,9 +83,9 @@ case class PlanningAttributes(
   labelAndRelTypeInfos: LabelAndRelTypeInfos,
   cachedPropertiesPerPlan: CachedPropertiesPerPlan
 ) {
-  private val attributes = productIterator.asInstanceOf[Iterator[Attribute[LogicalPlan, _]]].toSeq
+  private val attributes = productIterator.asInstanceOf[Iterator[Attribute[LogicalPlan, ?]]].toSeq
 
-  def asAttributes(idGen: IdGen): Attributes[LogicalPlan] = Attributes[LogicalPlan](idGen, attributes: _*)
+  def asAttributes(idGen: IdGen): Attributes[LogicalPlan] = Attributes[LogicalPlan](idGen, attributes*)
 }
 
 /**
@@ -175,7 +175,7 @@ object ImmutablePlanningAttributes {
     private val orders: Map[Int, ProvidedOrder],
     override val size: Int
   ) extends ImmutablePlanningAttribute[ProvidedOrder] {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(size > orders.keySet.maxOption.getOrElse(-1))
+    AssertMacros3.checkOnlyWhenAssertionsAreEnabled(size > orders.keySet.maxOption.getOrElse(-1))
     override def isDefinedAt(id: Id): Boolean = id.x < size && !orders.get(id.x).contains(null)
     override def get(id: Id): ProvidedOrder = orders.getOrElse(id.x, ProvidedOrder.empty)
 

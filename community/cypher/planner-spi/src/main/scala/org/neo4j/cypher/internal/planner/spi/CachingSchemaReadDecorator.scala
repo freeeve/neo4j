@@ -45,11 +45,11 @@ import java.util.function
 case class CachingSchemaReadDecorator(delegate: SchemaRead) extends SchemaRead {
 
   private val cachedIndexState: IndexDescriptor => InternalIndexState = CachedFunction {
-    index: IndexDescriptor => delegate.indexGetStateNonLocking(index)
+    (index: IndexDescriptor) => delegate.indexGetStateNonLocking(index)
   }
 
   private val cachedIndexSample: IndexDescriptor => IndexSample = CachedFunction {
-    index: IndexDescriptor => delegate.indexSample(index)
+    (index: IndexDescriptor) => delegate.indexSample(index)
   }
 
   override def indexForSchemaNonTransactional(schema: SchemaDescriptor): util.Iterator[IndexDescriptor] =

@@ -15,6 +15,7 @@ Apache Software License, Version 2.0
   Jettison
   Scala Reflect
   scala-collection-contrib
+  scala3-library-bootstrapped
 ------------------------------------------------------------------------------
 
                                  Apache License
@@ -400,6 +401,7 @@ This Agreement is governed by the laws of the State of New York and the intellec
 ------------------------------------------------------------------------------
 MIT License
   sourcecode_2.13
+  sourcecode_3
 ------------------------------------------------------------------------------
 
 The MIT License

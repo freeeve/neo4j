@@ -289,6 +289,10 @@
       <artifactId>scala-library</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-library_3</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.scalatestplus</groupId>
       <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
     </dependency>

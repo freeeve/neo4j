@@ -24,6 +24,7 @@
   <properties>
     <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.cypher.internal.planner.spi</moduleName>
+    <scala.binary.version>3</scala.binary.version>
   </properties>
 
   <dependencies>
@@ -55,6 +56,11 @@
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher-logical-plans</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-cypher-macros-scala3</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -112,11 +118,11 @@
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
     </dependency>
-
     <dependency>
       <groupId>org.scala-lang</groupId>
-      <artifactId>scala-reflect</artifactId>
+      <artifactId>scala3-library_3</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
@@ -124,7 +130,7 @@
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-test-util</artifactId>
+      <artifactId>neo4j-test-util-scala3</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -153,6 +159,56 @@
     </dependency>
 
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>${scala-maven-plugin.version}</version>
+
+        <configuration>
+          <scalaVersion>${scala3.version}</scalaVersion>
+          <scalaCompatVersion>3</scalaCompatVersion>
+          <recompileMode>${scala.plugin.recompileMode}</recompileMode>
+          <args combine.self="override" />
+          <jvmArgs>
+            <jvmArg>-Xms256m</jvmArg>
+            <jvmArg>-Xmx1024m</jvmArg>
+            <jvmArg>-Xss4M</jvmArg>
+          </jvmArgs>
+          <secondaryCacheDir>${java.io.tmpdir}</secondaryCacheDir>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <configuration>
+          <scala>
+            <scalafmt>
+              <scalaMajorVersion>2.13</scalaMajorVersion>
+              <file>${maven.multiModuleProjectDirectory}/public/build-resources/scalafmt3.conf</file>
+            </scalafmt>
+          </scala>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <configuration>
+              <ignoredUnusedDeclaredDependencies>
+                <!-- Scala 3 inline macros are inlined at compile time, leaving no bytecode reference -->
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros-scala3</ignoredUnusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
   <profiles>
     <profile>

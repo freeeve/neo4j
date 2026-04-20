@@ -23,9 +23,9 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardina
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.EffectiveCardinality
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class PlanningAttributesTest extends CypherFunSuite {
+class PlanningAttributesTest extends CypherFunSuite3 {
 
   test("effective cardinality to mutable and back") {
     assertImmutableIsConsistent()
