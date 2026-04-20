@@ -21,6 +21,7 @@
   </scm>
 
   <properties>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.cypher.internal.spec.suite.tools</moduleName>
   </properties>
 
@@ -54,6 +55,16 @@
   <dependencies>
 
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
       <version>7.0.0</version>
@@ -63,6 +74,21 @@
       <groupId>com.lihaoyi</groupId>
       <artifactId>fastparse_${scala.binary.version}</artifactId>
       <version>3.1.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>sourcecode_2.13</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-core</artifactId>
     </dependency>
 
     <dependency>
@@ -78,6 +104,11 @@
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-scala_${scala.binary.version}</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>datatable</artifactId>
     </dependency>
 
     <dependency>
@@ -98,6 +129,11 @@
     </dependency>
 
     <dependency>
+      <groupId>net.javacrumbs.json-unit</groupId>
+      <artifactId>json-unit-core</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>compile</scope>
@@ -107,6 +143,16 @@
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.collections</groupId>
+      <artifactId>eclipse-collections</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.collections</groupId>
+      <artifactId>eclipse-collections-api</artifactId>
     </dependency>
 
     <dependency>
@@ -121,7 +167,19 @@
 
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>log-test-utils</artifactId>
+      <artifactId>cypher-parser-ast-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>cypher-parser-factory</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-ast</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -131,11 +189,29 @@
       <version>${project.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-configuration</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- neo4j testing -->
 
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-cypher-config</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -153,22 +229,68 @@
 
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-cypher-planner</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher-testing</artifactId>
       <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
 
-    <!-- neo4j -->
-
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-exceptions</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-expressions</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-gql-status</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-graphdb-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-io</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-kernel</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-kernel-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-procedure-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-random-values</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-resource</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -186,10 +308,33 @@
     </dependency>
 
     <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-values</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j.bolt</groupId>
+      <artifactId>neo4j-bolt-connection</artifactId>
+      <version>${neo4j.bolt.connection.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.neo4j.community</groupId>
       <artifactId>it-test-support</artifactId>
       <version>${project.version}</version>
       <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
     </dependency>
 
     <!-- scala -->
@@ -197,6 +342,11 @@
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.scalactic</groupId>
+      <artifactId>scalactic_${scala.binary.version}</artifactId>
     </dependency>
 
     <dependency>
@@ -217,6 +367,37 @@
           <execution>
             <id>ban-test-dependencies-in-compile</id>
             <phase>none</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredUnusedDeclaredDependencies>
+                <!-- String constants from Constants.* are used in .scala files are not being
+                 detected by the analyzer -->
+                <ignoredUnusedDeclaredDependency>io.cucumber:cucumber-junit-platform-engine</ignoredUnusedDeclaredDependency>
+                <!-- Required for Scala compilation: Guice's Provider<T> extends jakarta.inject.Provider<T>,
+                  so the Scala compiler needs jakarta.inject on the classpath -->
+                <ignoredUnusedDeclaredDependency>jakarta.inject:jakarta.inject-api</ignoredUnusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+              <ignoredNonTestScopedDependencies>
+                <!-- This module is a test-utility library; compile scope is intentionally used so
+                     downstream test modules receive these transitively without re-declaring -->
+                <ignoredNonTestScopedDependency>org.neo4j:neo4j-test-util</ignoredNonTestScopedDependency>
+                <!-- apiguardian-api is a transitive compile dependency of junit-jupiter;
+                    not used directly but compile scope required for downstream compatibility -->
+                <ignoredNonTestScopedDependency>org.apiguardian:apiguardian-api</ignoredNonTestScopedDependency>
+              </ignoredNonTestScopedDependencies>
+            </configuration>
           </execution>
         </executions>
       </plugin>

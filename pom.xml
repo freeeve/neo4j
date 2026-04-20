@@ -126,6 +126,7 @@
     <jdk25.custom.options />
     <jersey.version>2.46</jersey.version>
     <jetty.version>12.1.8</jetty.version>
+    <json-unit.version>5.1.1</json-unit.version>
     <json4s.version>4.1.0</json4s.version>
     <jsr305.version>3.0.2</jsr305.version>
     <junit.version>6.0.3</junit.version>
@@ -143,7 +144,7 @@
     <metrics.version>4.2.38</metrics.version>
     <mockito.version>5.23.0</mockito.version>
     <neo4j-java-driver.version>6.0.5</neo4j-java-driver.version>
-    <neo4j.bolt.connection.version>11.0.0</neo4j.bolt.connection.version>
+    <neo4j.bolt.connection.version>11.0.1</neo4j.bolt.connection.version>
     <!--
      - Please note that when updating this dependency (i.e. due to a security vulnerability or bug) that the corresponding driver dependency also
      - needs updating.
@@ -588,7 +589,12 @@
       <dependency>
         <groupId>net.javacrumbs.json-unit</groupId>
         <artifactId>json-unit-assertj</artifactId>
-        <version>5.1.1</version>
+        <version>${json-unit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.javacrumbs.json-unit</groupId>
+        <artifactId>json-unit-core</artifactId>
+        <version>${json-unit.version}</version>
       </dependency>
 
       <dependency>
