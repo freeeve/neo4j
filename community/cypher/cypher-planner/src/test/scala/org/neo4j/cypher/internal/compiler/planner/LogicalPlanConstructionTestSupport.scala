@@ -98,4 +98,7 @@ trait LogicalPlanConstructionTestSupport {
 
   def propReadSetConflict(prop: String, id1: Int, id2: Int): EagernessReason.ReasonWithConflict =
     EagernessReason.PropertyReadSetConflict(propName(prop)).withConflict(EagernessReason.Conflict(Id(id1), Id(id2)))
+
+  def readDeleteConflict(entity: String, id1: Int, id2: Int): EagernessReason.ReasonWithConflict =
+    EagernessReason.ReadDeleteConflict(entity).withConflict(EagernessReason.Conflict(Id(id1), Id(id2)))
 }

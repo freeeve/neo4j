@@ -21,13 +21,12 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
-import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -70,6 +69,7 @@ import java.lang.Boolean.TRUE
 
 class EagerPlanningIntegrationTest extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
+    with LogicalPlanConstructionTestSupport
     with LogicalPlanAstConstructionTestSupport {
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
@@ -522,7 +522,12 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
 
     val query =
-      "MATCH (a:A), (c:C) MERGE (a)-[:BAR]->(b:B) WITH c MATCH (c) WHERE (c)-[:BAR]->() RETURN count(*)"
+      """MATCH (a:A), (c:C)
+        |MERGE (a)-[:BAR]->(b:B)
+        |WITH c
+        |MATCH (c)
+        |  WHERE (c)-[:BAR]->()
+        |RETURN count(*)""".stripMargin
 
     val plan = planner.plan(query)
 
@@ -531,7 +536,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`count(*)`")
         .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
         .filter(
-          HasDegreeGreaterThan(v"c", Some(relTypeName("BAR")), OUTGOING, literalInt(0))(InputPosition.NONE),
+          hasDegreeGreater("c", "BAR", OUTGOING, literalInt(0)),
           assertIsNode("c")
         )
         .eager(ListSet(TypeReadSetConflict(relTypeName("BAR")).withConflict(Conflict(Id(5), Id(2)))))
@@ -577,7 +582,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .produceResults("`count(*)`")
         .aggregation(Seq(), Seq("count(*) AS `count(*)`"))
         .filter(
-          HasDegreeGreaterThan(v"c", None, OUTGOING, literalInt(0))(InputPosition.NONE),
+          hasDegreeGreater("c", OUTGOING, literalInt(0)),
           assertIsNode("c")
         )
         .eager(ListSet(TypeReadSetConflict(relTypeName("BAR")).withConflict(Conflict(Id(5), Id(2)))))
@@ -1240,9 +1245,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query)
 
-    val existsPredicate =
-      HasDegreeGreaterThan(v"resource", Some(relTypeName("DEPENDS_ON")), OUTGOING, literalInt(0))(InputPosition.NONE)
-
     plan should equal(
       planner.planBuilder()
         .produceResults()
@@ -1251,7 +1253,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .eager(ListSet(
           ReadDeleteConflict("anon_3").withConflict(Conflict(Id(2), Id(4)))
         ))
-        .filter(existsPredicate)
+        .filter(hasDegreeGreater("resource", "DEPENDS_ON", OUTGOING, literalInt(0)))
         .nodeByLabelScan("resource", "Resource", IndexOrderNone)
         .build()
     )
@@ -1271,15 +1273,12 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query)
 
-    val existsPredicate =
-      HasDegreeGreaterThan(v"resource", Some(relTypeName("DEPENDS_ON")), OUTGOING, literalInt(0))(InputPosition.NONE)
-
     plan should equal(
       planner.planBuilder()
         .produceResults()
         .emptyResult()
         .deleteNode("resource")
-        .filter(existsPredicate)
+        .filter(hasDegreeGreater("resource", "DEPENDS_ON", OUTGOING, literalInt(0)))
         .nodeByLabelScan("resource", "Resource", IndexOrderNone)
         .build()
     )
@@ -3042,7 +3041,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
-  ignore("An eager should not be inserted if the return type is a List which references a non overlapping node") {
+  test("An eager should not be inserted for property read-write, if the nodes do not overlap - but is") {
     val planner =
       plannerBuilder()
         .setAllNodesCardinality(3)
@@ -3051,23 +3050,24 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
     val query =
       """
-        |UNWIND range(1, 3) as i
         |MATCH (n:B), (m:!B)
-        |SET n.prop = i
-        |RETURN [m] as z
+        |SET n.prop = 42
+        |RETURN m.prop as prop
         |""".stripMargin
 
     val plan = planner.plan(query).stripProduceResults
     plan should equal(
       planner.subPlanBuilder()
-        .projection("[m] AS z")
-        .setNodeProperty("n", "prop", "i")
-        .apply()
-        .|.nodeByLabelScan("n", "B", IndexOrderNone, "i")
-        .unwind("range(1, 3) AS i")
-        .argument()
+        .projection("m.prop AS prop")
+        // This is an unnecessary eager since we can prove that n and m cannot overlap.
+        .eager(ListSet(propReadSetConflict("prop", 3, 1)))
+        .setNodeProperty("n", "prop", "42")
+        .cartesianProduct()
+        .|.filter("NOT m:B")
+        .|.allNodeScan("m")
+        .nodeByLabelScan("n", "B", IndexOrderNone)
         .build()
-    )
+    )(SymmetricalLogicalPlanEquality)
   }
 
   test("An eager should be inserted if the return type is a map since it could contain a reference to a relationship") {
@@ -3198,14 +3198,15 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .setAllNodesCardinality(1000)
         .build()
 
-    val query =
-      """LOAD CSV WITH HEADERS FROM 'https://people.sc.fsu.edu/~jburkardt/data/csv/deniro.csv' AS row
+    val query = {
+      """LOAD CSV WITH HEADERS FROM $url AS row
         |CALL (row) {
         |  CREATE (:Movie {title: row.` "Title"`, year: row.Year, score: row.` "Score"`})
         |} IN TRANSACTIONS OF 5 ROWS
         |  ON ERROR RETRY THEN CONTINUE
         |  REPORT STATUS AS status
         |RETURN row, status.transactionId AS tx, status.errorMessage AS msg""".stripMargin
+    }
 
     val plan = planner.plan(query)
 
@@ -3220,9 +3221,37 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           properties = Some("""{title: row.` "Title"`, year: row.Year, score: row.` "Score"`}""")
         ))
         .|.argument("row")
-        .loadCSV("'https://people.sc.fsu.edu/~jburkardt/data/csv/deniro.csv'", "row", HasHeaders, None)
+        .loadCSV("$url", "row", HasHeaders, None)
         .argument()
         .build()
     )
   }
+
+  test(
+    "should not plan eager when deleting a relationship expanded from a distinct source node"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("N", 100)
+      .setRelationshipCardinality("()-[:T]->()", 200)
+      .setRelationshipCardinality("(:N)-[:T]->()", 200)
+      .build()
+
+    val plan = planner.plan(
+      """MATCH (n:N)
+        |MATCH (n)-[r:T]->()
+        |DELETE r""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults()
+        .emptyResult()
+        .deleteRelationship("r")
+        .expandAll("(n)-[r:T]->()")
+        .nodeByLabelScan("n", "N", IndexOrderNone)
+        .build()
+    )
+  }
+
 }

@@ -2690,7 +2690,7 @@ case class Expand(
     extends LogicalUnaryPlan(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeRelName ++ maybeTo
-  override val distinctness: Distinctness = NotDistinct
+  override val distinctness: Distinctness = Distinctness.distinctColumnsOfExpand(source, from, dir, maybeRelName)
 
   def to: LogicalVariable = LogicalPlan.safeGet(maybeTo)
   def relName: LogicalVariable = safeGet(maybeRelName)

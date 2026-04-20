@@ -650,7 +650,7 @@ trait AstConstructionTestSupport {
     node: String,
     direction: SemanticDirection,
     degree: Expression
-  ) =
+  ): HasDegreeGreaterThan =
     HasDegreeGreaterThan(
       varFor(node),
       None,
@@ -663,7 +663,7 @@ trait AstConstructionTestSupport {
     relType: String,
     direction: SemanticDirection,
     degree: Expression
-  ) =
+  ): HasDegreeGreaterThan =
     HasDegreeGreaterThan(
       varFor(node),
       Some(relTypeName(relType)),
@@ -676,7 +676,7 @@ trait AstConstructionTestSupport {
     relType: String,
     direction: SemanticDirection,
     degree: Expression
-  ) =
+  ): HasDegreeLessThan =
     HasDegreeLessThan(
       varFor(node),
       Some(relTypeName(relType)),
