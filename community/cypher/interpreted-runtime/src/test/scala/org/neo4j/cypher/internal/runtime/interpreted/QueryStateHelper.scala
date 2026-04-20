@@ -63,11 +63,14 @@ import org.neo4j.monitoring.Monitors
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.CoordinateReferenceSystem
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
-import org.scalatestplus.mockito.MockitoSugar
 
 import scala.collection.mutable.ArrayBuffer
 
-object QueryStateHelper extends MockitoSugar {
+object QueryStateHelper {
+
+  private def mock[T](implicit ct: scala.reflect.ClassTag[T]): T =
+    Mockito.mock(ct.runtimeClass.asInstanceOf[Class[T]])
+
   def empty: QueryState = emptyWith()
 
   def emptyWith(
@@ -163,7 +166,7 @@ object QueryStateHelper extends MockitoSugar {
   def countStats(q: QueryState): QueryState = q.withQueryContext(query = new UpdateCountingQueryContext(q.query))
 
   def emptyWithValueSerialization: QueryState = {
-    val context = mock[QueryContext](Mockito.RETURNS_DEEP_STUBS)
+    val context = Mockito.mock(classOf[QueryContext], Mockito.RETURNS_DEEP_STUBS)
     Mockito.when(context.asObject(ArgumentMatchers.any())).thenAnswer((invocationOnMock: InvocationOnMock) =>
       toObject(invocationOnMock.getArgument(0))
     )
@@ -171,7 +174,7 @@ object QueryStateHelper extends MockitoSugar {
   }
 
   def emptyWithResourceManager(resourceManager: ResourceManager): QueryState = {
-    val context = mock[QueryContext](Mockito.RETURNS_DEEP_STUBS)
+    val context = Mockito.mock(classOf[QueryContext], Mockito.RETURNS_DEEP_STUBS)
     Mockito.when(context.resources).thenReturn(resourceManager)
     emptyWith(query = context)
   }

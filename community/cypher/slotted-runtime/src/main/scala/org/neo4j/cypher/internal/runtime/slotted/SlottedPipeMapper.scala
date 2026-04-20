@@ -176,7 +176,7 @@ import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
-import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
+import org.neo4j.cypher.internal.macros.AssertMacros3.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.physicalplanning.LongSlot
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlan
 import org.neo4j.cypher.internal.physicalplanning.RefSlot
@@ -1234,7 +1234,7 @@ class SlottedPipeMapper(
           removeOtherProps
         ))
 
-      case other => throw new IllegalStateException(s"Cannot merge with $other")
+      case null => throw new IllegalStateException("Cannot merge with null")
     }
 
     val pipe = plan match {
@@ -2432,17 +2432,18 @@ class SlottedPipeMapper(
     def checkSharedSlots(slots: Seq[Slot], expectedSlots: Int): Boolean = {
       val sorted = slots.sortBy(_.offset)
       var prevOffset = -1
-      for (slot <- sorted) {
+      var valid = true
+      for (slot <- sorted if valid) {
         if (
           slot.offset == prevOffset || // if we have aliases for the same slot, we will get it again
           slot.offset == prevOffset + 1
         ) { // otherwise we expect the next shared slot to sit at the next offset
           prevOffset = slot.offset
         } else {
-          return false
+          valid = false
         }
       }
-      prevOffset + 1 == expectedSlots
+      valid && prevOffset + 1 == expectedSlots
     }
 
     val longSlotsOk = checkSharedSlots(sharedLongSlots, argumentSize.nLongs)
@@ -2739,7 +2740,7 @@ object SlottedPipeMapper {
   /**
    * A [[UnionSlotMapping]] is a function that actually performs the copying.
    */
-  trait RowMapping extends {
+  trait RowMapping {
     def mapRows(incoming: ReadableRow, outgoing: CypherRow, state: QueryState): Unit
   }
 

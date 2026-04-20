@@ -49,12 +49,12 @@ class SlottedOrderedGroupingAggTable(
 
   override def close(): Unit = {
     currentGroupKey = null.asInstanceOf[orderedGroupingColumns.KeyType]
-    super.close()
+    super[SlottedGroupingAggTable].close()
   }
 
   override def clear(): Unit = {
     currentGroupKey = null.asInstanceOf[orderedGroupingColumns.KeyType]
-    super.clear()
+    super[SlottedGroupingAggTable].clear()
   }
 
   override def isSameChunk(first: CypherRow, current: CypherRow): Boolean = {

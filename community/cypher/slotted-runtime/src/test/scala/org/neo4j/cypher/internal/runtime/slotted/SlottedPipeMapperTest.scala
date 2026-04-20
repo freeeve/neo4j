@@ -127,14 +127,14 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.longValue
 import org.neo4j.values.virtual.VirtualValues
 
 //noinspection NameBooleanParameters
-class SlottedPipeMapperTest extends CypherFunSuite with AstConstructionTestSupport with FakeEntityTestSupport {
+class SlottedPipeMapperTest extends CypherFunSuite3 with AstConstructionTestSupport with FakeEntityTestSupport {
   implicit val idGen: IdGen = new SequentialIdGen()
   implicit private val table: CachableSemanticTable = CachableSemanticTable(SemanticTable())
 
@@ -1150,7 +1150,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with AstConstructionTestSuppo
         SlotMapping(fromOffset = 0, toOffset = 1, fromIsLongSlot = false, toIsLongSlot = true)
       )
     )
-    mappings.cachedPropertyMappings shouldBe Array.empty
+    mappings.cachedPropertyMappings shouldBe Array.empty[(Int, Int)]
 
     val reversedMapping = SlottedPipeMapper.computeSlotMappings(to, Size.apply(1, 0), from)
     reversedMapping.slotMapping shouldBe (
@@ -1158,7 +1158,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with AstConstructionTestSuppo
         SlotMapping(fromOffset = 1, toOffset = 0, fromIsLongSlot = true, toIsLongSlot = false)
       )
     )
-    reversedMapping.cachedPropertyMappings shouldBe Array.empty
+    reversedMapping.cachedPropertyMappings shouldBe Array.empty[(Int, Int)]
   }
 
   test("should map between long and ref slots") {

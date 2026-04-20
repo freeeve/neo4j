@@ -26,9 +26,9 @@ import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.SlotWithKeyA
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.VariableSlotKey
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-trait SlottedPipeTestHelper extends CypherFunSuite {
+trait SlottedPipeTestHelper extends CypherFunSuite3 {
 
   def testableResult(rows: ClosingIterator[CypherRow], slots: SlotConfiguration): List[Map[String, Any]] = {
     rows

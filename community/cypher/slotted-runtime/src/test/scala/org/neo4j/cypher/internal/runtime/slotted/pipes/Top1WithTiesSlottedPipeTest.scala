@@ -23,9 +23,9 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.list
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.singleColumnTop1WithTiesWithInput
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.twoColumnTop1WithTiesWithInput
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class Top1WithTiesSlottedPipeTest extends CypherFunSuite {
+class Top1WithTiesSlottedPipeTest extends CypherFunSuite3 {
 
   test("empty input gives empty output") {
     val result = singleColumnTop1WithTiesWithInput(List(), orderBy = AscendingOrder)

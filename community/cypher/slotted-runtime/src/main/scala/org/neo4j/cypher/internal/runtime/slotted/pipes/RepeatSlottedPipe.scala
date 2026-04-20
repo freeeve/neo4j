@@ -389,7 +389,7 @@ case class RepeatSlottedPipe(
   ): ClosingIterator[CypherRow] = {
 
     val tracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
-    input.flatMap { outerRow: ReadableRow =>
+    input.flatMap { (outerRow: ReadableRow) =>
       def newResultRowWithEmptyGroups(innerEndNode: Long): SlottedRow = {
         val resultRow = SlottedRow(slots)
         resultRow.copyFrom(outerRow, argumentSize.nLongs, argumentSize.nReferences)
