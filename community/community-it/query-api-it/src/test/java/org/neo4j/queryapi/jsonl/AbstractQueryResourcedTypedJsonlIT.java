@@ -110,6 +110,7 @@ public abstract class AbstractQueryResourcedTypedJsonlIT {
         var response = testClient.autoCommitJsonl(QueryRequest.newBuilder()
                 .statement("RETURN datetime('2015-06-24T12:50:35.556+0100') AS theOffsetDateTime, "
                         + "datetime('2015-11-21T21:40:32.142[Antarctica/Troll]') AS theZonedDateTime,"
+                        + "datetime('2025-10-26T02:30:00+01:00[Europe/Stockholm]') AS theZonedDateTimeOnDSTSwitch,"
                         + "localdatetime('2015185T19:32:24') AS theLocalDateTime,"
                         + "date('+2015-W13-4') AS theDate,"
                         + "time('125035.556+0100') AS theTime,"
@@ -121,6 +122,7 @@ public abstract class AbstractQueryResourcedTypedJsonlIT {
                 fields(
                         "theOffsetDateTime",
                         "theZonedDateTime",
+                        "theZonedDateTimeOnDSTSwitch",
                         "theLocalDateTime",
                         "theDate",
                         "theTime",
@@ -128,6 +130,7 @@ public abstract class AbstractQueryResourcedTypedJsonlIT {
                 recordValues(
                         hasTypeAndValue("OffsetDateTime", "2015-06-24T12:50:35.556+01:00"),
                         hasTypeAndValue("ZonedDateTime", "2015-11-21T21:40:32.142Z[Antarctica/Troll]"),
+                        hasTypeAndValue("ZonedDateTime", "2025-10-26T02:30:00+01:00[Europe/Stockholm]"),
                         hasTypeAndValue("LocalDateTime", "2015-07-04T19:32:24"),
                         hasTypeAndValue("Date", "2015-03-26"),
                         hasTypeAndValue("Time", "12:50:35.556+01:00"),
