@@ -26,7 +26,8 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 
 class QueryExpressionStringifier(
   exprStringifier: ExpressionStringifier,
-  valueStringifier: Option[Expression => String] = None
+  valueStringifier: Option[Expression => String] = None,
+  compositeSeparator: String = ", "
 ) {
 
   def apply(valueExpr: QueryExpression[Expression], propNames: Seq[String]): String =
@@ -44,8 +45,8 @@ class QueryExpressionStringifier(
       valueStringifier.getOrElse((e: Expression) => exprStringifier(e))(expression)
 
     def propRef(propName: String): String = entity match {
-      case Some(v) => s"${exprStringifier(v)}.$propName"
-      case None    => propName
+      case Some(v) => s"${exprStringifier(v)}.${exprStringifier.backtick(propName)}"
+      case None    => exprStringifier.backtick(propName)
     }
 
     valueExpr match {
@@ -65,13 +66,25 @@ class QueryExpressionStringifier(
             s"${propRef(propNames.head)} STARTS WITH ${stringify(expression)}"
           case InequalitySeekRangeWrapper(range) =>
             rangeStr(range, propRef(propNames.head), stringify).toString
-          case _ => ""
+          case PointBoundingBoxSeekRangeWrapper(PointBoundingBoxRange(lowerLeft, upperRight)) =>
+            val llStr = stringify(lowerLeft)
+            val urStr = stringify(upperRight)
+            s"point.withinBBox(${propRef(propNames.head)}, $llStr, $urStr)"
+          case PointDistanceSeekRangeWrapper(PointDistanceRange(point, distance, inclusive)) =>
+            val pointStr = stringify(point)
+            val distanceStr = stringify(distance)
+            val operator = if (inclusive) "<=" else "<"
+            s"point.distance(${propRef(propNames.head)}, $pointStr) $operator $distanceStr"
+          case other =>
+            throw new IllegalStateException(s"Unknown range expression: $other")
         }
       case qe: CompositeQueryExpression[Expression] =>
         qe.inner.zip(propNames).map { case (innerQe, propName) =>
           apply(innerQe, entity, Seq(propName))
-        }.mkString(", ")
-      case _ => ""
+        }.mkString(compositeSeparator)
+      case AllQueryExpression          => propRef(propNames.head)
+      case NonExistenceQueryExpression => s"NOT ${propRef(propNames.head)}"
+      case other                       => throw new IllegalStateException(s"Unknown query expression: $other")
     }
   }
 

@@ -291,4 +291,89 @@ class QueryExpressionStringifierTest extends CypherFunSuite with AstConstruction
     val expr = SingleQueryExpression(literalInt(42))
     defaultStringifier(expr, varFor("my node"), Seq("prop")) should equal("`my node`.prop = 42")
   }
+
+  // PointBoundingBoxSeekRangeWrapper tests
+  test("should stringify PointBoundingBoxSeekRangeWrapper without entity") {
+    val expr = RangeQueryExpression(PointBoundingBoxSeekRangeWrapper(
+      PointBoundingBoxRange(parameter("lowerLeft", CTAny), parameter("upperRight", CTAny))
+    )(pos))
+    defaultStringifier(expr, Seq("prop")) should equal("point.withinBBox(prop, $lowerLeft, $upperRight)")
+  }
+
+  test("should stringify PointBoundingBoxSeekRangeWrapper with entity") {
+    val expr = RangeQueryExpression(PointBoundingBoxSeekRangeWrapper(
+      PointBoundingBoxRange(parameter("lowerLeft", CTAny), parameter("upperRight", CTAny))
+    )(pos))
+    defaultStringifier(expr, varFor("n"), Seq("prop")) should equal("point.withinBBox(n.prop, $lowerLeft, $upperRight)")
+  }
+
+  // PointDistanceSeekRangeWrapper tests
+  test("should stringify PointDistanceSeekRangeWrapper inclusive without entity") {
+    val expr = RangeQueryExpression(PointDistanceSeekRangeWrapper(
+      PointDistanceRange(parameter("myPoint", CTAny), parameter("myDistance", CTAny), inclusive = true)
+    )(pos))
+    defaultStringifier(expr, Seq("prop")) should equal("point.distance(prop, $myPoint) <= $myDistance")
+  }
+
+  test("should stringify PointDistanceSeekRangeWrapper exclusive without entity") {
+    val expr = RangeQueryExpression(PointDistanceSeekRangeWrapper(
+      PointDistanceRange(parameter("myPoint", CTAny), parameter("myDistance", CTAny), inclusive = false)
+    )(pos))
+    defaultStringifier(expr, Seq("prop")) should equal("point.distance(prop, $myPoint) < $myDistance")
+  }
+
+  test("should stringify PointDistanceSeekRangeWrapper with entity") {
+    val expr = RangeQueryExpression(PointDistanceSeekRangeWrapper(
+      PointDistanceRange(parameter("myPoint", CTAny), parameter("myDistance", CTAny), inclusive = true)
+    )(pos))
+    defaultStringifier(expr, varFor("n"), Seq("prop")) should equal("point.distance(n.prop, $myPoint) <= $myDistance")
+  }
+
+  // AllQueryExpression and NonExistenceQueryExpression tests
+  test("should stringify AllQueryExpression standalone and in composite") {
+    defaultStringifier(AllQueryExpression, Seq("prop")) should equal("prop")
+    val composite = CompositeQueryExpression(Seq(
+      SingleQueryExpression(literalInt(1)),
+      AllQueryExpression
+    ))
+    defaultStringifier(composite, Seq("prop1", "prop2")) should equal("prop1 = 1, prop2")
+  }
+
+  test("should stringify NonExistenceQueryExpression standalone and in composite") {
+    defaultStringifier(NonExistenceQueryExpression, Seq("prop")) should equal("NOT prop")
+    val composite = CompositeQueryExpression(Seq(
+      SingleQueryExpression(literalInt(1)),
+      NonExistenceQueryExpression
+    ))
+    defaultStringifier(composite, Seq("prop1", "prop2")) should equal("prop1 = 1, NOT prop2")
+  }
+
+  // Composite separator configuration test
+  test("should stringify CompositeQueryExpression with AND separator") {
+    val andStringifier = new QueryExpressionStringifier(ExpressionStringifier(), compositeSeparator = " AND ")
+    val expr = CompositeQueryExpression(Seq(
+      SingleQueryExpression(literalInt(1)),
+      SingleQueryExpression(literalString("abc"))
+    ))
+    andStringifier(expr, Seq("prop1", "prop2")) should equal("prop1 = 1 AND prop2 = \"abc\"")
+  }
+
+  // Property name backticking tests
+  test("should backtick property names with special characters") {
+    val expr = SingleQueryExpression(literalInt(42))
+    defaultStringifier(expr, Seq("prop")) should equal("prop = 42")
+    defaultStringifier(expr, Seq("prop with spaces")) should equal("`prop with spaces` = 42")
+  }
+
+  test("should backtick property names with entity") {
+    val expr = SingleQueryExpression(literalInt(42))
+    defaultStringifier(expr, varFor("n"), Seq("prop")) should equal("n.prop = 42")
+    defaultStringifier(expr, varFor("n"), Seq("prop with spaces")) should equal("n.`prop with spaces` = 42")
+  }
+
+  // Unhandled range expression test
+  test("should throw for unhandled RangeQueryExpression") {
+    val expr = RangeQueryExpression(literalInt(42))
+    an[IllegalStateException] should be thrownBy defaultStringifier(expr, Seq("prop"))
+  }
 }
