@@ -972,18 +972,6 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>co.unruly</groupId>
-        <artifactId>java-8-matchers</artifactId>
-        <version>1.6</version>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava-testlib</artifactId>
         <version>${guava.version}</version>
