@@ -40,7 +40,9 @@ import static org.neo4j.internal.helpers.progress.ProgressMonitorFactory.NONE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -299,6 +301,65 @@ public class EncodingIdMapperTest {
             // THEN
             verify(collector).collectDuplicateNode("10", 2, globalGroup, null, 0L);
             verifyNoMoreInteractions(collector);
+        }
+    }
+
+    @ParameterizedTest(name = "processors:{0}")
+    @MethodSource("data")
+    public void shouldReportDuplicateLongIdsWithHighRadixShift(int processors) throws KeyCollisionException {
+        // IDs >= 2^47 force radixShift >= 25 in the collision sort. Before the fix,
+        // dataValue() returned eId|COLLISION_BIT, shifting the collision bit into bit 30+ of
+        // the radix, producing an out-of-range rIndex so TrackerInitializer never bucketed the
+        // entry. The tracker slot stayed at the default -1, and partition() called
+        // dataCache.get(-1) -> AIOOBE.
+        long base = 1L << 47;
+        try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, NO_MONITOR, processors)) {
+            IdMapper.Setter setter = mapper.newSetter(0);
+            setter.put(base, 0, globalGroup);
+            setter.put(base + 1, 1, globalGroup);
+            setter.put(base + 2, 2, globalGroup);
+            setter.put(base + 1, 3, globalGroup);
+
+            Collector collector = mock(Collector.class);
+            mapper.prepare(values(base, base + 1, base + 2, base + 1), collector, NONE, LongSets.immutable.empty());
+
+            verify(collector).collectDuplicateNode(base + 1, 3, globalGroup, null, 0L);
+            verifyNoMoreInteractions(collector);
+        }
+    }
+
+    @ParameterizedTest(name = "processors:{0}")
+    @MethodSource("data")
+    public void shouldDetectDuplicateAtPartitionSeam(int processors) throws KeyCollisionException {
+        // With 101 collisions and the default partition size of 100, partitionDuplicateCheck's
+        // seam-extension loop used an off-by-one guard (`toExclusive + 1 < numberOfCollisions`)
+        // that never inspected the final collision entry. That last entry then ended up alone in
+        // a trailing partition with its own SameInputIdDetector, so the duplicate with the
+        // previous partition's last entry was never reported.
+        int count = 101;
+        long value = 42L;
+        Long[] externalIds = new Long[count];
+        Arrays.fill(externalIds, value);
+
+        try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, NO_MONITOR, processors)) {
+            IdMapper.Setter setter = mapper.newSetter(0);
+            for (int i = 0; i < count; i++) {
+                setter.put(externalIds[i], i, globalGroup);
+            }
+
+            List<Long> duplicateActualIds = Collections.synchronizedList(new ArrayList<>());
+            Collector collector = new Collector.Adapter() {
+                @Override
+                public void collectDuplicateNode(
+                        Object id, long actualId, Group group, String source, long lineNumber) {
+                    duplicateActualIds.add(actualId);
+                }
+            };
+            mapper.prepare(values((Object[]) externalIds), collector, NONE, LongSets.immutable.empty());
+
+            assertThat(duplicateActualIds)
+                    .containsExactlyInAnyOrderElementsOf(
+                            Stream.iterate(1L, i -> i + 1).limit(count - 1).toList());
         }
     }
 

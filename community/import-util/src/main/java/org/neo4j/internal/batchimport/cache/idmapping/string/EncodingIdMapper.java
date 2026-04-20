@@ -669,7 +669,11 @@ public class EncodingIdMapper implements IdMapper {
 
             @Override
             public long dataValue(long nodeId) {
-                return dataCache.get(nodeId);
+                // Must clear collision bit so radix matches what preRegisterRadixOf used.
+                // Without this, when radixShift >= 25 the collision bit (bit 56) shifts into
+                // bit 31, producing a negative rIndex that TrackerInitializer never assigns,
+                // leaving tracker slots at -1 and causing AIOOBE in partition().
+                return clearCollision(dataCache.get(nodeId));
             }
         };
 
@@ -743,7 +747,7 @@ public class EncodingIdMapper implements IdMapper {
 
             // Avoid partition right in a seam
             var firstNodeId = collisionNodeIdCache.get5ByteLong(collisionTrackerCache.get(toExclusive - 1), 0);
-            while (toExclusive + 1 < numberOfCollisions) {
+            while (toExclusive < numberOfCollisions) {
                 var nextNodeId = collisionNodeIdCache.get5ByteLong(collisionTrackerCache.get(toExclusive), 0);
                 if (dataCache.get(firstNodeId) != dataCache.get(nextNodeId)
                         || groupOf(firstNodeId) != groupOf(nextNodeId)) {
