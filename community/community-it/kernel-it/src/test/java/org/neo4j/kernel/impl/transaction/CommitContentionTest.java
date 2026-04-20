@@ -24,7 +24,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.kernel.database.NoOpSystemGraphInitializer.noOpSystemGraphInitializer;
 
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +50,7 @@ class CommitContentionTest {
     private final Semaphore semaphore1 = new Semaphore(1);
     private final Semaphore semaphore2 = new Semaphore(1);
     private final AtomicReference<Exception> reference = new AtomicReference<>();
-    private final AtomicBoolean interceptorEnabled = new AtomicBoolean();
+    private final AtomicReference<Thread> firstTransactionThread = new AtomicReference<>();
 
     private GraphDatabaseService db;
     private DatabaseManagementService managementService;
@@ -70,8 +69,6 @@ class CommitContentionTest {
 
     @Test
     void shouldNotContendOnCommitWhenPushingUpdates() throws Exception {
-        interceptorEnabled.set(true);
-
         Thread thread = startFirstTransactionWhichBlocksDuringPushUntilSecondTransactionFinishes();
         runAndFinishSecondTransaction();
         thread.join();
@@ -102,6 +99,7 @@ class CommitContentionTest {
     private Thread startFirstTransactionWhichBlocksDuringPushUntilSecondTransactionFinishes()
             throws InterruptedException {
         Thread thread = new Thread(this::createNode);
+        firstTransactionThread.set(thread);
 
         thread.start();
 
@@ -155,21 +153,15 @@ class CommitContentionTest {
     }
 
     private class SkipTransactionDatabaseStats extends DatabaseTransactionStats {
-        boolean skip;
-
         @Override
         public void transactionFinished(boolean committed, boolean write) {
             super.transactionFinished(committed, write);
 
-            if (committed && interceptorEnabled.get()) {
-                // skip signal and waiting for second transaction
-                if (skip) {
-                    return;
-                }
-                skip = true;
-
+            // Only block for the explicitly designated first-transaction thread. A monitor is created per
+            // database (system + default), so filtering by thread prevents commits on the system database
+            // (e.g. background TopologyGraphDbmsModel updates) from tripping the signal/wait protocol.
+            if (committed && Thread.currentThread() == firstTransactionThread.get()) {
                 signalFirstTransactionStartedPushing();
-
                 waitForSecondTransactionToFinish();
             }
         }
