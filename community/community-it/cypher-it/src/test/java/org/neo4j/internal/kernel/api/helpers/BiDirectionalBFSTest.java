@@ -35,6 +35,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.Predicates;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.Write;
+import org.neo4j.internal.kernel.api.helpers.traversal.shortestloop.EmptyShortestCursor;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
@@ -1120,6 +1121,24 @@ class BiDirectionalBFSTest {
                             pathReference(
                                     new long[] {start, a3, b1, a2, start},
                                     new long[] {a3ToStart, b1ToA3, a2ToB1, startToA2}));
+        }
+    }
+
+    @Test
+    void shouldNotFindPathsAcyclicLoop() throws KernelException {
+        // given
+        try (var tx = kernel.beginTransaction(EXPLICIT, AUTH_DISABLED);
+                var nodeCursor = tx.cursors().allocateNodeCursor(NULL_CONTEXT);
+                var relCursor = tx.cursors().allocateRelationshipTraversalCursor(NULL_CONTEXT)) {
+            Write write = tx.dataWrite();
+            int rel = tx.tokenWrite().relationshipTypeGetOrCreateForName("R");
+            // (a) → (b) → (a) loop exists in the graph
+            long a = write.nodeCreate();
+            long b = write.nodeCreate();
+            write.relationshipCreate(a, rel, b);
+            write.relationshipCreate(b, rel, a);
+            var bfs = EmptyShortestCursor.INSTANCE; // This is what is used for ACYCLIC + source == target
+            assertThat(bfs.shortestPathIterator()).isExhausted(); // No more results despite no calls to next()
         }
     }
 }

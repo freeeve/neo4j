@@ -26,6 +26,7 @@ import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities;
+import org.neo4j.internal.kernel.api.helpers.traversal.shortestloop.EmptyShortestCursor;
 import org.neo4j.internal.kernel.api.helpers.traversal.shortestloop.UndirectedMultiShortestLoopCursor;
 import org.neo4j.internal.kernel.api.helpers.traversal.shortestloop.UndirectedShortestLoopWalkCursor;
 import org.neo4j.internal.kernel.api.helpers.traversal.shortestloop.UndirectedSingleShortestLoopCursor;
@@ -50,79 +51,151 @@ public class ShortestPathBFSFactory {
             boolean stopAsapAtIntersect,
             boolean allowZeroLength,
             boolean needOnlyOnePath,
-            boolean walkTraversalMode,
+            TraversalMode traversalMode,
             ShortestPathBFS oldBfs) {
         if (sourceNodeId == targetNodeId && direction == Direction.BOTH) {
             if (oldBfs != null) {
                 oldBfs.close();
             }
-            if (allowZeroLength) {
-                return new ZeroLengthShortestCursor(sourceNodeId);
-            } else if (walkTraversalMode && needOnlyOnePath) {
-                return new UndirectedSingleShortestLoopWalkCursor(
-                        sourceNodeId,
-                        types,
-                        maxDepth,
-                        read,
-                        nodeCursor,
-                        relCursor,
-                        nodeFilter,
-                        relFilter,
-                        memoryTracker);
-            } else if (walkTraversalMode) {
-                return new UndirectedShortestLoopWalkCursor(
-                        sourceNodeId,
-                        types,
-                        maxDepth,
-                        read,
-                        nodeCursor,
-                        relCursor,
-                        nodeFilter,
-                        relFilter,
-                        memoryTracker);
-            } else if (needOnlyOnePath) {
-                return new UndirectedSingleShortestLoopCursor(
-                        sourceNodeId,
-                        types,
-                        maxDepth,
-                        read,
-                        nodeCursor,
-                        relCursor,
-                        nodeFilter,
-                        relFilter,
-                        memoryTracker);
-            } else {
-                return new UndirectedMultiShortestLoopCursor(
-                        sourceNodeId,
-                        types,
-                        maxDepth,
-                        read,
-                        nodeCursor,
-                        relCursor,
-                        nodeFilter,
-                        relFilter,
-                        memoryTracker);
-            }
-        } else {
-            if (oldBfs != null && oldBfs instanceof BiDirectionalBFS bfs) {
-                bfs.resetForNewRow(sourceNodeId, targetNodeId, nodeCursor, relCursor, nodeFilter, relFilter);
-                return bfs;
-            }
-            return BiDirectionalBFS.newEmptyBiDirectionalBFS(
+            return createLoopCursor(
                     sourceNodeId,
-                    targetNodeId,
                     types,
-                    direction,
                     maxDepth,
-                    stopAsapAtIntersect,
                     read,
                     nodeCursor,
                     relCursor,
                     memoryTracker,
                     nodeFilter,
                     relFilter,
+                    allowZeroLength,
                     needOnlyOnePath,
-                    allowZeroLength);
+                    traversalMode);
+        } else {
+            return createBiDirectionalCursor(
+                    sourceNodeId,
+                    targetNodeId,
+                    types,
+                    direction,
+                    maxDepth,
+                    read,
+                    nodeCursor,
+                    relCursor,
+                    memoryTracker,
+                    nodeFilter,
+                    relFilter,
+                    stopAsapAtIntersect,
+                    allowZeroLength,
+                    needOnlyOnePath,
+                    oldBfs);
         }
+    }
+
+    private static ShortestPathBFS createLoopCursor(
+            long sourceNodeId,
+            int[] types,
+            int maxDepth,
+            Read read,
+            NodeCursor nodeCursor,
+            RelationshipTraversalCursor relCursor,
+            MemoryTracker memoryTracker,
+            LongPredicate nodeFilter,
+            Predicate<RelationshipTraversalEntities> relFilter,
+            boolean allowZeroLength,
+            boolean needOnlyOnePath,
+            TraversalMode traversalMode) {
+        return switch (traversalMode) {
+            case ACYCLIC -> EmptyShortestCursor.INSTANCE;
+            case WALK -> {
+                if (allowZeroLength) {
+                    yield new ZeroLengthShortestCursor(sourceNodeId);
+                } else if (needOnlyOnePath) {
+                    yield new UndirectedSingleShortestLoopWalkCursor(
+                            sourceNodeId,
+                            types,
+                            maxDepth,
+                            read,
+                            nodeCursor,
+                            relCursor,
+                            nodeFilter,
+                            relFilter,
+                            memoryTracker);
+                } else {
+                    yield new UndirectedShortestLoopWalkCursor(
+                            sourceNodeId,
+                            types,
+                            maxDepth,
+                            read,
+                            nodeCursor,
+                            relCursor,
+                            nodeFilter,
+                            relFilter,
+                            memoryTracker);
+                }
+            }
+            case TRAIL -> {
+                if (allowZeroLength) {
+                    yield new ZeroLengthShortestCursor(sourceNodeId);
+                } else if (needOnlyOnePath) {
+                    yield new UndirectedSingleShortestLoopCursor(
+                            sourceNodeId,
+                            types,
+                            maxDepth,
+                            read,
+                            nodeCursor,
+                            relCursor,
+                            nodeFilter,
+                            relFilter,
+                            memoryTracker);
+                } else {
+                    yield new UndirectedMultiShortestLoopCursor(
+                            sourceNodeId,
+                            types,
+                            maxDepth,
+                            read,
+                            nodeCursor,
+                            relCursor,
+                            nodeFilter,
+                            relFilter,
+                            memoryTracker);
+                }
+            }
+        };
+    }
+
+    private static ShortestPathBFS createBiDirectionalCursor(
+            long sourceNodeId,
+            long targetNodeId,
+            int[] types,
+            Direction direction,
+            int maxDepth,
+            Read read,
+            NodeCursor nodeCursor,
+            RelationshipTraversalCursor relCursor,
+            MemoryTracker memoryTracker,
+            LongPredicate nodeFilter,
+            Predicate<RelationshipTraversalEntities> relFilter,
+            boolean stopAsapAtIntersect,
+            boolean allowZeroLength,
+            boolean needOnlyOnePath,
+            ShortestPathBFS oldBfs) {
+        if (oldBfs instanceof BiDirectionalBFS bfs) {
+            bfs.resetForNewRow(sourceNodeId, targetNodeId, nodeCursor, relCursor, nodeFilter, relFilter);
+            return bfs;
+        }
+        return BiDirectionalBFS.newEmptyBiDirectionalBFS(
+                sourceNodeId,
+                targetNodeId,
+                types,
+                direction,
+                maxDepth,
+                stopAsapAtIntersect,
+                read,
+                nodeCursor,
+                relCursor,
+                memoryTracker,
+                nodeFilter,
+                relFilter,
+                needOnlyOnePath,
+                allowZeroLength);
     }
 }

@@ -34,6 +34,7 @@ import org.neo4j.function.Predicates
 import org.neo4j.graphdb.NotFoundException
 import org.neo4j.graphdb.Relationship
 import org.neo4j.internal.kernel.api.helpers.traversal.ShortestPathBFSFactory
+import org.neo4j.internal.kernel.api.helpers.traversal.TraversalMode
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
@@ -95,7 +96,7 @@ case class ShortestPathExpression(
       shortestPathPattern.single,
       shortestPathPattern.allowZeroLength,
       shortestPathPattern.single,
-      false,
+      TraversalMode.TRAIL,
       null
     )
     val shortestPathIterator = bfs.shortestPathIterator()
