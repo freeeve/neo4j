@@ -28,6 +28,7 @@ import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
@@ -200,6 +201,21 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             currentWriteChannel.channel().close();
             currentWriteChannel = null;
         }
+    }
+
+    public void updateWriteChannel(long index, int checksum, long prevIndex, long prevTerm) throws IOException {
+        LogPosition position;
+        try (var reader = this.openReadChannel(index)) {
+            while (reader.entryIndex() != index) {
+                reader.goToNextEntry();
+            }
+
+            position = reader.goToEndOfEntry();
+        }
+
+        this.closeCurrentWriteChannel();
+        this.currentWriteChannel = this.openWriteChannel(position.getLogVersion(), position.getByteOffset());
+        this.appendingChannel = this.envelopedWriteChannel(currentWriteChannel, checksum, prevIndex, prevTerm);
     }
 
     /**

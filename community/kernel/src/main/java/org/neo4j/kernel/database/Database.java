@@ -174,7 +174,6 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.recovery.LogTailExtractor;
 import org.neo4j.kernel.recovery.LoggingLogTailScannerMonitor;
 import org.neo4j.kernel.recovery.Recovery;
-import org.neo4j.kernel.recovery.RecoveryPredicate;
 import org.neo4j.kernel.recovery.RecoveryStartupChecker;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.ReentrantLockService;
@@ -276,7 +275,7 @@ public class Database extends AbstractDatabase {
     private LeaseMonitor leaseMonitor;
     private ChunkedTransactionTracker chunkedTransactionTracker;
     private MultiVersionDatabaseRollbackService multiVersionDatabaseRollbackService;
-    private volatile RecoveryPredicate recoveryPredicate = RecoveryPredicate.ALL;
+    private volatile RecoveryPredicateSupplier recoveryPredicate = RecoveryPredicateSupplier.ALL;
 
     public Database(DatabaseCreationContext context) {
         super(
@@ -465,7 +464,7 @@ public class Database extends AbstractDatabase {
                         ioController,
                         internalLogProvider,
                         tailMetadata)
-                .recoveryPredicate(recoveryPredicate)
+                .recoveryPredicate(recoveryPredicate.get())
                 .monitors(databaseMonitors)
                 .extensionFactories(extensionFactories)
                 .rollbackRegistry(chunkedTransactionTracker)
@@ -718,7 +717,7 @@ public class Database extends AbstractDatabase {
         }
     }
 
-    public void setRecoveryPredicate(RecoveryPredicate recoveryPredicate) {
+    public void setRecoveryPredicate(RecoveryPredicateSupplier recoveryPredicate) {
         this.recoveryPredicate = recoveryPredicate;
     }
 
@@ -765,7 +764,7 @@ public class Database extends AbstractDatabase {
                 .withMonitors(databaseMonitors)
                 .withClock(clock)
                 .withStorageEngineFactory(storageEngineFactory)
-                .withTailReadingMaxPosition(recoveryPredicate.maxPosition())
+                .withTailReadingMaxPosition(recoveryPredicate.get().maxPosition())
                 .build();
     }
 
