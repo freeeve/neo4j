@@ -22,7 +22,6 @@ package org.neo4j.internal.schema;
 import static java.util.Arrays.stream;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.schema.SchemaPatternMatchingType.COMPLETE_ALL_TOKENS;
 
@@ -60,7 +59,7 @@ class SchemaDescriptorLookupSetTest {
         set.matchingDescriptorsForPartialListOfProperties(descriptors, entityTokens(1), properties(2));
 
         // then
-        assertEquals(asSet(expected), descriptors);
+        assertThat(descriptors).isEqualTo(asSet(expected));
     }
 
     @Test
@@ -77,7 +76,7 @@ class SchemaDescriptorLookupSetTest {
         set.matchingDescriptorsForPartialListOfProperties(descriptors, entityTokens(1), properties(2));
 
         // then
-        assertEquals(asSet(expected1, expected2), descriptors);
+        assertThat(descriptors).isEqualTo(asSet(expected1, expected2));
     }
 
     @Test
@@ -96,7 +95,7 @@ class SchemaDescriptorLookupSetTest {
         set.matchingDescriptorsForCompleteListOfProperties(descriptors, entityTokens(1), properties(2, 5, 6));
 
         // then
-        assertEquals(asSet(descriptor3), descriptors);
+        assertThat(descriptors).isEqualTo(asSet(descriptor3));
     }
 
     @Test
@@ -119,7 +118,7 @@ class SchemaDescriptorLookupSetTest {
         set.matchingDescriptors(descriptors, entityTokens(1));
 
         // then
-        assertEquals(asSet(descriptor1, descriptor2, descriptor3), descriptors);
+        assertThat(descriptors).isEqualTo(asSet(descriptor1, descriptor2, descriptor3));
     }
 
     @Test
@@ -205,21 +204,21 @@ class SchemaDescriptorLookupSetTest {
                 // lookup by only entity tokens
                 actual.clear();
                 set.matchingDescriptors(actual, entityTokenIdsInts);
-                assertEquals(expectedDescriptors(all, filterByEntity(entityTokenIdsInts)), actual);
+                assertThat(actual).isEqualTo(expectedDescriptors(all, filterByEntity(entityTokenIdsInts)));
 
                 // lookup by partial property list
                 actual.clear();
                 set.matchingDescriptorsForPartialListOfProperties(actual, entityTokenIdsInts, propertyKeyIds);
-                assertEquals(
-                        expectedDescriptors(all, filterByEntityAndPropertyPartial(entityTokenIdsInts, propertyKeyIds)),
-                        actual);
+                assertThat(actual)
+                        .isEqualTo(expectedDescriptors(
+                                all, filterByEntityAndPropertyPartial(entityTokenIdsInts, propertyKeyIds)));
 
                 // lookup by complete property list
                 actual.clear();
                 set.matchingDescriptorsForCompleteListOfProperties(actual, entityTokenIdsInts, propertyKeyIds);
-                assertEquals(
-                        expectedDescriptors(all, filterByEntityAndPropertyComplete(entityTokenIdsInts, propertyKeyIds)),
-                        actual);
+                assertThat(actual)
+                        .isEqualTo(expectedDescriptors(
+                                all, filterByEntityAndPropertyComplete(entityTokenIdsInts, propertyKeyIds)));
             }
         }
     }

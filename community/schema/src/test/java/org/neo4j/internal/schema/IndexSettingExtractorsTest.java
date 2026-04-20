@@ -56,7 +56,7 @@ class IndexSettingExtractorsTest {
             settings.add(extractor.setting());
         }
 
-        assertThat(EXTRACTORS.settings()).containsExactlyInAnyOrderElementsOf(settings);
+        assertThat(EXTRACTORS.settings()).hasSameElementsAs(settings);
     }
 
     @ParameterizedTest

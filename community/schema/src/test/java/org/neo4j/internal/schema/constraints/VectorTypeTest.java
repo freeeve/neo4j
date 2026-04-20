@@ -19,8 +19,8 @@
  */
 package org.neo4j.internal.schema.constraints;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,27 +44,27 @@ class VectorTypeTest {
 
     @ParameterizedTest
     @MethodSource("values")
-    void testInferringTypeProduceInternedObjects(Value val, ConstrainableType expected) {
+    void shouldReturnInternedInstanceWhenInferringVectorType(Value val, ConstrainableType expected) {
         var actual = TypeRepresentation.infer(val);
         // Check object identity
-        assertSame(actual, expected);
+        assertThat(expected).isSameAs(actual);
     }
 
     @ParameterizedTest
     @MethodSource("values")
-    void testDeserializingTypeProduceInternedObjects(Value ignored, ConstrainableType expected) {
+    void shouldReturnInternedInstanceWhenDeserializingVectorType(Value ignored, ConstrainableType expected) {
         var actual = TypeRepresentation.deserialize(expected.serialize());
         // Check object identity
-        assertSame(actual, expected);
+        assertThat(expected).isSameAs(actual);
     }
 
     @ParameterizedTest
-    @MethodSource
-    void testHistoricalSerializations(String serialized, VectorType expected) {
-        assertSame(TypeRepresentation.deserialize(serialized), expected);
+    @MethodSource("historicalSerializations")
+    void shouldDeserializeHistoricalSerializationFormat(String serialized, VectorType expected) {
+        assertThat(expected).isSameAs(TypeRepresentation.deserialize(serialized));
     }
 
-    static Stream<Arguments> testHistoricalSerializations() {
+    static Stream<Arguments> historicalSerializations() {
         return Stream.of(
                 Arguments.of("VECTOR[coordinate=INTEGER8, dimensions=1234]", VectorType.int8Vector(1234)),
                 Arguments.of("VECTOR[coordinate=INTEGER16, dimensions=1234]", VectorType.int16Vector(1234)),
@@ -75,12 +75,13 @@ class VectorTypeTest {
     }
 
     @ParameterizedTest
-    @MethodSource
-    void testInvalidSerializations(String serialized) {
-        assertThrows(IllegalArgumentException.class, () -> TypeRepresentation.deserialize(serialized));
+    @MethodSource("invalidSerializations")
+    void shouldThrowOnMalformedSerializationString(String serialized) {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> TypeRepresentation.deserialize(serialized));
     }
 
-    static Stream<String> testInvalidSerializations() {
+    static Stream<String> invalidSerializations() {
         return Stream.of(
                 "VECTOR[INTEGER8, 1234]", // Missing labels
                 "vector[coordinate=INTEGER16, dimensions=1234]", // Invalid container

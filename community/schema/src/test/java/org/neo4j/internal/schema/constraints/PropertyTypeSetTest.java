@@ -46,7 +46,7 @@ class PropertyTypeSetTest {
 
     @ParameterizedTest
     @MethodSource("descriptions")
-    void testUserDescription(List<SchemaValueType> types, String expected) {
+    void shouldSortAndRemoveDuplicationFromUserDescription(List<SchemaValueType> types, String expected) {
         assertThat(PropertyTypeSet.of(types).userDescription()).isEqualTo(expected);
     }
 
@@ -66,12 +66,12 @@ class PropertyTypeSetTest {
 
     @ParameterizedTest
     @MethodSource("setSizes")
-    void testSize(List<SchemaValueType> types, int expectedSize) {
+    void shouldCountOnlyDistinctTypes(List<SchemaValueType> types, int expectedSize) {
         assertThat(PropertyTypeSet.of(types).size()).isEqualTo(expectedSize);
     }
 
     @Test
-    void testEquality() {
+    void shouldBeEqualForSetsWithSameTypesRegardlessOfOrder() {
         var a = PropertyTypeSet.of(SchemaValueType.BOOLEAN, SchemaValueType.INTEGER);
         var b = PropertyTypeSet.of(SchemaValueType.INTEGER, SchemaValueType.BOOLEAN);
         assertThat(a).isEqualTo(b);
@@ -81,7 +81,7 @@ class PropertyTypeSetTest {
     }
 
     @Test
-    void testSetOperations() {
+    void shouldComputeSetOperations() {
         var empty = PropertyTypeSet.of();
         var set1 = PropertyTypeSet.of(SchemaValueType.BOOLEAN);
         var set2 = PropertyTypeSet.of(SchemaValueType.INTEGER);

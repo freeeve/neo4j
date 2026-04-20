@@ -20,8 +20,7 @@
 package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.common.EntityType.RELATIONSHIP;
 import static org.neo4j.internal.schema.IndexType.FULLTEXT;
@@ -507,15 +506,20 @@ class SchemaRuleTest {
     }
 
     private void assertUserDescription(String description, SchemaDescriptorSupplier schemaish) {
-        assertEquals(description, schemaish.userDescription(lookup), "wrong userDescription for " + schemaish);
+        assertThat(schemaish.userDescription(lookup))
+                .as("wrong userDescription for " + schemaish)
+                .isEqualTo(description);
     }
 
     @SuppressWarnings({"OptionalAssignedToNull", "ConstantConditions"})
     @Test
     void sanitiseNameMustRejectEmptyOptionalOrNullNames() {
-        assertThrows(IllegalArgumentException.class, () -> SchemaNameUtil.sanitiseName(Optional.empty()));
-        assertThrows(NullPointerException.class, () -> SchemaNameUtil.sanitiseName((Optional<String>) null));
-        assertThrows(IllegalArgumentException.class, () -> SchemaNameUtil.sanitiseName((String) null));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> SchemaNameUtil.sanitiseName(Optional.empty()));
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> SchemaNameUtil.sanitiseName((Optional<String>) null));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> SchemaNameUtil.sanitiseName((String) null));
     }
 
     @Test
@@ -525,10 +529,9 @@ class SchemaRuleTest {
                 .flatMap(n -> Stream.of(" " + n, n, n + " "))
                 .collect(Collectors.toSet());
         for (String reservedName : reservedNames) {
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> SchemaNameUtil.sanitiseName(reservedName),
-                    "reserved name: '" + reservedName + "'");
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .as("reserved name: '" + reservedName + "'")
+                    .isThrownBy(() -> SchemaNameUtil.sanitiseName(reservedName));
         }
     }
 
@@ -537,10 +540,9 @@ class SchemaRuleTest {
         List<String> invalidNames = List.of("", "\0", " ", "  ", "\t", " \t ", "\n", "\r");
 
         for (String invalidName : invalidNames) {
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> SchemaNameUtil.sanitiseName(invalidName),
-                    "invalid name: '" + invalidName + "'");
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .as("invalid name: '" + invalidName + "'")
+                    .isThrownBy(() -> SchemaNameUtil.sanitiseName(invalidName));
         }
     }
 

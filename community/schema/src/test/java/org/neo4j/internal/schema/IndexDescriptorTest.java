@@ -21,7 +21,7 @@ package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.HashSet;
 import java.util.List;
@@ -136,8 +136,7 @@ class IndexDescriptorTest {
         IndexDescriptor b = a.withIndexConfig(a.getIndexConfig().withIfAbsent("x", Values.stringValue("y")));
 
         assertThat(a.getIndexConfig()).isNotEqualTo(b.getIndexConfig());
-        assertThat(a).isEqualTo(b);
-        assertThat(a).isEqualTo(aa);
+        assertThat(a).isEqualTo(b).isEqualTo(aa);
         assertThat(a.getIndexConfig()).isEqualTo(aa.getIndexConfig());
         assertThat((Value) b.getIndexConfig().get("x")).isEqualTo(Values.stringValue("y"));
         assertThat((Value) a.getIndexConfig().get("x")).isNull();

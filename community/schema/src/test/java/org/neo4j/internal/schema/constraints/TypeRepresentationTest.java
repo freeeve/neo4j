@@ -133,7 +133,7 @@ class TypeRepresentationTest {
 
     @ParameterizedTest
     @MethodSource("expectedRepresentations")
-    void testValueToType(Value value, TypeRepresentation expectedType) {
+    void shouldInferCorrectTypeForValue(Value value, TypeRepresentation expectedType) {
         assertThat(TypeRepresentation.infer(value)).isEqualTo(expectedType);
     }
 
@@ -153,8 +153,8 @@ class TypeRepresentationTest {
 
     @ParameterizedTest
     @MethodSource("types")
-    void testAllTypesHaveOrdering(TypeRepresentation type) {
-        assertThat(TypeRepresentation.compare(type, type)).isEqualTo(0);
+    void shouldReturnZeroWhenComparingTypeToItself(TypeRepresentation type) {
+        assertThat(TypeRepresentation.compare(type, type)).isZero();
     }
 
     private static Stream<Arguments> illegalCombinations() {
@@ -184,18 +184,18 @@ class TypeRepresentationTest {
 
     @ParameterizedTest
     @MethodSource("illegalCombinations")
-    void testShouldPreventIllegalCombinations(PropertyTypeSet set, Value value) {
+    void shouldPreventIllegalCombinations(PropertyTypeSet set, Value value) {
         assertThat(TypeRepresentation.disallows(set, value)).isTrue();
     }
 
     @ParameterizedTest
     @MethodSource("legalCombinations")
-    void testShouldNotPreventLegalCombinations(PropertyTypeSet set, Value value) {
+    void shouldNotPreventLegalCombinations(PropertyTypeSet set, Value value) {
         assertThat(TypeRepresentation.disallows(set, value)).isFalse();
     }
 
     @Test
-    void testCIP_100Ordering() {
+    void shouldOrderAllTypesAccordingToCip100Spec() {
         // GIVEN
         var entries = types().collect(Collectors.toCollection(ArrayList<TypeRepresentation>::new));
         Collections.shuffle(entries, random.random());
@@ -266,7 +266,7 @@ class TypeRepresentationTest {
 
     @ParameterizedTest
     @MethodSource("constrainableTypes")
-    void testSerializationRecoversValues(ConstrainableType type) {
+    void shouldDeserializeBackToOriginalType(ConstrainableType type) {
         assertThat(type).isEqualTo(TypeRepresentation.deserialize(type.serialize()));
     }
 }

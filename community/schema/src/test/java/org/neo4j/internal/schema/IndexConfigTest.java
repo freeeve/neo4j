@@ -19,10 +19,8 @@
  */
 package org.neo4j.internal.schema;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -34,13 +32,13 @@ class IndexConfigTest {
     void addingAndGetting() {
         IndexConfig config = IndexConfig.empty();
         config = config.withIfAbsent("a", BooleanValue.TRUE);
-        assertTrue(config.<BooleanValue>get("a").booleanValue());
+        assertThat(config.<BooleanValue>get("a").booleanValue()).isTrue();
 
         config = config.withIfAbsent("a", BooleanValue.FALSE);
-        assertTrue(config.<BooleanValue>get("a").booleanValue());
+        assertThat(config.<BooleanValue>get("a").booleanValue()).isTrue();
 
-        assertNull(config.get("b"));
-        assertFalse(config.getOrDefault("b", BooleanValue.FALSE).booleanValue());
+        assertThat(config.<BooleanValue>get("b")).isNull();
+        assertThat(config.getOrDefault("b", BooleanValue.FALSE).booleanValue()).isFalse();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -51,12 +49,14 @@ class IndexConfigTest {
         config = config.withIfAbsent("b", BooleanValue.TRUE);
 
         Map<String, Value> map = config.asMap();
-        assertThrows(UnsupportedOperationException.class, () -> map.remove("a"));
-        assertThrows(UnsupportedOperationException.class, () -> map.put("b", BooleanValue.FALSE));
-        assertThrows(UnsupportedOperationException.class, () -> map.put("c", BooleanValue.TRUE));
+        assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> map.remove("a"));
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+                .isThrownBy(() -> map.put("b", BooleanValue.FALSE));
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+                .isThrownBy(() -> map.put("c", BooleanValue.TRUE));
 
-        assertTrue(config.<BooleanValue>get("a").booleanValue());
-        assertTrue(config.<BooleanValue>get("b").booleanValue());
-        assertNull(config.get("c"));
+        assertThat(config.<BooleanValue>get("a").booleanValue()).isTrue();
+        assertThat(config.<BooleanValue>get("b").booleanValue()).isTrue();
+        assertThat(config.<BooleanValue>get("c")).isNull();
     }
 }

@@ -36,7 +36,7 @@ abstract class SchemaRuleTestBase {
     static void assertEquality(Object o1, Object o2) {
         assertThat(o1).isEqualTo(o2);
         assertThat(o2).isEqualTo(o1);
-        assertThat(o1.hashCode()).isEqualTo(o2.hashCode());
+        assertThat(o1).hasSameHashCodeAs(o2);
     }
 
     static void assertInequality(Object o1, Object o2) {

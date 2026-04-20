@@ -20,8 +20,8 @@
 package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.existsForLabel;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.nodeKeyForLabel;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.nodeLabelExistenceForLabel;
@@ -48,9 +48,8 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
         assertThat(constraint.getId()).isEqualTo(RULE_ID);
         assertThat(constraint.schema()).isEqualTo(descriptor.schema());
         assertThat(constraint).isEqualTo(descriptor);
-        assertThrows(
-                IllegalStateException.class,
-                () -> constraint.asIndexBackedConstraint().ownedIndexId());
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> constraint.asIndexBackedConstraint().ownedIndexId());
     }
 
     @Test
@@ -74,9 +73,8 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
         assertThat(constraint.getId()).isEqualTo(RULE_ID);
         assertThat(constraint.schema()).isEqualTo(descriptor.schema());
         assertThat(constraint).isEqualTo(descriptor);
-        assertThrows(
-                IllegalStateException.class,
-                () -> constraint.asIndexBackedConstraint().ownedIndexId());
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> constraint.asIndexBackedConstraint().ownedIndexId());
     }
 
     @Test
@@ -100,9 +98,8 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
         assertThat(constraint.getId()).isEqualTo(RULE_ID);
         assertThat(constraint.schema()).isEqualTo(descriptor.schema());
         assertThat(constraint).isEqualTo(descriptor);
-        assertThrows(
-                IllegalStateException.class,
-                () -> constraint.asIndexBackedConstraint().ownedIndexId());
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> constraint.asIndexBackedConstraint().ownedIndexId());
     }
 
     @ParameterizedTest
@@ -119,7 +116,7 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
         assertThat(constraint).isEqualTo(descriptor);
         assertThat(relationshipEndpointLabelConstraint.endpointLabelId()).isEqualTo(LABEL_ID);
         assertThat(relationshipEndpointLabelConstraint.endpointType()).isEqualTo(endpointType);
-        assertThrows(IllegalStateException.class, constraint::asPropertyExistenceConstraint);
+        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(constraint::asPropertyExistenceConstraint);
     }
 
     @Test
@@ -151,7 +148,7 @@ class ConstraintDescriptorTest extends SchemaRuleTestBase {
         assertThat(constraint.schema()).isEqualTo(descriptor.schema());
         assertThat(constraint).isEqualTo(descriptor);
         assertThat(nodeLabelExistenceConstraint.requiredLabelId()).isEqualTo(11);
-        assertThrows(IllegalStateException.class, constraint::asPropertyExistenceConstraint);
+        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(constraint::asPropertyExistenceConstraint);
     }
 
     @Test
