@@ -149,6 +149,7 @@ import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.Expand
@@ -180,6 +181,7 @@ import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
@@ -2289,7 +2291,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     score: String = "",
     argumentIds: Set[String] = Set.empty,
     getValueFromIndex: String => GetValueFromIndexBehavior = _ => DoNotGetValue,
-    filter: Option[QueryExpression[Expression]] = None
+    entityFilter: EntityFilterQueryExpression[Expression] = MatchAllQueryExpression,
+    propertyFilter: Option[QueryExpression[Expression]] = None
   ): IMPL = {
     val labels = labelNames.map(labelName => LabelToken(labelName, LabelId(resolver.getLabelId(labelName))))
     val propIDs = properties
@@ -2313,7 +2316,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexName,
         toExpression(vector),
         toExpression(limit),
-        filter,
+        entityFilter,
+        propertyFilter,
         argumentIds.map(varFor)
       )(idGen)
     }
@@ -2330,7 +2334,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     score: String = "",
     argumentIds: Set[String] = Set.empty,
     getValueFromIndex: String => GetValueFromIndexBehavior = _ => DoNotGetValue,
-    filter: Option[QueryExpression[Expression]] = None
+    entityFilter: EntityFilterQueryExpression[Expression] = MatchAllQueryExpression,
+    propertyFilter: Option[QueryExpression[Expression]] = None
   ): IMPL = {
 
     val p = patternParser.parse(pattern)
@@ -2361,7 +2366,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             indexName,
             toExpression(vector),
             toExpression(limit),
-            filter,
+            entityFilter,
+            propertyFilter,
             argumentIds.map(varFor)
           )(_)
         ))
@@ -2377,7 +2383,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             indexName,
             toExpression(vector),
             toExpression(limit),
-            filter,
+            entityFilter,
+            propertyFilter,
             argumentIds.map(varFor)
           )(_)
         ))
@@ -2393,7 +2400,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             indexName,
             toExpression(vector),
             toExpression(limit),
-            filter,
+            entityFilter,
+            propertyFilter,
             argumentIds.map(varFor)
           )(_)
         ))

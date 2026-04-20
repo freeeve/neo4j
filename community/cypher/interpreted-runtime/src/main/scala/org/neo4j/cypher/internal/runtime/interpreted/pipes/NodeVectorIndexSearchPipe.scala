@@ -21,8 +21,11 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.MatchEntitySetQueryExpression
 import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
@@ -42,10 +45,12 @@ import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherCoercions.validateAndConvertVectorIndexQuery
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.PropertyIndexQueries
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.storable.Values.floatValue
@@ -56,7 +61,8 @@ abstract class BaseNodeVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
-  filterExpression: Option[QueryExpression[Expression]]
+  entityFilterExpression: EntityFilterQueryExpression[Expression],
+  propertyFilterExpression: Option[QueryExpression[Expression]]
 ) extends Pipe {
 
   protected def newRow(row: CypherRow, cursor: NodeValueIndexCursor): CypherRow
@@ -77,7 +83,8 @@ abstract class BaseNodeVectorIndexSearchPipe(
           index,
           limitExpression,
           vector,
-          filterExpression,
+          entityFilterExpression,
+          propertyFilterExpression,
           properties,
           incomingRow,
           state
@@ -112,6 +119,7 @@ case class NodeVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
+  entityFilterQueryExpression: EntityFilterQueryExpression[Expression],
   filterExpression: Option[QueryExpression[Expression]]
 )(val id: Id = Id.INVALID_ID)
     extends BaseNodeVectorIndexSearchPipe(
@@ -119,6 +127,7 @@ case class NodeVectorIndexSearchPipe(
       vectorExpression,
       limitExpression,
       queryIndexId,
+      entityFilterQueryExpression,
       filterExpression
     ) {
 
@@ -145,7 +154,8 @@ object NodeVectorIndexSearchPipe {
     index: IndexReadSession,
     limit: Expression,
     vector: AnyValue,
-    filter: Option[QueryExpression[Expression]],
+    entityFilter: EntityFilterQueryExpression[Expression],
+    propertyFilter: Option[QueryExpression[Expression]],
     properties: Array[Int],
     row: CypherRow,
     state: QueryState
@@ -155,7 +165,15 @@ object NodeVectorIndexSearchPipe {
       NodeValueIndexCursor.EMPTY
     } else {
       val queries =
-        predicate(l, validateAndConvertVectorIndexQuery(index.reference(), vector), filter, properties, row, state)
+        predicate(
+          l,
+          validateAndConvertVectorIndexQuery(index.reference(), vector),
+          entityFilter,
+          propertyFilter,
+          properties,
+          row,
+          state
+        )
       if (queries.nonEmpty) {
         query.nodeIndexSeek(
           index,
@@ -195,20 +213,24 @@ object NodeVectorIndexSearchPipe {
   def predicate(
     limit: Int,
     vector: Array[Float],
-    filter: Option[QueryExpression[Expression]],
+    entityFilter: EntityFilterQueryExpression[Expression],
+    maybePropertyFilter: Option[QueryExpression[Expression]],
     properties: Array[Int],
     row: ReadableRow,
     state: QueryState
   ): Array[PropertyIndexQuery] = {
     val nearestPredicate: PropertyIndexQuery.NearestNeighborsPredicate =
       PropertyIndexQuery.nearestNeighbors(limit, vector)
-
-    filter match {
+    val entityPredicate = entityFilter match {
+      case MatchEntitySetQueryExpression(expression) => PropertyIndexQueries.matchEntitySet(expression(row, state))
+      case MatchAllQueryExpression                   => PropertyIndexQuery.matchAllEntityFilter()
+    }
+    maybePropertyFilter match {
       case Some(SingleQueryExpression(expression)) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
         makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
           case Some(value) if !impossibleExactValue(value) =>
-            Array(nearestPredicate, PropertyIndexQuery.exact(properties(1), value))
+            Array(nearestPredicate, entityPredicate, PropertyIndexQuery.exact(properties(1), value))
           case _ =>
             // empty means no possible results
             Array.empty
@@ -226,7 +248,7 @@ object NodeVectorIndexSearchPipe {
             if (inner.isEmpty || inner.exists(isImpossibleIndexQuery)) {
               Array.empty
             } else {
-              nearestPredicate +: inner
+              Array(nearestPredicate, entityPredicate) ++ inner
             }
 
           case notSupported =>
@@ -238,42 +260,44 @@ object NodeVectorIndexSearchPipe {
 
       case Some(ExistenceQueryExpression) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
-        Array(nearestPredicate, PropertyIndexQuery.exists(properties(1)))
+        Array(nearestPredicate, entityPredicate, PropertyIndexQuery.exists(properties(1)))
 
       case Some(NonExistenceQueryExpression) =>
         checkOnlyWhenAssertionsAreEnabled(properties.length == 2)
-        Array(nearestPredicate, PropertyIndexQuery.notExists(properties(1)))
+        Array(nearestPredicate, entityPredicate, PropertyIndexQuery.notExists(properties(1)))
 
       case Some(CompositeQueryExpression(inner)) =>
         require(inner.length == properties.length - 1)
-        compositePredicate(nearestPredicate, inner, properties, row, state)
+        compositePredicate(nearestPredicate, entityPredicate, inner, properties, row, state)
 
       case Some(notSupported) =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
           s"$notSupported not supported in vector searches"
         )
-      case None => Array(nearestPredicate)
+      case None => Array(nearestPredicate, entityPredicate)
     }
   }
 
   private def compositePredicate(
     nearestPredicate: PropertyIndexQuery.NearestNeighborsPredicate,
+    entityFilterPredicate: EntityFilterPredicate,
     inner: Seq[QueryExpression[Expression]],
     properties: Array[Int],
     row: ReadableRow,
     state: QueryState
   ): Array[PropertyIndexQuery] = {
 
-    val predicates = new Array[PropertyIndexQuery](properties.length)
+    val predicates = new Array[PropertyIndexQuery](properties.length + 1)
     predicates(0) = nearestPredicate
+    predicates(1) = entityFilterPredicate
     var i = 1
     while (i < properties.length) {
       inner(i - 1) match {
         case SingleQueryExpression(expression) =>
           makeValueNeoSafe.safeOrEmpty(expression(row, state)) match {
             case Some(value) if !impossibleExactValue(value) =>
-              predicates(i) = PropertyIndexQuery.exact(properties(i), value)
+              predicates(i + 1) = PropertyIndexQuery.exact(properties(i), value)
             case _ =>
               return Array.empty
           }
@@ -289,7 +313,7 @@ object NodeVectorIndexSearchPipe {
               if (inner.isEmpty || inner.exists(isImpossibleIndexQuery)) {
                 return Array.empty
               } else if (inner.length == 1) {
-                predicates(i) = inner.head
+                predicates(i + 1) = inner.head
               } else {
                 throw InternalException.internalError(
                   this.getClass.getSimpleName,
@@ -305,13 +329,13 @@ object NodeVectorIndexSearchPipe {
           }
 
         case AllQueryExpression =>
-          predicates(i) = PropertyIndexQuery.all(properties(i))
+          predicates(i + 1) = PropertyIndexQuery.all(properties(i))
 
         case ExistenceQueryExpression =>
-          predicates(i) = PropertyIndexQuery.exists(properties(i))
+          predicates(i + 1) = PropertyIndexQuery.exists(properties(i))
 
         case NonExistenceQueryExpression =>
-          predicates(i) = PropertyIndexQuery.notExists(properties(i))
+          predicates(i + 1) = PropertyIndexQuery.notExists(properties(i))
 
         case notSupported =>
           throw InternalException.internalError(

@@ -1443,7 +1443,7 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
               vector = "$embedding",
               limit = "5",
               getValueFromIndex = moviePlotsProperties.map(_ -> GetValue).toMap,
-              filter = Some(composite(comparisonExpression, AllQueryExpression))
+              propertyFilter = Some(composite(comparisonExpression, AllQueryExpression))
             )
             .build()
         )
@@ -1477,7 +1477,7 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
           vector = "$embedding",
           limit = "5",
           getValueFromIndex = moviePlotsProperties.map(_ -> GetValue).toMap,
-          filter = Some(composite(
+          propertyFilter = Some(composite(
             between(
               gte(parameter("lowerBound", CTAny)),
               lt(parameter("upperBound", CTAny))
@@ -1550,7 +1550,7 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
                   vector = "$embedding",
                   limit = "5",
                   getValueFromIndex = properties.map(_ -> GetValue).toMap,
-                  filter = Some(comparisonExpression)
+                  propertyFilter = Some(comparisonExpression)
                 )
                 .build()
             )
@@ -1588,7 +1588,7 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
         vector = "$embedding",
         limit = "10",
         getValueFromIndex = Map("plot" -> GetValue, "imdbRating" -> DoNotGetValue, "releaseYear" -> GetValue),
-        filter = Some(
+        propertyFilter = Some(
           QueryExpressionConstructionTestSupport.composite(
             rangeExpression(gt(literalInt(8))),
             rangeExpression(lt(literalInt(2010)))
@@ -1677,7 +1677,7 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
           vector = "$embedding",
           limit = "10",
           getValueFromIndex = getValueFromIndex,
-          filter = Option.when(inlinePredicates)(searchFilter)
+          propertyFilter = Option.when(inlinePredicates)(searchFilter)
         ).withCardinality(if (inlinePredicates) expectedCardinality else movieLabelCardinality)
 
       val actualPlanState = planner.planState(CypherVersion.Cypher25, query)
@@ -2092,7 +2092,7 @@ abstract class VectorSearchWithComplexPatternPlanningIntegrationTestBase
         vector = parameter("vector", CTAny),
         limit = "10",
         argumentIds = Set("director", "movie"),
-        filter = Some(composite(AllQueryExpression, rangeExpression(lt(prop("director", "birthYear")))))
+        propertyFilter = Some(composite(AllQueryExpression, rangeExpression(lt(prop("director", "birthYear")))))
       )
       .filter("NOT rel = otherRel", "director:Person")
       .expandAll("(otherMovie)<-[rel:DIRECTED]-(director)")

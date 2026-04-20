@@ -154,6 +154,7 @@ import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
@@ -959,6 +960,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           None,
           Set.empty
         ),
@@ -992,7 +994,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           indexName = "vectorIndex",
           vector = listOf(literalInt(1), literalInt(2)),
           limit = literalInt(5),
-          maybeFilter = Some(CompositeQueryExpression(
+          MatchAllQueryExpression,
+          maybePropertyFilter = Some(CompositeQueryExpression(
             Seq(
               SingleQueryExpression(literalInt(42)),
               RangeQueryExpression(
@@ -1034,7 +1037,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           indexName = "vectorIndex",
           vector = listOf(literalInt(1), literalInt(2)),
           limit = literalInt(5),
-          maybeFilter = Some(CompositeQueryExpression(
+          MatchAllQueryExpression,
+          maybePropertyFilter = Some(CompositeQueryExpression(
             Seq(
               ExistenceQueryExpression,
               NonExistenceQueryExpression
@@ -1072,6 +1076,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           None,
           Set.empty
         ),
@@ -1102,6 +1107,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           Some(CompositeQueryExpression(
             Seq(
               SingleQueryExpression(literalInt(42)),
@@ -1143,6 +1149,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           Some(CompositeQueryExpression(
             Seq(
               NonExistenceQueryExpression,
@@ -1183,6 +1190,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           None,
           Set.empty
         ),
@@ -1213,6 +1221,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           Some(CompositeQueryExpression(
             Seq(
               SingleQueryExpression(literalInt(42)),
@@ -1253,6 +1262,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           "vectorIndex",
           listOf(literalInt(1), literalInt(2)),
           literalInt(5),
+          MatchAllQueryExpression,
           Some(CompositeQueryExpression(
             Seq(
               ExistenceQueryExpression,

@@ -34,8 +34,10 @@ import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
@@ -650,7 +652,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "13",
-          filter = Some(single(param("seekValue")))
+          propertyFilter = Some(single(param("seekValue")))
         ).build()
 
       val runtimeResult =
@@ -685,7 +687,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gte(param("seekValue")), lte(param("seekValue"))))
+          propertyFilter = Some(between(gte(param("seekValue")), lte(param("seekValue"))))
         )
         .build()
 
@@ -721,7 +723,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gt(param("seekValue")), lte(param("seekValue"))))
+          propertyFilter = Some(between(gt(param("seekValue")), lte(param("seekValue"))))
         )
         .build()
 
@@ -757,7 +759,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gte(param("seekValue")), lt(param("seekValue"))))
+          propertyFilter = Some(between(gte(param("seekValue")), lt(param("seekValue"))))
         )
         .build()
 
@@ -793,7 +795,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gt(param("seekValue")), lt(param("seekValue"))))
+          propertyFilter = Some(between(gt(param("seekValue")), lt(param("seekValue"))))
         )
         .build()
 
@@ -829,7 +831,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gte(param("min")), lte(param("max"))))
+          propertyFilter = Some(between(gte(param("min")), lte(param("max"))))
         )
         .build()
 
@@ -866,7 +868,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gte(param("min")), lt(param("max"))))
+          propertyFilter = Some(between(gte(param("min")), lt(param("max"))))
         )
         .build()
 
@@ -904,7 +906,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gt(param("min")), lte(param("max"))))
+          propertyFilter = Some(between(gt(param("min")), lte(param("max"))))
         )
         .build()
 
@@ -942,7 +944,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(between(gte(param("min")), lte(param("max"))))
+          propertyFilter = Some(between(gte(param("min")), lte(param("max"))))
         )
         .build()
 
@@ -978,7 +980,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(rangeExpression(gt(param("seekValue"))))
+          propertyFilter = Some(rangeExpression(gt(param("seekValue"))))
         )
         .build()
 
@@ -1014,7 +1016,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(rangeExpression(gte(param("seekValue"))))
+          propertyFilter = Some(rangeExpression(gte(param("seekValue"))))
         )
         .build()
 
@@ -1049,7 +1051,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(rangeExpression(lt(param("seekValue"))))
+          propertyFilter = Some(rangeExpression(lt(param("seekValue"))))
         )
         .build()
 
@@ -1084,7 +1086,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           indexName = "VectorIndex",
           vector = "$vector",
           limit = "1000000",
-          filter = Some(rangeExpression(lte(param("seekValue"))))
+          propertyFilter = Some(rangeExpression(lte(param("seekValue"))))
         )
         .build()
 
@@ -1136,7 +1138,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = "1000000",
-        filter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
+        propertyFilter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
       )
       .build()
 
@@ -1187,7 +1189,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = "1000000",
-        filter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
+        propertyFilter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
       )
       .build()
 
@@ -1236,7 +1238,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = "1000000",
-        filter = Some(rangeExpression(gte(param("seekValue"))))
+        propertyFilter = Some(rangeExpression(gte(param("seekValue"))))
       )
       .build()
 
@@ -1284,7 +1286,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = "1000000",
-        filter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
+        propertyFilter = Some(between(gte(param("seekValue1")), lte(param("seekValue2"))))
       )
       .build()
 
@@ -1514,7 +1516,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
             indexName = "VectorIndex",
             vector = "$vector",
             limit = s"10000000",
-            filter = Some(predicate)
+            propertyFilter = Some(predicate)
           )
           .build()
 
@@ -1560,7 +1562,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(single(param("p")))
+        propertyFilter = Some(single(param("p")))
       )
       .build()
 
@@ -1609,7 +1611,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(single(param("p")))
+        propertyFilter = Some(single(param("p")))
       )
       .build()
 
@@ -1660,7 +1662,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(single(param("p1")), single(param("p2"))))
+        propertyFilter = Some(composite(single(param("p1")), single(param("p2"))))
       )
       .build()
 
@@ -1722,7 +1724,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(single(param("p1")), single(param("p2")), AllQueryExpression))
+        propertyFilter = Some(composite(single(param("p1")), single(param("p2")), AllQueryExpression))
       )
       .build()
 
@@ -1806,7 +1808,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression, AllQueryExpression, single(param("p"))))
+        propertyFilter = Some(composite(AllQueryExpression, AllQueryExpression, single(param("p"))))
       )
       .build()
 
@@ -1868,7 +1870,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(AllQueryExpression, AllQueryExpression, AllQueryExpression))
+        propertyFilter = Some(composite(AllQueryExpression, AllQueryExpression, AllQueryExpression))
       )
       .build()
 
@@ -1913,7 +1915,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(
+        propertyFilter = Some(composite(
           between(gte(param("from1")), lte(param("to1"))),
           between(gte(param("from2")), lte(param("to2")))
         ))
@@ -2014,7 +2016,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(
+        propertyFilter = Some(composite(
           between(gte(param("from")), lte(param("to"))),
           single(param("exact"))
         ))
@@ -2112,7 +2114,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(
+        propertyFilter = Some(composite(
           between(gte(param("from1")), lte(param("to1"))),
           between(gte(param("from2")), lte(param("to2"))),
           AllQueryExpression
@@ -2182,7 +2184,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(ExistenceQueryExpression)
+        propertyFilter = Some(ExistenceQueryExpression)
       )
       .build()
 
@@ -2230,7 +2232,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(ExistenceQueryExpression, ExistenceQueryExpression))
+        propertyFilter = Some(composite(ExistenceQueryExpression, ExistenceQueryExpression))
       )
       .build()
 
@@ -2273,7 +2275,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(NonExistenceQueryExpression)
+        propertyFilter = Some(NonExistenceQueryExpression)
       )
       .build()
 
@@ -2320,7 +2322,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = "$vector",
         limit = s"10000000",
-        filter = Some(composite(NonExistenceQueryExpression, NonExistenceQueryExpression))
+        propertyFilter = Some(composite(NonExistenceQueryExpression, NonExistenceQueryExpression))
       )
       .build()
 
@@ -2472,7 +2474,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
           vector = vectorAsCypherList(randomVector),
           limit = s"10000000",
           score = "score",
-          filter = Some(predicate)
+          propertyFilter = Some(predicate)
         )
         .build()
 
@@ -2535,13 +2537,155 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         vector = s"${vectorAsCypherList(randomVector)}",
         limit = "13",
         score = "score",
-        filter = Some(single(listOf(literalInt(42))))
+        propertyFilter = Some(single(listOf(literalInt(42))))
       ).build()
 
     // then
     val error = the[InvalidArgumentException] thrownBy consume(execute(logicalQuery, runtime))
     error.gqlStatus() should equal("22G03")
     error.cause().get().gqlStatus() should equal("22N01")
+  }
+
+  // entity filtering
+  test("should filter entities") {
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("v")
+      val idToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("id")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, Values.longValue(i))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v"),
+        indexName = "VectorIndex",
+        vector = s"${vectorAsCypherList(randomVector)}",
+        limit = "13",
+        entityFilter = matchEntities(varFor("c")),
+        argumentIds = Set("c")
+      )
+      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .filter("x.id < 100")
+      .allNodeScan("x")
+      .build()
+
+    // then
+    execute(logicalQuery, runtime) should beColumns("id").withRows(matching {
+      case rows: Seq[_] if rows.size == 13 && rows.forall {
+          case Array(i: NumberValue) => i.longValue() >= 0 && i.longValue() < 100
+          case _                     => false
+        } =>
+    })
+  }
+
+  test("should filter entities and do property filtering") {
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v", "id")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("v")
+      val idToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("id")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, Values.longValue(i))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v", "id"),
+        indexName = "VectorIndex",
+        vector = s"${vectorAsCypherList(randomVector)}",
+        limit = "13",
+        entityFilter = matchEntities(varFor("c")),
+        propertyFilter = Some(rangeExpression(lt(literalInt(17)))),
+        argumentIds = Set("c")
+      )
+      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .filter("x.id < 100")
+      .allNodeScan("x")
+      .build()
+
+    // then
+    execute(logicalQuery, runtime) should beColumns("id").withRows(matching {
+      case rows: Seq[_] if rows.size == 13 && rows.forall {
+          case Array(i: NumberValue) => i.longValue() >= 0 && i.longValue() < 17
+          case _                     => false
+        } =>
+    })
+  }
+
+  test("should fail if entities isn't a list of ids") {
+    givenGraph {
+      nodeIndex("VectorIndex", IndexType.VECTOR, Seq("Foo"), "v")
+      val write = tx.kernelTransaction().dataWrite
+      val vectorToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("v")
+      val idToken = tx.kernelTransaction().token().propertyKeyGetOrCreateForName("id")
+      nodeGraph(sizeHint, "Foo").zipWithIndex.foreach({
+        case (n, i) =>
+          write.nodeSetProperty(n.getId, idToken, Values.longValue(i))
+          write.nodeSetProperty(
+            n.getId,
+            vectorToken,
+            randomVector
+          )
+      })
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("id")
+      .projection("n.id AS id")
+      .apply()
+      .|.nodeVectorIndexSearch(
+        node = "n",
+        labelNames = Seq("Foo"),
+        properties = Seq("v"),
+        indexName = "VectorIndex",
+        vector = s"${vectorAsCypherList(randomVector)}",
+        limit = "13",
+        entityFilter = matchEntities(varFor("c")),
+        argumentIds = Set("c")
+      )
+      .aggregation(Seq.empty, Seq("collect('hello') AS c"))
+      .filter("x.id < 100")
+      .allNodeScan("x")
+      .build()
+
+    // then
+    the[CypherTypeException] thrownBy consume(execute(logicalQuery, runtime)) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22G03,
+      "error: data exception - invalid value type"
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N01,
+      "error: data exception - invalid type.",
+      fuzzyStatusDescr = true
+    )
   }
 
   private def booleanVectorGraph(size: Int): Unit = {
@@ -2576,7 +2720,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         indexName = "VectorIndex",
         vector = vectorAsCypherList(float32Vector(Seq.fill(sizeHint)(5.0f): _*)),
         limit = "10000",
-        filter = Some(rangePredicate)
+        propertyFilter = Some(rangePredicate)
       )
       .build()
 

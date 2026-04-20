@@ -67,6 +67,22 @@ case class CompositeQueryExpression[T](inner: Seq[QueryExpression[T]]) extends Q
   override def exact: Boolean = inner.forall(_.exact)
 }
 
+sealed trait EntityFilterQueryExpression[+T] extends QueryExpression[T] {
+  def map[R](f: T => R): EntityFilterQueryExpression[R]
+}
+
+case class MatchEntitySetQueryExpression[T](expression: T) extends EntityFilterQueryExpression[T] {
+  def map[R](f: T => R): MatchEntitySetQueryExpression[R] = MatchEntitySetQueryExpression(f(expression))
+}
+
+case object MatchAllQueryExpression extends EntityFilterQueryExpression[Nothing] {
+  def expression: Nothing = throw new NotImplementedError("expression not supplied for NoArgumentQueryExpression")
+
+  override def expressions: Seq[Nothing] = Seq.empty
+
+  def map[R](f: Nothing => R): EntityFilterQueryExpression[R] = this
+}
+
 /* Marker implementations */
 
 case object ExistenceQueryExpression extends NoArgumentQueryExpression

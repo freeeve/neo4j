@@ -169,8 +169,12 @@ public class Lucene9QueryContext implements LuceneQueryContext {
             int k,
             PropertyIndexQuery.EntityFilterPredicate entityFilter,
             PropertyIndexQuery... filterQueries) {
-        throw InternalException.internalError(
-                getClass().getSimpleName(), "Single stage filter is not supported in this index");
+        if (entityFilter == PropertyIndexQuery.EntityFilterPredicate.MatchAll.INSTANCE && filterQueries.length == 0) {
+            return approximateNearestNeighbors(documentStructure, query, k);
+        } else {
+            throw InternalException.internalError(
+                    getClass().getSimpleName(), "Single stage filter is not supported in this index");
+        }
     }
 
     public Query build() {

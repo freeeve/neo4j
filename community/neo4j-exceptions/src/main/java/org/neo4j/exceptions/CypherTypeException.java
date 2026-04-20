@@ -164,6 +164,12 @@ public class CypherTypeException extends Neo4jException {
         return new CypherTypeException(gql, msg);
     }
 
+    public static CypherTypeException expectedListOfNumber(String msg, String gotPretty, String gotCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(
+                gotPretty, List.of("LIST<INTEGER NOT NULL>", "LIST<FLOAT NOT NULL>"), gotCypherType);
+        return new CypherTypeException(gql, msg);
+    }
+
     public static CypherTypeException expectedNumber(String msg, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotCypherType);
         return new CypherTypeException(gql, msg);

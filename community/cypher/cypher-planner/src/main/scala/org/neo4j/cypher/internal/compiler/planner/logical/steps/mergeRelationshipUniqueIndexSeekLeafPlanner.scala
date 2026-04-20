@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
@@ -131,13 +132,14 @@ object relationshipSingleUniqueIndexSeekPlanProvider extends RelationshipIndexPl
   private def allSingleQueryExpressions(queryExpressions: Seq[QueryExpression[Expression]]): Boolean =
     queryExpressions.isEmpty ||
       (queryExpressions.head match {
-        case SingleQueryExpression(_)        => allSingleQueryExpressions(queryExpressions.tail)
-        case ManyQueryExpression(_)          => false
-        case RangeQueryExpression(_)         => false
-        case CompositeQueryExpression(inner) => allSingleQueryExpressions(inner ++ queryExpressions.tail)
-        case ExistenceQueryExpression        => false
-        case NonExistenceQueryExpression     => false
-        case AllQueryExpression              => false
+        case SingleQueryExpression(_)          => allSingleQueryExpressions(queryExpressions.tail)
+        case ManyQueryExpression(_)            => false
+        case RangeQueryExpression(_)           => false
+        case CompositeQueryExpression(inner)   => allSingleQueryExpressions(inner ++ queryExpressions.tail)
+        case ExistenceQueryExpression          => false
+        case NonExistenceQueryExpression       => false
+        case AllQueryExpression                => false
+        case _: EntityFilterQueryExpression[_] => false
       })
 
   private def createPlan(

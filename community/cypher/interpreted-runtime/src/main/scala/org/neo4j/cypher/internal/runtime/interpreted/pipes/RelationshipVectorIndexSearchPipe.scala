@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.runtime.ClosingIterator
@@ -45,7 +46,8 @@ abstract class RelationshipVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
-  filterExpression: Option[QueryExpression[Expression]]
+  entityFilterExpression: EntityFilterQueryExpression[Expression],
+  propertyFilterExpression: Option[QueryExpression[Expression]]
 ) extends Pipe {
 
   protected def newRow(
@@ -69,7 +71,8 @@ abstract class RelationshipVectorIndexSearchPipe(
         index,
         limitExpression,
         vector,
-        filterExpression,
+        entityFilterExpression,
+        propertyFilterExpression,
         properties,
         incomingRow,
         state
@@ -186,13 +189,15 @@ abstract class BaseRelationshipVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
-  filterExpression: Option[QueryExpression[Expression]]
+  entityFilterExpression: EntityFilterQueryExpression[Expression],
+  propertyFilterExpression: Option[QueryExpression[Expression]]
 ) extends RelationshipVectorIndexSearchPipe(
       properties,
       vectorExpression,
       limitExpression,
       queryIndexId,
-      filterExpression
+      entityFilterExpression,
+      propertyFilterExpression
     ) {
 
   private val relationshipWriter: Relationships.RelationshipWriter =
@@ -235,7 +240,8 @@ case class DirectedRelationshipVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
-  filterExpression: Option[QueryExpression[Expression]]
+  entityFilterExpression: EntityFilterQueryExpression[Expression],
+  propertyFilterExpression: Option[QueryExpression[Expression]]
 )(val id: Id = Id.INVALID_ID)
     extends BaseRelationshipVectorIndexSearchPipe(
       ident,
@@ -246,7 +252,8 @@ case class DirectedRelationshipVectorIndexSearchPipe(
       vectorExpression,
       limitExpression,
       queryIndexId,
-      filterExpression
+      entityFilterExpression,
+      propertyFilterExpression
     ) {
 
   override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator = {
@@ -267,7 +274,8 @@ case class UndirectedRelationshipVectorIndexSearchPipe(
   vectorExpression: Expression,
   limitExpression: Expression,
   queryIndexId: Int,
-  filterExpression: Option[QueryExpression[Expression]]
+  entityFilterExpression: EntityFilterQueryExpression[Expression],
+  propertyFilterExpression: Option[QueryExpression[Expression]]
 )(val id: Id = Id.INVALID_ID)
     extends BaseRelationshipVectorIndexSearchPipe(
       ident,
@@ -278,7 +286,8 @@ case class UndirectedRelationshipVectorIndexSearchPipe(
       vectorExpression,
       limitExpression,
       queryIndexId,
-      filterExpression
+      entityFilterExpression,
+      propertyFilterExpression
     ) {
 
   override protected def iteratorFrom(cursor: RelationshipValueIndexCursor): RelationshipVectorSearchIterator =
@@ -292,6 +301,7 @@ object RelationshipVectorIndexSearchPipe {
     index: IndexReadSession,
     limit: Expression,
     vector: AnyValue,
+    entityFilter: EntityFilterQueryExpression[Expression],
     filter: Option[QueryExpression[Expression]],
     properties: Array[Int],
     row: CypherRow,
@@ -302,7 +312,15 @@ object RelationshipVectorIndexSearchPipe {
       RelationshipValueIndexCursor.EMPTY
     } else {
       val queries =
-        predicate(l, validateAndConvertVectorIndexQuery(index.reference(), vector), filter, properties, row, state)
+        predicate(
+          l,
+          validateAndConvertVectorIndexQuery(index.reference(), vector),
+          entityFilter,
+          filter,
+          properties,
+          row,
+          state
+        )
       if (queries.nonEmpty) {
         query.relationshipIndexSeek(
           index,

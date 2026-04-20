@@ -1726,7 +1726,8 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           argumentIds
         ) =>
         params(
@@ -1739,7 +1740,8 @@ object LogicalPlanToPlanBuilderString {
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
           mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
-          maybeFilter
+          entityFilter,
+          maybePropertyFilter
         )
 
       case DirectedRelationshipVectorIndexSearch(
@@ -1752,7 +1754,8 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           argumentIds
         ) =>
         params(
@@ -1765,7 +1768,8 @@ object LogicalPlanToPlanBuilderString {
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
           mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
-          maybeFilter
+          entityFilter,
+          maybePropertyFilter
         )
 
       case UndirectedRelationshipVectorIndexSearch(
@@ -1778,7 +1782,8 @@ object LogicalPlanToPlanBuilderString {
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           argumentIds
         ) =>
         params(
@@ -1791,7 +1796,8 @@ object LogicalPlanToPlanBuilderString {
           score.map(_.name.quoted).getOrElse("".quoted),
           argumentIds,
           mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
-          maybeFilter
+          entityFilter,
+          maybePropertyFilter
         )
 
       case RollUpApply(_, _, collectionName, variableToCollect) => params(collectionName, variableToCollect)
@@ -2518,6 +2524,12 @@ object LogicalPlanToPlanBuilderString {
       case queryExpression: QueryExpression[Expression] =>
         // Ideally, we should not get here, but as QueryExpression is an extensive trait, there is this fallback
         queryExpression.toString
+    }
+
+    implicit def fromEntityFilterQueryExpression: ToParam[EntityFilterQueryExpression[Expression]] = {
+      case MatchAllQueryExpression => call("matchAll")
+      case MatchEntitySetQueryExpression(expression) =>
+        call("matchEntities", expression)
     }
 
     implicit def fromInequalitySeekRange: ToParam[InequalitySeekRange[Expression]] = {

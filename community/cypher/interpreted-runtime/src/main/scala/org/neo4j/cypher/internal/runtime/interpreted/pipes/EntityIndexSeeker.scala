@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.frontend.helpers.SeqCombiner.combine
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -388,6 +389,12 @@ trait EntityIndexSeeker {
 
       case AllQueryExpression =>
         Seq(PropertyIndexQuery.all(propertyId))
+
+      case _: EntityFilterQueryExpression[_] =>
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "An EntityFilterQueryExpression can only be planned for vector searches"
+        )
     }
 }
 

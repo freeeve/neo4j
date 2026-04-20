@@ -219,6 +219,7 @@ import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalBinaryPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
@@ -2111,7 +2112,9 @@ case class LogicalPlanProducer(
         indexName = indexName,
         vector = rewrittenEmbedding,
         limit = rewrittenLimit,
-        maybeFilter = maybeFilter,
+        // TODO: we only produce match all for now
+        entityFilter = MatchAllQueryExpression,
+        maybePropertyFilter = maybeFilter,
         argumentIds = allArgumentIds
       )(idGen)
 
@@ -2236,7 +2239,9 @@ case class LogicalPlanProducer(
           indexName = indexName,
           vector = rewrittenEmbedding,
           limit = rewrittenLimit,
-          maybeFilter = maybeFilter,
+          // TODO: we only produce match all for now
+          entityFilter = MatchAllQueryExpression,
+          maybePropertyFilter = maybeFilter,
           argumentIds = allArgumentIds
         )(idGen)
       case _ => DirectedRelationshipVectorIndexSearch(
@@ -2249,7 +2254,9 @@ case class LogicalPlanProducer(
           indexName = indexName,
           vector = rewrittenEmbedding,
           limit = rewrittenLimit,
-          maybeFilter = maybeFilter,
+          // TODO: we only produce match all for now
+          entityFilter = MatchAllQueryExpression,
+          maybePropertyFilter = maybeFilter,
           argumentIds = allArgumentIds
         )(idGen)
     }

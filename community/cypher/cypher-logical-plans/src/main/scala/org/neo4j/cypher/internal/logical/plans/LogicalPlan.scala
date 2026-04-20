@@ -355,16 +355,16 @@ sealed abstract class LogicalPlan(idGen: IdGen)
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
       case PartitionedUndirectedRelationshipTypeScan(Some(idName), _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
-      case NodeVectorIndexSearch(idName, entityTypes, properties, _, _, _, _, _, _) =>
+      case NodeVectorIndexSearch(idName, entityTypes, properties, _, _, _, _, _, _, _) =>
         acc => acc :+ SchemaSemanticNodeIndexUsage(idName, entityTypes, properties.map(_.propertyKeyToken))
-      case UndirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _) =>
+      case UndirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _, _) =>
         acc =>
           acc :+ SchemaSemanticRelationshipIndexUsage(
             maybeIdName.getOrElse(Variable("UNKNOWN")(InputPosition.NONE, isIsolated = false)),
             entityTypes,
             properties.map(_.propertyKeyToken)
           )
-      case DirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _) =>
+      case DirectedRelationshipVectorIndexSearch(maybeIdName, _, _, entityTypes, properties, _, _, _, _, _, _, _) =>
         acc =>
           acc :+ SchemaSemanticRelationshipIndexUsage(
             maybeIdName.getOrElse(Variable("UNKNOWN")(InputPosition.NONE, isIsolated = false)),
@@ -2134,14 +2134,17 @@ case class DirectedRelationshipVectorIndexSearch(
   indexName: String,
   vector: Expression,
   limit: Expression,
-  maybeFilter: Option[QueryExpression[Expression]],
+  entityFilter: EntityFilterQueryExpression[Expression],
+  maybePropertyFilter: Option[QueryExpression[Expression]],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ idName ++ leftNode ++ rightNode ++ score
 
   override def usedVariables: Set[LogicalVariable] =
-    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
+    vector.dependencies ++ limit.dependencies ++ entityFilter.expressions.flatMap(
+      _.dependencies
+    ) ++ maybePropertyFilter.map(
       _.expressions.flatMap(_.dependencies)
     ).getOrElse(Set.empty)
 
@@ -2188,14 +2191,17 @@ case class UndirectedRelationshipVectorIndexSearch(
   indexName: String,
   vector: Expression,
   limit: Expression,
-  maybeFilter: Option[QueryExpression[Expression]],
+  entityFilter: EntityFilterQueryExpression[Expression],
+  maybePropertyFilter: Option[QueryExpression[Expression]],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends RelationshipIndexLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ idName ++ leftNode ++ rightNode ++ score
 
   override def usedVariables: Set[LogicalVariable] =
-    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
+    vector.dependencies ++ limit.dependencies ++ entityFilter.expressions.flatMap(
+      _.dependencies
+    ) ++ maybePropertyFilter.map(
       _.expressions.flatMap(_.dependencies)
     ).getOrElse(Set.empty)
 
@@ -3824,13 +3830,16 @@ case class NodeVectorIndexSearch(
   indexName: String,
   vector: Expression,
   limit: Expression,
-  maybeFilter: Option[QueryExpression[Expression]],
+  entityFilter: EntityFilterQueryExpression[Expression],
+  maybePropertyFilter: Option[QueryExpression[Expression]],
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends NodeIndexLeafPlan(idGen) with StableLeafPlan {
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName ++ score
 
   override def usedVariables: Set[LogicalVariable] =
-    vector.dependencies ++ limit.dependencies ++ maybeFilter.map(
+    vector.dependencies ++ limit.dependencies ++ entityFilter.expressions.flatMap(
+      _.dependencies
+    ) ++ maybePropertyFilter.map(
       _.expressions.flatMap(_.dependencies)
     ).getOrElse(Set.empty)
 

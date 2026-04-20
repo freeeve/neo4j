@@ -437,7 +437,18 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case NodeVectorIndexSearch(node, labels, properties, score, indexName, vector, limit, maybeFilter, _) =>
+      case NodeVectorIndexSearch(
+          node,
+          labels,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          entityFilterPredicate,
+          maybeFilter,
+          _
+        ) =>
         NodeVectorIndexSearchSlottedPipe(
           slots.longOffset(node.name),
           score.map(s => slots.refOffset(s.name)),
@@ -445,6 +456,7 @@ class SlottedPipeMapper(
           convertExpressions(vector),
           convertExpressions(limit),
           indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, labels, properties),
+          entityFilterPredicate.map(convertExpressions),
           maybeFilter.map(_.map(convertExpressions))
         )(id)
 
@@ -1042,7 +1054,8 @@ class SlottedPipeMapper(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           _
         ) =>
         DirectedRelationshipVectorIndexSearchSlottedPipe(
@@ -1054,7 +1067,8 @@ class SlottedPipeMapper(
           convertExpressions(vector),
           convertExpressions(limit),
           indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
-          maybeFilter.map(_.map(convertExpressions))
+          entityFilter.map(convertExpressions),
+          maybePropertyFilter.map(_.map(convertExpressions))
         )(id)
 
       case UndirectedRelationshipVectorIndexSearch(
@@ -1067,7 +1081,8 @@ class SlottedPipeMapper(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           _
         ) =>
         UndirectedRelationshipVectorIndexSearchSlottedPipe(
@@ -1079,7 +1094,8 @@ class SlottedPipeMapper(
           convertExpressions(vector),
           convertExpressions(limit),
           indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
-          maybeFilter.map(_.map(convertExpressions))
+          entityFilter.map(convertExpressions),
+          maybePropertyFilter.map(_.map(convertExpressions))
         )(id)
 
       case _: Argument =>

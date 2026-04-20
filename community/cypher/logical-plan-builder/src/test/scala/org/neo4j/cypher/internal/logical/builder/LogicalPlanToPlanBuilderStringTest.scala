@@ -1945,7 +1945,7 @@ class LogicalPlanToPlanBuilderStringTest
         score = "score",
         argumentIds = Set("x"),
         getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
-        filter = Some(rangeExpression(gte(5)))
+        propertyFilter = Some(rangeExpression(gte(5)))
       )
       .apply()
       .|.nodeVectorIndexSearch(
@@ -1958,7 +1958,7 @@ class LogicalPlanToPlanBuilderStringTest
         score = "score",
         argumentIds = Set("x"),
         getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
-        filter = Some(single(5))
+        propertyFilter = Some(single(5))
       )
       .apply()
       .|.nodeVectorIndexSearch(
@@ -1971,7 +1971,7 @@ class LogicalPlanToPlanBuilderStringTest
         score = "score",
         argumentIds = Set("x"),
         getValueFromIndex = Map("prop" -> GetValue, "prop2" -> DoNotGetValue),
-        filter = Some(between(gte(5), lt(10)))
+        propertyFilter = Some(between(gte(5), lt(10)))
       )
       .apply()
       .|.nodeVectorIndexSearch(
@@ -2011,7 +2011,7 @@ class LogicalPlanToPlanBuilderStringTest
         "10",
         score = "score",
         argumentIds = Set("x1", "r1", "y1"),
-        filter = Some(rangeExpression(gte(5)))
+        propertyFilter = Some(rangeExpression(gte(5)))
       )
       .apply()
       .|.relationshipVectorIndexSearch(
@@ -3524,6 +3524,8 @@ class LogicalPlanToPlanBuilderStringTest
             |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.gte
             |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.lte
             |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.lt
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.matchAll
+            |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.matchEntities
             |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.rangeExpression
             |import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport.single
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column

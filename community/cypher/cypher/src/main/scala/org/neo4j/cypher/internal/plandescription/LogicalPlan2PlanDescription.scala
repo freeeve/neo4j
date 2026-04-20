@@ -192,6 +192,8 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.MatchEntitySetQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
@@ -700,12 +702,13 @@ case class LogicalPlan2PlanDescription(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          _,
+          maybePropertyFilter,
           _
         ) =>
-        val predicate = maybeFilter match {
+        val predicate = maybePropertyFilter match {
           case Some(valueExpr) =>
-            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+            pretty" WHERE ${indexPredicateString(Some(idName), properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
           case None => pretty""
         }
         val score = maybeScore match {
@@ -735,13 +738,14 @@ case class LogicalPlan2PlanDescription(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          _,
+          maybePropertyFilter,
           _
         ) =>
 
-        val predicate = maybeFilter match {
+        val predicate = maybePropertyFilter match {
           case Some(valueExpr) =>
-            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+            pretty" WHERE ${indexPredicateString(idName, properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
           case None => pretty""
         }
         val score = maybeScore match {
@@ -771,13 +775,14 @@ case class LogicalPlan2PlanDescription(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          _,
+          maybePropertyFilter,
           _
         ) =>
 
-        val predicate = maybeFilter match {
+        val predicate = maybePropertyFilter match {
           case Some(valueExpr) =>
-            pretty" WHERE ${indexPredicateString(properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
+            pretty" WHERE ${indexPredicateString(idName, properties.drop(1).map(_.propertyKeyToken), valueExpr)}"
           case None => pretty""
         }
         val score = maybeScore match {
@@ -799,7 +804,7 @@ case class LogicalPlan2PlanDescription(
 
       case p @ NodeIndexSeek(idName, label, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getNodeIndexDescriptions(
-          idName.name,
+          idName,
           label,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -820,7 +825,7 @@ case class LogicalPlan2PlanDescription(
 
       case p @ PartitionedNodeIndexSeek(idName, label, properties, valueExpr, _, indexType) =>
         val (indexMode, indexDesc) = getNodeIndexDescriptions(
-          idName.name,
+          idName,
           label,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -841,7 +846,7 @@ case class LogicalPlan2PlanDescription(
 
       case p @ NodeUniqueIndexSeek(idName, label, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getNodeIndexDescriptions(
-          idName.name,
+          idName,
           label,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -880,7 +885,7 @@ case class LogicalPlan2PlanDescription(
         val onDetails = pretty"${asPretty("MATCH", onMatch)} ${asPretty("CREATE", onCreate)}"
 
         val (_, indexDesc) = getNodeIndexDescriptions(
-          idName.name,
+          idName,
           label,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -907,7 +912,7 @@ case class LogicalPlan2PlanDescription(
       case p @ MultiNodeIndexSeek(indexLeafPlans) =>
         val (_, indexDescs) = indexLeafPlans.map(l =>
           getNodeIndexDescriptions(
-            l.idName.name,
+            l.idName,
             l.label,
             l.properties.map(_.propertyKeyToken),
             l.indexType,
@@ -930,7 +935,7 @@ case class LogicalPlan2PlanDescription(
       case p @ AssertingMultiNodeIndexSeek(_, indexLeafPlans) =>
         val (_, indexDescs) = indexLeafPlans.map(l =>
           getNodeIndexDescriptions(
-            l.idName.name,
+            l.idName,
             l.label,
             l.properties.map(_.propertyKeyToken),
             l.indexType,
@@ -3755,7 +3760,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def getNodeIndexDescriptions(
-    idName: String,
+    idName: LogicalVariable,
     label: LabelToken,
     propertyKeys: Seq[PropertyKeyToken],
     indexType: IndexType,
@@ -3766,8 +3771,8 @@ case class LogicalPlan2PlanDescription(
   ): (String, PrettyString) = {
 
     val name = nodeIndexOperatorName(valueExpr, unique, readOnly)
-    val predicate = indexPredicateString(propertyKeys, valueExpr)
-    val info = nodeIndexInfoString(idName, unique, label, propertyKeys, indexType, predicate, caches)
+    val predicate = indexPredicateString(Some(idName), propertyKeys, valueExpr)
+    val info = nodeIndexInfoString(idName.name, unique, label, propertyKeys, indexType, predicate, caches)
 
     (name, info)
   }
@@ -3787,7 +3792,7 @@ case class LogicalPlan2PlanDescription(
   ): (String, PrettyString) = {
 
     val name = relationshipIndexOperatorName(valueExpr, unique, readOnly, isDirected)
-    val predicate = indexPredicateString(propertyKeys, valueExpr)
+    val predicate = indexPredicateString(idName, propertyKeys, valueExpr)
     val info = relIndexInfoString(idName, start, typeToken, end, isDirected, propertyKeys, indexType, predicate, caches)
 
     (name, info)
@@ -3839,6 +3844,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def indexPredicateString(
+    idName: Option[LogicalVariable],
     propertyKeys: Seq[PropertyKeyToken],
     valueExpr: QueryExpression[expressions.Expression]
   ): PrettyString = valueExpr match {
@@ -3850,6 +3856,11 @@ case class LogicalPlan2PlanDescription(
 
     case NonExistenceQueryExpression =>
       pretty"${asPrettyString(propertyKeys.head.name)} IS NULL"
+
+    case MatchEntitySetQueryExpression(expression) =>
+      pretty"${asPrettyString(idName)} IN ${asPrettyString(expression)}"
+
+    case MatchAllQueryExpression => pretty""
 
     case e: RangeQueryExpression[expressions.Expression] =>
       checkOnlyWhenAssertionsAreEnabled(propertyKeys.size == 1)
@@ -3881,7 +3892,7 @@ case class LogicalPlan2PlanDescription(
           val propertyKeyName = asPrettyString(propertyKeys.head.name)
           pretty"point.withinBBox($propertyKeyName, $pll, $pur)"
         case _ =>
-          throw new IllegalStateException("The expression did not confomr to the expected type RangeQueryExpression")
+          throw new IllegalStateException("The expression did not conform to the expected type RangeQueryExpression")
       }
 
     case e: SingleQueryExpression[expressions.Expression] =>
@@ -3900,7 +3911,7 @@ case class LogicalPlan2PlanDescription(
 
     case e: CompositeQueryExpression[expressions.Expression] =>
       val predicates = e.inner.zipWithIndex.map {
-        case (exp, i) => indexPredicateString(Seq(propertyKeys(i)), exp)
+        case (exp, i) => indexPredicateString(idName, Seq(propertyKeys(i)), exp)
       }
       predicates.mkPrettyString(" AND ")
   }

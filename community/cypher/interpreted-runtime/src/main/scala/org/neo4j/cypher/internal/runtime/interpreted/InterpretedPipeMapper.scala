@@ -1085,7 +1085,18 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case NodeVectorIndexSearch(node, labels, properties, score, indexName, vector, limit, maybeFilter, _) =>
+      case NodeVectorIndexSearch(
+          node,
+          labels,
+          properties,
+          score,
+          indexName,
+          vector,
+          limit,
+          entityFilter,
+          maybePropertyFilter,
+          _
+        ) =>
         NodeVectorIndexSearchPipe(
           node.name,
           score.map(_.name),
@@ -1093,7 +1104,8 @@ case class InterpretedPipeMapper(
           buildExpression(vector),
           buildExpression(limit),
           indexRegistrator.registerNamedQueryIndex(indexName, IndexType.VECTOR, labels, properties),
-          maybeFilter.map(_.map(buildExpression))
+          entityFilter.map(buildExpression),
+          maybePropertyFilter.map(_.map(buildExpression))
         )(id)
 
       case DirectedRelationshipVectorIndexSearch(
@@ -1106,7 +1118,8 @@ case class InterpretedPipeMapper(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           _
         ) =>
         DirectedRelationshipVectorIndexSearchPipe(
@@ -1118,7 +1131,8 @@ case class InterpretedPipeMapper(
           buildExpression(vector),
           buildExpression(limit),
           indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
-          maybeFilter.map(_.map(buildExpression))
+          entityFilter.map(buildExpression),
+          maybePropertyFilter.map(_.map(buildExpression))
         )(id)
 
       case UndirectedRelationshipVectorIndexSearch(
@@ -1131,7 +1145,8 @@ case class InterpretedPipeMapper(
           indexName,
           vector,
           limit,
-          maybeFilter,
+          entityFilter,
+          maybePropertyFilter,
           _
         ) =>
         UndirectedRelationshipVectorIndexSearchPipe(
@@ -1143,7 +1158,8 @@ case class InterpretedPipeMapper(
           buildExpression(vector),
           buildExpression(limit),
           indexRegistrator.registerNamedRelationshipQueryIndex(indexName, IndexType.VECTOR, types, properties),
-          maybeFilter.map(_.map(buildExpression))
+          entityFilter.map(buildExpression),
+          maybePropertyFilter.map(_.map(buildExpression))
         )(id)
 
       case s: ShowIndexes =>

@@ -22,10 +22,13 @@ package org.neo4j.cypher.internal.compiler.helpers
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ToExpression
 import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.EntityFilterQueryExpression
 import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InclusiveBound
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRange
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.MatchAllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.MatchEntitySetQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeBetween
 import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
@@ -64,6 +67,11 @@ trait QueryExpressionConstructionTestSupport {
     RangeGreaterThan(NonEmptyList(InclusiveBound(toExpression(e))))
   def lt(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(ExclusiveBound(toExpression(e))))
   def lte(e: ToExpression): RangeLessThan[Expression] = RangeLessThan(NonEmptyList(InclusiveBound(toExpression(e))))
+
+  def matchEntities(e: ToExpression): MatchEntitySetQueryExpression[Expression] =
+    MatchEntitySetQueryExpression(toExpression(e))
+
+  def matchAll(): EntityFilterQueryExpression[Expression] = MatchAllQueryExpression
 
   private def toExpression(expr: ToExpression): Expression =
     expr match {

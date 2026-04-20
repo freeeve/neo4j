@@ -213,8 +213,6 @@ import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeReadC
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeScanConcurrencyStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.UnionRelationshipTypesScanConcurrencyStressTestBase
 import org.neo4j.cypher.internal.util.test_helpers.TimeLimitedCypherTest
-import org.neo4j.graphdb.Label
-import org.neo4j.graphdb.RelationshipType
 
 object InterpretedSpecSuite {
   val SIZE_HINT = 200
