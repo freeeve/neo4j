@@ -695,14 +695,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     boolean result = traversalCursor.next();
                     if (result) {
                         state = State.SCANNING;
-                        onMatch(mutationCallback);
+                        onMatch(mutationCallback, true);
                     } else {
                         result = lockAndReRead();
                         if (!result) {
                             createdRelationship = createRelationship(mutationCallback);
                             state = State.CREATED;
                         } else {
-                            onMatch(mutationCallback);
+                            onMatch(mutationCallback, false);
                             state = State.SCANNING;
                         }
                     }
@@ -711,7 +711,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 case SCANNING -> {
                     boolean result = traversalCursor.next();
                     if (result) {
-                        onMatch(mutationCallback);
+                        onMatch(mutationCallback, true);
                     }
                     yield result;
                 }
@@ -761,13 +761,18 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             }
         }
 
-        private void onMatch(MutationCallback mutationCallback) {
+        private void onMatch(MutationCallback mutationCallback, boolean checkRelationshipExistence) {
             if (onMatchProperties.isEmpty()) {
                 mutationCallback.onMutation(0, 0, 0, 0);
                 return;
             }
             // lock
             acquireExclusiveRelationshipLock(traversalCursor.relationshipReference());
+            if (checkRelationshipExistence && !kernelRead.relationshipExists(traversalCursor.relationshipReference())) {
+                // Relationship is no longer there, at this point the expected Cypher behaviour is just to ignore
+                // and don't try to mutate the relationship. This means we may come out of a merge with 0 relationships.
+                return;
+            }
             mutationCallback.onMutation(0, 0, 0, onMatchProperties.size());
             try {
                 internalRelationshipApply(traversalCursor, propertyCursor, onMatchProperties);
