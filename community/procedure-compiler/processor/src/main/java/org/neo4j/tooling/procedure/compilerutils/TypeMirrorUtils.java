@@ -35,8 +35,8 @@ import org.neo4j.graphdb.Relationship;
 
 public class TypeMirrorUtils {
 
-    private Types typeUtils;
-    private Elements elementUtils;
+    private final Types typeUtils;
+    private final Elements elementUtils;
 
     public TypeMirrorUtils(Types typeUtils, Elements elementUtils) {
         this.typeUtils = typeUtils;

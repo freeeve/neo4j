@@ -21,15 +21,12 @@ package org.neo4j.tooling.procedure;
 
 import static org.neo4j.tooling.procedure.CompilerOptions.IGNORE_CONTEXT_WARNINGS_OPTION;
 
-import com.google.auto.service.AutoService;
-import javax.annotation.processing.Processor;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import org.neo4j.procedure.Procedure;
 import org.neo4j.tooling.procedure.compilerutils.CustomNameExtractor;
 import org.neo4j.tooling.procedure.visitors.ProcedureVisitor;
 
-@AutoService(Processor.class)
 public class ProcedureProcessor extends DuplicationAwareBaseProcessor<Procedure> {
 
     public ProcedureProcessor() {

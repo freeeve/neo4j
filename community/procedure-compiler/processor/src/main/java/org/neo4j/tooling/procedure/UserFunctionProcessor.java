@@ -21,10 +21,8 @@ package org.neo4j.tooling.procedure;
 
 import static org.neo4j.tooling.procedure.CompilerOptions.IGNORE_CONTEXT_WARNINGS_OPTION;
 
-import com.google.auto.service.AutoService;
 import java.util.Optional;
 import java.util.function.Function;
-import javax.annotation.processing.Processor;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import org.neo4j.procedure.UserFunction;
@@ -33,7 +31,6 @@ import org.neo4j.tooling.procedure.compilerutils.TypeMirrorUtils;
 import org.neo4j.tooling.procedure.visitors.FunctionVisitor;
 import org.neo4j.tooling.procedure.visitors.UserFunctionVisitor;
 
-@AutoService(Processor.class)
 public class UserFunctionProcessor extends DuplicationAwareBaseProcessor<UserFunction> {
 
     private static final Class<UserFunction> SUPPORTED_ANNOTATION_TYPE = UserFunction.class;

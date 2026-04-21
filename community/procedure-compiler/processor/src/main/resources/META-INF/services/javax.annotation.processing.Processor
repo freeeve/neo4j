@@ -1,0 +1,3 @@
+org.neo4j.tooling.procedure.ProcedureProcessor
+org.neo4j.tooling.procedure.UserAggregationFunctionProcessor
+org.neo4j.tooling.procedure.UserFunctionProcessor

@@ -22,19 +22,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.google.auto</groupId>
-      <artifactId>auto-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.service</groupId>
-      <artifactId>auto-service</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.service</groupId>
-      <artifactId>auto-service-annotations</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-common</artifactId>
       <version>${project.version}</version>
@@ -110,10 +97,8 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <annotationProcessors>
-            <annotationProcessor>com.google.auto.service.processor.AutoServiceProcessor</annotationProcessor>
-          </annotationProcessors>
+        <configuration combine.self="override">
+          <compilerArgument>-proc:none</compilerArgument>
         </configuration>
       </plugin>
       <plugin>
@@ -127,26 +112,6 @@
               <includes>
                 <include>org/neo4j/tooling/procedure/procedures/valid/**/*</include>
               </includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>analyze</id>
-            <goals>
-              <goal>analyze-only</goal>
-            </goals>
-            <configuration>
-              <failOnWarning>true</failOnWarning>
-              <ignoredUnusedDeclaredDependencies>
-                <!-- Annotation processor: used by maven-compiler-plugin at compile time, not visible to bytecode analyser -->
-                <ignoredUnusedDeclaredDependency>com.google.auto:auto-common</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>com.google.auto.service:auto-service</ignoredUnusedDeclaredDependency>
-              </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
         </executions>
