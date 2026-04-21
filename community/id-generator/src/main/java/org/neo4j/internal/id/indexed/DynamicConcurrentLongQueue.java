@@ -152,13 +152,6 @@ class DynamicConcurrentLongQueue implements ConcurrentLongQueue {
         return capacity - occupied;
     }
 
-    @Override
-    public void clear() {
-        head.set(null);
-        tail.set(null);
-        numChunks.set(0);
-    }
-
     private static class Chunk {
         private static final long EMPTY_VALUE = -1;
 

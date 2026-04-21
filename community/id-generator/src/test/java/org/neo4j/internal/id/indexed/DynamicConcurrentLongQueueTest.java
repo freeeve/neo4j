@@ -190,28 +190,6 @@ class DynamicConcurrentLongQueueTest {
     }
 
     @Test
-    void shouldClearQueue() {
-        // given
-        int capacity = 256;
-        var queue = new DynamicConcurrentLongQueue(8, capacity);
-        for (int i = 0; i < capacity; i++) {
-            assertThat(queue.offer(i)).isTrue();
-        }
-
-        // when
-        queue.clear();
-        assertThat(queue.takeOrDefault(-1L)).isEqualTo(-1L);
-
-        // then
-        for (int i = 0; i < capacity; i++) {
-            assertThat(queue.offer(i)).isTrue();
-        }
-        for (int i = 0; i < capacity; i++) {
-            assertThat(queue.takeOrDefault(-1)).isEqualTo(i);
-        }
-    }
-
-    @Test
     void shouldReportCorrectOccupancyOnLowChunkCount() {
         // given
         int capacity = 256;

@@ -22,7 +22,7 @@ package org.neo4j.internal.id.indexed;
 /**
  * Concurrent primitive {@code long} queue with a fixed max capacity.
  */
-interface ConcurrentLongQueue {
+public interface ConcurrentLongQueue {
     /**
      * Offers value {@code v} to this queue. The value may or may not be accepted, which will be signaled by the return value.
      *
@@ -57,9 +57,4 @@ interface ConcurrentLongQueue {
      * @return number of IDs that can be offered to this cache before it's full.
      */
     int availableSpace();
-
-    /**
-     * Clears the queue.
-     */
-    void clear();
 }

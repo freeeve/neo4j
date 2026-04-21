@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.id.IdGenerator.NO_ID;
 
@@ -126,24 +125,6 @@ class MpmcLongQueueTest {
             executor.shutdown();
             executor.awaitTermination(10, SECONDS);
         }
-    }
-
-    @Test
-    void shouldClearQueue() {
-        // given
-        ConcurrentLongQueue queue = new MpmcLongQueue(16);
-        for (int i = 0; i < 10; i++) {
-            queue.offer(random.nextLong(1000));
-        }
-        assertEquals(10, queue.size());
-        assertNotEquals(-1, queue.takeOrDefault(-1));
-
-        // when
-        queue.clear();
-
-        // then
-        assertEquals(0, queue.size());
-        assertEquals(-1, queue.takeOrDefault(-1));
     }
 
     private static Callable<Void> createConsumer(

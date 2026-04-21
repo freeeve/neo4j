@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLongArray;
 /**
  * Multi Producer Multiple Consumers FIFO queue.
  */
-class MpmcLongQueue implements ConcurrentLongQueue {
+public class MpmcLongQueue implements ConcurrentLongQueue {
     private static final long EMPTY_VALUE = -1;
 
     private final long idxMask;
@@ -38,7 +38,7 @@ class MpmcLongQueue implements ConcurrentLongQueue {
     private final AtomicLong readSeq = new AtomicLong();
     private final AtomicLong writeSeq = new AtomicLong();
 
-    MpmcLongQueue(int capacity) {
+    public MpmcLongQueue(int capacity) {
         requirePowerOfTwo(capacity);
         this.idxMask = capacity - 1;
         var array = new long[capacity];
@@ -122,15 +122,7 @@ class MpmcLongQueue implements ConcurrentLongQueue {
         return array.length() - size();
     }
 
-    /**
-     * This call is not thread-safe w/ concurrent calls to {@link #offer(long)} so external synchronization is required.
-     */
-    @Override
-    public void clear() {
-        readSeq.set(writeSeq.get());
-    }
-
     private int idx(long seq) {
-        return toIntExact(seq & idxMask);
+        return (int) (seq & idxMask);
     }
 }
