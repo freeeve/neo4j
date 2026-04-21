@@ -28,6 +28,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkSmallCh
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 
 import java.io.IOException;
+import org.neo4j.io.fs.ChecksumMismatchException;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
@@ -100,7 +101,10 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             }
         } catch (ReadPastEndException e) {
             return null;
-        } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {
+        } catch (UnsupportedLogVersionException
+                | IllegalStateException
+                | InvalidLogEnvelopeReadException
+                | ChecksumMismatchException e) {
             throw e;
         } catch (IncompleteEnvelopeReadException e) {
             // This exception signals that the tail is already checked and the last entry is broken.
