@@ -29,9 +29,10 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.QueryGraph.PredicatesAndLegacyShortestByDependencies
+import org.neo4j.cypher.internal.ir.QueryGraph.DependentElements
 import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -123,9 +124,9 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
       .addPredicates(predicates)
       .addShortestRelationships(shortestRels)
 
-    qg.predicatesAndLegacyShortestPartitionedByDependencyOnNonArgumentIds shouldEqual
-      PredicatesAndLegacyShortestByDependencies(
-        dependOnArgumentsOnly = PredicatesAndLegacyShortestByDependencies.Bucket(
+    qg.dependentElementsPartitionedByDependencyOnNonArgumentIds shouldEqual
+      DependentElements(
+        dependOnArgumentsOnly = DependentElements.Bucket(
           predicates = Set(
             pred(),
             pred(v"arg1"),
@@ -135,9 +136,10 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
           shortestRelationshipPatterns = Set(
             sp(v"arg1", v"arg2"),
             sp(v"arg2", v"arg3")
-          )
+          ),
+          searchClause = None
         ),
-        hasNonArgumentDependencies = PredicatesAndLegacyShortestByDependencies.Bucket(
+        hasNonArgumentDependencies = DependentElements.Bucket(
           predicates = Set(
             pred(v"arg3", v"x"),
             pred(v"y"),
@@ -148,8 +150,74 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
             sp(v"x", v"y"),
             sp(v"x", v"arg1"),
             sp(v"arg2", v"y")
-          )
+          ),
+          searchClause = None
         )
       )
   }
+
+  test("should classify SEARCH as having non-argument dependencies") {
+    val baseSearchClause = VectorSearchClause(
+      resultVariable = v"movie",
+      indexName = "moviePlots",
+      embedding = listOfInt(1, 2, 3),
+      where = None,
+      limit = literal(10),
+      scoreVariable = None
+    )
+
+    val arg = v"arg"
+
+    val hasNonArgumentDependenciesTestCases: Seq[VectorSearchClause] = Seq(
+      // no dependencies of any kind
+      baseSearchClause,
+      // embedding depends on non-argument symbol
+      baseSearchClause.copy(embedding = prop("n", "embedding")),
+      // embedding depends on argument, but not the result variable
+      baseSearchClause.copy(embedding = prop(arg.name, "embedding")),
+      // result variable is an argument, embedding depends on non-argument symbol
+      baseSearchClause.copy(resultVariable = arg, embedding = prop("n", "embedding"))
+    )
+
+    for (search <- hasNonArgumentDependenciesTestCases) withClue(search) {
+      val qg = QueryGraph.empty
+        .addArgumentId(arg)
+        .addSearchClause(Some(search))
+
+      val dependentElements = qg.dependentElementsPartitionedByDependencyOnNonArgumentIds
+      dependentElements.dependOnArgumentsOnly.searchClause shouldEqual None
+      dependentElements.hasNonArgumentDependencies.searchClause shouldEqual Some(search)
+    }
+  }
+
+  test("should classify SEARCH as having argument-only dependencies") {
+    val baseSearchClause = VectorSearchClause(
+      resultVariable = v"movie",
+      indexName = "moviePlots",
+      embedding = listOfInt(1, 2, 3),
+      where = None,
+      limit = literal(10),
+      scoreVariable = None
+    )
+
+    val arg = v"arg"
+
+    val hasArgumentOnlyDependenciesTestCases: Seq[VectorSearchClause] = Seq(
+      // result variable is an argument, no dependencies elsewhere
+      baseSearchClause.copy(resultVariable = arg),
+      // result variable is an argument, argument dependencies in embedding
+      baseSearchClause.copy(resultVariable = arg, embedding = prop(arg.name, "embedding"))
+    )
+
+    for (search <- hasArgumentOnlyDependenciesTestCases) withClue(search) {
+      val qg = QueryGraph.empty
+        .addArgumentId(arg)
+        .addSearchClause(Some(search))
+
+      val dependentElements = qg.dependentElementsPartitionedByDependencyOnNonArgumentIds
+      dependentElements.dependOnArgumentsOnly.searchClause shouldEqual Some(search)
+      dependentElements.hasNonArgumentDependencies.searchClause shouldEqual None
+    }
+  }
+
 }

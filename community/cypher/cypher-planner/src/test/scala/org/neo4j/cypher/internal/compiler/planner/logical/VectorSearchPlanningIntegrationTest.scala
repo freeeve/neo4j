@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.VectorSearchWithComplexPattern
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.QueryExpressionConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
@@ -38,6 +39,8 @@ import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.GetValue
+import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
+import org.neo4j.cypher.internal.logical.plans.NodeVectorIndexSearch
 import org.neo4j.cypher.internal.logical.plans.NonExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.util.Selectivity
@@ -90,6 +93,10 @@ abstract class VectorSearchPlanningIntegrationTestBase extends CypherFunSuite
 
   protected val moviePlotsProperties = Seq("plot", "imdbRating", "releaseYear")
   protected val actsInScriptProperties = Seq("script", "workingDays")
+
+  protected def getValueFromIndexFor(properties: String*): String => GetValueFromIndexBehavior = {
+    properties.map(p => p -> GetValue).toMap.withDefaultValue(DoNotGetValue)
+  }
 
   test("plan node vector index search") {
     val planner = plannerBuilder().build()
@@ -2101,4 +2108,165 @@ abstract class VectorSearchWithComplexPatternPlanningIntegrationTestBase
       .build()
   }
 
+  // used to break cost ties in cartesian products
+  private val smallBatchedExecutionModel = ExecutionModel.BatchedSingleThreaded(2, 4)
+
+  test("plan node vector index search with a pattern with multiple components") {
+    val planner = plannerBuilder()
+      .setExecutionModel(smallBatchedExecutionModel)
+      .build()
+
+    val query =
+      """MATCH (n), (movie:Movie), (m:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR [1,2,3]
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .cartesianProduct()
+      .|.cartesianProduct()
+      .|.|.nodeVectorIndexSearch(
+        node = "movie",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = listOfInt(1, 2, 3),
+        limit = "10",
+        getValueFromIndex = getValueFromIndexFor("plot")
+      )
+      .|.allNodeScan("n")
+      .nodeByLabelScan("m", "Person")
+      .build()
+  }
+
+  test("plan node vector index search with a pattern with multiple components, embedding from another component") {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .setExecutionModel(smallBatchedExecutionModel)
+      .build()
+
+    val query =
+      """MATCH (n), (movie:Movie), (m:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR n.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .cartesianProduct()
+      .|.filter("`  movie@0` = movie")
+      .|.apply()
+      .|.|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = cachedNodeProp("n", "embedding"),
+        limit = "10",
+        argumentIds = Set("movie", "n")
+      )
+      .|.cartesianProduct()
+      .|.|.cacheProperties("cacheNFromStore[movie.plot]")
+      .|.|.nodeByLabelScan("movie", "Movie")
+      .|.cacheProperties("cacheNFromStore[n.embedding]")
+      .|.allNodeScan("n")
+      .nodeByLabelScan("m", "Person")
+      .build()
+  }
+
+  test(
+    "plan node vector index search with a pattern with multiple components, score variable predicate with dependency on another component"
+  ) {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .setExecutionModel(smallBatchedExecutionModel)
+      .build()
+
+    val query =
+      """MATCH (n), (movie:Movie), (m:Person)
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR n.embedding
+        |    LIMIT 10
+        |  ) SCORE as score
+        |WHERE score > m.prop
+        |RETURN movie.plot as plot""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[movie.plot] AS plot")
+      .filter("cacheN[m.prop] < score")
+      .cartesianProduct()
+      .|.filter("`  movie@0` = movie")
+      .|.apply()
+      .|.|.nodeVectorIndexSearch(
+        node = "  movie@0",
+        labelNames = Seq("Movie"),
+        properties = moviePlotsProperties,
+        indexName = "moviePlots",
+        vector = cachedNodeProp("n", "embedding"),
+        limit = "10",
+        score = "score",
+        argumentIds = Set("movie", "n")
+      )
+      .|.cartesianProduct()
+      .|.|.cacheProperties("cacheNFromStore[movie.plot]")
+      .|.|.nodeByLabelScan("movie", "Movie")
+      .|.cacheProperties("cacheNFromStore[n.embedding]")
+      .|.allNodeScan("n")
+      .cacheProperties("cacheNFromStore[m.prop]")
+      .nodeByLabelScan("m", "Person")
+      .build()
+  }
+
+  test(
+    "plan node vector index search with a pattern with multiple components, SEARCH on a previously bound variable with argument-only dependencies"
+  ) {
+    val planner = plannerBuilder()
+      .enableDeduplicateNames(false)
+      .build()
+
+    val query =
+      """MATCH (movie:Movie)-[directed_by]->(director)
+        |MATCH (n:Person), (movie)-->(), (m)
+        |WHERE n.prop < m.prop
+        |  SEARCH movie IN (
+        |    VECTOR INDEX moviePlots
+        |    FOR director.embedding
+        |    LIMIT 10
+        |  )
+        |RETURN movie.plot as plot""".stripMargin
+
+    val (plan, costComparisonCandidates) = planner.planAndRecordCostComparisonCandidates(CypherVersion.Cypher25, query)
+
+    plan.folder.findAllByClass[NodeVectorIndexSearch] shouldEqual Seq(
+      planner.subPlanBuilder()
+        .nodeVectorIndexSearch(
+          node = "  movie@0",
+          labelNames = Seq("Movie"),
+          properties = moviePlotsProperties,
+          indexName = "moviePlots",
+          vector = prop("director", "embedding"),
+          limit = "10",
+          argumentIds = Set("movie", "director", "directed_by")
+        )
+        .build()
+    )
+
+    // should not attempt to plan the same SEARCH in multiple components
+    costComparisonCandidates.foreach { candidatePlan =>
+      withClue(s"candidatePlan:\n$candidatePlan\n") {
+        candidatePlan.folder.findAllByClass[NodeVectorIndexSearch].size should be <= 1
+      }
+    }
+  }
 }

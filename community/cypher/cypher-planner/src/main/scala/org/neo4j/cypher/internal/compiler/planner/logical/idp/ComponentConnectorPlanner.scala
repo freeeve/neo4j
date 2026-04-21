@@ -36,6 +36,7 @@ import org.neo4j.time.Stopwatch
 
 import scala.collection.CypherPlannerBitSetOptimizations
 import scala.collection.immutable.BitSet
+import scala.util.chaining.scalaUtilChainingOps
 
 /**
  * This class is responsible for connecting all disconnected logical plans, which can be
@@ -74,6 +75,7 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
       notYetSolved.isEmpty &&
         queryGraph.optionalMatches.isEmpty &&
         queryGraph.shortestRelationshipPatterns.isEmpty &&
+        queryGraph.searchClause.isEmpty &&
         interestingOrderConfig.orderToSolve.isEmpty
 
     if (canUseHeuristic) {
@@ -94,26 +96,34 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
         ).plan
       }
     } else {
-      val predicatesAndLegacyShortestWithArgumentDependenciesOnly =
-        queryGraph.predicatesAndLegacyShortestPartitionedByDependencyOnNonArgumentIds.dependOnArgumentsOnly
-
-      val kitToUse = if (predicatesAndLegacyShortestWithArgumentDependenciesOnly.isEmpty) {
+      connectWithIDP(
+        components,
+        filterOutQueryGraphElementsWithArgumentOnlyDependencies(queryGraph),
+        interestingOrderConfig,
+        context,
         kit
-      } else {
-        kit.copy(select = { (plan, qg) =>
-          // These predicates/shortestPaths should already be solved by one of the components, avoid solving them multiple times.
-          val fixedQg = qg
-            .removePredicates(
-              predicatesAndLegacyShortestWithArgumentDependenciesOnly.predicates
-            )
-            .removeShortestRelationships(
-              predicatesAndLegacyShortestWithArgumentDependenciesOnly.shortestRelationshipPatterns
-            )
-          kit.select(plan, fixedQg)
-        })
-      }
+      )
+    }
+  }
 
-      connectWithIDP(components, queryGraph, interestingOrderConfig, context, kitToUse)
+  // These elements should already be solved in one of the components, by removing them here we avoid solving them multiple times.
+  private def filterOutQueryGraphElementsWithArgumentOnlyDependencies(queryGraph: QueryGraph): QueryGraph = {
+    val elementsWithArgumentDependenciesOnly =
+      queryGraph.dependentElementsPartitionedByDependencyOnNonArgumentIds.dependOnArgumentsOnly
+
+    if (elementsWithArgumentDependenciesOnly.isEmpty) {
+      queryGraph
+    } else {
+      queryGraph
+        .removePredicates(elementsWithArgumentDependenciesOnly.predicates)
+        .removeShortestRelationships(elementsWithArgumentDependenciesOnly.shortestRelationshipPatterns)
+        .pipe { qg =>
+          if (elementsWithArgumentDependenciesOnly.searchClause.nonEmpty) {
+            qg.withoutSearchClause
+          } else {
+            qg
+          }
+        }
     }
   }
 

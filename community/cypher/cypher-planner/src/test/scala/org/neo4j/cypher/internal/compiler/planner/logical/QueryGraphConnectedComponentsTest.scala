@@ -536,4 +536,81 @@ class QueryGraphConnectedComponentsTest extends CypherFunSuite with LogicalPlann
 
     qg.connectedComponents shouldEqual Seq(qg)
   }
+
+  test(
+    "should not place predicates on the score variable in the same component as the search clause if it has dependencies on another component"
+  ) {
+    val searchQg = QueryGraph.empty
+      .addPatternNodes(v"movie")
+      .addSearchClause(Some(VectorSearchClause(
+        resultVariable = v"movie",
+        indexName = "moviePlots",
+        embedding = listOfInt(1, 2, 3),
+        where = None,
+        limit = literal(10),
+        scoreVariable = Some(v"score")
+      )))
+      .addPredicates(
+        isNotNull(v"score"),
+        greaterThan(v"score", literal(0.5)),
+        lessThan(v"score", parameter("threshold", CTFloat))
+      )
+
+    val qg = searchQg
+      .addPatternNodes(v"x")
+      .addPredicates(lessThan(v"score", prop("x", "prop")))
+
+    qg.connectedComponents should contain theSameElementsAs Seq(
+      searchQg,
+      QueryGraph.empty.addPatternNodes(v"x")
+    )
+  }
+
+  test(
+    "should place SEARCH and score predicates in the same component as the search clause given multiple components"
+  ) {
+    val qgWithSearch = QueryGraph.empty
+      .addPatternNodes(v"movie")
+      .addSearchClause(Some(VectorSearchClause(
+        resultVariable = v"movie",
+        indexName = "moviePlots",
+        embedding = listOfInt(1, 2, 3),
+        where = None,
+        limit = literal(10),
+        scoreVariable = Some(v"score")
+      )))
+      .addPredicates(
+        isNotNull(v"score"),
+        greaterThan(v"score", literal(0.5)),
+        lessThan(v"score", parameter("threshold", CTFloat))
+      )
+
+    val otherQg = QueryGraph.empty.addPatternNodes(v"a", v"b")
+
+    (otherQg ++ qgWithSearch).connectedComponents should contain theSameElementsAs Seq(
+      qgWithSearch,
+      QueryGraph.empty.addPatternNodes(v"a"),
+      QueryGraph.empty.addPatternNodes(v"b")
+    )
+  }
+
+  test("should place SEARCH on a previously bound symbol and argument-only dependencies into the first component") {
+    val searchClause = VectorSearchClause(
+      resultVariable = v"movie",
+      indexName = "moviePlots",
+      embedding = listOfInt(1, 2, 3),
+      where = None,
+      limit = literal(10),
+      scoreVariable = Some(v"score")
+    )
+
+    val qg = QueryGraph.empty
+      .addPatternNodes(v"a", v"b", v"movie", v"x", v"y", v"z")
+      .addSearchClause(Some(searchClause))
+      .addArgumentIds(searchClause.dependencies + searchClause.resultVariable)
+
+    val components = qg.connectedComponents
+    components.size shouldEqual 6
+    components.head.searchClause shouldEqual Some(searchClause)
+  }
 }

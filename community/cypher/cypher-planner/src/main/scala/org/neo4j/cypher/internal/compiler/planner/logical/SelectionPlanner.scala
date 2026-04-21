@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.VectorSearchClause
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-trait SelectionPlanner {
+sealed trait SelectionPlanner {
   def apply(initialPlan: LogicalPlan, queryGraph: QueryGraph): LogicalPlan
 }
 

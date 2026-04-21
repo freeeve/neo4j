@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PartialPredicate
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
-import org.neo4j.cypher.internal.ir.QueryGraph.PredicatesAndLegacyShortestByDependencies
+import org.neo4j.cypher.internal.ir.QueryGraph.DependentElements
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
@@ -546,19 +546,28 @@ final case class QueryGraph private (
     }.toMap
   }
 
-  def predicatesAndLegacyShortestPartitionedByDependencyOnNonArgumentIds: PredicatesAndLegacyShortestByDependencies = {
+  def dependentElementsPartitionedByDependencyOnNonArgumentIds: DependentElements = {
     val (argumentOnlyPredicates, otherPredicates) = selections.predicates.partition(_.hasDependenciesMet(argumentIds))
     val (argumentOnlyShortest, otherShortest) =
       shortestRelationshipPatterns.partition(_.rel.boundaryNodesSet.forall(argumentIds.contains))
+    val (argumentOnlySearchClause, otherSearchClause) = searchClause match {
+      // treating the result variable as a dependency, since it must be part of the current query graph
+      case Some(search) if (search.dependencies + search.resultVariable).subsetOf(argumentIds) =>
+        (Some(search), None)
+      case _ =>
+        (None, searchClause)
+    }
 
-    PredicatesAndLegacyShortestByDependencies(
-      dependOnArgumentsOnly = PredicatesAndLegacyShortestByDependencies.Bucket(
+    DependentElements(
+      dependOnArgumentsOnly = DependentElements.Bucket(
         predicates = argumentOnlyPredicates,
-        shortestRelationshipPatterns = argumentOnlyShortest
+        shortestRelationshipPatterns = argumentOnlyShortest,
+        searchClause = argumentOnlySearchClause
       ),
-      hasNonArgumentDependencies = PredicatesAndLegacyShortestByDependencies.Bucket(
+      hasNonArgumentDependencies = DependentElements.Bucket(
         predicates = otherPredicates,
-        shortestRelationshipPatterns = otherShortest
+        shortestRelationshipPatterns = otherShortest,
+        searchClause = otherSearchClause
       )
     )
   }
@@ -572,7 +581,7 @@ final case class QueryGraph private (
   def connectedComponents: Seq[QueryGraph] = {
     val visited = mutable.Set.empty[LogicalVariable]
 
-    val predicatesAndLegacyShortestByDependencies = predicatesAndLegacyShortestPartitionedByDependencyOnNonArgumentIds
+    val dependentElementsByDependencies = dependentElementsPartitionedByDependencyOnNonArgumentIds
 
     def createComponentQueryGraphStartingFrom(patternNode: LogicalVariable): QueryGraph = {
       val isFirstComponent = visited.isEmpty
@@ -583,27 +592,31 @@ final case class QueryGraph private (
             qg
           } else {
             qg.addPredicates(
-              predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.predicates
+              dependentElementsByDependencies.dependOnArgumentsOnly.predicates
             ).addShortestRelationships(
-              predicatesAndLegacyShortestByDependencies.dependOnArgumentsOnly.shortestRelationshipPatterns
+              dependentElementsByDependencies.dependOnArgumentsOnly.shortestRelationshipPatterns
             ).addSearchClause(
-              searchClause
+              dependentElementsByDependencies.dependOnArgumentsOnly.searchClause
             )
           }
         } pipe { qg =>
         val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
-        val shortestRelationships =
-          predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies
-            .shortestRelationshipPatterns.filter {
-              _.rel.boundaryNodesSet.forall(coveredIds.contains)
-            }
+        val shortestRelationships = dependentElementsByDependencies.hasNonArgumentDependencies
+          .shortestRelationshipPatterns.filter {
+            _.rel.boundaryNodesSet.forall(coveredIds.contains)
+          }
+        val search = dependentElementsByDependencies.hasNonArgumentDependencies.searchClause
+          // result variable must be part of the current query graph
+          .filter(s => (s.dependencies + s.resultVariable).subsetOf(coveredIds))
         val filteredHints = hints.filter(_.variables.forall(coveredIds.contains))
-        qg.addHints(filteredHints).addShortestRelationships(shortestRelationships)
+        qg.addHints(filteredHints)
+          .addShortestRelationships(shortestRelationships)
+          .addSearchClause(search)
       } pipe { qg =>
-        // this stage needs to see ids introduced by shortestRelationshipPatterns above
+        // this stage needs to see ids introduced by shortestRelationshipPatterns and search above
         val coveredIds = qg.idsWithoutOptionalMatchesOrUpdates
         val predicates =
-          predicatesAndLegacyShortestByDependencies.hasNonArgumentDependencies
+          dependentElementsByDependencies.hasNonArgumentDependencies
             .predicates.filter(_.dependencies.subsetOf(coveredIds))
         qg.addPredicates(predicates)
       }
@@ -872,18 +885,19 @@ object QueryGraph {
     javaCompatible = false
   )
 
-  case class PredicatesAndLegacyShortestByDependencies(
-    dependOnArgumentsOnly: PredicatesAndLegacyShortestByDependencies.Bucket,
-    hasNonArgumentDependencies: PredicatesAndLegacyShortestByDependencies.Bucket
+  case class DependentElements(
+    dependOnArgumentsOnly: DependentElements.Bucket,
+    hasNonArgumentDependencies: DependentElements.Bucket
   )
 
-  object PredicatesAndLegacyShortestByDependencies {
+  object DependentElements {
 
     case class Bucket(
       predicates: Set[Predicate],
-      shortestRelationshipPatterns: Set[ShortestRelationshipPattern]
+      shortestRelationshipPatterns: Set[ShortestRelationshipPattern],
+      searchClause: Option[SearchClause]
     ) {
-      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty
+      def isEmpty: Boolean = predicates.isEmpty && shortestRelationshipPatterns.isEmpty && searchClause.isEmpty
     }
   }
 }
