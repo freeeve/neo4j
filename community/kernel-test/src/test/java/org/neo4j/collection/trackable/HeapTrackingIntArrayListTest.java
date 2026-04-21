@@ -216,6 +216,25 @@ class HeapTrackingIntArrayListTest {
     }
 
     @Test
+    void equalsAndHashCode() {
+        try (var a = HeapTrackingIntArrayList.newIntArrayList(memoryTracker);
+                var b = HeapTrackingIntArrayList.newIntArrayList(memoryTracker)) {
+            // Empty lists are equal
+            assertEquals(a, b);
+            assertEquals(a.hashCode(), b.hashCode());
+
+            a.addAll(1, 2, 3);
+            b.addAll(1, 2, 3);
+            // Same elements, potentially different backing-array capacities
+            assertEquals(a, b);
+            assertEquals(a.hashCode(), b.hashCode());
+
+            b.add(4);
+            assertFalse(a.equals(b));
+        }
+    }
+
+    @Test
     void iterator() {
         IntIterator iterator = aList.iterator();
         int i = 0;

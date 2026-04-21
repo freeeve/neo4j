@@ -141,6 +141,15 @@ public class HeapTrackingLongArrayList extends LongIterableAdapter implements Re
         };
     }
 
+    public HeapTrackingLongArrayList sortThis() {
+        Arrays.sort(elementData, 0, size);
+        return this;
+    }
+
+    public long[] toArray() {
+        return Arrays.copyOf(elementData, size);
+    }
+
     public long removeLast() {
         long previous = elementData[size - 1];
         --size;
@@ -198,11 +207,16 @@ public class HeapTrackingLongArrayList extends LongIterableAdapter implements Re
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof HeapTrackingLongArrayList that)) return false;
-        return size == that.size && Objects.deepEquals(elementData, that.elementData);
+        return size == that.size && Arrays.equals(elementData, 0, size, that.elementData, 0, that.size);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(size, Arrays.hashCode(elementData));
+        int result = 1;
+        for (int i = 0; i < size; i++) {
+            long element = elementData[i];
+            result = 31 * result + (int) (element ^ (element >>> 32));
+        }
+        return result;
     }
 }

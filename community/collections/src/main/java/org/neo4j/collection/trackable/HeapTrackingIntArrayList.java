@@ -228,4 +228,19 @@ public class HeapTrackingIntArrayList implements Resource {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof HeapTrackingIntArrayList that)) return false;
+        return size == that.size && Arrays.equals(elementData, 0, size, that.elementData, 0, that.size);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        for (int i = 0; i < size; i++) {
+            result = 31 * result + elementData[i];
+        }
+        return result;
+    }
 }

@@ -154,6 +154,61 @@ class HeapTrackingLongArrayListTest {
     }
 
     @Test
+    void equalsAndHashCode() {
+        try (var a = HeapTrackingLongArrayList.newLongArrayList(memoryTracker);
+                var b = HeapTrackingLongArrayList.newLongArrayList(memoryTracker)) {
+            // Empty lists are equal
+            assertEquals(a, b);
+            assertEquals(a.hashCode(), b.hashCode());
+
+            a.addAll(1L, 2L, 3L);
+            b.addAll(1L, 2L, 3L);
+            // Same elements, potentially different backing-array capacities
+            assertEquals(a, b);
+            assertEquals(a.hashCode(), b.hashCode());
+
+            b.add(4L);
+            assertFalse(a.equals(b));
+        }
+    }
+
+    @Test
+    void sortThis() {
+        try (HeapTrackingLongArrayList list = HeapTrackingLongArrayList.newLongArrayList(memoryTracker)) {
+            // Empty list is a no-op and returns this
+            assertSame(list, list.sortThis());
+
+            // Unsorted list is sorted in place
+            list.addAll(5L, 1L, 3L, 2L);
+            list.sortThis();
+            assertEquals(1L, list.get(0));
+            assertEquals(2L, list.get(1));
+            assertEquals(3L, list.get(2));
+            assertEquals(5L, list.get(3));
+
+            // Already-sorted list is unchanged
+            list.sortThis();
+            assertEquals(1L, list.get(0));
+            assertEquals(2L, list.get(1));
+            assertEquals(3L, list.get(2));
+            assertEquals(5L, list.get(3));
+        }
+    }
+
+    @Test
+    void toArray() {
+        try (HeapTrackingLongArrayList list = HeapTrackingLongArrayList.newLongArrayList(memoryTracker)) {
+            list.addAll(3L, 1L, 2L);
+            long[] arr = list.toArray();
+            assertThat(arr).isEqualTo(new long[] {3L, 1L, 2L});
+
+            // Returned array is a copy, not an alias of internal state
+            arr[0] = 99L;
+            assertEquals(3L, list.get(0));
+        }
+    }
+
+    @Test
     void asLongIterable() {
         try (HeapTrackingLongArrayList trackedList = HeapTrackingLongArrayList.newLongArrayList(memoryTracker)) {
             // Given

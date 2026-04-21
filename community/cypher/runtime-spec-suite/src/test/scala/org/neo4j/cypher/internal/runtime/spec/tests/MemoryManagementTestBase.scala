@@ -52,7 +52,7 @@ import java.util.Locale
 
 object MemoryManagementTestBase {
   // The configured max memory per transaction in Bytes
-  val maxMemory: Long = ByteUnit.mebiBytes(6)
+  val maxMemory: Long = ByteUnit.mebiBytes(8)
   val perWorkerGrabSize: Long = ByteUnit.kibiBytes(8)
   val largeObjectThreshold: Long = 2048
 }
@@ -803,7 +803,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     // given
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .partialTop(100000, Seq("x ASC"), Seq("y ASC"))
+      .partialTop(133333, Seq("x ASC"), Seq("y ASC"))
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -822,11 +822,11 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     // given
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .partialTop(100000, Seq("x ASC"), Seq("y ASC"))
+      .partialTop(133333, Seq("x ASC"), Seq("y ASC"))
       .input(variables = Seq("x", "y"))
       .build()
 
-    val input = for (i <- 0 to 100000) yield Array[Any](i, i)
+    val input = for (i <- 0 to 133333) yield Array[Any](i, i)
 
     // then
     val result = execute(logicalQuery, runtime, inputValues(input: _*).stream())
@@ -1449,10 +1449,10 @@ trait TransactionForeachMemoryManagementTestBase[CONTEXT <: RuntimeContext] {
   test("should not kill transaction foreach subquery if both inner and outer together exceed the limit - sort") {
     // Determined empirically
     val rowCount = runtimeUsed match {
-      case Interpreted                                             => 32000
-      case Slotted if concurrency eq TransactionConcurrency.Serial => 52000
-      case Slotted                                                 => 32000
-      case Pipelined                                               => 70000
+      case Interpreted                                             => 42666
+      case Slotted if concurrency eq TransactionConcurrency.Serial => 69333
+      case Slotted                                                 => 42666
+      case Pipelined                                               => 93333
     }
 
     // given
@@ -1516,10 +1516,10 @@ trait TransactionForeachMemoryManagementTestBase[CONTEXT <: RuntimeContext] {
   ) {
     // Determined empirically
     val rowCount = runtimeUsed match {
-      case Interpreted                                             => 12000
-      case Slotted if concurrency eq TransactionConcurrency.Serial => 13000
-      case Slotted                                                 => 12000
-      case Pipelined                                               => 15000
+      case Interpreted                                             => 16000
+      case Slotted if concurrency eq TransactionConcurrency.Serial => 17333
+      case Slotted                                                 => 16000
+      case Pipelined                                               => 20000
     }
 
     // given
@@ -1583,9 +1583,9 @@ trait TransactionForeachMemoryManagementTestBase[CONTEXT <: RuntimeContext] {
   ) {
     // Determined empirically
     val rowCount = runtimeUsed match {
-      case Interpreted => 37000
-      case Slotted     => 53000
-      case Pipelined   => 70000
+      case Interpreted => 49333
+      case Slotted     => 70666
+      case Pipelined   => 93333
     }
 
     // given
@@ -1652,98 +1652,13 @@ trait TransactionForeachMemoryManagementTestBase[CONTEXT <: RuntimeContext] {
     noException should be thrownBy consume(execute(logicalQuery, runtime))
   }
 
-  ignore(
-    "should not kill concurrent transaction foreach subquery with limit and distinct if both inner and outer together exceed the limit"
-  ) {
-    // Determined empirically
-    val rowCount = runtimeUsed match {
-      case Interpreted => 37000
-      case Slotted     => 18750
-      case Pipelined   => 70000
-    }
-
-    val concurrencyInt = 2
-    val rowCountMultiplier = concurrencyInt + 1
-
-    // given
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .transactionForeach(1, concurrency = TransactionConcurrency.Concurrent(concurrencyInt))
-      .|.emptyResult()
-      .|.distinct("y AS y")
-      .|.limit(100)
-      .|.sort("y ASC")
-      .|.unwind(s"range(1, $rowCount) as y")
-      .|.argument()
-      .distinct("x AS x")
-      .limit(100)
-      .sort("x ASC")
-      .unwind(s"range(1, $rowCount) as x")
-      .argument()
-      .build(readOnly = false)
-
-    // Used to check that we choose the right amount of rows:
-    {
-      val checkQuery = new LogicalQueryBuilder(this)
-        .produceResults("x")
-        .distinct("x AS x")
-        .limit(100)
-        .sort("x ASC")
-        .unwind(
-          s"range(1, ${rowCountMultiplier * rowCount}) as x"
-        ) // When multiplying the rows we should consume too much
-        .argument()
-        .build()
-
-      a[MemoryLimitExceededException] should be thrownBy {
-        consume(execute(checkQuery, runtime))
-      }
-      // Restart tx here to reset memory usage
-      runtimeTestSupport.restartTx(KernelTransaction.Type.IMPLICIT)
-    }
-
-    // Used to check that the same query without IN TRANSACTIONS runs out of memory:
-    {
-      val checkQuery = new LogicalQueryBuilder(this)
-        .produceResults("x")
-        .subqueryForeach()
-        .|.emptyResult()
-        .|.union()
-        .|.|.distinct("y AS y")
-        .|.|.limit(100)
-        .|.|.sort("y ASC")
-        .|.|.unwind(s"range(1, $rowCount) as y")
-        .|.|.argument()
-        .|.distinct("y AS y")
-        .|.limit(100)
-        .|.sort("y ASC")
-        .|.unwind(s"range(1, $rowCount) as y")
-        .|.argument()
-        .distinct("x AS x")
-        .limit(100)
-        .sort("x ASC")
-        .unwind(s"range(1, $rowCount) as x")
-        .argument()
-        .build(readOnly = false)
-
-      a[MemoryLimitExceededException] should be thrownBy {
-        consume(execute(checkQuery, runtime))
-      }
-      // Restart tx here to reset memory usage
-      runtimeTestSupport.restartTx(KernelTransaction.Type.IMPLICIT)
-    }
-
-    // then
-    noException should be thrownBy consume(execute(logicalQuery, runtime))
-  }
-
   test("should not kill transaction apply subquery if both inner and outer together exceed the limit") {
     // Determined empirically
     val rowCount = runtimeUsed match {
-      case Interpreted                                             => 37000
-      case Slotted if concurrency eq TransactionConcurrency.Serial => 53000
-      case Slotted                                                 => 32000
-      case Pipelined                                               => 79000
+      case Interpreted                                             => 49333
+      case Slotted if concurrency eq TransactionConcurrency.Serial => 70666
+      case Slotted                                                 => 42666
+      case Pipelined                                               => 105333
     }
 
     // given
@@ -1808,10 +1723,10 @@ trait TransactionForeachMemoryManagementTestBase[CONTEXT <: RuntimeContext] {
   ) {
     // Determined empirically
     val rowCount = runtimeUsed match {
-      case Interpreted                                             => 12000
-      case Slotted if concurrency eq TransactionConcurrency.Serial => 13000
-      case Slotted                                                 => 12000
-      case Pipelined                                               => 15000
+      case Interpreted                                             => 16000
+      case Slotted if concurrency eq TransactionConcurrency.Serial => 17333
+      case Slotted                                                 => 16000
+      case Pipelined                                               => 20000
     }
 
     // given
