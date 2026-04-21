@@ -1085,7 +1085,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
     def semanticCheck(ctx: SemanticContext, e: FilteringExpression): SemanticCheck =
       SemanticExpressionCheck.check(ctx, e.expression) chain
-        expectType(CTList(CTAny).covariant, e.expression) chain
+        expectType(CTList(CTAny).covariant, e.expression) ifOkChain
         checkInnerPredicate(e)
 
     def checkPredicateDefined(e: FilteringExpression): SemanticCheck =

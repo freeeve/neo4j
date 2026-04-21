@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
@@ -89,5 +90,34 @@ class ListComprehensionTest extends SemanticFunSuite {
     result.state.symbol("x") should equal(None)
     // x should be in the inner scope
     result.state.scopeTree.children.head.symbolTable.keys should contain("x")
+  }
+
+  test("list comprehension over an integer reports type mismatch") {
+    val l = variable("l")
+    val lc = ListComprehension(l, literal(123), Some(isNotNull(l)), None)(DummyPosition(0))
+    val result = SemanticExpressionCheck.simple(lc).run(SemanticState.clean)
+    result.errors should have length 1
+    // Prefer substring assert unless you want to lock the full expected string:
+    val e42001 = result.errors.head.gqlStatusObject
+    e42001.gqlStatus() should equal("42001")
+    e42001.cause() should not be empty
+    val e22NB1 = e42001.cause().get()
+    e22NB1.gqlStatus() should equal("22NB1")
+    e22NB1.getMessage should include("Type mismatch: expected to be LIST but was 'INTEGER'.")
+  }
+
+  test("list comprehension over non-list parameter reports type mismatch") {
+    val l = variable("l")
+    val listParam = parameter("list", CTInteger) // static type: $list is an integer, not a list
+    val lc = ListComprehension(l, listParam, Some(isNotNull(l)), None)(DummyPosition(0))
+    val result = SemanticExpressionCheck.simple(lc).run(SemanticState.clean)
+    result.errors should have length 1
+    // Prefer substring assert unless you want to lock the full expected string:
+    val e22G03 = result.errors.head.gqlStatusObject
+    e22G03.gqlStatus() should equal("22G03")
+    e22G03.cause() should not be empty
+    val e22N27 = e22G03.cause().get()
+    e22N27.gqlStatus() should equal("22N27")
+    e22N27.getMessage should include("Invalid input 'INTEGER' for  parameter: list. Expected to be LIST.")
   }
 }
