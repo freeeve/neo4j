@@ -20,15 +20,16 @@
 package org.neo4j.kernel.impl.index.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions.assertThatThrownBy;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Values;
 
 class VectorSSFGenericTest extends VectorSSFTestBase {
@@ -85,18 +86,21 @@ class VectorSSFGenericTest extends VectorSSFTestBase {
     void invalidFilterQueryValue() {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(1)));
-        assertThatThrownBy(() -> queryNodeIndex(exactQuery("age", Values.uuidValue(42L, 42L))))
-                .isInstanceOf(InvalidArgumentException.class)
-                .hasMessageContainingAll(
-                        "Status: 22G03",
-                        "Subcondition: invalid value type",
-                        "Message: Expected the value 00000000-0000-002a-0000-00000000002a to be of type INTEGER, FLOAT, STRING, BOOLEAN, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME or DURATION, but was of type UUID.",
-                        "Subcondition: invalid type");
+        // GQL status assertion allows consistent checks of different Java exception types in SPD and non-SPD context
+        assertThatThrownBy(() -> queryNodeIndex(
+                        exactQuery("enabled", Values.pointValue(CoordinateReferenceSystem.CARTESIAN, -45, 75))))
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22G03)
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N01)
+                .hasStatusDescriptionContaining("Expected the value")
+                .hasStatusDescriptionContaining(
+                        "to be of type INTEGER, FLOAT, STRING, BOOLEAN, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME or DURATION")
+                .hasStatusDescriptionContaining("but was of type POINT");
     }
 
     @Test
     void noSuchIndex() {
-        assertThatThrownBy(() -> queryNodeIndex(exactQuery("age", Values.of(85.0f))))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> queryNodeIndex(exactQuery("age", Values.of(85.0f))))
                 .isInstanceOf(TestException.class)
                 .hasMessageContaining("This is not the expected index");
     }

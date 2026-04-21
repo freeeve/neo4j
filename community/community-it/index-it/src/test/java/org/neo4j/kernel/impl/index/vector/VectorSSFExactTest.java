@@ -27,22 +27,25 @@ import static org.neo4j.values.storable.Values.TRUE;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Stream;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 /// Test exact queries of single-stage-filter properties
-/// Parameterizes the query builder to also test inSetQuery for the same single property
-class VectorSSFExactTest extends VectorSSFTestBase {
+/// Parameterizes the query builder (created by concrete subclass)
+/// to also test inSetQuery for the same single property
+abstract class VectorSSFExactTest extends VectorSSFTestBase {
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void singleString(QueryBuilder queryBuilder) throws Exception {
+    protected final QueryBuilder queryBuilder;
+
+    VectorSSFExactTest(QueryBuilder queryBuilder) {
+        this.queryBuilder = queryBuilder;
+    }
+
+    @Test
+    void singleString() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "name");
         createTestNode(Map.of("id", 10, "name", "Alice", EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "name", "Bob", EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -55,9 +58,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .have(field("name", "Bob"));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void singleInteger(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void singleInteger() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -89,9 +91,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
         assertThat(queryNodeIndex(queryBuilder.build("age", Values.of(21)))).isEmpty();
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void stringAndInteger(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void stringAndInteger() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "name", "age", "shoesize");
         createTestNode(Map.of("id", 10, "name", "Alice", "age", 23, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "name", "Bob", "age", 18, EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -106,9 +107,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .has(field("age", 45));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void stringAndIntegerAndFloat(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void stringAndIntegerAndFloat() throws Exception {
 
         // in order to break the index id ordering being 1,2,3
         createTestNode(Map.of("id", 103, "priority", 15, "story", "Once upon a time", "age", 128));
@@ -140,9 +140,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .have(field("name", "Bob"));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void singleBoolean(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void singleBoolean() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "authorized");
         createTestNode(Map.of("id", 1, "authorized", true, EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 2, "authorized", false, EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -156,9 +155,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .has(field("id", 2));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void singleFloat(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void singleFloat() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75.0f, EMBEDDING_NAME, EMBEDDINGS.get(1)));
 
@@ -172,9 +170,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .has(field("id", 1));
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void extremeFloatValues(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void extremeFloatValues() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "age");
         createTestNode(Map.of("id", 1, "age", 75, EMBEDDING_NAME, EMBEDDINGS.get(1)));
 
@@ -190,9 +187,8 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .isEmpty();
     }
 
-    @ParameterizedTest
-    @MethodSource("provideQueryBuilders")
-    void durations(QueryBuilder queryBuilder) throws Exception {
+    @Test
+    void durations() throws Exception {
         createNodeVectorIndex(VECTOR_INDEX_NAME, EMBEDDINGS.dimensions(), EMBEDDING_NAME, "duration");
         createTestNode(Map.of("id", 10, "duration", duration(0, 0, 0, 1000_000), EMBEDDING_NAME, EMBEDDINGS.get(1)));
         createTestNode(Map.of("id", 20, "duration", duration(0, 0, 1, 0), EMBEDDING_NAME, EMBEDDINGS.get(2)));
@@ -220,12 +216,7 @@ class VectorSSFExactTest extends VectorSSFTestBase {
                 .isEmpty();
     }
 
-    private interface QueryBuilder {
+    protected interface QueryBuilder {
         Function<TokenRead, PropertyIndexQuery> build(String propertyKey, Value value);
-    }
-
-    private static Stream<Arguments> provideQueryBuilders() {
-        return Stream.of(Arguments.of((QueryBuilder) VectorSSFTestBase::exactQuery), Arguments.of((QueryBuilder)
-                VectorSSFTestBase::inSetQuerySingleton));
     }
 }
