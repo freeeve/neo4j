@@ -54,7 +54,6 @@ import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.LogicalBinaryPlan
-import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -475,11 +474,8 @@ object ReadsAndWritesFinder {
         if (prev.plansThatIntroduceVariable.isEmpty) {
           // This plan introduces the variable.
 
-          // We should take predicates on leaf plans into account.
-          val expressionsToInclude = plan match {
-            case _: LogicalLeafPlan => expressions
-            case _                  => Seq.empty[Expression]
-          }
+          val expressionsToInclude =
+            expressions.filter(_.dependencies == Set(variable))
           Set(PlanThatIntroducesVariable(Ref(plan), expressionsToInclude))
         } else {
           prev.plansThatIntroduceVariable
@@ -499,7 +495,7 @@ object ReadsAndWritesFinder {
      *
      * @param expressions all expressions in `plan` that filter on `variable`.
      */
-    def withUpdatedPossibleDeleteNodeConflictPlans(
+    def withUpdatedPossibleNodeDeleteConflictPlans(
       plan: LogicalPlan,
       variable: LogicalVariable,
       expressions: Seq[Expression]
@@ -557,7 +553,7 @@ object ReadsAndWritesFinder {
         acc => {
           planReads.nodeFilterExpressions.foldLeft(acc) {
             case (acc, (variable, expressions)) =>
-              val acc2 = acc.withUpdatedPossibleDeleteNodeConflictPlans(plan, variable, expressions)
+              val acc2 = acc.withUpdatedPossibleNodeDeleteConflictPlans(plan, variable, expressions)
               if (expressions.isEmpty) {
                 // The plan introduces the variable but has no filter expressions
                 acc2.withIntroducedNodeVariable(variable, plan)

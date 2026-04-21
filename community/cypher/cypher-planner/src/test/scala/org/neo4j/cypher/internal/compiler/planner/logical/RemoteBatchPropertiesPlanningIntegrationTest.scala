@@ -42,7 +42,6 @@ import org.neo4j.cypher.internal.frontend.phases.DeprecationInfo
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
-import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
@@ -59,8 +58,6 @@ import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
-import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTDateTime
@@ -2717,9 +2714,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .produceResults()
         .emptyResult()
         .deleteRelationship("r")
-        .eager(ListSet(EagernessReason
-          .ReadDeleteConflict("anon_4")
-          .withConflict(EagernessReason.Conflict(Id(2), Id(7)))))
         .filter("single(abt IN anon_1 WHERE true)")
         .rollUpApply("anon_1", "anon_0")
         .|.projection("1 AS anon_0")

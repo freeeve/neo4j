@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.ir.helpers.overlaps
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.label_expressions.NodeLabels
 import org.neo4j.cypher.internal.label_expressions.NodeLabels.KnownLabels
 import org.neo4j.cypher.internal.label_expressions.NodeLabels.SomeUnknownLabels
@@ -173,7 +174,7 @@ class DeleteOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
     predicatesOnRead: Seq[Expression],
     predicatesOnDelete: Seq[Expression]
   ): Assertion = {
-    val result = DeleteOverlaps.overlap(predicatesOnRead, predicatesOnDelete)
+    val result = DeleteOverlaps.overlapNode(predicatesOnRead, predicatesOnDelete)
     val expected = DeleteOverlaps.NoLabelOverlap
     result shouldEqual expected
   }
@@ -184,7 +185,137 @@ class DeleteOverlapsTest extends CypherFunSuite with AstConstructionTestSupport 
     expectedLabelsOverlap: NodeLabels,
     expectedUnprocessedExpressions: Seq[Expression] = Nil
   ): Assertion = {
-    val result = DeleteOverlaps.overlap(predicatesOnRead, predicatesOnDelete)
+    val result = DeleteOverlaps.overlapNode(predicatesOnRead, predicatesOnDelete)
+    val expected = DeleteOverlaps.Overlap(expectedUnprocessedExpressions, expectedLabelsOverlap)
+    result shouldEqual expected
+  }
+
+  // ----------------------
+  // Relationship type tests
+  // ----------------------
+
+  test("MATCH ()-[r]-() MATCH ()-[s]-() DELETE s overlaps (unknown relationship types)") {
+    expectOverlapOnDeleteRel(Nil, Nil, SomeUnknownLabels)
+  }
+
+  test("MATCH ()-[r:R]-() MATCH ()-[s]-() DELETE s overlaps (delete has no type predicate)") {
+    expectOverlapOnDeleteRel(List(hasTypes("r", "R")), Nil, knownLabels("R"))
+  }
+
+  test("MATCH ()-[r]-() MATCH ()-[s:R]-() DELETE s overlaps (read has no type predicate)") {
+    expectOverlapOnDeleteRel(Nil, List(hasTypes("s", "R")), knownLabels("R"))
+  }
+
+  test("MATCH ()-[r:R]-() MATCH ()-[s:R]-() DELETE s overlaps (same type)") {
+    expectOverlapOnDeleteRel(List(hasTypes("r", "R")), List(hasTypes("s", "R")), knownLabels("R"))
+  }
+
+  test("MATCH ()-[r:R]-() MATCH ()-[s:S]-() DELETE s does not overlap (different types)") {
+    expectNoOverlapOnDeleteRel(List(hasTypes("r", "R")), List(hasTypes("s", "S")))
+  }
+
+  test("MATCH ()-[r:R|S]-() MATCH ()-[s:S]-() DELETE s overlaps (read contains delete type)") {
+    val read = List(ors(hasTypes("r", "R"), hasTypes("r", "S")))
+    val delete = List(hasTypes("s", "S"))
+    expectOverlapOnDeleteRel(read, delete, knownLabels("S"))
+  }
+
+  test("MATCH ()-[r:R|S]-() MATCH ()-[s:R|S]-() DELETE s overlaps (disjunction on both sides)") {
+    val read = List(ors(hasTypes("r", "R"), hasTypes("r", "S")))
+    val delete = List(ors(hasTypes("s", "R"), hasTypes("s", "S")))
+    // we only report the "lowest" of the overlapping, even though S would also be an overlapping type
+    expectOverlapOnDeleteRel(read, delete, knownLabels("R"))
+  }
+
+  test("MATCH ()-[r:R]-() MATCH ()-[s:!R]-() DELETE s does not overlap (negation)") {
+    val read = List(hasTypes("r", "R"))
+    val delete = List(not(hasTypes("s", "R")))
+    expectNoOverlapOnDeleteRel(read, delete)
+  }
+
+  test("MATCH ()-[r:!R&!S]-() MATCH ()-[s:R|S]-() DELETE s does not overlap (all delete types are negated)") {
+    val read = List(not(hasTypes("r", "R")), not(hasTypes("r", "S")))
+    val delete = List(ors(hasTypes("s", "R"), hasTypes("s", "S")))
+    expectNoOverlapOnDeleteRel(read, delete)
+  }
+
+  test("MATCH ()-[r:!R]-() MATCH ()-[s:!R]-() DELETE s overlaps (symmetric negation, unknown type)") {
+    // Both sides exclude type R. Any other type can satisfy both.
+    val read = List(not(hasTypes("r", "R")))
+    val delete = List(not(hasTypes("s", "R")))
+    expectOverlapOnDeleteRel(read, delete, SomeUnknownLabels)
+  }
+
+  test("MATCH ()-[r:R|S]-() MATCH ()-[s:!R]-() DELETE s overlaps only with type S") {
+    // Read matches type R or S. Delete excludes type R. Only type S can satisfy both.
+    val read = List(ors(hasTypes("r", "R"), hasTypes("r", "S")))
+    val delete = List(not(hasTypes("s", "R")))
+    expectOverlapOnDeleteRel(read, delete, knownLabels("S"))
+  }
+
+  test("MATCH ()-[r:R|S]-() MATCH ()-[s:R&S]-() DELETE s does not overlap (contradictory delete predicates)") {
+    // The delete side has the predicate s:R&S. For a relationship, this is impossible to fulfil.
+    // That is why there cannot be a relationship that fulfils both read and write.
+    val read = List(ors(hasTypes("r", "R"), hasTypes("r", "S")))
+    val delete = List(hasTypes("s", "R"), hasTypes("s", "S"))
+    expectNoOverlapOnDeleteRel(read, delete)
+  }
+
+  test("MATCH ()-[r:R&S]-() MATCH ()-[s:R|S]-() DELETE s does not overlap (contradictory read predicates)") {
+    // The read side has the predicate r:R&S. For a relationship, this is impossible to fulfil.
+    // That is why there cannot be a relationship that fulfils both read and write.
+    val read = List(hasTypes("r", "R"), hasTypes("r", "S"))
+    val delete = List(ors(hasTypes("s", "R"), hasTypes("s", "S")))
+    expectNoOverlapOnDeleteRel(read, delete)
+  }
+
+  test("overlapOnDelete (relationships) ignores non-type predicates") {
+    val read = List(InfinityLiteral)
+    val delete = List(falseLiteral)
+    expectOverlapOnDeleteRel(read, delete, SomeUnknownLabels, read ++ delete)
+  }
+
+  test("overlapOnDelete (relationships) processes type predicates in top-level conjunction only") {
+    val typePredicateOnRead = hasTypes("s", "R")
+    val otherPredicatesOnRead = List(InfinityLiteral)
+    val read = otherPredicatesOnRead ++ List(typePredicateOnRead)
+
+    val typePredicateOnDelete = hasTypes("s", "R")
+    val propertyPredicateOnDelete = in(prop("s", "prop"), literalInt(0))
+    val otherPredicateOnDelete = falseLiteral
+    val delete =
+      List(ands(
+        propertyPredicateOnDelete,
+        ors(
+          not(typePredicateOnDelete),
+          trueLiteral
+        ),
+        otherPredicateOnDelete
+      ))
+
+    val unprocessedExpressions = otherPredicatesOnRead ++ delete.head.exprs
+
+    // Since the type predicate on the delete side is nested inside a disjunction, we do not inspect it for overlaps,
+    // which is why we assume that there is an overlap
+    expectOverlapOnDeleteRel(read, delete, knownLabels("R"), unprocessedExpressions)
+  }
+
+  def expectNoOverlapOnDeleteRel(
+    predicatesOnRead: Seq[Expression],
+    predicatesOnDelete: Seq[Expression]
+  ): Assertion = {
+    val result = DeleteOverlaps.overlap(predicatesOnRead, predicatesOnDelete, RELATIONSHIP_TYPE)
+    val expected = DeleteOverlaps.NoLabelOverlap
+    result shouldEqual expected
+  }
+
+  def expectOverlapOnDeleteRel(
+    predicatesOnRead: Seq[Expression],
+    predicatesOnDelete: Seq[Expression],
+    expectedLabelsOverlap: NodeLabels,
+    expectedUnprocessedExpressions: Seq[Expression] = Nil
+  ): Assertion = {
+    val result = DeleteOverlaps.overlap(predicatesOnRead, predicatesOnDelete, RELATIONSHIP_TYPE)
     val expected = DeleteOverlaps.Overlap(expectedUnprocessedExpressions, expectedLabelsOverlap)
     result shouldEqual expected
   }

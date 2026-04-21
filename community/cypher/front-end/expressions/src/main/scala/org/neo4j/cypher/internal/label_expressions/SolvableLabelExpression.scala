@@ -56,7 +56,7 @@ case class SolvableLabelExpression(allLabels: Set[LabelName], matches: NodeLabel
    * (:%&!(A&B)).solutions gives us {{A}, {B}, SomeUnknownLabels}
    * Note that we cannot express matching on a label exclusively, (:A) means that the node must contain at least the label A.
    * This whole package treats the set of all possible labels as infinite, meaning that solutions are always incomplete.
-   * Our set of solution is {{A}, {B}, SomeUnknownLabels} in the context of having only encountered labels A and B, hence the taken in isolation.
+   * Our set of solutions is {{A}, {B}, SomeUnknownLabels} in the context of having only encountered labels A and B. Hence they are taken in isolation.
    * If we were to encounter a label C, then it would represent {{A}, {A,C}, {B}, {B,C}, {C}, SomeUnknownLabels}.
    *
    * See [[SolvableLabelExpression.allSolutions]] to evaluate a sequence of conjoint expressions, like a list of predicates on the same node.
@@ -70,15 +70,25 @@ case class SolvableLabelExpression(allLabels: Set[LabelName], matches: NodeLabel
       .filter(matches)
 
   /**
-   * Determine whether the solutions of this label expression could be fulfilled by just a single label. This is useful for testing whether this
+   * Returns the first example of a [[NodeLabels]] that satisfies this label expression and
+   * could be fulfilled by just a single label. This is useful for testing whether this
    * label expression could evaluate to `true` on a relationship.
+   * Relationships have exactly one type, so only single-label solutions are valid
    */
+  def firstSolutionForRelationship: Option[NodeLabels] = {
+    val possibleTypesForRelationship =
+      Iterator.single(SomeUnknownLabels) ++
+        allLabels
+          .toSeq
+          // because we only care about the first solution, we sort the labels to make tests stable.
+          .sorted
+          .map(label => KnownLabels(Set(label)))
+    possibleTypesForRelationship.find(matches)
+  }
+
+  /** @see [[firstSolutionForRelationship]] */
   def containsSolutionsForRelationship: Boolean =
-    allLabels
-      .map(label => KnownLabels(Set(label)))
-      .toSet[NodeLabels]
-      .incl(SomeUnknownLabels)
-      .exists(matches)
+    firstSolutionForRelationship.nonEmpty
 
   /**
    * !this

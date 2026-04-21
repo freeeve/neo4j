@@ -26,10 +26,13 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.R
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.PlanWithAccessor
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.PossibleDeleteConflictPlans
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.ReadsAndWrites
+import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
@@ -346,7 +349,8 @@ sealed trait ConflictFinder {
     possibleDeleteConflictPlanSnapshots: (
       ReadsAndWritesFinder.Deletes,
       Ref[LogicalPlan]
-    ) => Map[LogicalVariable, PossibleDeleteConflictPlans]
+    ) => Map[LogicalVariable, PossibleDeleteConflictPlans],
+    entityType: EntityType
   )(implicit planChildrenLookup: PlanChildrenLookup): Iterator[ConflictingPlanPair] = {
     for {
       (wpref @ Ref(writePlan), deletedEntities) <- deletedEntities(readsAndWrites.writes.deletes).iterator
@@ -372,7 +376,7 @@ sealed trait ConflictFinder {
 
       FilterExpressions(_, deletedExpression) =
         filterExpressions(readsAndWrites.reads).getOrElse(deletedEntity, FilterExpressions(Set.empty))
-      if deleteOverlaps(plansThatIntroduceVar, Seq(deletedExpression))
+      if deleteOverlaps(plansThatIntroduceVar, Seq(deletedExpression), entityType)
 
       // For a ReadWriteConflict we need to place the Eager between the plans that reference the variable and the Delete plan.
       // For a WriteReadConflict we need to place the Eager between the Delete plan and the plan that introduced the variable.
@@ -468,7 +472,8 @@ sealed trait ConflictFinder {
    */
   private def deleteOverlaps(
     plansThatIntroduceVariable: Set[PlanThatIntroducesVariable],
-    predicatesOnDeletedEntity: Seq[Expression]
+    predicatesOnDeletedEntity: Seq[Expression],
+    entityType: EntityType
   ): Boolean = {
     val readEntityPredicateCombinations: Set[Seq[Expression]] =
       if (plansThatIntroduceVariable.isEmpty) {
@@ -477,7 +482,7 @@ sealed trait ConflictFinder {
       } else {
         plansThatIntroduceVariable.map(_.predicates)
       }
-    readEntityPredicateCombinations.exists(DeleteOverlaps.overlap(_, predicatesOnDeletedEntity) match {
+    readEntityPredicateCombinations.exists(DeleteOverlaps.overlap(_, predicatesOnDeletedEntity, entityType) match {
       case DeleteOverlaps.NoLabelOverlap => false
       case _: DeleteOverlaps.Overlap     => true
     })
@@ -583,7 +588,8 @@ sealed trait ConflictFinder {
       _.deletedNodeVariables,
       _.nodeFilterExpressions,
       _.possibleNodeDeleteConflictPlans,
-      _.possibleNodeDeleteConflictPlanSnapshots(_)
+      _.possibleNodeDeleteConflictPlanSnapshots(_),
+      NODE_TYPE
     ).foreach(addConflict)
 
     // Conflicts between a MATCH and a DELETE with a relationship variable
@@ -593,7 +599,8 @@ sealed trait ConflictFinder {
       _.deletedRelationshipVariables,
       _.relationshipFilterExpressions,
       _.possibleRelDeleteConflictPlans,
-      _.possibleRelationshipDeleteConflictPlanSnapshots(_)
+      _.possibleRelationshipDeleteConflictPlanSnapshots(_),
+      RELATIONSHIP_TYPE
     ).foreach(addConflict)
 
     // Conflicts between a MATCH and a DELETE with a node expression
@@ -715,9 +722,8 @@ sealed trait ConflictFinder {
     // we need to make sure the operator does only execute once.
     // Also, we must make sure that the cursor performing the read will be initialized at the point in
     // time the write for the same variable happens.
-    (isSimpleDeleteAndDistinctLeaf(readPlan, writePlan) || readPlan.distinctness.covers(
-      Seq(variable)
-    )) && !planChildrenLookup.readMightNotBeInitialized(readPlan)
+    (isSimpleDeleteAndDistinctLeaf(readPlan, writePlan) || readPlan.distinctness.covers(Seq(variable))) &&
+    !planChildrenLookup.readMightNotBeInitialized(readPlan)
   }
 
   /**

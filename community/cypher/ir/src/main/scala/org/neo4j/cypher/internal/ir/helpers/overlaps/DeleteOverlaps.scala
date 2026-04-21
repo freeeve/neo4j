@@ -19,8 +19,12 @@
  */
 package org.neo4j.cypher.internal.ir.helpers.overlaps
 
+import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.label_expressions.NodeLabels
+import org.neo4j.cypher.internal.label_expressions.NodeLabels.SomeUnknownLabels
 import org.neo4j.cypher.internal.label_expressions.SolvableLabelExpression
 
 import scala.annotation.tailrec
@@ -33,23 +37,47 @@ object DeleteOverlaps {
    */
   val maximumNumberOfUniqueLabels: Int = 8
 
+  def overlap(predicatesOnRead: Seq[Expression], predicatesOnDelete: Seq[Expression], entityType: EntityType): Result =
+    entityType match {
+      case NODE_TYPE         => overlapNode(predicatesOnRead, predicatesOnDelete)
+      case RELATIONSHIP_TYPE => overlapRelationship(predicatesOnRead, predicatesOnDelete)
+    }
+
   /**
    * Checks whether the predicates on both nodes allow for a possible overlap based on labels only.
-   * If there is an overlap, it only calculates the first example for performance reasons, this could easily be changed in the future if needed.
-   * Note that there is no checks on the variable name in the predicates, it assumes that they have been filtered previously.
+   * If there is an overlap, it only calculates the first example for performance reasons. This could easily be changed in the future if needed.
+   * Note that there are no checks on the variable name in the predicates. It assumes that they have been filtered previously.
    *
    * @param predicatesOnRead predicates of the (unstable) node in a read clause.
    * @param predicatesOnDelete predicates of the node being deleted.
-   * @return Whether their might be an overlap between the two nodes based on their respective labels.
+   * @return Whether there might be an overlap between the two nodes based on their respective labels.
    */
-  def overlap(predicatesOnRead: Seq[Expression], predicatesOnDelete: Seq[Expression]): Result = {
+  def overlapNode(predicatesOnRead: Seq[Expression], predicatesOnDelete: Seq[Expression]): Result = {
     // Ignoring some expressions may only lead to additional Eager plans as this function is conservative by default – it considers that two nodes overlap unless it can prove the contrary.
-    // We can't possibly handles all possible expressions here, though the exact specification may evolve over time, we need to draw a line somewhere.
+    // We can't possibly handle all possible expressions here, though the exact specification may evolve over time, we need to draw a line somewhere.
     val (unsupportedExpressions, labelExpressions) = extractLabelExpressions(predicatesOnRead ++ predicatesOnDelete)
 
     SolvableLabelExpression.allSolutions(labelExpressions).headOption match {
       case None           => NoLabelOverlap
       case Some(solution) => Overlap(unsupportedExpressions, solution)
+    }
+  }
+
+  private def overlapRelationship(predicatesOnRead: Seq[Expression], predicatesOnDelete: Seq[Expression]): Result = {
+    val (unsupportedRead, readTypeExpressions) = extractLabelExpressions(predicatesOnRead)
+    val (unsupportedDelete, deleteTypeExpressions) = extractLabelExpressions(predicatesOnDelete)
+
+    // we just combine the type predicates because an overlap means that a relationship fulfills all predicates on both read _and_ delete
+    val allTypeExpressions = readTypeExpressions ++ deleteTypeExpressions
+    val maybeOverlappingType =
+      allTypeExpressions
+        .reduceOption(_.and(_))
+        .map(_.firstSolutionForRelationship)
+        // If there were no types on either read or delete, then we conclude that they could overlap on any type
+        .getOrElse(Some(SomeUnknownLabels))
+    maybeOverlappingType match {
+      case None                  => NoLabelOverlap
+      case Some(overlappingType) => Overlap(unsupportedRead ++ unsupportedDelete, overlappingType)
     }
   }
 

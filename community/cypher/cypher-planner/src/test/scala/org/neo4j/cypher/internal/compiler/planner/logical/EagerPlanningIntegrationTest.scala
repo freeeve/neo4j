@@ -1178,8 +1178,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
   }
 
   test("Shortest match produces an unnecessary eager on write/read for delete when there is no overlap") {
-    // We cannot find the leafPlans for variables within a SPP so we plan an eager for each found variable.
-    // This is only applicable when we don't have the deleted node as an argument, then we would instead just mention the overlap on the deleted node.
+    // We report this Eager because we compare the label predicates by the leaf plan .allNodeScan("start", "z")
+    // with the labels on `x`. This restriction to only look at the leaf plan could possibly be lifted (see PLAN-3369)
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("Label", 10)
@@ -1188,7 +1188,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
 
     val query =
-      "MATCH (x:Label) DELETE x WITH 1 as z MATCH ANY SHORTEST ((start:!Label {prop: 5})((a:!Label{prop: 5})-[r:R]->(b:!Label))+(end:!Label)) return end"
+      """MATCH (x:Label)
+        |DELETE x
+        |WITH 1 as z
+        |MATCH ANY SHORTEST ((start:!Label {prop: 5})((a:!Label{prop: 5})-[r:R]->(b:!Label))+(end:!Label))
+        |RETURN end""".stripMargin
 
     val plan = planner.plan(query)
     plan should equal(
@@ -1219,12 +1223,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .filter("NOT start:Label", "start.prop = 5")
         .apply()
         .|.allNodeScan("start", "z")
-        .eager(ListSet(
-          ReadDeleteConflict("start").withConflict(Conflict(Id(7), Id(4))),
-          ReadDeleteConflict("end").withConflict(Conflict(Id(7), Id(1))),
-          ReadDeleteConflict("a").withConflict(Conflict(Id(7), Id(1))),
-          ReadDeleteConflict("b").withConflict(Conflict(Id(7), Id(1)))
-        ))
+        .eager(ListSet(readDeleteConflict("start", 7, 4)))
         .projection("1 AS z")
         .deleteNode("x")
         .nodeByLabelScan("x", "Label", IndexOrderNone)
@@ -2589,6 +2588,34 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
+  test("should not be eager between DELETE and MERGE for relationships when the types do not overlap") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 50)
+        .setRelationshipCardinality("()-[:T]->()", 50)
+        .setRelationshipCardinality("()-[:T2]->()", 50)
+        .build()
+
+    val query =
+      """MATCH (a)-[t:T]->(b)
+        |DELETE t
+        |MERGE (a)-[t2:T2]->(b)
+        |RETURN t2.id IS NOT NULL""".stripMargin
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("`t2.id IS NOT NULL`")
+        .projection("t2.id IS NOT NULL AS `t2.id IS NOT NULL`")
+        .apply()
+        .|.mergeInto("(a)-[t2:T2]->(b)", Seq(), Seq())
+        .|.argument("a", "b")
+        .deleteRelationship("t")
+        .relationshipTypeScan("(a)-[t:T]->(b)")
+        .build()
+    )
+  }
+
   test("insert eager between MATCH with dynamic relationship type and DELETE - using dynamic relationship filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3041,7 +3068,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
-  test("An eager should not be inserted for property read-write, if the nodes do not overlap - but is") {
+  test("An eager should not be inserted for property read-write, when the nodes do not overlap, but it is") {
     val planner =
       plannerBuilder()
         .setAllNodesCardinality(3)
