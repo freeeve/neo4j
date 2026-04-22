@@ -261,6 +261,10 @@ public class CuckooTable implements AutoCloseable {
     private void deleteValue(long key, long value, int numberOfTables) {
         restart:
         while (true) {
+            // Re-read because another thread may have expanded the backing tables and relocated
+            // our entry into one of the newly-added tables — tables[numberOfTables..current-1] —
+            // which the caller-supplied bound would not cover, causing a livelock.
+            numberOfTables = currentNumberOfTables.get();
             for (int i = 0; i < numberOfTables; i++) {
                 long hash = hashing[i].hash(key);
                 long entry = tables[i].get(hash);
