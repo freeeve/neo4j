@@ -148,7 +148,8 @@ public class GBPTree<KEY, VALUE> extends MultiRootGBPTree<SingleRoot, KEY, VALUE
                 pageCacheTracer,
                 dependencyResolver,
                 treeNodeLayoutFactory,
-                structureWriteLog);
+                structureWriteLog,
+                false);
         access = rootLayer.access(SingleRoot.SINGLE_ROOT);
     }
 

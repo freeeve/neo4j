@@ -228,7 +228,7 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                 rootDeleteValueMerger.reset();
                 rootMappingWriter.mergeIfExists(
                         dataRootKey, new RootMappingValue().initialize(NULL_ROOT), rootDeleteValueMerger);
-                var rootId = rootDeleteValueMerger.rootIdToRelease();
+                long rootId = rootDeleteValueMerger.rootIdToRelease();
                 if (rootId == NOT_FOUND_ROOT_ID) {
                     throw new DataTreeNotFoundException(dataRootKey);
                 }
@@ -280,7 +280,9 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
             structure.visitTree(cursor, visitor, cursorContext, multiVersioned);
             support.idProvider().visitFreelist(visitor, cursorCreator);
         }
-
+        if (!visitor.visitDataLayer()) {
+            return;
+        }
         try (Seeker<ROOT_KEY, RootMappingValue> allRootsSeek = allRootsSeek(cursorContext)) {
             while (allRootsSeek.next()) {
                 // Data

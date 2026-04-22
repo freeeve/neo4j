@@ -36,7 +36,7 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
 
     void rootKey(ROOT_KEY key, boolean isLeaf, long offloadId);
 
-    void rootMapping(long id, long generation);
+    void rootMapping(long id, long generation, boolean deleted);
 
     void key(DATA_KEY key, boolean isLeaf, long offloadId);
 
@@ -66,6 +66,10 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
 
     void historicalValue(long version, ValueHolder<DATA_VALUE> value);
 
+    default boolean visitDataLayer() {
+        return true;
+    }
+
     class Adaptor<ROOT_KEY, DATA_KEY, DATA_VALUE> implements GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> {
         @Override
         public void meta(Meta meta) {}
@@ -86,7 +90,7 @@ public interface GBPTreeVisitor<ROOT_KEY, DATA_KEY, DATA_VALUE> extends IdProvid
         public void rootKey(ROOT_KEY key, boolean isLeaf, long offloadId) {}
 
         @Override
-        public void rootMapping(long id, long generation) {}
+        public void rootMapping(long id, long generation, boolean deleted) {}
 
         @Override
         public void key(DATA_KEY key, boolean isLeaf, long offloadId) {}

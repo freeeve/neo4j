@@ -195,6 +195,7 @@ public class GBPTreeBuilder<ROOT_KEY, KEY, VALUE> {
                 pageCacheTracer,
                 dependencyResolver,
                 treeNodeLayoutFactory,
-                structureWriteLog());
+                structureWriteLog(),
+                false);
     }
 }

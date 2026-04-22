@@ -579,7 +579,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             Path indexFile,
             Layout<KEY, VALUE> layout,
             Monitor monitor,
-            Header.Reader headerReader,
+            Reader headerReader,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             boolean readOnly,
             ImmutableSet<OpenOption> engineOpenOptions,
@@ -590,7 +590,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             PageCacheTracer pageCacheTracer,
             DependencyResolver dependencyResolver,
             TreeNodeLayoutFactory treeNodeLayoutFactory,
-            StructureWriteLog structureWriteLog)
+            StructureWriteLog structureWriteLog,
+            boolean preserveUnstableGeneration)
             throws MetadataMismatchException {
         this.indexFile = indexFile;
         this.monitor = monitor;
@@ -650,7 +651,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             } else {
                 initialize(pagedFile, headerReader, cursorContext);
                 dirtyOnStartup = !clean;
-                bumpUnstableGeneration();
+                if (!preserveUnstableGeneration) {
+                    bumpUnstableGeneration();
+                }
                 if (!readOnly) {
                     clean = false;
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {

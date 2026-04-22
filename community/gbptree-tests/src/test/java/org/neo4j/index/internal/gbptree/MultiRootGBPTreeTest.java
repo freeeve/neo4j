@@ -125,7 +125,8 @@ class MultiRootGBPTreeTest {
                 pageCacheTracer,
                 dependencyResolver,
                 TreeNodeLayoutFactory.getInstance(),
-                LoggingStructureWriteLog.forGBPTree(fileSystem, path));
+                LoggingStructureWriteLog.forGBPTree(fileSystem, path),
+                false);
         highestUsableSeed = layout.highestUsableSeed();
     }
 
@@ -166,7 +167,8 @@ class MultiRootGBPTreeTest {
                 pageCacheTracer,
                 dependencyResolver,
                 TreeNodeLayoutFactory.getInstance(),
-                LoggingStructureWriteLog.forGBPTree(fileSystem, path))) {
+                LoggingStructureWriteLog.forGBPTree(fileSystem, path),
+                false)) {
 
             var externalId1 = 101;
             badHashesTree.create(layoutWithBadHashes.key(externalId1), NULL_CONTEXT);
@@ -600,7 +602,8 @@ class MultiRootGBPTreeTest {
                         cacheTracer,
                         dependencyResolver,
                         TreeNodeLayoutFactory.getInstance(),
-                        StructureWriteLog.EMPTY))
+                        StructureWriteLog.EMPTY,
+                        false))
                 .isInstanceOf(MetadataMismatchException.class);
     }
 
@@ -630,7 +633,8 @@ class MultiRootGBPTreeTest {
                         cacheTracer,
                         dependencyResolver,
                         TreeNodeLayoutFactory.getInstance(),
-                        StructureWriteLog.EMPTY))
+                        StructureWriteLog.EMPTY,
+                        false))
                 .isInstanceOf(MetadataMismatchException.class);
     }
 
@@ -660,7 +664,8 @@ class MultiRootGBPTreeTest {
                             cacheTracer,
                             dependencyResolver,
                             TreeNodeLayoutFactory.getInstance(),
-                            StructureWriteLog.EMPTY)
+                            StructureWriteLog.EMPTY,
+                            false)
                     .close();
         }
     }

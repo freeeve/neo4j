@@ -33,6 +33,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
     private final boolean printFreelist;
     private final boolean printOffload;
     private final boolean printHistory;
+    private final boolean visitDataLayer;
 
     /**
      * Prints a {@link GBPTree} in human readable form, very useful for debugging.
@@ -48,6 +49,7 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
         this.printFreelist = printConfig.getPrintFreelist();
         this.printOffload = printConfig.getPrintOffload();
         this.printHistory = printConfig.getPrintHistory();
+        this.visitDataLayer = printConfig.getVisitDataLayer();
     }
 
     @Override
@@ -92,6 +94,17 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
             out.print("=" + value.value + (value.deleted ? "[D]" : ""));
         }
         out.print(" ");
+    }
+
+    @Override
+    public void rootKey(ROOT_KEY rootKey, boolean isLeaf, long offloadId) {
+        boolean doPrintOffload = printOffload && offloadId != NO_OFFLOAD_ID;
+        out.print(doPrintOffload ? "__" + offloadId + "__" + rootKey : rootKey);
+    }
+
+    @Override
+    public void rootMapping(long id, long generation, boolean deleted) {
+        out.print("=" + id + "(gen:" + generation + ")" + (deleted ? "[D]" : "") + " ");
     }
 
     @Override
@@ -156,5 +169,10 @@ public class PrintingGBPTreeVisitor<ROOT_KEY, KEY, VALUE> extends GBPTreeVisitor
         if (printFreelist) {
             out.print("[" + generation + "," + pageId + "] ");
         }
+    }
+
+    @Override
+    public boolean visitDataLayer() {
+        return visitDataLayer;
     }
 }

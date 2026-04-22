@@ -315,7 +315,7 @@ public class GBPTreeStructure<ROOT_KEY, DATA_KEY, DATA_VALUE> {
         visitor.position(i);
         if (isLeaf) {
             visitor.rootKey(key, isLeaf, offloadId);
-            visitor.rootMapping(value.value.rootId, value.value.rootGeneration);
+            visitor.rootMapping(value.value.rootId, value.value.rootGeneration, value.value.deleted);
         } else {
             visitor.child(child);
             visitor.rootKey(key, isLeaf, offloadId);
