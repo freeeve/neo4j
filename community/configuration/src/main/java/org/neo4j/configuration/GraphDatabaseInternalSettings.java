@@ -1544,7 +1544,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("A feature toggle behind which composable commands are developed")
     public static final Setting<Boolean> composable_commands =
-            newBuilder("internal.dbms.composable_commands", BOOL, false).build();
+            newBuilder("internal.dbms.composable_commands", BOOL, true).build();
 
     @Internal
     @Description("A feature toggle behind which graph types are developed")

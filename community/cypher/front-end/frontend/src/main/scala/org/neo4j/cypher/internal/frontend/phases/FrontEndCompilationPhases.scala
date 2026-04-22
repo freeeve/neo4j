@@ -87,7 +87,8 @@ trait FrontEndCompilationPhases {
     OidcCredentialForwarding.productPrefix,
     GraphTypes.productPrefix,
     RelationshipPropertyValueAccessRules.productPrefix,
-    AttributeBasedAccessControl.productPrefix
+    AttributeBasedAccessControl.productPrefix,
+    ComposableCommands.productPrefix
   )
 
   def enabledSemanticFeatures(features: Set[String]): Seq[SemanticFeature] =
