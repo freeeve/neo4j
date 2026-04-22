@@ -3412,15 +3412,21 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                             }
                         }));
                         race.addContestant(throwing(pagedFile::close));
+                        race.shuffleContestants();
                         race.go();
-                        assertAllPagesEvicted(localPageCache);
                     },
-                    () -> "PageCache: " + localPageCache.toString()
+                    () -> "PageCache: " + localPageCache
                             + " pages to evict to have all free: "
                             + localPageCache.tryGetNumberOfPagesToEvict((int) localPageCache.maxCachedPages())
                             + "\nObserved exception:\n"
                             + (exceptionRef.get() != null ? Exceptions.stringify(exceptionRef.get()) : "none") + "\n"
                             + localPageCache.describePages());
+
+            var pageMetadata = localPageCache.pageMetadata();
+            for (int id = 0; id < pageMetadata.getPageCount(); id++) {
+                long pageRef = pageMetadata.deref(id);
+                assertFalse(PageMetadata.isLoaded(pageRef));
+            }
         }
     }
 
@@ -3454,15 +3460,22 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                             }
                         }));
                         race.addContestant(throwing(pagedFile::close));
+                        race.shuffleContestants();
                         race.go();
                         assertAllPagesEvicted(localPageCache);
                     },
-                    () -> "PageCache: " + localPageCache.toString()
+                    () -> "PageCache: " + localPageCache
                             + " pages to evict to have all free: "
                             + localPageCache.tryGetNumberOfPagesToEvict((int) localPageCache.maxCachedPages())
                             + "\nObserved exception:\n"
                             + (exceptionRef.get() != null ? Exceptions.stringify(exceptionRef.get()) : "none") + "\n"
                             + localPageCache.describePages());
+
+            var pageMetadata = localPageCache.pageMetadata();
+            for (int id = 0; id < pageMetadata.getPageCount(); id++) {
+                long pageRef = pageMetadata.deref(id);
+                assertFalse(PageMetadata.isLoaded(pageRef));
+            }
         }
     }
 

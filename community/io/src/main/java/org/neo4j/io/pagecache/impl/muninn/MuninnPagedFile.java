@@ -354,6 +354,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             closeStackTrace = PLACEHOLDER_CLOSE_EXCEPTION;
         }
 
+        pageFaultLatches.close();
         evictPages();
         if (!deleteOnClose) {
             swapper.close();
@@ -1146,7 +1147,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
      * Grab page fault latches for unmapped pages starting from pageId up to count, latches will be put into the latches array.
      * Returns number of grabbed latches
      */
-    private int grabPageFaultLatches(long pageId, int count, LatchMap.Latch[] latches) {
+    private int grabPageFaultLatches(long pageId, int count, LatchMap.Latch[] latches) throws FileIsNotMappedException {
         int latchesToGrab = pageFaultLatches.maxContinuousLatches(pageId, count);
 
         int index = 0;
@@ -1176,6 +1177,9 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                             latch.release();
                             return index;
                         }
+                    } else {
+                        // check that we are still mapped
+                        getLastPageId();
                     }
                 } else {
                     return index;
@@ -1269,12 +1273,6 @@ final class MuninnPagedFile implements PagedFile, Flushable {
                 validatePageRefAndSetFilePageId(pageRefs[i], swapper, swapperId, filePageId + i);
             }
 
-            // Check if we're racing with unmapping. We have the page lock
-            // here, so the unmapping would have already happened. We do this
-            // check before page.fault(), because that would otherwise reopen
-            // the file channel.
-            getLastPageId();
-
             long[] bufferAddresses = new long[numberOfPages];
             int[] bufferLengths = new int[numberOfPages];
             for (int i = 0; i < numberOfPages; i++) {
@@ -1283,6 +1281,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
             }
 
             long bytesRead = swapper.read(filePageId, bufferAddresses, bufferLengths, numberOfPages);
+
             faultEvent.addBytesRead(bytesRead);
             for (int i = 0; i < numberOfPages; i++) {
                 setSwapperId(pageRefs[i], swapperId);
