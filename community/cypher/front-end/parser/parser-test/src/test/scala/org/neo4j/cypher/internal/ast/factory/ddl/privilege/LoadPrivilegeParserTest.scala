@@ -132,19 +132,22 @@ class LoadPrivilegeParserTest extends AdministrationAndSchemaCommandParserTestBa
 
   test("GRANT LOAD ON CIDR $x TO \u0885") {
     // the `\u0885` needs to be escaped to be able to be parsed
+    val ir = "\u0885"
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '\u0885': expected a parameter or an identifier (line 1, column 26 (offset: 25))
-        |"GRANT LOAD ON CIDR $x TO \u0885"
-        |                          ^""".stripMargin
+      s"""Invalid input '$ir': expected a parameter or an identifier (line 1, column 26 (offset: 25))
+         |"GRANT LOAD ON CIDR $$x TO $ir"
+         |                          ^""".stripMargin
     )
   }
 
   test("GRANT LOAD ON CIDR $x TO x\u0885y") {
     // the `\u0885` needs to be escaped to be able to be parsed
+    val ir = "\u0885"
+    val to = s"x${ir}y"
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '\u0885': expected ',' or <EOF> (line 1, column 27 (offset: 26))
-        |"GRANT LOAD ON CIDR $x TO x\u0885y"
-        |                           ^""".stripMargin
+      s"""Invalid input '$ir': expected ',' or <EOF> (line 1, column 27 (offset: 26))
+         |"GRANT LOAD ON CIDR $$x TO $to"
+         |                           ^""".stripMargin
     )
   }
 

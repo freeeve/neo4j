@@ -300,7 +300,7 @@ class PipeLine[-C <: BaseContext, FROM, MID, TO](first: Transformer[C, FROM, MID
   override def toString: String = name
 }
 
-case class If[-C <: BaseContext, FROM, STATE <: FROM](f: STATE => Boolean)(thenT: => Transformer[C, FROM, STATE])
+final class If[-C <: BaseContext, FROM, STATE <: FROM](val f: STATE => Boolean)(thenT: => Transformer[C, FROM, STATE])
     extends Transformer[C, STATE, STATE] {
 
   override def transform(from: STATE, context: C): STATE = {
@@ -322,12 +322,17 @@ case class If[-C <: BaseContext, FROM, STATE <: FROM](f: STATE => Boolean)(thenT
   override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
 }
 
-case class IfElse[
-  -C <: BaseContext,
-  FROM,
-  TO
-](f: FROM => Boolean)(thenT: => Transformer[C, FROM, TO], elseT: Transformer[C, FROM, TO])
-    extends Transformer[C, FROM, TO] {
+object If {
+
+  def apply[C <: BaseContext, FROM, STATE <: FROM](f: STATE => Boolean)(thenT: => Transformer[C, FROM, STATE])
+    : If[C, FROM, STATE] =
+    new If[C, FROM, STATE](f)(thenT)
+}
+
+final class IfElse[-C <: BaseContext, FROM, TO](val f: FROM => Boolean)(
+  thenT: => Transformer[C, FROM, TO],
+  val elseT: Transformer[C, FROM, TO]
+) extends Transformer[C, FROM, TO] {
 
   override def transform(from: FROM, context: C): TO = {
     if (f(from))
@@ -348,7 +353,20 @@ case class IfElse[
   override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
 }
 
-case class IfContext[-C <: BaseContext, FROM, STATE <: FROM](f: C => Boolean)(thenT: => Transformer[C, FROM, STATE])
+object IfElse {
+
+  def apply[C <: BaseContext, FROM, TO](f: FROM => Boolean)(
+    thenT: => Transformer[C, FROM, TO],
+    elseT: Transformer[C, FROM, TO]
+  ): IfElse[C, FROM, TO] =
+    new IfElse[C, FROM, TO](f)(thenT, elseT)
+}
+
+final class IfContext[
+  -C <: BaseContext,
+  FROM,
+  STATE <: FROM
+](val f: C => Boolean)(thenT: => Transformer[C, FROM, STATE])
     extends Transformer[C, STATE, STATE] {
 
   override def transform(from: STATE, context: C): STATE = {
@@ -370,10 +388,16 @@ case class IfContext[-C <: BaseContext, FROM, STATE <: FROM](f: C => Boolean)(th
   override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
 }
 
-case class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](f: (
-  STATE,
-  STATE
-) => Boolean)(t: => Transformer[C, FROM, STATE])(u: => Transformer[C, STATE, STATE])
+object IfContext {
+
+  def apply[C <: BaseContext, FROM, STATE <: FROM](f: C => Boolean)(thenT: => Transformer[C, FROM, STATE])
+    : IfContext[C, FROM, STATE] =
+    new IfContext[C, FROM, STATE](f)(thenT)
+}
+
+final class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](val f: (STATE, STATE) => Boolean)(
+  t: => Transformer[C, FROM, STATE]
+)(u: => Transformer[C, STATE, STATE])
     extends Transformer[C, STATE, STATE] {
 
   override def transform(from: STATE, context: C): STATE = {
@@ -392,6 +416,14 @@ case class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](f: (
   override def postConditions: Set[StepSequencer.Condition] = t.postConditions
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = t.invalidatedConditions
+}
+
+object IfChanged {
+
+  def apply[C <: BaseContext, FROM, STATE <: FROM](f: (STATE, STATE) => Boolean)(
+    t: => Transformer[C, FROM, STATE]
+  )(u: => Transformer[C, STATE, STATE]): IfChanged[C, FROM, STATE] =
+    new IfChanged[C, FROM, STATE](f)(t)(u)
 }
 
 case class NoOp[-C <: BaseContext, FROM, STATE <: FROM]() extends Transformer[C, STATE, STATE] {

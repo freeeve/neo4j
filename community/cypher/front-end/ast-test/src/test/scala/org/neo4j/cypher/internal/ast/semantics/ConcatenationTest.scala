@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class ConcatenationTest extends InfixExpressionTestBase(Concatenate(_, _)(DummyPosition(0))) {
 

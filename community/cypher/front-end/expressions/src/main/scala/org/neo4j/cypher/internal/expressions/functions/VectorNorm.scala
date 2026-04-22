@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.util.symbols.CTVector
 case object VectorNorm extends Function {
   override def name = "vector_norm"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("vector", "vectorDistanceMetric"),

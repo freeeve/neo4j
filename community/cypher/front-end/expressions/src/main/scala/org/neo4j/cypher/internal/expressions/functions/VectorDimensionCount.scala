@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTVector
 case object VectorDimensionCount extends Function {
   def name = "vector_dimension_count"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

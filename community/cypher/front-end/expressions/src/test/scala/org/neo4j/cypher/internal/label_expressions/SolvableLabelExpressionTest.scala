@@ -217,7 +217,7 @@ class SolvableLabelExpressionTest extends AnyFunSuite with Matchers with CypherS
   def allSolutionsForLabels(allLabels: Set[String]): Set[NodeLabels] =
     allLabels
       .subsets
-      .map(KnownLabels)
+      .map(KnownLabels.apply)
       .toSet[NodeLabels]
       .incl(SomeUnknownLabels)
 }

@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 case object NullIf extends Function {
   def name = "nullIf"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("v1", "v2"),

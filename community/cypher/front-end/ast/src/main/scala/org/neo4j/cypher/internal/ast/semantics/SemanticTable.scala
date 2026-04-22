@@ -154,7 +154,7 @@ final case class SemanticTable(
     copy(resolvedPropertyKeyNames = resolvedPropertyKeyNames + (name -> propertyKeyId))
 }
 
-final case class CachableSemanticTable private (
+final case class CachableSemanticTable(
   private val listOfNodeExpressions: Set[PositionedNode[Expression]],
   private val listOfRelExpressions: Set[PositionedNode[Expression]],
 

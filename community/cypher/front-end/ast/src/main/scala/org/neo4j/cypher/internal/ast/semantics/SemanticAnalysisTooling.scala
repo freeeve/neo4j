@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.GqlParams
 

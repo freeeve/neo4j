@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class ContainsTest extends InfixExpressionTestBase(expressions.Contains(_, _)(DummyPosition(0))) {
 

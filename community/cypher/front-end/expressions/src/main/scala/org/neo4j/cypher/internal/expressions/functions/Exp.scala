@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 case object Exp extends Function {
   def name = "exp"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

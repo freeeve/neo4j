@@ -76,6 +76,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.Locale

@@ -890,5 +890,5 @@ trait RelationshipTypeExpressionGenerators {
     )
 
   implicit val arbitraryRelationshipTypeExpression: Arbitrary[RelationshipTypeExpression] =
-    Arbitrary(genLabelExpression.map(RelationshipTypeExpression))
+    Arbitrary(genLabelExpression.map(RelationshipTypeExpression.apply))
 }

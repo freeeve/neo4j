@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.util.symbols.CTGeometry
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTPoint
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class DistanceTest extends FunctionTestBase("point.distance") {
 

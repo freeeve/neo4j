@@ -171,7 +171,7 @@ trait SensitiveLiteral {
 }
 
 case class Null()(override val position: InputPosition.Range) extends Literal {
-  val value = null
+  override val value: AnyRef = null
 
   override def asCanonicalStringVal = "NULL"
 

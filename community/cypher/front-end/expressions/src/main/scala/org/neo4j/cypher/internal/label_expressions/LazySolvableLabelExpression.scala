@@ -77,7 +77,7 @@ case class LazySolvableLabelExpression(
             KnownLabels(labelNames.union(newLabelCombination))
           )
       case SomeUnknownLabels =>
-        newLabelCombinations.map(KnownLabels) :+ SomeUnknownLabels
+        newLabelCombinations.map(KnownLabels.apply) :+ SomeUnknownLabels
     }
     val (newSolutions, newRejectedCandidates) = candidates.partition(expression.matches)
     LazySolvableLabelExpression(

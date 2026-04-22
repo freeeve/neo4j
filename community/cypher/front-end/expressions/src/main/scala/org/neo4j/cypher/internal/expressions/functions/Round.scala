@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 case object Round extends Function {
   def name = "round"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("value"),

@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object VectorValueConstructor extends Function {
   override def name = "vector"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("vectorValue", "dimension", "coordinateType"),

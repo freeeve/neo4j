@@ -1853,7 +1853,7 @@ trait AstConstructionTestSupport {
    * @param nodes the nodes
    * @param rels tuples for each relationship with (name, direction, isVarLength)
    */
-  case class PathExpressionBuilder private (
+  case class PathExpressionBuilder(
     nodes: Seq[String] = Seq.empty,
     rels: Seq[(String, SemanticDirection, Boolean)] = Seq.empty
   ) {

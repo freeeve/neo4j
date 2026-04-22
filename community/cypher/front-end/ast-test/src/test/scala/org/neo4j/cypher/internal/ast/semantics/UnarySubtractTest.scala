@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDuration
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class UnarySubtractTest extends UnaryExpressionTestBase(UnarySubtract(_)(DummyPosition(0))) {
 

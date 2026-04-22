@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 case object Last extends Function {
   def name = "last"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("list"),

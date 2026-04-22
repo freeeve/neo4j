@@ -64,7 +64,7 @@ case class SolvableLabelExpression(allLabels: Set[LabelName], matches: NodeLabel
   def solutions: Set[NodeLabels] =
     allLabels
       .subsets()
-      .map(KnownLabels)
+      .map(KnownLabels.apply)
       .toSet[NodeLabels]
       .incl(SomeUnknownLabels)
       .filter(matches)

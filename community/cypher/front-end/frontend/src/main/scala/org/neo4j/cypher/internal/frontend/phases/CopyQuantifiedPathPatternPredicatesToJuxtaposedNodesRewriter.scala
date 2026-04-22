@@ -60,7 +60,7 @@ import org.neo4j.cypher.internal.util.topDown
  * variables, or would shadow variables after being rewritten. The method Expression.replaceAllOccurrencesBy, in
  * conjunction with the namespacer, do a lot of the heavy lifting for us.
  */
-case class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriter private () {
+case class CopyQuantifiedPathPatternPredicatesToJuxtaposedNodesRewriter() {
 
   val rewriter: Rewriter = topDown(Rewriter.lift {
     case RewritableMatchClause(matchClause, allRewritableQPPs) =>

@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 case object BTrim extends Function {
   def name = "btrim"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

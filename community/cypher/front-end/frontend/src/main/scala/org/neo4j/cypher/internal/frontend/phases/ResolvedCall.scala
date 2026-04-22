@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
+import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.expressions.CoerceTo
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
@@ -296,8 +297,8 @@ object ResolvedLocalCall {
     )
 
     val callArguments = declaredArguments.getOrElse(implicitArguments)
-    val callArgumentsWithSensitivityMarkers = callArguments.map {
-      e: Expression => e.endoRewrite(SensitiveParameterRewriter)
+    val callArgumentsWithSensitivityMarkers = callArguments.map { (e: Expression) =>
+      e.endoRewrite(SensitiveParameterRewriter)
     }
 
     def implicitCallResults: IndexedSeq[ProcedureResultItem] =

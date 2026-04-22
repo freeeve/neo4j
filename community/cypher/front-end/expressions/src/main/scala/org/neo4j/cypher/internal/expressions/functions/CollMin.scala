@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 case object CollMin extends Function {
   def name = "coll.min"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("list"),

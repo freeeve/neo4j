@@ -82,6 +82,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
 import org.neo4j.cypher.internal.ast.semantics.SymbolUse
 import org.neo4j.cypher.internal.ast.semantics.TypeGenerator
+import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.ast.semantics.optionSemanticChecking
 import org.neo4j.cypher.internal.expressions.And
@@ -174,6 +175,7 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -2831,7 +2833,7 @@ case class ShowConstraintsClause(
         Seq(ShowConstraintsClause.enforcedLabelColumn, ShowConstraintsClause.classificationColumn).contains(name)
 
       val filteredUnfilteredColumns =
-        unfilteredColumns.columns.filterNot { s: ShowColumn => filterOutGraphTypeColumns(s.name) }
+        unfilteredColumns.columns.filterNot { (s: ShowColumn) => filterOutGraphTypeColumns(s.name) }
 
       filteredUnfilteredColumns.map(_.variable)
     } else {
@@ -2846,7 +2848,7 @@ case class ShowConstraintsClause(
 
       val filteredColumnsAsMap = columnsAsMap.filterNot { case (name, _) => filterOutGraphTypeColumns(name) }
       val filteredUnfilteredColumns =
-        unfilteredColumns.columns.filterNot { s: ShowColumn => filterOutGraphTypeColumns(s.name) }
+        unfilteredColumns.columns.filterNot { (s: ShowColumn) => filterOutGraphTypeColumns(s.name) }
 
       (filteredColumnsAsMap, filteredUnfilteredColumns)
     } else {

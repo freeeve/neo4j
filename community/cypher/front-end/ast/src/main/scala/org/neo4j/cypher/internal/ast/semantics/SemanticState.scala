@@ -138,7 +138,7 @@ object ExpressionTypeInfo {
     }
 }
 
-final case class ExpressionTypeInfo private (specified: TypeSpec, expected: Option[TypeSpec]) {
+final case class ExpressionTypeInfo(specified: TypeSpec, expected: Option[TypeSpec]) {
 
   lazy val actual: TypeSpec =
     expected

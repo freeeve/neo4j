@@ -36,10 +36,11 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class NullIfTest extends FunctionTestBase("nullIf") {
 
-  override val context = SemanticContext.Results
+  override val context: SemanticContext = SemanticContext.Results
 
   test("shouldHandleAllSpecializations") {
     testValidTypes(CTAny, CTBoolean)(CTAny)

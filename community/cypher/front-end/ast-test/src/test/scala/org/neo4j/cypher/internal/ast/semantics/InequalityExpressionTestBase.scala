@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 abstract class InequalityExpressionTestBase(ctr: (Expression, Expression) => Expression)
     extends InfixExpressionTestBase(ctr) {

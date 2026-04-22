@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 case object Count extends AggregatingFunction {
   def name = "count"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

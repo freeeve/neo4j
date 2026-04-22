@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 object RandomUUID extends Function {
   override def name: String = "randomUUID"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature.noArg(this, CTString, "Generates a random UUID.", Category.SCALAR)
   )
 }

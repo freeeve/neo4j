@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 case object ToIntegerOrNull extends Function {
   override def name = "toIntegerOrNull"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

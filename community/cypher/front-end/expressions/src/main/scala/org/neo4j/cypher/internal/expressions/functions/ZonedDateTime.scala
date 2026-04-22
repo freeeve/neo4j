@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.CTZonedDateTime
 case object ZonedDateTime extends Function {
   def name = "zoned_datetime"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

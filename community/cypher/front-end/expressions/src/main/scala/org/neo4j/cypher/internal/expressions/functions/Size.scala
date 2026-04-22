@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object Size extends Function {
   def name = "size"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

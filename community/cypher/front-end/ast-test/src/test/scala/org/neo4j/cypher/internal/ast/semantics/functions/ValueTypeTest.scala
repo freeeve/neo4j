@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
 import org.neo4j.cypher.internal.util.symbols.CTUUID
 import org.neo4j.cypher.internal.util.symbols.CTVector
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class ValueTypeTest extends FunctionTestBase("valueType") {
 

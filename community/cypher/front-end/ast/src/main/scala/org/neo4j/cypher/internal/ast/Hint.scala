@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingIndexHintType
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
+import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName

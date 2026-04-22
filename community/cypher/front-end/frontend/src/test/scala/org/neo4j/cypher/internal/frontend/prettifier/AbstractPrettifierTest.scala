@@ -299,8 +299,8 @@ trait AbstractPrettifierTest extends CypherFunSuite {
           case a => a
         }
         val oldStyleNativeAuth = nativeAuthsWithDefault.filter(_ => u.usesOldStyleNativeAuth)
-        val oldStyleAuth = oldStyleNativeAuth.map {
-          a: NativeAuth => Auth(a.provider, a.authAttributes)(a.position)
+        val oldStyleAuth = oldStyleNativeAuth.map { (a: NativeAuth) =>
+          Auth(a.provider, a.authAttributes)(a.position)
         }
         val nonOldStyleNativeAuths = nativeAuthsWithDefault.filter(_ => !u.usesOldStyleNativeAuth).toList
         val newStyleAuth = (nonOldStyleNativeAuths ++ externalAuths.sortBy(_.provider)).map {
@@ -313,8 +313,8 @@ trait AbstractPrettifierTest extends CypherFunSuite {
       case u @ AlterUser(_, _, _, externalAuths, nativeAuths, removeAuth)
         if (externalAuths.size + nativeAuths.toList.size) > 1 || removeAuth.all =>
         val oldStyleNativeAuth = nativeAuths.filter(_ => u.usesOldStyleNativeAuth)
-        val oldStyleAuth = oldStyleNativeAuth.map {
-          a: NativeAuth => Auth(a.provider, a.authAttributes)(a.position)
+        val oldStyleAuth = oldStyleNativeAuth.map { (a: NativeAuth) =>
+          Auth(a.provider, a.authAttributes)(a.position)
         }
         val nonOldStyleNativeAuths = nativeAuths.filter(_ => !u.usesOldStyleNativeAuth).toList
         val newStyleAuth = (nonOldStyleNativeAuths ++ externalAuths.sortBy(_.provider)).map {

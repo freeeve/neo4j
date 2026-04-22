@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 case object E extends Function {
   def name = "e"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature.noArg(this, CTFloat, "Returns the base of the natural logarithm, e.", Category.LOGARITHMIC)
   )
 }

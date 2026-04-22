@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.semantics.functions
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class CollectFunctionTest extends FunctionTestBase("collect") with AggregationFunctionTestBase {
 

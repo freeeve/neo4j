@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 case object Coalesce extends Function {
   def name = "coalesce"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

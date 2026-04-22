@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 case object Labels extends Function {
   override def name = "labels"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

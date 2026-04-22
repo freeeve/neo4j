@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
+import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 

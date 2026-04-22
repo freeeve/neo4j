@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object VectorSimilarityCosine extends Function {
   override def name = "vector.similarity.cosine"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("a", "b"),

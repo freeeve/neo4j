@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.NothingType
 import org.neo4j.cypher.internal.util.symbols.NullType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class TypeSpecTest extends CypherFunSuite {

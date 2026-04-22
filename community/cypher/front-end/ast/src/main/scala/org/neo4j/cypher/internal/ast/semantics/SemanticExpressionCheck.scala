@@ -174,6 +174,7 @@ import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.StorableType.storableType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.symbols.TypeSpecRange
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.values.storable.VectorValue
 
 object SemanticExpressionCheck extends SemanticAnalysisTooling {

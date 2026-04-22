@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 object GraphByElementId extends Function {
   def name: String = "graph.byElementId"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("elementId"),

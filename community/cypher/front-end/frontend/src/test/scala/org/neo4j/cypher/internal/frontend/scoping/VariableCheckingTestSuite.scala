@@ -751,8 +751,8 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
                |actually was successful""".stripMargin
           )
         case Right(semanticErrors) =>
-          semanticErrors.collectFirst(Function.unlift {
-            semanticError: SemanticError => findGqlStatus(semanticError.gqlStatusObject)
+          semanticErrors.collectFirst(Function.unlift { (semanticError: SemanticError) =>
+            findGqlStatus(semanticError.gqlStatusObject)
           }) match {
             case Some(gqlStatusObject) =>
               gqlStatusObject.gqlStatus() shouldBe expectedGqlStatusCode

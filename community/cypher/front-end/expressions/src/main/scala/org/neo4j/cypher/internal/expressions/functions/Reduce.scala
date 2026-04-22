@@ -26,7 +26,7 @@ case object Reduce extends Function {
   def name = "reduce"
 
   // TODO: Get specification formalized by CLG
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("accumulator", "variable"),

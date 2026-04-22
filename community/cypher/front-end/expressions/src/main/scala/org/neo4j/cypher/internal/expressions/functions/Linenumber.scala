@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 case object Linenumber extends Function {
   def name = "linenumber"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature.noArg(
       this,
       CTInteger,

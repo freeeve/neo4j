@@ -48,13 +48,13 @@ case class TestState(
 
   override def maybeProcedureSignatureVersion: Option[Long] = None
 
-  override def maybeSemantics = None
+  override def maybeSemantics: Option[SemanticState] = None
 
-  override def maybeExtractedParams = None
+  override def maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None
 
   override def maybeResolvedParams: Option[Set[String]] = None
 
-  override def maybeSemanticTable = None
+  override def maybeSemanticTable: Option[SemanticTable] = None
 
   override def maybeObfuscationMetadata: Option[ObfuscationMetadata] = None
 

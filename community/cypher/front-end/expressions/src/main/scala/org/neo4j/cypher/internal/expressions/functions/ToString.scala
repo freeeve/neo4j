@@ -49,7 +49,7 @@ case object ToString extends Function {
     CTPoint
   )
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

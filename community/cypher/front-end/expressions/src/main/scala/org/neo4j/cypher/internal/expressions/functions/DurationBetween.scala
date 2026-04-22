@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.symbols.CTDuration
 case object DurationBetween extends Function {
   def name = "duration_between"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("from", "to"),

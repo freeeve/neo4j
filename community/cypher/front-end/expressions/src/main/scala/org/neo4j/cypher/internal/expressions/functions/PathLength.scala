@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 case object PathLength extends Function {
   def name = "path_length"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

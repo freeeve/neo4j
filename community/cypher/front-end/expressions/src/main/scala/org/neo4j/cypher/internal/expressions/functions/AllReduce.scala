@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 case object AllReduce extends Function {
   override val name: String = "allReduce"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("accumulator = initial", "variable IN list | reducer", "predicate"),

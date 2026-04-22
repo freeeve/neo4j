@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.topDown
 class ASTNodeTest extends CypherFunSuite {
 
   trait Exp extends ASTNode {
-    val position = DummyPosition(0)
+    override val position: InputPosition.Range = DummyPosition(0)
   }
 
   case class Val(int: Int) extends Exp

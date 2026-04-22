@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object IsEmpty extends Function {
   val name = "isEmpty"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.util.UnknownSize
  * @param typ the type of the parameter
  * @param sizeHint a sizeHint, will be [[UnknownSize]] for all but CTList and CTSTring
  */
-case class ParameterTypeInfo private (typ: CypherType, sizeHint: BucketSize)
+case class ParameterTypeInfo(typ: CypherType, sizeHint: BucketSize)
 
 object ParameterTypeInfo {
   final val BOOL = ParameterTypeInfo(CTBoolean, UnknownSize)

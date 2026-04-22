@@ -23,6 +23,7 @@
   <properties>
     <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.cypher.internal.notification</moduleName>
+    <scala.binary.version>3</scala.binary.version>
   </properties>
 
   <dependencies>
@@ -42,9 +43,14 @@
       <artifactId>neo4j-util</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-library_3</artifactId>
     </dependency>
   </dependencies>
 
@@ -53,6 +59,21 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
+        <configuration>
+          <scalaVersion>${scala3.version}</scalaVersion>
+          <scalaCompatVersion>3</scalaCompatVersion>
+          <args combine.self="override" />
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <failOnWarning>true</failOnWarning>
+          <ignoredUnusedDeclaredDependencies>
+            <dependency>org.scala-lang:scala3-library_3</dependency>
+          </ignoredUnusedDeclaredDependencies>
+        </configuration>
       </plugin>
     </plugins>
   </build>

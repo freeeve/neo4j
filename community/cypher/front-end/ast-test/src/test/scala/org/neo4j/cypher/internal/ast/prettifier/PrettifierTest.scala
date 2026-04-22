@@ -167,13 +167,9 @@ class PrettifierTest extends CypherFunSuite with AstConstructionTestSupport {
       }
     }).flatten
 
-  {
-    for {
-      (cypher, ast) <- clauses
-    } yield {
-      test(cypher) {
-        prettifier.asString(singleQuery(ast)) shouldBe cypher
-      }
+  for ((cypher, ast) <- clauses) {
+    test(cypher) {
+      prettifier.asString(singleQuery(ast)) shouldBe cypher
     }
   }
 }

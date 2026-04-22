@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 case object LocalDateTime extends Function {
   def name = "local_datetime"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

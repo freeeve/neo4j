@@ -38,7 +38,7 @@ case class Add(lhs: Expression, rhs: Expression)(val position: InputPosition)
 case class UnaryAdd(rhs: Expression)(val position: InputPosition)
     extends Expression with LeftUnaryOperatorExpression {
 
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTFloat), outputType = CTFloat)
   )
@@ -49,7 +49,7 @@ case class UnaryAdd(rhs: Expression)(val position: InputPosition)
 case class Subtract(lhs: Expression, rhs: Expression)(val position: InputPosition)
     extends Expression with BinaryOperatorExpression {
 
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger, CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTInteger, CTFloat), outputType = CTFloat),
     TypeSignature(argumentTypes = Vector(CTFloat, CTFloat), outputType = CTFloat),
@@ -68,7 +68,7 @@ case class Subtract(lhs: Expression, rhs: Expression)(val position: InputPositio
 case class Concatenate(lhs: Expression, rhs: Expression)(val position: InputPosition)
     extends Expression with BinaryOperatorExpression {
 
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTString, CTString), outputType = CTString),
     TypeSignature(argumentTypes = Vector(CTList(CTAny), CTList(CTAny)), outputType = CTList(CTAny))
   )
@@ -79,7 +79,7 @@ case class Concatenate(lhs: Expression, rhs: Expression)(val position: InputPosi
 case class UnarySubtract(rhs: Expression)(val position: InputPosition)
     extends Expression with LeftUnaryOperatorExpression {
 
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTFloat), outputType = CTFloat)
   )
@@ -94,7 +94,7 @@ case class Multiply(lhs: Expression, rhs: Expression)(val position: InputPositio
   // 1 * 1.1 => 1.1
   // 1.1 * 1 => 1.1
   // 1.1 * 1.1 => 1.21
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger, CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTInteger, CTFloat), outputType = CTFloat),
     TypeSignature(argumentTypes = Vector(CTFloat, CTFloat), outputType = CTFloat),
@@ -115,7 +115,7 @@ case class Divide(lhs: Expression, rhs: Expression)(val position: InputPosition)
   // 1 / 1.1 => 0.909
   // 1.1 / 1 => 1.1
   // 1.1 / 1.1 => 1.0
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger, CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTInteger, CTFloat), outputType = CTFloat),
     TypeSignature(argumentTypes = Vector(CTFloat, CTFloat), outputType = CTFloat),
@@ -134,7 +134,7 @@ case class Modulo(lhs: Expression, rhs: Expression)(val position: InputPosition)
   // 1 % 1.1 => 1.0
   // 1.1 % 1 => 0.1
   // 1.1 % 1.1 => 0.0
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTInteger, CTInteger), outputType = CTInteger),
     TypeSignature(argumentTypes = Vector(CTInteger, CTFloat), outputType = CTFloat),
     TypeSignature(argumentTypes = Vector(CTFloat, CTInteger), outputType = CTFloat),
@@ -151,7 +151,7 @@ case class Pow(lhs: Expression, rhs: Expression)(val position: InputPosition)
   // 1 ^ 1.1 => 1.0
   // 1.1 ^ 1 => 1.1
   // 1.1 ^ 1.1 => 1.1105
-  override val signatures = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTFloat, CTFloat), outputType = CTFloat)
   )
 

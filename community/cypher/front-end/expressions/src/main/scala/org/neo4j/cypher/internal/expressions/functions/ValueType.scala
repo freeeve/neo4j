@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 case object ValueType extends Function {
   override def name = "valueType"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

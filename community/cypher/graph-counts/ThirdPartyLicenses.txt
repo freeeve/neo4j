@@ -19,6 +19,7 @@ Apache Software License, Version 2.0
   json4s-native-core
   json4s-scalap
   Scala Reflect
+  scala3-library-bootstrapped
 ------------------------------------------------------------------------------
 
                                  Apache License

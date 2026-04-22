@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object PercentileDisc extends AggregatingFunction {
   def name = "percentileDisc"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input", "percentile"),

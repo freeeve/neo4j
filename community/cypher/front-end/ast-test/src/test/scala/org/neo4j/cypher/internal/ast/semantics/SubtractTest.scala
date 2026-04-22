@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
 import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class SubtractTest extends InfixExpressionTestBase(Subtract(_, _)(DummyPosition(0))) {
 

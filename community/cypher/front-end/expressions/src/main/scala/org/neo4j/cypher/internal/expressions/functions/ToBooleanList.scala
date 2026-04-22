@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 case object ToBooleanList extends Function {
   override def name = "toBooleanList"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

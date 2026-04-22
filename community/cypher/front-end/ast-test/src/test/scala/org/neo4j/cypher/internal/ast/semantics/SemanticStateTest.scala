@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SemanticStateTest extends CypherFunSuite with AstConstructionTestSupport {

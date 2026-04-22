@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object ToInteger extends Function {
   override def name = "toInteger"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

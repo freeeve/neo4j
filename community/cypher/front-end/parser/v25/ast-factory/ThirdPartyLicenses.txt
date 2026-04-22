@@ -8,6 +8,7 @@ Apache Software License, Version 2.0
   Caffeine cache
   Java Native Access
   Scala Reflect
+  scala3-library-bootstrapped
 ------------------------------------------------------------------------------
 
                                  Apache License

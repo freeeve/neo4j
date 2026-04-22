@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object Split extends Function {
   def name = "split"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("original", "splitDelimiters"),

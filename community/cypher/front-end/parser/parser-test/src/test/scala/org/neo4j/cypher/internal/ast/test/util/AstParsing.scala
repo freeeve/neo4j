@@ -159,7 +159,7 @@ trait ParserFactory {
   def quantifiedPath(): Parser[QuantifiedPath]
 }
 
-case class Parsers[T <: ASTNode] private (parsers: Map[ParserInTest, Parser[T]]) {
+case class Parsers[T <: ASTNode](parsers: Map[ParserInTest, Parser[T]]) {
   def parse(parser: ParserInTest, cypher: String): T = parsers(parser).parse(cypher)
 }
 

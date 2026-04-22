@@ -22,7 +22,7 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 case object Pi extends Function {
   def name = "pi"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature.noArg(this, CTFloat, "Returns the mathematical constant pi.", Category.TRIGONOMETRIC)
   )
 }

@@ -20,10 +20,11 @@ import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class PercentileContTest extends FunctionTestBase("percentileCont") {
 
-  override val context = SemanticContext.Results
+  override val context: SemanticContext = SemanticContext.Results
 
   test("shouldHandleAllSpecializations") {
     testValidTypes(CTInteger, CTInteger)(CTFloat)

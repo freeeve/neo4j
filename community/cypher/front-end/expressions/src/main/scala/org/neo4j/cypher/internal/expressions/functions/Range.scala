@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTList
 case object Range extends Function {
   def name = "range"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("start", "end"),

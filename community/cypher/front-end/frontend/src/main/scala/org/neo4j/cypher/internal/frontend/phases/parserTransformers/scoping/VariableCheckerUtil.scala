@@ -424,10 +424,10 @@ trait VariableCheckerUtil {
 
   protected def findMultipleDeclarationsIn(names: Seq[LogicalVariable], pc: ProjectionClause): Seq[SemanticError] =
     names.groupMapReduce(identity)(_ => 1)(_ + _).filter(_._2 > 1).map {
-      tuple: (LogicalVariable, Int) =>
+      case (v, _) =>
         val duplicates = pc.returnItems.items.collect {
-          case a: AliasedReturnItem if a.variable.equals(tuple._1)                               => a.variable
-          case u: UnaliasedReturnItem if u.expression.asCanonicalStringVal.equals(tuple._1.name) => u.expression
+          case a: AliasedReturnItem if a.variable.equals(v)                               => a.variable
+          case u: UnaliasedReturnItem if u.expression.asCanonicalStringVal.equals(v.name) => u.expression
         }
         // Warn on the second item (i.e. the first duplicate)
         SemanticError.multipleReturnColumnsWithSameName(duplicates(1).position)

@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.semantics.functions
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class ReverseTest extends FunctionTestBase("reverse") {
 

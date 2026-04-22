@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class ModuloTest extends InfixExpressionTestBase(Modulo(_, _)(DummyPosition(0))) {
 

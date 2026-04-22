@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 case object StartNode extends Function {
   def name = "startNode"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

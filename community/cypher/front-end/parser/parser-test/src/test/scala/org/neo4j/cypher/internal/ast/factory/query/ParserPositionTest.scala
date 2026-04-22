@@ -99,7 +99,7 @@ class ParserPositionTest extends AstParsingTestBase {
   }
 
   test("MATCH (n) WHERE exists { MATCH (m) WHERE exists { (n)-[]->(m) } }") {
-    parses[Statements].withAstLike { ast: Statements =>
+    parses[Statements].withAstLike { (ast: Statements) =>
       ast.folder.findAllByClass[ExistsExpression] match {
         case Seq(exists, existsNested) =>
           exists.position shouldBe InputPosition(16, 1, 17)

@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.util
 
-final case class ObfuscationMetadata private (
+final case class ObfuscationMetadata(
   sensitiveLiteralOffsets: Vector[LiteralOffset],
   sensitiveParameterNames: Set[String]
 ) {

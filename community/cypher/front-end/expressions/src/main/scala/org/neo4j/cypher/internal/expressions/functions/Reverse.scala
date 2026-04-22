@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case object Reverse extends Function {
   def name = "reverse"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

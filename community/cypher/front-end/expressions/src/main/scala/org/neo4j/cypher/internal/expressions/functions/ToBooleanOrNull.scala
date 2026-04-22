@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 case object ToBooleanOrNull extends Function {
   override def name = "toBooleanOrNull"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

@@ -33,7 +33,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 case class And(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
     with BinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTBoolean, CTBoolean), outputType = CTBoolean)
   )
 }
@@ -80,7 +80,7 @@ case class Ands(exprs: ListSet[Expression])(val position: InputPosition) extends
     with MultiOperatorExpression {
   override def canonicalOperatorSymbol = "AND"
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector.fill(exprs.size)(CTBoolean), outputType = CTBoolean)
   )
 }
@@ -95,7 +95,7 @@ case class AndsReorderable(exprs: ListSet[Expression])(override val position: In
 case class Or(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
     with BinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTBoolean, CTBoolean), outputType = CTBoolean)
   )
 }
@@ -159,7 +159,7 @@ case class Ors(exprs: ListSet[Expression])(val position: InputPosition) extends 
     with MultiOperatorExpression {
   override def canonicalOperatorSymbol = "OR"
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector.fill(exprs.size)(CTBoolean), outputType = CTBoolean)
   )
 }
@@ -167,7 +167,7 @@ case class Ors(exprs: ListSet[Expression])(val position: InputPosition) extends 
 case class Xor(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
     with BinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(Vector(CTBoolean, CTBoolean), outputType = CTBoolean)
   )
 }
@@ -175,7 +175,7 @@ case class Xor(lhs: Expression, rhs: Expression)(val position: InputPosition) ex
 case class Not(rhs: Expression)(val position: InputPosition) extends BooleanExpression
     with LeftUnaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(Vector(CTBoolean), outputType = CTBoolean)
   )
 }
@@ -188,7 +188,7 @@ trait BinaryPredicateExpression extends BooleanExpression with BinaryOperatorExp
 case class Equals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression
     with ChainableBinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
 
@@ -200,7 +200,7 @@ case class Equals(lhs: Expression, rhs: Expression)(val position: InputPosition)
 case class NotEquals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression
     with ChainableBinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
 
@@ -217,7 +217,7 @@ case class InvalidNotEquals(lhs: Expression, rhs: Expression)(val position: Inpu
 
 case class RegexMatch(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTString, CTString), outputType = CTBoolean)
   )
 
@@ -263,7 +263,7 @@ object PartialPredicate {
 
 case class StartsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
 
@@ -272,7 +272,7 @@ case class StartsWith(lhs: Expression, rhs: Expression)(val position: InputPosit
 
 case class EndsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
 
@@ -281,7 +281,7 @@ case class EndsWith(lhs: Expression, rhs: Expression)(val position: InputPositio
 
 case class Contains(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
 
@@ -291,7 +291,7 @@ case class Contains(lhs: Expression, rhs: Expression)(val position: InputPositio
 case class IsNull(lhs: Expression)(val position: InputPosition) extends BooleanExpression
     with RightUnaryOperatorExpression with Part2OperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny), outputType = CTBoolean)
   )
 
@@ -301,7 +301,7 @@ case class IsNull(lhs: Expression)(val position: InputPosition) extends BooleanE
 case class IsNotNull(lhs: Expression)(val position: InputPosition) extends BooleanExpression
     with RightUnaryOperatorExpression with Part2OperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny), outputType = CTBoolean)
   )
 
@@ -311,7 +311,7 @@ case class IsNotNull(lhs: Expression)(val position: InputPosition) extends Boole
 case class PropertyExists(element: Expression, propertyKeyName: PropertyKeyName)(val position: InputPosition)
     extends BooleanExpression with OperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] = Vector(
+  override val signatures: Vector[ExpressionTypeSignature] = Vector(
     TypeSignature(
       argumentTypes = Vector(ClosedDynamicUnionType(Set(CTNode, CTRelationship))(InputPosition.NONE)),
       outputType = CTBoolean
@@ -356,7 +356,7 @@ object InequalityExpression {
 
 sealed trait InequalityExpression extends BinaryPredicateExpression with ChainableBinaryOperatorExpression {
 
-  override val signatures: Seq[ExpressionTypeSignature] =
+  override val signatures: Vector[ExpressionTypeSignature] =
     Vector(TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean))
 
   def includeEquality: Boolean

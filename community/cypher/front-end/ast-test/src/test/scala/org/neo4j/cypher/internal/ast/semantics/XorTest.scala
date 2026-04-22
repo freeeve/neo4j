@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class XorTest extends InfixExpressionTestBase(expressions.Xor(_, _)(DummyPosition(0))) {
 

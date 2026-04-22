@@ -276,7 +276,7 @@ trait AstMatchers {
     be(Right(None)).compose(r => resultAsEither[ASTNode](r).map(findPosMismatch(expected, _)))
 
   def haveAstLike[T <: ASTNode](assertion: T => Unit): Matcher[ParseResult] =
-    be(Right(Success())).compose(r => resultAsEither[T](r).map(ast => Try(assertion(ast))))
+    be(Right(Success(()))).compose(r => resultAsEither[T](r).map(ast => Try(assertion(ast))))
 
   def haveAstPositions[S <: ASTNode : ClassTag](expected: InputPosition*): Matcher[ParseResult] =
     be(Right(expected)).compose(r => resultAsEither[ASTNode](r).map(ast => subAsts[S](ast).map(_.position)))
@@ -285,7 +285,7 @@ trait AstMatchers {
     be(Right(expected)).compose(r => resultAsEither[ASTNode](r).map(subAsts[S]))
 
   def beLike[T](assertion: T => Unit): Matcher[T] =
-    be(Success()).compose[T](v => Try(assertion(v)))
+    be(Success(())).compose[T](v => Try(assertion(v)))
 
   def bePositioned(expected: ASTNode): Matcher[ASTNode] =
     be(None).compose(findPosMismatch(expected, _))

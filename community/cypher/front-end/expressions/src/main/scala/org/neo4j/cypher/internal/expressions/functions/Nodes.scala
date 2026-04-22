@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 case object Nodes extends Function {
   def name = "nodes"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       this,
       names = Vector("input"),

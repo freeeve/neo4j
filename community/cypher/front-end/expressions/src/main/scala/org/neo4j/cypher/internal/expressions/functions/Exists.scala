@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 case object Exists extends Function {
   def name = "exists"
 
-  override val signatures = Vector(
+  override val signatures: Vector[FunctionTypeSignature] = Vector(
     FunctionTypeSignature(
       function = this,
       names = Vector("input"),

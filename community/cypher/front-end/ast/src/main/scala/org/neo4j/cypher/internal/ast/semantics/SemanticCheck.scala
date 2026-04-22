@@ -210,7 +210,7 @@ trait SemanticCheckContext {
 
 object SemanticCheckContext {
 
-  case class Impl private (
+  private case class Impl(
     override val cypherVersion: CypherVersion,
     override val errorMessageProvider: ErrorMessageProvider,
     override val sessionDatabaseReference: Option[DatabaseReference]

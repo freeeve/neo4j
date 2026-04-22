@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaul
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
+import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
 
 class OrsTest extends SemanticFunSuite {
 
