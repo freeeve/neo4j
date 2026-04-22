@@ -1,6 +1,61 @@
 [
   {
     "isDeprecated": false,
+    "signature": "ai.file.embedBatch(file :: STRING, provider :: STRING, configuration = {} :: MAP, tokenCountLimit = null :: INTEGER) :: (index :: INTEGER, resource :: STRING, vector :: VECTOR)",
+    "name": "ai.file.embedBatch",
+    "description": "Embed a given file in batches of resources as vectors using the named provider.\nThe given file will be read, and if applicable, chunked into a list of resources which are then batch embedded.\nIf no chunking, the embedding will be done as if a list of a single item was provider,\nif the file is chunked the the chunks will be provided in an ordered list and the procedure will return:\n    * the corresponding 'index' within that LIST,\n    * the original 'resource' element itself,\n    * and the encoded 'vector'.\n",
+    "returnDescription": [
+      {
+        "name": "index",
+        "description": "The index of the corresponding element in the input list.",
+        "isDeprecated": false,
+        "type": "INTEGER"
+      },
+      {
+        "name": "resource",
+        "description": "The name of the input resource.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "vector",
+        "description": "The generated vector embedding for the resource.",
+        "isDeprecated": false,
+        "type": "VECTOR"
+      }
+    ],
+    "deprecatedBy": null,
+    "argumentDescription": [
+      {
+        "name": "file",
+        "description": "The path of the file",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "provider",
+        "description": "The identifier of the provider: 'Azure-OpenAI', 'Bedrock-Titan', 'OpenAI', 'VertexAI'.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "configuration",
+        "description": "Provider specific configuration, use `CALL ai.text.embed.providers()` to find the configuration needed for each provider. You can specify additional vendor options by adding `vendorOptions` with a map of values that will be passed along in the request.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}",
+        "type": "MAP"
+      },
+      {
+        "name": "tokenCountLimit",
+        "description": "The maximum token count limit for each chunk, if null, chunking will not be applied.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=null, type=INTEGER}",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "isDeprecated": false,
     "signature": "ai.text.chat.providers() :: (name :: STRING, requiredConfigType :: STRING, optionalConfigType :: STRING, defaultConfig :: MAP)",
     "name": "ai.text.chat.providers",
     "description": "Lists the available text chat providers.",

@@ -158,7 +158,7 @@ public class VectorEmbedding {
         }
     }
 
-    private Stream<InternalBatchRow> encodePartialBatch(
+    public static Stream<InternalBatchRow> encodePartialBatch(
             List<String> resources, Provider.Implementation provider, int currentOffset) {
         // Remember all the places where we had nulls and remove them from the requested resources
         final var removedIndexes = IntLists.mutable.empty();

@@ -26,6 +26,7 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.MapAssert;
+import org.neo4j.genai.ai.file.embed.FileVectorEmbedding;
 import org.neo4j.genai.ai.text.aggregateCompletion.TextAggregateCompletion;
 import org.neo4j.genai.ai.text.aggregateStructuredCompletion.TextAggregateStructuredCompletion;
 import org.neo4j.genai.ai.text.chat.TextChat;
@@ -54,7 +55,8 @@ public interface GenAITestExtension {
                 TextTokenCount.class,
                 TextChunkByToken.class,
                 TextChat.class,
-                VectorEmbedding.class);
+                VectorEmbedding.class,
+                FileVectorEmbedding.class);
     }
 
     default ResultTransformer<List<Map<String, Object>>> consume() {

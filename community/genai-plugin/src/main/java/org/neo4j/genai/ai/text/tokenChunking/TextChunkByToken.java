@@ -19,14 +19,10 @@
  */
 package org.neo4j.genai.ai.text.tokenChunking;
 
-import static com.knuddels.jtokkit.api.EncodingType.R50K_BASE;
 import static java.util.Objects.requireNonNull;
 
-import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
-import com.knuddels.jtokkit.api.EncodingRegistry;
 import java.util.List;
-import java.util.Optional;
 import org.neo4j.genai.GenAIConfig;
 import org.neo4j.genai.util.monitor.Monitors;
 import org.neo4j.kernel.api.QueryLanguage;
@@ -54,34 +50,14 @@ public class TextChunkByToken {
             @Name(value = "overlap", description = "The amount of tokens to overlap by.", defaultValue = "0")
                     Long overlap) {
         requireNonNull(limit, "'limit' must not be null");
-        if (limit <= 0) {
-            throw new IllegalArgumentException("'limit' must be greater than 0");
-        }
-        if (limit > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("'limit' must be less than or equal to " + Integer.MAX_VALUE);
-        }
-        if (overlap < 0) {
-            throw new IllegalArgumentException("'overlap' must be greater than or equal to 0");
-        }
-        if (overlap >= limit) {
-            throw new IllegalArgumentException("'overlap' must be less than 'limit'");
-        }
+        TextChunkConfig textChunkConfig = new TextChunkConfig(limit, overlap, model);
         monitors.textToken().textChunkByTokenLimitFunctionCalled();
 
         if (prompt == null) {
             return null;
         }
 
-        EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
-        Encoding enc;
-        if (model == null || model.isEmpty()) {
-            enc = registry.getEncoding(R50K_BASE);
-        } else {
-            Optional<Encoding> encOpt = registry.getEncodingForModel(model);
-            // FALLBACK: if model is not recognized by jtokkit, use a default encoding instead of throwing exception
-            enc = encOpt.orElseGet(() -> registry.getEncoding(R50K_BASE));
-        }
-
+        Encoding enc = textChunkConfig.getEncoding();
         RecursiveTokenSplitter splitter = new RecursiveTokenSplitter(enc, limit.intValue(), overlap.intValue());
         return splitter.splitText(prompt);
     }

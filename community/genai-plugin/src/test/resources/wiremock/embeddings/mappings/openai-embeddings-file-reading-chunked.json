@@ -1,0 +1,73 @@
+{
+  "request": {
+    "urlPath": "/v1/embeddings",
+    "method": "POST",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer dummy-openai-token"
+      }
+    },
+    "bodyPatterns": [
+      {
+        "or": [
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": [
+                "This is 1 text used for file reading and embedding."
+              ],
+              "encoding_format": "float"
+            }
+          },
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": [
+                "This is 2 text used for file reading and embedding."
+              ],
+              "encoding_format": "float"
+            }
+          },
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": [
+                "This is 3 text used for file reading and embedding."
+              ],
+              "encoding_format": "float"
+            }
+          },
+          {
+            "equalToJson": {
+              "model": "text-embedding-3-small",
+              "input": [
+                "This is 4 text used for file reading and embedding."
+              ],
+              "encoding_format": "float"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "object": "list",
+      "data": [
+        {
+          "object": "embedding",
+          "index": 0,
+          "embedding": [
+            0.1,
+            0.2,
+            0.3
+          ]
+        }
+      ]
+    }
+  }
+}

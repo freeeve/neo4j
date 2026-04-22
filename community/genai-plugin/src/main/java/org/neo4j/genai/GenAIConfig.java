@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -182,6 +183,14 @@ public class GenAIConfig extends LifecycleAdapter {
 
     public Object getProperty(String key) {
         return settings.get(key);
+    }
+
+    public Config getNeo4jConfig() {
+        return neo4jConfig;
+    }
+
+    public <T> T getNeo4jProperty(Setting<T> key) {
+        return neo4jConfig.get(key);
     }
 
     public String getStringProperty(String key) {
