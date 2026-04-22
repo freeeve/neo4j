@@ -236,11 +236,18 @@ class CommunityShowSettingsAcceptanceTest extends ExecutionEngineFunSuite with S
   test("show settings plan on system") {
     selectDatabase(SYSTEM_DATABASE_NAME)
     // WHEN
-    val result = execute("EXPLAIN SHOW SETTINGS")
+    val resultCypher25 = execute("EXPLAIN CYPHER 25 SHOW SETTINGS")
 
     // THEN
-    result.executionPlanString() should include("AdministrationCommand")
-    result.executionPlanString() should not include "settingsMatching(foo), defaultColumns"
+    resultCypher25.executionPlanString() should include("allSettings, defaultColumns")
+    resultCypher25.executionPlanString() should not include "AdministrationCommand"
+
+    // WHEN
+    val resultCypher5 = execute("EXPLAIN CYPHER 5 SHOW SETTINGS")
+
+    // THEN
+    resultCypher5.executionPlanString() should include("AdministrationCommand")
+    resultCypher5.executionPlanString() should not include "settingsMatching(foo), defaultColumns"
   }
 
 }

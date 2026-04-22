@@ -76,8 +76,14 @@ abstract class SecurityAdministrationLogicalPlan(source: Option[AdministrationCo
   idGen: IdGen) extends AdministrationCommandLogicalPlan(source)
 
 // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES
-case class AllowedNonAdministrationCommands(statement: Statement)(implicit idGen: IdGen)
-    extends DatabaseAdministrationLogicalPlan
+// The `statement` is used to run the query, it gets turned back into a query string at runtime.
+// The `maybePlan` is just used to get a nicer plan description than `AdministrationCommand`.
+case class AllowedNonAdministrationCommands(
+  statement: Statement,
+  maybePlan: Option[LogicalPlan] = None
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan {
+  def addPlan(newPlan: LogicalPlan): AllowedNonAdministrationCommands = this.copy(maybePlan = Some(newPlan))(idGen)
+}
 
 // Security administration commands
 case class ShowUsers(

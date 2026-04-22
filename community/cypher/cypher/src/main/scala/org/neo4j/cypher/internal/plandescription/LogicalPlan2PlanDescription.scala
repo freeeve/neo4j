@@ -100,6 +100,7 @@ import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.AllQueryExpression
+import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
 import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.Anti
 import org.neo4j.cypher.internal.logical.plans.AntiConditionalApply
@@ -442,6 +443,8 @@ case class LogicalPlan2PlanDescription(
     val children = describeNestedPlans(plan)
 
     val result: InternalPlanDescription = replaceNestedPlansWithPlaceholder(plan) match {
+      case AllowedNonAdministrationCommands(_, Some(commandPlan)) => create(commandPlan)
+
       case _: AdministrationCommandLogicalPlan =>
         PlanDescriptionImpl(
           id,
@@ -1959,8 +1962,16 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case SystemProcedureCall(procedureName, _, _, _, _) =>
-        PlanDescriptionImpl(id, procedureName, Seq.empty, Seq.empty, variables, withRawCardinalities, withDistinctness)
+      case SystemProcedureCall(call, _, _, _) =>
+        PlanDescriptionImpl(
+          id,
+          "ProcedureCall",
+          children,
+          Seq(Details(signatureInfo(call))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
 
       case ForeignLeafPlan(_, externalPlan, _) =>
         PlanDescriptionImpl(

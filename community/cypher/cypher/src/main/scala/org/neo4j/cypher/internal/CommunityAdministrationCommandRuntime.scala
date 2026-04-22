@@ -608,7 +608,7 @@ case class CommunityAdministrationCommandRuntime(
           .planEnsureNodeExists(command, entity, name, valueMapper, extraFilter, labelDescription, action, sourcePlan)
 
     // SUPPORT PROCEDURES (need to be cleared before here)
-    case SystemProcedureCall(_, call, returns, _, checkCredentialsExpired) => context =>
+    case SystemProcedureCall(call, returns, _, checkCredentialsExpired) => context =>
         SystemProcedureCallPlanner(normalExecutionEngine, securityAuthorizationHandler).planSystemProcedureCall(
           context.runtimeContext.cypherVersion,
           call,
@@ -661,7 +661,7 @@ case class CommunityAdministrationCommandRuntime(
         )
 
     // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES
-    case AllowedNonAdministrationCommands(statement) => context =>
+    case AllowedNonAdministrationCommands(statement, _) => context =>
         SystemCommandExecutionPlan(
           "AllowedNonAdministrationCommand",
           normalExecutionEngine,

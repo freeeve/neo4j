@@ -30,7 +30,6 @@ import org.neo4j.values.virtual.MapValue
  * Check that the query is an allowed system-only query BEFORE creating a SystemProcedureCall
  */
 case class SystemProcedureCall(
-  procedureName: String,
   call: ResolvedNonLocalCall,
   returns: Option[Return],
   params: MapValue,

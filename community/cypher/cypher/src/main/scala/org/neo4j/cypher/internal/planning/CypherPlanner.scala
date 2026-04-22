@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
+import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
@@ -111,6 +112,7 @@ import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.IndexComparatorFactory
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.planning.TransformingPlanner.DefaultTransformers
 import org.neo4j.cypher.internal.planning.TransformingPlanner.preventCaching
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
@@ -754,14 +756,33 @@ final class TransformingPlanner private[planning] (
         createPlan(shouldBeCached = canBeCached)
       }
 
-    val cacheStrategyAfterPlanning = cacheStrategy.updateFromLogicalPlan(cacheableLogicalPlan)
+    val updatedCachableLogicalPlan = {
+      cacheableLogicalPlan.logicalPlanState.logicalPlan match {
+        case a: AllowedNonAdministrationCommands
+          if a.maybePlan.isEmpty &&
+            plannerContext.cypherVersion.isEqualOrAfter(CypherVersion.Cypher25) &&
+            (options.queryOptions.executionMode.isExplain || options.queryOptions.executionMode.isProfile) =>
+          val fromState = LogicalPlanState(preparedQuery).withStatement(a.statement)
+          val maybePlan = DefaultTransformers.plan(plannerContext).transform(fromState, plannerContext).maybeLogicalPlan
+
+          maybePlan match {
+            case Some(plan) => cacheableLogicalPlan.copy(
+                logicalPlanState = cacheableLogicalPlan.logicalPlanState.copy(logicalPlan = a.addPlan(plan))
+              )
+            case _ => cacheableLogicalPlan
+          }
+        case _ => cacheableLogicalPlan
+      }
+    }
+
+    val cacheStrategyAfterPlanning = cacheStrategy.updateFromLogicalPlan(updatedCachableLogicalPlan)
     LogicalPlanResult(
-      cacheableLogicalPlan.logicalPlanState,
+      updatedCachableLogicalPlan.logicalPlanState,
       queryParamNames,
       autoExtractParams,
-      cacheableLogicalPlan.reusability,
+      updatedCachableLogicalPlan.reusability,
       plannerContext,
-      (notificationLogger.notifications ++ cacheableLogicalPlan.notifications).toIndexedSeq,
+      (notificationLogger.notifications ++ updatedCachableLogicalPlan.notifications).toIndexedSeq,
       cacheStrategyAfterPlanning,
       obfuscator,
       TransactionBoundIndexComparatorFactory

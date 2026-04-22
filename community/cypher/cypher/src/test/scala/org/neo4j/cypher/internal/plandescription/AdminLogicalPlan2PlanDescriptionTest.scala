@@ -131,6 +131,8 @@ import org.neo4j.cypher.internal.logical.plans.GrantRoleToUser
 import org.neo4j.cypher.internal.logical.plans.HomeScope
 import org.neo4j.cypher.internal.logical.plans.LogSystemCommand
 import org.neo4j.cypher.internal.logical.plans.NamedScope
+import org.neo4j.cypher.internal.logical.plans.ProcedureCall
+import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.RenameAuthRule
 import org.neo4j.cypher.internal.logical.plans.RenameRole
 import org.neo4j.cypher.internal.logical.plans.RenameServer
@@ -147,17 +149,22 @@ import org.neo4j.cypher.internal.logical.plans.ShowAliases
 import org.neo4j.cypher.internal.logical.plans.ShowAuthRules
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentUser
 import org.neo4j.cypher.internal.logical.plans.ShowDatabase
+import org.neo4j.cypher.internal.logical.plans.ShowDatabases
+import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowPrivilegeCommands
 import org.neo4j.cypher.internal.logical.plans.ShowPrivileges
+import org.neo4j.cypher.internal.logical.plans.ShowProcedures
 import org.neo4j.cypher.internal.logical.plans.ShowRoles
 import org.neo4j.cypher.internal.logical.plans.ShowServers
 import org.neo4j.cypher.internal.logical.plans.ShowSupportedPrivileges
 import org.neo4j.cypher.internal.logical.plans.ShowUsers
 import org.neo4j.cypher.internal.logical.plans.StartDatabase
 import org.neo4j.cypher.internal.logical.plans.StopDatabase
+import org.neo4j.cypher.internal.logical.plans.SystemProcedureCall
 import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.logical.plans.WaitForCompletion
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.details
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.planDescription
 import org.neo4j.cypher.internal.util.Namespace
 import org.neo4j.cypher.internal.util.ProcedureName
@@ -166,6 +173,7 @@ import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.values.virtual.VirtualValues
 
 class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTestBase {
 
@@ -178,7 +186,8 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     assertGood(
       attach(
         AllowedNonAdministrationCommands(
-          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
+          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos),
+          None
         ),
         1.0
       ),
@@ -188,45 +197,94 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     assertGood(
       attach(
         AllowedNonAdministrationCommands(
-          SingleQuery(Seq(
-            ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(pos),
-            ResolvedNonLocalCall(
-              ProcedureSignature(
-                ProcedureName(Namespace(List("db", "index", "fulltext"))(pos), "listAvailableAnalyzers")(pos),
-                IndexedSeq.empty,
-                Some(Vector(
-                  FieldSignature(
-                    "analyzer",
-                    StringType(isNullable = true)(pos),
-                    description = "The name of the analyzer."
-                  ),
-                  FieldSignature(
-                    "description",
-                    StringType(isNullable = true)(pos),
-                    description = "The  description of the analyzer."
-                  ),
-                  FieldSignature(
-                    "stopWords",
-                    ListType(StringType(isNullable = true)(pos), isNullable = true)(pos),
-                    description = "The stopwords used by the analyzer to tokenize strings."
-                  )
-                )),
-                None,
-                ProcedureReadOnlyAccess,
-                Some("List the available analyzers that the full-text indexes can be configured with."),
-                None,
-                eager = false,
-                109,
-                systemProcedure = true
-              ),
-              Seq.empty,
-              IndexedSeq(ProcedureResultItem(None, Variable("analyzer")(pos, isIsolated = false))(pos))
-            )(pos)
-          ))(pos)
+          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos),
+          Some(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty))
         ),
         1.0
       ),
-      adminPlanDescription
+      planDescription(
+        id,
+        "ShowProcedures",
+        Seq.empty,
+        Seq(details("proceduresForUser(all), defaultColumns")),
+        Set.empty
+      )
+    )
+
+    val call = ResolvedNonLocalCall(
+      ProcedureSignature(
+        ProcedureName(Namespace(List("db", "index", "fulltext"))(pos), "listAvailableAnalyzers")(pos),
+        IndexedSeq.empty,
+        Some(Vector(
+          FieldSignature(
+            "analyzer",
+            StringType(isNullable = true)(pos),
+            description = "The name of the analyzer."
+          ),
+          FieldSignature(
+            "description",
+            StringType(isNullable = true)(pos),
+            description = "The  description of the analyzer."
+          ),
+          FieldSignature(
+            "stopWords",
+            ListType(StringType(isNullable = true)(pos), isNullable = true)(pos),
+            description = "The stopwords used by the analyzer to tokenize strings."
+          )
+        )),
+        None,
+        ProcedureReadOnlyAccess,
+        Some("List the available analyzers that the full-text indexes can be configured with."),
+        None,
+        eager = false,
+        109,
+        systemProcedure = true
+      ),
+      Seq.empty,
+      IndexedSeq(ProcedureResultItem(None, Variable("analyzer")(pos, isIsolated = false))(pos))
+    )(pos)
+    assertGood(
+      attach(
+        AllowedNonAdministrationCommands(
+          SingleQuery(Seq(
+            ShowFunctionsClause(AllFunctions, None, None, List.empty, yieldAll = false, None)(pos),
+            call
+          ))(pos),
+          Some(
+            ProduceResult.withNoCachedProperties(
+              ProcedureCall(
+                ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty, Set.empty),
+                call
+              ),
+              Seq(varFor("a"), varFor("b"), varFor("c\nd"))
+            )
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ProduceResults",
+        Seq(
+          planDescription(
+            id,
+            "ProcedureCall",
+            Seq(
+              planDescription(
+                id,
+                "ShowFunctions",
+                Seq.empty,
+                Seq(details("allFunctions, functionsForUser(all), defaultColumns")),
+                Set.empty
+              )
+            ),
+            Seq(details("db.index.fulltext.listAvailableAnalyzers() :: (analyzer :: STRING)")),
+            Set("analyzer")
+          )
+        ),
+        Seq(details(Seq("a", "b", "`c d`"))),
+        Set("analyzer")
+      )
     )
 
     assertGood(
@@ -238,11 +296,77 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
             List.empty,
             yieldAll = false,
             None
-          )(pos)))(pos)
+          )(pos)))(pos),
+          Some(ShowDatabases(
+            AllDatabasesScope()(pos),
+            List.empty,
+            List.empty,
+            yieldAll = true,
+            Set.empty,
+            Set.empty
+          ))
         ),
         1.0
       ),
-      adminPlanDescription
+      planDescription(
+        id,
+        "ShowDatabases",
+        Seq.empty,
+        Seq(details("allDatabases, allColumns")),
+        Set.empty
+      )
+    )
+  }
+
+  test("System procedure calls") {
+    assertGood(
+      attach(
+        SystemProcedureCall(
+          ResolvedNonLocalCall(
+            ProcedureSignature(
+              ProcedureName(Namespace(List("db", "index", "fulltext"))(pos), "listAvailableAnalyzers")(pos),
+              IndexedSeq.empty,
+              Some(Vector(
+                FieldSignature(
+                  "analyzer",
+                  StringType(isNullable = true)(pos),
+                  description = "The name of the analyzer."
+                ),
+                FieldSignature(
+                  "description",
+                  StringType(isNullable = true)(pos),
+                  description = "The  description of the analyzer."
+                ),
+                FieldSignature(
+                  "stopWords",
+                  ListType(StringType(isNullable = true)(pos), isNullable = true)(pos),
+                  description = "The stopwords used by the analyzer to tokenize strings."
+                )
+              )),
+              None,
+              ProcedureReadOnlyAccess,
+              Some("List the available analyzers that the full-text indexes can be configured with."),
+              None,
+              eager = false,
+              109,
+              systemProcedure = true
+            ),
+            Seq.empty,
+            IndexedSeq(ProcedureResultItem(None, Variable("analyzer")(pos, isIsolated = false))(pos))
+          )(pos),
+          None,
+          VirtualValues.EMPTY_MAP,
+          checkCredentialsExpired = false
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ProcedureCall",
+        Seq.empty,
+        Seq(details("db.index.fulltext.listAvailableAnalyzers() :: (analyzer :: STRING)")),
+        Set.empty
+      )
     )
   }
 

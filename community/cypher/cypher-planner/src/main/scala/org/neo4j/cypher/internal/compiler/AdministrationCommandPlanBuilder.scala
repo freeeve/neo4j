@@ -322,7 +322,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       }
       val signature = resolved.signature
       val checkCredentialsExpired = !signature.allowExpiredCredentials
-      plans.SystemProcedureCall(signature.name.toString, resolved, returns, context.params, checkCredentialsExpired)
+      plans.SystemProcedureCall(resolved, returns, context.params, checkCredentialsExpired)
     }
 
     // Check for non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES YIELD ...
