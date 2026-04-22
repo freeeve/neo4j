@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import static org.apache.lucene.util.automaton.Automata.makeBinaryStringUnion;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.EXISTS_KEY;
 
@@ -27,16 +28,17 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 import org.apache.lucene.document.KeywordField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.AutomatonQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
@@ -123,13 +125,13 @@ final class Lucene10FilterQueryBuilder {
     }
 
     private Query entityFilterPredicate(long[] validEntities) {
-        // We should be using something like LongPoint.newSetQuery(ENTITY_ID_KEY, validEntities), however that would
-        // require changing the type of ENTITY_KEY_ID to something like a SingleLongField instead of a String
-        List<BytesRef> idStrings = new ArrayList<>(validEntities.length);
+        // TODO: at some point we should move the construction of the sorted set
+        //      to the cypher runtime by constructing a dedicated aggregator.
+        TreeSet<BytesRef> idStrings = new TreeSet<>();
         for (long validEntity : validEntities) {
             idStrings.add(new BytesRef(Long.toString(validEntity)));
         }
-        return new TermInSetQuery(ENTITY_ID_KEY, idStrings);
+        return new AutomatonQuery(new Term(ENTITY_ID_KEY), makeBinaryStringUnion(idStrings), true);
     }
 
     private Query singleValueQuery(int propertyIndex, Value value) {
