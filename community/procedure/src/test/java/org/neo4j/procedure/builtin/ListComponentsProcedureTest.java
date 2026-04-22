@@ -57,8 +57,6 @@ class ListComponentsProcedureTest {
                     return (T) customConfigVersion;
                 } else if (GraphDatabaseInternalSettings.enable_experimental_cypher_versions == setting) {
                     return (T) experimentalCypherVersionsEnabled;
-                } else if (GraphDatabaseInternalSettings.graph_engine_enabled == setting) {
-                    return (T) graphEngineEnabled;
                 }
                 return null;
             }
@@ -68,7 +66,7 @@ class ListComponentsProcedureTest {
     static Context context(
             String customConfigVersion, Boolean experimentalCypherVersionsEnabled, Boolean graphEngineEnabled) {
         var capabilitiesService = Mockito.mock(CapabilitiesService.class);
-        when(capabilitiesService.get(Name.of("graphengine.version"))).thenReturn("4711");
+        when(capabilitiesService.get(Name.of("virtual_graph.version"))).thenReturn("4711");
 
         var dependencyResolver = Mockito.mock(DependencyResolver.class);
         when(dependencyResolver.resolveDependency(CapabilitiesService.class)).thenReturn(capabilitiesService);
@@ -130,21 +128,6 @@ class ListComponentsProcedureTest {
             assertEquals(2, versions.intSize());
             assertEquals("5", ((TextValue) versions.value(0)).stringValue());
             assertEquals("25", ((TextValue) versions.value(1)).stringValue());
-            assertEquals("", ((TextValue) row[2]).stringValue());
-        }
-    }
-
-    @Test
-    void listGraphEngineWhenEnabled() throws ProcedureException {
-        var context = context("5.27.0", false, true);
-        var procedure = new ListComponentsProcedure(new QualifiedName(new String[] {"dbms"}, "components"));
-
-        try (var result = procedure.apply(context, new AnyValue[0], null)) {
-            var row = filterByComponentName(Iterators.asList(result), "Graph Engine");
-
-            var versions = (ListValue) row[1];
-            assertEquals(1, versions.intSize());
-            assertEquals("4711", ((TextValue) versions.value(0)).stringValue());
             assertEquals("", ((TextValue) row[2]).stringValue());
         }
     }

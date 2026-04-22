@@ -1973,42 +1973,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Enable Graph Engine")
-    public static final Setting<Boolean> graph_engine_enabled =
-            newBuilder("internal.graphengine.enabled", BOOL, false).immutable().build();
-
-    @Internal
-    @Description("Graph Engine configuration home directory")
-    public static final Setting<Path> graph_engine_home = newBuilder(
-                    "internal.graphengine.home", PATH, Path.of("graph-engine"))
-            .setDependency(GraphDatabaseSettings.neo4j_home)
-            .immutable()
-            .build();
-
-    @Internal
-    @Description("Graph Engine id cache size")
-    public static final Setting<Integer> graph_engine_id_cache_size = newBuilder(
-                    "internal.graphengine.id_cache_size", INT, 10_000)
-            .addConstraint(min(0))
-            .immutable()
-            .build();
-
-    @Internal
-    @Description("Graph Engine fallback procedures")
-    public static final Setting<Set<String>> graph_engine_fallback_procedures = newBuilder(
-                    "internal.graphengine.fallback_procedures",
-                    setOf(STRING),
-                    Set.of(
-                            "db.ping",
-                            "dbms.clientConfig",
-                            "dbms.components",
-                            "dbms.info",
-                            "dbms.listCapabilities",
-                            "db.clearQueryCaches"))
-            .immutable()
-            .build();
-
-    @Internal
     @Description("Allowlist of logging prefixes for libraries that bind to SLF4J")
     public static final Setting<List<String>> slf4j_class_prefixes = newBuilder(
                     "internal.server.logs.filter.slf4j_class_prefixes",

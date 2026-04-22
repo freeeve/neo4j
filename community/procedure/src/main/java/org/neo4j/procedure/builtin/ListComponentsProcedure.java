@@ -39,7 +39,9 @@ import org.neo4j.capabilities.Name;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings.CypherVersion;
+import org.neo4j.configuration.SettingsDeclaration;
 import org.neo4j.graphdb.config.Configuration;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.ResourceMonitor;
@@ -48,6 +50,7 @@ import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.procedure.Mode;
+import org.neo4j.service.Services;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.ListValue;
@@ -59,7 +62,7 @@ import org.neo4j.values.virtual.VirtualValues;
  * <p>
  * This way, it works as a general mechanism into which capabilities a given Neo4j system has, and which version of those components are in use.
  * <p>
- * This would include things like Kernel, Storage Engine, Query Engines, Bolt protocol versions et cetera.
+ * This would include things like Kernel, Storage Engine, Virtual Graph, Bolt protocol versions et cetera.
  * <p>
  * The versions returned from `dbms.components()` for the "Neo4j Kernel" component depend on several factors
  * <p>
@@ -76,10 +79,10 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
     public static final String VERSIONS_COLUMN = "versions";
     public static final String EDITION_COLUMN = "edition";
     public static final String KERNEL_COMPONENT_NAME = "Neo4j Kernel";
-    public static final String GRAPH_ENGINE_COMPONENT_NAME = "Graph Engine";
+    public static final String VIRTUAL_GRAPH_COMPONENT_NAME = "Virtual Graph";
 
     private static final TextValue NEO4J_KERNEL = utf8Value(KERNEL_COMPONENT_NAME);
-    private static final TextValue GRAPH_ENGINE = utf8Value(GRAPH_ENGINE_COMPONENT_NAME);
+    private static final TextValue VIRTUAL_GRAPH = utf8Value(VIRTUAL_GRAPH_COMPONENT_NAME);
     private static final TextValue CYPHER = utf8Value("Cypher");
     private static final CypherVersion[] ALL_CYPHER_VERSIONS = CypherVersion.values();
     private static final ListValue CYPHER_VERSIONS_EXCL_EXPERIMENTAL = cypherVersions(false);
@@ -150,14 +153,33 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
             components.add(new AnyValue[] {CYPHER, cypherVersions, EMPTY_STRING});
         }
 
-        var geEnabled = configuration.get(GraphDatabaseInternalSettings.graph_engine_enabled);
-        if (Boolean.TRUE.equals(geEnabled)) {
-            var geVersion =
-                    Objects.requireNonNullElse((String) capabilitiesService.get(Name.of("graphengine.version")), "n/a");
-            components.add(new AnyValue[] {GRAPH_ENGINE, VirtualValues.list(stringValue(geVersion)), stringValue("")});
+        if (getVirtualGraphEnabledSetting(configuration)) {
+            var geVersion = Objects.requireNonNullElse(
+                    (String) capabilitiesService.get(Name.of("virtual_graph.version")), "n/a");
+            components.add(new AnyValue[] {VIRTUAL_GRAPH, VirtualValues.list(stringValue(geVersion)), stringValue("")});
         }
 
         return components;
+    }
+
+    static boolean getVirtualGraphEnabledSetting(Configuration configuration) {
+        // Use service loader to not compile time depend on enterprise settings (safe)
+        var settings = Services.load(SettingsDeclaration.class, "EnterpriseEditionInternalSettings", p -> p.getClass()
+                .getSimpleName());
+        if (settings.isEmpty()) {
+            return false;
+        }
+        try {
+            // Retrieve the settings fields via reflection (less safe, but no other way unless do pull the enterprise
+            // module into community, and we don't want).
+            // Ok from performance, only done on first call and later on cached in #components.
+            @SuppressWarnings("unchecked")
+            var virtualGraphEnabled = (Setting<Boolean>)
+                    settings.get().getClass().getField("virtual_graph_enabled").get(null);
+            return Boolean.TRUE.equals(configuration.get(virtualGraphEnabled));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return false;
+        }
     }
 
     private static ListValue cypherVersions(boolean includeExperimental) {
