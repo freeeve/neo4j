@@ -85,7 +85,7 @@
     <awaitility.version>4.3.0</awaitility.version>
     <awssdk-crt.version>0.44.0</awssdk-crt.version>
     <awssdk.version>2.42.32</awssdk.version>
-    <bouncycastle.version>1.83</bouncycastle.version>
+    <bouncycastle.version>1.84</bouncycastle.version>
     <build-resources.version>2026.02.5</build-resources.version>
     <caffeine.version>3.2.3</caffeine.version>
     <cucumber.scala.version>8.36.0</cucumber.scala.version>
