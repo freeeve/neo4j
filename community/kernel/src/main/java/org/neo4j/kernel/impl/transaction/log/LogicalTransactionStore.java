@@ -58,7 +58,8 @@ public interface LogicalTransactionStore {
     /**
      * As {@link LogicalTransactionStore#getCommandBatches(LogPosition)} but only returns batches up to maxPosition
      */
-    CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException;
+    CommandBatchCursor getCommandBatches(
+            LogPosition position, LogPosition maxPosition, boolean treatBrokenLastEntryAsCorruption) throws IOException;
 
     /**
      * Acquires a {@link CommandBatchCursor cursor} which will provide {@link CommittedCommandBatchRepresentation}

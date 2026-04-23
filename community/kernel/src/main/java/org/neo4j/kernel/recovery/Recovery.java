@@ -341,6 +341,7 @@ public final class Recovery {
         private long awaitIndexesOnlineMillis;
         private KernelVersionProvider emptyLogsFallbackKernelVersion;
         private boolean failOnCorruptedLogs;
+        private boolean treatBrokenLastEntryAsCorruption;
 
         private Context(
                 FileSystemAbstraction fileSystemAbstraction,
@@ -455,6 +456,7 @@ public final class Recovery {
          */
         public Context forceFailOnCorruptedLogs() {
             this.failOnCorruptedLogs = true;
+            this.treatBrokenLastEntryAsCorruption = true;
             return this;
         }
     }
@@ -497,7 +499,8 @@ public final class Recovery {
                     context.awaitIndexesOnlineMillis,
                     context.emptyLogsFallbackKernelVersion,
                     context.mode,
-                    context.failOnCorruptedLogs);
+                    context.failOnCorruptedLogs,
+                    context.treatBrokenLastEntryAsCorruption);
         } finally {
             config.removeAllLocalListeners();
         }
@@ -535,7 +538,8 @@ public final class Recovery {
             long awaitIndexesOnlineMillis,
             KernelVersionProvider emptyLogsFallbackKernelVersion,
             RecoveryMode mode,
-            boolean failOnCorruptedLogs)
+            boolean failOnCorruptedLogs,
+            boolean treatBrokenLastEntryAsCorruption)
             throws IOException {
         InternalLog recoveryLog = logProvider.getLog(Recovery.class);
 
@@ -775,6 +779,7 @@ public final class Recovery {
                 schemaLife,
                 databaseLayout,
                 failOnCorruptedLogs,
+                treatBrokenLastEntryAsCorruption,
                 recoveryLog,
                 startupChecker,
                 memoryTracker,
@@ -945,6 +950,7 @@ public final class Recovery {
             Lifecycle schemaLife,
             DatabaseLayout databaseLayout,
             boolean failOnCorruptedLogFiles,
+            boolean treatBrokenLastEntryAsCorruption,
             InternalLog log,
             RecoveryStartupChecker startupChecker,
             MemoryTracker memoryTracker,
@@ -985,6 +991,7 @@ public final class Recovery {
                 recoveryMonitor,
                 ProgressMonitorFactory.basicTextual(loggerPrintWriterAdaptor),
                 failOnCorruptedLogFiles,
+                treatBrokenLastEntryAsCorruption,
                 startupChecker,
                 recoveryPredicate,
                 rollbackIncompleteTransactions,

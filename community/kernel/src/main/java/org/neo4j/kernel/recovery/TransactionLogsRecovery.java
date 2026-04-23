@@ -79,6 +79,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     private final Lifecycle schemaLife;
     private final ProgressMonitorFactory progressMonitorFactory;
     private final boolean failOnCorruptedLogFiles;
+    private final boolean treatBrokenLastEntryAsCorruption;
     private final RecoveryStartupChecker recoveryStartupChecker;
     private final boolean rollbackIncompleteTransactions;
     private final CursorContextFactory contextFactory;
@@ -101,6 +102,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             RecoveryMonitor monitor,
             ProgressMonitorFactory progressMonitorFactory,
             boolean failOnCorruptedLogFiles,
+            boolean treatBrokenLastEntryAsCorruption,
             RecoveryStartupChecker recoveryStartupChecker,
             RecoveryPredicate recoveryPredicate,
             boolean rollbackIncompleteTransactions,
@@ -119,6 +121,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         this.schemaLife = schemaLife;
         this.progressMonitorFactory = progressMonitorFactory;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
+        this.treatBrokenLastEntryAsCorruption = treatBrokenLastEntryAsCorruption;
         this.recoveryStartupChecker = recoveryStartupChecker;
         this.rollbackIncompleteTransactions = rollbackIncompleteTransactions;
         this.contextFactory = contextFactory;
@@ -244,8 +247,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             LogPosition recoveryStartPosition,
             RecoveryContextTracker recoveryContextTracker)
             throws Exception {
-        try (var transactionsToRecover =
-                        recoveryService.getCommandBatches(recoveryStartPosition, recoveryPredicate.maxPosition());
+        try (var transactionsToRecover = recoveryService.getCommandBatches(
+                        recoveryStartPosition, recoveryPredicate.maxPosition(), treatBrokenLastEntryAsCorruption);
                 var recoveryVisitor = recoveryService.getRecoveryApplier(RECOVERY, contextFactory, RECOVERY_TAG)) {
             while (transactionsToRecover.next()) {
                 var nextCommandBatch = transactionsToRecover.get();

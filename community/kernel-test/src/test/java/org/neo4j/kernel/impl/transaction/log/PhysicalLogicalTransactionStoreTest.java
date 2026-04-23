@@ -243,6 +243,7 @@ class PhysicalLogicalTransactionStoreTest {
                 mock(RecoveryMonitor.class),
                 ProgressMonitorFactory.NONE,
                 false,
+                false,
                 EMPTY_CHECKER,
                 RecoveryPredicate.ALL,
                 false,
@@ -510,8 +511,10 @@ class PhysicalLogicalTransactionStoreTest {
         }
 
         @Override
-        public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
-            return txStore.getCommandBatches(position, maxPosition);
+        public CommandBatchCursor getCommandBatches(
+                LogPosition position, LogPosition maxPosition, boolean treatBrokenLastEntryAsCorruption)
+                throws IOException {
+            return txStore.getCommandBatches(position, maxPosition, treatBrokenLastEntryAsCorruption);
         }
 
         @Override

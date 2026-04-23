@@ -74,8 +74,10 @@ public class ReadOnlyTransactionStore implements LogicalTransactionStore {
     }
 
     @Override
-    public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
-        return physicalStore.getCommandBatches(position, maxPosition);
+    public CommandBatchCursor getCommandBatches(
+            LogPosition position, LogPosition maxPosition, boolean treatBrokenLastEntryAsCorruption)
+            throws IOException {
+        return physicalStore.getCommandBatches(position, maxPosition, treatBrokenLastEntryAsCorruption);
     }
 
     @Override

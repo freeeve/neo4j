@@ -71,13 +71,19 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
     }
 
     @Override
-    public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
+    public CommandBatchCursor getCommandBatches(
+            LogPosition position, LogPosition maxPosition, boolean treatBrokenLastEntryAsCorruption)
+            throws IOException {
         checkState(
                 maxPosition == LogPosition.UNSPECIFIED || position.isBefore(maxPosition),
                 "maxPosition (%s) must be after position (%s)".formatted(maxPosition, position));
         return new CommittedCommandBatchCursor(
                 logFile.getReader(position),
-                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker),
+                new VersionAwareLogEntryReader(
+                        commandReaderFactory,
+                        binarySupportedKernelVersions,
+                        memoryTracker,
+                        treatBrokenLastEntryAsCorruption),
                 maxPosition);
     }
 

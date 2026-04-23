@@ -121,6 +121,7 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.ByteUnit;
+import org.neo4j.io.fs.ChecksumMismatchException;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.fs.StoreChannel;
@@ -154,6 +155,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InconsistentLogFilesException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
@@ -406,6 +408,70 @@ class RecoveryIT {
         removeLastKbFromLogFile(logFileToManipulate, position);
 
         recoverDatabase();
+    }
+
+    @Test
+    void recoverTxLogsWithPartiallyWrittenLastRecordInFirstTransactionAfterCheckpointFailOnLastPartial()
+            throws Exception {
+        var database = createDatabase();
+        assumeRecordStorageEngine(database);
+
+        var logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
+        var checkpointer = database.getDependencyResolver().resolveDependency(CheckPointer.class);
+        var logFileToManipulate = logFiles.getLogFile().getLogRangeInfo().highestFile();
+
+        var marker = withName("Type");
+        var propertyName = "a";
+
+        // we do transaction before checkpoint to force token creation that we will use after checkpoint to make sure
+        // that its a first transaction after the checkpoint
+        try (Transaction tx = database.beginTx()) {
+            Node node1 = tx.createNode();
+            Node node2 = tx.createNode();
+            node1.createRelationshipTo(node2, marker);
+            node2.setProperty(propertyName, "b");
+            tx.commit();
+        }
+
+        checkpointer.forceCheckPoint(new SimpleTriggerInfo("test"));
+
+        LogPosition position = logFiles.getLogFile().getTransactionLogWriter().getCurrentPosition();
+
+        // our test big transaction
+        try (Transaction tx = database.beginTx()) {
+            Node node1 = tx.createNode();
+            Node node2 = tx.createNode();
+            node1.createRelationshipTo(node2, marker);
+            node2.setProperty(propertyName, random.nextAlphaNumericString(TEN_KB));
+            tx.commit();
+        }
+        managementService.shutdown();
+
+        removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
+        // we write big transaction with huge property command above and here we truncate a bit of that to simulate
+        // partially written command
+        removeLastKbFromLogFile(logFileToManipulate, position);
+
+        Config config = defaults();
+        assertTrue(isRecoveryRequired(databaseLayout, config, EMPTY));
+
+        // Ask recover to not accept last broken records (piggybacks on force fail on corrupted).
+        Recovery.Context context = Recovery.contextWithNoLogTail(
+                        fileSystem,
+                        pageCache,
+                        EMPTY,
+                        config,
+                        databaseLayout,
+                        INSTANCE,
+                        IOController.DISABLED,
+                        logProvider,
+                        LATEST_KERNEL_VERSION_PROVIDER)
+                .forceFailOnCorruptedLogs();
+        assertThatThrownBy(() -> performRecovery(context.recoveryPredicate(RecoveryPredicate.ALL)
+                        .startupChecker(RecoveryStartupChecker.EMPTY_CHECKER)
+                        .clock(fakeClock)))
+                .rootCause()
+                .isInstanceOfAny(ChecksumMismatchException.class, InconsistentLogFilesException.class);
     }
 
     @Test

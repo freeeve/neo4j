@@ -92,7 +92,7 @@ class RecoveryProgressIndicatorTest {
         when(recoveryService.getRecoveryStartInformation()).thenReturn(startInformation);
         when(recoveryService.getCommandBatchesInReverseOrder(transactionLogPosition, LogPosition.UNSPECIFIED))
                 .thenReturn(reverseCommandBatchCursor);
-        when(recoveryService.getCommandBatches(transactionLogPosition, LogPosition.UNSPECIFIED))
+        when(recoveryService.getCommandBatches(transactionLogPosition, LogPosition.UNSPECIFIED, false))
                 .thenReturn(commandBatchCursor);
 
         AssertableProgressMonitorFactory factory = new AssertableProgressMonitorFactory(expectedMax);
@@ -107,6 +107,7 @@ class RecoveryProgressIndicatorTest {
                 recoveryMonitor,
                 factory,
                 true,
+                false,
                 EMPTY_CHECKER,
                 RecoveryPredicate.ALL,
                 false,

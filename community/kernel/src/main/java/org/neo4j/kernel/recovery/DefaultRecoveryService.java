@@ -114,8 +114,10 @@ public class DefaultRecoveryService implements RecoveryService {
     }
 
     @Override
-    public CommandBatchCursor getCommandBatches(LogPosition position, LogPosition maxPosition) throws IOException {
-        return logicalTransactionStore.getCommandBatches(position, maxPosition);
+    public CommandBatchCursor getCommandBatches(
+            LogPosition position, LogPosition maxPosition, boolean treatBrokenLastEntryAsCorruption)
+            throws IOException {
+        return logicalTransactionStore.getCommandBatches(position, maxPosition, treatBrokenLastEntryAsCorruption);
     }
 
     @Override

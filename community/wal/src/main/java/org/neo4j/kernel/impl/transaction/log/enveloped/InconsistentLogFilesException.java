@@ -30,4 +30,8 @@ public class InconsistentLogFilesException extends IOException {
     public InconsistentLogFilesException(String message) {
         super(message);
     }
+
+    public InconsistentLogFilesException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

@@ -36,6 +36,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.enveloped.IncompleteEnvelopeReadException;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InconsistentLogFilesException;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -48,6 +49,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final LogPositionMarker positionMarker;
     private final MemoryTracker memoryTracker;
+    private final boolean treatBrokenLastEntryAsCorruption;
     private boolean brokenLastEntry;
     private LogEntrySerializationSet parserSet;
 
@@ -55,16 +57,27 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             CommandReaderFactory commandReaderFactory,
             BinarySupportedKernelVersions binarySupportedKernelVersions,
             MemoryTracker memoryTracker) {
+        this(commandReaderFactory, binarySupportedKernelVersions, memoryTracker, false);
+    }
+
+    public VersionAwareLogEntryReader(
+            CommandReaderFactory commandReaderFactory,
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            MemoryTracker memoryTracker,
+            boolean treatBrokenLastEntryAsCorruption) {
         this.commandReaderFactory = commandReaderFactory;
         this.positionMarker = new LogPositionMarker();
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.memoryTracker = memoryTracker;
+        this.treatBrokenLastEntryAsCorruption = treatBrokenLastEntryAsCorruption;
     }
 
     @Override
     public LogEntry readLogEntry(ReadableLogPositionAwareChannel channel) throws IOException {
+        boolean insideEntry = false;
         try {
             while (true) {
+                insideEntry = false;
                 byte versionCode = channel.markAndGetVersion(positionMarker);
                 if (versionCode == 0) {
                     // We reached the end of available records,
@@ -77,6 +90,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                     channel.position(positionMarker.getByteOffset());
                     return null;
                 }
+                insideEntry = true;
 
                 updateParserSet(channel, versionCode);
                 // Capture position in case we are at end of file and getContentType() reads off the end
@@ -100,6 +114,10 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 }
             }
         } catch (ReadPastEndException e) {
+            if (insideEntry && treatBrokenLastEntryAsCorruption) {
+                throw new InconsistentLogFilesException(
+                        "Log file has a broken last entry in a state where it is not allowed - read past end");
+            }
             return null;
         } catch (UnsupportedLogVersionException
                 | IllegalStateException
@@ -108,16 +126,20 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             throw e;
         } catch (IncompleteEnvelopeReadException e) {
             // This exception signals that the tail is already checked and the last entry is broken.
-            return brokenLastEntry();
+            return brokenLastEntry(e);
         } catch (IOException | RuntimeException e) {
             LogPosition currentLogPosition = channel.getCurrentLogPosition();
             // check if error was in the last command or is there anything else after that
             checkTail(channel, currentLogPosition, e);
-            return brokenLastEntry();
+            return brokenLastEntry(e);
         }
     }
 
-    private LogEntry brokenLastEntry() throws IOException {
+    private LogEntry brokenLastEntry(Throwable cause) throws IOException {
+        if (treatBrokenLastEntryAsCorruption) {
+            throw new InconsistentLogFilesException(
+                    "Log file has a broken last entry in a state where it is not allowed", cause);
+        }
         brokenLastEntry = true;
         return null;
     }
