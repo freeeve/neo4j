@@ -19,33 +19,32 @@
  */
 package org.neo4j.bolt.protocol.common.connector.listener;
 
-import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.connector.connection.listener.AuthenticationTimeoutConnectionListener;
+import org.neo4j.bolt.protocol.common.connector.connection.listener.AuthenticationProtocolLimiterConnectionListener;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 
-class AuthenticationTimeoutConnectorListenerTest {
+class AuthenticationProtocolLimiterConnectorListenerTest {
 
     @Test
-    void shouldRegisterAuthenticationTimeoutConnectionListenerOnConnectionCreated() {
+    void shouldRegisterAuthenticationProtocolLimiterConnectionListenerOnConnectionCreated() {
         var connection = Mockito.mock(Connection.class, Mockito.RETURNS_MOCKS);
         var memoryTracker = Mockito.mock(MemoryTracker.class);
 
         Mockito.doReturn(memoryTracker).when(connection).memoryTracker();
 
-        new AuthenticationTimeoutConnectorListener(Duration.ofSeconds(2), NullLogProvider.getInstance())
+        new AuthenticationProtocolLimiterConnectorListener(64, 4, NullLogProvider.getInstance())
                 .onConnectionCreated(connection);
 
         var inOrder = Mockito.inOrder(connection, memoryTracker);
 
         inOrder.verify(connection).memoryTracker();
-        inOrder.verify(memoryTracker).allocateHeap(AuthenticationTimeoutConnectionListener.SHALLOW_SIZE);
+        inOrder.verify(memoryTracker).allocateHeap(AuthenticationProtocolLimiterConnectionListener.SHALLOW_SIZE);
         inOrder.verify(connection)
-                .registerListener(ArgumentMatchers.any(AuthenticationTimeoutConnectionListener.class));
+                .registerListener(ArgumentMatchers.any(AuthenticationProtocolLimiterConnectionListener.class));
         inOrder.verifyNoMoreInteractions();
     }
 }

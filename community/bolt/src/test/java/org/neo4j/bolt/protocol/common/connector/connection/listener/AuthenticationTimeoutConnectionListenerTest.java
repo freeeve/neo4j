@@ -28,7 +28,6 @@ import io.netty.channel.EventLoop;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -46,7 +45,7 @@ import org.neo4j.logging.LogAssertions;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.packstream.codec.transport.ChunkFrameDecoder;
 
-class AuthenticationSecurityConnectionListenerTest {
+class AuthenticationTimeoutConnectionListenerTest {
 
     private static final String CONNECTION_ID = "bolt-authtimeout";
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
@@ -61,7 +60,7 @@ class AuthenticationSecurityConnectionListenerTest {
     private ChannelPipeline pipeline;
     private AssertableLogProvider logProvider;
 
-    private AuthenticationSecurityConnectionListener listener;
+    private AuthenticationTimeoutConnectionListener listener;
 
     @BeforeEach
     void prepareListener() {
@@ -98,10 +97,7 @@ class AuthenticationSecurityConnectionListenerTest {
                 .when(this.eventLoop)
                 .execute(Mockito.any(Runnable.class));
 
-        Mockito.doReturn(64).when(this.configuration).maxAuthenticationStructureElements();
-        Mockito.doReturn(4).when(this.configuration).maxAuthenticationStructureDepth();
-
-        this.listener = new AuthenticationSecurityConnectionListener(connection, TIMEOUT, this.logProvider);
+        this.listener = new AuthenticationTimeoutConnectionListener(connection, TIMEOUT, this.logProvider);
     }
 
     @Test
@@ -116,39 +112,15 @@ class AuthenticationSecurityConnectionListenerTest {
 
         LogAssertions.assertThat(this.logProvider)
                 .forLevel(AssertableLogProvider.Level.DEBUG)
-                .forClass(AuthenticationSecurityConnectionListener.class)
+                .forClass(AuthenticationTimeoutConnectionListener.class)
                 .containsMessageWithArgumentsContaining("Installing authentication timeout handler", CONNECTION_ID);
     }
 
     @Test
-    void shouldInstallLimiterOnProtocolSelection() {
+    void shouldNotInstallLimiterOnProtocolSelection() {
         this.listener.onProtocolSelected(Mockito.mock(BoltProtocol.class));
 
         var inOrder = Mockito.inOrder(this.memoryTracker, this.pipeline);
-
-        inOrder.verify(this.memoryTracker).allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
-        inOrder.verify(this.pipeline)
-                .addAfter(
-                        eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
-        inOrder.verifyNoMoreInteractions();
-
-        LogAssertions.assertThat(this.logProvider)
-                .forLevel(AssertableLogProvider.Level.DEBUG)
-                .forClass(AuthenticationSecurityConnectionListener.class)
-                .containsMessageWithArgumentsContaining(
-                        "[%s] Imposing authentication structure limits of %d elements with a maximum depth of %d",
-                        CONNECTION_ID, 64, 4);
-    }
-
-    @Test
-    void shouldNotInstallLimiterOnProtocolSelectionWhenMessageIsNotChunked() {
-        Mockito.doReturn(List.of()).when(this.pipeline).names();
-
-        this.listener.onProtocolSelected(Mockito.mock(BoltProtocol.class));
-
-        var inOrder = Mockito.inOrder(this.memoryTracker, this.pipeline);
-
-        inOrder.verify(this.pipeline).names();
         inOrder.verify(this.memoryTracker, Mockito.never())
                 .allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
         inOrder.verify(this.pipeline, Mockito.never())
@@ -164,19 +136,8 @@ class AuthenticationSecurityConnectionListenerTest {
         this.listener.onNetworkPipelineInitialized(this.pipeline);
         this.listener.onProtocolSelected(Mockito.mock(BoltProtocol.class));
 
-        // If this assertion fails, you will need to split the check below into two separate verify
-        // calls - This is a shortcoming in Mockito
-        Assertions.assertEquals(
-                AuthenticationTimeoutHandler.SHALLOW_SIZE, AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
-
-        Mockito.verify(this.memoryTracker, Mockito.times(2)).allocateHeap(AuthenticationTimeoutHandler.SHALLOW_SIZE);
-        //    Mockito.verify(this.memoryTracker)
-        //        .allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
-        Mockito.verify(this.pipeline).names();
+        Mockito.verify(this.memoryTracker, Mockito.times(1)).allocateHeap(AuthenticationTimeoutHandler.SHALLOW_SIZE);
         Mockito.verify(this.pipeline).addLast(any(AuthenticationTimeoutHandler.class));
-        Mockito.verify(this.pipeline)
-                .addAfter(
-                        eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
         Mockito.verifyNoMoreInteractions(this.memoryTracker, this.pipeline);
 
         this.listener.onLogon(loginContext);
@@ -184,12 +145,11 @@ class AuthenticationSecurityConnectionListenerTest {
         var inOrder = Mockito.inOrder(loginContext, this.connection, this.channel, this.pipeline, this.eventLoop);
 
         inOrder.verify(this.pipeline).remove(any(AuthenticationTimeoutHandler.class));
-        inOrder.verify(this.pipeline).remove(any(AuthenticationProtocolLimiterHandler.class));
         inOrder.verifyNoMoreInteractions();
 
         LogAssertions.assertThat(this.logProvider)
                 .forLevel(AssertableLogProvider.Level.DEBUG)
-                .forClass(AuthenticationSecurityConnectionListener.class)
+                .forClass(AuthenticationTimeoutConnectionListener.class)
                 .containsMessageWithArgumentsContaining("Removing authentication timeout handler", CONNECTION_ID);
     }
 
@@ -205,21 +165,16 @@ class AuthenticationSecurityConnectionListenerTest {
                         eq(HouseKeeperHandler.HANDLER_NAME),
                         any(String.class),
                         any(AuthenticationTimeoutHandler.class));
-        inOrder.verify(pipeline)
-                .addAfter(
-                        eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
         inOrder.verifyNoMoreInteractions();
 
         LogAssertions.assertThat(logProvider)
                 .forLevel(AssertableLogProvider.Level.DEBUG)
-                .forClass(AuthenticationSecurityConnectionListener.class)
+                .forClass(AuthenticationTimeoutConnectionListener.class)
                 .containsMessageWithArgumentsContaining("Re-adding authentication timeout handler", CONNECTION_ID);
     }
 
     @Test
-    void shouldNotInstallLimiterOnLogoffWhenMessageIsNotChunked() {
-        Mockito.doReturn(List.of()).when(this.pipeline).names();
-
+    void shouldNotInstallLimiterOnLogoff() {
         listener.onNetworkPipelineInitialized(pipeline);
         listener.onLogoff();
 
@@ -230,7 +185,6 @@ class AuthenticationSecurityConnectionListenerTest {
                         eq(HouseKeeperHandler.HANDLER_NAME),
                         any(String.class),
                         any(AuthenticationTimeoutHandler.class));
-        inOrder.verify(pipeline).names();
         inOrder.verify(pipeline, Mockito.never())
                 .addAfter(
                         eq(ChunkFrameDecoder.NAME), any(String.class), any(AuthenticationProtocolLimiterHandler.class));
@@ -238,7 +192,7 @@ class AuthenticationSecurityConnectionListenerTest {
 
         LogAssertions.assertThat(logProvider)
                 .forLevel(AssertableLogProvider.Level.DEBUG)
-                .forClass(AuthenticationSecurityConnectionListener.class)
+                .forClass(AuthenticationTimeoutConnectionListener.class)
                 .containsMessageWithArgumentsContaining("Re-adding authentication timeout handler", CONNECTION_ID);
     }
 
@@ -246,6 +200,6 @@ class AuthenticationSecurityConnectionListenerTest {
     void shouldReleaseMemoryOnRemoval() {
         this.listener.onListenerRemoved();
 
-        Mockito.verify(this.memoryTracker).releaseHeap(AuthenticationSecurityConnectionListener.SHALLOW_SIZE);
+        Mockito.verify(this.memoryTracker).releaseHeap(AuthenticationTimeoutConnectionListener.SHALLOW_SIZE);
     }
 }

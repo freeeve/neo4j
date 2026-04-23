@@ -19,20 +19,23 @@
  */
 package org.neo4j.bolt.protocol.common.connector.listener;
 
-import java.time.Duration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.connector.connection.listener.AuthenticationProtocolLimiterConnectionListener;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.AuthenticationTimeoutConnectionListener;
 import org.neo4j.logging.InternalLogProvider;
 
 /**
- * Attaches an {@link AuthenticationTimeoutConnectorListener} to all newly created connections.
+ * Attaches an {@link AuthenticationProtocolLimiterConnectionListener} to all newly created connections.
  */
-public class AuthenticationTimeoutConnectorListener implements ConnectorListener {
-    private final Duration timeout;
+public class AuthenticationProtocolLimiterConnectorListener implements ConnectorListener {
+    private final int structureElementLimit;
+    private final int structureDepthLimit;
     private final InternalLogProvider logging;
 
-    public AuthenticationTimeoutConnectorListener(Duration timeout, InternalLogProvider logging) {
-        this.timeout = timeout;
+    public AuthenticationProtocolLimiterConnectorListener(
+            int structureElementLimit, int structureDepthLimit, InternalLogProvider logging) {
+        this.structureElementLimit = structureElementLimit;
+        this.structureDepthLimit = structureDepthLimit;
         this.logging = logging;
     }
 
@@ -40,6 +43,7 @@ public class AuthenticationTimeoutConnectorListener implements ConnectorListener
     public void onConnectionCreated(Connection connection) {
         connection.memoryTracker().allocateHeap(AuthenticationTimeoutConnectionListener.SHALLOW_SIZE);
 
-        connection.registerListener(new AuthenticationTimeoutConnectionListener(connection, timeout, this.logging));
+        connection.registerListener(new AuthenticationProtocolLimiterConnectionListener(
+                connection, structureElementLimit, structureDepthLimit, this.logging));
     }
 }

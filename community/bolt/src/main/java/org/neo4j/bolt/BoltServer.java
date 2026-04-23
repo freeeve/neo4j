@@ -78,6 +78,7 @@ import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.executor.ExecutorServiceFactory;
 import org.neo4j.bolt.protocol.common.connector.executor.NettyThreadFactory;
 import org.neo4j.bolt.protocol.common.connector.executor.ThreadPoolExecutorServiceFactory;
+import org.neo4j.bolt.protocol.common.connector.listener.AuthenticationProtocolLimiterConnectorListener;
 import org.neo4j.bolt.protocol.common.connector.listener.AuthenticationTimeoutConnectorListener;
 import org.neo4j.bolt.protocol.common.connector.listener.KeepAliveConnectorListener;
 import org.neo4j.bolt.protocol.common.connector.listener.MetricsConnectorListener;
@@ -600,6 +601,18 @@ public class BoltServer extends LifecycleAdapter {
             if (readLimit != 0) {
                 connector.registerListener(
                         new ReadLimitConnectorListener(readLimit, logService.getInternalLogProvider()));
+            }
+
+            // JavaObjectMessages don't have depth limit. Since they aren't PackStream binaries,
+            // they don't trigger stack overflow when unpacked
+            if (!connector.configuration().enableJavaObjectMessages()) {
+                var structureElementLimit = connector.configuration().maxAuthenticationStructureElements();
+                var structureDepthLimit = connector.configuration().maxAuthenticationStructureDepth();
+
+                if (structureElementLimit != 0 || structureDepthLimit != 0) {
+                    connector.registerListener(new AuthenticationProtocolLimiterConnectorListener(
+                            structureElementLimit, structureDepthLimit, logService.getInternalLogProvider()));
+                }
             }
         }
 

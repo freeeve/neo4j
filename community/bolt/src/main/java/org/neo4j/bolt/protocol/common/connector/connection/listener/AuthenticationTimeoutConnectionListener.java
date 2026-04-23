@@ -21,9 +21,7 @@ package org.neo4j.bolt.protocol.common.connector.connection.listener;
 
 import io.netty.channel.ChannelPipeline;
 import java.time.Duration;
-import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.handler.AuthenticationProtocolLimiterHandler;
 import org.neo4j.bolt.protocol.common.handler.AuthenticationTimeoutHandler;
 import org.neo4j.bolt.protocol.common.handler.HouseKeeperHandler;
 import org.neo4j.boltmessages.request.RequestMessage;
@@ -31,29 +29,27 @@ import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.HeapEstimator;
-import org.neo4j.packstream.codec.transport.ChunkFrameDecoder;
 
 /**
  * Handles the addition and removal of {@link AuthenticationTimeoutHandler} to/from the channel
  * pipeline.
  */
-public class AuthenticationSecurityConnectionListener implements ConnectionListener {
+public class AuthenticationTimeoutConnectionListener implements ConnectionListener {
 
     public static final long SHALLOW_SIZE =
-            HeapEstimator.shallowSizeOfInstance(AuthenticationSecurityConnectionListener.class);
+            HeapEstimator.shallowSizeOfInstance(AuthenticationTimeoutConnectionListener.class);
 
     private final Connection connection;
     private final Duration timeout;
     private final InternalLog log;
 
     private volatile AuthenticationTimeoutHandler timeoutHandler;
-    private volatile AuthenticationProtocolLimiterHandler protocolLimiterHandler;
 
-    public AuthenticationSecurityConnectionListener(
+    public AuthenticationTimeoutConnectionListener(
             Connection connection, Duration timeout, InternalLogProvider logging) {
         this.connection = connection;
         this.timeout = timeout;
-        this.log = logging.getLog(AuthenticationSecurityConnectionListener.class);
+        this.log = logging.getLog(AuthenticationTimeoutConnectionListener.class);
     }
 
     @Override
@@ -72,11 +68,6 @@ public class AuthenticationSecurityConnectionListener implements ConnectionListe
     }
 
     @Override
-    public void onProtocolSelected(BoltProtocol protocol) {
-        this.installStructureLimitHandler();
-    }
-
-    @Override
     public void onRequestReceived(RequestMessage message) {
         if (timeoutHandler != null) {
             log.debug("[%s] Received request during authentication phase", this.connection.id());
@@ -90,18 +81,12 @@ public class AuthenticationSecurityConnectionListener implements ConnectionListe
 
         if (timeoutHandler != null) {
             var timeoutHandler = this.timeoutHandler;
-            var protocolLimiterHandler = this.protocolLimiterHandler;
 
             this.connection.modifyPipeline(pipeline -> {
                 pipeline.remove(timeoutHandler);
-
-                if (protocolLimiterHandler != null) {
-                    pipeline.remove(protocolLimiterHandler);
-                }
             });
 
             this.timeoutHandler = null;
-            this.protocolLimiterHandler = null;
         }
     }
 
@@ -115,33 +100,5 @@ public class AuthenticationSecurityConnectionListener implements ConnectionListe
 
         this.connection.modifyPipeline(pipeline ->
                 pipeline.addBefore(HouseKeeperHandler.HANDLER_NAME, "authenticationTimeoutHandler", timeoutHandler));
-
-        this.installStructureLimitHandler();
-    }
-
-    private void installStructureLimitHandler() {
-        var config = this.connection.connector().configuration();
-        var structureElementLimit = config.maxAuthenticationStructureElements();
-        var structureDepthLimit = config.maxAuthenticationStructureDepth();
-
-        if (structureElementLimit == 0 && structureDepthLimit == 0) {
-            this.log.debug("[%s] Authentication structure limit is disabled", this.connection.id());
-            return;
-        }
-
-        this.connection.modifyPipeline(pipeline -> {
-            // don't need to limit when protocol doesn't need chunking
-            if (pipeline.names().contains(ChunkFrameDecoder.NAME)) {
-                this.log.debug(
-                        "[%s] Imposing authentication structure limits of %d elements with a maximum depth of %d",
-                        this.connection.id(), structureElementLimit, structureDepthLimit);
-
-                connection.memoryTracker().allocateHeap(AuthenticationProtocolLimiterHandler.SHALLOW_SIZE);
-                var protocolLimiterHandler =
-                        new AuthenticationProtocolLimiterHandler(structureElementLimit, structureDepthLimit);
-                this.protocolLimiterHandler = protocolLimiterHandler;
-                pipeline.addAfter(ChunkFrameDecoder.NAME, "protocolLimiterHandler", protocolLimiterHandler);
-            }
-        });
     }
 }
