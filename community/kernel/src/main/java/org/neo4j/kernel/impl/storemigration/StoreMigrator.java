@@ -56,7 +56,6 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.MigrationStoreVersionCheck;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreVersion;
-import org.neo4j.storageengine.api.StoreVersionCheck;
 import org.neo4j.storageengine.api.StoreVersionIdentifier;
 import org.neo4j.storageengine.migration.MigrationProgressMonitor;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -169,7 +168,7 @@ public class StoreMigrator {
         checkStoreExists();
 
         try (var cursorContext = contextFactory.create(STORE_UPGRADE_TAG)) {
-            MigrationStructures migrationStructures = getMigrationStructures();
+            MigrationStructures migrationStructures = getMigrationStructures(databaseLayout);
 
             finishInterruptedMigration(migrationStructures);
 
@@ -198,7 +197,8 @@ public class StoreMigrator {
                     doOnlyLogsMigration(logsCheckResult, checkResult.versionToMigrateTo);
                 } else {
                     internalLog.info(
-                            "The current store version and the migration target version are the same, so there is nothing to do.");
+                            "The current store version and the migration target version are the same, so there is"
+                                    + " nothing to do.");
                 }
 
                 return;
@@ -210,7 +210,6 @@ public class StoreMigrator {
                     checkResult.versionToMigrateFrom(),
                     checkResult.versionToMigrateTo(),
                     VisibleMigrationProgressMonitorFactory.forMigration(internalLog),
-                    LogsMigrator.CheckResult::migrate,
                     forceBtreeIndexesToRange,
                     storageEngineMigrationAbstraction,
                     keepNodeIds);
@@ -245,46 +244,7 @@ public class StoreMigrator {
         progressMonitor.completed();
     }
 
-    public void upgradeIfNeeded() throws UnableToMigrateException, IOException {
-        if (!storageEngineFactory.storageExists(fs, databaseLayout)) {
-            // upgrade is invoked on database start up and before new databases are initialised,
-            // so the database store not existing is a perfectly valid scenario.
-            return;
-        }
-
-        try (var cursorContext = contextFactory.create(STORE_UPGRADE_TAG)) {
-            MigrationStructures migrationStructures = getMigrationStructures();
-
-            finishInterruptedUpgrade(cursorContext, migrationStructures);
-
-            var checkResult = doUpgradeCheck(cursorContext);
-            if (checkResult.onRequestedVersion()) {
-                // Unlike in the case migration which is an explicit action and the store being up to date is a
-                // situation worth notifying the user about,
-                // this is the most common outcome of the upgrade process as it is an implicit process invoked every
-                // time a database starts up.
-                return;
-            }
-
-            internalLog.info("'" + checkResult.versionToMigrateFrom().getStoreVersionUserString()
-                    + "' has been identified as the current version of the store");
-            internalLog.info("'" + checkResult.versionToMigrateTo().getStoreVersionUserString()
-                    + "' has been identified as the target version of the store upgrade");
-
-            doMigrate(
-                    migrationStructures,
-                    MigrationStatus.MigrationState.migrating,
-                    checkResult.versionToMigrateFrom(),
-                    checkResult.versionToMigrateTo(),
-                    VisibleMigrationProgressMonitorFactory.forUpgrade(internalLog),
-                    LogsMigrator.CheckResult::upgrade,
-                    false,
-                    storageEngineMigrationAbstraction,
-                    false);
-        }
-    }
-
-    private MigrationStructures getMigrationStructures() {
+    private static MigrationStructures getMigrationStructures(DatabaseLayout databaseLayout) {
         DatabaseLayout migrationStructure = DatabaseLayout.ofFlat(databaseLayout.file(MIGRATION_DIRECTORY));
         return new MigrationStructures(migrationStructure, migrationStructure.file(MIGRATION_STATUS_FILE));
     }
@@ -295,7 +255,6 @@ public class StoreMigrator {
             StoreVersionIdentifier versionToMigrateFrom,
             StoreVersionIdentifier versionToMigrateTo,
             MigrationProgressMonitor progressMonitor,
-            LogsAction logsAction,
             boolean forceBtreeIndexesToRange,
             StorageEngineMigrationAbstraction storageEngineMigrationAbstraction,
             boolean keepNodeIds)
@@ -360,7 +319,7 @@ public class StoreMigrator {
         }
 
         progressMonitor.startTransactionLogsMigration();
-        var txIds = logsAction.handleLogs(logsCheckResult);
+        var txIds = logsCheckResult.migrate();
         progressMonitor.completeTransactionLogsMigration();
 
         postMigration(participants, toVersion, txIds.txIdBeforeMigration(), txIds.txIdAfterMigration());
@@ -403,26 +362,6 @@ public class StoreMigrator {
         };
     }
 
-    private CheckResult doUpgradeCheck(CursorContext cursorContext) {
-        StoreVersionCheck storeVersionCheck =
-                storageEngineFactory.versionCheck(fs, databaseLayout, config, pageCache, logService, contextFactory);
-        var checkResult = storeVersionCheck.getAndCheckUpgradeTargetVersion(cursorContext);
-        return switch (checkResult.outcome()) {
-            case UPGRADE_POSSIBLE ->
-                new CheckResult(false, checkResult.versionToUpgradeFrom(), checkResult.versionToUpgradeTo());
-            case NO_OP -> new CheckResult(true, checkResult.versionToUpgradeFrom(), checkResult.versionToUpgradeTo());
-            // since an upgrade is an implicit action we need to be a bit careful about the error given
-            // when the retrieval of the current store version fails
-            case STORE_VERSION_RETRIEVAL_FAILURE ->
-                throw new IllegalStateException("Failed to read current store version.", checkResult.cause());
-            case UNSUPPORTED_TARGET_VERSION ->
-                throw new UnableToMigrateException(String.format(
-                        "The selected target store format '%s' (introduced in %s) is no longer supported",
-                        checkResult.versionToUpgradeTo().getStoreVersionUserString(),
-                        storeVersionCheck.getIntroductionVersionFromVersion(checkResult.versionToUpgradeTo())));
-        };
-    }
-
     private void finishInterruptedMigration(MigrationStructures migrationStructures) throws IOException {
         MigrationStatus migrationStatus =
                 MigrationStatus.readMigrationStatus(fs, migrationStructures.migrationStateFile, memoryTracker);
@@ -450,8 +389,6 @@ public class StoreMigrator {
                         migrationStatus.versionToMigrateFrom(),
                         versionToMigrateTo,
                         VisibleMigrationProgressMonitorFactory.forMigration(internalLog),
-                        // Since we are doing a migration it should be safe to use the LogsMigrator#migrate
-                        LogsMigrator.CheckResult::migrate,
                         false,
                         storageEngineMigrationAbstraction,
                         false);
@@ -459,44 +396,7 @@ public class StoreMigrator {
                 // Have new logTail now, use that one instead
                 logTailSupplier = getLogTailSupplier(targetStorageEngineFactory);
             } else {
-                removeOldMigrationDir(migrationStructures.migrationLayout.databaseDirectory());
-            }
-        }
-    }
-
-    private void finishInterruptedUpgrade(CursorContext cursorContext, MigrationStructures migrationStructures)
-            throws IOException {
-        MigrationStatus migrationStatus =
-                MigrationStatus.readMigrationStatus(fs, migrationStructures.migrationStateFile, memoryTracker);
-        if (migrationStatus.migrationInProgress()) {
-            MigrationStatus.MigrationState state = migrationStatus.state();
-            if (state == MigrationStatus.MigrationState.moving) {
-                var checkResult = doUpgradeCheck(cursorContext);
-                if (!migrationStatus.expectedMigration(checkResult.versionToMigrateTo)) {
-                    throw new UnableToMigrateException("A partially complete migration to "
-                            + migrationStatus.versionToMigrateTo().getStoreVersionUserString()
-                            + " found when trying to migrate to "
-                            + checkResult.versionToMigrateTo.getStoreVersionUserString()
-                            + ". Complete that migration before continuing. "
-                            + "This can be done by running the migration tool");
-                }
-
-                internalLog.info("Resuming upgrade in progress to '" + checkResult.versionToMigrateTo + "'");
-                doMigrate(
-                        migrationStructures,
-                        MigrationStatus.MigrationState.moving,
-                        migrationStatus.versionToMigrateFrom(),
-                        migrationStatus.versionToMigrateTo(),
-                        VisibleMigrationProgressMonitorFactory.forUpgrade(internalLog),
-                        LogsMigrator.CheckResult::upgrade,
-                        false,
-                        storageEngineMigrationAbstraction,
-                        false);
-
-                // Could have new logTail now, use that one instead
-                logTailSupplier = getLogTailSupplier(storageEngineFactory);
-            } else {
-                removeOldMigrationDir(migrationStructures.migrationLayout.databaseDirectory());
+                removeOldMigrationDir(fs, migrationStructures.migrationLayout.databaseDirectory());
             }
         }
     }
@@ -597,11 +497,11 @@ public class StoreMigrator {
             throw new UnableToMigrateException(
                     "A critical failure during store migration has occurred. Failed to clean up after migration", e);
         }
-        removeOldMigrationDir(migrationStructure.databaseDirectory());
+        removeOldMigrationDir(fs, migrationStructure.databaseDirectory());
     }
 
     private void cleanMigrationDirectory(Path migrationDirectory) {
-        removeOldMigrationDir(migrationDirectory);
+        removeOldMigrationDir(fs, migrationDirectory);
         try {
             fs.mkdir(migrationDirectory);
         } catch (IOException e) {
@@ -612,7 +512,7 @@ public class StoreMigrator {
         }
     }
 
-    private void removeOldMigrationDir(Path migrationDirectory) {
+    private static void removeOldMigrationDir(FileSystemAbstraction fs, Path migrationDirectory) {
         try {
             if (fs.fileExists(migrationDirectory)) {
                 fs.deleteRecursively(migrationDirectory);
@@ -641,14 +541,31 @@ public class StoreMigrator {
 
     private record MigrationStructures(DatabaseLayout migrationLayout, Path migrationStateFile) {}
 
+    public static void checkNoBlockingMigrationAndCleanupIfNonBlocking(
+            DatabaseLayout databaseLayout, FileSystemAbstraction fs, MemoryTracker memoryTracker) throws IOException {
+        MigrationStructures migrationStructures = getMigrationStructures(databaseLayout);
+
+        MigrationStatus migrationStatus =
+                MigrationStatus.readMigrationStatus(fs, migrationStructures.migrationStateFile(), memoryTracker);
+
+        if (migrationStatus.migrationInProgress()) {
+            MigrationStatus.MigrationState state = migrationStatus.state();
+            if (state == MigrationStatus.MigrationState.moving) {
+                throw new IllegalStateException(
+                        "A partially complete migration found, this indicates an interrupted or failed migration."
+                                + " Complete that migration before continuing. This is done by running neo4j-admin"
+                                + " database migrate");
+
+            } else {
+                removeOldMigrationDir(fs, migrationStructures.migrationLayout.databaseDirectory());
+            }
+        }
+    }
+
     private record CheckResult(
             boolean onRequestedVersion,
             StoreVersionIdentifier versionToMigrateFrom,
             StoreVersionIdentifier versionToMigrateTo) {}
-
-    private interface LogsAction {
-        LogsMigrator.MigrationTransactionIds handleLogs(LogsMigrator.CheckResult checkResult);
-    }
 
     private class LazyVersionContextSupplier extends FixedVersionContextSupplier {
         public LazyVersionContextSupplier() {
@@ -661,7 +578,7 @@ public class StoreMigrator {
         }
     }
 
-    private static class LazyTailVersionContext extends FixedVersionContext {
+    static class LazyTailVersionContext extends FixedVersionContext {
         private final Supplier<LogTailMetadata> logTailSupplier;
 
         public LazyTailVersionContext(Supplier<LogTailMetadata> logTailSupplier) {

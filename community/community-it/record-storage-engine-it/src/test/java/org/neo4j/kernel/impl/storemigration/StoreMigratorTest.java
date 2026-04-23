@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.storemigration;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.kernel.impl.storemigration.StoreVersionStateChecker.checkVersionSupportedAndNoBlockingInterruptedMigration;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.migration.StoreMigrationParticipant.STORE_FILES_MIGRATOR_NAME;
@@ -307,7 +309,7 @@ class StoreMigratorTest {
     }
 
     @Test
-    void shouldHandleNewUpgradeIfInterruptedDuringMigrationPhase() throws Exception {
+    void shouldCleanupAfterOldMigrationIfInterruptedDuringMigrationPhase() throws Exception {
         var storeMigrator = createCustomMigrator(StandardFormatWithMinorVersionBump.RECORD_FORMATS.name());
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
@@ -324,33 +326,31 @@ class StoreMigratorTest {
                 .hasMessage("A critical failure during migration has occurred")
                 .hasRootCauseExactlyInstanceOf(IOException.class)
                 .hasRootCauseMessage("Just failing");
+        assertTrue(migrationDirPresent());
 
-        StoreMigrationParticipant observingParticipant = Mockito.mock(StoreMigrationParticipant.class);
-        mockParticipantAddition(observingParticipant);
+        // Should remove the migration dir since the migration was in a state that had not affected the stores.
+        StorageEngineFactory storageEngineFactory = StorageEngineFactory.defaultStorageEngine();
+        Config config = Config.defaults(GraphDatabaseSettings.db_format, PageAligned.LATEST_NAME);
+        var logTail = new LogTailExtractor(fs, config, storageEngineFactory, DatabaseTracers.EMPTY)
+                .getTailMetadata(databaseLayout, INSTANCE);
+        var supplier = Suppliers.lazySingleton(() -> logTail);
 
-        // Try to upgrade to latest standard (dev format)
-        storeMigrator.upgradeIfNeeded();
-
-        // The newly requested upgrade should be done, the old migration should just have been ignored
-        verify(observingParticipant)
-                .migrate(
-                        any(),
-                        any(),
-                        any(),
-                        argThat(new VersionMatcher(Standard.LATEST_RECORD_FORMATS)),
-                        argThat(new VersionMatcher(StandardFormatWithMinorVersionBump.RECORD_FORMATS)),
-                        any(),
-                        any());
-        verify(observingParticipant).moveMigratedFiles(any(), any(), any(), any(), any());
-        verify(observingParticipant).cleanup(any(DatabaseLayout.class));
-
-        verifyDbStartAndFormat(StandardFormatWithMinorVersionBump.RECORD_FORMATS);
+        assertDoesNotThrow(() -> checkVersionSupportedAndNoBlockingInterruptedMigration(
+                fs,
+                config,
+                NullLogService.getInstance(),
+                pageCache,
+                DatabaseTracers.EMPTY,
+                databaseLayout,
+                storageEngineFactory,
+                INSTANCE,
+                supplier));
 
         assertFalse(migrationDirPresent());
     }
 
     @Test
-    void shouldAbortNewUpgradeIfOtherInterruptedDuringMovingPhase() throws Exception {
+    void shouldThrowOnDiscoveringMigrationInterruptedDuringMovingPhase() throws Exception {
         var storeMigrator = createDefaultMigrator();
         // a participant that will fail during the migration phase
         var failingParticipant = mock(StoreMigrationParticipant.class);
@@ -371,17 +371,24 @@ class StoreMigratorTest {
 
         assertTrue(migrationDirPresent());
 
-        var newStoreMigrator = createCustomMigrator(PageAlignedTestFormat.WithMinorVersionBump.RECORD_FORMATS.name());
-        StoreMigrationParticipant observingParticipant = Mockito.mock(StoreMigrationParticipant.class);
-        mockParticipantAddition(observingParticipant);
+        StorageEngineFactory storageEngineFactory = StorageEngineFactory.defaultStorageEngine();
+        Config config = Config.defaults(GraphDatabaseSettings.db_format, PageAligned.LATEST_NAME);
+        var logTail = new LogTailExtractor(fs, config, storageEngineFactory, DatabaseTracers.EMPTY)
+                .getTailMetadata(databaseLayout, INSTANCE);
+        var supplier = Suppliers.lazySingleton(() -> logTail);
 
-        // There was a started migration that failed in moving, and it was a migration to a different version than what
-        // we are trying to upgrade to - fail
-        assertThatThrownBy(newStoreMigrator::upgradeIfNeeded)
-                .isInstanceOf(UnableToMigrateException.class)
-                .hasMessageContaining("A partially complete migration to "
-                        + userVersionString(PageAligned.LATEST_RECORD_FORMATS) + " found when trying to migrate to "
-                        + userVersionString(PageAlignedTestFormat.WithMinorVersionBump.RECORD_FORMATS));
+        assertThatThrownBy(() -> checkVersionSupportedAndNoBlockingInterruptedMigration(
+                        fs,
+                        config,
+                        NullLogService.getInstance(),
+                        pageCache,
+                        DatabaseTracers.EMPTY,
+                        databaseLayout,
+                        storageEngineFactory,
+                        INSTANCE,
+                        supplier))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("A partially complete migration found");
     }
 
     @Test

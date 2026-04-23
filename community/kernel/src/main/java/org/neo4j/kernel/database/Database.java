@@ -36,8 +36,6 @@ import static org.neo4j.scheduler.Group.STORAGE_MAINTENANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -137,7 +135,7 @@ import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
 import org.neo4j.kernel.impl.store.StoreFileListing;
-import org.neo4j.kernel.impl.storemigration.StoreMigrator;
+import org.neo4j.kernel.impl.storemigration.StoreVersionStateChecker;
 import org.neo4j.kernel.impl.storemigration.UnableToMigrateException;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LoggingLogFileMonitor;
@@ -198,7 +196,6 @@ import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
-import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.DefaultElementIdMapperV1;
@@ -443,7 +440,8 @@ public class Database extends AbstractDatabase {
         databaseMonitors.addMonitorListener(indexStats);
 
         // Upgrade the store before we begin
-        upgradeStore(databaseConfig, databasePageCache, otherDatabaseMemoryTracker);
+        checkVersionSupportedAndNoBlockingInterruptedMigration(
+                databaseConfig, databasePageCache, otherDatabaseMemoryTracker);
 
         // Check the tail of transaction logs and validate version
         LogFiles logFiles = getLogFiles();
@@ -854,14 +852,10 @@ public class Database extends AbstractDatabase {
         return indexProvidersLife;
     }
 
-    /**
-     * A database can be upgraded <em>after</em> it has been {@link #init() initialized},
-     * and <em>before</em> it is {@link #start() started}.
-     */
-    private void upgradeStore(
+    private void checkVersionSupportedAndNoBlockingInterruptedMigration(
             DatabaseConfig databaseConfig, DatabasePageCache databasePageCache, MemoryTracker memoryTracker)
             throws IOException {
-        IndexProviderMap indexProviderMap = databaseDependencies.resolveDependency(IndexProviderMap.class);
+
         var logTailSupplier = Suppliers.lazySingleton(() -> {
             try {
                 return new LogTailExtractor(fs, databaseConfig, storageEngineFactory, tracers)
@@ -871,26 +865,20 @@ public class Database extends AbstractDatabase {
                                 new DbmsRuntimeFallbackKernelVersionProvider(
                                         databaseDependencies, databaseLayout.getDatabaseName(), databaseConfig));
             } catch (Exception e) {
-                throw new UnableToMigrateException("Fail to load log tail during upgrade.", e);
+                throw new UnableToMigrateException("Fail to load log tail during upgrade check.", e);
             }
         });
-        var storeMigrator = new StoreMigrator(
+
+        StoreVersionStateChecker.checkVersionSupportedAndNoBlockingInterruptedMigration(
                 fs,
                 databaseConfig,
                 databaseLogService,
                 databasePageCache,
                 tracers,
-                scheduler,
                 databaseLayout,
                 storageEngineFactory,
-                storageEngineFactory,
-                indexProviderMap,
                 memoryTracker,
-                logTailSupplier,
-                StoreMigrationParticipant.UNSPECIFIED_MAX_OFF_HEAP_MEMORY,
-                new PrintStream(OutputStream.nullOutputStream()),
-                false);
-        storeMigrator.upgradeIfNeeded();
+                logTailSupplier);
     }
 
     /**

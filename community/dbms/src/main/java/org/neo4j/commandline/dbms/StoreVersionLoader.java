@@ -95,6 +95,16 @@ public class StoreVersionLoader implements AutoCloseable {
                         "Can not read store version of database " + layout.getDatabaseName(), checkResult.cause());
             }
 
+            if (checkResult.outcome() == StoreVersionCheck.UpgradeOutcome.UPGRADE_POSSIBLE) {
+                // Upgrade on start up is not supported anymore - this should never happen unless we accidentally
+                // introduce a new minor version, but let's throw something to discover if it does.
+                throw new IllegalStateException(
+                        "Current store version has a descendant which is not supported. Seen versions %s -> %s."
+                                .formatted(
+                                        checkResult.versionToUpgradeFrom().getStoreVersionUserString(),
+                                        checkResult.versionToUpgradeTo().getStoreVersionUserString()));
+            }
+
             checkDowngrade(sef, layout);
 
             return new Result(

@@ -145,29 +145,6 @@ class LogsMigrator {
                         "Failure on attempt to migrate transaction logs to new version.", exception);
             }
         }
-
-        MigrationTransactionIds upgrade() {
-            if (!logsMissing) {
-                return new MigrationTransactionIds(lastTxId, lastTxId);
-            }
-
-            // The log files are missing entirely, but since we made it through the check,
-            // we were told to not think of this as an error condition,
-            // so we instead initialize an empty log file.
-            LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailSupplier.get());
-            try (MetadataProvider store = getMetaDataStore()) {
-                TransactionLogInitializer logInitializer =
-                        new TransactionLogInitializer(fs, store, logMetadataProvider, storageEngineFactory);
-                Path transactionLogsDirectory = databaseLayout.getTransactionLogsDirectory();
-                return new MigrationTransactionIds(
-                        TransactionIdStore.BASE_TX_ID,
-                        logInitializer.initializeEmptyLogFile(
-                                databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT, config));
-            } catch (Exception exception) {
-                throw new UnableToMigrateException(
-                        "Failure on attempt to upgrade transaction logs to new version.", exception);
-            }
-        }
     }
 
     private MetadataProvider getMetaDataStore() throws IOException {
