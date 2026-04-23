@@ -66,6 +66,7 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
     @Inject
     private FileSystemAbstraction fs;
 
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     @TestDirectoryExtension
     static class WithRealFs extends DirectoryExtensionLifecycleVerificationTest {
         @Nested
@@ -83,6 +84,10 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
         @Nested
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class PerMethodAfterEachTest extends AfterEachTestFail {}
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+        class PerMethodAllPass extends AllPassTest {}
     }
 
     @EphemeralTestDirectoryExtension
@@ -102,6 +107,10 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
         @Nested
         @TestInstance(TestInstance.Lifecycle.PER_METHOD)
         class PerMethodAfterEachTest extends AfterEachTestFail {}
+
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_METHOD)
+        class PerMethodAllPass extends AllPassTest {}
     }
 
     @Test
@@ -182,6 +191,26 @@ abstract class DirectoryExtensionLifecycleVerificationTest {
 
         @Test
         void createAFileAndThenPass() {
+            createFileSaveAndFailIfNeeded(false, testDirectory);
+        }
+    }
+
+    static class AllPassTest {
+        @Inject
+        TestDirectory testDirectory;
+
+        @Test
+        void pass1() {
+            createFileSaveAndFailIfNeeded(false, testDirectory);
+        }
+
+        @Test
+        void pass2() {
+            createFileSaveAndFailIfNeeded(false, testDirectory);
+        }
+
+        @Test
+        void pass3() {
             createFileSaveAndFailIfNeeded(false, testDirectory);
         }
     }
