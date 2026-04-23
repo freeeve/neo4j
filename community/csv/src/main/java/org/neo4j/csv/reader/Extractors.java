@@ -30,6 +30,7 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_SHORT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_STRING_ARRAY;
 import static org.neo4j.csv.reader.Configuration.COMMAS;
+import static org.neo4j.internal.helpers.Numbers.getOverflowMessage;
 import static org.neo4j.internal.helpers.Numbers.safeCastLongToByte;
 import static org.neo4j.internal.helpers.Numbers.safeCastLongToInt;
 import static org.neo4j.internal.helpers.Numbers.safeCastLongToShort;
@@ -92,6 +93,9 @@ import org.neo4j.values.storable.VectorValue;
  * {@link Extractor#name() name} value is used as key for lookup in {@link #valueOf(String, CSVHeaderInformation)}.
  */
 public final class Extractors {
+
+    private static final int MAX_LONG_CHARS = String.valueOf(Long.MAX_VALUE).length() + 1;
+
     private final Map<String, Extractor<?>> instances = new HashMap<>();
     private final StringExtractor string;
     private final LongExtractor long_;
@@ -1690,8 +1694,6 @@ public final class Extractors {
     private static final Supplier<ZoneId> inUTC = () -> UTC;
 
     private static long extractLong(char[] data, int originalOffset, int fullLength) {
-        long result = 0;
-        boolean negate = false;
         int offset = originalOffset;
         int length = fullLength;
 
@@ -1705,8 +1707,9 @@ public final class Extractors {
             length--;
         }
 
+        var unitFactor = 1;
         if (length > 0 && data[offset] == '-') {
-            negate = true;
+            unitFactor = -1;
             offset++;
             length--;
         }
@@ -1716,22 +1719,30 @@ public final class Extractors {
                     "Not an integer: \"" + String.valueOf(data, originalOffset, fullLength) + "\"");
         }
 
-        try {
-            for (int i = 0; i < length; i++) {
-                result = result * 10 + digit(data[offset + i]);
-            }
-        } catch (NumberFormatException ignored) {
-            throw new NumberFormatException(
-                    "Not an integer: \"" + String.valueOf(data, originalOffset, fullLength) + "\"");
+        // Leading zeros can be ignored
+        while (length > 0 && data[offset] == '0') {
+            offset++;
+            length--;
         }
 
-        return negate ? -result : result;
+        long result = 0;
+        for (int i = 0; i < length && i < MAX_LONG_CHARS; i++) {
+            result = (result * 10) + (digit(data, offset + i, originalOffset, fullLength) * unitFactor);
+        }
+
+        // overflow occurred if positive numbers (unitFactor == 1) went negative
+        // or negative numbers (unitFactor == -1) went positive
+        if (unitFactor == 1 ? result < 0 : result > 0) {
+            throw new ArithmeticException(getOverflowMessage(String.valueOf(data, originalOffset, fullLength), "long"));
+        }
+
+        return result;
     }
 
-    private static int digit(char ch) {
-        int digit = ch - '0';
+    private static int digit(char[] data, int index, int offsetStart, int length) {
+        var digit = data[index] - '0';
         if ((digit < 0) || (digit > 9)) {
-            throw new NumberFormatException();
+            throw new NumberFormatException("Not an integer: \"" + String.valueOf(data, offsetStart, length) + "\"");
         }
         return digit;
     }

@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Named.named;
 import static org.neo4j.internal.helpers.ArrayUtil.array;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.graphdb.Vector;
 import org.neo4j.values.storable.CSVHeaderInformation;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -296,7 +298,28 @@ class ExtractorsTest {
         assertThat(extractor.name()).as("Extractor name as expected").isEqualTo(testCase.expectedExtractorName);
     }
 
-    public static Stream<Arguments> extractorTypes() {
+    @MethodSource("numericOverflows")
+    @ParameterizedTest(name = "{0}")
+    void shouldHandleNumericOverflows(ExtractorTypeTestCase testCase) {
+        // given
+        var extractors = new Extractors(';', '§');
+        var extractor = testCase.extractorSelector.apply(extractors);
+        var input = testCase.input;
+        assertThatThrownBy(() -> extractor.extract(input, 0, input.length, false))
+                .isInstanceOf(ArithmeticException.class)
+                .hasMessageContainingAll("Value", "is too big to be represented as", testCase.expectedExtractorName);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {Long.MIN_VALUE, Long.MIN_VALUE + 1, Long.MIN_VALUE + 10})
+    void shouldHandleLargeNegatives(long value) {
+        var extractors = new Extractors(';', '§');
+        var extractor = extractors.long_();
+        var input = ("" + value).toCharArray();
+        assertThat(extractor.extract(input, 0, input.length, false)).isEqualTo(value);
+    }
+
+    private static Stream<Arguments> extractorTypes() {
         List<Arguments> types = new ArrayList<>();
 
         types.add(new ExtractorTypeTestCaseBuilder("Boolean Extractor", Extractors::boolean_, "true", true, "boolean")
@@ -342,9 +365,28 @@ class ExtractorsTest {
                 .withNormalization(Extractors::intArray, new int[] {-1000000, 0, 2000000})
                 .build());
 
+        types.add(new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "0", 0L, "long").build());
+        types.add(new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "-0", 0L, "long").build());
+        types.add(new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "000000", 0L, "long").build());
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Long Extractor", Extractors::long_, "00000000000000000000000000000000000", 0L, "long")
+                .build());
+        types.add(new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "42", 42L, "long").build());
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Long Extractor", Extractors::long_, "0000000000000000000000000000000000042", 42L, "long")
+                .build());
         types.add(
                 new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "4000000000", 4000000000L, "long")
                         .build());
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Long Extractor", Extractors::long_, "-4000000000", -4000000000L, "long")
+                .build());
+        types.add(new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "-42", -42L, "long").build());
+        types.add(
+                new ExtractorTypeTestCaseBuilder("Long Extractor", Extractors::long_, "-000042", -42L, "long").build());
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Long Extractor", Extractors::long_, "-0000000000000000000000000000000000042", -42L, "long")
+                .build());
         types.add(new ExtractorTypeTestCaseBuilder(
                         "Long Array Extractor",
                         Extractors::longArray,
@@ -562,6 +604,116 @@ class ExtractorsTest {
                 .build());
 
         return types.stream();
+    }
+
+    private static Stream<Arguments> numericOverflows() {
+        var longMin = BigInteger.valueOf(Long.MIN_VALUE);
+        var longMax = BigInteger.valueOf(Long.MAX_VALUE);
+        return Stream.of(
+                new ExtractorTypeTestCaseBuilder(
+                                "Byte", Extractors::byte_, Byte.MAX_VALUE + "0000", "ignored: over Byte.Max", "byte")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Byte[]",
+                                Extractors::byteArray,
+                                "1;" + Byte.MAX_VALUE + "0000",
+                                "ignored: over Byte.Max",
+                                "byte")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Short",
+                                Extractors::short_,
+                                Short.MAX_VALUE + "0000",
+                                "ignored: over Short.Max",
+                                "short")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Short[]",
+                                Extractors::shortArray,
+                                "1;" + Short.MAX_VALUE + "0000",
+                                "ignored: over Short.Max",
+                                "short")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Int", Extractors::int_, Integer.MAX_VALUE + "0000", "ignored: over Int.Max", "int")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Int[]",
+                                Extractors::intArray,
+                                "1;" + Integer.MAX_VALUE + "0000",
+                                "ignored: over Int.Max",
+                                "int")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long overflow to a valid byte",
+                                Extractors::byte_,
+                                Long.MAX_VALUE + "0",
+                                "ignored: overflows to a valid byte",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long overflow to a valid short",
+                                Extractors::short_,
+                                Long.MAX_VALUE + "0",
+                                "ignored: overflows to a valid short",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long overflow to a valid int",
+                                Extractors::int_,
+                                Long.MAX_VALUE + "0",
+                                "ignored: overflows to a valid int",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Max + 1",
+                                Extractors::long_,
+                                longMax.add(BigInteger.ONE).toString(),
+                                "ignored: over Long.Max",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Max + 10",
+                                Extractors::long_,
+                                longMax.add(BigInteger.TEN).toString(),
+                                "ignored: over Long.Max",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Max * 10000",
+                                Extractors::long_,
+                                Long.MAX_VALUE + "0000",
+                                "ignored: over Long.Max",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Max * 10000 []",
+                                Extractors::longArray,
+                                "1;" + Long.MAX_VALUE + "0000",
+                                "ignored: over Long.Max",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Huge Long",
+                                Extractors::long_,
+                                Long.MAX_VALUE + "0000000000000000000000000000000000000000000000000000",
+                                "ignored: overflow goes round back into positive again",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Min - 1",
+                                Extractors::long_,
+                                longMin.subtract(BigInteger.ONE).toString(),
+                                "ignored: too low",
+                                "long")
+                        .build(),
+                new ExtractorTypeTestCaseBuilder(
+                                "Long.Min - 10",
+                                Extractors::long_,
+                                longMin.subtract(BigInteger.TEN).toString(),
+                                "ignored: too low",
+                                "long")
+                        .build());
     }
 
     private record ExtractorTypeTestCase(

@@ -147,11 +147,15 @@ public final class Numbers {
         return value & 0xFF;
     }
 
+    public static String getOverflowMessage(String value, String numericType) {
+        return "Value " + value + " is too big to be represented as " + numericType;
+    }
+
     private static String getOverflowMessage(long value, Class<?> clazz) {
         return getOverflowMessage(value, clazz.getName());
     }
 
     private static String getOverflowMessage(long value, String numericType) {
-        return "Value " + value + " is too big to be represented as " + numericType;
+        return getOverflowMessage(String.valueOf(value), numericType);
     }
 }
