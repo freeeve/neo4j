@@ -19,7 +19,6 @@
  */
 package org.neo4j.cloud.storage;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.cloud.storage.StorageUtils.APPEND_OPTIONS;
 import static org.neo4j.cloud.storage.StorageUtils.READ_OPTIONS;
@@ -40,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.eclipse.collections.api.factory.Maps;
@@ -384,6 +384,8 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
         for (var factory : factories) {
             if (factory.matches(schemeToResolve)) {
                 try {
+                    final var classLoader = Objects.requireNonNullElseGet(
+                            Thread.currentThread().getContextClassLoader(), ClassLoader::getSystemClassLoader);
                     final var provider = schemesToProvider.getIfAbsentPut(
                             schemeToResolve,
                             () -> factory.createStorageSystemProvider(
@@ -391,7 +393,7 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
                                     config,
                                     logProvider,
                                     memoryTracker,
-                                    getSystemClassLoader()));
+                                    classLoader));
                     final var uri = resource.get();
                     provider.getStorageSystem(uri);
                     return provider.getPath(uri);
