@@ -502,13 +502,6 @@ public final class Extractors {
         }
     }
 
-    private static final char[] BOOLEAN_MATCH;
-
-    static {
-        BOOLEAN_MATCH = new char[Boolean.TRUE.toString().length()];
-        Boolean.TRUE.toString().getChars(0, BOOLEAN_MATCH.length, BOOLEAN_MATCH, 0);
-    }
-
     private static final class BooleanExtractor extends AbstractExtractor<Boolean> {
         BooleanExtractor() {
             super(boolean.class.getSimpleName());
@@ -1748,10 +1741,14 @@ public final class Extractors {
     }
 
     private static final char[] BOOLEAN_TRUE_CHARACTERS;
+    private static final char[] BOOLEAN_TRUE_CHARACTERS_UPPER;
 
     static {
-        BOOLEAN_TRUE_CHARACTERS = new char[Boolean.TRUE.toString().length()];
-        Boolean.TRUE.toString().getChars(0, BOOLEAN_TRUE_CHARACTERS.length, BOOLEAN_TRUE_CHARACTERS, 0);
+        String trueStr = Boolean.TRUE.toString();
+        BOOLEAN_TRUE_CHARACTERS = new char[trueStr.length()];
+        trueStr.getChars(0, BOOLEAN_TRUE_CHARACTERS.length, BOOLEAN_TRUE_CHARACTERS, 0);
+        BOOLEAN_TRUE_CHARACTERS_UPPER = new char[trueStr.length()];
+        trueStr.toUpperCase().getChars(0, BOOLEAN_TRUE_CHARACTERS_UPPER.length, BOOLEAN_TRUE_CHARACTERS_UPPER, 0);
     }
 
     private static boolean extractBoolean(char[] data, int originalOffset, int fullLength) {
@@ -1767,13 +1764,14 @@ public final class Extractors {
             length--;
         }
 
-        // See if the rest exactly match "true"
+        // See if the rest case-insensitively match "true"
         if (length != BOOLEAN_TRUE_CHARACTERS.length) {
             return false;
         }
 
-        for (int i = 0; i < BOOLEAN_TRUE_CHARACTERS.length && i < length; i++) {
-            if (data[offset + i] != BOOLEAN_TRUE_CHARACTERS[i]) {
+        for (int i = 0; i < BOOLEAN_TRUE_CHARACTERS.length; i++) {
+            char c = data[offset + i];
+            if (c != BOOLEAN_TRUE_CHARACTERS[i] && c != BOOLEAN_TRUE_CHARACTERS_UPPER[i]) {
                 return false;
             }
         }

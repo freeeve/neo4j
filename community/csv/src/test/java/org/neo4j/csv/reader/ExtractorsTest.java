@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.graphdb.Vector;
@@ -317,6 +318,29 @@ class ExtractorsTest {
         var extractor = extractors.long_();
         var input = ("" + value).toCharArray();
         assertThat(extractor.extract(input, 0, input.length, false)).isEqualTo(value);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "true,true",
+        "True,true",
+        "TRUE,true",
+        "tRuE,true",
+        "  True  ,true",
+        "false,false",
+        "False,false",
+        "FALSE,false",
+        "  False  ,false"
+    })
+    void shouldExtractBooleanCaseInsensitively(String input, boolean expected) {
+        // given
+        var extractors = new Extractors();
+
+        // when
+        var value = extractors.boolean_().extract(input.toCharArray(), 0, input.length(), false);
+
+        // then
+        assertThat(value).isEqualTo(expected);
     }
 
     private static Stream<Arguments> extractorTypes() {
