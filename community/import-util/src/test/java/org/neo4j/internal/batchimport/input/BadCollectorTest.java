@@ -20,8 +20,8 @@
 package org.neo4j.internal.batchimport.input;
 
 import static java.io.OutputStream.nullOutputStream;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.internal.batchimport.input.BadCollector.COLLECT_ALL;
 import static org.neo4j.internal.batchimport.input.BadCollector.UNLIMITED_TOLERANCE;
 import static org.neo4j.test.OtherThreadExecutor.command;
@@ -61,7 +61,7 @@ class BadCollectorTest {
             badCollector.collectBadRelationship("1", groupA, "T", "2", groupB, "1", "source", 8L);
 
             // then
-            assertEquals(1, badCollector.badEntries());
+            assertThat(badCollector.badEntries()).isOne();
         }
     }
 
@@ -73,7 +73,8 @@ class BadCollectorTest {
         try (var badCollector = BadCollector.create(badOutputFile(), tolerance)) {
             // when
             collectBadRelationship(badCollector, group);
-            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
+            assertThatExceptionOfType(InputException.class)
+                    .isThrownBy(() -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
         }
     }
 
@@ -85,7 +86,8 @@ class BadCollectorTest {
         try (var badCollector = BadCollector.create(badOutputFile(), tolerance)) {
             // when
             badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
-            assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
+            assertThatExceptionOfType(InputException.class)
+                    .isThrownBy(() -> collectBadRelationship(badCollector, group));
         }
     }
 
@@ -97,8 +99,9 @@ class BadCollectorTest {
         try (var badCollector = BadCollector.create(badOutputFile(), tolerance, BadCollector.DUPLICATE_NODES)) {
             // when
             badCollector.collectDuplicateNode(1, 1, group, "source", 8L);
-            assertThrows(InputException.class, () -> collectBadRelationship(badCollector, group));
-            assertEquals(1 /* only duplicate node collected */, badCollector.badEntries());
+            assertThatExceptionOfType(InputException.class)
+                    .isThrownBy(() -> collectBadRelationship(badCollector, group));
+            assertThat(badCollector.badEntries()).isOne();
         }
     }
 
@@ -110,8 +113,9 @@ class BadCollectorTest {
         try (var badCollector = BadCollector.create(badOutputFile(), tolerance, BadCollector.BAD_RELATIONSHIPS)) {
             // when
             collectBadRelationship(badCollector, group);
-            assertThrows(InputException.class, () -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
-            assertEquals(1 /* only duplicate rel collected */, badCollector.badEntries());
+            assertThatExceptionOfType(InputException.class)
+                    .isThrownBy(() -> badCollector.collectDuplicateNode(1, 1, group, "source", 8L));
+            assertThat(badCollector.badEntries()).isOne();
         }
     }
 
@@ -126,7 +130,7 @@ class BadCollectorTest {
             }
 
             // THEN
-            assertEquals(count, collector.badEntries());
+            assertThat(collector.badEntries()).isEqualTo(count);
         }
     }
 
@@ -141,7 +145,9 @@ class BadCollectorTest {
             }
             collectBadRelationship(badCollector, group);
             badCollector.collectExtraColumns("a,b,c", 1, "a");
-            assertEquals(0, outputStream.size(), "Output stream should not have any reported entries");
+            assertThat(outputStream.size())
+                    .as("Output stream should not have any reported entries")
+                    .isZero();
         }
     }
 

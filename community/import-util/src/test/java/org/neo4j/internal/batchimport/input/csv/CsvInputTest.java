@@ -25,11 +25,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.data.Percentage.withPercentage;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -89,7 +85,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -185,7 +180,7 @@ class CsvInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(chunk.next(visitor));
+            assertThat(chunk.next(visitor)).isFalse();
         }
     }
 
@@ -257,7 +252,7 @@ class CsvInputTest {
     private static void assertClosed(CharReadable reader) {
         assertThatThrownBy(() -> reader.read(new char[1], 0, 1))
                 .isInstanceOf(IOException.class)
-                .satisfies(e -> assertTrue(e.getMessage().contains("closed")));
+                .hasMessageContaining("closed");
     }
 
     @ParameterizedTest
@@ -290,7 +285,7 @@ class CsvInputTest {
             assertNextNode(nodes, 1L, properties("unit", "ultralisk", "kills", 10), labels("ZERG"));
             assertNextNode(nodes, 2L, properties("unit", "corruptor"), labels("ZERG"));
             assertNextNode(nodes, 3L, properties("unit", "mutalisk", "kills", 3), labels("ZERG"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -316,7 +311,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, 1L, properties("name", "zergling"), labels());
             assertNextNode(nodes, 2L, properties("name", "scv"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -353,7 +348,7 @@ class CsvInputTest {
             assertNextNode(nodes, "2", properties("name", "Abathur", "kills", 0, "health", 200), labels());
             assertNextNode(nodes, "3", properties("type", "zergling"), labels());
             assertNextNode(nodes, "4", properties("type", "csv"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -385,7 +380,7 @@ class CsvInputTest {
             assertNextNode(nodes, 0L, properties("name", "First"), labels(addedLabels));
             assertNextNode(nodes, 1L, properties("name", "Second"), labels(union(new String[] {"One"}, addedLabels)));
             assertNextNode(nodes, 2L, properties("name", "Third"), labels(union(new String[] {"One"}, addedLabels)));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -416,7 +411,7 @@ class CsvInputTest {
             assertNextRelationship(relationships, 0L, 1L, defaultType, emptyMap());
             assertNextRelationship(relationships, 1L, 2L, customType, emptyMap());
             assertNextRelationship(relationships, 2L, 1L, defaultType, emptyMap());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -447,7 +442,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, null, null, properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -478,7 +473,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, "abc", properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -509,7 +504,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, "abc", properties("id", "abc", "name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -540,7 +535,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, null, 0L, properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, 1L, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -572,7 +567,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias"), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "extra", "Additional"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -604,7 +599,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias"), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "extra", 10), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -651,7 +646,7 @@ class CsvInputTest {
                             "point",
                             Values.pointValue(CoordinateReferenceSystem.WGS_84_3D, 5, -4.2, 0.01)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -713,7 +708,7 @@ class CsvInputTest {
                             "point",
                             Values.pointValue(CoordinateReferenceSystem.WGS_84_3D, 5, -4.2, 0.01)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -746,7 +741,7 @@ class CsvInputTest {
                     0L,
                     properties("name", "Johan", "point", Values.pointValue(CoordinateReferenceSystem.WGS_84, 1, 2)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -777,7 +772,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2018, 2, 27)), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "date", DateValue.date(2018, 3, 1)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -813,7 +808,7 @@ class CsvInputTest {
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(16, 20, 1, 0, "+00:00")), labels());
             assertNextNode(
                     nodes, 2L, properties("name", "Bob", "time", TimeValue.time(7, 30, 0, 0, "-05:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -849,7 +844,7 @@ class CsvInputTest {
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(16, 20, 1, 0, "+02:00")), labels());
             assertNextNode(
                     nodes, 2L, properties("name", "Bob", "time", TimeValue.time(7, 30, 0, 0, "-05:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -895,7 +890,7 @@ class CsvInputTest {
                     2L,
                     properties("name", "Bob", "time", DateTimeValue.datetime(1981, 5, 11, 7, 30, 0, 0, "-05:00")),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -949,7 +944,7 @@ class CsvInputTest {
                     2L,
                     properties("name", "Bob", "time", DateTimeValue.datetime(1981, 5, 11, 7, 30, 0, 0, "-05:00")),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -982,7 +977,7 @@ class CsvInputTest {
                     nodes, 0L, properties("name", "Mattias", "time", LocalTimeValue.localTime(13, 37, 0, 0)), labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", LocalTimeValue.localTime(16, 20, 1, 0)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1021,7 +1016,7 @@ class CsvInputTest {
                     1L,
                     properties("name", "Johan", "time", LocalDateTimeValue.localDateTime(2018, 3, 1, 16, 20, 1, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1060,7 +1055,7 @@ class CsvInputTest {
                     1L,
                     properties("name", "Johan", "duration", DurationValue.duration(-12, 0, 4 * 3600 + 20 * 60, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1083,7 +1078,7 @@ class CsvInputTest {
                         groups,
                         INSTANCE))
                 .isInstanceOf(IllegalArgumentException.class)
-                .satisfies(e -> assertTrue(e.getMessage().contains("array delimiter")));
+                .hasMessageContaining("array delimiter");
     }
 
     @ParameterizedTest
@@ -1106,10 +1101,8 @@ class CsvInputTest {
                         groups,
                         INSTANCE))
                 .isInstanceOf(IllegalArgumentException.class)
-                .satisfies(e -> {
-                    assertTrue(e.getMessage().contains("delimiter"));
-                    assertTrue(e.getMessage().contains("quotation"));
-                });
+                .hasMessageContaining("delimiter")
+                .hasMessageContaining("quotation");
     }
 
     @ParameterizedTest
@@ -1128,10 +1121,8 @@ class CsvInputTest {
                         groups,
                         INSTANCE))
                 .isInstanceOf(IllegalArgumentException.class)
-                .satisfies(e -> {
-                    assertTrue(e.getMessage().contains("array delimiter"));
-                    assertTrue(e.getMessage().contains("quotation"));
-                });
+                .hasMessageContaining("array delimiter")
+                .hasMessageContaining("quotation");
     }
 
     @ParameterizedTest
@@ -1159,7 +1150,7 @@ class CsvInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
             assertNextNode(nodes, group, 456L, properties("name", "two"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1192,7 +1183,7 @@ class CsvInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, startNodeGroup, 123L, endNodeGroup, 234L, "TYPE", properties());
             assertNextRelationship(relationships, startNodeGroup, 345L, endNodeGroup, 456L, "TYPE", properties());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1224,7 +1215,7 @@ class CsvInputTest {
             // THEN
             assertNextRelationship(relationships, 0L, 1L, defaultType, properties("name", "First"));
             assertNextRelationship(relationships, 2L, 3L, defaultType, properties("name", "Second"));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1254,7 +1245,7 @@ class CsvInputTest {
             assertNextNode(nodes, 1L, properties("other", 10), labels("Person"));
             assertNextNode(nodes, 2L, properties("other", 111), labels("Person"));
             assertNextNode(nodes, 3L, properties("other", 12), labels("Person"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1284,7 +1275,7 @@ class CsvInputTest {
             assertNextRelationship(relationships, 1L, 2L, "KNOWS", properties("other", 10));
             assertNextRelationship(relationships, 2L, 3L, "KNOWS", properties("other", 111));
             assertNextRelationship(relationships, 3L, 4L, "KNOWS", properties("other", 12));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1338,7 +1329,7 @@ class CsvInputTest {
             assertNextNode(nodes, 1L, emptyMap(), labels());
             assertNextNode(
                     nodes, 2L, properties("sprop", new String[] {"a", "b"}, "lprop", new long[] {10, 20}), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1366,7 +1357,7 @@ class CsvInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 1L, properties("three", "value"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1398,7 +1389,7 @@ class CsvInputTest {
             // THEN
             assertNextNode(nodes, 1L, properties("one", "test"), labels());
             assertNextNode(nodes, 2L, properties("one", "test"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
         verify(collector).collectExtraColumns(anyString(), eq(1L), eq(null));
         verify(collector).collectExtraColumns(anyString(), eq(2L), eq(null));
@@ -1425,116 +1416,92 @@ class CsvInputTest {
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             readNext(relationships);
-            assertNull(visitor.startId());
-            assertNull(visitor.endId());
-            assertNull(visitor.stringType);
+            assertThat(visitor.startId()).isNull();
+            assertThat(visitor.endId()).isNull();
+            assertThat(visitor.stringType).isNull();
         }
     }
 
     @Test
-    void shouldFailOnUnparsableNodeHeader() throws IOException {
+    void shouldFailOnUnparsableNodeHeader() {
         // given
         Iterable<DataFactory> data = datas(data(":SOMETHING,abcde#rtg:123,"));
 
-        try {
-            // when
-            new CsvInput(
-                            data,
-                            defaultFormatNodeFileHeader(),
-                            datas(),
-                            defaultFormatRelationshipFileHeader(),
-                            IdType.INTEGER,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should not parse");
-        } catch (HeaderException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                data,
+                                defaultFormatNodeFileHeader(),
+                                datas(),
+                                defaultFormatRelationshipFileHeader(),
+                                IdType.INTEGER,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(HeaderException.class);
     }
 
     @Test
-    void shouldFailOnUnparsableRelationshipHeader() throws IOException {
+    void shouldFailOnUnparsableRelationshipHeader() {
         // given
         Iterable<DataFactory> data = datas(data(":SOMETHING,abcde#rtg:123,"));
 
-        try {
-            // when
-            new CsvInput(
-                            datas(),
-                            defaultFormatNodeFileHeader(),
-                            data,
-                            defaultFormatRelationshipFileHeader(),
-                            IdType.INTEGER,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should not parse");
-        } catch (HeaderException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                datas(),
+                                defaultFormatNodeFileHeader(),
+                                data,
+                                defaultFormatRelationshipFileHeader(),
+                                IdType.INTEGER,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(HeaderException.class);
     }
 
     @Test
-    void shouldFailOnUndefinedGroupInRelationshipHeader() throws IOException {
+    void shouldFailOnUndefinedGroupInRelationshipHeader() {
         // given
         Iterable<DataFactory> nodeData = datas(data(":ID(left)"), data(":ID(right)"));
         Iterable<DataFactory> relationshipData = datas(data(":START_ID(left),:END_ID(rite)"));
 
-        try {
-            // when
-            new CsvInput(
-                            nodeData,
-                            defaultFormatNodeFileHeader(),
-                            relationshipData,
-                            defaultFormatRelationshipFileHeader(),
-                            IdType.INTEGER,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should not validate");
-        } catch (HeaderException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                nodeData,
+                                defaultFormatNodeFileHeader(),
+                                relationshipData,
+                                defaultFormatRelationshipFileHeader(),
+                                IdType.INTEGER,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(HeaderException.class);
     }
 
     @Test
-    void shouldFailOnGlobalGroupInRelationshipHeaderIfNoGLobalGroupInNodeHeader() throws IOException {
+    void shouldFailOnGlobalGroupInRelationshipHeaderIfNoGLobalGroupInNodeHeader() {
         // given
         Iterable<DataFactory> nodeData = datas(data(":ID(left)"), data(":ID(right)"));
         Iterable<DataFactory> relationshipData = datas(data(":START_ID,:END_ID(rite)"));
 
-        try {
-            // when
-            new CsvInput(
-                            nodeData,
-                            defaultFormatNodeFileHeader(),
-                            relationshipData,
-                            defaultFormatRelationshipFileHeader(),
-                            IdType.INTEGER,
-                            COMMAS,
-                            false,
-                            NO_MONITOR,
-                            groups,
-                            INSTANCE)
-                    .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS);
-            fail("Should not validate");
-        } catch (HeaderException e) {
-            // then
-            // OK
-        }
+        assertThatThrownBy(() -> new CsvInput(
+                                nodeData,
+                                defaultFormatNodeFileHeader(),
+                                relationshipData,
+                                defaultFormatRelationshipFileHeader(),
+                                IdType.INTEGER,
+                                COMMAS,
+                                false,
+                                NO_MONITOR,
+                                groups,
+                                INSTANCE)
+                        .validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                .isInstanceOf(HeaderException.class);
     }
 
     @Test
@@ -1709,7 +1676,7 @@ class CsvInputTest {
         IdType idType = STRING;
         Path uncompressedFile = createNodeInputDataFile(mebiBytes(10));
         Path compressedFile = compressWithZip(uncompressedFile);
-        Assertions.assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
+        assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
 
         // WHEN
         Input.Estimates uncompressedEstimates =
@@ -1727,7 +1694,7 @@ class CsvInputTest {
         IdType idType = STRING;
         Path uncompressedFile = createNodeInputDataFile(mebiBytes(10));
         Path compressedFile = compressWithGZip(uncompressedFile);
-        Assertions.assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
+        assertThat(Files.size(compressedFile)).isLessThan(Files.size(uncompressedFile));
 
         // WHEN
         Input.Estimates uncompressedEstimates =
@@ -2079,7 +2046,7 @@ class CsvInputTest {
             var schema = input.referencedNodeSchema(tokenHolders);
 
             // then
-            Assertions.assertThat(schema).isEqualTo(Map.of("My Group", SchemaDescriptors.forLabel(2, 4)));
+            assertThat(schema).containsExactlyInAnyOrderEntriesOf(Map.of("My Group", SchemaDescriptors.forLabel(2, 4)));
         }
     }
 
@@ -2110,7 +2077,7 @@ class CsvInputTest {
             try (var nodes = input.nodes(EMPTY).iterator()) {
                 // then
                 assertNextNode(nodes, group, 123, properties("id", 123, "prop", "val"), labels());
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
         }
     }
@@ -2143,7 +2110,7 @@ class CsvInputTest {
                         "ABC%c456".formatted(IdValueBuilder.DELIMITER),
                         properties("id1", "ABC", "id2", "456", "name", "Second"),
                         Set.of("Person"));
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
         }
     }
@@ -2193,7 +2160,7 @@ class CsvInputTest {
                         "foo%cbar".formatted(IdValueBuilder.DELIMITER),
                         properties("id1", "foo", "id2", "bar", "name", "ABC"),
                         Set.of());
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
         }
     }
@@ -2258,7 +2225,7 @@ class CsvInputTest {
                         "d%ce".formatted(IdValueBuilder.DELIMITER),
                         "KNOWS",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2297,7 +2264,7 @@ class CsvInputTest {
                         "foo%cbar%cbaz".formatted(IdValueBuilder.DELIMITER, IdValueBuilder.DELIMITER),
                         "TTT",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2336,7 +2303,7 @@ class CsvInputTest {
                         "foo%cbaz".formatted(IdValueBuilder.DELIMITER),
                         "TTT",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2375,7 +2342,7 @@ class CsvInputTest {
                         "foo%cbar%cbaz".formatted(IdValueBuilder.DELIMITER, IdValueBuilder.DELIMITER),
                         "TTT",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2502,7 +2469,7 @@ class CsvInputTest {
                         Set.of());
                 assertNextNode(
                         nodes, groups.getOrCreate("g1"), "foo", properties("id1", "foo", "name", "DEF"), Set.of());
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
@@ -2513,7 +2480,7 @@ class CsvInputTest {
                         "foo",
                         "TTT",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2648,7 +2615,7 @@ class CsvInputTest {
                         Set.of());
                 assertNextNode(
                         nodes, groups.getOrCreate("g2"), "baz", properties("id1", "baz", "name", "DEF"), Set.of());
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
@@ -2675,7 +2642,7 @@ class CsvInputTest {
                         "baz",
                         "T3",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2841,7 +2808,7 @@ class CsvInputTest {
                         "ABC%c456".formatted(IdValueBuilder.DELIMITER),
                         properties("id1", "ABC", "id2", 456, "name", "Second"),
                         labels);
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
             try (var relationships = input.relationships(Collector.STRICT).iterator()) {
                 assertNextRelationship(
@@ -2852,7 +2819,7 @@ class CsvInputTest {
                         "ABC%c456".formatted(IdValueBuilder.DELIMITER),
                         "T1",
                         emptyMap());
-                assertFalse(readNext(relationships));
+                assertThat(readNext(relationships)).isFalse();
             }
         }
     }
@@ -2916,7 +2883,7 @@ class CsvInputTest {
                 assertNextNode(nodes, globalGroup, "E", properties("p1", "aaa"), Set.of("Test"), CREATE);
                 assertNextNode(nodes, globalGroup, "F", properties("p1", "bbb"), Set.of("Test"), UPDATE);
                 assertNextNode(nodes, globalGroup, "G", properties("p1", "ccc"), Set.of("Test"), DELETE);
-                assertFalse(readNext(nodes));
+                assertThat(readNext(nodes)).isFalse();
             }
         }
     }
@@ -2942,9 +2909,9 @@ class CsvInputTest {
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
-                assertThat(visitor.removedLabels).isEqualTo(List.of("Label1"));
+                assertThat(visitor.removedLabels).containsExactlyElementsOf(List.of("Label1"));
                 assertThat(readNext(nodes)).isTrue();
-                assertThat(visitor.removedLabels).isEqualTo(List.of("Label2", "Label3"));
+                assertThat(visitor.removedLabels).containsExactlyElementsOf(List.of("Label2", "Label3"));
                 assertThat(readNext(nodes)).isFalse();
             }
         }
@@ -2971,8 +2938,8 @@ class CsvInputTest {
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
-                assertThat(visitor.propertiesAsMap()).isEqualTo(Map.of("wantedProp", "val"));
-                assertThat(visitor.removedProperties).isEqualTo(List.of("unwantedProp"));
+                assertThat(visitor.propertiesAsMap()).containsExactlyInAnyOrderEntriesOf(Map.of("wantedProp", "val"));
+                assertThat(visitor.removedProperties).containsExactlyElementsOf(List.of("unwantedProp"));
                 assertThat(readNext(nodes)).isFalse();
             }
         }
@@ -2999,8 +2966,8 @@ class CsvInputTest {
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
-                assertThat(visitor.propertiesAsMap()).isEqualTo(Map.of("wantedProp", "val"));
-                assertThat(visitor.removedProperties).isEqualTo(List.of("unwanted1", "unwanted2"));
+                assertThat(visitor.propertiesAsMap()).containsExactlyInAnyOrderEntriesOf(Map.of("wantedProp", "val"));
+                assertThat(visitor.removedProperties).containsExactlyElementsOf(List.of("unwanted1", "unwanted2"));
                 assertThat(readNext(nodes)).isFalse();
             }
         }
@@ -3025,19 +2992,14 @@ class CsvInputTest {
     }
 
     private static void assertEstimatesEquals(Input.Estimates a, Input.Estimates b, double errorMargin) {
-        assertEquals(a.numberOfNodes(), b.numberOfNodes(), a.numberOfNodes() * errorMargin);
-        assertEquals(a.numberOfNodeLabels(), b.numberOfNodeLabels(), a.numberOfNodeLabels() * errorMargin);
-        assertEquals(a.numberOfNodeProperties(), b.numberOfNodeProperties(), a.numberOfNodeProperties() * errorMargin);
-        assertEquals(a.numberOfRelationships(), b.numberOfRelationships(), a.numberOfRelationships() * errorMargin);
-        assertEquals(
-                a.numberOfRelationshipProperties(),
-                b.numberOfRelationshipProperties(),
-                a.numberOfRelationshipProperties() * errorMargin);
-        assertEquals(a.sizeOfNodeProperties(), b.sizeOfNodeProperties(), a.sizeOfNodeProperties() * errorMargin);
-        assertEquals(
-                a.sizeOfRelationshipProperties(),
-                b.sizeOfRelationshipProperties(),
-                a.sizeOfRelationshipProperties() * errorMargin);
+        var margin = withPercentage(errorMargin * 100);
+        assertThat(b.numberOfNodes()).isCloseTo(a.numberOfNodes(), margin);
+        assertThat(b.numberOfNodeLabels()).isCloseTo(a.numberOfNodeLabels(), margin);
+        assertThat(b.numberOfNodeProperties()).isCloseTo(a.numberOfNodeProperties(), margin);
+        assertThat(b.numberOfRelationships()).isCloseTo(a.numberOfRelationships(), margin);
+        assertThat(b.numberOfRelationshipProperties()).isCloseTo(a.numberOfRelationshipProperties(), margin);
+        assertThat(b.sizeOfNodeProperties()).isCloseTo(a.sizeOfNodeProperties(), margin);
+        assertThat(b.sizeOfRelationshipProperties()).isCloseTo(a.sizeOfRelationshipProperties(), margin);
     }
 
     private Input.Estimates calculateEstimates(
@@ -3138,12 +3100,12 @@ class CsvInputTest {
             String type,
             Map<String, Object> properties)
             throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(startNodeGroup, visitor.startIdGroup);
-        assertEquals(startNode, visitor.startId());
-        assertEquals(endNodeGroup, visitor.endIdGroup);
-        assertEquals(endNode, visitor.endId());
-        assertEquals(type, visitor.stringType);
+        assertThat(readNext(data)).isTrue();
+        assertThat(visitor.startIdGroup).isEqualTo(startNodeGroup);
+        assertThat(visitor.startId()).isEqualTo(startNode);
+        assertThat(visitor.endIdGroup).isEqualTo(endNodeGroup);
+        assertThat(visitor.endId()).isEqualTo(endNode);
+        assertThat(visitor.stringType).isEqualTo(type);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }
 
@@ -3166,17 +3128,17 @@ class CsvInputTest {
             Set<String> labels,
             ApplicationMode action)
             throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(group, visitor.idGroup);
-        assertEquals(id, visitor.id());
-        assertEquals(labels, asSet(visitor.labels()));
+        assertThat(readNext(data)).isTrue();
+        assertThat(visitor.idGroup).isEqualTo(group);
+        assertThat(visitor.id()).isEqualTo(id);
+        assertThat(asSet(visitor.labels())).hasSameElementsAs(labels);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
-        assertEquals(action, visitor.applicationMode);
+        assertThat(visitor.applicationMode).isEqualTo(action);
     }
 
     private void assertPropertiesEquals(Map<String, Object> expected, Map<String, Object> actual) {
         // Do this more complicated assert to handle primitive array equality
-        assertEquals(primitiveArraysAsLists(expected), primitiveArraysAsLists(actual));
+        assertThat(primitiveArraysAsLists(actual)).containsExactlyInAnyOrderEntriesOf(primitiveArraysAsLists(expected));
     }
 
     private Map<String, Object> primitiveArraysAsLists(Map<String, Object> map) {

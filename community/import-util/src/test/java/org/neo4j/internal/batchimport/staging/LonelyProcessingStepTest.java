@@ -19,8 +19,7 @@
  */
 package org.neo4j.internal.batchimport.staging;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.batchimport.executor.ProcessorScheduler.SPAWN_THREAD;
 
 import java.util.ArrayList;
@@ -39,14 +38,14 @@ class LonelyProcessingStepTest {
         faultyStep.receive(1, null);
         faultyStep.awaitCompleted();
 
-        assertTrue(faultyStep.endOfUpstreamCalled);
-        assertTrue(
-                faultyStep.isPanicOnEndUpstream(),
-                "On upstream end step should be already on panic in case of exception");
-        assertTrue(faultyStep.isPanic());
-        assertFalse(faultyStep.stillWorking());
-        assertTrue(faultyStep.isCompleted());
-        assertTrue(panicMonitor.hasReceivedPanic());
+        assertThat(faultyStep.endOfUpstreamCalled).isTrue();
+        assertThat(faultyStep.isPanicOnEndUpstream())
+                .as("On upstream end step should be already on panic in case of exception")
+                .isTrue();
+        assertThat(faultyStep.isPanic()).isTrue();
+        assertThat(faultyStep.stillWorking()).isFalse();
+        assertThat(faultyStep.isCompleted()).isTrue();
+        assertThat(panicMonitor.hasReceivedPanic()).isTrue();
     }
 
     private static class FaultyLonelyProcessingStepTest extends LonelyProcessingStep {

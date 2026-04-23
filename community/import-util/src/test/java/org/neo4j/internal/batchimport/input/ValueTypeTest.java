@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.input;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 
 import java.io.Flushable;
@@ -62,8 +62,8 @@ class ValueTypeTest {
                 Integer.BYTES
                 + // array length
                 value.length * Integer.BYTES; // array data
-        assertEquals(expected, length);
-        assertEquals(expected, channel.position());
+        assertThat(length).isEqualTo(expected);
+        assertThat(channel.position()).isEqualTo(expected);
     }
 
     private static class CountingChannel implements FlushableChannel {

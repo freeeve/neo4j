@@ -20,7 +20,6 @@
 package org.neo4j.internal.batchimport.staging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,10 +33,10 @@ class MovingAverageTest {
         long avg = average.average();
         for (int i = 0; i < 5; i++) {
             average.add(10);
-            assertEquals(10L, average.average());
+            assertThat(average.average()).isEqualTo(10L);
             avg = average.average();
         }
-        assertEquals(10L, average.average());
+        assertThat(average.average()).isEqualTo(10L);
 
         // WHEN moving to 100 as average
         for (int i = 0; i < 5; i++) {
@@ -45,6 +44,6 @@ class MovingAverageTest {
             assertThat(average.average()).isGreaterThan(avg);
             avg = average.average();
         }
-        assertEquals(100L, average.average());
+        assertThat(average.average()).isEqualTo(100L);
     }
 }

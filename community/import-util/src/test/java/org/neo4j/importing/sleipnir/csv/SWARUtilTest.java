@@ -34,13 +34,13 @@ class SWARUtilTest {
     void broadcastToAllBytes() {
         assertThat(broadcast(0x11)).isEqualTo(0x1111111111111111L);
         assertThat(broadcast(-64)).isEqualTo(0xc0c0c0c0c0c0c0c0L);
-        assertThat(broadcast(0x0)).isEqualTo(0x0L);
+        assertThat(broadcast(0x0)).isZero();
     }
 
     @Test
     void findNeedle() {
         assertThat(eqMask(0x112233L, broadcast(0x22))).isEqualTo(0b10);
-        assertThat(eqMask(0x112233L, broadcast(0x4))).isEqualTo(0);
+        assertThat(eqMask(0x112233L, broadcast(0x4))).isZero();
 
         assertThat(eqMask(stringToLong("abababab"), broadcast('b'))).isEqualTo(0b10101010);
         assertThat(eqMask(stringToLong("a b c d "), broadcast(' '))).isEqualTo(0b10101010);

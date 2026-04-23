@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.staging;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.batchimport.staging.ControlledStep.stepWithStats;
 
 import java.util.Arrays;
@@ -44,8 +44,8 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN
-        assertEquals(4, slowStep.processors(0));
-        assertEquals(1, fastStep.processors(0));
+        assertThat(slowStep.processors(0)).isEqualTo(4);
+        assertThat(fastStep.processors(0)).isOne();
     }
 
     @Test
@@ -68,8 +68,8 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN one processor should have been moved from the fast step to the slower step
-        assertEquals(2, fastStep.processors(0));
-        assertEquals(3, slowStep.processors(0));
+        assertThat(fastStep.processors(0)).isEqualTo(2);
+        assertThat(slowStep.processors(0)).isEqualTo(3);
     }
 
     @Test
@@ -89,8 +89,8 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN
-        assertEquals(3, fastStep.processors(0));
-        assertEquals(1, slowStep.processors(0));
+        assertThat(fastStep.processors(0)).isEqualTo(3);
+        assertThat(slowStep.processors(0)).isOne();
     }
 
     @Test
@@ -109,8 +109,8 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN
-        assertEquals(1, aStep.processors(0));
-        assertEquals(1, anotherStep.processors(0));
+        assertThat(aStep.processors(0)).isOne();
+        assertThat(anotherStep.processors(0)).isOne();
     }
 
     @Test
@@ -132,8 +132,8 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN
-        assertEquals(2, fast.processors(0));
-        assertEquals(2, slow.processors(0));
+        assertThat(fast.processors(0)).isEqualTo(2);
+        assertThat(slow.processors(0)).isEqualTo(2);
     }
 
     @Test
@@ -152,9 +152,9 @@ class DynamicProcessorAssignerTest {
         assigner.check(execution);
 
         // THEN no processor have been removed from the fast step
-        assertEquals(3, fast.processors(0));
+        assertThat(fast.processors(0)).isEqualTo(3);
         // although there were some to assign so slow step got one
-        assertEquals(2, slow.processors(0));
+        assertThat(slow.processors(0)).isEqualTo(2);
     }
 
     private static Configuration config(final int movingAverage, int processors) {

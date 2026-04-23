@@ -19,8 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.legacy;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_SWAP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
@@ -49,7 +48,7 @@ class NodeLabelsCacheTest {
 
             // THEN
             int[] readLabels = cache.get(client, nodeId);
-            assertArrayEquals(new int[] {1, 2, 3}, shrunk(readLabels));
+            assertThat(shrunk(readLabels)).containsExactly(new int[] {1, 2, 3});
         }
     }
 
@@ -67,7 +66,7 @@ class NodeLabelsCacheTest {
 
             // THEN
             int[] readLabels = cache.get(client, nodeId);
-            assertArrayEquals(labels, readLabels);
+            assertThat(readLabels).containsExactly(labels);
         }
     }
 
@@ -88,7 +87,7 @@ class NodeLabelsCacheTest {
             // THEN
             for (int i = 0; i < numberOfNodes; i++) {
                 int[] labels = cache.get(client, i);
-                assertArrayEquals(expectedLabels[i], shrunk(labels), "For node " + i);
+                assertThat(shrunk(labels)).as("For node " + i).containsExactly(expectedLabels[i]);
             }
         }
     }
@@ -102,13 +101,13 @@ class NodeLabelsCacheTest {
 
             // WHEN
             int[] target = cache.get(client, 10);
-            assertEquals(5, target[0]);
-            assertEquals(6, target[1]);
-            assertEquals(7, target[2]);
-            assertEquals(8, target[3]);
+            assertThat(target[0]).isEqualTo(5);
+            assertThat(target[1]).isEqualTo(6);
+            assertThat(target[2]).isEqualTo(7);
+            assertThat(target[3]).isEqualTo(8);
 
             // THEN
-            assertEquals(-1, target[4]);
+            assertThat(target[4]).isEqualTo(-1);
         }
     }
 
@@ -122,7 +121,7 @@ class NodeLabelsCacheTest {
             int[] target = cache.get(client, 0);
 
             // THEN
-            assertEquals(-1, target[0]);
+            assertThat(target[0]).isEqualTo(-1);
         }
     }
 
@@ -174,12 +173,12 @@ class NodeLabelsCacheTest {
         private void assertCorrectLabels(int nodeId, int[] gotten) {
             int[] expected = expectedLabels[nodeId];
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i], gotten[i]);
+                assertThat(gotten[i]).isEqualTo(expected[i]);
             }
 
             if (gotten.length != expected.length) {
                 // gotten is a "scratch" array, i.e. reused and not resized all the time, instead ended with -1 value.
-                assertEquals(-1, gotten[expected.length]);
+                assertThat(gotten[expected.length]).isEqualTo(-1);
             }
         }
     }

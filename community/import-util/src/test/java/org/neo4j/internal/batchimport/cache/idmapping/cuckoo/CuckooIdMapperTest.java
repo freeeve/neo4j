@@ -66,8 +66,8 @@ class CuckooIdMapperTest {
             setter.put(100L, 4, emptyGroup);
             setter.put(5000L, 5, emptyGroup);
             IdMapper.Getter getter = idMapper.newGetter(0);
-            assertThat(getter.get(10L, emptyGroup)).isEqualTo(0);
-            assertThat(getter.get(25L, emptyGroup)).isEqualTo(1);
+            assertThat(getter.get(10L, emptyGroup)).isZero();
+            assertThat(getter.get(25L, emptyGroup)).isOne();
             assertThat(getter.get(79L, emptyGroup)).isEqualTo(2);
             assertThat(getter.get(2L, emptyGroup)).isEqualTo(3);
             assertThat(getter.get(100L, emptyGroup)).isEqualTo(4);
@@ -183,7 +183,7 @@ class CuckooIdMapperTest {
             mapper.newSetter(0).put("1", 1, emptyGroup);
 
             try (var getter = mapper.newGetter(0)) {
-                assertThat(getter.get("1", emptyGroup)).isEqualTo(1);
+                assertThat(getter.get("1", emptyGroup)).isOne();
                 assertThat(getter.get("", emptyGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
             }
         }
@@ -191,7 +191,7 @@ class CuckooIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("processors")
-    public void shouldPutFromMultipleThreads(int processors) throws Throwable {
+    void shouldPutFromMultipleThreads(int processors) throws Throwable {
         // GIVEN
         long countPerThread = 30_000;
         try (IdMapper idMapper =

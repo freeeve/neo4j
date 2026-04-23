@@ -20,7 +20,6 @@
 package org.neo4j.internal.batchimport.cache;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,27 +58,27 @@ class NumberArrayFactoryTest {
         var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
         try (ByteArray byteArray = OFF_HEAP.newByteArray(10, new byte[] {0}, memoryTracker)) {
             byteArray.setByte(0, 0, (byte) 1);
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(10, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isEqualTo(10);
         }
-        assertEquals(0, memoryTracker.usedNativeMemory());
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
+        assertThat(memoryTracker.usedNativeMemory()).isZero();
+        assertThat(memoryTracker.estimatedHeapMemory()).isZero();
 
         try (LongArray longArray = OFF_HEAP.newLongArray(10, 0, memoryTracker)) {
             longArray.set(0, 1);
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(80, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isEqualTo(80);
         }
-        assertEquals(0, memoryTracker.usedNativeMemory());
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
+        assertThat(memoryTracker.usedNativeMemory()).isZero();
+        assertThat(memoryTracker.estimatedHeapMemory()).isZero();
 
         try (IntArray intArray = OFF_HEAP.newIntArray(10, 0, memoryTracker)) {
             intArray.set(0, 1);
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(40, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isEqualTo(40);
         }
-        assertEquals(0, memoryTracker.usedNativeMemory());
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
+        assertThat(memoryTracker.usedNativeMemory()).isZero();
+        assertThat(memoryTracker.estimatedHeapMemory()).isZero();
     }
 
     @Test
@@ -89,7 +88,7 @@ class NumberArrayFactoryTest {
             array.set(KILO - 10, 12345);
 
             // THEN
-            assertEquals(12345, array.get(KILO - 10));
+            assertThat(array.get(KILO - 10)).isEqualTo(12345);
         }
     }
 
@@ -106,7 +105,7 @@ class NumberArrayFactoryTest {
                 array.set(KILO - 10, 12345);
 
                 // THEN
-                assertEquals(12345, array.get(KILO - 10));
+                assertThat(array.get(KILO - 10)).isEqualTo(12345);
             }
         }
     }
@@ -127,7 +126,7 @@ class NumberArrayFactoryTest {
 
             // THEN
             verify(lowMemoryFactory).allocate(eq(KILO * Integer.BYTES), any(MemoryTracker.class));
-            assertEquals(12345, array.get(KILO - 10));
+            assertThat(array.get(KILO - 10)).isEqualTo(12345);
         }
     }
 

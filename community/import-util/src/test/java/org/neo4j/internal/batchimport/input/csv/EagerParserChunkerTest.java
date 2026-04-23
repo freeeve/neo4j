@@ -73,10 +73,10 @@ class EagerParserChunkerTest {
             var entity = new InputEntity();
             assertThat(chunk.next(entity)).isTrue();
             assertThat(entity.objectId).isEqualTo(1L);
-            assertThat(entity.propertiesAsMap()).isEqualTo(Map.of("prop", "v1"));
+            assertThat(entity.propertiesAsMap()).containsExactlyInAnyOrderEntriesOf(Map.of("prop", "v1"));
             assertThat(chunk.next(entity)).isTrue();
             assertThat(entity.objectId).isEqualTo(2L);
-            assertThat(entity.propertiesAsMap()).isEqualTo(Map.of("prop", "v2"));
+            assertThat(entity.propertiesAsMap()).containsExactlyInAnyOrderEntriesOf(Map.of("prop", "v2"));
             assertThat(chunk.next(entity)).isFalse();
         }
     }

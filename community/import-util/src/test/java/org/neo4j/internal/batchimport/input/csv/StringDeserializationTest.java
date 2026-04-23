@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.input.csv;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.csv.reader.Configuration;
@@ -45,7 +45,7 @@ class StringDeserializationTest {
         String line = deserialization.materialize();
 
         // then
-        assertEquals(line, ",MyType,123");
+        assertThat(line).isEqualTo(",MyType,123");
     }
 
     @Test
@@ -60,6 +60,6 @@ class StringDeserializationTest {
         String line = deserialization.materialize();
 
         // then
-        assertEquals(line, "123,MyType,");
+        assertThat(line).isEqualTo("123,MyType,");
     }
 }

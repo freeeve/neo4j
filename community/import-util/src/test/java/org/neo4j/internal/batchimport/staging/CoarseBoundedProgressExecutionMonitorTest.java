@@ -19,8 +19,7 @@
  */
 package org.neo4j.internal.batchimport.staging;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,7 +39,7 @@ class CoarseBoundedProgressExecutionMonitorTest {
         long total = monitorSingleStageExecution(progressExecutionMonitor, config);
 
         // THEN
-        assertEquals(total, progressExecutionMonitor.getProgress());
+        assertThat(progressExecutionMonitor.getProgress()).isEqualTo(total);
     }
 
     @ParameterizedTest
@@ -57,7 +56,9 @@ class CoarseBoundedProgressExecutionMonitorTest {
         }
         progressExecutionMonitor.done(true, 0, "Completed");
 
-        assertEquals(total, progressExecutionMonitor.getProgress(), "Each item should be completed");
+        assertThat(progressExecutionMonitor.getProgress())
+                .as("Each item should be completed")
+                .isEqualTo(total);
     }
 
     private static long monitorSingleStageExecution(
@@ -67,7 +68,7 @@ class CoarseBoundedProgressExecutionMonitorTest {
         long part = total / 10;
         for (int i = 0; i < 9; i++) {
             progressExecutionMonitor.check(execution(part * (i + 1), config));
-            assertTrue(progressExecutionMonitor.getProgress() < total);
+            assertThat(progressExecutionMonitor.getProgress()).isLessThan(total);
         }
         progressExecutionMonitor.done(true, 0, "Test");
         return total;

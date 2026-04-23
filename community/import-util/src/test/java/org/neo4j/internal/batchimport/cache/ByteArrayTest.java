@@ -19,9 +19,8 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 import static org.neo4j.internal.batchimport.cache.ArrayPermutationTesting.AUTO_NO_SWAP;
 import static org.neo4j.internal.batchimport.cache.ArrayPermutationTesting.FILE_BACKED;
@@ -47,7 +46,7 @@ import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
 @RandomSupportExtension
-public class ByteArrayTest {
+class ByteArrayTest {
     private static final byte[] DEFAULT = new byte[50];
     private static final int LENGTH = 1_000;
     private static final int CHUNK_SIZE = LENGTH / 10;
@@ -75,7 +74,7 @@ public class ByteArrayTest {
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldSetAndGetBasicTypes(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
+    void shouldSetAndGetBasicTypes(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -102,8 +101,7 @@ public class ByteArrayTest {
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldDetectMinusOneFor3ByteInts(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
+    void shouldDetectMinusOneFor3ByteInts(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -112,15 +110,14 @@ public class ByteArrayTest {
             array.set3ByteInt(10, 5, -1);
 
             // THEN
-            assertEquals(-1L, array.get3ByteInt(10, 2));
-            assertEquals(-1L, array.get3ByteInt(10, 5));
+            assertThat(array.get3ByteInt(10, 2)).isEqualTo(-1L);
+            assertThat(array.get3ByteInt(10, 5)).isEqualTo(-1L);
         }
     }
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldDetectMinusOneFor5ByteLongs(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
+    void shouldDetectMinusOneFor5ByteLongs(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -129,15 +126,14 @@ public class ByteArrayTest {
             array.set5ByteLong(10, 7, -1);
 
             // THEN
-            assertEquals(-1L, array.get5ByteLong(10, 2));
-            assertEquals(-1L, array.get5ByteLong(10, 7));
+            assertThat(array.get5ByteLong(10, 2)).isEqualTo(-1L);
+            assertThat(array.get5ByteLong(10, 7)).isEqualTo(-1L);
         }
     }
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldDetectMinusOneFor6ByteLongs(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
+    void shouldDetectMinusOneFor6ByteLongs(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator);
                 ByteArray array = arrayCreator.createByteArray(arrayFactory)) {
 
@@ -146,15 +142,14 @@ public class ByteArrayTest {
             array.set6ByteLong(10, 8, -1);
 
             // THEN
-            assertEquals(-1L, array.get6ByteLong(10, 2));
-            assertEquals(-1L, array.get6ByteLong(10, 8));
+            assertThat(array.get6ByteLong(10, 2)).isEqualTo(-1L);
+            assertThat(array.get6ByteLong(10, 8)).isEqualTo(-1L);
         }
     }
 
     @ParameterizedTest
     @MethodSource("argumentsProvider")
-    public void shouldHandleMultipleCallsToClose(
-            NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
+    void shouldHandleMultipleCallsToClose(NumberArrayFactoryCreator factoryCreator, ByteArrayCreator arrayCreator) {
         try (NumberArrayFactory arrayFactory = getArrayFactory(factoryCreator)) {
             ByteArray array = arrayCreator.createByteArray(arrayFactory);
 
@@ -187,7 +182,7 @@ public class ByteArrayTest {
                 byte[] data = s.getBytes(StandardCharsets.UTF_8);
                 byte[] into = new byte[data.length];
                 array.get(o, into);
-                assertArrayEquals(into, data);
+                assertThat(data).containsExactly(into);
             });
         }
     }
@@ -213,7 +208,7 @@ public class ByteArrayTest {
                 byte[] data = s.getBytes(StandardCharsets.UTF_8);
                 byte[] into = new byte[data.length];
                 array.get(o, into);
-                assertArrayEquals(into, data);
+                assertThat(data).containsExactly(into);
             });
         }
     }
@@ -245,17 +240,17 @@ public class ByteArrayTest {
     }
 
     private static void verifySimpleValues(ByteArray array, int index) {
-        assertEquals((byte) 123, array.getByte(index, 0));
-        assertEquals((short) 1234, array.getShort(index, 1));
-        assertEquals(12345, array.getInt(index, 5));
-        assertEquals(Long.MAX_VALUE - 100, array.getLong(index, 9));
-        assertEquals(0b01010101_01010101_01010101, array.get3ByteInt(index, 17));
-        assertEquals(0b01010101_01010101_01010101_01010101_01010101L, array.get5ByteLong(index, 20));
-        assertEquals(0b01010101_01010101_01010101_01010101_01010101_01010101L, array.get6ByteLong(index, 25));
+        assertThat(array.getByte(index, 0)).isEqualTo((byte) 123);
+        assertThat(array.getShort(index, 1)).isEqualTo((short) 1234);
+        assertThat(array.getInt(index, 5)).isEqualTo(12345);
+        assertThat(array.getLong(index, 9)).isEqualTo(Long.MAX_VALUE - 100);
+        assertThat(array.get3ByteInt(index, 17)).isEqualTo(0b01010101_01010101_01010101);
+        assertThat(array.get5ByteLong(index, 20)).isEqualTo(0b01010101_01010101_01010101_01010101_01010101L);
+        assertThat(array.get6ByteLong(index, 25)).isEqualTo(0b01010101_01010101_01010101_01010101_01010101_01010101L);
 
-        assertEquals(-2, array.get3ByteInt(index, 31));
-        assertEquals(-3, array.get5ByteLong(index, 34));
-        assertEquals(-4, array.get5ByteLong(index, 39));
+        assertThat(array.get3ByteInt(index, 31)).isEqualTo(-2);
+        assertThat(array.get5ByteLong(index, 34)).isEqualTo(-3);
+        assertThat(array.get5ByteLong(index, 39)).isEqualTo(-4);
     }
 
     private static void setArrayElement(ByteArray array, int index, byte[] bytes) {
@@ -264,6 +259,6 @@ public class ByteArrayTest {
 
     private static void verifyArrayElement(ByteArray array, int index, byte[] actualBytes, byte[] scratchBuffer) {
         array.getElement(index, scratchBuffer);
-        assertArrayEquals(actualBytes, scratchBuffer);
+        assertThat(scratchBuffer).containsExactly(actualBytes);
     }
 }

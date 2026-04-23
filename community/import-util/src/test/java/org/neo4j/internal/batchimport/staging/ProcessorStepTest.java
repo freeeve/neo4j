@@ -20,9 +20,7 @@
 package org.neo4j.internal.batchimport.staging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Answers.RETURNS_MOCKS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -76,7 +74,7 @@ class ProcessorStepTest {
             step.awaitCompleted();
 
             // THEN
-            assertEquals(batches, step.nextExpected.get());
+            assertThat(step.nextExpected.get()).isEqualTo(batches);
         }
     }
 
@@ -95,7 +93,7 @@ class ProcessorStepTest {
             step.endOfUpstream();
             step.awaitCompleted();
 
-            assertEquals(batches, step.nextExpected.get());
+            assertThat(step.nextExpected.get()).isEqualTo(batches);
         }
 
         assertThat(cacheTracer.pins()).isEqualTo(batches);
@@ -156,12 +154,12 @@ class ProcessorStepTest {
     }
 
     @Test
-    public void shouldBeAbleToPropagatePanicOnBlockedProcessorsWhenLast() throws InterruptedException {
+    void shouldBeAbleToPropagatePanicOnBlockedProcessorsWhenLast() throws InterruptedException {
         shouldBeAbleToPropagatePanicOnBlockedProcessors(2, 1);
     }
 
     @Test
-    public void shouldBeAbleToPropagatePanicOnBlockedProcessorsWhenNotLast() throws InterruptedException {
+    void shouldBeAbleToPropagatePanicOnBlockedProcessorsWhenNotLast() throws InterruptedException {
         shouldBeAbleToPropagatePanicOnBlockedProcessors(3, 1);
     }
 
@@ -205,12 +203,14 @@ class ProcessorStepTest {
 
             // Then
             execution.awaitCompletion();
-            RuntimeException exception = assertThrows(RuntimeException.class, execution::assertHealthy);
-            assertEquals(exceptionMessage, exception.getMessage());
+            RuntimeException exception = assertThatExceptionOfType(RuntimeException.class)
+                    .isThrownBy(execution::assertHealthy)
+                    .actual();
+            assertThat(exception.getMessage()).isEqualTo(exceptionMessage);
         } finally {
             stage.close();
         }
-        assertTrue(panicMonitor.hasReceivedPanic());
+        assertThat(panicMonitor.hasReceivedPanic()).isTrue();
     }
 
     private static ProducerStep intProducer(Configuration configuration, Stage stage, int batches) {

@@ -19,10 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.junit.jupiter.api.Test;
@@ -104,13 +101,13 @@ class RecordIdIteratorTest {
     private static void assertIds(RecordIdIterator ids, long[]... expectedIds) {
         for (long[] expectedArray : expectedIds) {
             LongIterator iterator = ids.nextBatch();
-            assertNotNull(iterator);
+            assertThat(iterator).isNotNull();
             for (long expectedId : expectedArray) {
-                assertEquals(expectedId, iterator.next());
+                assertThat(iterator.next()).isEqualTo(expectedId);
             }
-            assertFalse(iterator.hasNext());
+            assertThat(iterator.hasNext()).isFalse();
         }
-        assertNull(ids.nextBatch());
+        assertThat(ids.nextBatch()).isNull();
     }
 
     private static long[] array(long... ids) {

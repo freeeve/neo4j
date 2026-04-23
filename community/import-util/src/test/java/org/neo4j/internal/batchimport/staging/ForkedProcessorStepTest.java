@@ -20,11 +20,9 @@
 package org.neo4j.internal.batchimport.staging;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.internal.helpers.collection.Iterables.asList;
 import static org.neo4j.io.IOUtils.closeAllSilently;
@@ -74,7 +72,7 @@ class ForkedProcessorStepTest {
         step.close();
 
         // THEN
-        assertEquals(batches, downstream.received.get());
+        assertThat(downstream.received.get()).isEqualTo(batches);
     }
 
     @Test
@@ -99,7 +97,7 @@ class ForkedProcessorStepTest {
         step.close();
 
         // THEN
-        assertEquals(batches, downstream.received.get());
+        assertThat(downstream.received.get()).isEqualTo(batches);
     }
 
     @Test
@@ -125,7 +123,7 @@ class ForkedProcessorStepTest {
         step.close();
 
         // THEN
-        assertEquals(batches, downstream.received.get());
+        assertThat(downstream.received.get()).isEqualTo(batches);
     }
 
     @Test
@@ -192,10 +190,10 @@ class ForkedProcessorStepTest {
                 for (int i = 1; i < batch.length; i++) {
                     if (batch[i] % processors == id) {
                         boolean compareAndSet = reference.compareAndSet(batch[i], ticket, ticket + 1);
-                        assertTrue(
-                                compareAndSet,
-                                "I am " + id + ". Was expecting " + ticket + " for " + batch[i] + " but was "
-                                        + reference.get(batch[i]));
+                        assertThat(compareAndSet)
+                                .as("I am " + id + ". Was expecting " + ticket + " for " + batch[i] + " but was "
+                                        + reference.get(batch[i]))
+                                .isTrue();
                     }
                 }
             }
@@ -287,9 +285,8 @@ class ForkedProcessorStepTest {
         execution.assertHealthy();
 
         // then
-        assertEquals(
-                batches,
-                steps.get(steps.size() - 1).stats().stat(Keys.done_batches).asLong());
+        assertThat(steps.get(steps.size() - 1).stats().stat(Keys.done_batches).asLong())
+                .isEqualTo(batches);
 
         closeAllSilently(steps);
     }
@@ -356,7 +353,7 @@ class ForkedProcessorStepTest {
         }
 
         void processedBy(int id) {
-            assertFalse(processed[id]);
+            assertThat(processed[id]).isFalse();
             processed[id] = true;
         }
     }
@@ -383,7 +380,7 @@ class ForkedProcessorStepTest {
                     count++;
                 }
             }
-            assertEquals(batch.processed.length, count);
+            assertThat(count).isEqualTo(batch.processed.length);
             if (!received.compareAndSet(ticket - 1, ticket)) {
                 fail("Hmm " + ticket + " " + received.get());
             }

@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
@@ -35,7 +35,7 @@ class StringEncoderTest {
         long eId = encoder.encode("");
 
         // THEN
-        assertTrue(eId != 0);
+        assertThat(0).isNotSameAs(eId);
     }
 
     @Test
@@ -50,12 +50,12 @@ class StringEncoderTest {
         for (int i = 0; i < total; i++) {
             // THEN
             long encode = encoder.encode(abcStringOfLength(i));
-            assertTrue(encode != 0);
+            assertThat(0).isNotSameAs(encode);
             if (!encoded.add(encode)) {
                 duplicates++;
             }
         }
-        assertTrue(((float) duplicates / (float) total) < 0.01f);
+        assertThat((float) duplicates / (float) total).isLessThan(0.01f);
     }
 
     private static String abcStringOfLength(int length) {

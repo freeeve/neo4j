@@ -20,7 +20,7 @@
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class GroupCacheTest {
             assertSetAndGet(cache, 1000, 245);
 
             // then
-            assertThrows(ArithmeticException.class, () -> cache.set(10000, 345));
+            assertThatExceptionOfType(ArithmeticException.class).isThrownBy(() -> cache.set(10000, 345));
         }
     }
 
@@ -58,7 +58,7 @@ class GroupCacheTest {
             assertSetAndGet(cache, 10000, 0xFFFF);
 
             // then
-            assertThrows(ArithmeticException.class, () -> cache.set(100000, 123456));
+            assertThatExceptionOfType(ArithmeticException.class).isThrownBy(() -> cache.set(100000, 123456));
         }
     }
 

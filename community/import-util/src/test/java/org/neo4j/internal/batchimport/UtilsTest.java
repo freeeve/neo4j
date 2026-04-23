@@ -19,10 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -41,7 +38,7 @@ class UtilsTest {
         boolean collides = Utils.anyIdCollides(first, first.length, other, other.length);
 
         // THEN
-        assertTrue(collides);
+        assertThat(collides).isTrue();
     }
 
     @Test
@@ -54,7 +51,7 @@ class UtilsTest {
         boolean collides = Utils.anyIdCollides(first, first.length, other, other.length);
 
         // THEN
-        assertFalse(collides);
+        assertThat(collides).isFalse();
     }
 
     @Test
@@ -70,9 +67,8 @@ class UtilsTest {
         for (long[] rBatch : batches) {
             for (long[] lBatch : batches) {
                 // THEN
-                assertEquals(
-                        actuallyCollides(rBatch, lBatch),
-                        Utils.anyIdCollides(rBatch, rBatch.length, lBatch, lBatch.length));
+                assertThat(Utils.anyIdCollides(rBatch, rBatch.length, lBatch, lBatch.length))
+                        .isEqualTo(actuallyCollides(rBatch, lBatch));
             }
         }
     }
@@ -89,7 +85,7 @@ class UtilsTest {
         Utils.mergeSortedInto(values, into, intoLengthBefore);
 
         // THEN
-        assertArrayEquals(new long[] {1, 2, 4, 5, 6, 10, 11, 11, 14, 25}, into);
+        assertThat(into).containsExactly(new long[] {1, 2, 4, 5, 6, 10, 11, 11, 14, 25});
     }
 
     @Test
@@ -105,7 +101,7 @@ class UtilsTest {
             long[] expectedMergedArray = manuallyMerge(values, into);
             into = Arrays.copyOf(into, batchSize * 2);
             Utils.mergeSortedInto(values, into, batchSize);
-            assertArrayEquals(expectedMergedArray, into);
+            assertThat(into).containsExactly(expectedMergedArray);
         }
     }
 

@@ -22,9 +22,7 @@ package org.neo4j.internal.batchimport.cache.idmapping.string;
 import static java.lang.Math.toIntExact;
 import static java.lang.System.currentTimeMillis;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -77,7 +75,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 
 @RandomSupportExtension
-public class EncodingIdMapperTest {
+class EncodingIdMapperTest {
     private static final PropertyValueLookup CONVERT_TO_STRING = r -> new PropertyValueLookup.Lookup() {
         @Override
         public Object lookupProperty(long nodeId, MemoryTracker memoryTracker) {
@@ -105,7 +103,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleGreatAmountsOfStuff(int processors) throws KeyCollisionException {
+    void shouldHandleGreatAmountsOfStuff(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             IdMapper.Setter setter = idMapper.newSetter(0);
@@ -136,7 +134,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldReturnExpectedValueForNotFound(int processors) {
+    void shouldReturnExpectedValueForNotFound(int processors) {
         // GIVEN
         try (IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             idMapper.prepare(values(), mock(Collector.class), NONE, LongSets.immutable.empty());
@@ -148,13 +146,13 @@ public class EncodingIdMapperTest {
             }
 
             // THEN
-            assertEquals(IdMapper.ID_NOT_FOUND, id);
+            assertThat(id).isEqualTo(IdMapper.ID_NOT_FOUND);
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldReportProgressForSortAndDetect(int processors) {
+    void shouldReportProgressForSortAndDetect(int processors) {
         // GIVEN
         try (IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             ProgressMonitorFactory progressMonitorFactory = mock(ProgressMonitorFactory.class);
@@ -168,14 +166,14 @@ public class EncodingIdMapperTest {
             }
 
             // THEN
-            assertEquals(IdMapper.ID_NOT_FOUND, id);
+            assertThat(id).isEqualTo(IdMapper.ID_NOT_FOUND);
             verify(progressMonitorFactory).singlePart(anyString(), anyLong());
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldEncodeShortStrings(int processors) throws KeyCollisionException {
+    void shouldEncodeShortStrings(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
 
@@ -187,14 +185,14 @@ public class EncodingIdMapperTest {
 
             // THEN
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(1L, getter.get("456", globalGroup));
-                assertEquals(0L, getter.get("123", globalGroup));
+                assertThat(getter.get("456", globalGroup)).isOne();
+                assertThat(getter.get("123", globalGroup)).isZero();
             }
         }
     }
 
     @Test
-    public void shouldDiscardEmptyStringWhenEmptyNotMapped() throws KeyCollisionException {
+    void shouldDiscardEmptyStringWhenEmptyNotMapped() throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, 1)) {
 
@@ -204,14 +202,14 @@ public class EncodingIdMapperTest {
 
             // THEN
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(1L, getter.get("1", globalGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("", globalGroup));
+                assertThat(getter.get("1", globalGroup)).isOne();
+                assertThat(getter.get("", globalGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
             }
         }
     }
 
     @Test
-    public void shouldDetectUnknownInputIdWhenStrict() throws KeyCollisionException {
+    void shouldDetectUnknownInputIdWhenStrict() throws KeyCollisionException {
         final var existingInputId = "A";
         final var nonExistingCollidingInputId = "B";
         StringEncoder encoder = mock(StringEncoder.class);
@@ -228,14 +226,14 @@ public class EncodingIdMapperTest {
             mapper.prepare(alwaysReturn(existingInputId), collector, NONE, LongSets.immutable.empty());
 
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(nodeId, getter.get(existingInputId, globalGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get(nonExistingCollidingInputId, globalGroup));
+                assertThat(getter.get(existingInputId, globalGroup)).isEqualTo(nodeId);
+                assertThat(getter.get(nonExistingCollidingInputId, globalGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
             }
         }
     }
 
     @Test
-    public void shouldFindEncodedShortStringsWithNonAscii() throws KeyCollisionException {
+    void shouldFindEncodedShortStringsWithNonAscii() throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, 1)) {
 
@@ -249,15 +247,15 @@ public class EncodingIdMapperTest {
 
             // THEN
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(1L, getter.get(v2, globalGroup));
-                assertEquals(0L, getter.get(v1, globalGroup));
+                assertThat(getter.get(v2, globalGroup)).isOne();
+                assertThat(getter.get(v1, globalGroup)).isZero();
             }
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldEncodeSmallSetOfRandomData(int processors) throws KeyCollisionException {
+    void shouldEncodeSmallSetOfRandomData(int processors) throws KeyCollisionException {
         // GIVEN
         int size = random.nextInt(10_000) + 2;
         ValueType type = ValueType.values()[random.nextInt(ValueType.values().length)];
@@ -275,7 +273,9 @@ public class EncodingIdMapperTest {
             try (var getter = mapper.newGetter(0)) {
                 for (int nodeId = 0; nodeId < size; nodeId++) {
                     Object value = values.values.get(nodeId);
-                    assertEquals(nodeId, getter.get(value, globalGroup), "Expected " + value + " to map to " + nodeId);
+                    assertThat(getter.get(value, globalGroup))
+                            .as("Expected " + value + " to map to " + nodeId)
+                            .isEqualTo(nodeId);
                 }
             }
         }
@@ -283,7 +283,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldReportCollisionsForSameInputId(int processors) throws KeyCollisionException {
+    void shouldReportCollisionsForSameInputId(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -306,7 +306,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldReportDuplicateLongIdsWithHighRadixShift(int processors) throws KeyCollisionException {
+    void shouldReportDuplicateLongIdsWithHighRadixShift(int processors) throws KeyCollisionException {
         // IDs >= 2^47 force radixShift >= 25 in the collision sort. Before the fix,
         // dataValue() returned eId|COLLISION_BIT, shifting the collision bit into bit 30+ of
         // the radix, producing an out-of-range rIndex so TrackerInitializer never bucketed the
@@ -330,7 +330,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldDetectDuplicateAtPartitionSeam(int processors) throws KeyCollisionException {
+    void shouldDetectDuplicateAtPartitionSeam(int processors) throws KeyCollisionException {
         // With 101 collisions and the default partition size of 100, partitionDuplicateCheck's
         // seam-extension loop used an off-by-one guard (`toExclusive + 1 < numberOfCollisions`)
         // that never inspected the final collision entry. That last entry then ended up alone in
@@ -365,7 +365,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldCopeWithCollisionsBasedOnDifferentInputIds(int processors) throws KeyCollisionException {
+    void shouldCopeWithCollisionsBasedOnDifferentInputIds(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Encoder encoder = mock(Encoder.class);
@@ -387,15 +387,15 @@ public class EncodingIdMapperTest {
             verifyNoMoreInteractions(collector);
             verify(monitor).numberOfCollisions(2);
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(0L, getter.get("10", globalGroup));
-                assertEquals(1L, getter.get("9", globalGroup));
+                assertThat(getter.get("10", globalGroup)).isZero();
+                assertThat(getter.get("9", globalGroup)).isOne();
             }
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldCopeWithMixedActualAndAccidentalCollisions(int processors) throws KeyCollisionException {
+    void shouldCopeWithMixedActualAndAccidentalCollisions(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Encoder encoder = mock(Encoder.class);
@@ -438,19 +438,19 @@ public class EncodingIdMapperTest {
             // THEN
             verify(monitor).numberOfCollisions(4);
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(0L, getter.get(a, groupA));
-                assertEquals(1L, getter.get(b, groupA));
-                assertEquals(2L, getter.get(c, groupA));
-                assertEquals(3L, getter.get(a2, groupB));
-                assertEquals(4L, getter.get(e, groupB));
-                assertEquals(5L, getter.get(f, groupB));
+                assertThat(getter.get(a, groupA)).isZero();
+                assertThat(getter.get(b, groupA)).isOne();
+                assertThat(getter.get(c, groupA)).isEqualTo(2L);
+                assertThat(getter.get(a2, groupB)).isEqualTo(3L);
+                assertThat(getter.get(e, groupB)).isEqualTo(4L);
+                assertThat(getter.get(f, groupB)).isEqualTo(5L);
             }
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldBeAbleToHaveDuplicateInputIdButInDifferentGroups(int processors) throws KeyCollisionException {
+    void shouldBeAbleToHaveDuplicateInputIdButInDifferentGroups(int processors) throws KeyCollisionException {
         // GIVEN
         EncodingIdMapper.Monitor monitor = mock(EncodingIdMapper.Monitor.class);
         Group firstGroup = groups.getOrCreate("first");
@@ -473,17 +473,17 @@ public class EncodingIdMapperTest {
             verifyNoMoreInteractions(collector);
             verify(monitor).numberOfCollisions(0);
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(0L, getter.get("10", firstGroup));
-                assertEquals(1L, getter.get("9", firstGroup));
-                assertEquals(2L, getter.get("10", secondGroup));
+                assertThat(getter.get("10", firstGroup)).isZero();
+                assertThat(getter.get("9", firstGroup)).isOne();
+                assertThat(getter.get("10", secondGroup)).isEqualTo(2L);
             }
-            assertFalse(mapper.leftOverDuplicateNodesIds().hasNext());
+            assertThat(mapper.leftOverDuplicateNodesIds().hasNext()).isFalse();
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldOnlyFindInputIdsInSpecificGroup(int processors) throws KeyCollisionException {
+    void shouldOnlyFindInputIdsInSpecificGroup(int processors) throws KeyCollisionException {
         // GIVEN
         Group firstGroup = groups.getOrCreate("first");
         Group secondGroup = groups.getOrCreate("second");
@@ -501,24 +501,24 @@ public class EncodingIdMapperTest {
 
             // WHEN/THEN
             try (var getter = mapper.newGetter(0)) {
-                assertEquals(0L, getter.get("8", firstGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("8", secondGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("8", thirdGroup));
+                assertThat(getter.get("8", firstGroup)).isZero();
+                assertThat(getter.get("8", secondGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
+                assertThat(getter.get("8", thirdGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
 
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("9", firstGroup));
-                assertEquals(1L, getter.get("9", secondGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("9", thirdGroup));
+                assertThat(getter.get("9", firstGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
+                assertThat(getter.get("9", secondGroup)).isOne();
+                assertThat(getter.get("9", thirdGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
 
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("10", firstGroup));
-                assertEquals(IdMapper.ID_NOT_FOUND, getter.get("10", secondGroup));
-                assertEquals(2L, getter.get("10", thirdGroup));
+                assertThat(getter.get("10", firstGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
+                assertThat(getter.get("10", secondGroup)).isEqualTo(IdMapper.ID_NOT_FOUND);
+                assertThat(getter.get("10", thirdGroup)).isEqualTo(2L);
             }
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleManyGroups(int processors) throws KeyCollisionException {
+    void shouldHandleManyGroups(int processors) throws KeyCollisionException {
         // GIVEN
         int size = 256; // which results in GLOBAL (0) + 1-256 = 257 groups, i.e. requiring two bytes
         for (int i = 0; i < size; i++) {
@@ -539,7 +539,7 @@ public class EncodingIdMapperTest {
             // THEN
             try (var getter = mapper.newGetter(0)) {
                 for (int i = 0; i < size; i++) {
-                    assertEquals(i, getter.get(i, groups.get("" + i)));
+                    assertThat(getter.get(i, groups.get("" + i))).isEqualTo(i);
                 }
             }
         }
@@ -547,7 +547,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldDetectCorrectDuplicateInputIdsWhereManyAccidentalInManyGroups(int processors)
+    void shouldDetectCorrectDuplicateInputIdsWhereManyAccidentalInManyGroups(int processors)
             throws KeyCollisionException {
         // GIVEN
         final var encoder = new ControlledEncoder(new LongEncoder());
@@ -599,18 +599,18 @@ public class EncodingIdMapperTest {
                     var groupId = nodeIdToGroupId.apply(nodeId);
                     var inputId = lookup.lookupProperty(nodeId, INSTANCE);
                     var actual = getter.get(inputId, groups.get(groupId));
-                    assertEquals(nodeId, actual);
+                    assertThat(actual).isEqualTo(nodeId);
                 }
             }
             verifyNoMoreInteractions(collector);
-            assertFalse(mapper.leftOverDuplicateNodesIds().hasNext());
+            assertThat(mapper.leftOverDuplicateNodesIds().hasNext()).isFalse();
             lookup.close();
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleHolesInIdSequence(int processors) throws KeyCollisionException {
+    void shouldHandleHolesInIdSequence(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -629,7 +629,7 @@ public class EncodingIdMapperTest {
             // THEN
             try (var getter = mapper.newGetter(0)) {
                 for (Object id : ids) {
-                    assertEquals(((Long) id).longValue(), getter.get(id, globalGroup));
+                    assertThat(getter.get(id, globalGroup)).isEqualTo(((Long) id).longValue());
                 }
             }
         }
@@ -637,7 +637,7 @@ public class EncodingIdMapperTest {
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldHandleLargeAmountsOfDuplicateNodeIds(int processors) throws KeyCollisionException {
+    void shouldHandleLargeAmountsOfDuplicateNodeIds(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -662,13 +662,13 @@ public class EncodingIdMapperTest {
 
             // THEN
             verify(collector, times(high)).collectDuplicateNode(any(Object.class), anyLong(), any(), any(), anyLong());
-            assertEquals(high, count(mapper.leftOverDuplicateNodesIds()));
+            assertThat(count(mapper.leftOverDuplicateNodesIds())).isEqualTo(high);
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldDetectLargeAmountsOfCollisions(int processors) throws KeyCollisionException {
+    void shouldDetectLargeAmountsOfCollisions(int processors) throws KeyCollisionException {
         // GIVEN
         try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -697,13 +697,13 @@ public class EncodingIdMapperTest {
             mapper.prepare(values(ids.toArray()), collector, NONE, LongSets.immutable.empty());
 
             // THEN
-            assertEquals(count, reportedCount.intValue());
+            assertThat(reportedCount.intValue()).isEqualTo(count);
         }
     }
 
     @ParameterizedTest(name = "processors:{0}")
     @MethodSource("data")
-    public void shouldPutFromMultipleThreads(int processors) throws Throwable {
+    void shouldPutFromMultipleThreads(int processors) throws Throwable {
         // GIVEN
         try (IdMapper idMapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
             AtomicLong highNodeId = new AtomicLong();
@@ -744,12 +744,12 @@ public class EncodingIdMapperTest {
                 for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
                     long result = getter.get(lookup.lookupProperty(nodeId, INSTANCE), globalGroup);
                     if (result != -1) {
-                        assertEquals(nodeId, result);
+                        assertThat(result).isEqualTo(nodeId);
                         correctHits++;
                     }
                 }
             }
-            assertEquals(count, correctHits);
+            assertThat(correctHits).isEqualTo(count);
         }
     }
 
@@ -777,8 +777,8 @@ public class EncodingIdMapperTest {
             idMapper.prepare(FAILING_LOOKUP, Collector.EMPTY, NONE, LongSets.immutable.empty());
 
             // THEN
-            assertEquals((count - 1) * 2, highDataIndex.longValue());
-            assertEquals(count - 1, highTrackerIndex.longValue());
+            assertThat(highDataIndex.longValue()).isEqualTo((count - 1) * 2);
+            assertThat(highTrackerIndex.longValue()).isEqualTo(count - 1);
         }
     }
 
@@ -846,9 +846,9 @@ public class EncodingIdMapperTest {
             // then
             try (var getter = idMapper.newGetter(0)) {
                 assertThat(getter.get("1", actor)).isEqualTo(546);
-                assertThat(getter.get("1", movie)).isEqualTo(0);
+                assertThat(getter.get("1", movie)).isZero();
                 assertThat(getter.get("2", actor)).isEqualTo(547);
-                assertThat(getter.get("2", movie)).isEqualTo(1);
+                assertThat(getter.get("2", movie)).isOne();
                 assertThat(getter.get("3", actor)).isEqualTo(548);
                 assertThat(getter.get("3", movie)).isEqualTo(2);
             }

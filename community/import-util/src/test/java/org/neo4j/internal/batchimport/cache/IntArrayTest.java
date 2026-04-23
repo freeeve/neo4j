@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.Arrays;
@@ -66,7 +66,7 @@ class IntArrayTest {
                         expected[index] = value;
                         break;
                     case 1: // get
-                        assertEquals(expected[index], array.get(index));
+                        assertThat(array.get(index)).isEqualTo(expected[index]);
                         break;
                     default: // swap
                         int toIndex = random.nextInt(length);
@@ -103,10 +103,10 @@ class IntArrayTest {
             array.set(4, 5);
 
             // WHEN
-            assertEquals(5, array.get(4));
-            assertEquals(defaultValue, array.get(12));
+            assertThat(array.get(4)).isEqualTo(5);
+            assertThat(array.get(12)).isEqualTo(defaultValue);
             array.set(7, 1324);
-            assertEquals(1324, array.get(7));
+            assertThat(array.get(7)).isEqualTo(1324);
         }
     }
 
@@ -115,13 +115,13 @@ class IntArrayTest {
         var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
         try (var longArray = NumberArrayFactories.OFF_HEAP.newDynamicLongArray(10, 0, memoryTracker)) {
 
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(0, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isZero();
 
             longArray.set(0, 5);
 
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(64, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isEqualTo(64);
         }
     }
 
@@ -138,7 +138,7 @@ class IntArrayTest {
             array.set(index, value);
 
             // THEN
-            assertEquals(value, array.get(index));
+            assertThat(array.get(index)).isEqualTo(value);
         }
     }
 

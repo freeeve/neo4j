@@ -21,7 +21,7 @@ package org.neo4j.internal.batchimport.staging;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;

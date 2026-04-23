@@ -22,10 +22,7 @@ package org.neo4j.internal.batchimport.input.parquet;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -60,7 +57,6 @@ import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Types;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
@@ -154,7 +150,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -184,7 +180,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -228,7 +224,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 123L, properties("notaname", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -269,7 +265,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -310,7 +306,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
             assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -339,7 +335,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties(), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -398,7 +394,7 @@ class ParquetInputTest {
                                 assertThat(propertyNode2.asValue()).isEqualTo(Values.stringValue("SomeoneElse"));
                                 assertThat(propertyNode2.keyName()).isEqualTo("new_name");
                             });
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -431,7 +427,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("ignored-column-name", "Mattias Persson"), labels("HACKER"));
             assertNextNode(nodes, 456L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -546,7 +542,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -569,7 +565,7 @@ class ParquetInputTest {
                 var nodes = input.nodes(EMPTY).iterator()) {
             // then
             assertNextNode(nodes, groups.get("new-group"), 123, properties("id", 123, "prop", "val"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -596,7 +592,7 @@ class ParquetInputTest {
                 var nodes = input.nodes(EMPTY).iterator()) {
             // Then the id field is converted to String and stored as a property
             assertNextNode(nodes, groups.get("new-group"), "123", properties("id", "123", "prop", "val"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -608,11 +604,11 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -628,11 +624,11 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(headerFile, nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -646,7 +642,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of("a"), "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -658,12 +654,12 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes, 123L, properties("aList", expectedEmptyArray, "name", "Dhru Devalia"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -674,11 +670,11 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 456L, properties("name", "Dhru"), labels("REKCAH"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -689,7 +685,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -697,7 +693,7 @@ class ParquetInputTest {
                     123L,
                     properties("aMap.a", "aa", "aMap.b", "bb", "name", "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -708,12 +704,12 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
                     nodes, 123L, properties("aMap.a", 1L, "aMap.b", 23L, "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -724,7 +720,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -744,7 +740,7 @@ class ParquetInputTest {
                             "name",
                             "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -755,11 +751,11 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -770,11 +766,11 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -785,11 +781,11 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aMap.x", "abcd", "name", "Mattias Persson"), labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -813,7 +809,7 @@ class ParquetInputTest {
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -821,7 +817,7 @@ class ParquetInputTest {
                     123L,
                     properties("aStruct.a", "aa", "aStruct.b", "bb", "name", "Mattias Persson"),
                     labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -833,7 +829,7 @@ class ParquetInputTest {
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN/THEN
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -854,7 +850,7 @@ class ParquetInputTest {
                             "cStruct.items",
                             List.of("foo", "bar", "baz")),
                     labels("HACKER"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -887,7 +883,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -919,7 +915,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -950,7 +946,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties());
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1043,7 +1039,7 @@ class ParquetInputTest {
                             properties("notsince", 987654L),
                             properties("since", 1234567L),
                             properties("since", 987654L)));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1096,7 +1092,7 @@ class ParquetInputTest {
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("notsince", 987654L));
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1131,7 +1127,7 @@ class ParquetInputTest {
             assertNextNode(nodes, "2", properties("name", "Abathur", "kills", 0, "health", 200), labels());
             assertNextNode(nodes, "3", properties("type", "zergling"), labels());
             assertNextNode(nodes, "4", properties("type", "csv"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1158,7 +1154,7 @@ class ParquetInputTest {
             assertNextNode(nodes, 0L, properties("name", "First"), labels(addedLabels));
             assertNextNode(nodes, 1L, properties("name", "Second"), labels(union(new String[] {"One"}, addedLabels)));
             assertNextNode(nodes, 2L, properties("name", "Third"), labels(union(new String[] {"One"}, addedLabels)));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1183,7 +1179,7 @@ class ParquetInputTest {
             assertNextRelationship(relationships, 0L, 1L, defaultType, emptyMap());
             assertNextRelationship(relationships, 1L, 2L, customType, emptyMap());
             assertNextRelationship(relationships, 2L, 1L, defaultType, emptyMap());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -1204,7 +1200,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, null, null, properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1228,7 +1224,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, "abc", properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1253,7 +1249,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, "abc", properties("id", "abc", "name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, null, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1275,7 +1271,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, null, 0L, properties("name", "Mattias", "level", 1), labels());
             assertNextNode(nodes, null, 1L, properties("name", "Johan", "level", 2), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1299,7 +1295,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias"), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "extra", "Additional"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1323,7 +1319,7 @@ class ParquetInputTest {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias"), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "extra", "Additional"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1344,7 +1340,7 @@ class ParquetInputTest {
                         new Object[] {1, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1366,7 +1362,7 @@ class ParquetInputTest {
                             "point",
                             Values.pointValue(CoordinateReferenceSystem.WGS_84_3D, 5, -4.2, 0.01)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1391,7 +1387,7 @@ class ParquetInputTest {
         try {
             assertThatThrownBy(() -> readNext(nodes)).isInstanceOf(InputException.class);
         } finally {
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
             nodes.close();
         }
     }
@@ -1423,7 +1419,7 @@ class ParquetInputTest {
                             "point",
                             Values.pointValue(CoordinateReferenceSystem.WGS_84_3D, 5, -4.2, 0.01)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1450,7 +1446,7 @@ class ParquetInputTest {
                     0L,
                     properties("name", "Johan", "point", Values.pointValue(CoordinateReferenceSystem.WGS_84, 1, 2)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1466,13 +1462,13 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", 1.1d}, new Object[] {1, "Johan", 2.2d}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "someDouble", 1.1d), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "someDouble", 2.2d), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1488,13 +1484,13 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", 1.1f}, new Object[] {1, "Johan", 2.2f}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "someDouble", 1.1f), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "someDouble", 2.2f), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1513,13 +1509,13 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "2018-02-27"}, new Object[] {1, "Johan", "2018-03-01"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2018, 2, 27)), labels());
             assertNextNode(nodes, 1L, properties("name", "Johan", "date", DateValue.date(2018, 3, 1)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1537,12 +1533,12 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1562,12 +1558,12 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1587,12 +1583,12 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1619,7 +1615,7 @@ class ParquetInputTest {
                     0L,
                     properties("name", "Mattias", "date", LocalDateTimeValue.localDateTime(2005, 5, 24, 22, 54, 33, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1653,7 +1649,7 @@ class ParquetInputTest {
                             DateTimeValue.datetime(
                                     2025, 7, 18, 13, 22, 12, 961528000, ZoneId.of(ZoneOffset.UTC.getId()))),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1686,7 +1682,7 @@ class ParquetInputTest {
                             "date",
                             LocalDateTimeValue.localDateTime(2025, 7, 18, 13, 22, 12, 961528000)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1719,7 +1715,7 @@ class ParquetInputTest {
                             "date",
                             LocalDateTimeValue.localDateTime(2025, 7, 18, 13, 22, 12, 961000000)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1749,7 +1745,7 @@ class ParquetInputTest {
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(16, 20, 1, 0, "+00:00")), labels());
             assertNextNode(
                     nodes, 2L, properties("name", "Bob", "time", TimeValue.time(7, 30, 0, 0, "-05:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1776,7 +1772,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1805,7 +1801,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1834,7 +1830,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1863,7 +1859,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1892,7 +1888,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1921,7 +1917,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1950,7 +1946,7 @@ class ParquetInputTest {
                     labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1979,7 +1975,7 @@ class ParquetInputTest {
                     1L,
                     properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -1993,7 +1989,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
             assertNextNode(nodes, 1L, properties("myUUID", "ba576658-d01d-4858-94ff-a97f18be9608"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2022,7 +2018,7 @@ class ParquetInputTest {
                     1L,
                     properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2085,7 +2081,7 @@ class ParquetInputTest {
                             "integer",
                             103),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2131,7 +2127,7 @@ class ParquetInputTest {
                             "c_date",
                             DateValue.date(1999, 1, 5)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2173,7 +2169,7 @@ class ParquetInputTest {
                     .doesNotContain("c_timestamp_millis")
                     .doesNotContain("c_date");
 
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2222,7 +2218,7 @@ class ParquetInputTest {
                             "c_ulong",
                             -1L), // ignore
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2252,7 +2248,7 @@ class ParquetInputTest {
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(16, 20, 1, 0, "+02:00")), labels());
             assertNextNode(
                     nodes, 2L, properties("name", "Bob", "time", TimeValue.time(7, 30, 0, 0, "-05:00")), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2292,7 +2288,7 @@ class ParquetInputTest {
                     2L,
                     properties("name", "Bob", "time", DateTimeValue.datetime(1981, 5, 11, 7, 30, 0, 0, "-05:00")),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2340,7 +2336,7 @@ class ParquetInputTest {
                     2L,
                     properties("name", "Bob", "time", DateTimeValue.datetime(1981, 5, 11, 7, 30, 0, 0, "-05:00")),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2366,7 +2362,7 @@ class ParquetInputTest {
                     nodes, 0L, properties("name", "Mattias", "time", LocalTimeValue.localTime(13, 37, 0, 0)), labels());
             assertNextNode(
                     nodes, 1L, properties("name", "Johan", "time", LocalTimeValue.localTime(16, 20, 1, 0)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2399,7 +2395,7 @@ class ParquetInputTest {
                     1L,
                     properties("name", "Johan", "time", LocalDateTimeValue.localDateTime(2018, 3, 1, 16, 20, 1, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2418,7 +2414,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "P3MT13H37M"}, new Object[] {1, "Johan", "P-1YT4H20M"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertFalse(input.containsVectorData());
+        assertThat(input.containsVectorData()).isFalse();
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2432,7 +2428,7 @@ class ParquetInputTest {
                     1L,
                     properties("name", "Johan", "duration", DurationValue.duration(-12, 0, 4 * 3600 + 20 * 60, 0)),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2454,7 +2450,7 @@ class ParquetInputTest {
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
             assertNextNode(nodes, group, 456L, properties("name", "two"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2495,7 +2491,7 @@ class ParquetInputTest {
                     "3%s6".formatted(ParquetInput.DELIMITER),
                     properties("part1", 3, "part2", 6),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2519,7 +2515,7 @@ class ParquetInputTest {
                     "1234%s56".formatted(ParquetInput.DELIMITER),
                     properties("part1", 1234, "part2", 56),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2570,7 +2566,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertRelationship(relationships, startGroupName, 123L, endGroupName, 234L, "TYPE", properties());
             assertRelationship(relationships, startGroupName, 345L, endGroupName, 456L, "TYPE", properties());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2607,15 +2603,15 @@ class ParquetInputTest {
                 MONITOR);
         var nodesFromIterator = new ArrayList<VisitedNode>();
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            assertTrue(readNext(nodes));
+            assertThat(readNext(nodes)).isTrue();
             nodesFromIterator.add(VisitedNode.from(visitor));
-            assertTrue(readNext(nodes));
+            assertThat(readNext(nodes)).isTrue();
             nodesFromIterator.add(VisitedNode.from(visitor));
-            assertTrue(readNext(nodes));
+            assertThat(readNext(nodes)).isTrue();
             nodesFromIterator.add(VisitedNode.from(visitor));
-            assertTrue(readNext(nodes));
+            assertThat(readNext(nodes)).isTrue();
             nodesFromIterator.add(VisitedNode.from(visitor));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
         assertNextVisitedNode(nodesFromIterator, 234L, groups.get(endGroupName), Set.of("ENDTHING"));
         assertNextVisitedNode(nodesFromIterator, 456L, groups.get(endGroupName), Set.of("ENDTHING"));
@@ -2624,7 +2620,7 @@ class ParquetInputTest {
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertRelationship(relationships, startGroupName, 123L, endGroupName, 234L, "TYPE", properties());
             assertRelationship(relationships, startGroupName, 345L, endGroupName, 456L, "TYPE", properties());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2678,7 +2674,7 @@ class ParquetInputTest {
                     "456%c666".formatted(ParquetInput.DELIMITER),
                     "TYPE",
                     properties());
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2707,7 +2703,7 @@ class ParquetInputTest {
             // THEN
             assertNextRelationship(relationships, 0L, 1L, defaultType, properties("name", "First"));
             assertNextRelationship(relationships, 2L, 3L, defaultType, properties("name", "Second"));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2738,7 +2734,7 @@ class ParquetInputTest {
             assertNextNode(nodes, 1L, properties("other", 10), labels("Person"));
             assertNextNode(nodes, 2L, properties("other", 111), labels("Person"));
             assertNextNode(nodes, 3L, properties("other", 12), labels("Person"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2776,7 +2772,7 @@ class ParquetInputTest {
             assertNextRelationship(relationships, 1L, 2L, "KNOWS", properties("other", 10));
             assertNextRelationship(relationships, 2L, 3L, "KNOWS", properties("other", 111));
             assertNextRelationship(relationships, 3L, 4L, "KNOWS", properties("other", 12));
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2801,7 +2797,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("prop", Values.intArray(new int[] {1, 23})), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2826,7 +2822,7 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties(), labels("Foo", "Bar"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2854,7 +2850,7 @@ class ParquetInputTest {
                     2L,
                     properties("sprop", Values.stringArray("a", "b"), "lprop", Values.longArray(new long[] {10, 20})),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2888,7 +2884,7 @@ class ParquetInputTest {
                 readNodes++;
             }
             assertThat(readNodes).isEqualTo(8);
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             var readRelationships = 0;
@@ -2896,7 +2892,7 @@ class ParquetInputTest {
                 readRelationships++;
             }
             assertThat(readRelationships).isEqualTo(4);
-            assertFalse(readNext(relationships));
+            assertThat(readNext(relationships)).isFalse();
         }
     }
 
@@ -2924,11 +2920,11 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2951,11 +2947,11 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withDelimiter(';').build());
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2975,11 +2971,11 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withArrayDelimiter('§').build());
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -2999,11 +2995,11 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withVectorDelimiter('§').build());
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3029,13 +3025,13 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Header specified 3 dimensions, but vector has 2 dimensions");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3050,13 +3046,13 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify dimensions");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3071,13 +3067,13 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify coordinate type");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3092,13 +3088,13 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("vector must specify");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3128,13 +3124,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Duplicate field 'coordinateType'");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3159,12 +3155,12 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, ""}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties(), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3180,13 +3176,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;;23 to VECTOR");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3202,13 +3198,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;23; to VECTOR");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3224,13 +3220,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("could not convert 1;abc;23 to VECTOR");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3257,11 +3253,11 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3277,13 +3273,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("pyte is not a valid coordinate type.");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3299,13 +3295,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("three is not a valid value for dimensions.");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3322,13 +3318,13 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR);
-        assertTrue(input.containsVectorData());
+        assertThat(input.containsVectorData()).isTrue();
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
                     .isInstanceOf(InputException.class)
                     .hasMessageContaining("Invalid vector dimensions: 5000");
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3356,7 +3352,7 @@ class ParquetInputTest {
                     2L,
                     properties("sprop", Values.stringArray("a", "b"), "lprop", Values.longArray(new long[] {10, 20})),
                     labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3713,7 +3709,7 @@ class ParquetInputTest {
             var schema = input.referencedNodeSchema(tokenHolders);
 
             // then
-            Assertions.assertThat(schema).isEqualTo(Map.of("My Group", SchemaDescriptors.forLabel(2, 4)));
+            assertThat(schema).containsExactlyInAnyOrderEntriesOf(Map.of("My Group", SchemaDescriptors.forLabel(2, 4)));
         }
     }
 
@@ -3737,7 +3733,7 @@ class ParquetInputTest {
                 var nodes = input.nodes(EMPTY).iterator()) {
             // then
             assertNextNode(nodes, groups.get("new-group"), 123, properties("id", 123, "prop", "val"), labels());
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3777,7 +3773,7 @@ class ParquetInputTest {
                     "ABC%s456".formatted(ParquetInput.DELIMITER),
                     properties("id1", "ABC", "id2", "456", "name", "Second"),
                     Set.of("Person"));
-            assertFalse(readNext(nodes));
+            assertThat(readNext(nodes)).isFalse();
         }
     }
 
@@ -3897,7 +3893,7 @@ class ParquetInputTest {
                     bandId,
                     "MEMBER_OF",
                     properties());
-            assertFalse(readNext(rels));
+            assertThat(readNext(rels)).isFalse();
         }
     }
 
@@ -3961,7 +3957,7 @@ class ParquetInputTest {
                     groupId,
                     "MEMBER_OF",
                     properties());
-            assertFalse(readNext(rels));
+            assertThat(readNext(rels)).isFalse();
         }
     }
 
@@ -4066,18 +4062,18 @@ class ParquetInputTest {
             throws IOException {
         var success = false;
         Throwable lastError = null;
-        assertTrue(readNext(relationship));
+        assertThat(readNext(relationship)).isTrue();
         for (int i = 0; i < startNodes.size(); i++) {
             var startNode = startNodes.get(i);
             var endNode = endNodes.get(i);
             var type = types.get(i);
             var properties = propertiess.get(i);
             try {
-                assertEquals(groups.get(null), visitor.startIdGroup);
-                assertEquals(startNode, visitor.startId());
-                assertEquals(groups.get(null), visitor.endIdGroup);
-                assertEquals(endNode, visitor.endId());
-                assertEquals(type, visitor.stringType);
+                assertThat(visitor.startIdGroup).isEqualTo(groups.get(null));
+                assertThat(visitor.startId()).isEqualTo(startNode);
+                assertThat(visitor.endIdGroup).isEqualTo(groups.get(null));
+                assertThat(visitor.endId()).isEqualTo(endNode);
+                assertThat(visitor.stringType).isEqualTo(type);
                 assertPropertiesEquals(properties, visitor.propertiesAsMap());
                 success = true;
             } catch (AssertionFailedError e) {
@@ -4085,7 +4081,7 @@ class ParquetInputTest {
             }
         }
         if (!success) {
-            fail(lastError);
+            fail("", lastError);
         }
     }
 
@@ -4098,12 +4094,12 @@ class ParquetInputTest {
             String type,
             Map<String, Object> properties)
             throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(startNodeGroup, visitor.startIdGroup);
-        assertEquals(startNode, visitor.startId());
-        assertEquals(endNodeGroup, visitor.endIdGroup);
-        assertEquals(endNode, visitor.endId());
-        assertEquals(type, visitor.stringType);
+        assertThat(readNext(data)).isTrue();
+        assertThat(visitor.startIdGroup).isEqualTo(startNodeGroup);
+        assertThat(visitor.startId()).isEqualTo(startNode);
+        assertThat(visitor.endIdGroup).isEqualTo(endNodeGroup);
+        assertThat(visitor.endId()).isEqualTo(endNode);
+        assertThat(visitor.stringType).isEqualTo(type);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }
 
@@ -4116,12 +4112,12 @@ class ParquetInputTest {
             String type,
             Map<String, Object> properties)
             throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(startNodeGroupName, visitor.startIdGroup.name());
-        assertEquals(startNode, visitor.startId());
-        assertEquals(endNodeGroupName, visitor.endIdGroup.name());
-        assertEquals(endNode, visitor.endId());
-        assertEquals(type, visitor.stringType);
+        assertThat(readNext(data)).isTrue();
+        assertThat(visitor.startIdGroup.name()).isEqualTo(startNodeGroupName);
+        assertThat(visitor.startId()).isEqualTo(startNode);
+        assertThat(visitor.endIdGroup.name()).isEqualTo(endNodeGroupName);
+        assertThat(visitor.endId()).isEqualTo(endNode);
+        assertThat(visitor.stringType).isEqualTo(type);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }
 
@@ -4153,23 +4149,23 @@ class ParquetInputTest {
     private void assertNextNode(
             InputIterator data, Group group, Object id, Map<String, Object> properties, Set<String> labels)
             throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(group, visitor.idGroup);
-        assertEquals(id, visitor.id());
-        assertEquals(labels, asSet(visitor.labels()));
+        assertThat(readNext(data)).isTrue();
+        assertThat(visitor.idGroup).isEqualTo(group);
+        assertThat(visitor.id()).isEqualTo(id);
+        assertThat(asSet(visitor.labels())).hasSameElementsAs(labels);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }
 
     private void assertNextNodeWithoutGroupAndIdCheck(
             InputIterator data, Map<String, Object> properties, Set<String> labels) throws IOException {
-        assertTrue(readNext(data));
-        assertEquals(labels, asSet(visitor.labels()));
+        assertThat(readNext(data)).isTrue();
+        assertThat(asSet(visitor.labels())).hasSameElementsAs(labels);
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }
 
     private void assertPropertiesEquals(Map<String, Object> expected, Map<String, Object> actual) {
         // Do this more complicated assert to handle primitive array equality
-        assertEquals(primitiveArraysAsLists(expected), primitiveArraysAsLists(actual));
+        assertThat(primitiveArraysAsLists(actual)).containsExactlyInAnyOrderEntriesOf(primitiveArraysAsLists(expected));
     }
 
     private Map<String, Object> primitiveArraysAsLists(Map<String, Object> map) {

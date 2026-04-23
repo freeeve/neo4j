@@ -19,8 +19,8 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +35,7 @@ class LongEncoderTest {
         long b = encoder.encode(1L << 28);
 
         // THEN
-        assertNotEquals(a, b);
+        assertThat(b).isNotEqualTo(a);
     }
 
     @Test
@@ -47,7 +47,7 @@ class LongEncoderTest {
         long invalidValue = 0x01ABC123_4567890FL;
 
         // THEN
-        assertThrows(IllegalArgumentException.class, () -> encoder.encode(invalidValue));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> encoder.encode(invalidValue));
     }
 
     @Test
@@ -59,6 +59,6 @@ class LongEncoderTest {
         long invalidValue = -1;
 
         // THEN
-        assertThrows(IllegalArgumentException.class, () -> encoder.encode(invalidValue));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> encoder.encode(invalidValue));
     }
 }

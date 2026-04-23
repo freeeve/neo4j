@@ -21,8 +21,6 @@ package org.neo4j.internal.batchimport.input.csv;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.csv.reader.Readables.wrap;
 import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultFormatNodeFileHeader;
 import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultFormatRelationshipFileHeader;
@@ -55,7 +53,7 @@ import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TimeValue;
 
-public class DataFactoriesTest {
+class DataFactoriesTest {
     private static final int BUFFER_SIZE = 10_000;
     private static final Configuration COMMAS =
             Configuration.COMMAS.toBuilder().withBufferSize(BUFFER_SIZE).build();
@@ -76,11 +74,11 @@ public class DataFactoriesTest {
                 config,
                 () -> ZoneOffset.UTC,
                 String.join(commasOrTabs ? "," : "\t", headers).toCharArray());
-        assertThat(rawHeaders).isEqualTo(headers);
+        assertThat(rawHeaders).containsExactlyElementsOf(headers);
     }
 
     @Test
-    public void shouldParseDefaultNodeFileHeaderCorrectly() throws Exception {
+    void shouldParseDefaultNodeFileHeaderCorrectly() throws Exception {
         // GIVEN
         CharSeeker seeker = seeker("ID:ID,label-one:label,also-labels:LABEL,name,age:long,location:Point{crs:WGS-84}");
         IdType idType = IdType.STRING;
@@ -90,8 +88,8 @@ public class DataFactoriesTest {
         Header header = defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("ID", Type.ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry("label-one", Type.LABEL, extractors.stringArray()),
                         entry("also-labels", Type.LABEL, extractors.stringArray()),
@@ -101,13 +99,12 @@ public class DataFactoriesTest {
                                 "location",
                                 extractors.point(),
                                 Map.of("crs", "WGS-84"),
-                                PointValue.parseHeaderInformation("{crs:WGS-84}"))),
-                header.entries());
+                                PointValue.parseHeaderInformation("{crs:WGS-84}"))));
         seeker.close();
     }
 
     @Test
-    public void shouldParseNodeArrayTypesHeaderCorrectly() throws Exception {
+    void shouldParseNodeArrayTypesHeaderCorrectly() throws Exception {
         // GIVEN
         CharSeeker seeker =
                 seeker("ID:ID,longArray:long[],pointArray:Point[]{crs:WGS-84},timeArray:time[]{timezone:+02:00},"
@@ -119,8 +116,8 @@ public class DataFactoriesTest {
         Header header = defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("ID", Type.ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry("longArray", Type.PROPERTY, extractors.longArray()),
                         propertyEntry(
@@ -137,13 +134,12 @@ public class DataFactoriesTest {
                                 "dateTimeArray",
                                 extractors.dateTimeArray(),
                                 Map.of("timezone", "+02:00"),
-                                DateTimeValue.parseHeaderInformation("{timezone:+02:00}"))),
-                header.entries());
+                                DateTimeValue.parseHeaderInformation("{timezone:+02:00}"))));
         seeker.close();
     }
 
     @Test
-    public void shouldParseDefaultRelationshipFileHeaderCorrectly() throws Exception {
+    void shouldParseDefaultRelationshipFileHeaderCorrectly() throws Exception {
         // GIVEN
         CharSeeker seeker = seeker(":START_ID\t:END_ID\ttype:TYPE\tdate:long\tmore:long[]");
         IdType idType = IdType.ACTUAL;
@@ -153,19 +149,18 @@ public class DataFactoriesTest {
         Header header = defaultFormatRelationshipFileHeader().create(seeker, TABS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry(null, Type.START_ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry(null, Type.END_ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry("type", Type.TYPE, extractors.string()),
                         entry("date", Type.PROPERTY, extractors.long_()),
-                        entry("more", Type.PROPERTY, extractors.longArray())),
-                header.entries());
+                        entry("more", Type.PROPERTY, extractors.longArray())));
         seeker.close();
     }
 
     @Test
-    public void shouldParseRelationshipArrayTypesFileHeaderCorrectly() throws Exception {
+    void shouldParseRelationshipArrayTypesFileHeaderCorrectly() throws Exception {
         // GIVEN
         CharSeeker seeker = seeker(":START_ID\t:END_ID\ttype:TYPE\tlongArray:long[]\tpointArray:Point[]{crs:WGS-84}"
                 + "\ttimeArray:time[]{timezone:+02:00}\tdateTimeArray:datetime[]{timezone:+02:00}");
@@ -176,8 +171,8 @@ public class DataFactoriesTest {
         Header header = defaultFormatRelationshipFileHeader().create(seeker, TABS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry(null, Type.START_ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry(null, Type.END_ID, globalGroup, CsvInput.idExtractor(idType, extractors)),
                         entry("type", Type.TYPE, extractors.string()),
@@ -196,13 +191,12 @@ public class DataFactoriesTest {
                                 "dateTimeArray",
                                 extractors.dateTimeArray(),
                                 Map.of("timezone", "+02:00"),
-                                DateTimeValue.parseHeaderInformation("{timezone:+02:00}"))),
-                header.entries());
+                                DateTimeValue.parseHeaderInformation("{timezone:+02:00}"))));
         seeker.close();
     }
 
     @Test
-    public void shouldHaveEmptyHeadersBeInterpretedAsIgnored() throws Exception {
+    void shouldHaveEmptyHeadersBeInterpretedAsIgnored() throws Exception {
         // GIVEN
         CharSeeker seeker = seeker("one:id\ttwo\t\tdate:long");
         IdType idType = IdType.ACTUAL;
@@ -212,18 +206,17 @@ public class DataFactoriesTest {
         Header header = defaultFormatNodeFileHeader().create(seeker, TABS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("one", Type.ID, globalGroup, extractors.long_()),
                         entry("two", Type.PROPERTY, extractors.string()),
                         entry(null, Type.IGNORE, null),
-                        entry("date", Type.PROPERTY, extractors.long_())),
-                header.entries());
+                        entry("date", Type.PROPERTY, extractors.long_())));
         seeker.close();
     }
 
     @Test
-    public void shouldFailForDuplicatePropertyHeaderEntries() throws Exception {
+    void shouldFailForDuplicatePropertyHeaderEntries() throws Exception {
         // GIVEN
         var extractors = new Extractors('\t', '\t');
         try (var seeker = seeker("one:id\tname\tname:long")) {
@@ -231,14 +224,14 @@ public class DataFactoriesTest {
                     .isInstanceOf(DuplicateHeaderException.class)
                     .satisfies(e -> {
                         var headerEx = (DuplicateHeaderException) e;
-                        assertEquals(entry("name", Type.PROPERTY, extractors.string()), headerEx.getFirst());
-                        assertEquals(entry("name", Type.PROPERTY, extractors.long_()), headerEx.getOther());
+                        assertThat(headerEx.getFirst()).isEqualTo(entry("name", Type.PROPERTY, extractors.string()));
+                        assertThat(headerEx.getOther()).isEqualTo(entry("name", Type.PROPERTY, extractors.long_()));
                     });
         }
     }
 
     @Test
-    public void shouldFailForDuplicatePropertyAndNamedIdHeaderEntries() throws Exception {
+    void shouldFailForDuplicatePropertyAndNamedIdHeaderEntries() throws Exception {
         // GIVEN
         var extractors = new Extractors('\t', '\t');
         try (var seeker = seeker("one:id\tone")) {
@@ -246,29 +239,29 @@ public class DataFactoriesTest {
                     .isInstanceOf(DuplicateHeaderException.class)
                     .satisfies(e -> {
                         var headerEx = (DuplicateHeaderException) e;
-                        assertEquals(entry("one", Type.ID, globalGroup, extractors.string()), headerEx.getFirst());
-                        assertEquals(entry("one", Type.PROPERTY, extractors.string()), headerEx.getOther());
+                        assertThat(headerEx.getFirst())
+                                .isEqualTo(entry("one", Type.ID, globalGroup, extractors.string()));
+                        assertThat(headerEx.getOther()).isEqualTo(entry("one", Type.PROPERTY, extractors.string()));
                     });
         }
     }
 
     @Test
-    public void shouldHandleDuplicateIdHeaderEntries() {
+    void shouldHandleDuplicateIdHeaderEntries() {
         // GIVEN
         CharSeeker seeker = seeker("one:id\ttwo:id");
         IdType idType = IdType.ACTUAL;
         Extractors extractors = new Extractors('\t', '\t');
 
         var header = defaultFormatNodeFileHeader().create(seeker, TABS, idType, groups);
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("one", Type.ID, globalGroup, extractors.long_()),
-                        entry("two", Type.ID, globalGroup, extractors.long_())),
-                header.entries());
+                        entry("two", Type.ID, globalGroup, extractors.long_())));
     }
 
     @Test
-    public void shouldAllowMissingIdHeaderEntry() throws Exception {
+    void shouldAllowMissingIdHeaderEntry() throws Exception {
         // GIVEN
         CharSeeker seeker = seeker("one\ttwo");
         Extractors extractors = new Extractors();
@@ -277,16 +270,15 @@ public class DataFactoriesTest {
         Header header = defaultFormatNodeFileHeader().create(seeker, TABS, IdType.ACTUAL, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("one", Type.PROPERTY, extractors.string()),
-                        entry("two", Type.PROPERTY, extractors.string())),
-                header.entries());
+                        entry("two", Type.PROPERTY, extractors.string())));
         seeker.close();
     }
 
     @Test
-    public void shouldParseHeaderFromFirstLineOfFirstInputFile() throws Exception {
+    void shouldParseHeaderFromFirstLineOfFirstInputFile() throws Exception {
         // GIVEN
         final CharReadable firstSource = wrap("id:ID\tname:String\tbirth_date:long");
         final CharReadable secondSource = wrap("0\tThe node\t123456789");
@@ -301,17 +293,16 @@ public class DataFactoriesTest {
         Header header = headerFactory.create(seeker, TABS, IdType.ACTUAL, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry("id", Type.ID, globalGroup, extractors.long_()),
                         entry("name", Type.PROPERTY, extractors.string()),
-                        entry("birth_date", Type.PROPERTY, extractors.long_())),
-                header.entries());
+                        entry("birth_date", Type.PROPERTY, extractors.long_())));
         seeker.close();
     }
 
     @Test
-    public void shouldParseGroupName() throws Exception {
+    void shouldParseGroupName() throws Exception {
         // GIVEN
         String groupOneName = "GroupOne";
         String groupTwoName = "GroupTwo";
@@ -326,19 +317,18 @@ public class DataFactoriesTest {
         Header header = defaultFormatRelationshipFileHeader().create(seeker, TABS, idType, groups);
 
         // THEN
-        assertArrayEquals(
-                array(
+        assertThat(header.entries())
+                .containsExactly(array(
                         entry(null, Type.START_ID, groups.get("GroupOne"), CsvInput.idExtractor(idType, extractors)),
                         entry(null, Type.END_ID, groups.get("GroupTwo"), CsvInput.idExtractor(idType, extractors)),
                         entry("type", Type.TYPE, extractors.string()),
                         entry("date", Type.PROPERTY, extractors.long_()),
-                        entry("more", Type.PROPERTY, extractors.longArray())),
-                header.entries());
+                        entry("more", Type.PROPERTY, extractors.longArray())));
         seeker.close();
     }
 
     @Test
-    public void shouldFailOnUnexpectedNodeHeaderType() throws IOException {
+    void shouldFailOnUnexpectedNodeHeaderType() throws Exception {
         // GIVEN
         try (var seeker = seeker(":ID,:START_ID")) {
             IdType idType = IdType.ACTUAL;
@@ -351,7 +341,7 @@ public class DataFactoriesTest {
     }
 
     @Test
-    public void shouldFailOnUnexpectedRelationshipHeaderType() throws IOException {
+    void shouldFailOnUnexpectedRelationshipHeaderType() throws Exception {
         // GIVEN
         try (var seeker = seeker(":LABEL,:START_ID,:END_ID,:TYPE")) {
             IdType idType = IdType.ACTUAL;
@@ -478,7 +468,7 @@ public class DataFactoriesTest {
     }
 
     @Test
-    public void shouldParseRelationshipsWithCompositeKeysThatUseNodeIdTypeInformation() throws Exception {
+    void shouldParseRelationshipsWithCompositeKeysThatUseNodeIdTypeInformation() throws Exception {
         // GIVEN
         var extractors = new Extractors();
 
@@ -492,14 +482,13 @@ public class DataFactoriesTest {
             var group = groups.get("MyGroup");
 
             // THEN
-            assertArrayEquals(
-                    array(
+            assertThat(header.entries())
+                    .containsExactly(array(
                             entry(null, Type.START_ID, group, extractors.int_()),
                             entry(null, Type.START_ID, group, extractors.long_()),
                             entry(null, Type.END_ID, group, extractors.int_()),
                             entry(null, Type.END_ID, group, extractors.long_()),
-                            entry("type", Type.TYPE, extractors.string())),
-                    header.entries());
+                            entry("type", Type.TYPE, extractors.string())));
         }
     }
 
@@ -545,7 +534,7 @@ public class DataFactoriesTest {
     }
 
     @Test
-    public void shouldParseColumnNamesWithParentheses() throws Exception {
+    void shouldParseColumnNamesWithParentheses() throws Exception {
         assertParsedHeader(
                 "location (name):String\tlocation (detail):Point{crs:WGS-84}", extractors -> new Header.Entry[] {
                     entry("location (name)", Type.PROPERTY, extractors.string()),

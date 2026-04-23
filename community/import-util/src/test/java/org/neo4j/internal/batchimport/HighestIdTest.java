@@ -20,7 +20,7 @@
 package org.neo4j.internal.batchimport;
 
 import static java.lang.Math.max;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
@@ -70,6 +70,6 @@ class HighestIdTest {
         for (int i = 0; i < threads; i++) {
             highest = max(highest, highestIds.get(i));
         }
-        assertEquals(highest, highestId.get());
+        assertThat(highestId.get()).isEqualTo(highest);
     }
 }

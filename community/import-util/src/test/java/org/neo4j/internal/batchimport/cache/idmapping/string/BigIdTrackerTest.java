@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
@@ -52,8 +52,8 @@ class BigIdTrackerTest {
 
             // then
             for (int i = 0; i < length; i++) {
-                assertEquals(values[i], tracker.get(i));
-                assertEquals(marks[i], tracker.isMarkedAsDuplicate(i));
+                assertThat(tracker.get(i)).isEqualTo(values[i]);
+                assertThat(tracker.isMarkedAsDuplicate(i)).isEqualTo(marks[i]);
             }
         }
     }

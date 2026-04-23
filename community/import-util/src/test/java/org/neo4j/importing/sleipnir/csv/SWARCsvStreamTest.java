@@ -102,7 +102,7 @@ class SWARCsvStreamTest {
     }
 
     @Test
-    void testReadingFullLegacyCsv() throws IOException {
+    void shouldReadingFullLegacyCsv() throws IOException {
         byte[] data = loadCSVFile();
         long[] offsets = new long[1024 * 16];
         SWARCsvStream vectoredStream = new SWARCsvStream((byte) ',', (byte) '"', true);

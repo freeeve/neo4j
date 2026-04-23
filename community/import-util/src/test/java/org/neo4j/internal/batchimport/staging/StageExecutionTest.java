@@ -19,8 +19,8 @@
  */
 package org.neo4j.internal.batchimport.staging;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.neo4j.internal.batchimport.staging.ControlledStep.stepWithAverageOf;
 
 import java.util.ArrayList;
@@ -47,12 +47,12 @@ class StageExecutionTest {
 
         // THEN
         WeightedStep fastest = ordered.next();
-        assertEquals(1f / 2f, fastest.weight(), 0f);
+        assertThat(fastest.weight()).isCloseTo(1f / 2f, within(0f));
         WeightedStep faster = ordered.next();
-        assertEquals(1f / 3f, faster.weight(), 0f);
+        assertThat(faster.weight()).isCloseTo(1f / 3f, within(0f));
         WeightedStep fast = ordered.next();
-        assertEquals(1f, fast.weight(), 0f);
-        assertFalse(ordered.hasNext());
+        assertThat(fast.weight()).isCloseTo(1f, within(0f));
+        assertThat(ordered).isExhausted();
     }
 
     @Test
@@ -72,13 +72,13 @@ class StageExecutionTest {
 
         // THEN
         WeightedStep slowest = ordered.next();
-        assertEquals(3f, slowest.weight(), 0f);
+        assertThat(slowest.weight()).isCloseTo(3f, within(0f));
         WeightedStep slower = ordered.next();
-        assertEquals(2f, slower.weight(), 0f);
+        assertThat(slower.weight()).isCloseTo(2f, within(0f));
         WeightedStep slow = ordered.next();
-        assertEquals(1f, slow.weight(), 0f);
+        assertThat(slow.weight()).isCloseTo(1f, within(0f));
         WeightedStep alsoSlow = ordered.next();
-        assertEquals(1f, alsoSlow.weight(), 0f);
-        assertFalse(ordered.hasNext());
+        assertThat(alsoSlow.weight()).isCloseTo(1f, within(0f));
+        assertThat(ordered).isExhausted();
     }
 }

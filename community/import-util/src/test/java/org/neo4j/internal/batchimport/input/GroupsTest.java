@@ -20,10 +20,9 @@
 package org.neo4j.internal.batchimport.input;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.batchimport.api.input.Group;
@@ -40,7 +39,7 @@ class GroupsTest {
         for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
             race.addContestant(() -> {
                 Group group = groups.getOrCreate(name);
-                assertEquals(0, group.id());
+                assertThat(group.id()).isZero();
             });
         }
 
@@ -49,7 +48,7 @@ class GroupsTest {
 
         // THEN
         Group otherGroup = groups.getOrCreate("MyOtherGroup");
-        assertThat(otherGroup.id()).isEqualTo(1);
+        assertThat(otherGroup.id()).isOne();
     }
 
     @Test
@@ -112,16 +111,16 @@ class GroupsTest {
         Groups groups = new Groups();
 
         // when
-        assertThrows(HeaderException.class, () -> groups.get("Something"));
+        assertThatExceptionOfType(HeaderException.class).isThrownBy(() -> groups.get("Something"));
     }
 
     @Test
     void globalGroupIdIsNotFixedToZero() {
         final var groups1 = new Groups();
         final var g1_0 = groups1.getOrCreate(null);
-        assertThat(g1_0.id()).isEqualTo(0);
+        assertThat(g1_0.id()).isZero();
         final var g1_1 = groups1.getOrCreate("foo");
-        assertThat(g1_1.id()).isEqualTo(1);
+        assertThat(g1_1.id()).isOne();
         assertThat(groups1.get(0)).isEqualTo(g1_0);
         assertThat(groups1.get(null)).isEqualTo(g1_0);
         assertThat(groups1.get(1)).isEqualTo(g1_1);
@@ -129,9 +128,9 @@ class GroupsTest {
 
         final var groups2 = new Groups();
         final var g2_0 = groups2.getOrCreate("foo");
-        assertThat(g2_0.id()).isEqualTo(0);
+        assertThat(g2_0.id()).isZero();
         final var g2_1 = groups2.getOrCreate(null);
-        assertThat(g2_1.id()).isEqualTo(1);
+        assertThat(g2_1.id()).isOne();
         assertThat(groups2.get(0)).isEqualTo(g2_0);
         assertThat(groups2.get("foo")).isEqualTo(g2_0);
         assertThat(groups2.get(1)).isEqualTo(g2_1);
@@ -160,11 +159,14 @@ class GroupsTest {
         assertThat(groups.getSpecificIdType(group, 0)).isNull();
         assertThat(groups.getSpecificIdType(group, 1)).isNull();
 
-        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithLongType, longType));
+        assertThatCode(() -> groups.bindIdType(group, keyWithLongType, longType))
+                .doesNotThrowAnyException();
         assertThat(groups.getSpecificIdType(group, 1)).isNull();
 
-        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithLongType, longType));
-        assertDoesNotThrow(() -> groups.bindIdType(group, keyWithStringType, stringType));
+        assertThatCode(() -> groups.bindIdType(group, keyWithLongType, longType))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> groups.bindIdType(group, keyWithStringType, stringType))
+                .doesNotThrowAnyException();
 
         assertThatThrownBy(() -> groups.bindIdType(group, keyWithLongType, stringType))
                 .isInstanceOf(IllegalStateException.class)

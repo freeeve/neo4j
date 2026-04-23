@@ -21,7 +21,6 @@ package org.neo4j.internal.batchimport.cache.idmapping.cuckoo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +48,7 @@ class CuckooTableTest {
             cuckooTable.insert(3, 13);
 
             assertThat(cuckooTable.get(0)).isEqualTo(11);
-            assertThat(cuckooTable.get(1)).isEqualTo(0);
+            assertThat(cuckooTable.get(1)).isZero();
             assertThat(cuckooTable.get(2)).isEqualTo(12);
             assertThat(cuckooTable.get(3)).isEqualTo(13);
             assertThat(cuckooTable.get(4)).isEqualTo(IdMapper.ID_NOT_FOUND);
@@ -114,7 +113,7 @@ class CuckooTableTest {
                     for (int j = 0; j < n; j++) {
                         long id = threadId * n + j;
                         long k = key[j];
-                        assertEquals(id + 1, cuckooTable.get(k));
+                        assertThat(cuckooTable.get(k)).isEqualTo(id + 1);
                     }
                 });
             }

@@ -21,7 +21,6 @@ package org.neo4j.internal.batchimport.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.Arrays;
@@ -82,7 +81,7 @@ class LongArrayTest {
             assertThatCode(() -> longArray.set(Integer.MAX_VALUE, 42))
                     .isInstanceOf(ArrayIndexOutOfBoundsException.class);
 
-            assertThat(longArray.get(1)).isEqualTo(0); // Default value
+            assertThat(longArray.get(1)).isZero(); // Default value
         }
     }
 
@@ -132,7 +131,7 @@ class LongArrayTest {
                         expected[index] = value;
                         break;
                     case 1: // get
-                        assertEquals(expected[index], array.get(index));
+                        assertThat(array.get(index)).isEqualTo(expected[index]);
                         break;
                     default: // swap
                         int toIndex = random.nextInt(length);
@@ -168,10 +167,10 @@ class LongArrayTest {
             array.set(4, 5);
 
             // WHEN
-            assertEquals(5L, array.get(4));
-            assertEquals(defaultValue, array.get(12));
+            assertThat(array.get(4)).isEqualTo(5L);
+            assertThat(array.get(12)).isEqualTo(defaultValue);
             array.set(7, 1324);
-            assertEquals(1324L, array.get(7));
+            assertThat(array.get(7)).isEqualTo(1324L);
         }
     }
 
@@ -187,7 +186,7 @@ class LongArrayTest {
             array.set(index, value);
 
             // THEN
-            assertEquals(value, array.get(index));
+            assertThat(array.get(index)).isEqualTo(value);
         }
     }
 
