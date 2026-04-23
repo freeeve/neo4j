@@ -44,6 +44,7 @@ public enum CommandType {
     AGGREGATE_NEXT(DATABASE),
     AGGREGATE_BACKUP(CommandGroup.BACKUP),
     VALIDATE_BACKUP(CommandGroup.BACKUP),
+    DISCOVER(CommandGroup.FLEET),
 
     REPORT(SERVER),
     MEMORY_RECOMMENDATION(SERVER),

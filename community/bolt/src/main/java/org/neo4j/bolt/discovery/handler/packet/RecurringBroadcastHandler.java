@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.discovery.handler.packet;
 
+import static org.neo4j.bolt.discovery.packet.DiscoveryConstants.BROADCAST_PORT;
+
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetAddress;
@@ -93,7 +95,7 @@ public class RecurringBroadcastHandler extends ChannelHandlerAdapter {
 
     private void doBroadcast(ChannelHandlerContext ctx, DiscoveryInformation info, InetAddress address) {
         ctx.writeAndFlush(new PacketEnvelope<>(
-                new InetSocketAddress(address, 8687),
+                new InetSocketAddress(address, BROADCAST_PORT),
                 DiscoveryConstants.MAGIC_NUMBER,
                 DiscoveryConstants.LATEST_VERSION,
                 DiscoveryBeaconSignal.OPCODE,

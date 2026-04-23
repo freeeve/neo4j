@@ -17,12 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.bolt.discovery.packet;
+package org.neo4j.commandline.fleetmanagement.output;
 
-public final class DiscoveryConstants {
-    private DiscoveryConstants() {}
+import java.io.PrintStream;
+import org.neo4j.commandline.fleetmanagement.model.Dbmss;
 
-    public static int MAGIC_NUMBER = 0xDEADB017;
-    public static int LATEST_VERSION = 1;
-    public static int BROADCAST_PORT = 8687;
+public interface IFormat {
+    void printDiscoveredDbmss(Dbmss discoveredDbmss, PrintStream out);
 }

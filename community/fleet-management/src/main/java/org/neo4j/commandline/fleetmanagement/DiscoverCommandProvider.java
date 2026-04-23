@@ -17,28 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cli;
+package org.neo4j.commandline.fleetmanagement;
 
-public enum CommandGroup {
-    DATABASE("database", "Database-specific administration tasks."),
-    DBMS("dbms", "DBMS-wide (for single and clustered environments) administration tasks."),
-    SERVER("server", "Server-wide administration tasks."),
-    BACKUP("backup", "Backup-specific administration tasks."),
-    FLEET("fleet", "Fleet-wide administration tasks.");
+import static org.neo4j.cli.CommandType.DISCOVER;
 
-    private final String displayName;
-    private final String description;
+import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.cli.CommandProvider;
+import org.neo4j.cli.CommandType;
+import org.neo4j.cli.ExecutionContext;
 
-    CommandGroup(String displayName, String description) {
-        this.displayName = displayName;
-        this.description = description;
+@ServiceProvider
+public class DiscoverCommandProvider implements CommandProvider {
+    @Override
+    public DiscoverCommand createCommand(ExecutionContext ctx) {
+        return new DiscoverCommand(ctx);
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getDescription() {
-        return description;
+    @Override
+    public CommandType commandType() {
+        return DISCOVER;
     }
 }

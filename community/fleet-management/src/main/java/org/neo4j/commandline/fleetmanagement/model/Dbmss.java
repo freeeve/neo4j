@@ -17,28 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cli;
+package org.neo4j.commandline.fleetmanagement.model;
 
-public enum CommandGroup {
-    DATABASE("database", "Database-specific administration tasks."),
-    DBMS("dbms", "DBMS-wide (for single and clustered environments) administration tasks."),
-    SERVER("server", "Server-wide administration tasks."),
-    BACKUP("backup", "Backup-specific administration tasks."),
-    FLEET("fleet", "Fleet-wide administration tasks.");
+import java.util.Collection;
+import java.util.HashMap;
 
-    private final String displayName;
-    private final String description;
+/**
+ * Model class representing multiple DBMSs
+ */
+public class Dbmss extends HashMap<String, Dbms> {
 
-    CommandGroup(String displayName, String description) {
-        this.displayName = displayName;
-        this.description = description;
+    // Create a list of deduplicated DBMSs from servers
+    public static Dbmss fromServers(Collection<Server> servers) {
+        var d = new Dbmss();
+        for (Server s : servers) {
+            d.computeIfAbsent(s.getDbmsId(), dbmsId -> new Dbms(s.getDbmsId())).addServer(s);
+        }
+        return d;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getDescription() {
-        return description;
+    public int serverCount() {
+        return this.values().stream().mapToInt(Dbms::size).sum();
     }
 }
