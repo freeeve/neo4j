@@ -66,9 +66,9 @@ object ResolvedFunctionInvocation {
  * @param position The position in the original query string.
  */
 case class ResolvedFunctionInvocation(
-  functionName: FunctionName,
+  override val functionName: FunctionName,
   fcnSignature: Option[UserFunctionSignature],
-  callArguments: IndexedSeq[Expression]
+  override val callArguments: IndexedSeq[Expression]
 )(val position: InputPosition)
     extends Expression with UserDefinedFunctionInvocation with SemanticCheckableExpression {
 
