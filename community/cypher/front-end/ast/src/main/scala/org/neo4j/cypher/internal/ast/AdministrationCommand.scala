@@ -1028,14 +1028,29 @@ sealed trait AuthRules extends SemanticAnalysisTooling {
       "time"
     )
 
-    if (
-      temporalFunctionsThatRequireArgs.contains(functionInvocation.name.toLowerCase) &&
-      functionInvocation.args.isEmpty
-    ) {
-      SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
-        functionInvocation.name,
-        functionInvocation.position
-      ))
+    val name = functionInvocation.name
+    if (temporalFunctionsThatRequireArgs.contains(name.toLowerCase)) {
+      functionInvocation.args match {
+        case Seq() =>
+          SemanticCheck.error(SemanticError.authRuleConditionHaveInvalidFunctionInCondition(
+            name,
+            functionInvocation.position
+          ))
+        case Seq(MapExpression(items), _*) if items.size == 1 && items.head._1.name.equalsIgnoreCase("timezone") =>
+          val (key, valueExpr) = items.head
+          val (callStr, suggestion) = valueExpr match {
+            case s: StringLiteral =>
+              (s"$name({${key.name}: '${s.value}'})", s"$name.transaction('${s.value}')")
+            case other =>
+              (s"$name({${key.name}: ${other.asCanonicalStringVal}})", s"$name.transaction()")
+          }
+          SemanticCheck.error(SemanticError.authRuleConditionTemporalFunctionRetrievesCurrentTime(
+            callStr,
+            suggestion,
+            functionInvocation.position
+          ))
+        case _ => SemanticCheck.success
+      }
     } else {
       SemanticCheck.success
     }

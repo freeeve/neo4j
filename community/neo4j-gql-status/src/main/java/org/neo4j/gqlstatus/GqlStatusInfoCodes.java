@@ -2693,6 +2693,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "not supported local callable parameter type",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAM(
+            "{ %s } cannot be used in auth rule conditions as it retrieves the current time. Only transaction start time is available at the time of auth rule evaluation. Use { %s } instead.",
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.StringParam.input, List.of(CYPHER_CONSTRUCT)),
+                new NonSensitiveGqlParam(GqlParams.StringParam.input1, List.of(CYPHER_CONSTRUCT))
+            },
+            "unsupported temporal function form in auth rule condition",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             "Authentication and/or authorization could not be validated. See security logs for details.",
             "auth info validation error",

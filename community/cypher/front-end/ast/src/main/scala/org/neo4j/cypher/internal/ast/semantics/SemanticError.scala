@@ -1057,6 +1057,24 @@ object SemanticError {
     SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
+  def authRuleConditionTemporalFunctionRetrievesCurrentTime(
+    functionCall: String,
+    suggestion: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAM)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.input, functionCall)
+          .withParam(GqlParams.StringParam.input1, suggestion)
+          .build()
+      ).build()
+
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
+  }
+
   def authRuleConditionCannotContainParameter(parameter: Parameter): SemanticError = {
     val position = parameter.position
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

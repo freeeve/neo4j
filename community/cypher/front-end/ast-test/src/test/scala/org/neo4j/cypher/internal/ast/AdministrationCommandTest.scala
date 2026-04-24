@@ -3908,6 +3908,114 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           pos1
         ).errors)
     }
+
+    test(
+      s"CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName({timezone: 'UTC'})"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(functionName)(pos1),
+        distinct = false,
+        IndexedSeq(MapExpression(Seq(PropertyKeyName("timezone")(pos1) -> literalString("UTC")))(pos1))
+      )(pos1)
+
+      val authRule = CreateAuthRule(
+        literalString("authRule"),
+        IfExistsThrowError,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(
+        initialStateWithFeatureFlags,
+        sematicContextCypher25
+      ).errors should equal(SemanticCheckResult
+        .error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(pos1.offset, pos1.line, pos1.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAM)
+                .atPosition(pos1.offset, pos1.line, pos1.column)
+                .withParam(GqlParams.StringParam.input, s"""$functionName({timezone: 'UTC'})""")
+                .withParam(GqlParams.StringParam.input1, s"""$functionName.transaction('UTC')""")
+                .build()
+            ).build(),
+          initialStateWithFeatureFlags,
+          s"""42001
+             |42NAM: '$functionName({timezone: 'UTC'})' cannot be used in auth rule conditions as it retrieves the current time. Only transaction start time is available at the time of auth rule evaluation. Use '$functionName.transaction('UTC')' instead.""".stripMargin,
+          pos1
+        ).errors)
+    }
+
+    test(
+      s"CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName({timezone: 1})"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(functionName)(pos1),
+        distinct = false,
+        IndexedSeq(MapExpression(Seq(PropertyKeyName("timezone")(pos1) -> literalInt(1, pos1)))(pos1))
+      )(pos1)
+
+      val authRule = CreateAuthRule(
+        literalString("authRule"),
+        IfExistsThrowError,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(
+        initialStateWithFeatureFlags,
+        sematicContextCypher25
+      ).errors should equal(SemanticCheckResult
+        .error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(pos1.offset, pos1.line, pos1.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAM)
+                .atPosition(pos1.offset, pos1.line, pos1.column)
+                .withParam(GqlParams.StringParam.input, s"""$functionName({timezone: 1})""")
+                .withParam(GqlParams.StringParam.input1, s"""$functionName.transaction()""")
+                .build()
+            ).build(),
+          initialStateWithFeatureFlags,
+          s"""42001
+             |42NAM: '$functionName({timezone: 1})' cannot be used in auth rule conditions as it retrieves the current time. Only transaction start time is available at the time of auth rule evaluation. Use '$functionName.transaction()' instead.""".stripMargin,
+          pos1
+        ).errors)
+    }
+
+    test(
+      s"CREATE AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName.transaction('UTC')"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(s"$functionName.transaction")(pos1),
+        distinct = false,
+        IndexedSeq(literalString("UTC"))
+      )(pos1)
+
+      val authRule = CreateAuthRule(
+        literalString("authRule"),
+        IfExistsThrowError,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe empty
+    }
   }
 
   test("RENAME AUTH RULE authRule TO authRule2") {
@@ -4356,6 +4464,114 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
              |22N05: Invalid input '$functionName' for function in auth rule condition.""".stripMargin,
           pos1
         ).errors)
+    }
+
+    test(
+      s"ALTER AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName({timezone: 'UTC'})"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(functionName)(pos1),
+        distinct = false,
+        IndexedSeq(MapExpression(Seq(PropertyKeyName("timezone")(pos1) -> literalString("UTC")))(pos1))
+      )(pos1)
+
+      val authRule = AlterAuthRule(
+        literalString("authRule"),
+        ifExists = false,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(
+        initialStateWithFeatureFlags,
+        sematicContextCypher25
+      ).errors should equal(SemanticCheckResult
+        .error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(pos1.offset, pos1.line, pos1.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAM)
+                .atPosition(pos1.offset, pos1.line, pos1.column)
+                .withParam(GqlParams.StringParam.input, s"""$functionName({timezone: 'UTC'})""")
+                .withParam(GqlParams.StringParam.input1, s"""$functionName.transaction('UTC')""")
+                .build()
+            ).build(),
+          initialStateWithFeatureFlags,
+          s"""42001
+             |42NAM: '$functionName({timezone: 'UTC'})' cannot be used in auth rule conditions as it retrieves the current time. Only transaction start time is available at the time of auth rule evaluation. Use '$functionName.transaction('UTC')' instead.""".stripMargin,
+          pos1
+        ).errors)
+    }
+
+    test(
+      s"ALTER AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName({timezone: 1})"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(functionName)(pos1),
+        distinct = false,
+        IndexedSeq(MapExpression(Seq(PropertyKeyName("timezone")(pos1) -> literalInt(1, pos1)))(pos1))
+      )(pos1)
+
+      val authRule = AlterAuthRule(
+        literalString("authRule"),
+        ifExists = false,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(
+        initialStateWithFeatureFlags,
+        sematicContextCypher25
+      ).errors should equal(SemanticCheckResult
+        .error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(pos1.offset, pos1.line, pos1.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAM)
+                .atPosition(pos1.offset, pos1.line, pos1.column)
+                .withParam(GqlParams.StringParam.input, s"""$functionName({timezone: 1})""")
+                .withParam(GqlParams.StringParam.input1, s"""$functionName.transaction()""")
+                .build()
+            ).build(),
+          initialStateWithFeatureFlags,
+          s"""42001
+             |42NAM: '$functionName({timezone: 1})' cannot be used in auth rule conditions as it retrieves the current time. Only transaction start time is available at the time of auth rule evaluation. Use '$functionName.transaction()' instead.""".stripMargin,
+          pos1
+        ).errors)
+    }
+
+    test(
+      s"ALTER AUTH RULE authRule SET CONDITION abac.oidc.user_attribute('start_date') > $functionName.transaction('UTC')"
+    ) {
+      val functionInvocation = FunctionInvocation(
+        name = FunctionName("abac.oidc.user_attribute")(p),
+        argument = literalString("start_date")
+      )(p)
+      val dateFunctionInvocation = FunctionInvocation(
+        FunctionName(s"$functionName.transaction")(pos1),
+        distinct = false,
+        IndexedSeq(literalString("UTC"))
+      )(pos1)
+
+      val authRule = AlterAuthRule(
+        literalString("authRule"),
+        ifExists = false,
+        List(
+          AuthRuleCondition(GreaterThan(functionInvocation, dateFunctionInvocation)(p))(p)
+        )
+      )(p)
+
+      authRule.semanticCheck.run(initialStateWithFeatureFlags, sematicContextCypher25).errors shouldBe empty
     }
   }
 
