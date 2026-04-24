@@ -504,8 +504,10 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       ).build()
 
     // then
-    val error = the[IndexNotFoundKernelException] thrownBy consume(execute(logicalQuery, runtime))
-    error.gqlStatus() shouldBe "22N69"
+    the[IndexNotFoundKernelException] thrownBy consume(execute(logicalQuery, runtime)) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22N69,
+      "error: data exception - index does not exist. The index 'VectorIndex' does not exist."
+    )
   }
 
   test("should fail if index isn't a vector index") {
@@ -570,8 +572,14 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       logicalQuery,
       runtime
     ))
-    error.gqlStatus() shouldBe "22G03"
-    error.cause().get().gqlStatus() shouldBe "22N01"
+    the[CypherTypeException] thrownBy consume(execute(logicalQuery, runtime)) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22G03,
+      "error: data exception - invalid value type"
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N01,
+      "error: data exception - invalid type.",
+      fuzzyStatusDescr = true
+    )
   }
 
   test("should return empty if search item is null") {
@@ -629,11 +637,10 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
       ).build()
 
     // then
-    val error = the[InvalidArgumentException] thrownBy consume(execute(
-      logicalQuery,
-      runtime
-    ))
-    error.gqlStatus() shouldBe "22NBG"
+    the[InvalidArgumentException] thrownBy consume(execute(logicalQuery, runtime)) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22NBG,
+      "error: data exception - invalid vector coordinates. Invalid vector coordinates. The vector coordinates must be finite."
+    )
   }
 
   test("should respect the limit (directed)") {
@@ -779,13 +786,18 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         score = "score"
       ).build()
 
-    val error = the[InvalidArgumentException] thrownBy consume(execute(
+    // then
+    the[InvalidArgumentException] thrownBy consume(execute(
       logicalQuery,
       runtime,
-      parameters = Map("vector" -> randomVector)
-    ))
-    error.gqlStatus() shouldBe "22003"
-    error.cause().get().gqlStatus() shouldBe "22N03"
+      parameters = Map("vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*))
+    )) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22003,
+      "error: data exception - numeric value out of range. The numeric value -1 is outside the required range."
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N03,
+      "error: data exception - specified numeric value out of range. Expected 'value' to be of type INTEGER and in the range 0 to 9223372036854775807 but found -1."
+    )
   }
 
   test("should fail on negative limits (undirected)") {
@@ -813,13 +825,18 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         score = "score"
       ).build()
 
-    val error = the[InvalidArgumentException] thrownBy consume(execute(
+    // then
+    the[InvalidArgumentException] thrownBy consume(execute(
       logicalQuery,
       runtime,
-      parameters = Map("vector" -> randomVector)
-    ))
-    error.gqlStatus() shouldBe "22003"
-    error.cause().get().gqlStatus() shouldBe "22N03"
+      parameters = Map("vector" -> float32Vector(Seq.fill(sizeHint)(5.0f): _*))
+    )) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22003,
+      "error: data exception - numeric value out of range. The numeric value -1 is outside the required range."
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N03,
+      "error: data exception - specified numeric value out of range. Expected 'value' to be of type INTEGER and in the range 0 to 9223372036854775807 but found -1."
+    )
   }
 
   test("should fail on too large limits (directed)") {
@@ -847,13 +864,18 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         score = "score"
       ).build()
 
-    val error = the[InvalidArgumentException] thrownBy consume(execute(
+    // then
+    the[InvalidArgumentException] thrownBy consume(execute(
       logicalQuery,
       runtime,
       parameters = Map("vector" -> randomVector)
-    ))
-    error.gqlStatus() shouldBe "22003"
-    error.cause().get().gqlStatus() shouldBe "22N03"
+    )) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22003,
+      "error: data exception - numeric value out of range. The numeric value 9223372036854775807 is outside the required range."
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N03,
+      "error: data exception - specified numeric value out of range. Expected 'LIMIT' to be of type INTEGER NOT NULL and in the range 0 to 2147483647 but found 9223372036854775807."
+    )
   }
 
   test("should fail on too large limits (undirected)") {
@@ -881,13 +903,18 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         score = "score"
       ).build()
 
-    val error = the[InvalidArgumentException] thrownBy consume(execute(
+    // then
+    the[InvalidArgumentException] thrownBy consume(execute(
       logicalQuery,
       runtime,
       parameters = Map("vector" -> randomVector)
-    ))
-    error.gqlStatus() shouldBe "22003"
-    error.cause().get().gqlStatus() shouldBe "22N03"
+    )) shouldBe gqlStatus(
+      GqlStatusInfoCodes.STATUS_22003,
+      "error: data exception - numeric value out of range. The numeric value 9223372036854775807 is outside the required range."
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N03,
+      "error: data exception - specified numeric value out of range. Expected 'LIMIT' to be of type INTEGER NOT NULL and in the range 0 to 2147483647 but found 9223372036854775807."
+    )
   }
 
   test("should support multiple types (directed)") {

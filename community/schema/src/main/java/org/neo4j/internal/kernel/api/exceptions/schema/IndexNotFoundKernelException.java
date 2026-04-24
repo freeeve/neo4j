@@ -66,6 +66,13 @@ public class IndexNotFoundKernelException extends KernelException {
         return new IndexNotFoundKernelException(gql, "Index does not exist: " + index.getName(), index);
     }
 
+    public static IndexNotFoundKernelException indexNotFound(String name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N69)
+                .withParam(GqlParams.StringParam.idxDescrOrName, name)
+                .build();
+        return new IndexNotFoundKernelException(gql, "Index does not exist: " + name, IndexDescriptor.NO_INDEX);
+    }
+
     // KNL-053
     public static IndexNotFoundKernelException indexNotFound() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N69)

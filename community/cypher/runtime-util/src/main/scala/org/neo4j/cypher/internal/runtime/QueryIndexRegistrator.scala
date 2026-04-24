@@ -33,6 +33,7 @@ import org.neo4j.internal.helpers.collection.Iterators
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.internal.kernel.api.TokenReadSession
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.internal.schema
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
@@ -147,7 +148,9 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
 
         case InternalIndexReference(_, _, indexType, Some(name)) =>
           val index = schemaRead.indexGetForName(name)
-          schemaRead.assertIndexExists(index)
+          if (index eq IndexDescriptor.NO_INDEX) {
+            throw IndexNotFoundKernelException.indexNotFound(name);
+          }
           if (index.getIndexType != indexType) {
             throw InvalidArgumentException.wrongIndexType(
               name,
