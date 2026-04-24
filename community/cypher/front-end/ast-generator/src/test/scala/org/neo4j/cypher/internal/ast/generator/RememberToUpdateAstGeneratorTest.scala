@@ -185,6 +185,11 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.RepeatPathStep",
     "org.neo4j.cypher.internal.expressions.ImpliedLabel",
     "org.neo4j.cypher.internal.expressions.DummyExpression",
-    "org.neo4j.cypher.internal.expressions.ObfuscatedLiteral"
+    "org.neo4j.cypher.internal.expressions.ObfuscatedLiteral",
+    // TODO will be updated in an upcoming PR
+    "org.neo4j.cypher.internal.ast.GroupBy",
+    "org.neo4j.cypher.internal.ast.ExplicitGroupingElements",
+    "org.neo4j.cypher.internal.ast.GroupingNone",
+    "org.neo4j.cypher.internal.ast.GroupingAll"
   )
 }

@@ -265,7 +265,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
     position: QueryProjection.Position
   ): PlannerQueryBuilder =
     clause match {
-      case Return(distinct, ReturnItems(FreeProjection, items, _), optOrderBy, skip, limit, _, _, _) =>
+      case Return(distinct, ReturnItems(FreeProjection, items, _), _, optOrderBy, skip, limit, _, _, _) =>
         val queryPagination = QueryPagination().withSkip(skip).withLimit(limit)
 
         val projection =
@@ -963,7 +963,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
 
       Handles: ... WITH * [WHERE <predicate>] ...
        */
-      case With(false, ri, None, None, None, where, _)
+      case With(false, ri, _, None, None, None, where, _)
         if optionalMatchesOK(where)
           && noUpdates
           && returnItemsOK(ri)
@@ -978,7 +978,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
 
       Handles all other WITH clauses
        */
-      case With(distinct, projection, orderBy, skip, limit, where, _) =>
+      case With(distinct, projection, _, orderBy, skip, limit, where, _) =>
         val selections = asSelections(where)
         val returnItems = asReturnItems(builder.currentQueryGraph, projection)
 

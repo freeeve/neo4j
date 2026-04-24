@@ -218,7 +218,7 @@ object pegCommand {
       else yieldItems.flatMap(yi => Seq(yi.toReturnItem)).distinct
 
     val modifiedYield = yieldWithOpt match {
-      case Some(yW @ With(_, returnItems, _, _, _, _, _)) =>
+      case Some(yW @ With(_, returnItems, _, _, _, _, _, _)) =>
         yW.copy(returnItems =
           returnItems.copy(projectionType = FreeProjection, items = declared)(returnItems.position)
         )(yW.position)

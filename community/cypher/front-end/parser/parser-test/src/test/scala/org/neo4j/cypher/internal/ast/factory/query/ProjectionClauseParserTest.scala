@@ -51,6 +51,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.With(
       distinct = false,
       ast.ReturnItems(AdditiveProjection, Seq.empty)(pos),
+      groupBy = None,
       orderBy = None,
       skip = Some(offset(1)),
       limit = Some(limit(1)),
@@ -65,6 +66,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         FreeProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
+      groupBy = None,
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
       skip = Some(offset(1)),
       limit = Some(limit(1)),
@@ -79,6 +81,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         FreeProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
+      groupBy = None,
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
       skip = Some(skip(1)),
       limit = Some(limit(1)),
@@ -93,6 +96,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         AdditiveProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
+      groupBy = None,
       orderBy = None,
       skip = Some(offset(1)),
       limit = Some(limit(1)),
@@ -137,6 +141,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.Return(
       distinct = false,
       ast.ReturnItems(AdditiveProjection, Seq.empty)(pos),
+      groupBy = None,
       orderBy = None,
       skip = Some(skip(1)),
       limit = Some(limit(1))
@@ -155,6 +160,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
           )(pos)
         )
       )(pos),
+      groupBy = None,
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
       skip = Some(offset(1)),
       limit = Some(limit(1))
@@ -173,6 +179,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
           )(pos)
         )
       )(pos),
+      groupBy = None,
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
       skip = Some(skip(1)),
       limit = Some(limit(1))
@@ -191,6 +198,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
           )(pos)
         )
       )(pos),
+      groupBy = None,
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
       skip = Some(offset(1)),
       limit = Some(limit(1))

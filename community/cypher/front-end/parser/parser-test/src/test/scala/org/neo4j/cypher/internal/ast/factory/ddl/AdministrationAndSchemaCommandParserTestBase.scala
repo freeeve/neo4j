@@ -677,5 +677,5 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     distinct: Boolean = false,
     skip: Option[ast.Skip] = None
   ): ast.Return =
-    ast.Return(distinct, returnItems, orderBy, skip, limit)(pos)
+    ast.Return(distinct, returnItems, None, orderBy, skip, limit)(pos)
 }

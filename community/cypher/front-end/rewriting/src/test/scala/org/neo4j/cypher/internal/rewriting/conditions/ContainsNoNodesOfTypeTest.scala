@@ -53,6 +53,7 @@ class ContainsNoNodesOfTypeTest extends CypherFunSuite with AstConstructionTestS
       ReturnItems(FreeProjection, Seq(UnaliasedReturnItem(varFor("foo"), "foo") _)) _,
       None,
       None,
+      None,
       None
     ) _
 

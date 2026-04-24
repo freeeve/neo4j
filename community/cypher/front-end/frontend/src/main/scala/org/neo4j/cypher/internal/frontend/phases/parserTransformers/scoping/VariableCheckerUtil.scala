@@ -301,7 +301,7 @@ trait VariableCheckerUtil {
 
         def unapply(scope: WorkingScope): Option[(Seq[ReturnItem], InputPosition)] =
           scope match {
-            case StatementScope(r @ Return(_, ri, _, _, _, _, _, _), _, _, _, _, _, _, _) =>
+            case StatementScope(r @ Return(_, ri, _, _, _, _, _, _, _), _, _, _, _, _, _, _) =>
               Some((ri.items, r.position))
             case _ => None
           }

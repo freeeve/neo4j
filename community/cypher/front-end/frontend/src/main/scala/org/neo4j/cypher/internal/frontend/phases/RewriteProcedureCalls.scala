@@ -139,6 +139,7 @@ trait RewriteProcedureCalls {
             )(resolved.position),
             None,
             None,
+            None,
             None
           )(resolved.position)
         }

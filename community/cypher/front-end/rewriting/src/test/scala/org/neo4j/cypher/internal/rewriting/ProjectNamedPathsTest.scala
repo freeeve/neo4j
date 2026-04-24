@@ -346,6 +346,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -361,6 +362,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(p, p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -399,6 +401,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -414,6 +417,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(p, p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -454,6 +458,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -469,6 +474,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -511,6 +517,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -523,6 +530,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None,
@@ -540,6 +548,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -555,6 +564,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -605,6 +615,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -626,6 +637,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -641,6 +653,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               )(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None
@@ -668,6 +681,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -721,6 +735,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -746,6 +761,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -793,6 +809,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -814,6 +831,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -865,6 +883,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -886,6 +905,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -898,6 +918,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(literalInt(1), one)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None
@@ -921,6 +942,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -974,6 +996,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -995,6 +1018,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1055,6 +1079,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -1083,6 +1108,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1095,6 +1121,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(literalInt(1), one)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None
@@ -1118,6 +1145,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1170,6 +1198,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1198,6 +1227,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1256,6 +1286,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -1284,6 +1315,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1296,6 +1328,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(literalInt(1), one)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None
@@ -1326,6 +1359,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1366,6 +1400,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1381,6 +1416,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1423,6 +1459,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -1436,6 +1473,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(a, a)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None,
@@ -1453,6 +1491,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1468,6 +1507,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1510,6 +1550,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1525,6 +1566,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1570,6 +1612,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
+          None,
           withType = AddedInRewriteGeneral()
         )(pos)
 
@@ -1583,6 +1626,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
               AliasedReturnItem(b, b)(pos)
             )
           )(pos),
+          None,
           None,
           None,
           None,
@@ -1600,6 +1644,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
 
@@ -1615,6 +1660,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1656,6 +1702,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             )(pos),
             None,
             None,
+            None,
             None
           )(pos)
 
@@ -1671,6 +1718,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
                 AliasedReturnItem(literalInt(2), one)(pos)
               )
             )(pos),
+            None,
             None,
             None,
             None
@@ -1690,6 +1738,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1733,6 +1782,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
+            None,
             withType = AddedInRewriteGeneral()
           )(pos)
 
@@ -1748,6 +1798,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
+            None,
             None
           )(pos)
 
@@ -1760,6 +1811,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
                 AliasedReturnItem(literalInt(1), one)(pos)
               )
             )(pos),
+            None,
             None,
             None,
             None
@@ -1781,6 +1833,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
+            None,
             withType = AddedInRewriteGeneral()
           )(pos)
 
@@ -1796,6 +1849,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
+            None,
             None
           )(pos)
 
@@ -1808,6 +1862,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
                 AliasedReturnItem(literalInt(2), one)(pos)
               )
             )(pos),
+            None,
             None,
             None,
             None
@@ -1827,6 +1882,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1865,6 +1921,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -1877,6 +1934,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(p, p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1917,6 +1975,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -1929,6 +1988,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(p, p)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -1970,6 +2030,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -1998,6 +2059,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -2011,6 +2073,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(q, q)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -2194,6 +2257,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(literalInt(42), orderId)(pos)
           )
         )(pos),
+        None,
         Some(OrderBy(List(AscSortItem(orderId)(pos)))(pos)),
         None,
         None
@@ -2252,6 +2316,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         )(pos),
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -2291,6 +2356,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -2307,6 +2373,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         None,
         None,
         None,
+        None,
         None
       )(pos)
 
@@ -2319,6 +2386,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(add(l, x), varFor("l + x"))(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -2365,6 +2433,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(aId, aId)(pos)
           )
         )(pos),
+        None,
         Some(OrderBy(List(AscSortItem(pathExpression)(pos)))(pos)),
         None,
         None,
@@ -2380,6 +2449,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(aId, aId)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None
@@ -2431,6 +2501,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(pathExpressionA, pId)(pos)
           )
         )(pos),
+        None,
         Some(OrderBy(List(AscSortItem(pId)(pos)))(pos)),
         None,
         None,
@@ -2446,6 +2517,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             AliasedReturnItem(pId, pId)(pos)
           )
         )(pos),
+        None,
         None,
         None,
         None

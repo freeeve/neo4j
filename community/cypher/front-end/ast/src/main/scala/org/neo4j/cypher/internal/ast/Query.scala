@@ -267,8 +267,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       None
     else
       partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection.headOption match {
-        case Some(nonImportingWith @ With(_, _, _, _, _, _, _: MayBeImportingWithType)) => Some(nonImportingWith)
-        case _                                                                          => None
+        case Some(nonImportingWith @ With(_, _, _, _, _, _, _, _: MayBeImportingWithType)) => Some(nonImportingWith)
+        case _                                                                             => None
       }
 
   private def semanticCheckAbstractInScopeSubquery(
@@ -461,7 +461,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   private def checkStandaloneCall(clauses: Seq[Clause]): SemanticCheck = {
     clauses match {
-      case Seq(_: UnresolvedCall, where @ With(_, _, _, _, _, _, AddedInRewriteProcCall)) =>
+      case Seq(_: UnresolvedCall, where @ With(_, _, _, _, _, _, _, AddedInRewriteProcCall)) =>
         val gql = GqlHelper.getGql42001_42N71_42NAB(
           where.position.offset,
           where.position.line,
@@ -946,7 +946,7 @@ object SingleQuery {
 
   private def extractImportingWith(clauses: Seq[Clause]): Option[(With, Seq[Clause])] =
     clauses.headOption.collect {
-      case withClause @ With(false, ri, None, None, None, None, _: MayBeImportingWithType)
+      case withClause @ With(false, ri, None, None, None, None, None, _: MayBeImportingWithType)
         if ri.items.forall(_.isPassThrough) =>
         (withClause, clauses.tail)
     }

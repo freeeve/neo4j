@@ -155,7 +155,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
       case _: NextStatement                                 => true
       case ri: ReturnItems if ri.includeExisting            => true
       case sq: ScopeClauseSubqueryCall if sq.isImportingAll => true
-      case With(_, _, _, _, _, _, _: FlavouredWithType)     => true
+      case With(_, _, _, _, _, _, _, _: FlavouredWithType)  => true
     }
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
@@ -350,7 +350,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
           case (LastInNextCtx, c)                                => Seq(c)
           case (FirstInNextCtx | BodyInNextCtx, f: Finish)       => Seq(drivingTableReset(f.position))
           case (FirstInNextCtx | BodyInNextCtx, u: UpdateClause) => Seq(u, drivingTableReset(u.position))
-          case (FirstInNextCtx | BodyInNextCtx, r: Return)       => Seq(r.convertToWith)
+          case (FirstInNextCtx | BodyInNextCtx, r: Return)       => Seq(r.convertToWith())
           case (_, c)                                            => Seq(c)
         }
 
@@ -603,7 +603,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
             (rewrittenQuery, result, willBeWrapped) match {
               case (SingleQuery(_ :+ Finish()), _, false)                          => Seq.empty[Clause]
               case (SingleQuery(_ :+ x), _, false) if x.isInstanceOf[UpdateClause] => Seq.empty[Clause]
-              case (SingleQuery(_ :+ Return(_, _, _, _, _, _, _, _)), _, false)    => Seq.empty[Clause]
+              case (SingleQuery(_ :+ Return(_, _, _, _, _, _, _, _, _)), _, false) => Seq.empty[Clause]
               case (_, TableResult(_), _) =>
                 val items =
                   if (incomingLayout.semanticContext.mappedReturns.nonEmpty)
@@ -889,7 +889,7 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
 
     def isSimplifiableEmptyWith(clause: ProjectionClause, layout: Layout): Boolean =
       clause match {
-        case w @ With(false, ReturnItems(_, Seq(), _), None, None, None, None, withType)
+        case w @ With(false, ReturnItems(_, Seq(), _), None, None, None, None, None, withType)
           if version != CypherVersion.Cypher5 &&
             withType != ParsedAsYield &&
             !layout.importingWith.contains(PositionedNode(w)) => true
@@ -964,9 +964,9 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
     }
 
     def rewriter(layout: Layout): Rewriter = Rewriter.lift {
-      case clause @ With(_, returnItems, _, _, _, _, _) =>
+      case clause @ With(_, returnItems, _, _, _, _, _, _) =>
         expandReturnItems(clause, returnItems, layout)
-      case clause @ Return(_, returnItems, _, _, _, _, _, _) =>
+      case clause @ Return(_, returnItems, _, _, _, _, _, _, _) =>
         expandReturnItems(clause, returnItems, layout)
       case clause @ Yield(returnItems, _, _, _, _, _) =>
         expandReturnItems(clause, returnItems, layout)
@@ -997,8 +997,8 @@ case object ExpandClauses extends StatementRewriter with StepSequencer.Step with
     }
 
     def clauseCleanup(clauses: Seq[Clause]): Seq[Clause] = clauses.filter {
-      case With(false, ReturnItems(_, Seq(), _), None, None, None, None, _) => false
-      case _                                                                => true
+      case With(false, ReturnItems(_, Seq(), _), None, None, None, None, None, _) => false
+      case _                                                                      => true
     }
 
     def subqueryExpressionCleanup(query: Query): Query =

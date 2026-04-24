@@ -1803,21 +1803,34 @@ sealed trait HorizonClause extends Clause with SemanticAnalysisTooling {
 object ProjectionClause {
 
   def unapply(arg: ProjectionClause)
-    : Option[(Boolean, ReturnItems, Option[OrderBy], Option[Skip], Option[Limit], Option[Where])] = {
+    : Option[(Boolean, ReturnItems, Option[GroupBy], Option[OrderBy], Option[Skip], Option[Limit], Option[Where])] = {
     arg match {
-      case With(distinct, ri, orderBy, skip, limit, where, _)  => Some((distinct, ri, orderBy, skip, limit, where))
-      case Return(distinct, ri, orderBy, skip, limit, _, _, _) => Some((distinct, ri, orderBy, skip, limit, None))
-      case Yield(ri, orderBy, skip, limit, where, _)           => Some((false, ri, orderBy, skip, limit, where))
+      case With(distinct, ri, groupBy, orderBy, skip, limit, where, _) =>
+        Some((distinct, ri, groupBy, orderBy, skip, limit, where))
+      case Return(distinct, ri, groupBy, orderBy, skip, limit, _, _, _) =>
+        Some((distinct, ri, groupBy, orderBy, skip, limit, None))
+      case Yield(ri, orderBy, skip, limit, where, _) => Some((false, ri, None, orderBy, skip, limit, where))
     }
   }
 
   case class Subclauses(
+    groupBy: Option[GroupBy],
     orderBy: Option[OrderBy],
     skip: Option[Skip],
     limit: Option[Limit],
     where: Option[Where]
   ) {
-    def hasSubclause: Boolean = orderBy.isDefined || skip.isDefined || limit.isDefined || where.isDefined
+
+    def sortAndPredicateExpressions: Seq[Expression] = {
+
+      val sortExpressions = orderBy.map(_.sortItems.map(_.expression)).toSeq.flatten
+      val predicateExpressions = where.map(_.expression)
+
+      (sortExpressions ++ predicateExpressions).toSeq
+    }
+
+    def hasSubclause: Boolean =
+      groupBy.isDefined || orderBy.isDefined || skip.isDefined || limit.isDefined || where.isDefined
   }
 
   case class Elements(
@@ -1832,12 +1845,12 @@ object ProjectionClause {
 
     def apply(arg: ProjectionClause): Elements = {
       arg match {
-        case With(distinct, ReturnItems(projectionType, items, _), orderBy, skip, limit, where, withType) =>
-          Elements(distinct, items, Subclauses(orderBy, skip, limit, where), withType, projectionType)
-        case Return(distinct, ReturnItems(projectionType, items, _), orderBy, skip, limit, _, returnType, _) =>
-          Elements(distinct, items, Subclauses(orderBy, skip, limit, None), returnType, projectionType)
+        case With(distinct, ReturnItems(projectionType, items, _), groupBy, orderBy, skip, limit, where, withType) =>
+          Elements(distinct, items, Subclauses(groupBy, orderBy, skip, limit, where), withType, projectionType)
+        case Return(distinct, ReturnItems(projectionType, items, _), groupBy, orderBy, skip, limit, _, returnType, _) =>
+          Elements(distinct, items, Subclauses(groupBy, orderBy, skip, limit, None), returnType, projectionType)
         case Yield(ReturnItems(projectionType, items, _), orderBy, skip, limit, where, yieldType) =>
-          Elements(false, items, Subclauses(orderBy, skip, limit, where), yieldType, projectionType)
+          Elements(distinct = false, items, Subclauses(None, orderBy, skip, limit, where), yieldType, projectionType)
       }
     }
   }
@@ -1858,7 +1871,9 @@ sealed trait ProjectionClause extends HorizonClause {
 
   def returnItems: ReturnItems
 
-  lazy val isAggregating: Boolean = returnItems.directlyContainsAggregate || distinct
+  lazy val isAggregating: Boolean = returnItems.directlyContainsAggregate || distinct || groupBy.isDefined
+
+  def groupBy: Option[GroupBy]
 
   def orderBy: Option[OrderBy]
 
@@ -1877,25 +1892,26 @@ sealed trait ProjectionClause extends HorizonClause {
   def copyProjection(
     distinct: Boolean = this.distinct,
     returnItems: ReturnItems = this.returnItems,
+    groupBy: Option[GroupBy] = this.groupBy,
     orderBy: Option[OrderBy] = this.orderBy,
     skip: Option[Skip] = this.skip,
     limit: Option[Limit] = this.limit,
     where: Option[Where] = this.where
   ): ProjectionClause = {
     this match {
-      case w: With   => w.copy(distinct, returnItems, orderBy, skip, limit, where)(this.position)
-      case r: Return => r.copy(distinct, returnItems, orderBy, skip, limit, r.excludedNames)(this.position)
+      case w: With   => w.copy(distinct, returnItems, groupBy, orderBy, skip, limit, where)(this.position)
+      case r: Return => r.copy(distinct, returnItems, groupBy, orderBy, skip, limit, r.excludedNames)(this.position)
       case y: Yield  => y.copy(returnItems, orderBy, skip, limit, where)(this.position)
     }
   }
 
   def withRewrittenType: ProjectionClause = {
     this match {
-      case w @ With(_, _, _, _, _, _, _: FlavouredWithType) =>
+      case w @ With(_, _, _, _, _, _, _, _: FlavouredWithType) =>
         w.copy(withType = AddedInRewriteGeneral(Some(w.name)))(this.position)
-      case w @ With(_, _, _, _, _, _, _) => w
-      case r: Return                     => r
-      case y: Yield                      => y
+      case w @ With(_, _, _, _, _, _, _, _) => w
+      case r: Return                        => r
+      case y: Yield                         => y
     }
   }
 
@@ -1916,6 +1932,7 @@ sealed trait ProjectionClause extends HorizonClause {
          */
         def runChecks(scopeToImportVariablesFrom: Scope): SemanticCheck = {
           returnItems.declareVariables(scopeToImportVariablesFrom) chain
+            groupBy.semanticCheck chain
             orderBy.semanticCheck chain
             limit.semanticCheck chain
             skip.semanticCheck chain
@@ -2083,18 +2100,19 @@ case object ReturnAddedInRewrite extends ReturnType
 object With {
 
   def apply(returnItems: ReturnItems)(pos: InputPosition): With =
-    With(distinct = false, returnItems, None, None, None, None)(pos)
+    With(distinct = false, returnItems, None, None, None, None, None)(pos)
 
   def apply(returnItems: ReturnItems, withType: WithType)(pos: InputPosition): With =
-    With(distinct = false, returnItems, None, None, None, None, withType)(pos)
+    With(distinct = false, returnItems, None, None, None, None, None, withType)(pos)
 
   def apply(returnItems: ReturnItems, where: Where, withType: WithType)(pos: InputPosition): With =
-    With(distinct = false, returnItems, None, None, None, Some(where), withType)(pos)
+    With(distinct = false, returnItems, None, None, None, None, Some(where), withType)(pos)
 }
 
 case class With(
   distinct: Boolean,
   returnItems: ReturnItems,
+  groupBy: Option[GroupBy],
   orderBy: Option[OrderBy],
   skip: Option[Skip],
   limit: Option[Limit],
@@ -2147,18 +2165,18 @@ trait UnaliasedNotAllowed { val msg: String }
 object Return {
 
   def apply(returnItems: ReturnItems)(pos: InputPosition): Return =
-    Return(distinct = false, returnItems, None, None, None)(pos)
+    Return(distinct = false, returnItems, None, None, None, None)(pos)
 
   def apply(returnItems: ReturnItems, returnType: ReturnType)(pos: InputPosition): Return =
-    Return(distinct = false, returnItems, None, None, None, returnType = returnType)(pos)
+    Return(distinct = false, returnItems, None, None, None, None, returnType = returnType)(pos)
 
   // Unapply for RETURN * ...
   object WithStar {
 
     def unapply(ret: Return): Option[Return] = {
       ret match {
-        case Return(_, ReturnItems(AdditiveProjection, _, _), _, _, _, _, _, _) => Some(ret)
-        case _                                                                  => None
+        case Return(_, ReturnItems(AdditiveProjection, _, _), _, _, _, _, _, _, _) => Some(ret)
+        case _                                                                     => None
       }
     }
   }
@@ -2167,6 +2185,7 @@ object Return {
 case class Return(
   distinct: Boolean,
   returnItems: ReturnItems,
+  groupBy: Option[GroupBy],
   orderBy: Option[OrderBy],
   skip: Option[Skip],
   limit: Option[Limit],
@@ -2214,10 +2233,8 @@ case class Return(
         Seq.empty
     }
 
-  def convertToWith: With =
-    // This method is currently just called from places converting a RETURN to a WITH before NEXT,
-    // if it gets called from non-NEXT related places we should update how the AddedInRewriteGeneral name is set.
-    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral(Some("NEXT")))(position)
+  def convertToWith(context: Option[String] = Some("NEXT")): With =
+    With(distinct, returnItems, groupBy, orderBy, skip, limit, None, AddedInRewriteGeneral(context))(position)
 }
 
 case object Yield {
@@ -2235,6 +2252,7 @@ case class Yield(
   yieldType: YieldType = DefaultYield
 )(val position: InputPosition) extends ProjectionClause with ClauseAllowedOnSystem {
   override def distinct: Boolean = false
+  override def groupBy: Option[GroupBy] = None
 
   override def name: String = "YIELD"
 

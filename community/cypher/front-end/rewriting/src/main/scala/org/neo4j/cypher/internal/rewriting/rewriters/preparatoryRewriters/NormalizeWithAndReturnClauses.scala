@@ -242,14 +242,14 @@ case class NormalizeWithAndReturnClauses(
 
   private val rewriteProjectionsRecursively: Rewriter = topDown(Rewriter.lift {
     // Only alias return items
-    case clause @ ProjectionClause(_, ri: ReturnItems, None, _, _, None) =>
+    case clause @ ProjectionClause(_, ri: ReturnItems, _, None, _, _, None) =>
       clause.copyProjection(returnItems = aliasImplicitlyAliasedReturnItems(ri))
 
     case fullSubqueryExpression: FullSubqueryExpression =>
       fullSubqueryExpression.withQuery(rewriteTopLevelQuery(fullSubqueryExpression.query))
 
     // Alias return items and rewrite ORDER BY and WHERE
-    case clause @ ProjectionClause(_, ri: ReturnItems, orderBy, _, _, where) =>
+    case clause @ ProjectionClause(_, ri: ReturnItems, _, orderBy, _, _, where) =>
       clause.verifyOrderByAggregationUse((s, i) => throw cypherExceptionFactory.invalidUseOfAggregationInOrderBy(s, i))
 
       val existingAliases = ri.items.collect {

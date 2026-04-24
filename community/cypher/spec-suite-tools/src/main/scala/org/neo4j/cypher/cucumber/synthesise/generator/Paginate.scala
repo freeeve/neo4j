@@ -146,7 +146,7 @@ object SingleQueryWithReturn {
   def unapply(statement: Statement): Option[(SingleQuery, Return, Option[Int])] = statement match {
     case q @ SingleQuery(clauses) => clauses.lastOption.collect {
         case ret: Return if ret.limit.isEmpty => (q, ret, None)
-        case ret @ Return(_, _, _, _, Some(Limit(limit: IntegerLiteral)), _, _, _)
+        case ret @ Return(_, _, _, _, _, Some(Limit(limit: IntegerLiteral)), _, _, _)
           if limit.value > 0 && limit.value < Int.MaxValue => (q, ret, Some(limit.value.toInt))
       }
     case _ => None

@@ -45,6 +45,7 @@ class ContainsNoMatchingNodesTest extends CypherFunSuite with AstConstructionTes
       ReturnItems(FreeProjection, Seq(UnaliasedReturnItem(varFor("foo"), "foo") _)) _,
       None,
       None,
+      None,
       None
     ) _
 
@@ -55,6 +56,7 @@ class ContainsNoMatchingNodesTest extends CypherFunSuite with AstConstructionTes
     val ast: ASTNode = Return(
       false,
       ReturnItems(AdditiveProjection, Seq(UnaliasedReturnItem(varFor("foo"), "foo") _)) _,
+      None,
       None,
       None,
       None

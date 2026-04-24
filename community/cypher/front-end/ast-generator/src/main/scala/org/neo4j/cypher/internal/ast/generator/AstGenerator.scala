@@ -1647,13 +1647,14 @@ class AstGenerator(
     skip <- option(_skip)
     limit <- option(_limit)
     where <- option(_where)
-  } yield With(distinct, ReturnItems(projectionType, retItems)(pos), orderBy, skip, limit, where)(pos)
+  } yield With(distinct, ReturnItems(projectionType, retItems)(pos), None, orderBy, skip, limit, where)(pos)
 
   def _let: Gen[With] = for {
     retItems <- oneOrMore(_aliasedReturnItem)
   } yield With(
     distinct = false,
     ReturnItems(AdditiveProjection, retItems)(pos),
+    None,
     None,
     None,
     None,
@@ -1666,6 +1667,7 @@ class AstGenerator(
       With(
         distinct = false,
         ReturnItems(AdditiveProjection, Seq.empty)(pos),
+        None,
         None,
         None,
         None,
@@ -1684,6 +1686,7 @@ class AstGenerator(
   } yield With(
     distinct = false,
     ReturnItems(AdditiveProjection, Seq.empty)(pos),
+    None,
     orderBy,
     skip,
     limit,
@@ -1698,7 +1701,7 @@ class AstGenerator(
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
-  } yield Return(distinct, ReturnItems(projectionType, retItems)(pos), orderBy, skip, limit)(pos)
+  } yield Return(distinct, ReturnItems(projectionType, retItems)(pos), None, orderBy, skip, limit)(pos)
 
   def _finish: Gen[Finish] = const(Finish()(pos))
 
@@ -2570,6 +2573,7 @@ class AstGenerator(
     val withClause = With(
       distinct = false,
       ReturnItems(AdditiveProjection, Seq(), itemOrder)(returnItems.position),
+      None,
       orderBy,
       yieldClause.skip,
       yieldClause.limit,
@@ -2584,6 +2588,7 @@ class AstGenerator(
     With(
       distinct = false,
       ReturnItems(AdditiveProjection, Seq())(pos),
+      None,
       None,
       None,
       None,

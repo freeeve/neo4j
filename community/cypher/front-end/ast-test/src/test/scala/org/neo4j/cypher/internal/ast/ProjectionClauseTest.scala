@@ -35,7 +35,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
     // GIVEN WITH "a" as n
     val returnItem = AliasedReturnItem(literalString("a"), varFor("n"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, None, None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, None, None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope
@@ -51,7 +51,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
     // GIVEN n WITH "a" as X
     val returnItem = AliasedReturnItem(literalString("a"), varFor("X"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, None, None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, None, None, None, None) _
 
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
     val middleState = withObj.semanticCheck.run(beforeState).state
@@ -74,7 +74,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
     val returnItem = AliasedReturnItem(varFor("n"), varFor("X"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -95,7 +95,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
     val returnItem = AliasedReturnItem(prop("n", "prop"), varFor("introducedVariable"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -121,7 +121,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
     val returnItem = AliasedReturnItem(varFor("m"), varFor("X"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, Some(where)) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, Some(where)) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get.declareVariable(
@@ -146,7 +146,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
     val returnItem = AliasedReturnItem(varFor("n"), varFor("n"))(pos)
     val listedReturnItems = ReturnItems(FreeProjection, Seq(returnItem)) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -159,7 +159,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
   test("WITH * allowed when no variables in scope") {
     // GIVEN CREATE () WITH * CREATE ()
-    val withObj = With(distinct = false, ReturnItems(AdditiveProjection, Seq()) _, None, None, None, None) _
+    val withObj = With(distinct = false, ReturnItems(AdditiveProjection, Seq()) _, None, None, None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope
@@ -172,7 +172,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
 
   test("RETURN * not allowed when no variables in scope") {
     // GIVEN CREATE () WITH * CREATE ()
-    val withObj = Return(distinct = false, ReturnItems(AdditiveProjection, Seq()) _, None, None, None) _
+    val withObj = Return(distinct = false, ReturnItems(AdditiveProjection, Seq()) _, None, None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope
@@ -193,7 +193,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
       AliasedReturnItem(CountStar() _, varFor("count"))(pos)
     )
     val listedReturnItems = ReturnItems(FreeProjection, returnItems) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -214,7 +214,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
       AliasedReturnItem(Property(varFor("n"), PropertyKeyName("prop") _) _, varFor("x"))(pos)
     )
     val listedReturnItems = ReturnItems(FreeProjection, returnItems) _
-    val withObj = With(distinct = true, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = true, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -235,7 +235,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
       AliasedReturnItem(prop("n", "prop"), varFor("x"))(pos)
     )
     val listedReturnItems = ReturnItems(FreeProjection, returnItems) _
-    val withObj = With(distinct = false, listedReturnItems, Some(orderBy), None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, Some(orderBy), None, None, None) _
 
     // WHEN
     val beforeState = SemanticState.clean.newChildScope.declareVariable(varFor("n"), CTNode).right.get
@@ -251,7 +251,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
       AliasedReturnItem(literalInt(1), varFor("x"))(pos)
     )
     val listedReturnItems = ReturnItems(FreeProjection, returnItems) _
-    val withObj = With(distinct = false, listedReturnItems, None, None, None, None) _
+    val withObj = With(distinct = false, listedReturnItems, None, None, None, None, None) _
 
     // WHEN
     val outerState = SemanticState.clean.newChildScope.declareVariable(varFor("x"), CTNode).right.get
@@ -270,7 +270,7 @@ class ProjectionClauseTest extends CypherFunSuite with AstConstructionTestSuppor
       AliasedReturnItem(literalInt(1), varFor("x", varPosition))(pos)
     )
     val listedReturnItems = ReturnItems(FreeProjection, returnItems) _
-    val returnObj = Return(distinct = false, listedReturnItems, None, None, None) _
+    val returnObj = Return(distinct = false, listedReturnItems, None, None, None, None) _
 
     // WHEN
     val outerState = SemanticState.clean.newChildScope.declareVariable(varFor("x"), CTNode).right.get

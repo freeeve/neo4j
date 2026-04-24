@@ -436,7 +436,8 @@ object pegClause {
     subclauses: Subclauses
   )(implicit c: PegContext): Seq[WorkingScope] = {
 
-    val Subclauses(orderByOpt, skipOpt, limitOpt, whereOpt) = subclauses
+    // TODO implement scoping for GROUP BY
+    val Subclauses(_, orderByOpt, skipOpt, limitOpt, whereOpt) = subclauses
 
     val sortItemScopes =
       orderByOpt.fold(Seq.empty[SortItem])(_.sortItems)

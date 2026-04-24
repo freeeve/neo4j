@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
@@ -147,16 +146,8 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
    * RETURN `x + y`
    */
   private def splitReturnClause(r: Return): (With, Return) = {
-    val newWith =
-      With(
-        r.distinct,
-        r.returnItems,
-        r.orderBy,
-        r.skip,
-        r.limit,
-        r.where,
-        withType = AddedInRewriteGeneral()
-      )(r.position)
+    // TODO double check this
+    val newWith = r.convertToWith(None)
     val newReturn =
       Return(r.returnItems.mapItems(items => items.map(ri => AliasedReturnItem(ri.alias.get))))(r.position)
     (newWith, newReturn)

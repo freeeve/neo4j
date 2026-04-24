@@ -54,6 +54,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
         )(pos),
         None,
         None,
+        None,
         None
       )(pos)
     ))(pos)
@@ -83,6 +84,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
         )(pos),
         None,
         None,
+        None,
         None
       )(pos)
     ))(pos)
@@ -109,6 +111,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
           FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         )(pos),
+        None,
         None,
         None,
         None

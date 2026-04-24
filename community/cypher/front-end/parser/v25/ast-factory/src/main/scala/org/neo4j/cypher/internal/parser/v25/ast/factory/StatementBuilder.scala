@@ -336,6 +336,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = Return(
       ctx.DISTINCT() != null,
       ctx.returnItems().ast[ReturnItems](),
+      None,
       astOpt(ctx.orderBy()),
       astOpt(ctx.skip()),
       astOpt(ctx.limit())
@@ -411,7 +412,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   ): Unit = {
     val r = ctx.returnBody().ast[Return]()
     val where = astOpt(ctx.whereClause())
-    ctx.ast = With(r.distinct, r.returnItems, r.orderBy, r.skip, r.limit, where)(pos(ctx))
+    ctx.ast = With(r.distinct, r.returnItems, r.groupBy, r.orderBy, r.skip, r.limit, where)(pos(ctx))
   }
 
   final override def exitCreateClause(ctx: Cypher25Parser.CreateClauseContext): Unit = {
@@ -661,6 +662,7 @@ trait StatementBuilder extends Cypher25ParserListener {
       None,
       None,
       None,
+      None,
       Some(Where(ctx.expression().ast())(pos(ctx))),
       ParsedAsFilter
     )(pos(ctx))
@@ -687,6 +689,7 @@ trait StatementBuilder extends Cypher25ParserListener {
         StrictlyAdditiveProjection,
         astSeq(ctx.children, offset = 1, step = 2)
       )(pos(ctx)),
+      None,
       None,
       None,
       None,
@@ -867,6 +870,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = With(
       distinct = false,
       ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx)),
+      None,
       orderBy,
       skip,
       limit,

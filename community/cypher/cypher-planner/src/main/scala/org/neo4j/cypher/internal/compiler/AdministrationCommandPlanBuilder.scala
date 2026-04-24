@@ -1824,7 +1824,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       // Global call: CALL foo.bar.baz("arg1", 2) // only if system procedure is allowed!
       case q @ SingleQuery(Seq(
           resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _),
-          returns @ Return(_, _, _, _, _, _, _, _)
+          returns @ Return(_, _, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
         blockSubqueries(q)
         Some(planSystemProcedureCall(context.cypherVersion, resolved, Some(returns)))
@@ -1832,7 +1832,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       case q @ SingleQuery(Seq(
           UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
           resolved @ ResolvedNonLocalCall(signature, _, _, _, _, _, _),
-          returns @ Return(_, _, _, _, _, _, _, _)
+          returns @ Return(_, _, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
         blockSubqueries(q)
         Some(planSystemProcedureCall(context.cypherVersion, resolved, Some(returns)))

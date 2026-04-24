@@ -907,6 +907,7 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
           None,
           None,
           None,
+          None,
           Set()
         )(pos)))(pos))),
         prettifierRoundTrip = false
@@ -943,6 +944,7 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
         )(pos)),
         None
       )(pos),
+      None,
       None,
       None,
       None,

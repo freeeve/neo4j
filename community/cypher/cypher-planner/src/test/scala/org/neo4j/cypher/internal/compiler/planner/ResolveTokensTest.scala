@@ -78,7 +78,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Resolved")))),
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         pkToken.name should equal("name")
         semanticTable.id(pkToken) should equal(Some(PropertyKeyId(12)))
@@ -100,7 +100,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             Some(Where(Equals(Property(Variable("n"), pkToken), StringLiteral("Unresolved")))),
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         pkToken.name should equal("name")
         semanticTable.id(pkToken) should equal(None)
@@ -122,7 +122,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             Some(Where(HasLabels(Variable("n"), Seq(labelToken)))),
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         labelToken.name should equal("Resolved")
         semanticTable.id(labelToken) should equal(Some(LabelId(12)))
@@ -144,7 +144,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             Some(Where(HasLabels(Variable("n"), Seq(labelToken)))),
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         labelToken.name should equal("Unresolved")
         semanticTable.id(labelToken) should equal(None)
@@ -179,7 +179,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             None,
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         relTypeToken.name should equal("RESOLVED")
         semanticTable.id(relTypeToken) should equal(Some(RelTypeId(12)))
@@ -214,7 +214,7 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
             None,
             None
           ),
-          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, _, _, _)
+          Return(false, ReturnItems(AdditiveProjection, Seq(), _), None, None, None, None, _, _, _)
         )) =>
         relTypeToken.name should equal("UNRESOLVED")
         semanticTable.id(relTypeToken) should equal(None)

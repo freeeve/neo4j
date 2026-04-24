@@ -94,6 +94,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
             None,
             None,
             None,
+            None,
             withType = AddedInRewriteGeneral()
           )(pos)
 

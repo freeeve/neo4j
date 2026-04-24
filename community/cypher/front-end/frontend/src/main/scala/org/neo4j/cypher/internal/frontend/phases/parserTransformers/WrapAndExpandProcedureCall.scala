@@ -67,7 +67,7 @@ case object WrapAndExpandProcedureCall extends StatementRewriter with ParsePipel
       val newUnresolved = unresolved.copy(declaredResult = Some(newResult))(unresolved.position)
       val newItems = ReturnItems(AdditiveProjection, Seq.empty)(where.position)
       val newWith =
-        With(distinct = false, newItems, None, None, None, optWhere, AddedInRewriteProcCall)(where.position)
+        With(distinct = false, newItems, None, None, None, None, optWhere, AddedInRewriteProcCall)(where.position)
       Seq(newUnresolved, newWith)
     case call =>
       Seq(call)

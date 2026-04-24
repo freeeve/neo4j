@@ -1446,22 +1446,22 @@ trait AstConstructionTestSupport {
     With(ReturnItems(AdditiveProjection, items)(pos))(pos)
 
   def withDistinct(items: ReturnItem*): With =
-    With(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None, None)(pos)
+    With(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None, None, None)(pos)
 
   def withAdditionalItemsTyped(withType: WithType, items: ReturnItem*): With =
-    With(distinct = false, returnAdditionalItems(items: _*), None, None, None, None, withType = withType)(pos)
+    With(distinct = false, returnAdditionalItems(items: _*), None, None, None, None, None, withType = withType)(pos)
 
   def withAll(where: Option[Where] = None): With =
-    With(distinct = false, returnAllItems, None, None, None, where = where)(pos)
+    With(distinct = false, returnAllItems, None, None, None, None, where = where)(pos)
 
   def withAllTyped(where: Option[Where] = None, withType: WithType): With =
-    With(distinct = false, returnAllItems, None, None, None, where = where, withType = withType)(pos)
+    With(distinct = false, returnAllItems, None, None, None, None, where = where, withType = withType)(pos)
 
   def withAll(orderBy: Option[OrderBy], skip: Option[Skip], limit: Option[Limit]): With =
-    With(distinct = false, returnAllItems, orderBy, skip, limit, None)(pos)
+    With(distinct = false, returnAllItems, None, orderBy, skip, limit, None)(pos)
 
   def withAllTyped(orderBy: Option[OrderBy], skip: Option[Skip], limit: Option[Limit], withType: WithType): With =
-    With(distinct = false, returnAllItems, orderBy, skip, limit, None, withType = withType)(pos)
+    With(distinct = false, returnAllItems, None, orderBy, skip, limit, None, withType = withType)(pos)
 
   def withAllTyped(
     orderBy: Option[OrderBy],
@@ -1470,7 +1470,7 @@ trait AstConstructionTestSupport {
     where: Option[Where],
     withType: WithType
   ): With =
-    With(distinct = false, returnAllItems, orderBy, skip, limit, where, withType = withType)(pos)
+    With(distinct = false, returnAllItems, None, orderBy, skip, limit, where, withType = withType)(pos)
 
   def withFromYield(
     returnItems: ReturnItems,
@@ -1479,7 +1479,7 @@ trait AstConstructionTestSupport {
     limit: Option[Limit] = None,
     where: Option[Where] = None
   ): With =
-    With(distinct = false, returnItems, orderBy, skip, limit, where = where, withType = ParsedAsYield)(pos)
+    With(distinct = false, returnItems, None, orderBy, skip, limit, where = where, withType = ParsedAsYield)(pos)
 
   def set_(items: Seq[SetItem]): SetClause =
     SetClause(items)(pos)
@@ -1517,22 +1517,22 @@ trait AstConstructionTestSupport {
     Return(ReturnItems(FreeProjection, items)(pos))(pos)
 
   def return_(ob: OrderBy, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), Some(ob), None, None)(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, Some(ob), None, None)(pos)
 
   def return_(skip: Skip, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, Some(skip), None)(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, None, Some(skip), None)(pos)
 
   def return_(limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, None, Some(limit))(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, None, None, Some(limit))(pos)
 
   def return_(ob: OrderBy, skip: Skip, limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, Some(ob), Some(skip), Some(limit))(pos)
 
   def returnDistinct(items: ReturnItem*): Return =
-    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None)(pos)
+    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None, None)(pos)
 
   def returnDistinct(ob: OrderBy, skip: Skip, limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
+    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), None, Some(ob), Some(skip), Some(limit))(pos)
 
   def returnAll: Return = Return(returnAllItems)(pos)
 
@@ -1585,6 +1585,13 @@ trait AstConstructionTestSupport {
 
   def orderBy(items: SortItem*): OrderBy =
     OrderBy(items)(pos)
+
+  def groupBy(elements: Expression*): GroupBy =
+    GroupBy(ExplicitGroupingElements(elements)(pos))(pos)
+
+  def groupByAll: GroupBy = GroupBy(GroupingAll()(pos))(pos)
+
+  def groupByNone: GroupBy = GroupBy(GroupingNone()(pos))(pos)
 
   def skip(value: Long, position: InputPosition = pos): Skip =
     Skip(literalInt(value, increasePos(position, 5)))(position)

@@ -35,7 +35,7 @@ case object ContainsNoExpandableClauses extends ContainsNoMatchingStatementNodes
     case _: NextStatement                                 => "NEXT"
     case ri: ReturnItems if ri.includeExisting            => "ReturnItems(includeExisting = true, ...)"
     case sq: ScopeClauseSubqueryCall if sq.isImportingAll => "ScopeClauseSubqueryCall(isImportingAll = true, ...)"
-    case With(_, _, _, _, _, _, _: FlavouredWithType)     => "FlavouredWithType"
+    case With(_, _, _, _, _, _, _, _: FlavouredWithType)  => "FlavouredWithType"
   }
 
   override val name: String = "NoExpandableClauses"

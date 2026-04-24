@@ -115,23 +115,25 @@ object AdministrationShowCommandUtils {
           With(
             distinct = false,
             returnItems,
+            None,
             orderBy,
             skip,
             limit,
             Some(where),
             withType = AddedInRewriteGeneral()
           )(y.position),
-          Return(distinct = false, generateReturnItemsFromAliases(returnItems), orderBy, skip, limit)(y.position)
+          Return(distinct = false, generateReturnItemsFromAliases(returnItems), None, orderBy, skip, limit)(y.position)
         )
       // YIELD with no WHERE so convert YIELD to RETURN
       case (Some(y @ Yield(returnItems, orderBy, skip, limit, None, _)), None) =>
-        Seq(Return(distinct = false, returnItems, orderBy, skip, limit)(y.position))
+        Seq(Return(distinct = false, returnItems, None, orderBy, skip, limit)(y.position))
       // YIELD and RETURN so convert YIELD to WITH, and keep the RETURN
       case (Some(y @ Yield(returnItems, orderBy, skip, limit, where, _)), Some(returnClause)) =>
         Seq(
           With(
             distinct = false,
             returnItems,
+            None,
             orderBy,
             skip,
             limit,
@@ -144,6 +146,7 @@ object AdministrationShowCommandUtils {
       case (None, _) => Seq(Return(
           distinct = false,
           ReturnItems(FreeProjection, symbolsToReturnItems(defaultSymbols.map(_.name)))(InputPosition.NONE),
+          None,
           genDefaultOrderBy(defaultSymbols.map(_.name), defaultOrder),
           None,
           None

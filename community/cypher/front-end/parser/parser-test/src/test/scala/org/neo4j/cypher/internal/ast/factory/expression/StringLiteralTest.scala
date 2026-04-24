@@ -46,6 +46,7 @@ class StringLiteralTest extends AstParsingTestBase {
                     items = List(),
                     defaultOrderOnColumns = None
                   )(pos),
+                  None,
                   orderBy = Some(
                     value = OrderBy(
                       sortItems = List(
@@ -82,6 +83,7 @@ class StringLiteralTest extends AstParsingTestBase {
                       items = List(),
                       defaultOrderOnColumns = None
                     )(pos),
+                    None,
                     orderBy = Some(
                       value = OrderBy(
                         sortItems = List(
@@ -118,6 +120,7 @@ class StringLiteralTest extends AstParsingTestBase {
                     items = List(),
                     defaultOrderOnColumns = None
                   )(pos),
+                  None,
                   orderBy = Some(
                     value = OrderBy(
                       sortItems = List(
@@ -154,6 +157,7 @@ class StringLiteralTest extends AstParsingTestBase {
                       items = List(),
                       defaultOrderOnColumns = None
                     )(pos),
+                    None,
                     orderBy = Some(
                       value = OrderBy(
                         sortItems = List(

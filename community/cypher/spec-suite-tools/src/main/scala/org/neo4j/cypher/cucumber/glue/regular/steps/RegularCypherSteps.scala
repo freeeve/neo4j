@@ -46,6 +46,7 @@ import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Exact
 import org.neo4j.cypher.cucumber.steps.Result.DoublePrecision.Within
 import org.neo4j.cypher.cucumber.steps.Result.Order.Ordered
 import org.neo4j.cypher.cucumber.steps.Result.Order.Unordered
+import org.neo4j.cypher.cucumber.user.function.AggCountFunction
 import org.neo4j.cypher.cucumber.user.function.NodeHashFunction
 import org.neo4j.cypher.cucumber.user.function.PassThroughFunction
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
@@ -154,6 +155,9 @@ final class RegularCypherSteps @Inject() (
         ))
         db.registerFunction(classOf[NodeHashFunction])
         db.registerAggregationFunction(classOf[NodeHashFunction])
+      case "test.aggCount" =>
+        registeredProcedures = registeredProcedures.appended(new QualifiedName("test", "aggCount"))
+        db.registerAggregationFunction(classOf[AggCountFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")
     }

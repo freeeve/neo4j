@@ -85,6 +85,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
           )(pos),
           None,
           None,
+          None,
           None
         )(pos)
       )

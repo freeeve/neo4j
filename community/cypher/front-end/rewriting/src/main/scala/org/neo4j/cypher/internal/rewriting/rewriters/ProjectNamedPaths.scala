@@ -198,7 +198,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
             case None           => TraverseChildren(acc)
           }
 
-      case ProjectionClause(_, returnItems, _, _, _, _) =>
+      case ProjectionClause(_, returnItems, _, _, _, _, _) =>
         acc =>
           val items = returnItems.items
           // Collect rewritten variables inside the ReturnItems that refer to path variables
@@ -242,7 +242,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
           val newAcc = subquery.innerQuery.folder.treeFold(acc) {
             case query: SingleQuery => innerAcc =>
                 val allReturnItems: Seq[ReturnItem] = query.partitionedClauses.importingWith.collect {
-                  case With(_, ReturnItems(_, items, _), _, _, _, _, _) => items
+                  case With(_, ReturnItems(_, items, _), _, _, _, _, _, _) => items
                 }.getOrElse(Seq[ReturnItem]())
 
                 val (pathReturnItems, nonPathReturnItems) = allReturnItems.partition {
@@ -266,6 +266,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
                     Some(With(
                       distinct = false,
                       ReturnItems(FreeProjection, returnItems)(InputPosition.NONE),
+                      None,
                       None,
                       None,
                       None,

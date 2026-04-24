@@ -98,6 +98,7 @@ case object DebugPrinter extends Phase[PlannerContext, LogicalPlanState, Logical
       None,
       None,
       None,
+      None,
       Set.empty
     )(pos)
     val newStatement = SingleQuery(Seq(returnClause))(pos)

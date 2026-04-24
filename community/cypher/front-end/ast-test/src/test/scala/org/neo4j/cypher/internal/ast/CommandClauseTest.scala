@@ -54,11 +54,13 @@ class CommandClauseTest extends CypherFunSuite with AstConstructionTestSupport {
         None,
         None,
         None,
+        None,
         ParsedAsYield
       )(pos),
       Return(
         false,
         ReturnItems(AdditiveProjection, List(), Some(List("nope")))(pos),
+        None,
         None,
         None,
         None,

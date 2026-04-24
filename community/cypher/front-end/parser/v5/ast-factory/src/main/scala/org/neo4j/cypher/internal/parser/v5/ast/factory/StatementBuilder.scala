@@ -256,6 +256,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     ctx.ast = Return(
       ctx.DISTINCT() != null,
       ctx.returnItems().ast[ReturnItems](),
+      None,
       astOpt(ctx.orderBy()),
       astOpt(ctx.skip()),
       astOpt(ctx.limit())
@@ -300,7 +301,7 @@ trait StatementBuilder extends Cypher5ParserListener {
   ): Unit = {
     val r = ctx.returnBody().ast[Return]()
     val where = astOpt(ctx.whereClause())
-    ctx.ast = With(r.distinct, r.returnItems, r.orderBy, r.skip, r.limit, where)(pos(ctx))
+    ctx.ast = With(r.distinct, r.returnItems, None, r.orderBy, r.skip, r.limit, where)(pos(ctx))
   }
 
   final override def exitCreateClause(ctx: Cypher5Parser.CreateClauseContext): Unit = {
@@ -671,6 +672,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     ctx.ast = With(
       distinct = false,
       ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx)),
+      None,
       orderBy,
       skip,
       limit,

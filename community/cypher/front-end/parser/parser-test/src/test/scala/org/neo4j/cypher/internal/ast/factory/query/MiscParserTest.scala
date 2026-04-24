@@ -272,6 +272,7 @@ class MiscParserTest extends AstParsingTestBase {
           None,
           None,
           None,
+          None,
           Set()
         )(InputPosition(15, 1, 16))
       ))(InputPosition(15, 1, 16))
@@ -454,6 +455,7 @@ class MiscParserTest extends AstParsingTestBase {
           None,
           None,
           None,
+          None,
           Set(),
           returnType = DefaultReturn
         )(pos)
@@ -610,6 +612,7 @@ class MiscParserTest extends AstParsingTestBase {
       )(
         pos
       ),
+      None,
       None,
       None,
       None,

@@ -129,6 +129,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
         None,
         None,
         None,
+        None,
         where,
         withType = AddedInRewriteShowCommands
       )(commandClause.position),

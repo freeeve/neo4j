@@ -67,6 +67,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
         ) _,
         None,
         None,
+        None,
         None
       ) _
     )) _
@@ -95,6 +96,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         ) _,
+        None,
         None,
         None,
         None
@@ -128,6 +130,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
         ) _,
         None,
         None,
+        None,
         None
       ) _
     )) _
@@ -158,6 +161,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         ) _,
+        None,
         None,
         None,
         None
@@ -194,6 +198,7 @@ class NoUnnamedNodesAndRelationshipsTest extends CypherFunSuite with AstConstruc
           FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         ) _,
+        None,
         None,
         None,
         None
