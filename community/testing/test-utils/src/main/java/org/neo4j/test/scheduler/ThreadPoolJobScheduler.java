@@ -262,5 +262,10 @@ public class ThreadPoolJobScheduler extends LifecycleAdapter implements JobSched
         public V get() throws ExecutionException, InterruptedException {
             return future.get();
         }
+
+        @Override
+        public boolean isDone() {
+            return future.isDone();
+        }
     }
 }

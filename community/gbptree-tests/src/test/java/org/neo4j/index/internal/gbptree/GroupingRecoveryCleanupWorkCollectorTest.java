@@ -187,6 +187,11 @@ class GroupingRecoveryCleanupWorkCollectorTest {
                 public Object get() throws ExecutionException, InterruptedException {
                     return future.get();
                 }
+
+                @Override
+                public boolean isDone() {
+                    return future.isDone();
+                }
             };
         }
 

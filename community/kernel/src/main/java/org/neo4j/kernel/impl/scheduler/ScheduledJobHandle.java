@@ -203,6 +203,11 @@ final class ScheduledJobHandle<T> implements JobHandle<T> {
     }
 
     @Override
+    public boolean isDone() {
+        throw new UnsupportedOperationException("Not supported for repeating tasks.");
+    }
+
+    @Override
     public void registerCancelListener(CancelListener listener) {
         cancelListeners.add(listener);
     }

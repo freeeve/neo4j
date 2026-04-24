@@ -67,6 +67,11 @@ final class PooledJobHandle<T> implements JobHandle<T> {
     }
 
     @Override
+    public boolean isDone() {
+        return future.isDone();
+    }
+
+    @Override
     public void registerCancelListener(CancelListener listener) {
         cancelListeners.add(listener);
     }

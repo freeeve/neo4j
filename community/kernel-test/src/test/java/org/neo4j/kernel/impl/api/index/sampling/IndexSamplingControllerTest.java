@@ -209,6 +209,12 @@ class IndexSamplingControllerTest {
                 fail("We should never use this wait for foreground sampling.");
                 return null;
             }
+
+            @Override
+            public boolean isDone() {
+                fail("We should never use this wait for foreground sampling.");
+                return false;
+            }
         };
         when(tracker.scheduleSamplingTask(job)).thenReturn(jobHandle);
 

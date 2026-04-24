@@ -49,6 +49,11 @@ public interface JobHandle<T> {
      */
     T get() throws ExecutionException, InterruptedException;
 
+    /**
+     * Returns {@code true} if this task completed, similar to {@link Future#isDone()}.
+     * */
+    boolean isDone();
+
     default void registerCancelListener(CancelListener listener) {
         throw new UnsupportedOperationException("Unsupported in this implementation");
     }
@@ -69,6 +74,11 @@ public interface JobHandle<T> {
         @Override
         public T get() {
             return null;
+        }
+
+        @Override
+        public boolean isDone() {
+            return true;
         }
     }
 }
