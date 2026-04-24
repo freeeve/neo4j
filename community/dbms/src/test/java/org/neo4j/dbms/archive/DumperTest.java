@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.neo4j.dbms.archive.Dumper.FileOutput;
 import org.neo4j.function.Predicates;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.NullLogProvider;
@@ -63,7 +64,7 @@ class DumperTest {
             dumper.dump(
                     directory,
                     directory,
-                    dumper.openForDump(archive),
+                    FileOutput.of(filesystem, archive),
                     new DumpGzipFormatV1(),
                     Predicates.alwaysFalse());
         });
@@ -79,7 +80,7 @@ class DumperTest {
             dumper.dump(
                     directory,
                     directory,
-                    dumper.openForDump(archive),
+                    FileOutput.of(filesystem, archive),
                     new DumpGzipFormatV1(),
                     Predicates.alwaysFalse());
         });
@@ -95,7 +96,7 @@ class DumperTest {
             dumper.dump(
                     directory,
                     directory,
-                    dumper.openForDump(archive),
+                    FileOutput.of(filesystem, archive),
                     new DumpGzipFormatV1(),
                     Predicates.alwaysFalse());
         });
@@ -112,7 +113,7 @@ class DumperTest {
             dumper.dump(
                     directory,
                     directory,
-                    dumper.openForDump(archive),
+                    FileOutput.of(filesystem, archive),
                     new DumpGzipFormatV1(),
                     Predicates.alwaysFalse());
         });
@@ -132,7 +133,7 @@ class DumperTest {
                 dumper.dump(
                         directory,
                         directory,
-                        dumper.openForDump(archive),
+                        FileOutput.of(filesystem, archive),
                         new DumpGzipFormatV1(),
                         Predicates.alwaysFalse());
             });

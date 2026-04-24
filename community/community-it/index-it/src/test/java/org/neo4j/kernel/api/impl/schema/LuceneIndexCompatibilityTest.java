@@ -429,7 +429,7 @@ class LuceneIndexCompatibilityTest {
         dumper.dump(
                 layout.databaseDirectory(),
                 layout.getTransactionLogsDirectory(),
-                dumper.openForDump(dump, true),
+                Dumper.FileOutput.of(fs, dump),
                 DumpFormatSelector.selectWriteFormat(),
                 path -> ArrayUtil.contains(exclude, path.getFileName()));
     }

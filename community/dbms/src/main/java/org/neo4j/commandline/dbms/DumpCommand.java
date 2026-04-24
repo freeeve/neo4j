@@ -29,7 +29,6 @@ import static picocli.CommandLine.Option;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
@@ -50,6 +49,9 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.helpers.DatabaseNamePattern;
 import org.neo4j.dbms.archive.DumpFormatSelector;
 import org.neo4j.dbms.archive.Dumper;
+import org.neo4j.dbms.archive.Dumper.DumpOutput;
+import org.neo4j.dbms.archive.Dumper.FileOutput;
+import org.neo4j.dbms.archive.Dumper.StdoutOutput;
 import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -267,13 +269,18 @@ public class DumpCommand extends AbstractAdminCommand {
 
     record FailedDump(String dbName, Exception e) {}
 
-    private OutputStream openDumpStream(Dumper dumper, String databaseName, Path storagePath) throws IOException {
+    private DumpOutput openDumpStream(Dumper dumper, String databaseName, Path storagePath) throws IOException {
         if (storagePath == null) {
-            return ctx.out();
+            return new StdoutOutput(ctx);
         }
 
         final var archive = storagePath.resolve(databaseName + DUMP_EXTENSION).toAbsolutePath();
-        return dumper.openForDump(archive, overwriteDestination);
+        var fs = ctx.fs();
+        // Allow "overwriting" of existing dumps.
+        if (fs.fileExists(archive) && overwriteDestination) {
+            fs.delete(archive);
+        }
+        return FileOutput.of(fs, archive);
     }
 
     private void dump(Dumper dumper, DatabaseLayout databaseLayout, String databaseName, Path storagePath) {

@@ -20,6 +20,7 @@
 package org.neo4j.dbms.archive;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.dbms.archive.LoggingArchiveProgressPrinter.createProgressPrinter;
 import static org.neo4j.dbms.archive.Utils.checkWritableDirectory;
@@ -37,13 +38,14 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.io.output.CloseShieldOutputStream;
+import org.neo4j.cli.ExecutionContext;
 import org.neo4j.commandline.Util;
 import org.neo4j.dbms.archive.printer.OutputProgressPrinter;
 import org.neo4j.dbms.archive.printer.ProgressPrinters;
@@ -52,6 +54,7 @@ import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.graphdb.Resource;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.util.Preconditions;
 
 public class Dumper {
     public static final String DUMP_EXTENSION = ".dump";
@@ -94,38 +97,20 @@ public class Dumper {
         return dump.toString().endsWith(DUMP_EXTENSION);
     }
 
-    public OutputStream openForDump(Path archive) throws IOException {
-        return openForDump(archive, false);
-    }
-
-    public OutputStream openForDump(Path archive, boolean overwriteDestination) throws IOException {
-        checkWritableDirectory(archive.getParent());
-
-        if (overwriteDestination) {
-            return fs.openAsOutputStream(archive, false);
-        }
-
-        // StandardOpenOption.CREATE_NEW is important here because it atomically asserts that the file doesn't
-        // exist as it is opened, avoiding a TOCTOU race condition which results in a security vulnerability. I
-        // can't see a way to write a test to verify that we are using this option rather than just implementing
-        // the check ourselves non-atomically.
-        return Files.newOutputStream(archive, StandardOpenOption.CREATE_NEW);
-    }
-
     public void dump(Path path, Path archive, DumpFormat format) throws IOException {
-        dump(path, path, openForDump(archive), format, Predicates.alwaysFalse());
+        dump(path, path, (DumpOutput) new FileOutput(fs, archive), format, Predicates.alwaysFalse());
     }
 
     /**
      * @param dbPath                store file location
      * @param transactionalLogsPath tx logs location
-     * @param out                   output stream, will be closed by this method
+     * @param dot                   Dump output type
      * @param format                compression format
      * @param exclude               exclusion predicate
      * @throws IOException in case of error
      */
     public void dump(
-            Path dbPath, Path transactionalLogsPath, OutputStream out, DumpFormat format, Predicate<Path> exclude)
+            Path dbPath, Path transactionalLogsPath, DumpOutput dot, DumpFormat format, Predicate<Path> exclude)
             throws IOException {
         operations.clear();
 
@@ -134,22 +119,22 @@ public class Dumper {
             visitPath(transactionalLogsPath, exclude);
         }
 
-        dump(out, format);
+        dump(dot, format);
     }
 
     /**
-     * @param out    output stream, will be closed by this method
+     * @param dot    Dump output type
      * @param format compression format
      * @throws IOException in case of error
      */
-    public void dump(OutputStream out, DumpFormat format) throws IOException {
+    public void dump(DumpOutput dot, DumpFormat format) throws IOException {
         progressPrinter.reset();
         for (ArchiveOperation operation : operations) {
             progressPrinter.maxBytes(progressPrinter.maxBytes() + operation.size);
             progressPrinter.maxFiles(progressPrinter.maxFiles() + (operation.isFile ? 1 : 0));
         }
 
-        try (var stream = wrapArchiveOut(out, format);
+        try (var stream = wrapArchiveOut(dot, format);
                 Resource ignore = progressPrinter.startPrinting()) {
             for (ArchiveOperation operation : operations) {
                 operation.addToArchive(stream);
@@ -175,8 +160,8 @@ public class Dumper {
                                 onFile(file -> dumpFile(folderPath, file), justContinue())))));
     }
 
-    private ArchiveOutputStream wrapArchiveOut(OutputStream out, DumpFormat format) throws IOException {
-        OutputStream compress = format.compress(out);
+    private ArchiveOutputStream wrapArchiveOut(DumpOutput dot, DumpFormat format) throws IOException {
+        OutputStream compress = format.compress(dot.stream());
 
         // Add enough archive meta-data that the load command can print a meaningful progress indicator.
         if (StandardCompressionFormat.ZSTD.isFormat(compress)) {
@@ -247,4 +232,46 @@ public class Dumper {
     }
 
     public interface DumpFormat extends CompressionFormat {}
+
+    public interface DumpOutput {
+        OutputStream stream() throws IOException;
+
+        String description();
+    }
+
+    public record FileOutput(FileSystemAbstraction fs, Path path) implements DumpOutput {
+        public FileOutput {
+            Preconditions.checkState(
+                    !fs.isDirectory(path), "FileOutput must target a file, not a directory: %s".formatted(path));
+        }
+
+        public OutputStream stream() throws IOException {
+            // Always create the file to be sure that we are the owner.
+            checkWritableDirectory(path.getParent());
+            // TODO: This should probably use FileSystemAbstraction.
+            return Files.newOutputStream(path, CREATE_NEW);
+        }
+
+        @Override
+        public String description() {
+            return path.toString();
+        }
+
+        public static FileOutput of(FileSystemAbstraction fs, Path path) {
+            return new FileOutput(fs, path);
+        }
+    }
+
+    public record StdoutOutput(ExecutionContext ctx) implements DumpOutput {
+
+        @Override
+        public OutputStream stream() throws IOException {
+            return CloseShieldOutputStream.wrap(ctx.out());
+        }
+
+        @Override
+        public String description() {
+            return "writing to stdout";
+        }
+    }
 }

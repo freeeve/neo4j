@@ -65,6 +65,8 @@ import org.neo4j.configuration.ConfigUtils;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.archive.Dumper;
+import org.neo4j.dbms.archive.Dumper.FileOutput;
+import org.neo4j.dbms.archive.Dumper.StdoutOutput;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -94,6 +96,9 @@ import picocli.CommandLine;
 class DumpCommandIT {
     @Inject
     private TestDirectory testDirectory;
+
+    @Inject
+    FileSystemAbstraction fs;
 
     @Inject
     private Neo4jLayout neo4jLayout;
@@ -130,12 +135,12 @@ class DumpCommandIT {
     @Test
     void shouldDumpTheDatabaseToTheArchive() throws Exception {
         execute("foo");
-        verify(dumper).openForDump(eq(archive), eq(false));
+        var output = FileOutput.of(fs, archive);
         verify(dumper)
                 .dump(
                         eq(homeDir.resolve("data/databases/foo")),
                         eq(homeDir.resolve("data/transactions/foo")),
-                        any(),
+                        eq(output),
                         any(),
                         any());
     }
@@ -195,16 +200,17 @@ class DumpCommandIT {
     @Test
     void shouldCalculateTheArchiveNameIfPassedAnExistingDirectory() throws Exception {
         Path to = testDirectory.directory("some-dir");
+        FileOutput expected = FileOutput.of(fs, to.resolve("foo.dump"));
         execute("foo", to);
-        Dumper dumper1 = verify(dumper);
-        dumper1.openForDump(eq(to.resolve("foo.dump")), eq(false));
+        verify(dumper).dump(any(), any(), eq(expected), any(), any());
     }
 
     @Test
     void shouldNotCalculateTheArchiveNameIfPassedAnExistingFile() throws Exception {
         Files.createFile(archive);
+        FileOutput expected = FileOutput.of(fs, archive);
         execute("foo");
-        verify(dumper).openForDump(eq(archive), eq(false));
+        verify(dumper).dump(any(), any(), eq(expected), any(), any());
     }
 
     @Test
@@ -360,8 +366,8 @@ class DumpCommandIT {
 
     @Test
     void shouldDumpTheDatabaseToTheStdOut() throws Exception {
-        var out = mock(PrintStream.class);
-        var ctx = new ExecutionContext(homeDir, configDir, out, mock(PrintStream.class), testDirectory.getFileSystem());
+        var ctx = new ExecutionContext(
+                homeDir, configDir, mock(PrintStream.class), mock(PrintStream.class), testDirectory.getFileSystem());
         var command = new DumpCommand(ctx) {
             @Override
             protected Dumper createDumper(FileSystemAbstraction fs, PrintStream out) {
@@ -375,7 +381,7 @@ class DumpCommandIT {
                 .dump(
                         eq(homeDir.resolve("data/databases/foo")),
                         eq(homeDir.resolve("data/transactions/foo")),
-                        eq(out),
+                        eq(new StdoutOutput(ctx)),
                         any(),
                         any());
         verifyNoMoreInteractions(dumper);
@@ -401,7 +407,7 @@ class DumpCommandIT {
                 .dump(
                         eq(homeDir.resolve("data/databases/foo")),
                         eq(homeDir.resolve("data/transactions/foo")),
-                        eq(out.printStream),
+                        eq(new StdoutOutput(ctx)),
                         any(),
                         any());
         verifyNoMoreInteractions(dumper);
