@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFie
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogLegacyScopeTree
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatements
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogTransformerName
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogWorkingScope
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScopeStringRenderer
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -55,6 +56,8 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
     new PipeLine(this, other)
 
   def name: String
+
+  def toStrings: Seq[String] = Seq(name)
 
   /**
    * @return the conditions that are guaranteed to be met after this step has run.
@@ -77,7 +80,7 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
     fromState: Any,
     toState: Any
   ): Unit =
-    if (Transformer.Debug.Enabled) Transformer.printDebugInfo(name, fromState, toState)
+    if (Transformer.Debug.Enabled) Transformer.printDebugInfo(name, fromState, toState, toStrings.size <= 1)
 }
 
 object Transformer {
@@ -86,6 +89,7 @@ object Transformer {
   object Debug {
     // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
     // Intellij Idea: You might need you to: Build -> Recompile 'Transformer.scala'
+    final val LogTransformerName = false
     final val LogStatements = false
     final val LogStatementsAsQueries = false
     final val LogChangedFields = false
@@ -93,7 +97,7 @@ object Transformer {
     final val LogLegacyScopeTree = false
 
     final val Enabled =
-      LogStatements || LogStatementsAsQueries || LogChangedFields || LogWorkingScope || LogLegacyScopeTree
+      LogTransformerName || LogStatements || LogStatementsAsQueries || LogChangedFields || LogWorkingScope || LogLegacyScopeTree
   }
 
   /**
@@ -111,7 +115,9 @@ object Transformer {
 
       override def postConditions: Set[StepSequencer.Condition] = Set.empty
 
-      override def name: String = "print ast"
+      override def name: String = "print ast" + tag
+
+      override def toStrings: Seq[String] = Seq(name)
     }
 
   def checkConditions(
@@ -131,8 +137,13 @@ object Transformer {
   def printDebugInfo(
     transformerName: String,
     fromState: Any,
-    toState: Any
+    toState: Any,
+    isSingleTransformer: Boolean
   ): Unit = {
+    if (LogTransformerName) {
+      println(s"######## DEBUG $transformerName executed")
+    }
+
     if (LogChangedFields) {
       (fromState, toState) match {
         case (from: Product, to: Product) =>
@@ -298,6 +309,8 @@ class PipeLine[-C <: BaseContext, FROM, MID, TO](first: Transformer[C, FROM, MID
   override def name: String = first.name + ", " + after.name
 
   override def toString: String = name
+
+  override def toStrings: Seq[String] = first.toStrings ++ after.toStrings
 }
 
 final class If[-C <: BaseContext, FROM, STATE <: FROM](val f: STATE => Boolean)(thenT: => Transformer[C, FROM, STATE])
@@ -451,6 +464,8 @@ case class OptionalTransformer[
   override def name: String = actual.name
 
   override def toString: String = actual.toString
+
+  override def toStrings: Seq[String] = transformer.map(_.toStrings).getOrElse(Seq.empty)
 
   override def postConditions: Set[StepSequencer.Condition] = actual.postConditions
 
