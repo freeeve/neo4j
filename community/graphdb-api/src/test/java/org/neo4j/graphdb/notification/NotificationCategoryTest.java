@@ -19,16 +19,16 @@
  */
 package org.neo4j.graphdb.notification;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-public class NotificationCategoryTest {
+class NotificationCategoryTest {
 
     @Test
-    public void assertNotificationCategorySync() {
+    void assertNotificationCategorySync() {
         List<String> kernelCategoryList = Arrays.stream(org.neo4j.kernel.api.exceptions.NotificationCategory.values())
                 .map(Enum::name)
                 .toList();
@@ -38,7 +38,7 @@ public class NotificationCategoryTest {
         List<String> graphdbCategoryList = Arrays.stream(org.neo4j.graphdb.NotificationCategory.values())
                 .map(Enum::name)
                 .toList();
-        assertEquals(kernelCategoryList, classificationList);
-        assertEquals(kernelCategoryList, graphdbCategoryList);
+        assertThat(classificationList).containsExactlyElementsOf(kernelCategoryList);
+        assertThat(graphdbCategoryList).containsExactlyElementsOf(kernelCategoryList);
     }
 }

@@ -19,8 +19,7 @@
  */
 package org.neo4j.graphdb.impl.traversal;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +39,7 @@ import org.neo4j.graphdb.traversal.TraversalBranch;
 
 class StandardBranchCollisionDetectorTest {
     @Test
-    void testFilteredPathEvaluation() {
+    void filteredPathEvaluation() {
         final Entity endNode = mock(Node.class);
         final Entity alternativeEndNode = mock(Node.class);
         final Node startNode = mock(Node.class);
@@ -60,10 +59,10 @@ class StandardBranchCollisionDetectorTest {
         Collection<Path> alternativeIncoming = collisionDetector.evaluate(alternativeBranch, Direction.INCOMING);
         Collection<Path> alternativeOutgoing = collisionDetector.evaluate(alternativeBranch, Direction.OUTGOING);
 
-        assertNull(incoming);
-        assertNull(outgoing);
-        assertNull(alternativeIncoming);
-        assertEquals(1, alternativeOutgoing.size());
+        assertThat(incoming).isNull();
+        assertThat(outgoing).isNull();
+        assertThat(alternativeIncoming).isNull();
+        assertThat(alternativeOutgoing).hasSize(1);
     }
 
     private static class IteratorAnswer implements Answer<Object> {

@@ -19,40 +19,41 @@
  */
 package org.neo4j.graphdb.schema;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.within;
 
 import org.junit.jupiter.api.Test;
 
 class IndexPopulationProgressTest {
     @Test
-    void testNone() {
-        assertEquals(0, IndexPopulationProgress.NONE.getCompletedPercentage(), 0.01);
+    void none() {
+        assertThat(IndexPopulationProgress.NONE.getCompletedPercentage()).isCloseTo(0, within(0.01f));
     }
 
     @Test
-    void testDone() {
-        assertEquals(100, IndexPopulationProgress.DONE.getCompletedPercentage(), 0.01);
+    void done() {
+        assertThat(IndexPopulationProgress.DONE.getCompletedPercentage()).isCloseTo(100, within(0.01f));
     }
 
     @Test
-    void testNegativeCompleted() {
-        assertThrows(IllegalArgumentException.class, () -> new IndexPopulationProgress(-1, 1));
+    void negativeCompleted() {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new IndexPopulationProgress(-1, 1));
     }
 
     @Test
-    void testNegativeTotal() {
-        assertThrows(IllegalArgumentException.class, () -> new IndexPopulationProgress(0, -1));
+    void negativeTotal() {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new IndexPopulationProgress(0, -1));
     }
 
     @Test
-    void testCompletedGreaterThanTotal() {
-        assertThrows(IllegalArgumentException.class, () -> new IndexPopulationProgress(2, 1));
+    void completedGreaterThanTotal() {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new IndexPopulationProgress(2, 1));
     }
 
     @Test
-    void testGetCompletedPercentage() {
+    void getCompletedPercentage() {
         IndexPopulationProgress progress = new IndexPopulationProgress(1, 2);
-        assertEquals(50.0f, progress.getCompletedPercentage(), 0.01f);
+        assertThat(progress.getCompletedPercentage()).isCloseTo(50.0f, within(0.01f));
     }
 }
