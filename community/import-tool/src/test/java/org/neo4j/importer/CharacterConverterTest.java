@@ -19,8 +19,8 @@
  */
 package org.neo4j.importer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.junit.jupiter.api.Test;
 
@@ -75,12 +75,12 @@ class CharacterConverterTest {
 
     @Test
     void shouldNotAcceptRandomEscapedStrings() {
-        assertThrows(IllegalArgumentException.class, () -> converter.apply("\\bogus"));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> converter.apply("\\bogus"));
     }
 
     @Test
     void shouldNotAcceptStrings() {
-        assertThrows(IllegalArgumentException.class, () -> converter.apply("bogus"));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> converter.apply("bogus"));
     }
 
     @Test
@@ -96,6 +96,6 @@ class CharacterConverterTest {
         char converted = converter.apply(material);
 
         // THEN
-        assertEquals(expected, converted);
+        assertThat(converted).isEqualTo(expected);
     }
 }

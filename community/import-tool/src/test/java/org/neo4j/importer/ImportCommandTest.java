@@ -20,9 +20,8 @@
 package org.neo4j.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.io.fs.FileSystemAbstraction.PatternStyle.REGEX;
 
 import java.io.File;
@@ -64,7 +63,7 @@ class ImportCommandTest {
         var subcommands = help.subcommands().keySet();
         // Incremental should not be shown in community
         var expectedSubcommands = Set.of("full", "help");
-        assertThat(subcommands).isEqualTo(expectedSubcommands);
+        assertThat(subcommands).hasSameElementsAs(expectedSubcommands);
     }
 
     @Test
@@ -157,7 +156,7 @@ class ImportCommandTest {
         Config resultingConfig = command.loadNeo4jConfig("");
 
         // then
-        assertEquals(homeDir, resultingConfig.get(GraphDatabaseSettings.neo4j_home));
+        assertThat(resultingConfig.get(GraphDatabaseSettings.neo4j_home)).isEqualTo(homeDir);
     }
 
     @Test
@@ -176,7 +175,7 @@ class ImportCommandTest {
         Config resultingConfig = command.loadNeo4jConfig("");
 
         // then
-        assertEquals(homeDir, resultingConfig.get(GraphDatabaseSettings.neo4j_home));
+        assertThat(resultingConfig.get(GraphDatabaseSettings.neo4j_home)).isEqualTo(homeDir);
     }
 
     @Test
@@ -282,8 +281,10 @@ class ImportCommandTest {
     class ParseNodeFilesGroup {
         @Test
         void illegalEqualsPosition() {
-            assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseNodeFilesGroup("=foo.csv"));
-            assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseNodeFilesGroup("foo="));
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> ImportCommand.parseNodeFilesGroup("=foo.csv"));
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> ImportCommand.parseNodeFilesGroup("foo="));
         }
 
         @Test
@@ -348,8 +349,10 @@ class ImportCommandTest {
     class ParseRelationshipFilesGroup {
         @Test
         void illegalEqualsPosition() {
-            assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseRelationshipFilesGroup("=foo.csv"));
-            assertThrows(IllegalArgumentException.class, () -> ImportCommand.parseRelationshipFilesGroup("foo="));
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> ImportCommand.parseRelationshipFilesGroup("=foo.csv"));
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> ImportCommand.parseRelationshipFilesGroup("foo="));
         }
 
         @Test

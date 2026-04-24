@@ -134,7 +134,7 @@ public abstract class SchemaCommandReaderTest {
         // Might need to be enabled when the next experimental version appear:
         // config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
         final var reader = createReader(ReaderConfig.forTesting(true, true, VECTOR_INDEX_VERSION));
-        assertThat(reader.parse(createCypher(cypherText))).isEqualTo(expectedChanges);
+        assertThat(reader.parse(createCypher(cypherText))).containsExactlyElementsOf(expectedChanges);
     }
 
     @ParameterizedTest

@@ -23,7 +23,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
@@ -110,7 +109,7 @@ class FileImporterTest {
                     .contains("[" + databaseName + "]", "Import starting");
         }
 
-        assertTrue(Files.exists(reportLocation));
+        assertThat(reportLocation).exists();
     }
 
     @Test
@@ -158,10 +157,10 @@ class FileImporterTest {
         fileImporter.doImport(fullImport());
 
         long pins = cacheTracer.pins();
-        assertThat(pins).isGreaterThan(0);
+        assertThat(pins).isPositive();
         assertThat(cacheTracer.unpins()).isEqualTo(pins);
-        assertThat(cacheTracer.hits()).isGreaterThan(0).isLessThanOrEqualTo(pins);
-        assertThat(cacheTracer.faults()).isGreaterThan(0).isLessThanOrEqualTo(pins);
+        assertThat(cacheTracer.hits()).isPositive().isLessThanOrEqualTo(pins);
+        assertThat(cacheTracer.faults()).isPositive().isLessThanOrEqualTo(pins);
     }
 
     @Test
