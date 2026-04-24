@@ -24,6 +24,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.neo4j.io.IOUtils;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
@@ -84,10 +85,8 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
             // before reaching that phase in the lifecycle.
             handle.waitTermination();
         }
-        CleanupJob job;
-        while ((job = jobs.poll()) != null) {
-            job.close();
-        }
+        IOUtils.closeAllUnchecked(jobs);
+        jobs.clear();
     }
 
     private void scheduleJob() {
@@ -113,8 +112,7 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
                     }
                 } catch (Exception e) {
                     // There's no audience for these exceptions. The jobs themselves know if they've failed and
-                    // communicates
-                    // that to its tree. The scheduled job is just a vessel for running these cleanup jobs.
+                    // communicates that to its tree. The scheduled job is just a vessel for running these cleanup jobs.
                 } finally {
                     if (job != null) {
                         job.close();
@@ -122,7 +120,7 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
                 }
             }
             // Even if there are no jobs in the queue then continue looping until we go to started state
-            while (!jobs.isEmpty() || moreJobsAllowed);
+            while (moreJobsAllowed || !jobs.isEmpty());
         };
     }
 }

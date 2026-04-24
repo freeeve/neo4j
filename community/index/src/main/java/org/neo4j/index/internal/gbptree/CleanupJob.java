@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
  * <p>
  * Report state of cleaning progress.
  */
-public interface CleanupJob {
+public interface CleanupJob extends AutoCloseable {
     /**
      * @return {@code true} if gbptree still needs cleaning, meaning job is not yet finished or has not started at all.
      * {@code false} if gbptree does not need cleaning, meaning job has finished or it was never needed in the first place.
@@ -48,6 +48,7 @@ public interface CleanupJob {
     /**
      * Mark this job as closed and cleanup all it's resources.
      */
+    @Override
     void close();
 
     /**
