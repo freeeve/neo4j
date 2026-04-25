@@ -161,18 +161,26 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             Predicate<IndexDescriptor> excludedIndexes,
             Config config,
             IndexPopulator.Configuration indexPopulatorConfiguration,
-            IntFunction<NodeLabelChecker> nodeLabelCheckerFactory) {
+            IntFunction<NodeLabelChecker> nodeLabelCheckerFactory,
+            boolean
+                    skipGraphTypeConstraints /* TODO(graphTypes): Fix graph type enforcement in incremental importer */) {
         this.schemaCache = schemaCache;
         this.entityType = entityType;
         this.indexedEntityIdConverter = indexedEntityIdConverter;
         this.generateNonUniqueIndexUpdates = generateNonUniqueIndexUpdates;
 
         this.propertyConstraints = new ImportPropertyConstraintEnforcer(schemaCache, entityType);
-        this.requiredNodeLabels = buildRequiredNodeLabels(schemaCache);
+        this.requiredNodeLabels = skipGraphTypeConstraints
+                ? IntObjectMaps.immutable.<IntSet>empty()
+                : buildRequiredNodeLabels(schemaCache);
 
         this.nodeLabelCheckerFactory = nodeLabelCheckerFactory;
-        this.requiredStartEndpointLabels = buildRequiredEndpointLabel(schemaCache, EndpointType.START);
-        this.requiredEndEndpointLabels = buildRequiredEndpointLabel(schemaCache, EndpointType.END);
+        this.requiredStartEndpointLabels = skipGraphTypeConstraints
+                ? IntIntMaps.immutable.empty()
+                : buildRequiredEndpointLabel(schemaCache, EndpointType.START);
+        this.requiredEndEndpointLabels = skipGraphTypeConstraints
+                ? IntIntMaps.immutable.empty()
+                : buildRequiredEndpointLabel(schemaCache, EndpointType.END);
 
         assert (requiredStartEndpointLabels.isEmpty() && requiredEndEndpointLabels.isEmpty())
                         || nodeLabelCheckerFactory != null
