@@ -1259,6 +1259,7 @@ final class MuninnPagedFile implements PagedFile, Flushable {
     int vectoredPageFault(long filePageId, int count, VectoredPageFaultEvent faultEvent) throws IOException {
         var latches = new LatchMap.Latch[count];
         long[] pageRefs = new long[count];
+        boolean unlockExclusive = true;
         try {
             int numberOfPages = grabPageFaultLatches(filePageId, count, latches);
             // Note: It is important that we assign the filePageId after we grabbed it.
@@ -1299,15 +1300,24 @@ final class MuninnPagedFile implements PagedFile, Flushable {
         } catch (Throwable throwable) {
             faultEvent.setException(throwable);
             // mark pages as unmapped
-            for (int i = 0; i < pageRefs.length && pageRefs[i] != 0; i++) {
-                int chunkId = computeChunkId(filePageId + i);
-                int chunkIndex = computeChunkIndex(filePageId + i);
-                translationTableSetVolatile(translationTable[chunkId], chunkIndex, UNMAPPED_TTE);
+            try (EvictionRunEvent evictionEvent = pageCacheTracer.beginEviction()) {
+                for (int i = 0; i < pageRefs.length && pageRefs[i] != 0; i++) {
+                    int chunkId = computeChunkId(filePageId + i);
+                    int chunkIndex = computeChunkIndex(filePageId + i);
+                    translationTableSetVolatile(translationTable[chunkId], chunkIndex, UNMAPPED_TTE);
+
+                    long pageRef = pageRefs[i];
+                    PageMetadata.clearBinding(pageRef);
+                    pageCache.addFreePageToFreelist(pageRef, evictionEvent);
+                }
+                unlockExclusive = false;
             }
             throw throwable;
         } finally {
-            for (int i = 0; i < pageRefs.length && pageRefs[i] != 0; i++) {
-                unlockExclusive(pageRefs[i]);
+            if (unlockExclusive) {
+                for (int i = 0; i < pageRefs.length && pageRefs[i] != 0; i++) {
+                    unlockExclusive(pageRefs[i]);
+                }
             }
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0; i < latches.length; i++) {
