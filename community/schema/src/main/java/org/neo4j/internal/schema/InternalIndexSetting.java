@@ -25,6 +25,7 @@ import org.neo4j.graphdb.schema.IndexSetting;
 /// the more public {@link org.neo4j.graphdb.schema.IndexSettingImpl}
 public enum InternalIndexSetting implements IndexSetting {
     VECTOR_QUANTIZATION_TYPE("vector.quantization.type", String.class),
+    VECTOR_DEFAULT_SEARCH_EXPANSION_FACTOR("vector.default_search_expansion_factor", Double.class),
     ;
 
     private final String settingName;
@@ -47,5 +48,9 @@ public enum InternalIndexSetting implements IndexSetting {
 
     public static IndexSetting vector_Quantization_Type() {
         return VECTOR_QUANTIZATION_TYPE;
+    }
+
+    public static IndexSetting vector_Default_Search_Expansion_Factor() {
+        return VECTOR_DEFAULT_SEARCH_EXPANSION_FACTOR;
     }
 }
