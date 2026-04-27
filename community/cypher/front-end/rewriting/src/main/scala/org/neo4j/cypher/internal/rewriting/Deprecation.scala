@@ -233,7 +233,8 @@ object Deprecations {
     FunctionInvocation(
       functionName = FunctionName(Namespace(List())(e.position), "properties")(e.position),
       distinct = false,
-      args = Vector(e)
+      args = Vector(e),
+      maybeLocalFunction = None
     )(s.position)
   }
 

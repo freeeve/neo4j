@@ -76,6 +76,9 @@ object SemanticAnalysisTestSuite {
 }
 
 trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSupport with TryValues {
+  // for debugging set to true; pipeline used in each test will be printed to sdtout
+  private val printPipeline: Boolean = false
+
   private val defaultDatabaseName = "mock"
 
   def messageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
@@ -120,7 +123,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       state,
       messageProvider,
       semanticFeatures,
-      disabledVersions
+      disabledVersions,
+      printPipeline
     )
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
@@ -145,7 +149,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     stateTransform: BaseState => BaseState,
     messageProvider: ErrorMessageProvider,
     semanticFeatures: Seq[SemanticFeature],
-    disabledVersions: Set[CypherVersion] = Set.empty
+    disabledVersions: Set[CypherVersion] = Set.empty,
+    printPipeline: Boolean = false
   ) {
     def withPipeline(pipeline: Pipeline): Analyse = copy(pipeline = pipeline)
 
@@ -158,6 +163,11 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
 
     def run: AnalysisAssertions = {
       require(!pipeline.name.contains("Parse"))
+      if (printPipeline) {
+        println("------")
+        pipeline.toStrings.foreach(println)
+        println("------")
+      }
       val results = CypherVersion.values().view
         .collect {
           case v if !disabledVersions.contains(v) =>

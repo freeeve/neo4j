@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentOrder
 import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordered
 import org.neo4j.cypher.internal.expressions.functions.DeterministicFunction
+import org.neo4j.cypher.internal.expressions.functions.LocalFunction
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
@@ -74,18 +75,22 @@ case class FunctionInvocation(
   args: IndexedSeq[Expression],
   order: ArgumentOrder = ArgumentUnordered,
   calledFromUseClause: Boolean = false,
-  isShadowed: Boolean = false
+  isShadowed: Boolean = false,
+  maybeLocalFunction: Option[LocalFunction] = None // only set by ResolveLocalFunctions to Some(...)
 )(val position: InputPosition) extends Expression {
   val name: String = functionName.fullName
 
   def function: functions.Function =
-    if (isShadowed) UnresolvedFunction
-    else functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+    maybeLocalFunction.getOrElse(
+      if (isShadowed) UnresolvedFunction
+      else functions.Function.lookup.getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+    )
 
-  def functionWithScope(version: CypherVersion): functions.Function = {
-    if (isShadowed) UnresolvedFunction
-    else functions.Function.scopedLookup(version).getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
-  }
+  def functionWithScope(version: CypherVersion): functions.Function =
+    maybeLocalFunction.getOrElse(
+      if (isShadowed) UnresolvedFunction
+      else functions.Function.scopedLookup(version).getOrElse(name.toLowerCase(Locale.ROOT), UnresolvedFunction)
+    )
 
   val isOrdered: Boolean = order != ArgumentUnordered
 

@@ -70,6 +70,7 @@ import org.neo4j.cypher.internal.ast.YieldType
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
+import org.neo4j.cypher.internal.ast.semantics.scoping.LocalProcedureScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
@@ -145,7 +146,7 @@ object pegClause {
         val referenced = Some(WorkingScope.referencedInChildren(children))
 
         val locallyResolved = incoming.localCallables.collectFirst {
-          case lc: LocalCallableScopeSignature if lc.name == procedureName => lc
+          case lc: LocalProcedureScopeSignature if lc.name == procedureName => lc
         }
 
         /**
@@ -197,7 +198,7 @@ object pegClause {
          */
         locallyResolved match {
           // Local callable
-          case Some(LocalCallableScopeSignature(_, procedureResult)) =>
+          case Some(LocalProcedureScopeSignature(_, procedureResult)) =>
             val yieldColumnsOpt = declaredResult.map(_.items.map(_.variable))
             val resultColumns = (procedureResult, yieldColumnsOpt) match {
               // no YIELD and YIELD *

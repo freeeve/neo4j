@@ -1374,6 +1374,7 @@ case class Match(
           Seq(Property(Variable(`variable`), PropertyKeyName(name)), _, _),
           _,
           _,
+          _,
           _
         ) if namespace.equalsIgnoreCase("point") && functionName.equalsIgnoreCase("withinBBox") =>
         acc => SkipChildren(acc :+ name)
@@ -1387,6 +1388,7 @@ case class Match(
                   FunctionName(Namespace(List(namespace)), functionName),
                   _,
                   Seq(Property(Variable(id), PropertyKeyName(name)), _),
+                  _,
                   _,
                   _,
                   _

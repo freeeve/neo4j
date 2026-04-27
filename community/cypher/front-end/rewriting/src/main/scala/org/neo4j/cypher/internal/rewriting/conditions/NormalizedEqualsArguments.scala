@@ -31,7 +31,7 @@ case object NormalizedEqualsArguments extends StatementValidatingCondition {
     equals.collect {
       case eq @ Equals(expr, Property(_, _)) if !expr.isInstanceOf[Property] && notIdFunction(expr) =>
         s"Equals at ${eq.position} is not normalized: $eq"
-      case eq @ Equals(expr, func @ FunctionInvocation(_, _, _, _, _, _))
+      case eq @ Equals(expr, func: FunctionInvocation)
         if isIdFunction(func) && notIdFunction(expr) =>
         s"Equals at ${eq.position} is not normalized: $eq"
     }

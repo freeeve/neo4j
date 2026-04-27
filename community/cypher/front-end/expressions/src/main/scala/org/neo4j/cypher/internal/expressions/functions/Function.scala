@@ -43,6 +43,7 @@ object Category extends Enumeration {
   val UUID = "UUID"
   val VECTOR = "Vector"
   val SECURITY = "Security"
+  val LOCAL = "Local"
 }
 
 object Function {
@@ -267,7 +268,7 @@ abstract class Function extends FunctionWithName with FunctionTypeSignatures {
     val namespace = function.namespace
     val functionName = function.name
     arg match {
-      case FunctionInvocation(FunctionName(ns, fn), _, args, _, _, _)
+      case FunctionInvocation(FunctionName(ns, fn), _, args, _, _, _, _)
         if functionName.equalsIgnoreCase(fn) && ns == namespace =>
         Some(args.head)
       case _ =>

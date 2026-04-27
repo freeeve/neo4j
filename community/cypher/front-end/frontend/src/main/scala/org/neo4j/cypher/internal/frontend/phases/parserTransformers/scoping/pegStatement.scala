@@ -37,7 +37,8 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
-import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
+import org.neo4j.cypher.internal.ast.semantics.scoping.LocalFunctionScopeSignature
+import org.neo4j.cypher.internal.ast.semantics.scoping.LocalProcedureScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -70,24 +71,23 @@ object pegStatement {
             val bodyIncoming = previous.outgoing.amendedWithConstant(lcd.inputSignature.map(lfs =>
               Variable(lfs.name)(lfs.position, Variable.isIsolatedDefault).asInstanceOf[LogicalVariable]
             ).toSet)
-            val (bodyChild, definitionResult) = lcd match {
-              case LocalProcedureDefinition(_, _, outputSignatureOpt, body) =>
+            val (bodyChild, localCallableScopeSignature) = lcd match {
+              case LocalProcedureDefinition(name, _, outputSignatureOpt, body) =>
                 val bodyChild = apply(body, bodyIncoming)
                 val definitionResult = outputSignatureOpt.map(outputSignature =>
                   TableResult(outputSignature.map(lfs =>
                     Variable(lfs.name)(lfs.position, Variable.isIsolatedDefault).asInstanceOf[LogicalVariable]
                   ))
                 ).getOrElse(bodyChild.result)
-                (bodyChild, definitionResult)
-              case LocalFunctionDefinition(_, _, _, body) =>
+                (bodyChild, LocalProcedureScopeSignature(name, definitionResult))
+              case LocalFunctionDefinition(name, inputSignature, outputSignature, body) =>
                 val bodyChild = body match {
                   case QueryBody(query)           => apply(query, bodyIncoming)
                   case ExpressionBody(expression) => pegExpression(expression, bodyIncoming)
                 }
                 val definitionResult = ExpressionResult
-                (bodyChild, definitionResult)
+                (bodyChild, LocalFunctionScopeSignature(name, inputSignature, outputSignature, definitionResult))
             }
-            val localCallableScopeSignature = LocalCallableScopeSignature(lcd.name, definitionResult)
             val referenced = Some(Set.empty[LogicalVariable])
             val declared = Declarations.ofLocalCallable(localCallableScopeSignature)
             val outgoing = previous.outgoing.amendedWithLocalCallable(localCallableScopeSignature)

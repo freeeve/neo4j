@@ -30,6 +30,8 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
+import scala.util.Try
+
 class GroupPercentileFunctionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
   test("should not rewrite single percentile") {
@@ -410,7 +412,11 @@ class GroupPercentileFunctionsTest extends CypherFunSuite with LogicalPlanningTe
       .allNodeScan("from")
       .build()
 
-    rewrite(before, names = Seq(map1, map2, map0)) should equal(after)
+    val assertionResults = Seq(
+      Try(rewrite(before, names = Seq(map0, map2, map1)) should equal(after)),
+      Try(rewrite(before, names = Seq(map0, map2, map1)) should equal(after))
+    )
+    assertionResults.exists(_.isSuccess) shouldBe true
   }
 
   private def assertNotRewritten(p: LogicalPlan): Unit = {

@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStatic
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
@@ -29,6 +30,7 @@ import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CallableName
@@ -102,9 +104,12 @@ sealed trait LocalCallableDefinition extends ASTNode with SemanticCheckable with
       if (!fieldSignature.getType.isNotNullContaining) Seq.empty
       else Seq(error(fieldSignature))
 
-  def noUseClauseInQueryBody(query: Query): SemanticCheck = {
-    query.getGraphSelections.headOption.map(uc =>
-      SemanticCheck.error(errorUseClauseInLocalProcedureDefinitionNotSupported(uc.position))
+  def noUseClause(astNode: ASTNode): SemanticCheck = {
+    val containsUseClause = astNode.folder.treeFind[UseGraph] {
+      case _: UseGraph => true
+    }
+    containsUseClause.map(use =>
+      SemanticCheck.error(errorUseClauseInLocalProcedureDefinitionNotSupported(use.position))
     ).getOrElse(success)
   }
 
@@ -120,8 +125,8 @@ case class LocalProcedureDefinition(
 
   /*
    * Infers output signature from the procedure body.
-   * If the body is not returning, then the inferred output signature is None
-   * Otherwise, the inferred output signature are the return columns with their inferred types.
+   * If the body is not returning, then the inferred output signature is None.
+   * Otherwise, the inferred output signature is the return columns with their inferred types.
    */
   def inferredOutputSignature(semanticState: SemanticState): Option[Seq[LocalFieldSignature]] = {
     Option.when(body.isReturning)(
@@ -135,7 +140,7 @@ case class LocalProcedureDefinition(
   override def semanticCheckBody(queryOuterState: SemanticState, definitionOuterState: SemanticState): SemanticCheck = {
     for {
       innerChecked <-
-        noUseClauseInQueryBody(body) ifOkChain
+        noUseClause(body) ifOkChain
           body.semanticCheckInLocalCallableBodyContext(
             queryOuterState, // outer = clean+params (used for imports + shadowing *warnings*)
             definitionOuterState,
@@ -184,29 +189,72 @@ case class LocalFunctionDefinition(
   body: LocalFunctionBody
 )(val position: InputPosition) extends LocalCallableDefinition {
 
+  private def expectedReturnType: TypeSpec =
+    outputSignature.getOrElse(CTAny).covariant
+
   override def semanticCheckBody(queryOuterState: SemanticState, definitionOuterState: SemanticState): SemanticCheck = {
     for {
       innerChecked <-
         body match {
           case ExpressionBody(expression) =>
-            // runs in the *current threaded state*, which at this point is your clean+params state
-            SemanticExpressionCheck.simple(expression)
+            noUseClause(expression) ifOkChain
+              checkNotNullInReturnType() ifOkChain
+              // runs in the *current threaded state*, which at this point is your clean+params state
+              SemanticExpressionCheck.simple(expression) ifOkChain
+              expectType(expectedReturnType, expression)
 
           case QueryBody(query) =>
-            noUseClauseInQueryBody(query) ifOkChain
-              query.semanticCheckInSubqueryContext(
+            noUseClause(query) chain
+              checkNotNullInReturnType() chain
+              when(query.containsUpdates) {
+                SemanticError.localFunctionCannotContainUpdates(position)
+              } chain
+              checkQueryBodyShape(query) chain
+              query.semanticCheckInLocalCallableBodyContext(
                 queryOuterState, // outer = clean+params (used for imports + shadowing *errors*)
                 definitionOuterState,
                 optional = false
-              )
+              ) ifOkChain
+              expectType(expectedReturnType, query.returnColumns.head)
         }
     } yield {
       innerChecked
     }
   }
 
+  private def checkNotNullInReturnType(): SemanticCheck =
+    (_: SemanticState) =>
+      if (!outputSignature.getOrElse(CTAny).isNotNullContaining) Seq.empty
+      else Seq(SemanticError.notSupportedLocalFunctionReturnType(outputSignature.getOrElse(CTAny), name))
+
   override def errorUseClauseInLocalProcedureDefinitionNotSupported(position: InputPosition): SemanticError =
     SemanticError.useClauseInLocalFunctionDefinitionNotSupported(position)
+
+  private def checkQueryBodyShape(query: Query): SemanticCheck = {
+    def checkEmitter(emitter: ResultEmitter): SemanticCheck = emitter match {
+      case ResultEmitter.SingleClause(ret: Return) =>
+        val items = ret.returnItems.items
+        val hasSingleItem = items.size == 1
+        val hasLimit1 = ret.limit.exists {
+          case Limit(l: SignedDecimalIntegerLiteral) => l.value == 1
+          case _                                     => false
+        }
+        val hasAggregatingReturnItem =
+          items.headOption.exists(_.expression.containsAggregate)
+        if (hasSingleItem && (hasLimit1 || hasAggregatingReturnItem)) {
+          SemanticCheck.success
+        } else {
+          SemanticCheck.error(SemanticError.notSupportedQueryResultInLocalFunction(name, ret.position))
+        }
+      case ResultEmitter.OrEmitter(emitters) =>
+        emitters.foldSemanticCheck {
+          emitter => checkEmitter(emitter)
+        }
+      case _ =>
+        SemanticCheck.error(SemanticError.notSupportedQueryResultInLocalFunction(name, query.position))
+    }
+    checkEmitter(query.getEmittingResultClauses)
+  }
 }
 
 trait AbstractFieldSignature {

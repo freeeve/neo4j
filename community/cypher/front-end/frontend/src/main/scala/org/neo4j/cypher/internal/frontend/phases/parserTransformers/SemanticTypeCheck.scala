@@ -130,7 +130,7 @@ object PatternExpressionInNonExistenceCheck extends ExpectedBooleanTypeCheck {
         errors => SkipChildren(errors)
 
       // The replacement for size(PatternExpression) is COUNT {PatternExpression} and not size(PatternComprehension).
-      case FunctionInvocation(FunctionName(_, "size"), _, IndexedSeq(p: PatternExpression), _, _, _)
+      case FunctionInvocation(FunctionName(_, "size"), _, IndexedSeq(p: PatternExpression), _, _, _, _)
         if !isExpectedTypeBoolean(baseState.semanticTable(), p) =>
         errors => SkipChildren(errors :+ SemanticError.patternExpressionInSize(p.position))
 
@@ -146,7 +146,7 @@ trait VariableReferenceCheck {
    * Check for self references either within a pattern part (disallowed for CREATE and INSERT) or across multiple
    * pattern parts (disallowed for INSERT, deprecated for CREATE).
    * @param ast The pattern part or (in case of checking across pattern parts) the full pattern to be checked
-   * @param pattern The full pattern, needed to to fetch all symbol definitions in scope from the semantic table
+   * @param pattern The full pattern, needed to fetch all symbol definitions in scope from the semantic table
    * @param semanticTable Semantic table, containing symbol definitions
    * @return
    */

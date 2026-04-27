@@ -116,7 +116,7 @@ object pegExpression {
        */
       case cntStar: CountStar =>
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
-      case fi @ FunctionInvocation(_, _, args, _, false, _) if fi.function.isInstanceOf[AggregatingFunction] =>
+      case fi @ FunctionInvocation(_, _, args, _, false, _, _) if fi.function.isInstanceOf[AggregatingFunction] =>
         val argIncoming = incoming.constantChildContext()
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))

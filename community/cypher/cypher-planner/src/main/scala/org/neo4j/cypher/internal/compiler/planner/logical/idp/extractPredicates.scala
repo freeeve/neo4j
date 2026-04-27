@@ -266,7 +266,7 @@ object extractPredicates {
   object NodesFunctionArguments {
 
     def unapplySeq(f: FunctionInvocation): Option[IndexedSeq[Expression]] = f match {
-      case FunctionInvocation(FunctionName(_, fname), false, args, _, _, _)
+      case FunctionInvocation(FunctionName(_, fname), false, args, _, _, _, _)
         if fname.equalsIgnoreCase("nodes") => Some(args)
       case _ => None
     }
@@ -275,7 +275,7 @@ object extractPredicates {
   object RelationshipsFunctionArguments {
 
     def unapplySeq(f: FunctionInvocation): Option[IndexedSeq[Expression]] = f match {
-      case FunctionInvocation(FunctionName(_, fname), false, args, _, _, _)
+      case FunctionInvocation(FunctionName(_, fname), false, args, _, _, _, _)
         if fname.equalsIgnoreCase("relationships") => Some(args)
       case _ => None
     }

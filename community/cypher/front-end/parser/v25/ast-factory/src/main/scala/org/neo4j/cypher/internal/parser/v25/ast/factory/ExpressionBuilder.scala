@@ -680,7 +680,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       functionName,
       distinct = false,
       astSeq[Expression](ctx.expression()),
-      ArgumentUnordered
+      ArgumentUnordered,
+      maybeLocalFunction = None
     )(functionName.namespace.position)
   }
 
@@ -843,7 +844,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       distinct,
       expressions,
       ArgumentUnordered,
-      ctx.parent.isInstanceOf[Cypher25Parser.GraphReferenceContext]
+      ctx.parent.isInstanceOf[Cypher25Parser.GraphReferenceContext],
+      maybeLocalFunction = None
     )(functionName.namespace.position)
   }
 
@@ -1100,7 +1102,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       FunctionInvocation(
         FunctionName("normalize")(pos(ctx)),
         distinct = false,
-        IndexedSeq(expression, StringLiteral(normalForm)(pos(ctx).withInputLength(0)))
+        IndexedSeq(expression, StringLiteral(normalForm)(pos(ctx).withInputLength(0))),
+        maybeLocalFunction = None
       )(pos(ctx))
   }
 
@@ -1127,7 +1130,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       FunctionInvocation(
         FunctionName("vector_distance")(pos(ctx)),
         distinct = false,
-        IndexedSeq(vector1, vector2, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0)))
+        IndexedSeq(vector1, vector2, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0))),
+        maybeLocalFunction = None
       )(pos(ctx))
   }
 
@@ -1139,7 +1143,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       FunctionInvocation(
         FunctionName("vector_norm")(pos(ctx)),
         distinct = false,
-        IndexedSeq(vector, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0)))
+        IndexedSeq(vector, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0))),
+        maybeLocalFunction = None
       )(pos(ctx))
   }
 
@@ -1177,7 +1182,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
         args = IndexedSeq(
           StringLiteral(trimSpecification)(pos(ctx).withInputLength(0)),
           trimSource
-        )
+        ),
+        maybeLocalFunction = None
       )(
         pos(ctx)
       )
@@ -1189,7 +1195,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           StringLiteral(trimSpecification)(pos(ctx).withInputLength(0)),
           trimCharacterString.get,
           trimSource
-        )
+        ),
+        maybeLocalFunction = None
       )(
         pos(ctx)
       )

@@ -43,7 +43,15 @@ case object NullIfFunctionRewriter extends Step with DefaultPostCondition with P
 
   private val rewriter = Rewriter.lift {
 
-    case f @ FunctionInvocation(FunctionName(namespace, name), _, IndexedSeq(v1: Expression, v2: Expression), _, _, _)
+    case f @ FunctionInvocation(
+        FunctionName(namespace, name),
+        _,
+        IndexedSeq(v1: Expression, v2: Expression),
+        _,
+        _,
+        _,
+        _
+      )
       if namespace.parts.isEmpty && name.equalsIgnoreCase(NullIf.name) =>
       val alt1 = (Equals(v1, v2)(f.position), Null()(f.position.zeroLength))
       CaseExpression(None, IndexedSeq(alt1), Some(v1))(f.position)

@@ -52,6 +52,7 @@ import org.neo4j.cypher.internal.expressions.functions.GraphByName
 import org.neo4j.cypher.internal.expressions.functions.Head
 import org.neo4j.cypher.internal.expressions.functions.IsEmpty
 import org.neo4j.cypher.internal.expressions.functions.Last
+import org.neo4j.cypher.internal.expressions.functions.LocalFunction
 import org.neo4j.cypher.internal.expressions.functions.Max
 import org.neo4j.cypher.internal.expressions.functions.Min
 import org.neo4j.cypher.internal.expressions.functions.PercentileCont
@@ -89,6 +90,12 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
   ): SemanticCheck = {
     fromContext(semanticCheckContext => {
       invocation.functionWithScope(semanticCheckContext.cypherVersion) match {
+        case lf: LocalFunction =>
+          SemanticExpressionCheck.check(ctx, invocation.arguments) chain
+            checkFunctionTypeSignatures(semanticCheckContext, lf, invocation) ifOkChain {
+              specifyType(lf.returnType, invocation)
+            }
+
         case f: AggregatingFunction =>
           when(ctx == Expression.SemanticContext.Simple) {
             SemanticCheck.error(
@@ -110,10 +117,10 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         case AllReduce =>
           error(SemanticError.invalidAllReduceSyntax(invocation.position))
 
-        case _: Function
+        case f: Function
           if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(
             "graph.propertiesByName"
-          ) =>
+          ) && invocation.maybeLocalFunction.isEmpty =>
           SemanticCheck.fromState(state =>
             if (state.workingGraph.nonEmpty) { // We are targeting a constituent graph.
               val pos = invocation.position
@@ -123,10 +130,8 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
                 pos
               )
             } else {
-              SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(
-                ctx,
-                invocation
-              )
+              SemanticExpressionCheck.check(ctx, invocation.arguments) chain
+                semanticCheck(ctx, invocation)
             }
           )
 
@@ -165,7 +170,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         ))
     }
 
-  protected def semanticCheck(ctx: Expression.SemanticContext, invocation: FunctionInvocation): SemanticCheck =
+  private def semanticCheck(ctx: Expression.SemanticContext, invocation: FunctionInvocation): SemanticCheck =
     fromContext(semanticCheckContext =>
       invocation.functionWithScope(semanticCheckContext.cypherVersion) match {
         case Coalesce =>

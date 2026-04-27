@@ -368,6 +368,7 @@ private class DefaultExpressionStringifier(
           IndexedSeq(value, StringLiteral(NormalForm(form))),
           ArgumentUnordered,
           _,
+          _,
           _
         ) =>
         val fn = "normalize" // Can't have backticks because that does not parse as a normalizeFunction
@@ -380,6 +381,7 @@ private class DefaultExpressionStringifier(
           false,
           IndexedSeq(vector1, vector2, StringLiteral(VectorDistanceMetric(metric))),
           ArgumentUnordered,
+          _,
           _,
           _
         ) =>
@@ -397,6 +399,7 @@ private class DefaultExpressionStringifier(
           IndexedSeq(vector, StringLiteral(VectorDistanceMetric(metric))),
           ArgumentUnordered,
           _,
+          _,
           _
         ) =>
         val fn = "vector_norm" // Can't have backticks because that does not parse as a vectorNormFunction
@@ -404,7 +407,7 @@ private class DefaultExpressionStringifier(
           Seq(delimitedInner(ast)(vector), metric.metricName).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
-      case FunctionInvocation(functionName, distinct, args, order, _, _) =>
+      case FunctionInvocation(functionName, distinct, args, order, _, _, _) =>
         val fn = apply(functionName)
         val ds = if (distinct) "DISTINCT " else ""
         val as = args.map(delimitedInner(ast)).mkString(", ")

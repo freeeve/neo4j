@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeZipper
 import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
+import org.neo4j.cypher.internal.ast.semantics.liftSemanticErrorDef
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
@@ -123,6 +124,16 @@ sealed trait QueryUtils {
 
 }
 
+sealed trait ResultEmitter extends Product
+
+object ResultEmitter {
+  case class SingleClause(clause: Clause) extends ResultEmitter
+
+  case class OrEmitter(emitters: Seq[ResultEmitter]) extends ResultEmitter
+
+  case class AndEmitter(emitters: Seq[ResultEmitter]) extends ResultEmitter
+}
+
 sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysisTooling with QueryUtils {
   def containsUpdates: Boolean
 
@@ -183,6 +194,11 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * to each returning single query, regardless if this a single query or a union query.
    */
   def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query
+
+  /**
+   * This collects the Return, FINISH, or update clauses that define the result or no result emitted by this query.
+   */
+  def getEmittingResultClauses: ResultEmitter
 }
 
 sealed trait PartQuery extends Query {
@@ -234,6 +250,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     clauses.filter(_.isInstanceOf[CommandClause]).map(_.asInstanceOf[CommandClause])
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(this)
+
+  override def getEmittingResultClauses: ResultEmitter = ResultEmitter.SingleClause(clauses.last)
 
   lazy val partitionedClauses: SingleQuery.PartitionedClauses = SingleQuery.partitionClauses(clauses)
 
@@ -377,27 +395,30 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     outer: SemanticState,
     current: SemanticState,
     optional: Boolean
-  ): SemanticCheck = semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = false)
+  ): SemanticCheck =
+    semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = false, QueryWithLocalDefinitions)
 
   override def semanticCheckInSubqueryContext(
     outer: SemanticState,
     current: SemanticState,
     optional: Boolean
-  ): SemanticCheck = semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = true)
+  ): SemanticCheck =
+    semanticCheckInSubqueryAbstract(outer, current, optional, withShadowedCheck = true, ScopeClauseSubqueryCall)
 
   private def semanticCheckInSubqueryAbstract(
     outer: SemanticState,
     current: SemanticState,
     optional: Boolean,
-    withShadowedCheck: Boolean
+    withShadowedCheck: Boolean,
+    context: UnaliasedNotAllowed
   ): SemanticCheck = {
     val workingGraph = outer.workingGraph
 
     checkInitialGraphSelection(outer) chain
       semanticCheckAbstractInScopeSubquery(
         partitionedClauses.clausesExceptInitialGraphSelection,
-        checkClauses(_, Some(outer.currentScope.scope), ScopeClauseSubqueryCall),
-        context = ScopeClauseSubqueryCall
+        checkClauses(_, Some(outer.currentScope.scope), context),
+        context = context
       ) chain
       (if (withShadowedCheck) errorOnShadowedImportVariables(outer) else success) chain
       warnOnPotentiallyShadowVariables(current, optional) chain
@@ -974,6 +995,8 @@ case class TopLevelBraces(
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
     copy(query.mapEachSingleQuery(f))(position)
 
+  override def getEmittingResultClauses: ResultEmitter = query.getEmittingResultClauses
+
   private def wrapQuery(innerQuery: Query, position: InputPosition): SingleQuery = {
     val lastClause =
       if (innerQuery.isReturning) {
@@ -1073,6 +1096,9 @@ sealed trait Union extends Query {
   def rhs: PartQuery
 
   def unionMappings: List[UnionMapping]
+
+  override def getEmittingResultClauses: ResultEmitter =
+    ResultEmitter.AndEmitter(Seq(lhs.getEmittingResultClauses, rhs.getEmittingResultClauses))
 
   override def returnVariables: ReturnVariables = ReturnVariables(
     // If either side of the UNION has a RETURN *,
@@ -1505,6 +1531,9 @@ case class ConditionalQueryWhen(
 
   override def containsUpdates: Boolean = allBranches.exists(_.query.containsUpdates)
 
+  override def getEmittingResultClauses: ResultEmitter =
+    ResultEmitter.OrEmitter(branches.map(_.query.getEmittingResultClauses))
+
   override def returnVariables: ReturnVariables =
     allBranches.foldLeft(ReturnVariables.empty)((acc, branch) => acc.merge(branch.query.returnVariables))
 
@@ -1668,6 +1697,8 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
     copy(queries.dropRight(1) :+ lastQuery.mapEachSingleQuery(f))(position)
 
+  override def getEmittingResultClauses: ResultEmitter = queries.last.getEmittingResultClauses
+
   override def returnVariables: ReturnVariables = lastQuery.returnVariables
 
   override def isReturning: Boolean = lastQuery.isReturning
@@ -1813,6 +1844,8 @@ case class QueryWithLocalDefinitions(
    */
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
     query.mapEachSingleQuery(f)
+
+  override def getEmittingResultClauses: ResultEmitter = query.getEmittingResultClauses
 
   /**
    * All variables that are explicitly listed to be returned from this statement.

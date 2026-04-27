@@ -67,6 +67,7 @@ case class limitNestedPlanExpressions(cardinalities: Cardinalities, otherAttribu
         IndexedSeq(npe @ NestedPlanCollectExpression(plan, _, _)),
         _,
         _,
+        _,
         _
       ) if shouldInsertLimitOnTopOf(plan) =>
       val count = SignedDecimalIntegerLiteral("1")(npe.position.zeroLength)
@@ -92,6 +93,7 @@ case class limitNestedPlanExpressions(cardinalities: Cardinalities, otherAttribu
         FunctionName(Namespace(List()), IsEmpty.name),
         _,
         IndexedSeq(npe @ NestedPlanCollectExpression(plan, _, _)),
+        _,
         _,
         _,
         _

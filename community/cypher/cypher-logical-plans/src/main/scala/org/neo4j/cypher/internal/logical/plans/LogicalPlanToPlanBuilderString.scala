@@ -2875,8 +2875,8 @@ object LogicalPlanToPlanBuilderString {
 object PointExpression {
 
   def unapply(point: Expression): Option[Expression] = point match {
-    case FunctionInvocation(FunctionName(_, "point"), _, args, _, _, _) => Some(args.head)
-    case parameter: ExplicitParameter                                   => Some(parameter)
-    case _                                                              => None
+    case FunctionInvocation(FunctionName(_, "point"), _, args, _, _, _, _) => Some(args.head)
+    case parameter: ExplicitParameter                                      => Some(parameter)
+    case _                                                                 => None
   }
 }

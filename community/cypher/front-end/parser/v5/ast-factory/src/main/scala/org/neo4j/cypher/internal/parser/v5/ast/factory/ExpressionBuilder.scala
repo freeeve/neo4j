@@ -829,7 +829,8 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       distinct,
       expressions,
       ArgumentUnordered,
-      ctx.parent.isInstanceOf[Cypher5Parser.GraphReferenceContext]
+      ctx.parent.isInstanceOf[Cypher5Parser.GraphReferenceContext],
+      maybeLocalFunction = None
     )(functionName.namespace.position)
   }
 
@@ -1059,7 +1060,8 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       FunctionInvocation(
         FunctionName("normalize")(pos(ctx)),
         distinct = false,
-        IndexedSeq(expression, StringLiteral(normalForm)(pos(ctx).withInputLength(0)))
+        IndexedSeq(expression, StringLiteral(normalForm)(pos(ctx).withInputLength(0))),
+        maybeLocalFunction = None
       )(pos(ctx))
   }
 
@@ -1079,7 +1081,8 @@ trait ExpressionBuilder extends Cypher5ParserListener {
         args = IndexedSeq(
           StringLiteral(trimSpecification)(pos(ctx).withInputLength(0)),
           trimSource
-        )
+        ),
+        maybeLocalFunction = None
       )(
         pos(ctx)
       )
@@ -1091,7 +1094,8 @@ trait ExpressionBuilder extends Cypher5ParserListener {
           StringLiteral(trimSpecification)(pos(ctx).withInputLength(0)),
           trimCharacterString.get,
           trimSource
-        )
+        ),
+        maybeLocalFunction = None
       )(
         pos(ctx)
       )

@@ -14,356 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend
+package org.neo4j.cypher.internal.frontend.local_callables
 
-import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.semantics.FeatureError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
-import org.neo4j.cypher.internal.frontend.phases.FieldSignature
-import org.neo4j.cypher.internal.frontend.phases.ProcedureReadOnlyAccess
-import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
-import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
-import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.Cypher25
-import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
-import org.neo4j.cypher.internal.frontend.phases.TryRewriteProcedureCalls
-import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.notification.SubqueryVariableShadowing
-import org.neo4j.cypher.internal.util.FunctionName
-import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.ProcedureName
-import org.neo4j.cypher.internal.util.symbols.CTInteger
-import org.neo4j.cypher.internal.util.symbols.CTList
-import org.neo4j.cypher.internal.util.symbols.CTNode
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class LocalCallablesSemanticAnalysisTest
-    extends CypherFunSuite
-    with NameWithPositionCaretBasedSemanticAnalysisTestSuite with AstConstructionTestSupport {
-
-  def errorFeatureRequired(offset: Int, line: Int, column: Int): FeatureError =
-    FeatureError.notAvailableInThisImplementation(
-      LocalCallables,
-      "The DEFINE keyword",
-      InputPosition(offset, line, column)
-    )
-
-  def errorFeatureRequired(p: InputPosition): FeatureError =
-    FeatureError.notAvailableInThisImplementation(
-      LocalCallables,
-      "The DEFINE keyword",
-      p
-    )
-
-  private val makeResolverMock: ScopedProcedureSignatureResolver = {
-    val name = procedureName("my", "proc42", "foo")
-    val signatureInputs = IndexedSeq(FieldSignature("a", CTInteger))
-    val signatureOutputs = Some(IndexedSeq(FieldSignature("x", CTInteger), FieldSignature("y", CTList(CTNode))))
-
-    val signature =
-      ProcedureSignature(name, signatureInputs, signatureOutputs, None, ProcedureReadOnlyAccess, id = 42)
-
-    val procSignatureLookup: ProcedureName => ProcedureSignature = _ => signature
-    val funcSignatureLookup: FunctionName => Option[UserFunctionSignature] = _ => None
-
-    new ScopedProcedureSignatureResolver {
-      override def procedureSignature(n: ProcedureName): ProcedureSignature = procSignatureLookup(n)
-
-      override def functionSignature(n: FunctionName): Option[UserFunctionSignature] = funcSignatureLookup(n)
-
-      override def procedureSignatureVersion: Long = 42
-
-      override def queryLanguage: QueryLanguage = Cypher25
-    }
-  }
-
-  def runWithoutLC(): AnalysisAssertions = {
-    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5))
-  }
-
-  def runWithLC(): AnalysisAssertions = {
-    runWith(
-      disabledCypherVersions = Set(CypherVersion.Cypher5),
-      semanticAnalysisTwice(
-        Some(
-          ScopeSurveyor andThen ExtractLocalDefinitions
-        ),
-        Some(TryRewriteProcedureCalls(makeResolverMock))
-      ),
-      LocalCallables
-    )
-  }
-
-  def msg22N27(expected: String, actual: String): String =
-    s"Type mismatch: expected $expected but was $actual"
-
-  def msg22NB1(expected: String, actual: String): String =
-    s"Type mismatch: expected $expected but was $actual"
-
-  def msg42N25(): String =
-    s"Procedure call inside a query does not support naming results implicitly (name explicitly using `YIELD` instead)"
-
-  def msg42N50(column: String): String =
-    s"Unknown procedure output: `$column`"
-
-  def msg42N59(column: String): String =
-    s"Variable `$column` already declared"
-
-  def msg42NAH(column: String, procedureName: String): String =
-    s"Return column `$column` does not match output signature of local procedure $procedureName"
-
-  def msg42NAI(column: String, procedureName: String): String =
-    s"Return column `$column` is missing to match output signature of local procedure $procedureName"
-
-  def msg42NAJ(typeName: String, column: String, procedureName: String): String =
-    s"`$typeName` is not supported as local procedure output type. Adjust the type of output field `$column` of local procedure ${procedureName}"
-
-  def msg42NAL(typeName: String, column: String, procedureName: String): String =
-    s"`$typeName` is not supported as local callable parameter type. Adjust the type of parameter `$column` of local callable ${procedureName}"
-
-  def msg42I42(): String =
-    s"Cannot yield value from void procedure."
-
-  /*
-   * BEGIN: Test feature flag
-   * vvvvvvvvvvvvvvvvvvvvvvvv
-   */
-  test("""DEFINE PROCEDURE foo.bar() { FINISH }
-         |^
-         |
-         |CALL foo.bar()
-         |FINISH
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE FUNCTION foo.bar() = 1
-         |^
-         |
-         |RETURN foo.bar() AS x
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE FUNCTION hej(n) = EXISTS { MATCH (n)-->(:B) }
-         |^
-         |
-         |MATCH (a:A) WHERE hej(a)
-         |RETURN *
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE FUNCTION hej(n :: NODE) = EXISTS { MATCH (n)-->(:B) }
-         |^
-         |
-         |MATCH (a:A) WHERE hej(a)
-         |RETURN *
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE FUNCTION hej() =
-         |^
-         |  EXISTS {
-         |    DEFINE FUNCTION nested() = 1
-         |    MATCH (:A)-->(:B {p: nested() })
-         |  }
-         |
-         |MATCH (a:A) WHERE hej()
-         |RETURN *
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""RETURN head(COLLECT {
-         |  DEFINE FUNCTION foo() = "foo"
-         |  ^
-         |
-         |  RETURN foo() AS x
-         |}) AS foo
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE PROCEDURE unused() {
-         |^
-         |  DEFINE PROCEDURE foo.bar(x :: INT) { FINISH }
-         |  DEFINE FUNCTION foo.one() = 1
-         |
-         |  CALL foo.bar(foo.one())
-         |  FINISH
-         |}
-         |
-         |FINISH
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""DEFINE PROCEDURE foo.bar(x :: INT) { FINISH }
-         |^
-         |
-         |{
-         |  DEFINE FUNCTION foo.one() = 1
-         |  CALL foo.bar(foo.one())
-         |  FINISH
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""{
-         |  DEFINE PROCEDURE foo.bar() { FINISH }
-         |  ^
-         |
-         |  CALL foo.bar()
-         |  FINISH
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""{
-         |  DEFINE FUNCTION one() = 1
-         |  ^
-         |
-         |  RETURN one() AS x
-         |}
-         |UNION
-         |{
-         |  RETURN 2 AS x
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""{
-         |  RETURN 1 AS x
-         |}
-         |UNION
-         |{
-         |  DEFINE PROCEDURE two() { RETURN 2 AS foo }
-         |  ^
-         |
-         |  CALL two() YIELD foo AS x
-         |  RETURN x
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""{
-         |  DEFINE FUNCTION one() = 1
-         |  ^
-         |
-         |  RETURN one() AS x
-         |}
-         |
-         |NEXT
-         |
-         |{
-         |  RETURN 2 AS x
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""{
-         |  RETURN 1 AS x
-         |}
-         |
-         |NEXT
-         |
-         |{
-         |  DEFINE PROCEDURE two() { RETURN 2 AS foo }
-         |  ^
-         |
-         |  CALL two() YIELD foo AS y
-         |  RETURN y
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""WHEN 1 = 1 THEN {
-         |  DEFINE FUNCTION one() = 1
-         |  ^
-         |
-         |  RETURN one() AS x
-         |}
-         |ELSE RETURN 2 AS x
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""WHEN 1 = 1 THEN RETURN 1 AS x
-         |WHEN 1 = head(COLLECT {
-         |  DEFINE FUNCTION two() = 2
-         |  ^
-         |
-         |  RETURN two() AS x
-         |}) THEN RETURN 2 AS x
-         |ELSE RETURN 3 AS x
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""WHEN 1 = 1 THEN RETURN 1 AS x
-         |WHEN 1 = 2 THEN {
-         |  DEFINE FUNCTION two() = 2
-         |  ^
-         |
-         |  RETURN two() AS x
-         |}
-         |ELSE RETURN 3 AS x
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""WHEN 1 = 1 THEN RETURN 1 AS x
-         |WHEN 1 = 2 THEN RETURN 2 AS x
-         |ELSE {
-         |  DEFINE FUNCTION thr33() = 3
-         |  ^
-         |
-         |  RETURN thr33() AS x
-         |}
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""CALL {
-         |  DEFINE FUNCTION foo.bar() = 1
-         |  ^
-         |
-         |  RETURN foo.bar() AS error
-         |}
-         |
-         |FINISH
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  test("""CALL () {
-         |  DEFINE FUNCTION foo.bar() = 1
-         |  ^
-         |
-         |  RETURN foo.bar() AS error
-         |}
-         |
-         |FINISH
-         |""".stripMargin) {
-    runWithoutLC().hasErrorsWithMarkedPosition(p => errorFeatureRequired(p))
-  }
-
-  /* ^^^^^^^^^^^^^^^^^^^^^^
-   * END: Test feature flag
-   */
+class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysisTest {
 
   test("""DEFINE PROCEDURE foo.baz() { FINISH }
          |
@@ -449,30 +107,23 @@ class LocalCallablesSemanticAnalysisTest
   /*
    * USE clause is not supported
    */
-  for {
-    (kind, gqlError) <- Seq("procedure" -> GqlHelper.getGql42001_42NAF(), "function" -> GqlHelper.getGql42001_42NAG())
-    keyword = kind.toUpperCase
-    invocation = kind match {
-      case "procedure" => "CALL"
-      case "function"  => "LET _res ="
-    }
-    msg = s"USE clause is not supported in local $kind definitions"
-  } {
-
-    test(s"""DEFINE $keyword foo.baz() {
+  {
+    val msg = s"USE clause is not supported in local procedure definitions"
+    val gqlError = GqlHelper.getGql42001_42NAF
+    test(s"""DEFINE PROCEDURE foo.baz() {
             |  USE graph
             |  ^
             |  FINISH
             |}
             |
-            |$invocation foo.baz()
+            |CALL foo.baz()
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
     }
 
-    test(s"""DEFINE $keyword foo.baz() {
-            |  DEFINE $keyword foo.bar() {
+    test(s"""DEFINE PROCEDURE foo.baz() {
+            |  DEFINE PROCEDURE foo.bar() {
             |    USE graph
             |    ^
             |    FINISH
@@ -481,7 +132,7 @@ class LocalCallablesSemanticAnalysisTest
             |  FINISH
             |}
             |
-            |$invocation foo.baz()
+            |CALL foo.baz()
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
@@ -489,7 +140,7 @@ class LocalCallablesSemanticAnalysisTest
 
     /*
     // This test is also an invalid query, but it runs into a different error on embedded testing
-    test(s"""DEFINE $keyword foo.baz() {
+    test(s"""DEFINE PROCEDURE foo.baz() {
             |  CALL () {
             |    USE graph
             |    ^
@@ -499,13 +150,13 @@ class LocalCallablesSemanticAnalysisTest
             |  FINISH
             |}
             |
-            |$invocation foo.baz()
+            |CALL foo.baz()
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
     }
      */
-    test(s"""DEFINE $keyword foo.baz() {
+    test(s"""DEFINE PROCEDURE foo.baz() {
             |  USE graph
             |  ^
             |  FINISH
@@ -514,14 +165,14 @@ class LocalCallablesSemanticAnalysisTest
             |  FINISH
             |}
             |
-            |$invocation foo.baz()
+            |CALL foo.baz()
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
     }
 
-    test(s"""DEFINE $keyword foo.baz() {
-            |  DEFINE $keyword foo.bar() {
+    test(s"""DEFINE PROCEDURE foo.baz() {
+            |  DEFINE PROCEDURE foo.bar() {
             |    RETURN 1 AS x
             |
             |    NEXT
@@ -534,16 +185,16 @@ class LocalCallablesSemanticAnalysisTest
             |  FINISH
             |}
             |
-            |$invocation foo.baz()
+            |CALL foo.baz()
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
     }
 
-    test(s"""DEFINE $keyword foo.baz(x) {
+    test(s"""DEFINE PROCEDURE foo.baz(x) {
             |  WHEN x = 1 THEN RETURN 1 AS y
             |  WHEN x = 2 THEN {
-            |    DEFINE $keyword foo.bar() {
+            |    DEFINE PROCEDURE foo.bar() {
             |      RETURN 1 AS z
             |
             |      NEXT
@@ -558,7 +209,7 @@ class LocalCallablesSemanticAnalysisTest
             |  ELSE RETURN 3 AS y
             |}
             |
-            |$invocation foo.baz(1)
+            |CALL foo.baz(1)
             |FINISH
             |""".stripMargin) {
       runWithLC().hasErrorWithMarkedPosition(_ => gqlError, msg)
@@ -643,99 +294,6 @@ class LocalCallablesSemanticAnalysisTest
   // inside input signature 4 in procedure
   test(s"""DEFINE PROCEDURE foo.a(x :: ANY<INT|STRING> = true) {
           |                                              ^---
-          |  RETURN 1 LIMIT 1
-          |}
-          |
-          |FINISH
-          |""".stripMargin) {
-    runWithLC().hasErrorWithMarkedPosition(
-      pos =>
-        GqlHelper.getGql42001_22NB1(
-          List("INTEGER", "STRING").asJava,
-          "BOOLEAN",
-          pos.offset,
-          pos.line,
-          pos.column
-        ),
-      msg22NB1("Integer or String", "Boolean")
-    )
-  }
-
-  // inside input signature 1 in function
-  test(s"""DEFINE FUNCTION foo.a(x :: INT = true) {
-          |                                 ^---
-          |  RETURN 1 LIMIT 1
-          |}
-          |
-          |FINISH
-          |""".stripMargin) {
-    runWithLC().hasErrorWithMarkedPosition(
-      pos =>
-        GqlHelper.getGql42001_22NB1(
-          List("INTEGER").asJava,
-          "BOOLEAN",
-          pos.offset,
-          pos.line,
-          pos.column
-        ),
-      msg22NB1("Integer", "Boolean")
-    )
-  }
-
-  // inside input signature 2 in function
-  test(s"""DEFINE FUNCTION foo.a(v :: BOOLEAN, x :: STRING = "true", y :: STRING = 123, z :: INT = 123) {
-          |                                                                        ^--
-          |  RETURN 1 LIMIT 1
-          |}
-          |
-          |FINISH
-          |""".stripMargin) {
-    runWithLC().hasErrorWithMarkedPosition(
-      pos =>
-        GqlHelper.getGql42001_22NB1(
-          List("STRING").asJava,
-          "INTEGER",
-          pos.offset,
-          pos.line,
-          pos.column
-        ),
-      msg22NB1("String", "Integer")
-    )
-  }
-
-  // inside input signature 3 in function
-  test(s"""DEFINE FUNCTION foo.a(x :: STRING = 123, y :: INT = "abc") {
-          |                                    ^--             ^----
-          |  RETURN 1 LIMIT 1
-          |}
-          |
-          |FINISH
-          |""".stripMargin) {
-    runWithLC().hasErrorWithMarkedPosition(
-      pos =>
-        GqlHelper.getGql42001_22NB1(
-          List("STRING").asJava,
-          "INTEGER",
-          pos.offset,
-          pos.line,
-          pos.column
-        ),
-      msg22NB1("String", "Integer"),
-      pos =>
-        GqlHelper.getGql42001_22NB1(
-          List("INTEGER").asJava,
-          "STRING",
-          pos.offset,
-          pos.line,
-          pos.column
-        ),
-      msg22NB1("Integer", "String")
-    )
-  }
-
-  // inside input signature 4 in function
-  test(s"""DEFINE FUNCTION foo.a(x :: ANY<INT|STRING> = true) {
-          |                                             ^---
           |  RETURN 1 LIMIT 1
           |}
           |
@@ -1654,7 +1212,7 @@ class LocalCallablesSemanticAnalysisTest
   }
 
   /* This test should work but does not due to shortcomings in the type system
-  // type fit 4 — type checking of the callable body does not take arguments into account
+  // type fit 3 — type checking of the callable body does not take arguments into account
   test(s"""DEFINE PROCEDURE foo.a(x) :: (a :: INT) {
           |  RETURN x AS a
           |}

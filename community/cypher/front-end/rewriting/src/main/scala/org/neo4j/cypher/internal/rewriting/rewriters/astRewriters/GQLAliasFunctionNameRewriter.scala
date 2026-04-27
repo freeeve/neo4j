@@ -89,7 +89,7 @@ case object GQLAliasFunctionNameRewriter extends StepSequencer.Step with ASTRewr
   ): Rewriter = instance
 
   val instance: Rewriter = bottomUp(Rewriter.lift {
-    case f @ FunctionInvocation(FunctionName(namespace, name), _, _, _, _, _)
+    case f @ FunctionInvocation(FunctionName(namespace, name), _, _, _, _, _, _)
       if namespace.parts.isEmpty && GQLFunctionAliases.exists(gqlAlias => name.equalsIgnoreCase(gqlAlias._1)) =>
       val targetName = GQLFunctionAliases(name.toLowerCase)
       f.copy(functionName = functionNameForTarget(targetName, f.position))(f.position)

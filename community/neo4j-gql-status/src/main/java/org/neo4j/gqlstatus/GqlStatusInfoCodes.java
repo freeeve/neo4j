@@ -2701,6 +2701,13 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "unsupported temporal function form in auth rule condition",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAN(
+            "Non-scalar query result not supported in local function definitions. "
+                    + "Query in local function definitions { %s } requires a `RETURN` clause with a single column and computing a total aggregate or containing `LIMIT 1`.",
+            new GqlParams.GqlParam[] {new NonSensitiveGqlParam(GqlParams.StringParam.fun, List.of(PROCEDURES_FUNCTIONS))
+            },
+            "non-scalar query result in local function definition",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             "Authentication and/or authorization could not be validated. See security logs for details.",
             "auth info validation error",

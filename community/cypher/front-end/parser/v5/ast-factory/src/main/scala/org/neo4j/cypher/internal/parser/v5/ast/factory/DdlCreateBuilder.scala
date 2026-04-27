@@ -407,7 +407,8 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
     val function = FunctionInvocation(
       FunctionName(functionName.ast[String]())(functionPos),
       distinct = false,
-      IndexedSeq(ctx.variable().ast[Variable]())
+      IndexedSeq(ctx.variable().ast[Variable]()),
+      maybeLocalFunction = None
     )(functionPos)
     val variable =
       if (isNode) nodePattern.ast[Variable]()

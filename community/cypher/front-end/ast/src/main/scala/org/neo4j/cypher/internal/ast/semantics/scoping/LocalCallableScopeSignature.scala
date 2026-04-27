@@ -16,6 +16,20 @@
  */
 package org.neo4j.cypher.internal.ast.semantics.scoping
 
+import org.neo4j.cypher.internal.ast.LocalFieldSignature
 import org.neo4j.cypher.internal.util.CallableName
+import org.neo4j.cypher.internal.util.symbols.CypherType
 
-case class LocalCallableScopeSignature(name: CallableName, result: Result)
+sealed trait LocalCallableScopeSignature {
+  def name: CallableName
+  def result: Result
+}
+
+case class LocalProcedureScopeSignature(name: CallableName, result: Result) extends LocalCallableScopeSignature
+
+case class LocalFunctionScopeSignature(
+  name: CallableName,
+  inputSignature: Seq[LocalFieldSignature],
+  outputSignature: Option[CypherType],
+  result: Result
+) extends LocalCallableScopeSignature

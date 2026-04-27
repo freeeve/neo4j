@@ -66,8 +66,10 @@ import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LocalFunctionsResolved
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ShadowedFunctionsUnresolved
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
@@ -98,7 +100,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
           ShortestPathVariableDeduplicator
         ) ++ CNFNormalizer.steps,
         initialConditions =
-          Set(BaseContains[Statement]())
+          Set(BaseContains[Statement](), ShadowedFunctionsUnresolved, LocalFunctionsResolved)
             ++ PreparatoryRewriting.postConditions
             ++ AstRewriting.postConditions
             // ExpressionsHaveComputedDependencies is introduced by SemanticAnalysis.

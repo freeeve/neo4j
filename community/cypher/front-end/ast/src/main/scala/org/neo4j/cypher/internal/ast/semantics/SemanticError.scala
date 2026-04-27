@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.util.CallableName
+import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.symbols.CypherType
@@ -592,6 +593,11 @@ object SemanticError {
     SemanticError(gql, s"An $expr Expression cannot contain any updates", position)
   }
 
+  def localFunctionCannotContainUpdates(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N57("Local function", position.offset, position.line, position.column)
+    SemanticError(gql, s"Local function cannot contain any updates", position)
+  }
+
   def singleReturnColumnRequired(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N22(position.offset, position.line, position.column)
     SemanticError(gql, "A Collect Expression must end with a single return column.", position)
@@ -963,6 +969,18 @@ object SemanticError {
     SemanticError(gql, msg, pos)
   }
 
+  def notSupportedLocalFunctionReturnType(
+    typ: CypherType,
+    functionName: FunctionName
+  ): SemanticError = {
+    val typeName = typ.normalizedCypherTypeString()
+    val pos = functionName.namespace.position
+    val msg =
+      s"`$typeName` is not supported as local function return type. Adjust the return type of local function ${functionName.fullName}"
+    val gql = GqlHelper.getGql42001_42NAK(typeName, functionName.fullName, pos.offset, pos.line, pos.column)
+    SemanticError(gql, msg, pos)
+  }
+
   def notSupportedLocalCallableParameterType(
     inputFieldSignature: LocalFieldSignature,
     callableName: CallableName
@@ -974,6 +992,14 @@ object SemanticError {
       s"`$typeName` is not supported as local callable parameter type. Adjust the type of parameter `$column` of local callable ${callableName.fullName}"
     val gql = GqlHelper.getGql42001_42NAL(typeName, column, callableName.fullName, pos.offset, pos.line, pos.column)
     SemanticError(gql, msg, pos)
+  }
+
+  def notSupportedQueryResultInLocalFunction(functionName: FunctionName, position: InputPosition): SemanticError = {
+    val msg =
+      s"Non-scalar query result not supported in local function definitions. " +
+        s"Query in local function definitions ${functionName.fullName} requires a `RETURN` clause with a single column and computing a total aggregate or containing `LIMIT 1`."
+    val gql = GqlHelper.getGql42001_42NAN(functionName.fullName, position.offset, position.line, position.column)
+    SemanticError(gql, msg, position)
   }
 
   def invalidClauseCombination(clause1: String, clause2: String, position: InputPosition): SemanticError = {

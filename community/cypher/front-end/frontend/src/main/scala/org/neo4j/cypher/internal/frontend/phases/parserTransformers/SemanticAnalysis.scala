@@ -149,7 +149,9 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     BaseContains[Statement](),
-    SemanticAnalysisPossible
+    SemanticAnalysisPossible,
+    ShadowedFunctionsUnresolved,
+    LocalFunctionsResolved
   )
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
