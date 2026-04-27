@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping;
 
+import java.io.IOException;
 import java.util.function.LongPredicate;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -155,6 +156,6 @@ public interface IdMapper extends MemoryStatsVisitor.Visitable, AutoCloseable {
         }
 
         @Override
-        default void close() throws Exception {}
+        default void close() throws IOException {}
     }
 }

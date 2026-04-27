@@ -214,19 +214,14 @@ public class ImportLogic implements Closeable {
 
     protected IdMapper instantiateIdMapper(
             Input input, Input.Estimates inputEstimates, NodeInputIdPropertyLookup inputIdLookup) {
-        var estimatedNumNodes = inputEstimates.numberOfNodes();
-        return switch (input.idType()) {
-            case STRING ->
-                IdMappers.strings(
-                        numberArrayFactory,
-                        input.groups(),
-                        config.strictNodeCheck(),
-                        memoryTracker,
-                        estimatedNumNodes,
-                        inputIdLookup);
-            case INTEGER -> IdMappers.longs(numberArrayFactory, input.groups(), memoryTracker, estimatedNumNodes);
-            case ACTUAL -> IdMappers.actual();
-        };
+        return IdMappers.idMapper(
+                input.idType(),
+                numberArrayFactory,
+                input.groups(),
+                config.strictNodeCheck(),
+                memoryTracker,
+                inputEstimates.numberOfNodes(),
+                inputIdLookup);
     }
 
     /**

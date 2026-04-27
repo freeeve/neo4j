@@ -28,7 +28,7 @@ import static org.neo4j.util.Preconditions.checkArgument;
  * The 8 higher-order bits are reserved for internal use and therefore the IDs cannot use the whole range of the long.
  */
 public class LongEncoder implements Encoder {
-    private static final long ID_BITS = 0x00FFFFFF_FFFFFFFFL;
+    public static final long ID_BITS = 0x00FFFFFF_FFFFFFFFL;
     private static final long RESERVED_BITS = ~ID_BITS;
 
     @Override

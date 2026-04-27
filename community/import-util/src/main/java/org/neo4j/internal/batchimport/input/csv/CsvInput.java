@@ -273,6 +273,10 @@ public class CsvInput implements Input {
         return Collections.unmodifiableMap(headersByPath);
     }
 
+    public boolean delimitIds() {
+        return delimitIds;
+    }
+
     private InputIterator stream(Iterable<DataFactory> data, Header.Factory headerFactory, Collector badCollector) {
         return new CsvGroupInputIterator(
                 data.iterator(),

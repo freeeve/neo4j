@@ -33,6 +33,7 @@ import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
+import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.ReadableGroups;
 import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.internal.batchimport.cache.MemoryStatsVisitor;
@@ -118,6 +119,23 @@ public final class IdMappers {
     }
 
     private IdMappers() {}
+
+    public static IdMapper idMapper(
+            IdType idType,
+            NumberArrayFactory cacheFactory,
+            ReadableGroups groups,
+            boolean strictNodeCheck,
+            MemoryTracker memoryTracker,
+            long estimatedNumberOfNodes,
+            PropertyValueLookup inputIdLookup) {
+        return switch (idType) {
+            case STRING ->
+                IdMappers.strings(
+                        cacheFactory, groups, strictNodeCheck, memoryTracker, estimatedNumberOfNodes, inputIdLookup);
+            case INTEGER -> IdMappers.longs(cacheFactory, groups, memoryTracker, estimatedNumberOfNodes);
+            case ACTUAL -> IdMappers.actual();
+        };
+    }
 
     /**
      * An {@link IdMapper} that doesn't touch the input ids, but just asserts that node ids arrive in ascending order.
