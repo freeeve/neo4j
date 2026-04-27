@@ -57,7 +57,8 @@ public class TransactionQueue {
         // will we add this transaction to the current batch in the queue (if any)
         return isEmpty()
                 || (transaction.commandBatch().kernelVersion()
-                        == tail.commandBatch().kernelVersion());
+                                == tail.commandBatch().kernelVersion()
+                        && !transaction.commandBatch().isRollback());
     }
 
     public void queue(StorageEngineTransaction transaction) throws Exception {
