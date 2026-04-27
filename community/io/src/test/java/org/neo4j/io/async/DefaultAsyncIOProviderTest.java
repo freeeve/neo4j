@@ -19,8 +19,8 @@
  */
 package org.neo4j.io.async;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.neo4j.io.async.AsyncCompletionHandler.EMPTY_COMPLETION_HANDLER;
 import static org.neo4j.io.async.IllegalStateExceptionFailureHandler.ILLEGAL_STATE_HANDLER;
 
@@ -35,7 +35,7 @@ class DefaultAsyncIOProviderTest {
         var asyncBlockAccessor = asyncIOProvider.createAsyncBlockAccessor(
                 10, EMPTY_COMPLETION_HANDLER, ILLEGAL_STATE_HANDLER, EmptyMemoryTracker.INSTANCE);
 
-        assertFalse(asyncBlockAccessor.isAvailable());
+        assertThat(asyncBlockAccessor.isAvailable()).isFalse();
 
         assertThatThrownBy(() -> asyncBlockAccessor.asyncRead(1, 2, 3, 4, 5))
                 .isInstanceOf(UnsupportedOperationException.class);

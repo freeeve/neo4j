@@ -20,7 +20,7 @@
 package org.neo4j.io.fs;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.params.provider.Arguments.of;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -82,7 +82,7 @@ class FileVisitorsDecoratorsTest {
             String name, DecoratorCtor decoratorConstructor, boolean throwsExceptions) throws IOException {
         var decorator = decoratorConstructor.apply(wrapped);
         when(wrapped.preVisitDirectory(any(), any())).thenThrow(new IOException("test"));
-        assertThrows(IOException.class, () -> decorator.preVisitDirectory(null, null));
+        assertThatExceptionOfType(IOException.class).isThrownBy(() -> decorator.preVisitDirectory(null, null));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -113,7 +113,7 @@ class FileVisitorsDecoratorsTest {
             String name, DecoratorCtor decoratorConstructor, boolean throwsExceptions) throws IOException {
         var decorator = decoratorConstructor.apply(wrapped);
         when(wrapped.postVisitDirectory(any(), any())).thenThrow(new IOException("test"));
-        assertThrows(IOException.class, () -> decorator.postVisitDirectory(null, null));
+        assertThatExceptionOfType(IOException.class).isThrownBy(() -> decorator.postVisitDirectory(null, null));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -144,7 +144,7 @@ class FileVisitorsDecoratorsTest {
             String name, DecoratorCtor decoratorConstructor, boolean throwsExceptions) throws IOException {
         var decorator = decoratorConstructor.apply(wrapped);
         when(wrapped.visitFile(any(), any())).thenThrow(new IOException("test"));
-        assertThrows(IOException.class, () -> decorator.visitFile(null, null));
+        assertThatExceptionOfType(IOException.class).isThrownBy(() -> decorator.visitFile(null, null));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -176,7 +176,7 @@ class FileVisitorsDecoratorsTest {
         var decorator = decoratorConstructor.apply(wrapped);
         when(wrapped.visitFileFailed(any(), any())).thenThrow(new IOException("test"));
 
-        assertThrows(IOException.class, () -> decorator.visitFileFailed(null, null));
+        assertThatExceptionOfType(IOException.class).isThrownBy(() -> decorator.visitFileFailed(null, null));
     }
 
     interface DecoratorCtor extends Function<FileVisitor<Path>, FileVisitor<Path>> {

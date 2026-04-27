@@ -19,10 +19,8 @@
  */
 package org.neo4j.io.memory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.io.memory.ByteBuffers.allocate;
 import static org.neo4j.io.memory.ByteBuffers.allocateDirect;
 import static org.neo4j.io.memory.ByteBuffers.directBufferContainsNonZeroData;
@@ -44,14 +42,14 @@ class ByteBuffersTest {
         var memoryTracker = new LocalMemoryTracker(NO_TRACKING, 100, 0, null);
         var byteBuffer = allocateDirect(30, ByteOrder.LITTLE_ENDIAN, memoryTracker);
         try {
-            assertEquals(0, memoryTracker.estimatedHeapMemory());
-            assertEquals(30, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+            assertThat(memoryTracker.usedNativeMemory()).isEqualTo(30);
         } finally {
             releaseBuffer(byteBuffer, memoryTracker);
         }
 
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
+        assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+        assertThat(memoryTracker.usedNativeMemory()).isZero();
     }
 
     @Test
@@ -59,14 +57,14 @@ class ByteBuffersTest {
         var memoryTracker = new LocalMemoryTracker(NO_TRACKING, 100, 0, null);
         var byteBuffer = allocate(30, ByteOrder.LITTLE_ENDIAN, memoryTracker);
         try {
-            assertEquals(30, memoryTracker.estimatedHeapMemory());
-            assertEquals(0, memoryTracker.usedNativeMemory());
+            assertThat(memoryTracker.estimatedHeapMemory()).isEqualTo(30);
+            assertThat(memoryTracker.usedNativeMemory()).isZero();
         } finally {
             releaseBuffer(byteBuffer, memoryTracker);
         }
 
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
+        assertThat(memoryTracker.estimatedHeapMemory()).isZero();
+        assertThat(memoryTracker.usedNativeMemory()).isZero();
     }
 
     @Test
@@ -75,7 +73,7 @@ class ByteBuffersTest {
         ByteBuffer buffer = allocateDirect(Long.BYTES, ByteOrder.LITTLE_ENDIAN, tracker);
         buffer.get(0);
         ByteBuffers.releaseBuffer(buffer, tracker);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.get(0));
+        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> buffer.get(0));
     }
 
     @Test
@@ -84,7 +82,7 @@ class ByteBuffersTest {
         ByteBuffer buffer = allocateDirect(Long.BYTES, ByteOrder.LITTLE_ENDIAN, tracker);
         buffer.get(0);
         ByteBuffers.releaseBuffer(buffer, tracker);
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.get(0));
+        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> buffer.get(0));
     }
 
     @Test
@@ -93,7 +91,8 @@ class ByteBuffersTest {
         ByteBuffer buffer = allocate(Long.BYTES, ByteOrder.LITTLE_ENDIAN, tracker);
         ByteBuffers.releaseBuffer(buffer, tracker);
         ByteBuffers.releaseBuffer(buffer, tracker); // This must not throw.
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.get(0)); // And this still throws.
+        assertThatExceptionOfType(IndexOutOfBoundsException.class)
+                .isThrownBy(() -> buffer.get(0)); // And this still throws.
     }
 
     @Test
@@ -102,14 +101,15 @@ class ByteBuffersTest {
         ByteBuffer buffer = allocate(Long.BYTES, ByteOrder.LITTLE_ENDIAN, tracker);
         ByteBuffers.releaseBuffer(buffer, tracker);
         ByteBuffers.releaseBuffer(buffer, tracker); // This must not throw.
-        assertThrows(IndexOutOfBoundsException.class, () -> buffer.get(0)); // And this still throws.
+        assertThatExceptionOfType(IndexOutOfBoundsException.class)
+                .isThrownBy(() -> buffer.get(0)); // And this still throws.
     }
 
     @Test
     void directBufferAllZeros() {
         ByteBuffer buffer = ByteBuffers.allocateDirect(10, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
         try {
-            assertFalse(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isFalse();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -121,7 +121,7 @@ class ByteBuffersTest {
         try {
             buffer.put(5, (byte) 42);
             buffer.rewind();
-            assertTrue(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isTrue();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -133,7 +133,7 @@ class ByteBuffersTest {
         try {
             buffer.put(9, (byte) -42);
             buffer.rewind();
-            assertTrue(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isTrue();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -143,7 +143,7 @@ class ByteBuffersTest {
     void emptyDirectBufferDoesNotContainNonZeroData() {
         ByteBuffer buffer = ByteBuffers.allocateDirect(10, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
         try {
-            assertFalse(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isFalse();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -154,7 +154,7 @@ class ByteBuffersTest {
         ByteBuffer buffer = ByteBuffers.allocateDirect(
                 (int) ByteUnit.kibiBytes(16), ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
         try {
-            assertFalse(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isFalse();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -167,7 +167,7 @@ class ByteBuffersTest {
         try {
             buffer.put(buffer.limit() - 4, (byte) -42);
             buffer.rewind();
-            assertTrue(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isTrue();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -183,7 +183,7 @@ class ByteBuffersTest {
         ByteBuffer buffer = ByteBuffers.allocateDirect(size, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
         try {
             buffer.put(size - 1, (byte) 1);
-            assertTrue(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isTrue();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }
@@ -198,7 +198,7 @@ class ByteBuffersTest {
     void variousBufferSizesAllZero(int size) {
         ByteBuffer buffer = ByteBuffers.allocateDirect(size, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE);
         try {
-            assertFalse(directBufferContainsNonZeroData(buffer));
+            assertThat(directBufferContainsNonZeroData(buffer)).isFalse();
         } finally {
             ByteBuffers.releaseBuffer(buffer, EmptyMemoryTracker.INSTANCE);
         }

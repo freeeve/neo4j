@@ -19,7 +19,7 @@
  */
 package org.neo4j.io.memory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.memory.LocalMemoryTracker;
@@ -36,7 +36,7 @@ class UnsafeDirectByteBufferFactoryTest {
             factory.allocate(bufferSize, tracker);
 
             // then
-            assertEquals(bufferSize, tracker.usedNativeMemory());
+            assertThat(tracker.usedNativeMemory()).isEqualTo(bufferSize);
         }
     }
 
@@ -50,7 +50,7 @@ class UnsafeDirectByteBufferFactoryTest {
         }
 
         // then
-        assertEquals(0, tracker.usedNativeMemory());
+        assertThat(tracker.usedNativeMemory()).isZero();
     }
 
     @Test
@@ -64,9 +64,9 @@ class UnsafeDirectByteBufferFactoryTest {
         factory.close();
 
         // then
-        assertEquals(0, tracker.usedNativeMemory());
+        assertThat(tracker.usedNativeMemory()).isZero();
         factory.close();
-        assertEquals(0, tracker.usedNativeMemory());
+        assertThat(tracker.usedNativeMemory()).isZero();
     }
 
     @Test

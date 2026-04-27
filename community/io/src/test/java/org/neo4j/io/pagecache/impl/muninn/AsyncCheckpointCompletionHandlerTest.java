@@ -20,9 +20,6 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.MebiByte;
 
 import org.junit.jupiter.api.Test;
@@ -49,9 +46,9 @@ class AsyncCheckpointCompletionHandlerTest {
             PageMetadata.unlockExclusive(pageRef);
 
             // page is modified
-            assertTrue(PageMetadata.tryWriteLock(pageRef, false));
+            assertThat(PageMetadata.tryWriteLock(pageRef, false)).isTrue();
             PageMetadata.unlockWrite(pageRef);
-            assertTrue(PageMetadata.isModified(pageRef));
+            assertThat(PageMetadata.isModified(pageRef)).isTrue();
 
             long flushLock = PageMetadata.tryFlushLock(pageRef);
             assertThat(flushLock).isNotZero();
@@ -60,7 +57,7 @@ class AsyncCheckpointCompletionHandlerTest {
             completionHandler.handleCompletion(
                     new AsyncBlockAccessorWithResult(new AsyncVectorIOData(pageRef, flushLock)), 4, 0);
             // page is not modified anymore since flush lock was releases with success flag
-            assertFalse(PageMetadata.isModified(pageRef));
+            assertThat(PageMetadata.isModified(pageRef)).isFalse();
             // can flush lock again
             long flushLockAfterHandle = PageMetadata.tryFlushLock(pageRef);
             assertThat(flushLockAfterHandle).isNotZero();
@@ -84,17 +81,17 @@ class AsyncCheckpointCompletionHandlerTest {
             PageMetadata.unlockExclusive(pageRef3);
 
             // modify pages
-            assertTrue(PageMetadata.tryWriteLock(pageRef1, false));
+            assertThat(PageMetadata.tryWriteLock(pageRef1, false)).isTrue();
             PageMetadata.unlockWrite(pageRef1);
-            assertTrue(PageMetadata.isModified(pageRef1));
+            assertThat(PageMetadata.isModified(pageRef1)).isTrue();
 
-            assertTrue(PageMetadata.tryWriteLock(pageRef2, false));
+            assertThat(PageMetadata.tryWriteLock(pageRef2, false)).isTrue();
             PageMetadata.unlockWrite(pageRef2);
-            assertTrue(PageMetadata.isModified(pageRef2));
+            assertThat(PageMetadata.isModified(pageRef2)).isTrue();
 
-            assertTrue(PageMetadata.tryWriteLock(pageRef3, false));
+            assertThat(PageMetadata.tryWriteLock(pageRef3, false)).isTrue();
             PageMetadata.unlockWrite(pageRef3);
-            assertTrue(PageMetadata.isModified(pageRef3));
+            assertThat(PageMetadata.isModified(pageRef3)).isTrue();
 
             // flush locks
             long flushLock1 = PageMetadata.tryFlushLock(pageRef1);
@@ -115,9 +112,9 @@ class AsyncCheckpointCompletionHandlerTest {
                     0);
 
             // pages are not modified anymore since flush lock was releases with success flag
-            assertFalse(PageMetadata.isModified(pageRef1));
-            assertFalse(PageMetadata.isModified(pageRef2));
-            assertFalse(PageMetadata.isModified(pageRef3));
+            assertThat(PageMetadata.isModified(pageRef1)).isFalse();
+            assertThat(PageMetadata.isModified(pageRef2)).isFalse();
+            assertThat(PageMetadata.isModified(pageRef3)).isFalse();
 
             // can flush lock again
             long flushLockAfterHandle1 = PageMetadata.tryFlushLock(pageRef1);
@@ -171,18 +168,18 @@ class AsyncCheckpointCompletionHandlerTest {
                         0);
 
                 try (AsyncFlushCompletion asyncFlushCompletion = databaseFlush.asyncFlushCompletion()) {
-                    assertEquals(2, asyncFlushCompletion.ioPerformed());
-                    assertEquals(3, asyncFlushCompletion.pagesFlushed());
-                    assertEquals(0, databaseFlush.pagesFlushed());
-                    assertEquals(0, databaseFlush.ioPerformed());
+                    assertThat(asyncFlushCompletion.ioPerformed()).isEqualTo(2);
+                    assertThat(asyncFlushCompletion.pagesFlushed()).isEqualTo(3);
+                    assertThat(databaseFlush.pagesFlushed()).isZero();
+                    assertThat(databaseFlush.ioPerformed()).isZero();
                 }
             }
 
             databaseFlush.close();
 
-            assertEquals(3, databaseFlush.pagesFlushed());
-            assertEquals(2, databaseFlush.ioPerformed());
-            assertEquals(3 * PageCache.PAGE_SIZE, defaultPageCacheTracer.bytesWritten());
+            assertThat(databaseFlush.pagesFlushed()).isEqualTo(3);
+            assertThat(databaseFlush.ioPerformed()).isEqualTo(2);
+            assertThat(defaultPageCacheTracer.bytesWritten()).isEqualTo(3 * PageCache.PAGE_SIZE);
         }
     }
 }

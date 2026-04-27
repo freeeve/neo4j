@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.function.IntSupplier;
 import org.junit.jupiter.api.Test;
 
-public class InputStreamReadableChannelTest {
+class InputStreamReadableChannelTest {
 
     @Test
     void getByteArray_simple() throws IOException {

@@ -19,8 +19,7 @@
  */
 package org.neo4j.io;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.io.IOUtils.closeAll;
@@ -51,9 +50,9 @@ class IOUtilsTest {
 
     @Test
     void closeAllAndRethrowException() {
-        final var e = assertThrows(IOException.class, () -> closeAll(goodClosable1, faultyClosable, goodClosable2));
-        assertThat(e.getMessage()).isEqualTo("Exception closing multiple resources.");
-        assertThat(e.getCause()).isInstanceOf(IOException.class);
+        assertThatExceptionOfType(IOException.class)
+                .isThrownBy(() -> closeAll(goodClosable1, faultyClosable, goodClosable2))
+                .withMessage("Exception closing multiple resources.");
     }
 
     @Test

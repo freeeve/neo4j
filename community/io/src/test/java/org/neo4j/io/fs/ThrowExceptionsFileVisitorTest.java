@@ -19,8 +19,7 @@
  */
 package org.neo4j.io.fs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.io.fs.FileVisitors.throwExceptions;
 
@@ -34,16 +33,16 @@ class ThrowExceptionsFileVisitorTest {
     @Test
     void shouldThrowExceptionFromVisitFileFailed() {
         var exception = new IOException("test");
-        var actual = assertThrows(
-                Exception.class, () -> throwExceptions(mock(FileVisitor.class)).visitFileFailed(null, exception));
-        assertEquals(exception, actual);
+        assertThatExceptionOfType(Exception.class)
+                .isThrownBy(() -> throwExceptions(mock(FileVisitor.class)).visitFileFailed(null, exception))
+                .isSameAs(exception);
     }
 
     @Test
     void shouldThrowExceptionFromPostVisitDirectory() {
         var exception = new IOException("test");
-        var actual = assertThrows(
-                Exception.class, () -> throwExceptions(mock(FileVisitor.class)).postVisitDirectory(null, exception));
-        assertEquals(exception, actual);
+        assertThatExceptionOfType(Exception.class)
+                .isThrownBy(() -> throwExceptions(mock(FileVisitor.class)).postVisitDirectory(null, exception))
+                .isSameAs(exception);
     }
 }

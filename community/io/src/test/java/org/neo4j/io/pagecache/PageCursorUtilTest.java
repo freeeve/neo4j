@@ -21,9 +21,7 @@ package org.neo4j.io.pagecache;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.io.pagecache.PageCursorUtil._2B_MASK;
 import static org.neo4j.io.pagecache.PageCursorUtil._3B_MASK;
 import static org.neo4j.io.pagecache.PageCursorUtil._6B_MASK;
@@ -62,12 +60,13 @@ class PageCursorUtilTest {
             long read = PageCursorUtil.get6BLong(cursor);
             int offsetAfterRead = cursor.getOffset();
 
-            // THEN
-            assertEquals(expected, read);
-            assertTrue(read >= 0);
-            assertEquals(0, read & ~_6B_MASK);
-            assertEquals(6, offsetAfterWrite);
-            assertEquals(6, offsetAfterRead);
+            assertThat(read)
+                    // THEN
+                    .isEqualTo(expected)
+                    .isGreaterThanOrEqualTo(0);
+            assertThat(read & ~_6B_MASK).isZero();
+            assertThat(offsetAfterWrite).isEqualTo(6);
+            assertThat(offsetAfterRead).isEqualTo(6);
         }
     }
 
@@ -102,12 +101,13 @@ class PageCursorUtilTest {
             int read = PageCursorUtil.get3BInt(cursor);
             int offsetAfterRead = cursor.getOffset();
 
-            // THEN
-            assertEquals(expected, read);
-            assertTrue(read >= 0);
-            assertEquals(0, read & ~_3B_MASK);
-            assertEquals(3, offsetAfterWrite);
-            assertEquals(3, offsetAfterRead);
+            assertThat(read)
+                    // THEN
+                    .isEqualTo(expected)
+                    .isGreaterThanOrEqualTo(0);
+            assertThat(read & ~_3B_MASK).isZero();
+            assertThat(offsetAfterWrite).isEqualTo(3);
+            assertThat(offsetAfterRead).isEqualTo(3);
         }
     }
 
@@ -142,12 +142,13 @@ class PageCursorUtilTest {
             int read = PageCursorUtil.get3BInt(cursor, 1);
             int offsetAfterRead = cursor.getOffset();
 
-            // THEN
-            assertEquals(expected, read);
-            assertTrue(read >= 0);
-            assertEquals(0, read & ~_3B_MASK);
-            assertEquals(0, offsetAfterWrite);
-            assertEquals(0, offsetAfterRead);
+            assertThat(read)
+                    // THEN
+                    .isEqualTo(expected)
+                    .isGreaterThanOrEqualTo(0);
+            assertThat(read & ~_3B_MASK).isZero();
+            assertThat(offsetAfterWrite).isZero();
+            assertThat(offsetAfterRead).isZero();
         }
     }
 
@@ -166,12 +167,13 @@ class PageCursorUtilTest {
             int read = PageCursorUtil.getUnsignedShort(cursor);
             int offsetAfterRead = cursor.getOffset();
 
-            // THEN
-            assertEquals(expected, read);
-            assertTrue(read >= 0);
-            assertEquals(0, read & ~_2B_MASK);
-            assertEquals(2, offsetAfterWrite);
-            assertEquals(2, offsetAfterRead);
+            assertThat(read)
+                    // THEN
+                    .isEqualTo(expected)
+                    .isGreaterThanOrEqualTo(0);
+            assertThat(read & ~_2B_MASK).isZero();
+            assertThat(offsetAfterWrite).isEqualTo(2);
+            assertThat(offsetAfterRead).isEqualTo(2);
         }
     }
 
@@ -190,12 +192,13 @@ class PageCursorUtilTest {
             int read = PageCursorUtil.getUnsignedShort(cursor, 1);
             int offsetAfterRead = cursor.getOffset();
 
-            // THEN
-            assertEquals(expected, read);
-            assertTrue(read >= 0);
-            assertEquals(0, read & ~_2B_MASK);
-            assertEquals(0, offsetAfterWrite);
-            assertEquals(0, offsetAfterRead);
+            assertThat(read)
+                    // THEN
+                    .isEqualTo(expected)
+                    .isGreaterThanOrEqualTo(0);
+            assertThat(read & ~_2B_MASK).isZero();
+            assertThat(offsetAfterWrite).isZero();
+            assertThat(offsetAfterRead).isZero();
         }
     }
 
@@ -210,7 +213,8 @@ class PageCursorUtilTest {
             if ((expected & ~_6B_MASK) != 0) {
                 // OK here we have an invalid value
                 cursor.setOffset(0);
-                assertThrows(IllegalArgumentException.class, () -> PageCursorUtil.put6BLong(cursor, expected));
+                assertThatExceptionOfType(IllegalArgumentException.class)
+                        .isThrownBy(() -> PageCursorUtil.put6BLong(cursor, expected));
                 i++;
             }
         }

@@ -19,7 +19,7 @@
  */
 package org.neo4j.io.pagecache.impl.muninn;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -28,22 +28,22 @@ class EvictionClockArmTest {
     @Test
     void startClockWithZeroPage() {
         EvictionClockArm arm = new EvictionClockArm(5);
-        assertEquals(0, arm.nextPage());
+        assertThat(arm.nextPage()).isZero();
     }
 
     @Test
     void startClockWithCustomArm() {
         EvictionClockArm arm = new EvictionClockArm(10, 5);
-        assertEquals(6, arm.nextPage());
-        assertEquals(7, arm.nextPage());
+        assertThat(arm.nextPage()).isEqualTo(6);
+        assertThat(arm.nextPage()).isEqualTo(7);
     }
 
     @Test
     void switchToZeroAfterReachingEnd() {
         EvictionClockArm arm = new EvictionClockArm(3, 1);
-        assertEquals(2, arm.nextPage());
-        assertEquals(0, arm.nextPage());
-        assertEquals(1, arm.nextPage());
+        assertThat(arm.nextPage()).isEqualTo(2);
+        assertThat(arm.nextPage()).isZero();
+        assertThat(arm.nextPage()).isOne();
     }
 
     @Test
@@ -51,14 +51,14 @@ class EvictionClockArmTest {
         EvictionClockArm arm = new EvictionClockArm(3);
         int[] expected = {0, 1, 2, 0, 1, 2};
         for (int exp : expected) {
-            assertEquals(exp, arm.nextPage());
+            assertThat(arm.nextPage()).isEqualTo(exp);
         }
     }
 
     @Test
     void startClockOnTheLastPage() {
         EvictionClockArm arm = new EvictionClockArm(7, 6);
-        assertEquals(0, arm.nextPage());
-        assertEquals(1, arm.nextPage());
+        assertThat(arm.nextPage()).isZero();
+        assertThat(arm.nextPage()).isOne();
     }
 }
