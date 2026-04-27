@@ -41,6 +41,18 @@ trait GqlError extends Unversioned {
   val msg: String
 }
 
+object GqlError {
+
+  def ander(variables: Seq[String]): String =
+    variables.toList match {
+      case Nil        => ""
+      case List(a)    => s"`$a`"
+      case List(a, b) => s"`$a` and `$b`"
+      case _          => s"${variables.init.map(v => s"`$v`").mkString(", ")} and `${variables.last}`"
+    }
+
+}
+
 case class E42N07(variable: String) extends GqlError {
   override val num: String = "42N07"
 
@@ -113,9 +125,7 @@ case class E42I18(variables: String*) extends GqlError {
   override val num: String = "42I18"
 
   override val msg: String =
-    s"The aggregation column contains implicit grouping expressions referenced by the variables ${variables.map(v =>
-        s"`$v`"
-      ).mkString(", ")}."
+    s"The expression contains a non-grouping sub-expression ${GqlError.ander(variables)}. In an aggregating context only grouping sub-expressions and constants are allowed."
 }
 
 case object E42I37 extends GqlError {

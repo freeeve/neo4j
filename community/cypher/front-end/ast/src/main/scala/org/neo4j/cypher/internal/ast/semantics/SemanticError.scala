@@ -799,7 +799,7 @@ object SemanticError {
     SemanticError(gql, "RETURN * is not allowed when there are no variables in scope", position)
   }
 
-  def invalidReferenceToGroupingExpression(variables: Seq[String], position: InputPosition): SemanticError = {
+  def invalidReferenceToNonGroupingExpression(variables: Seq[String], position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I18)

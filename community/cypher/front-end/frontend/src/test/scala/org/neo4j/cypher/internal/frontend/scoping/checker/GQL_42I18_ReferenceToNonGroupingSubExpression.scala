@@ -21,9 +21,9 @@ import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
 /**
- * Test for 42I58 - Invalid Reference To Implicitly Grouped Expressions
+ * Test for 42I18 - Reference To Non-grouping Sub-expression
  */
-class GQL_42I18_InvalidReferenceToImplicitlyGroupedExpressions extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42I18_ReferenceToNonGroupingSubExpression extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

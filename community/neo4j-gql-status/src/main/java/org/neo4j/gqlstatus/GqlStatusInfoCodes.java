@@ -1656,12 +1656,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "invalid quantifier",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I18(
-            "The aggregation column contains implicit grouping expressions referenced by the variables { %s }. Implicit grouping expressions are variables not explicitly declared as grouping keys.",
+            "The expression contains a non-grouping sub-expression { %s }. In an aggregating context only grouping sub-expressions and constants are allowed.",
             new GqlParams.GqlParam[] {
                 new NonSensitiveGqlParam(GqlParams.ListParam.variableList, List.of(CYPHER_VARIABLE))
             },
-            Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
-            "invalid reference to implicitly grouped expressions",
+            Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.ANDED),
+            "reference to non-grouping sub-expression",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I19(
             "Failed to parse string literal. The query must contain an even number of non-escaped quotes.",

@@ -451,7 +451,7 @@ case class VariableChecker(
                       .getParamValue(StringParam.variable)
                       .asInstanceOf[String]
                   )
-                Seq(SemanticError.invalidReferenceToGroupingExpression(
+                Seq(SemanticError.invalidReferenceToNonGroupingExpression(
                   variableNames.toSeq,
                   inaccessibleVariable.head.position
                 ))
