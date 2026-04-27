@@ -62,6 +62,131 @@ public final class UTF8 {
     }
 
     /**
+     * Encode a string to a byte array using UTF-8.
+     *
+     * @param src {@link String} to encode.
+     * @param dst byte array to encode to.
+     * @param offset the index in {@code dst} where to start encoding to.
+     * @param length the maximum number of bytes to encode.
+     * @return the index in {@code dst} where the encoding stopped.
+     *
+     * @throws IllegalArgumentException if {@code src} contains an unpaired surrogate.
+     * @throws ArrayIndexOutOfBoundsException if the string is too long to fit in the destination buffer.
+     */
+    public static int encode(String src, byte[] dst, int offset, int length) {
+        int utf16Length = src.length();
+        int j = offset;
+        int i = 0;
+        int limit = offset + length;
+        // Ascii-only fast path
+        for (char c; i < utf16Length && i + j < limit && (c = src.charAt(i)) < 0x80; i++) {
+            dst[j + i] = (byte) c;
+        }
+        if (i == utf16Length) {
+            // Only ascii, we are done!
+            return j + utf16Length;
+        }
+        j += i;
+
+        for (char c; i < utf16Length; i++) {
+            c = src.charAt(i);
+            if (c < 0x80 && j < limit) {
+                dst[j++] = (byte) c;
+            } else if (c < 0x800 && j <= limit - 2) {
+                dst[j++] = (byte) (0xC0 | (c >>> 6));
+                dst[j++] = (byte) (0x80 | (c & 0x3F));
+            } else if (!Character.isSurrogate(c) && j <= limit - 3) {
+                dst[j++] = (byte) (0xE0 | (c >>> 12));
+                dst[j++] = (byte) (0x80 | ((c >>> 6) & 0x3F));
+                dst[j++] = (byte) (0x80 | (c & 0x3F));
+            } else if (j <= limit - 4) {
+                char lowSurrogate;
+                if (i + 1 == utf16Length || !Character.isSurrogatePair(c, lowSurrogate = src.charAt(++i))) {
+                    throw new IllegalArgumentException("Unpaired surrogate at index " + (i - 1));
+                }
+                int codePoint = Character.toCodePoint(c, lowSurrogate);
+                dst[j++] = (byte) (0xF0 | (codePoint >>> 18));
+                dst[j++] = (byte) (0x80 | ((codePoint >>> 12) & 0x3F));
+                dst[j++] = (byte) (0x80 | ((codePoint >>> 6) & 0x3F));
+                dst[j++] = (byte) (0x80 | (codePoint & 0x3F));
+            } else {
+                if (Character.isSurrogate(c)
+                        && (i + 1 == utf16Length || !Character.isSurrogatePair(c, src.charAt(i + 1)))) {
+                    throw new IllegalArgumentException("Unpaired surrogate at index " + i);
+                }
+                throw new ArrayIndexOutOfBoundsException("Failed writing " + c + " at index " + j);
+            }
+        }
+        return j;
+    }
+
+    /**
+     * Returns the number of bytes required to encode {@code str} as UTF-8, without allocating.
+     *
+     * @param str the string to measure.
+     * @return the UTF-8 encoded byte length of {@code str}.
+     * @throws IllegalArgumentException if {@code str} contains an unpaired surrogate, or if the
+     *     UTF-8 length overflows {@code int}.
+     */
+    public static int length(String str) {
+        int utf16Length = str.length();
+        // Start from the assumption that every char costs 1 byte and then add extra bytes for non-ASCII chars.
+        int utf8Length = utf16Length;
+        int i = 0;
+
+        // Skip as many ASCII chars (U+0000-U+007F) as possible
+        while (i < utf16Length && str.charAt(i) < 0x80) {
+            i++;
+        }
+
+        // Handle chars up to U+07FF (1 or 2-byte UTF-8 sequences).
+        // Drop into the slow path as soon as a 3-byte char is encountered.
+        for (; i < utf16Length; i++) {
+            char c = str.charAt(i);
+            if (c < 0x800) {
+                // +1 for non-ASCII, +0 for ASCII
+                utf8Length += (0x7f - c) >>> 31;
+            } else {
+                // c >= U+0800: delegate remaining chars to the slow path.
+                utf8Length += lengthSlowPath(str, i);
+                break;
+            }
+        }
+
+        // Any int overflow caused by a very long string would wrap utf8Length below utf16Length,
+        // since we only ever add non-negative values starting from utf16Length.
+        // The maximum expansion is 3x (each UTF-16 char -> at most 3 UTF-8 bytes for BMP chars).
+        if (utf8Length < utf16Length) {
+            throw new IllegalArgumentException("String cannot be formated to a single byte array, required length is "
+                    + (utf8Length + (1L << 32)));
+        }
+        return utf8Length;
+    }
+
+    private static int lengthSlowPath(String str, int start) {
+        int utf16Length = str.length();
+        int utf8Length = 0;
+        for (int i = start; i < utf16Length; i++) {
+            char c = str.charAt(i);
+            if (c < 0x800) {
+                // +1 for non-ASCII, +0 for ASCII
+                utf8Length += (0x7f - c) >>> 31;
+            } else {
+                //  U+0800-U+FFFF: 1 utf16 char -> 3 utf8 bytes, add +2
+                // surrogate pair: 2 utf16 char -> 4 utf8 bytes, also adds +2
+                utf8Length += 2;
+                if (Character.isSurrogate(c)) {
+                    if (Character.codePointAt(str, i) == c) {
+                        throw new IllegalArgumentException("Unpaired surrogate at index " + i);
+                    }
+                    i++; // skip the low surrogate; it was already counted in the initial estimate
+                }
+            }
+        }
+        return utf8Length;
+    }
+
+    /**
      * Trim whitespace at the beginning and the end of a buffer.
      *
      * @param buffer utf8 encoded data.

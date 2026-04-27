@@ -21,8 +21,10 @@ package org.neo4j.string;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
@@ -177,13 +179,219 @@ class UTF8Test {
         assertThat(decode).isEqualTo("preserved");
     }
 
+    @Test
+    void lengthEmptyString() {
+        assertThat(UTF8.length("")).isEqualTo(0);
+    }
+
+    @Test
+    void lengthPureAscii() {
+        assertThat(UTF8.length("hello")).isEqualTo(5);
+        assertThat(UTF8.length("a")).isEqualTo(1);
+    }
+
+    @Test
+    void lengthTwoByteCharacters() {
+        assertThat(UTF8.length("é")).isEqualTo(2); // U+00E9, first common 2-byte char
+        assertThat(UTF8.length("߿")).isEqualTo(2); // U+07FF, last 2-byte char
+    }
+
+    @Test
+    void lengthThreeByteCharacters() {
+        // U+0800-U+FFFF (non-surrogate) encode to 3 bytes each.
+        assertThat(UTF8.length("ࠀ")).isEqualTo(3); // U+0800, first 3-byte char
+        assertThat(UTF8.length("€")).isEqualTo(3); // € — U+20AC
+        assertThat(UTF8.length("\uFFFF")).isEqualTo(3); // U+FFFF, last BMP char
+    }
+
+    @Test
+    void lengthFourByteCharacter() {
+        // Supplementary chars (U+10000-U+10FFFF) are surrogate pairs in UTF-16 and 4 bytes in UTF-8.
+        assertThat(UTF8.length("😀")).isEqualTo(4); // U+1F600 😀
+    }
+
+    @Test
+    void lengthMixedCharTypes() {
+        // a(1) + é(2) + €(3) + 😀(4) = 10 bytes
+        assertThat(UTF8.length("aé€😀")).isEqualTo(10);
+    }
+
+    @Test
+    void lengthUnpairedSurrogateThrows() {
+        assertThatThrownBy(() -> UTF8.length("\uD800"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("surrogate");
+    }
+
+    @Test
+    void lengthMatchesGetBytesForRandomStrings() {
+        for (int t = 0; t < 1000; t++) {
+            String s = randomUnicodeString(random, 50);
+            assertThat(UTF8.length(s))
+                    .as("UTF8.length mismatch for string of %d chars", s.length())
+                    .isEqualTo(s.getBytes(UTF_8).length);
+        }
+    }
+
+    @Test
+    void lengthMatchesGetBytesForRandomStringsWithSurrogatePairs() {
+        for (int t = 0; t < 1000; t++) {
+            String s = randomStringWithSurrogates(random, 20);
+            assertThat(UTF8.length(s))
+                    .as(
+                            "UTF8.length mismatch for string of %d chars (UTF-16 length %d)",
+                            s.codePointCount(0, s.length()), s.length())
+                    .isEqualTo(s.getBytes(UTF_8).length);
+        }
+    }
+
+    @Test
+    void encodeAsciiOnly() {
+        byte[] dst = new byte[5];
+        int end = UTF8.encode("hello", dst, 0, dst.length);
+        assertThat(end).isEqualTo(5);
+        assertThat(dst).isEqualTo("hello".getBytes(UTF_8));
+    }
+
+    @Test
+    void encodeWithNonZeroOffset() {
+        byte[] dst = new byte[7];
+        Arrays.fill(dst, (byte) 0xFF);
+        int end = UTF8.encode("hi", dst, 3, 4);
+        assertThat(end).isEqualTo(5);
+        assertThat(dst[0]).isEqualTo((byte) 0xFF);
+        assertThat(dst[1]).isEqualTo((byte) 0xFF);
+        assertThat(dst[2]).isEqualTo((byte) 0xFF);
+        assertThat(dst[3]).isEqualTo((byte) 'h');
+        assertThat(dst[4]).isEqualTo((byte) 'i');
+        assertThat(dst[5]).isEqualTo((byte) 0xFF);
+    }
+
+    @Test
+    void encodeTwoByteCharacter() {
+        // é = U+00E9 -> 2 bytes
+        byte[] dst = new byte[2];
+        int end = UTF8.encode("é", dst, 0, dst.length);
+        assertThat(end).isEqualTo(2);
+        assertThat(dst).isEqualTo("é".getBytes(UTF_8));
+    }
+
+    @Test
+    void encodeThreeByteCharacter() {
+        // € = U+20AC -> 3 bytes
+        byte[] dst = new byte[3];
+        int end = UTF8.encode("€", dst, 0, dst.length);
+        assertThat(end).isEqualTo(3);
+        assertThat(dst).isEqualTo("€".getBytes(UTF_8));
+    }
+
+    @Test
+    void encodeFourByteCharacter() {
+        // 😀 = U+1F600 -> 4 bytes
+        byte[] dst = new byte[4];
+        int end = UTF8.encode("😀", dst, 0, dst.length);
+        assertThat(end).isEqualTo(4);
+        assertThat(dst).isEqualTo("😀".getBytes(UTF_8));
+    }
+
+    @Test
+    void encodeMixedCharTypes() {
+        // a(1) + é(2) + €(3) + 😀(4) = 10 bytes
+        String s = "aé€😀";
+        byte[] expected = s.getBytes(UTF_8);
+        byte[] dst = new byte[expected.length];
+        int end = UTF8.encode(s, dst, 0, dst.length);
+        assertThat(end).isEqualTo(expected.length);
+        assertThat(dst).isEqualTo(expected);
+    }
+
+    @Test
+    void encodeBufferTooSmallThrows() {
+        assertThatThrownBy(() -> UTF8.encode("hello", new byte[4], 0, 4))
+                .isInstanceOf(ArrayIndexOutOfBoundsException.class);
+    }
+
+    @Test
+    void encodeUnpairedSurrogateThrows() {
+        assertThatThrownBy(() -> UTF8.encode("\uD800", new byte[10], 0, 10))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("surrogate");
+    }
+
+    @Test
+    void encodeRandomRoundTrip() {
+        for (int t = 0; t < 1000; t++) {
+            String s = randomUnicodeString(random, 50);
+            byte[] expected = s.getBytes(UTF_8);
+            byte[] dst = new byte[expected.length];
+            int end = UTF8.encode(s, dst, 0, dst.length);
+            assertThat(end)
+                    .as("end index mismatch for string of %d chars", s.length())
+                    .isEqualTo(expected.length);
+            assertThat(dst)
+                    .as("encoded bytes mismatch for string of %d chars", s.length())
+                    .isEqualTo(expected);
+        }
+    }
+
+    @Test
+    void encodeRandomRoundTripWithSurrogatePairs() {
+        for (int t = 0; t < 1000; t++) {
+            String s = randomStringWithSurrogates(random, 20);
+            byte[] expected = s.getBytes(UTF_8);
+            byte[] dst = new byte[expected.length];
+            int end = UTF8.encode(s, dst, 0, dst.length);
+            assertThat(end)
+                    .as("end index mismatch for string with surrogates, UTF-16 length %d", s.length())
+                    .isEqualTo(expected.length);
+            assertThat(dst)
+                    .as("encoded bytes mismatch for string with surrogates, UTF-16 length %d", s.length())
+                    .isEqualTo(expected);
+        }
+    }
+
     private void appendRandomWhitespaces(int n, StringBuilder sb) {
         for (int i = 0; i < n; i++) {
             sb.append(UnicodeData.WHITESPACES[random.nextInt(UnicodeData.WHITESPACES.length)]);
         }
     }
 
+    /**
+     * Will never return a whitespace character, so it can safely be used in trim tests
+     */
     private char randomUnicodeCharacter() {
         return UnicodeData.RND[random.nextInt(UnicodeData.RND.length)];
+    }
+
+    private static String randomUnicodeString(Random rnd, int maxCodePoints) {
+        int n = rnd.nextInt(maxCodePoints + 1);
+        StringBuilder sb = new StringBuilder(n);
+        for (int i = 0; i < n; i++) {
+            int cp;
+            do {
+                cp = rnd.nextInt(Character.MAX_CODE_POINT + 1);
+            } while (Character.getType(cp) == Character.SURROGATE);
+            sb.appendCodePoint(cp);
+        }
+        return sb.toString();
+    }
+
+    private static String randomStringWithSurrogates(Random rnd, int maxCodePoints) {
+        int n = 1 + rnd.nextInt(maxCodePoints); // at least 1 code point
+        StringBuilder sb = new StringBuilder(n * 2);
+        for (int i = 0; i < n; i++) {
+            if (rnd.nextBoolean()) {
+                // Supplementary (U+10000-U+10FFFF): 4-byte UTF-8, surrogate pair in UTF-16
+                sb.appendCodePoint(0x10000 + rnd.nextInt(Character.MAX_CODE_POINT - 0xFFFF));
+            } else {
+                // BMP (U+0000-U+FFFF, excluding surrogates): 1-3 bytes in UTF-8
+                int cp;
+                do {
+                    cp = rnd.nextInt(0x10000);
+                } while (Character.getType(cp) == Character.SURROGATE);
+                sb.appendCodePoint(cp);
+            }
+        }
+        return sb.toString();
     }
 }
