@@ -42,8 +42,9 @@ public class TransactionAppenderFactory {
             TransactionMetadataCache metadataCache,
             String databaseName,
             boolean systemDatabase,
-            boolean multiVersioned) {
-        if (databaseConfig.get(GraphDatabaseInternalSettings.merged_log) && !systemDatabase) {
+            boolean multiVersioned,
+            boolean replicated) {
+        if (databaseConfig.get(GraphDatabaseInternalSettings.merged_log) && !systemDatabase && replicated) {
             return new PreFlushedTransactionAppender(databasePanic, metadataCache);
         }
 

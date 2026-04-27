@@ -1011,7 +1011,8 @@ public class Database extends AbstractDatabase {
                 transactionMetadataCache,
                 namedDatabaseId.name(),
                 namedDatabaseId.isSystemDatabase(),
-                storageEngineFactory.multiVersioned());
+                storageEngineFactory.multiVersioned(),
+                mode == HostedOnMode.RAFT || mode == HostedOnMode.REPLICA);
         life.add(transactionAppender);
 
         final LogicalTransactionStore logicalTransactionStore = new PhysicalLogicalTransactionStore(

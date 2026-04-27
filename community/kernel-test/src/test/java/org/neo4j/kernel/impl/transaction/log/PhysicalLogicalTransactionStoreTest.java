@@ -439,6 +439,7 @@ class PhysicalLogicalTransactionStoreTest {
                 positionCache,
                 "le db",
                 false,
+                false,
                 false);
     }
 

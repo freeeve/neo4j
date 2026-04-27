@@ -265,6 +265,7 @@ public class TransactionAppenderConcurrencyTest {
                 new TransactionMetadataCache(),
                 "le db",
                 false,
+                false,
                 false);
     }
 
