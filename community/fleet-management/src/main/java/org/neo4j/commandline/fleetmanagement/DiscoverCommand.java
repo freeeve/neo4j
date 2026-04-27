@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.neo4j.bolt.discovery.packet.DiscoveryConstants;
-import org.neo4j.cli.AbstractAdminCommand;
+import org.neo4j.cli.AbstractCommand;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.commandline.fleetmanagement.model.Dbmss;
 import org.neo4j.commandline.fleetmanagement.model.Server;
@@ -45,7 +45,7 @@ import picocli.CommandLine;
         header = "Discover and list Neo4j servers",
         description =
                 "Listen for Neo4j fleet discovery broadcasts on the local network and list all discovered Neo4j servers.")
-public class DiscoverCommand extends AbstractAdminCommand {
+public class DiscoverCommand extends AbstractCommand {
     @CommandLine.Option(names = "--timeout", description = "Timeout in seconds", defaultValue = "60")
     int timeout;
 
