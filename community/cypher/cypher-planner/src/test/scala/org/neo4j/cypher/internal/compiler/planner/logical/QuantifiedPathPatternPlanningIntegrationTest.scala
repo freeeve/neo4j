@@ -54,16 +54,19 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ToEx
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.VarExpand
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
@@ -3933,6 +3936,73 @@ trait QuantifiedPathPatternAlignedSpecificPlanningIntegrationTestBase {
       .filter("lo.id = 1")
       .allNodeScan("lo")
       .build()
+  }
+
+  test("parallelRepeatHeuristic=enabled preserves Repeat in parallel runtime with AtMostOneRow LHS") {
+    val builder = plannerBuilder()
+      .setAllNodesCardinality(200)
+      .setLabelCardinality("A", 1)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("()-[R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .addNodeIndex("A", Seq("prop"), existsSelectivity = 1.0, uniqueSelectivity = 1.0, isUnique = true)
+      .setExecutionModel(BatchedParallel(1, 2))
+      .setParallelRepeatHeuristic(CypherParallelRepeatHeuristicOption.enabled)
+      .build()
+
+    val query = "MATCH (a:A {prop: 123}) ((n)-[r:R]->(m))+ (b) RETURN a, b"
+
+    val `(a) ((n)-[r:R]->(m))+ (b)`: TrailParameters = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "n",
+      innerEnd = "m",
+      groupNodes = Set.empty,
+      groupRelationships = Set.empty,
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val plan = builder.plan(query)
+
+    plan should equal(
+      builder.planBuilder()
+        .produceResults(column("a", "cacheN[a.prop]"), column("b"))
+        .repeatTrail(`(a) ((n)-[r:R]->(m))+ (b)`)
+        .|.filter(isRepeatTrailUnique("r"))
+        .|.expandAll("(n)-[r:R]->(m)")
+        .|.argument("n")
+        .nodeIndexOperator("a:A(prop = 123)", _ => GetValue, unique = true)
+        .build()
+    )
+  }
+
+  test("parallelRepeatHeuristic=disabled (default) rewrites Repeat to VarExpand in parallel runtime") {
+    val builder = plannerBuilder()
+      .setAllNodesCardinality(200)
+      .setLabelCardinality("A", 1)
+      .setAllRelationshipsCardinality(100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[R]->()", 100)
+      .addNodeIndex("A", Seq("prop"), existsSelectivity = 1.0, uniqueSelectivity = 1.0, isUnique = true)
+      .setExecutionModel(BatchedParallel(1, 2))
+      .build()
+
+    val plan = builder.plan("MATCH (a:A {prop: 123}) ((n)-[r:R]->(m))+ (b) RETURN a, b")
+
+    plan should equal(
+      builder.planBuilder()
+        .produceResults(column("a", "cacheN[a.prop]"), column("b"))
+        .expand("(a)-[:R*1..]->(b)")
+        .nodeIndexOperator("a:A(prop = 123)", _ => GetValue, unique = true)
+        .build()
+    )
   }
 
   relationshipPredicatesWithPropertyAccess.foreach {

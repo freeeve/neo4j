@@ -329,6 +329,24 @@ class PreParserTest extends CypherFunSuite {
     intercept[InvalidArgumentException](preParse("CYPHER replan=force replan=skip RETURN 42"))
   }
 
+  test("should accept parallelRepeatHeuristic option") {
+    preParse(
+      "CYPHER parallelRepeatHeuristic=enabled RETURN 42"
+    ).options.queryOptions.parallelRepeatHeuristic should equal(CypherParallelRepeatHeuristicOption.enabled)
+    preParse(
+      "CYPHER parallelRepeatHeuristic=disabled RETURN 42"
+    ).options.queryOptions.parallelRepeatHeuristic should equal(CypherParallelRepeatHeuristicOption.disabled)
+    preParse(
+      "RETURN 42"
+    ).options.queryOptions.parallelRepeatHeuristic should equal(CypherParallelRepeatHeuristicOption.disabled)
+  }
+
+  test("should not allow multiple conflicting parallelRepeatHeuristic options") {
+    intercept[InvalidArgumentException](
+      preParse("CYPHER parallelRepeatHeuristic=enabled parallelRepeatHeuristic=disabled RETURN 42")
+    )
+  }
+
   test("should accept just one interpreted pipes fallback mode") {
     preParse(
       "CYPHER interpretedPipesFallback=disabled RETURN 42"

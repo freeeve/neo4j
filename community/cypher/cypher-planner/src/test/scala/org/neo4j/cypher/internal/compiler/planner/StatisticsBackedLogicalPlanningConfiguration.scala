@@ -83,6 +83,7 @@ import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.OptionReader
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
@@ -173,7 +174,8 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     deduplicateNames: Boolean = true,
     semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     databaseReferenceRepository: DatabaseReferenceRepository = ContextHelper.mockDatabaseReferenceRepository,
-    printNotifications: Boolean = false
+    printNotifications: Boolean = false,
+    parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption = CypherParallelRepeatHeuristicOption.disabled
   )
 
   case class Cardinalities(
@@ -776,6 +778,12 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
   def setExecutionModel(executionModel: ExecutionModel): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     this.copy(options = options.copy(executionModel = executionModel))
+  }
+
+  def setParallelRepeatHeuristic(
+    option: CypherParallelRepeatHeuristicOption
+  ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    this.copy(options = options.copy(parallelRepeatHeuristic = option))
   }
 
   /**
@@ -1889,6 +1897,7 @@ class StatisticsBackedLogicalPlanningConfiguration(
       executionModel = options.executionModel,
       statefulShortestPlanningMode = plannerConfiguration.statefulShortestPlanningMode(),
       planVarExpandInto = plannerConfiguration.planVarExpandInto(),
+      parallelRepeatHeuristic = options.parallelRepeatHeuristic,
       databaseReferenceRepository = options.databaseReferenceRepository,
       labelInferenceStrategy = labelInferenceStrategy,
       notificationLogger = notificationLogger,

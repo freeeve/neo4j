@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
@@ -89,6 +90,7 @@ object ContextHelper extends MockitoSugar {
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
     plannerVersion: CypherPlannerVersionWithOptimisations =
       CypherPlannerVersionWithOptimisations.fromQueryOption(CypherPlannerVersionOption.latest),
+    parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption = CypherParallelRepeatHeuristicOption.disabled,
     databaseReferenceRepository: DatabaseReferenceRepository = mockDatabaseReferenceRepository,
     databaseId: NamedDatabaseId = mockDatabaseId,
     internalNotificationStats: InternalNotificationStats = new InternalNotificationStats(),
@@ -118,6 +120,7 @@ object ContextHelper extends MockitoSugar {
       statefulShortestPlanningMode,
       planVarExpandInto,
       plannerVersion.allSupportedOptimisations,
+      parallelRepeatHeuristic,
       databaseReferenceRepository,
       databaseId,
       NullLog.getInstance(),

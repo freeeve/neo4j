@@ -62,7 +62,8 @@ case class CypherQueryOptions(
   plannerVersionOption: CypherPlannerVersionOption,
   pipelinedBatchSizePresetOption: CypherPipelinedBatchSizePresetOption,
   pipelinedBatchReuseOption: CypherPipelinedBatchReuseOption,
-  heapEstimatorCacheOption: CypherHeapEstimatorCacheOption
+  heapEstimatorCacheOption: CypherHeapEstimatorCacheOption,
+  parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption
 ) {
 
   if (ILLEGAL_EXPRESSION_ENGINE_RUNTIME_COMBINATIONS((expressionEngine, runtime)))
@@ -1010,6 +1011,31 @@ case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherH
         cypherConfig.customHeapEstimatorCacheConfig
     }
   }
+}
+
+sealed abstract class CypherParallelRepeatHeuristicOption(name: String) extends CypherKeyValueOption(name) {
+  override def companion: CypherParallelRepeatHeuristicOption.type = CypherParallelRepeatHeuristicOption
+  override def relevantForLogicalPlanCacheKey: Boolean = true
+}
+
+case object CypherParallelRepeatHeuristicOption
+    extends CypherOptionCompanion[CypherParallelRepeatHeuristicOption](
+      name = "parallelRepeatHeuristic"
+    ) {
+  case object enabled extends CypherParallelRepeatHeuristicOption("enabled")
+  case object disabled extends CypherParallelRepeatHeuristicOption("disabled")
+
+  override def default: CypherParallelRepeatHeuristicOption = disabled
+
+  override def values: Set[CypherParallelRepeatHeuristicOption] = Set(enabled, disabled)
+
+  implicit val hasDefault: OptionDefault[CypherParallelRepeatHeuristicOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherParallelRepeatHeuristicOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherParallelRepeatHeuristicOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherParallelRepeatHeuristicOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherParallelRepeatHeuristicOption] = singleOptionReader()
 }
 
 sealed abstract class CypherDebugOption(flag: String) extends CypherKeyValueOption(flag) {

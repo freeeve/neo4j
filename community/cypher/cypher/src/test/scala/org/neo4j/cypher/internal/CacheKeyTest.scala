@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.options.CypherHeapEstimatorCacheOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPipelinedBatchReuseOption
@@ -88,12 +89,13 @@ class CacheKeyTest extends CypherFunSuite {
       plannerVersionOption = CypherPlannerVersionOption.v2026_03,
       pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.small,
       pipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.pack,
-      heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled
+      heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled,
+      parallelRepeatHeuristic = CypherParallelRepeatHeuristicOption.enabled
     )
 
     options.cacheKey
       .shouldEqual(
-        """PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03"""
+        """PROFILE planner=dp runtime=pipelined updateStrategy=eager expressionEngine=interpreted operatorEngine=interpreted interpretedPipesFallback=all connectComponentsPlanner=idp debug=querygraph debug=tostring parallelRuntimeSupport=disabled eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03 parallelRepeatHeuristic=enabled"""
       )
 
     val derivedOptions = CypherQueryOptions.derivedOptions(options, CypherConfiguration.fromConfig(Config.defaults()))
@@ -127,12 +129,13 @@ class CacheKeyTest extends CypherFunSuite {
       plannerVersionOption = CypherPlannerVersionOption.v2026_03,
       pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.small,
       pipelinedBatchReuseOption = CypherPipelinedBatchReuseOption.pack,
-      heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled
+      heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.disabled,
+      parallelRepeatHeuristic = CypherParallelRepeatHeuristicOption.enabled
     )
 
     options.logicalPlanCacheKey
       .shouldEqual(
-        """updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03"""
+        """updateStrategy=eager connectComponentsPlanner=idp eagerAnalyzer=ir inferSchemaParts=most_selective_label statefulShortestPlanningMode=all_if_possible planVarExpandInto=minimum_cost plannerVersion=v2026_03 parallelRepeatHeuristic=enabled"""
       )
 
     val derivedOptions = CypherQueryOptions.derivedOptions(options, CypherConfiguration.fromConfig(Config.defaults()))

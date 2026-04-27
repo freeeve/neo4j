@@ -2232,8 +2232,12 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .nodeIndexOperator("a:A(prop = 123)", unique = true)
       .build()
 
-    rewrites(trail, expand)
-    preserves(trail, executionModels = Seq(ExecutionModel.Batched.default.asParallel))
+    rewrites(trail, expand, cypherParallelRepeatHeuristicOptionEnabled = true)
+    preserves(
+      trail,
+      executionModels = Seq(ExecutionModel.Batched.default.asParallel),
+      cypherParallelRepeatHeuristicOptionEnabled = true
+    )
   }
 
   test("rewrites Repeat with unique index seek on LHS, nested under Apply, including in Parallel runtime") {
@@ -2266,7 +2270,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       isBlockFormat = false,
       executionModelSupportsCursorReuseInBlockFormat = false,
       extractor = FilterAfterExpand,
-      isParallel = false
+      isParallel = false,
+      cypherParallelRepeatHeuristicOptionEnabled = false
     )
     an[IllegalArgumentException] should be thrownBy instance.apply(Vector(plan, plan))
   }
@@ -2276,7 +2281,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     expand: LogicalPlan,
     dbFormat: DbFormat = DbFormat.All,
     executionModels: Seq[ExecutionModel] = Seq(ExecutionModel.Volcano, ExecutionModel.Batched.default),
-    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand
+    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand,
+    cypherParallelRepeatHeuristicOptionEnabled: Boolean = false
   ): Unit =
     for {
       isBlockFormat <- dbFormat.isBlockFormat
@@ -2291,7 +2297,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         isBlockFormat,
         supportsCursorReuse,
         extractor,
-        isParallel
+        isParallel,
+        cypherParallelRepeatHeuristicOptionEnabled
       ).stripProduceResults shouldEqual expand.stripProduceResults
     }
 
@@ -2299,7 +2306,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     repeat: LogicalPlan,
     dbFormat: DbFormat = DbFormat.All,
     executionModels: Seq[ExecutionModel] = Seq(ExecutionModel.Volcano, ExecutionModel.Batched.default),
-    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand
+    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand,
+    cypherParallelRepeatHeuristicOptionEnabled: Boolean = false
   ): Unit = {
     for {
       isBlockFormat <- dbFormat.isBlockFormat
@@ -2314,7 +2322,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         isBlockFormat,
         supportsCursorReuse,
         extractor,
-        isParallel
+        isParallel,
+        cypherParallelRepeatHeuristicOptionEnabled
       ).stripProduceResults shouldEqual repeat.stripProduceResults
     }
   }
@@ -2324,20 +2333,23 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     isBlockFormat: Boolean,
     executionModelSupportsCursorReuseInBlockFormat: Boolean,
     extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor,
-    isParallel: Boolean
+    isParallel: Boolean,
+    cypherParallelRepeatHeuristicOptionEnabled: Boolean
   ): LogicalPlan =
     p.endoRewrite(rewriter(
       isBlockFormat = isBlockFormat,
       executionModelSupportsCursorReuseInBlockFormat = executionModelSupportsCursorReuseInBlockFormat,
       extractor = extractor,
-      isParallel = isParallel
+      isParallel = isParallel,
+      cypherParallelRepeatHeuristicOptionEnabled = cypherParallelRepeatHeuristicOptionEnabled
     ))
 
   private def rewriter(
     isBlockFormat: Boolean,
     executionModelSupportsCursorReuseInBlockFormat: Boolean,
     extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor,
-    isParallel: Boolean
+    isParallel: Boolean,
+    cypherParallelRepeatHeuristicOptionEnabled: Boolean
   ): RepeatToVarExpandRewriter = {
     RepeatToVarExpandRewriter(
       new StubLabelAndRelTypeInfos,
@@ -2346,14 +2358,16 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       rewritableRepeatExtractor = extractor,
       isShardedDatabase = false,
       heuristics = Set(
-        RepeatToVarExpandRewriter.Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
+        Some(RepeatToVarExpandRewriter.Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
           isBlockFormat,
           executionModelSupportsCursorReuseInBlockFormat
-        ),
-        RepeatToVarExpandRewriter.Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
-          isParallelRuntime = isParallel
+        )),
+        Option.when(cypherParallelRepeatHeuristicOptionEnabled)(
+          RepeatToVarExpandRewriter.Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
+            isParallelRuntime = isParallel
+          )
         )
-      )
+      ).flatten
     )
   }
 

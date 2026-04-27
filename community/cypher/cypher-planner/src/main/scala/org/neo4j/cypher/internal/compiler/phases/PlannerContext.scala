@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -74,6 +75,7 @@ trait PlannerContext extends BaseContext {
   def statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption
   def planVarExpandInto: CypherPlanVarExpandInto
   def optimisations: Set[Optimisation]
+  def parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption
   def databaseReferenceRepository: DatabaseReferenceRepository
   def databaseId: NamedDatabaseId
   def log: Log
@@ -157,6 +159,7 @@ final class PlannerContextImpl(
   override val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
   override val planVarExpandInto: CypherPlanVarExpandInto,
   override val optimisations: Set[Optimisation],
+  override val parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption,
   override val databaseReferenceRepository: DatabaseReferenceRepository,
   override val databaseId: NamedDatabaseId,
   override val log: Log,
@@ -195,6 +198,7 @@ final class PlannerContextImpl(
     statefulShortestPlanningMode = statefulShortestPlanningMode,
     planVarExpandInto = planVarExpandInto,
     optimisations = optimisations,
+    parallelRepeatHeuristic = parallelRepeatHeuristic,
     databaseReferenceRepository = databaseReferenceRepository,
     databaseId = databaseId,
     log = log,
@@ -236,6 +240,7 @@ object PlannerContext {
     statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption,
     planVarExpandInto: CypherPlanVarExpandInto,
     optimisations: Set[Optimisation],
+    parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption,
     databaseReferenceRepository: DatabaseReferenceRepository,
     databaseId: NamedDatabaseId,
     log: Log,
@@ -278,6 +283,7 @@ object PlannerContext {
       statefulShortestPlanningMode,
       planVarExpandInto,
       optimisations,
+      parallelRepeatHeuristic,
       databaseReferenceRepository,
       databaseId,
       log,

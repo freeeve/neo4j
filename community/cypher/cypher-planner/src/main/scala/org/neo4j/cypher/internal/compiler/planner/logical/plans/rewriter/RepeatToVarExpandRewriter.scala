@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Selection.LabelAndRelTypeInfo
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.VarExpand
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LabelAndRelTypeInfos
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -377,14 +378,16 @@ object RepeatToVarExpandRewriter {
       rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterAfterExpand,
       isShardedDatabase = isShardedDatabase,
       heuristics = Set(
-        Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
+        Some(Heuristic.PreferRepeatForRelationshipPredicatesWithCursorReuseOnBlock(
           isBlockFormat = context.planContext.storageHasPropertyColocation,
           executionModelSupportsCursorReuseInBlockFormat = context.executionModel.supportsCursorReuseInBlockFormat
-        ),
-        Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
-          isParallelRuntime = context.executionModel.isParallel
+        )),
+        Option.when(context.parallelRepeatHeuristic == CypherParallelRepeatHeuristicOption.enabled)(
+          Heuristic.PreferRepeatForBetterParallelizationWhenInputCardinalityIsExactlyOne(
+            isParallelRuntime = context.executionModel.isParallel
+          )
         )
-      )
+      ).flatten
     )
   }
 

@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensi
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
+import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
@@ -121,6 +122,7 @@ class CypherQueryObfuscatorFactory {
       CypherStatefulShortestPlanningModeOption.default,
       CypherPlanVarExpandInto.default,
       CypherPlannerVersionWithOptimisations.allSupportedOptimisations(CypherPlannerVersionOption.latest),
+      CypherParallelRepeatHeuristicOption.default,
       null,
       null,
       null,

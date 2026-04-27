@@ -664,6 +664,7 @@ final class TransformingPlanner private[planning] (
       CypherPlannerVersionWithOptimisations.allSupportedOptimisations(
         options.queryOptions.plannerVersionOption
       ),
+      options.queryOptions.parallelRepeatHeuristic,
       databaseReferenceRepository,
       transactionalContextWrapper.databaseId,
       log,
