@@ -38,6 +38,8 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockftpserver.fake.FakeFtpServer;
@@ -546,10 +548,6 @@ public class FileVectorEmbeddingTest implements GenAITestExtension {
 
     @ParameterizedTest
     @CsvSource(textBlock = """
-        file:/file%3Fcsv", "file:///import/file%3Fcsv
-        file:/%3Fcsv", "file:///import/%3Fcsv
-        file:///%3F", "file:///import/%3F
-        file:/%3F", "file:///import/%3F
         file:///import/file%253Fcsv
         file:///import/%253Fcsv
         file:///import/%253F
@@ -559,6 +557,23 @@ public class FileVectorEmbeddingTest implements GenAITestExtension {
         file:///import/file%252525253Fcsv
         """)
     void shouldNotFailForFileUriWithQueryString(String path) {
+        assertThatThrownBy(() -> db.executeTransactionally(QUERY, Map.of("file", path), res -> {
+                    while (res.hasNext()) res.next();
+                    return null;
+                }))
+                .hasMessageContaining("File not found: " + path);
+    }
+
+    @DisabledOnOs(OS.WINDOWS)
+    @ParameterizedTest
+    @CsvSource(textBlock = """
+        file:/file%3Fcsv", "file:///import/file%3Fcsv
+        file:/%3Fcsv", "file:///import/%3Fcsv
+        file:///%3F", "file:///import/%3F
+        file:/%3F", "file:///import/%3F
+        """)
+    void shouldNotFailForFileUriWithEncodedQueryChar(String path) {
+        // %3F decodes to '?' which is a reserved character in Windows file names; skip on Windows
         assertThatThrownBy(() -> db.executeTransactionally(QUERY, Map.of("file", path), res -> {
                     while (res.hasNext()) res.next();
                     return null;
@@ -629,13 +644,27 @@ public class FileVectorEmbeddingTest implements GenAITestExtension {
     @CsvSource(textBlock = """
         file:/file.csv
         file:///file.csv
-        file:/%2Ffile.csv
         file:/%252F%252Ffile.csv
         file:/localhost/file.csv
-        file:/w.me.com:80/file.csv
         """)
     void shouldNotFailForFileUriWithLocalhostAuthority(String path) {
         // As these are not rejected by the authority section error, they will just be not found
+        assertThatThrownBy(() -> db.executeTransactionally(QUERY, Map.of("file", path), res -> {
+                    while (res.hasNext()) res.next();
+                    return null;
+                }))
+                .hasMessageContaining("File not found: " + path);
+    }
+
+    @DisabledOnOs(OS.WINDOWS)
+    @ParameterizedTest
+    @CsvSource(textBlock = """
+        file:/%2Ffile.csv
+        file:/w.me.com:80/file.csv
+        """)
+    void shouldNotFailForFileUriWithWindowsIncompatiblePath(String path) {
+        // file:/%2Ffile.csv triggers InvalidPathException on Windows (encoded leading slash);
+        // file:/w.me.com:80/file.csv has ':' in the path which is reserved on Windows
         assertThatThrownBy(() -> db.executeTransactionally(QUERY, Map.of("file", path), res -> {
                     while (res.hasNext()) res.next();
                     return null;
@@ -649,6 +678,20 @@ public class FileVectorEmbeddingTest implements GenAITestExtension {
         file:///test.txt
         file:////test.txt
         file://///////test.txt
+        """)
+    void fileWithLeadingSlashesShouldBeNormalized(String path) {
+        var result = db.executeTransactionally(
+                QUERY, Map.of("file", path), res -> res.stream().toList());
+
+        assertThat(result).isNotEmpty();
+        var row = result.getFirst();
+        assertThat(row.get("resource")).isEqualTo(fileText);
+        assertThat(row.get("vector")).isNotNull();
+    }
+
+    @DisabledOnOs(OS.WINDOWS)
+    @ParameterizedTest
+    @CsvSource(textBlock = """
         file:/%2F%2Ftest.txt
         file:/%2F/test.txt
         file:/%2F/test.txt
@@ -660,7 +703,9 @@ public class FileVectorEmbeddingTest implements GenAITestExtension {
         file:/%2F%2F%2F%2F%2F%2F%2F%2Ftest.txt
         file:///%2F%2F%2F%2F%2F%2F%2Ftest.txt
         """)
-    void fileWithLeadingSlashesShouldBeNormalized(String path) {
+    void fileWithEncodedLeadingSlashesShouldBeNormalized(String path) {
+        // Paths with %2F (encoded '/') immediately after the scheme slashes trigger InvalidPathException
+        // on Windows; these are valid on Unix/macOS only
         var result = db.executeTransactionally(
                 QUERY, Map.of("file", path), res -> res.stream().toList());
 
