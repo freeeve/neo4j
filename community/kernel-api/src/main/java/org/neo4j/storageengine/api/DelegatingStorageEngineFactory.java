@@ -176,7 +176,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             ExceptionHandlerService exceptionHandlerService,
             OperationMode mode,
             VectorStoreCreator vectorStoreCreator,
-            DatabaseCreationOptions databaseCreationOptions)
+            DatabaseCreationOptions databaseCreationOptions,
+            boolean singleThreadedApply)
             throws IOException {
         return delegate.instantiate(
                 fs,
@@ -204,7 +205,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 exceptionHandlerService,
                 mode,
                 vectorStoreCreator,
-                databaseCreationOptions);
+                databaseCreationOptions,
+                singleThreadedApply);
     }
 
     @Override

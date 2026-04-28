@@ -672,6 +672,7 @@ public final class Recovery {
                 .build();
 
         LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
+        boolean doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);
         StorageEngine storageEngine = storageEngineFactory.instantiate(
                 fs,
                 clock,
@@ -699,7 +700,8 @@ public final class Recovery {
                 new ExceptionHandlerService(logService.getInternalLogProvider()),
                 OperationMode.RECOVERY,
                 VectorStoreCreator.FAILING,
-                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
+                DatabaseCreationOptions.EMPTY_CREATION_OPTIONS,
+                !doParallelRecovery);
 
         dependencies.satisfyDependency(storageEngine.metadataProvider());
 
@@ -762,7 +764,6 @@ public final class Recovery {
                 config.get(GraphDatabaseInternalSettings.ignore_corrupt_schema)));
         schemaLife.add(indexingService);
 
-        var doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);
         RecoveryMonitor recoveryMonitor = monitors.newMonitor(RecoveryMonitor.class);
         BinarySupportedKernelVersions binarySupportedKernelVersions = new BinarySupportedKernelVersions(config);
         TransactionLogsRecovery transactionLogsRecovery = transactionLogRecovery(

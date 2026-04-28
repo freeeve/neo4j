@@ -520,7 +520,8 @@ public class Database extends AbstractDatabase {
                 exceptionHandlerService,
                 OperationMode.DEFAULT,
                 vectorStoreCreator,
-                databaseCreationOptions);
+                databaseCreationOptions,
+                mode == HostedOnMode.RAFT || mode == HostedOnMode.REPLICA);
         // Satisfy the StoreIdProvider needed by logFiles. Logfiles doesn't need it until started by lifecycle.
         databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 

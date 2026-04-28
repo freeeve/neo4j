@@ -186,7 +186,8 @@ public interface StorageEngineFactory {
             ExceptionHandlerService exceptionHandlerService,
             OperationMode mode,
             VectorStoreCreator vectorStoreCreator,
-            DatabaseCreationOptions databaseCreationOptions)
+            DatabaseCreationOptions databaseCreationOptions,
+            boolean singleThreadedApply)
             throws IOException;
 
     /**

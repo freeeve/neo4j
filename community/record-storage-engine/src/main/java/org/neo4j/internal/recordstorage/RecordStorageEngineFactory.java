@@ -278,7 +278,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             ExceptionHandlerService exceptionHandlerService,
             OperationMode mode,
             VectorStoreCreator vectorStoreCreator,
-            DatabaseCreationOptions databaseCreationOptions) {
+            DatabaseCreationOptions databaseCreationOptions,
+            boolean singleThreadedApply) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
                 config,
