@@ -56,7 +56,7 @@ public class IdValueBuilder {
     public Object value() {
         return switch (parts.size()) {
             case 0 -> null;
-            case 1 -> parts.get(0).value;
+            case 1 -> parts.getFirst().value;
             default -> {
                 builder.setLength(0);
                 for (int i = 0; i < parts.size(); i++) {

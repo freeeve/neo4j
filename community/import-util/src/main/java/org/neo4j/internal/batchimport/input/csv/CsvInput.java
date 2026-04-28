@@ -332,13 +332,6 @@ public class CsvInput implements Input {
                     final var idHeaders = Arrays.stream(header.entries())
                             .filter(e -> e.type() == Type.ID)
                             .toList();
-                    final var numIdColumns = idHeaders.size();
-                    if (numIdColumns > 1) {
-                        hasCompositeIdColumns.setTrue();
-                        Preconditions.checkState(
-                                idType == IdType.STRING,
-                                "Having multiple :ID columns requires idType: " + IdType.STRING);
-                    }
                     final var numIdColumnsGroups = idHeaders.stream()
                             .map(Header.Entry::group)
                             .distinct()
@@ -348,6 +341,11 @@ public class CsvInput implements Input {
                             "There are multiple :ID columns, but they are referring to different groups");
 
                     if (!idHeaders.isEmpty()) {
+                        final var numIdColumns = idHeaders.size();
+                        if (numIdColumns > 1) {
+                            hasCompositeIdColumns.setTrue();
+                        }
+
                         final var group = idHeaders.getFirst().group();
                         if (numberOfIdsPerGroup.getOrDefault(group, numIdColumns) == numIdColumns) {
                             // Either not set yet or already set to numIdColumns

@@ -71,7 +71,6 @@ import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenConstants;
-import org.neo4j.util.Preconditions;
 
 /**
  * Provides {@link Input} from data contained in Parquet files.
@@ -326,7 +325,6 @@ public class ParquetInput implements Input {
                     Set<String> structColumns = new HashSet<>();
                     // check for possible group / ID space definitions and register them
                     String fileName = nodeFile.getFileName().toString();
-                    boolean hasIdColumn = false;
                     for (int i = 0; i < columns.size(); i++) {
                         ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
@@ -359,14 +357,7 @@ public class ParquetInput implements Input {
                                 }
                                 previousGroupName = parquetColumn.groupName();
                             }
-                            if (hasIdColumn && parquetColumn.isIdColumn()) {
-                                Preconditions.checkState(
-                                        idType == IdType.STRING,
-                                        "Having multiple :ID columns requires idType: " + IdType.STRING);
-                            }
-                            if (parquetColumn.isIdColumn()) {
-                                hasIdColumn = true;
-                            }
+
                             if (propertyNames.contains(propertyName) && parquetColumn.isIdColumn()) {
                                 throw new DuplicatedColumnException(
                                         "Cannot store composite IDs as properties, only individual part. Property %s / File: %s"

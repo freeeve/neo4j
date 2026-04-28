@@ -85,6 +85,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.eclipse.collections.api.factory.Lists;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -2115,23 +2116,37 @@ class CsvInputTest {
         }
     }
 
-    @Test
-    void multipleIdColumnsRequireStringIdType() {
-        Iterable<DataFactory> nodeData = datas(data(":ID, :ID"));
-        try (final var csvInput = new CsvInput(
-                nodeData,
+    @ParameterizedTest
+    @EnumSource(
+            value = IdType.class,
+            names = {"INTEGER", "STRING"})
+    void multipleIdColumns(IdType idType) throws IOException {
+        var columnIdTypes = Lists.immutable.of("", "int", "long", "string", "datetime");
+        var headers = new StringBuilder();
+        for (int i = 0, length = random.nextInt(2, 5); i < length; i++) {
+            if (i > 0) {
+                headers.append(",");
+            }
+            headers.append(":ID");
+
+            var columnType = random.among(columnIdTypes);
+            if (!columnType.isEmpty()) {
+                headers.append("{id-type=").append(columnType).append("}");
+            }
+        }
+        try (var csvInput = new CsvInput(
+                datas(data(headers.toString())),
                 defaultFormatNodeFileHeader(),
                 datas(),
                 defaultFormatRelationshipFileHeader(),
-                INTEGER,
+                idType,
                 COMMAS,
                 false,
                 NO_MONITOR,
                 groups,
                 INSTANCE)) {
-            assertThatThrownBy(() -> csvInput.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
+            assertThat(csvInput.validateAndEstimate(PROPERTY_SIZE_CALCULATOR, NUMBER_OF_ESTIMATE_THREADS))
+                    .isNotNull();
         }
     }
 

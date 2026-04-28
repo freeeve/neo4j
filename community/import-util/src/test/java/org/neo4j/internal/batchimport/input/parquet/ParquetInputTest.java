@@ -64,6 +64,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.InputIterator;
@@ -79,6 +80,7 @@ import org.neo4j.internal.batchimport.input.InputEntity;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -107,6 +109,9 @@ class ParquetInputTest {
 
     @Inject
     private TestDirectory directory;
+
+    @Inject
+    private RandomSupport random;
 
     private final InputEntity visitor = new InputEntity();
     private Groups groups = new Groups();
@@ -2454,17 +2459,35 @@ class ParquetInputTest {
         }
     }
 
-    @Test
-    void multipleIdColumnsRequireStringIdType() throws Exception {
-        Path nodeFile = createParquetFile(
+    @ParameterizedTest
+    @EnumSource(
+            value = IdType.class,
+            names = {"INTEGER", "STRING"})
+    void multipleIdColumns(IdType idType) throws Exception {
+        var nodeFile = createParquetFile(
                 List.of(
-                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part1:ID"),
-                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2:ID")),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("part1:ID" + (random.nextBoolean() ? "{id-type=int}" : "")),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("part2:ID" + (random.nextBoolean() ? "{id-type=int}" : ""))),
                 List.of(new Object[] {123, 456}, new Object[] {3, 6}));
-        assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), INTEGER, groups, MONITOR))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
+        try (var input = createParquetInput(
+                Map.of(Set.of(""), List.of(new FileGroup(nodeFile))), Map.of(), idType, groups, MONITOR)) {
+            var nodes = input.nodes(EMPTY).iterator();
+            assertNextNode(
+                    nodes,
+                    groups.get(null),
+                    "123%s456".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 123, "part2", 456),
+                    labels());
+            assertNextNode(
+                    nodes,
+                    groups.get(null),
+                    "3%s6".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 3, "part2", 6),
+                    labels());
+            assertThat(readNext(nodes)).isFalse();
+        }
     }
 
     @Test
