@@ -332,6 +332,23 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return invalidInput(input, key, List.of("INTEGER", "DATETIME"), oldMsg);
     }
 
+    public static InvalidArgumentsException invalidReplicaConfigOption(
+            String operation, String key, String providedOption, List<String> validOptions) {
+        var oldMsg = String.format(
+                "Could not %s with specified %s option '%s'. Valid options: %s",
+                operation, key, providedOption, String.join(",", validOptions));
+        var gql = getGql22G03_22N27(providedOption, key, validOptions);
+        return new InvalidArgumentsException(gql, oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidReplicaConfigOptionType(
+            String operation, String key, String subKey, AnyValue input, String expectedType) {
+        var oldMsg = String.format(
+                "Could not %s with specified %s option %s '%s', %s expected.",
+                operation, key, subKey, input, expectedType);
+        return invalidInput(input, key, List.of(expectedType), oldMsg);
+    }
+
     public static InvalidArgumentsException invalidStringOption(String operation, String key, AnyValue input) {
         var oldMsg = String.format("Could not %s with specified %s '%s', String expected.", operation, key, input);
         return invalidInput(input, key, List.of("STRING"), oldMsg);

@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.optionsmap
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
+import org.neo4j.dbms.systemgraph.ReplicaConfig
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
 import org.neo4j.dbms.systemgraph.SeedURI
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
@@ -292,6 +293,64 @@ object BackpressureEnabledOption extends StringOptionValidator {
   override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
     if (!value.equalsIgnoreCase(VALID_VALUE)) {
       throw InvalidArgumentsException.unrecognisedOptionGivenValue(operation, KEY, value, VALID_VALUE, true)
+    }
+  }
+}
+
+object ReplicaConfigOption extends OptionValidator[ReplicaConfig] {
+  override val KEY: String = "replicaConfig"
+  val OPTION_LOCAL = "local"
+  val OPTION_REMOTE = "remote"
+  val OPTION_ADDRESSES = "addresses"
+  val OPTION_PULLURI = "pullURI"
+  val VALID_OPTIONS: util.List[String] = util.List.of(OPTION_LOCAL, OPTION_REMOTE, OPTION_ADDRESSES, OPTION_PULLURI);
+
+  private def getOptionalFromMap[R](mapValue: MapValue, key: String): util.Optional[R] = {
+    val value = mapValue.get(key)
+    value match {
+      case _: NoValue           => util.Optional.empty()
+      case textValue: TextValue => util.Optional.of(textValue.stringValue().asInstanceOf[R])
+      case list: ListValue =>
+        val elements = new util.ArrayList[String]()
+        list.foreach(e => elements.add(e.asInstanceOf[TextValue].stringValue()))
+        util.Optional.of(elements.asInstanceOf[R])
+      case _ => throw new UnsupportedOperationException()
+    }
+  }
+
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit
+    operation: String): ReplicaConfig = {
+    value match {
+      case mapValue: MapValue if mapValue.isEmpty => throw InvalidArgumentsException.providedFieldEmpty(KEY);
+      case mapValue: MapValue =>
+        mapValue.foreachEntry((k, v) => {
+          k match {
+            case OPTION_LOCAL => if (!v.isInstanceOf[TextValue])
+                throw InvalidArgumentsException.invalidReplicaConfigOptionType(operation, KEY, k, v, "String");
+            case OPTION_REMOTE => if (!v.isInstanceOf[TextValue])
+                throw InvalidArgumentsException.invalidReplicaConfigOptionType(operation, KEY, k, v, "String");
+            case OPTION_ADDRESSES =>
+              v match {
+                case listValue: ListValue =>
+                  listValue.foreach {
+                    case _: TextValue =>
+                    case _ =>
+                      InvalidArgumentsException.invalidReplicaConfigOptionType(operation, KEY, k, v, "List<String>")
+                  }
+                case _ => InvalidArgumentsException.invalidReplicaConfigOptionType(operation, KEY, k, v, "List<String>")
+              }
+            case OPTION_PULLURI => if (!v.isInstanceOf[TextValue])
+                throw InvalidArgumentsException.invalidReplicaConfigOptionType(operation, KEY, k, v, "String");
+            case _ => throw InvalidArgumentsException.invalidReplicaConfigOption(operation, KEY, k, VALID_OPTIONS);
+          }
+        })
+        val local = getOptionalFromMap[String](mapValue, OPTION_LOCAL)
+        val remote = getOptionalFromMap[String](mapValue, OPTION_REMOTE)
+        val addresses = getOptionalFromMap[util.List[String]](mapValue, OPTION_ADDRESSES)
+        val pullURI = getOptionalFromMap[String](mapValue, OPTION_PULLURI)
+
+        new ReplicaConfig(local, remote, addresses, pullURI);
+      case _ => throw InvalidArgumentsException.invalidMapOption(operation, KEY, value)
     }
   }
 }
