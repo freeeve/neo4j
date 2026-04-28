@@ -55,7 +55,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
     abstract static class Exact extends CompositeRandomizedIndexAccessorCompatibility {
         Exact(PropertyIndexProviderCompatibilityTestSuite testSuite) {
             // composite index of 4 properties
-            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 100, 101, 102, 103)));
+            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 0, 1, 2, 3)));
         }
 
         @Test
@@ -85,10 +85,10 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             for (EagerValueIndexEntryUpdate update : updates) {
                 // then
                 List<Long> hits = query(
-                        exact(100, update.values()[0]),
-                        exact(101, update.values()[1]),
-                        exact(102, update.values()[2]),
-                        exact(103, update.values()[3]));
+                        exact(0, update.values()[0]),
+                        exact(1, update.values()[1]),
+                        exact(2, update.values()[2]),
+                        exact(3, update.values()[3]));
                 assertEquals(1, hits.size(), update.describe(tokens) + " " + hits);
                 assertThat(single(hits)).isEqualTo(update.getEntityId());
             }
@@ -98,7 +98,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
     abstract static class Range extends CompositeRandomizedIndexAccessorCompatibility {
         Range(PropertyIndexProviderCompatibilityTestSuite testSuite) {
             // composite index of 2 properties
-            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 100, 101)));
+            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 0, 1)));
         }
 
         /**
@@ -181,7 +181,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
 
                 // Depending on order capabilities we verify ids or order and ids.
                 PropertyIndexQuery[] predicates = new PropertyIndexQuery[] {
-                    exact(100, booleanValue), PropertyIndexQuery.range(101, from, fromInclusive, to, toInclusive)
+                    exact(0, booleanValue), PropertyIndexQuery.range(1, from, fromInclusive, to, toInclusive)
                 };
 
                 List<Long> actualIds = assertInOrder(IndexOrder.ASCENDING, predicates);

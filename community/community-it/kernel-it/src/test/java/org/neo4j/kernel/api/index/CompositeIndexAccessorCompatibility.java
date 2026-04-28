@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.LongStream;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -170,7 +169,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         assertThat(query(exact(0, a), exact(1, a))).isEqualTo(singletonList(1L));
         assertThat(query(exact(0, b), exact(1, b))).isEqualTo(singletonList(2L));
         assertThat(query(exact(0, a), exact(1, b))).isEqualTo(singletonList(3L));
-        assertThat(query(exists(1))).isEqualTo(asList(1L, 2L, 3L));
+        assertThat(query(exists(0), exists(1))).isEqualTo(asList(1L, 2L, 3L));
     }
 
     @Test
@@ -196,7 +195,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         assertThat(query(exact(0, gps3d), exact(1, gps3d))).isEqualTo(singletonList(4L));
         assertThat(query(exact(0, car3d), exact(1, car3d))).isEqualTo(singletonList(5L));
         assertThat(query(exact(0, gps), exact(1, car3d))).isEqualTo(singletonList(6L));
-        assertThat(query(exists(1))).isEqualTo(asList(1L, 2L, 3L, 4L, 5L, 6L));
+        assertThat(query(exists(0), exists(1))).isEqualTo(asList(1L, 2L, 3L, 4L, 5L, 6L));
     }
 
     /* testIndexExactAndRangeExact_Range */
@@ -1019,8 +1018,8 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     private void shouldSeekInOrderExactWithRange(
             IndexOrder order, Object o0, Object o1, Object o2, Object o3, Object o4, Object o5) throws Exception {
         Object baseValue = 1; // Todo use random value instead
-        PropertyIndexQuery exact = exact(100, baseValue);
-        PropertyIndexQuery range = range(200, Values.of(o0), true, Values.of(o5), true);
+        PropertyIndexQuery exact = exact(0, baseValue);
+        PropertyIndexQuery range = range(1, Values.of(o0), true, Values.of(o5), true);
         if (order == IndexOrder.ASCENDING || order == IndexOrder.DESCENDING) {
             assumeTrue(descriptor.getCapability().supportsOrdering(), "Assume support for order " + order);
         }
@@ -1078,18 +1077,18 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         Value someValue = Values.of(true);
         TextValue someString = stringValue("");
         PropertyIndexQuery allEntries = allEntries();
-        PropertyIndexQuery firstExact = exact(100, someValue);
-        PropertyIndexQuery firstRange = range(100, someValue, true, someValue, true);
-        PropertyIndexQuery firstPrefix = stringPrefix(100, someString);
-        PropertyIndexQuery firstExist = exists(100);
-        PropertyIndexQuery firstSuffix = stringSuffix(100, someString);
-        PropertyIndexQuery firstContains = stringContains(100, someString);
-        PropertyIndexQuery secondExact = exact(200, someValue);
-        PropertyIndexQuery secondRange = range(200, someValue, true, someValue, true);
-        PropertyIndexQuery secondExist = exists(200);
-        PropertyIndexQuery secondPrefix = stringPrefix(100, someString);
-        PropertyIndexQuery secondSuffix = stringSuffix(100, someString);
-        PropertyIndexQuery secondContains = stringContains(100, someString);
+        PropertyIndexQuery firstExact = exact(0, someValue);
+        PropertyIndexQuery firstRange = range(0, someValue, true, someValue, true);
+        PropertyIndexQuery firstPrefix = stringPrefix(0, someString);
+        PropertyIndexQuery firstExist = exists(0);
+        PropertyIndexQuery firstSuffix = stringSuffix(0, someString);
+        PropertyIndexQuery firstContains = stringContains(0, someString);
+        PropertyIndexQuery secondExact = exact(1, someValue);
+        PropertyIndexQuery secondRange = range(1, someValue, true, someValue, true);
+        PropertyIndexQuery secondExist = exists(1);
+        PropertyIndexQuery secondPrefix = stringPrefix(1, someString);
+        PropertyIndexQuery secondSuffix = stringSuffix(1, someString);
+        PropertyIndexQuery secondContains = stringContains(1, someString);
 
         List<Pair<PropertyIndexQuery[], Boolean>> queries = Arrays.asList(
                 of(new PropertyIndexQuery[] {allEntries, allEntries}, false),
@@ -1225,13 +1224,17 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     }
 
     private static PropertyIndexQuery[] exactQuery(Value[] values) {
-        return Stream.of(values).map(v -> exact(0, v)).toArray(PropertyIndexQuery[]::new);
+        PropertyIndexQuery[] queries = new PropertyIndexQuery[values.length];
+        for (int i = 0; i < values.length; i++) {
+            queries[i] = exact(i, values[i]);
+        }
+        return queries;
     }
 
     // This behaviour is expected by General indexes
     abstract static class General extends CompositeIndexAccessorCompatibility {
         General(PropertyIndexProviderCompatibilityTestSuite testSuite) {
-            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 100, 200)));
+            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 0, 1)));
         }
 
         @Test
@@ -1302,7 +1305,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     // This behaviour is expected by Unique indexes
     abstract static class Unique extends CompositeIndexAccessorCompatibility {
         Unique(PropertyIndexProviderCompatibilityTestSuite testSuite) {
-            super(testSuite, IndexPrototype.uniqueForSchema(forLabel(1000, 100, 200)));
+            super(testSuite, IndexPrototype.uniqueForSchema(forLabel(1000, 0, 1)));
         }
 
         @Test

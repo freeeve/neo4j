@@ -50,11 +50,11 @@ import org.neo4j.values.storable.Values;
 abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProviderCompatibilityTestSuite {
     @Override
     IndexPrototype indexPrototype() {
-        return IndexPrototype.forSchema(forLabel(1000, 100)).withIndexType(indexType());
+        return IndexPrototype.forSchema(forLabel(1000, 0)).withIndexType(indexType());
     }
 
     IndexPrototype uniqueIndexPrototype() {
-        return IndexPrototype.uniqueForSchema(forLabel(1000, 100)).withIndexType(indexType());
+        return IndexPrototype.uniqueForSchema(forLabel(1000, 0)).withIndexType(indexType());
     }
 
     abstract boolean supportsSpatial();

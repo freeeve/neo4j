@@ -36,6 +36,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.logging.LogProvider;
+import org.neo4j.token.api.TokenConstants;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
@@ -214,6 +215,37 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
                 }
 
                 default -> invalidQueryInComposite(type, predicates);
+            }
+        }
+        assertPredicateKeyOrder(descriptor, predicates);
+    }
+
+    /**
+     * Assert that the predicates are passed in the same order as the property keys are defined
+     * in the index descriptor. When the order does not match, an index seek walks the tree using
+     * values bound to the wrong slots and silently returns invalid results.
+     */
+    static void assertPredicateKeyOrder(IndexDescriptor descriptor, PropertyIndexQuery[] predicates)
+            throws IndexNotApplicableKernelException {
+        if (predicates.length == 1 && predicates[0].type() == IndexQueryType.ALL_ENTRIES) {
+            return;
+        }
+        int[] schemaPropertyIds = descriptor.schema().getPropertyIds();
+        if (predicates.length != schemaPropertyIds.length) {
+            throw IndexNotApplicableKernelException.internalError(
+                    RangeIndexReader.class.getSimpleName(),
+                    format(
+                            "The index specifies %d properties, but %d lookup predicates were given. Query was: %s",
+                            schemaPropertyIds.length, predicates.length, Arrays.toString(predicates)));
+        }
+        for (int i = 0; i < predicates.length; i++) {
+            int queriedKey = predicates[i].propertyKeyId();
+            if (queriedKey != schemaPropertyIds[i] && queriedKey != TokenConstants.ANY_PROPERTY_KEY) {
+                throw IndexNotApplicableKernelException.internalError(
+                        RangeIndexReader.class.getSimpleName(),
+                        format(
+                                "The index has property id %d in position %d, but the lookup property id was %d. Query was: %s",
+                                schemaPropertyIds[i], i, queriedKey, Arrays.toString(predicates)));
             }
         }
     }

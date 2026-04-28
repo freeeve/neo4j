@@ -142,10 +142,10 @@ class KernelReadTracerTxStateTest extends KernelAPIWriteTestBase<WriteTestSuppor
             IndexReadSession session = tx.dataRead().indexReadSession(index);
 
             // when
-            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.NONE, false, user);
-            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.NONE, true, user);
-            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.ASCENDING, false, user);
-            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.ASCENDING, true, user);
+            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.NONE, false, name);
+            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.NONE, true, name);
+            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.ASCENDING, false, name);
+            assertIndexSeekTracing(tracer, tx, cursor, session, IndexOrder.ASCENDING, true, name);
         }
     }
 
@@ -156,7 +156,7 @@ class KernelReadTracerTxStateTest extends KernelAPIWriteTestBase<WriteTestSuppor
             IndexReadSession session,
             IndexOrder order,
             boolean needsValues,
-            int user)
+            int propertyKeyId)
             throws KernelException {
         cursor.setTracer(tracer);
 
@@ -166,7 +166,7 @@ class KernelReadTracerTxStateTest extends KernelAPIWriteTestBase<WriteTestSuppor
                         session,
                         cursor,
                         constrained(order, needsValues),
-                        PropertyIndexQuery.stringPrefix(user, Values.stringValue("B")));
+                        PropertyIndexQuery.stringPrefix(propertyKeyId, Values.stringValue("B")));
         tracer.assertEvents(indexSeekEvent());
 
         assertTrue(cursor.next());

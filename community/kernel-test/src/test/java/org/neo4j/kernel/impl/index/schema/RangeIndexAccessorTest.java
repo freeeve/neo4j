@@ -80,7 +80,7 @@ import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
 
 class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
-    private static final IndexDescriptor INDEX_DESCRIPTOR = forSchema(forLabel(42, 666))
+    private static final IndexDescriptor INDEX_DESCRIPTOR = forSchema(forLabel(42, 0))
             .withIndexType(IndexType.RANGE)
             .withIndexProvider(AllIndexProviderDescriptors.RANGE_DESCRIPTOR)
             .withName("index")

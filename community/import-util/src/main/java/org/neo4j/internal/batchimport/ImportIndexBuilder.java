@@ -480,6 +480,12 @@ public class ImportIndexBuilder implements Closeable {
      */
     public boolean checkUniqueness(EagerValueIndexEntryUpdate[] checks) {
         for (var check : checks) {
+            int[] propertyIds = check.indexKey().schema().getPropertyIds();
+            Value[] values = check.values();
+            PropertyIndexQuery[] predicates = new PropertyIndexQuery[propertyIds.length];
+            for (int i = 0; i < propertyIds.length; i++) {
+                predicates[i] = PropertyIndexQuery.exact(propertyIds[i], values[i]);
+            }
             try (var reader = getIndexBuilder(check.indexKey())
                             .accessor
                             .newValueReader(IndexUsageTracking.NO_USAGE_TRACKING);
@@ -489,7 +495,7 @@ public class ImportIndexBuilder implements Closeable {
                         QueryContext.NULL_CONTEXT,
                         NULL_CONTEXT,
                         IndexQueryConstraints.unconstrained(),
-                        PropertyIndexQuery.exact(0, check.values()[0]));
+                        predicates);
                 if (client.next()) {
                     return false;
                 }

@@ -55,7 +55,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
 
     abstract static class General extends CompositeIndexPopulatorCompatibility {
         General(PropertyIndexProviderCompatibilityTestSuite testSuite) {
-            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 100, 200)));
+            super(testSuite, IndexPrototype.forSchema(forLabel(1000, 0, 1)));
         }
 
         @Test
@@ -93,7 +93,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
                             QueryContext.NULL_CONTEXT,
                             CursorContext.NULL_CONTEXT,
                             unconstrained(),
-                            PropertyIndexQuery.exact(1, "v1"),
+                            PropertyIndexQuery.exact(0, "v1"),
                             PropertyIndexQuery.exact(1, "v2"));
                     assertEquals(asSet(1L, 2L), PrimitiveLongCollections.toSet(nodes));
                 }
@@ -109,7 +109,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
         int nodeId2 = 4;
 
         Unique(PropertyIndexProviderCompatibilityTestSuite testSuite) {
-            super(testSuite, IndexPrototype.uniqueForSchema(forLabel(1000, 100, 200)));
+            super(testSuite, IndexPrototype.uniqueForSchema(forLabel(1000, 0, 1)));
         }
 
         @Test
