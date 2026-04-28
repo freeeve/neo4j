@@ -199,6 +199,19 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * This collects the Return, FINISH, or update clauses that define the result or no result emitted by this query.
    */
   def getEmittingResultClauses: ResultEmitter
+
+  final protected def checkNoDefineAndCallInTransactions: SemanticCheck = {
+    val containsLocalDefinitions = folder.treeExists {
+      case _: QueryWithLocalDefinitions => true
+    }
+    if (!containsLocalDefinitions) {
+      SemanticCheck.success
+    } else {
+      SubqueryCall.findTransactionalSubquery(this).foldSemanticCheck { subqueryCall =>
+        SemanticCheck.error(SemanticError.invalidUseOfDefineAndCIT(subqueryCall.position))
+      }
+    }
+  }
 }
 
 sealed trait PartQuery extends Query {
@@ -321,7 +334,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       recordCurrentScope(this)
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None))
+    checkNoDefineAndCallInTransactions chain
+      semanticCheckAbstract(clauses, checkClauses(_, None))
 
   override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
     semanticCheckAbstract(clauses, checkClauses(_, None, context), context = context)
@@ -1053,7 +1067,9 @@ case class TopLevelBraces(
     query.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context) chain recordCurrentScope(this)
 
   override def semanticCheck: SemanticCheck =
-    query.semanticCheckInContext(TopLevelBraces) chain recordCurrentScope(this)
+    checkNoDefineAndCallInTransactions chain
+      query.semanticCheckInContext(TopLevelBraces) chain
+      recordCurrentScope(this)
 
   override def checkImportingWith(optional: Boolean): SemanticCheck = query.checkImportingWith(optional)
   override def invalidImportingWith: Seq[SemanticError] = query.invalidImportingWith
@@ -1156,7 +1172,9 @@ sealed trait Union extends Query {
     })
   }
 
-  def semanticCheck: SemanticCheck = checkRecursively(_.semanticCheckInContext(UnionContext))
+  def semanticCheck: SemanticCheck =
+    checkNoDefineAndCallInTransactions chain
+      checkRecursively(_.semanticCheckInContext(UnionContext))
 
   override def semanticCheckInSubqueryExpressionContext(
     canOmitReturn: Boolean,
@@ -1576,7 +1594,8 @@ case class ConditionalQueryWhen(
     semanticCheck
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInContext(ConditionalQueryWhen))
+    checkNoDefineAndCallInTransactions chain
+      semanticCheckAbstract(_.semanticCheckInContext(ConditionalQueryWhen))
 
   private def semanticCheckAbstract(check: QueryUtils => SemanticCheck): SemanticCheck = {
     allBranches.foldSemanticCheck(x => withScopedState(check(x))) chain
@@ -1761,7 +1780,8 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   }
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInContext(NextStatement), None)
+    checkNoDefineAndCallInTransactions chain
+      semanticCheckAbstract(_.semanticCheckInContext(NextStatement), None)
 
   override def semanticCheckInLocalCallableBodyContext(
     outer: SemanticState,
@@ -1893,7 +1913,8 @@ case class QueryWithLocalDefinitions(
   }
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInContext(QueryWithLocalDefinitions))
+    checkNoDefineAndCallInTransactions chain
+      semanticCheckAbstract(_.semanticCheckInContext(QueryWithLocalDefinitions))
 
   /**
    * Semantic check for when this `Query` is enclosed in outer context

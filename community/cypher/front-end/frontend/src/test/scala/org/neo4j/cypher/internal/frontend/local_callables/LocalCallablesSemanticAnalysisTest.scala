@@ -153,4 +153,7 @@ trait LocalCallablesSemanticAnalysisTest
 
   def msg42I42(): String =
     s"Cannot yield value from void procedure."
+
+  def msg42NAO(): String =
+    s"'CALL { ... } IN TRANSACTIONS' is not supported in combination with 'DEFINE'"
 }

@@ -2708,6 +2708,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             "non-scalar query result in local function definition",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAO(
+            "'CALL { ... } IN TRANSACTIONS' is not supported in combination with 'DEFINE'.",
+            "invalid use of CALL IN TRANSACTIONS and local callables",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             "Authentication and/or authorization could not be validated. See security logs for details.",
             "auth info validation error",

@@ -1002,6 +1002,11 @@ object SemanticError {
     SemanticError(gql, msg, position)
   }
 
+  def invalidUseOfDefineAndCIT(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42NAO(position.offset, position.line, position.column)
+    SemanticError(gql, "'CALL { ... } IN TRANSACTIONS' is not supported in combination with 'DEFINE'", position)
+  }
+
   def invalidClauseCombination(clause1: String, clause2: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
