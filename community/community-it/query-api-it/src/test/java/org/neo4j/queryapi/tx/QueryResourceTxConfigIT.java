@@ -79,6 +79,7 @@ public class QueryResourceTxConfigIT {
                         QueryResourceTxConfigIT.class.getSimpleName())
                 .setConfig(BoltConnector.enabled, true)
                 .setConfig(BoltConnectorInternalSettings.enable_local_connector, true)
+                .setConfig(GraphDatabaseSettings.bookmark_ready_timeout, Duration.ofSeconds(1))
                 .setConfig(ServerSettings.http_enabled_modules, EnumSet.allOf(ConfigurableServerModules.class))
                 .impermanent()
                 .build();

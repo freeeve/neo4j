@@ -24,6 +24,7 @@ import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
 import static org.neo4j.queryapi.QueryApiTestUtil.sleepProcedure;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
@@ -78,6 +80,7 @@ public class QueryResourceTxJsonlConfigIT {
                         QueryResourceTxJsonlConfigIT.class.getSimpleName())
                 .setConfig(BoltConnector.enabled, true)
                 .setConfig(BoltConnectorInternalSettings.enable_local_connector, true)
+                .setConfig(GraphDatabaseSettings.bookmark_ready_timeout, Duration.ofSeconds(1))
                 .setConfig(ServerSettings.http_enabled_modules, EnumSet.allOf(ConfigurableServerModules.class))
                 .impermanent()
                 .build();
