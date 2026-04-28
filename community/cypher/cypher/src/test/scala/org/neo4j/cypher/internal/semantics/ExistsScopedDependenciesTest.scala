@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
@@ -48,11 +49,12 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.monitoring.Monitors
 
-class DummyException() extends RuntimeException
+class DummyException extends RuntimeException
 
 class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTestSupport {
 
-  private val parsing = CompilationPhases.parsing(ParsingConfig()) andThen Namespacer
+  private val parsing =
+    CompilationPhases.parsing(ParsingConfig(), ScopedProcedureSignatureResolver.NoResolver) andThen Namespacer
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
 

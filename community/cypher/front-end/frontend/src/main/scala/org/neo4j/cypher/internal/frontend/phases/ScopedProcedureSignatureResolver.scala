@@ -34,6 +34,16 @@ trait ScopedProcedureSignatureResolver {
 
 object ScopedProcedureSignatureResolver {
 
+  val NoResolver: ScopedProcedureSignatureResolver = new ScopedProcedureSignatureResolver {
+    override def procedureSignature(name: ProcedureName): ProcedureSignature =
+      throw new UnsupportedOperationException("No procedure resolver available")
+    override def functionSignature(name: FunctionName): Option[UserFunctionSignature] =
+      throw new UnsupportedOperationException("No function resolver available")
+    override def procedureSignatureVersion: Long =
+      throw new UnsupportedOperationException("No signature version available")
+    override def queryLanguage: QueryLanguage = QueryLanguage.Cypher25
+  }
+
   def from(r: ProcedureSignatureResolver, scope: QueryLanguage): ScopedProcedureSignatureResolver = {
     new ScopedProcedureSignatureResolver {
       override def procedureSignature(n: ProcedureName): ProcedureSignature = r.procedureSignature(n, scope)

@@ -79,15 +79,23 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 trait ProcedureLookup {
   def function(name: procs.QualifiedName, scope: org.neo4j.kernel.api.QueryLanguage): UserFunctionHandle
+  def aggregationFunction(name: procs.QualifiedName, scope: org.neo4j.kernel.api.QueryLanguage): UserFunctionHandle
   def procedure(name: procs.QualifiedName, scope: org.neo4j.kernel.api.QueryLanguage): ProcedureHandle
   def signatureVersion: Long
 }
 
 final class SignatureResolver(lookup: ProcedureLookup) extends ProcedureSignatureResolver {
 
-  override def functionSignature(name: FunctionName, scope: QueryLanguage): Option[UserFunctionSignature] =
-    Option(lookup.function(SignatureResolver.asKernelQualifiedName(name), toKernelScope(scope)))
-      .map(fcn => SignatureResolver.toCypherFunction(fcn))
+  override def functionSignature(name: FunctionName, scope: QueryLanguage): Option[UserFunctionSignature] = {
+    val kn = SignatureResolver.asKernelQualifiedName(name)
+    val ks = toKernelScope(scope)
+    val func = lookup.function(kn, ks)
+    if (func != null)
+      Some(SignatureResolver.toCypherFunction(func, isAggregate = false))
+    else
+      Option(lookup.aggregationFunction(kn, ks))
+        .map(fcn => SignatureResolver.toCypherFunction(fcn, isAggregate = true))
+  }
 
   override def procedureSignature(name: ProcedureName, scope: QueryLanguage): ProcedureSignature = {
     val kn = new procs.QualifiedName(name.namespace.parts.toArray, name.name)
@@ -101,12 +109,16 @@ object SignatureResolver {
 
   def from(p: Procedures): ProcedureSignatureResolver = new SignatureResolver(new ProcedureLookup {
     override def function(n: procs.QualifiedName, s: api.QueryLanguage): UserFunctionHandle = p.functionGet(n, s)
+    override def aggregationFunction(n: procs.QualifiedName, s: api.QueryLanguage): UserFunctionHandle =
+      p.aggregationFunctionGet(n, s)
     override def procedure(n: procs.QualifiedName, s: api.QueryLanguage): ProcedureHandle = p.procedureGet(n, s)
     override def signatureVersion: Long = p.signatureVersion()
   })
 
   def from(p: ProcedureView): ProcedureSignatureResolver = new SignatureResolver(new ProcedureLookup {
     override def function(n: procs.QualifiedName, s: api.QueryLanguage): UserFunctionHandle = p.function(n, s)
+    override def aggregationFunction(n: procs.QualifiedName, s: api.QueryLanguage): UserFunctionHandle =
+      p.aggregationFunction(n, s)
     override def procedure(n: procs.QualifiedName, s: api.QueryLanguage): ProcedureHandle = p.procedure(n, s)
     override def signatureVersion: Long = p.signatureVersion()
   })
@@ -155,7 +167,7 @@ object SignatureResolver {
     )
   }
 
-  def toCypherFunction(fcn: UserFunctionHandle): UserFunctionSignature = {
+  def toCypherFunction(fcn: UserFunctionHandle, isAggregate: Boolean): UserFunctionSignature = {
     val signature = fcn.signature()
     val deprecatedBy: Option[String] = signature.deprecated().asScala
     UserFunctionSignature(
@@ -173,7 +185,7 @@ object SignatureResolver {
       outputType = asCypherType(signature.outputType()),
       deprecationInfo = Some(DeprecationInfo(signature.isDeprecated, deprecatedBy)),
       description = signature.description().asScala,
-      isAggregate = false,
+      isAggregate = isAggregate,
       id = fcn.id(),
       fcn.signature().isBuiltIn,
       threadSafe = fcn.threadSafe()

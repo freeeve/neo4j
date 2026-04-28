@@ -272,6 +272,14 @@ class CypherConfiguration private (val config: Config) {
   val mergeOptimizationEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.merge_optimization_enabled).booleanValue()
 
+  val useVirtualGraph: Boolean =
+    if (config.getDeclaredSettings.containsKey("internal.virtual_graph.enabled")) {
+      val setting = config.getSetting("internal.virtual_graph.enabled")
+      java.lang.Boolean.TRUE == config.get(setting)
+    } else {
+      false
+    }
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

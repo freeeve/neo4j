@@ -85,6 +85,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
@@ -120,6 +121,7 @@ import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundReadTokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.spi.ExceptionTranslatingPlanContext
+import org.neo4j.cypher.internal.spi.ExceptionTranslatingResolver
 import org.neo4j.cypher.internal.spi.TransactionBoundIndexComparatorFactory
 import org.neo4j.cypher.internal.spi.TransactionBoundPlanContext
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -439,6 +441,7 @@ final class TransformingPlanner private[planning] (
     offset: InputPosition,
     tracer: CompilationPhaseTracer,
     cancellationChecker: CancellationChecker,
+    resolver: ScopedProcedureSignatureResolver,
     sessionDatabase: DatabaseReference,
     shadowedFunctions: Set[String],
     cacheStrategy: CacheStrategy
@@ -453,7 +456,7 @@ final class TransformingPlanner private[planning] (
       tracer = tracer,
       params = params,
       cancellationChecker = cancellationChecker,
-      resolver = None,
+      resolver = resolver,
       sessionDatabase = sessionDatabase,
       isScopeQuery = preParsedQuery.options.queryOptions.planMode.isScope,
       shadowedFunctions = shadowedFunctions
@@ -465,13 +468,17 @@ final class TransformingPlanner private[planning] (
       parsedQuery
     } else {
       val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
-      val maybeValue = caches.astCache.get(key)
+      val maybeValue = caches.astCache.get(key).filter { v =>
+        // Reject cached entry if procedure signatures changed since it was parsed.
+        // None.forall is true, so queries without procedures always pass (never stale).
+        v.parsedQuery.maybeProcedureSignatureVersion.forall(_ == resolver.procedureSignatureVersion)
+      }
       val value = maybeValue.getOrElse {
         val parsedQuery = parseQuery()
         val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
-        // We don't want to cache any query when a parameter has been solved
-        if (!plannerConfig.planSystemCommands && !preventCaching(parsedQuery))
+        if (!plannerConfig.planSystemCommands && !preventCaching(parsedQuery)) {
           caches.astCache.put(key, value)
+        }
         value
       }
       value.notifications.foreach(notificationLogger.log)
@@ -510,6 +517,9 @@ final class TransformingPlanner private[planning] (
     val shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
       QueryLanguage.toKernelScope(preParsedQuery.resolvedLanguage)
     ).asScala.toSet
+    val resolver = new ExceptionTranslatingResolver(
+      TransactionBoundPlanContext.resolver(transactionalContextWrapper, preParsedQuery.resolvedLanguage)
+    )
     val syntacticQuery = getOrParse(
       preParsedQuery,
       params,
@@ -517,6 +527,7 @@ final class TransformingPlanner private[planning] (
       preParsedQuery.options.offset,
       tracer,
       transactionalContextWrapper.cancellationChecker,
+      resolver,
       sessionDatabase = sessionDatabase,
       shadowedFunctions,
       cacheStrategy

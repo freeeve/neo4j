@@ -126,7 +126,8 @@ case class FabricFrontEnd(
       extractLiterals = cypherConfig.extractLiterals,
       parameterTypeMapping = ParameterValueTypeHelper.asCypherTypeMap(params, cypherConfig.useParameterSizeHint),
       obfuscateLiterals = cypherConfig.obfuscateLiterals,
-      resolveSimpleDynamicExpressions = cypherConfig.resolveSimpleDynamicExpressions
+      resolveSimpleDynamicExpressions = cypherConfig.resolveSimpleDynamicExpressions,
+      enabledVirtualGraph = cypherConfig.useVirtualGraph
     )
 
     private val context: BaseContext = BaseContextImpl(
@@ -168,7 +169,7 @@ case class FabricFrontEnd(
       private val anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(negativeNumbers = false)
 
       private val transformer =
-        CompilationPhases.fabricFinalize(parsingConfig)
+        CompilationPhases.fabricFinalize(parsingConfig, signatures)
 
       def process(statement: Statement, useFullQueryText: Boolean): BaseState = {
         val localQueryString =

@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShowSetting
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UUIDType
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandClauses
@@ -43,6 +44,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqu
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LiteralExtraction
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ProcedureRelocator
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.RemoveDuplicateUseClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveLocalFunctions
@@ -100,7 +102,8 @@ trait FrontEndCompilationPhases {
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
     obfuscateLiterals: Boolean = false,
-    resolveSimpleDynamicExpressions: Boolean = false
+    resolveSimpleDynamicExpressions: Boolean = false,
+    enabledVirtualGraph: Boolean = false
   ) {
 
     def literalExtractionStrategy: LiteralExtractionStrategy = extractLiterals match {
@@ -156,21 +159,35 @@ trait FrontEndCompilationPhases {
       ExtractLocalDefinitions
   }
 
+  /**
+   * Resolves procedure/function calls and runs related checks.
+   * The rewriteCalls transformer controls resolution behavior:
+   * - parsing() passes StrictRewriteProcedureCalls (throws on unresolved)
+   * - fabricParsing() passes TryRewriteProcedureCalls (leaves unresolved if not found locally)
+   */
+  def resolveAndCheck(
+    rewriteCalls: Transformer[BaseContext, BaseState, BaseState],
+    conf: ParsingConfig
+  ): Transformer[BaseContext, BaseState, BaseState] = {
+    ProcedureRelocator.transformer(conf.enabledVirtualGraph) andThen
+      ExtractLocalDefinitions andThen
+      rewriteCalls andThen
+      ScopeSurveyor andThen
+      AmbiguousAggregationAnalysis andThen
+      ProcedureAndFunctionDeprecationWarnings andThen
+      ProcedureWarnings
+  }
+
   // Phase 1
   def parsing(
     config: ParsingConfig,
-    resolver: Option[ScopedProcedureSignatureResolver] = None,
+    resolver: ScopedProcedureSignatureResolver,
     parameters: MapValue = MapValue.EMPTY
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
+      resolveAndCheck(StrictRewriteProcedureCalls(resolver), config) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
-      /*
-       * With query router we log the query early and therefore need to resolve
-       * procedure calls early in order to obfuscate sensitive procedure params
-       * in the query log.
-       */
-      If((_: BaseState) => resolver.isDefined)(TryRewriteProcedureCalls(resolver.orNull)) andThen
       ObfuscationMetadataCollection
   }
 
@@ -181,17 +198,23 @@ trait FrontEndCompilationPhases {
     parameters: MapValue
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
-      TryRewriteProcedureCalls(resolver) andThen
-      ObfuscationMetadataCollection andThen
-      SemanticAnalysis(warn = Some(true))
+      AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
+      resolveAndCheck(TryRewriteProcedureCalls(resolver), config) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
+      ObfuscationMetadataCollection
   }
 
   // Phase 1.1 (Fabric)
-  def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    SemanticAnalysis(warn = Some(true)) andThen
-      AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
+  def fabricFinalize(
+    config: ParsingConfig,
+    resolver: ScopedProcedureSignatureResolver
+  ): Transformer[BaseContext, BaseState, BaseState] = {
+    ScopeSurveyor andThen
+      ExtractLocalDefinitions andThen
+      StrictRewriteProcedureCalls(resolver) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
-      SemanticAnalysis(warn = Some(false))
+      SemanticAnalysis(warn = Some(true)) andThen
+      ObfuscationMetadataCollection
   }
 }
 

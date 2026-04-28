@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
+import org.neo4j.cypher.internal.rewriting.conditions.CallInvocationsResolved
+import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolved
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.Rewriter
@@ -149,7 +151,26 @@ trait RewriteProcedureCalls {
 }
 
 /**
+ * Rewrites unresolved calls into resolved calls. Throws if a procedure or function is not found.
+ */
+case class StrictRewriteProcedureCalls(resolver: ScopedProcedureSignatureResolver)
+    extends Phase[BaseContext, BaseState, BaseState] with RewriteProcedureCalls {
+
+  override def phase = AST_REWRITE
+
+  override def process(from: BaseState, context: BaseContext): BaseState = process(from, context, resolver)
+
+  override def postConditions: Set[StepSequencer.Condition] =
+    Set(CallInvocationsResolved, FunctionInvocationsResolved)
+}
+
+/**
  * Rewrites unresolved calls into resolved calls, or leaves them unresolved if not found.
+ *
+ * Used in fabricParsing to best-effort resolve procedures/functions against the local coordinator's
+ * registry before query fragmentation. This allows QueryType to classify fragments as Read/Write.
+ * Procedures unknown to the local registry remain unresolved (QueryType.ReadPlusUnresolved) and
+ * are resolved later by StrictRewriteProcedureCalls on individual fragments.
  */
 case class TryRewriteProcedureCalls(resolver: ScopedProcedureSignatureResolver)
     extends Phase[BaseContext, BaseState, BaseState] with RewriteProcedureCalls {
@@ -183,20 +204,21 @@ case class TryRewriteProcedureCalls(resolver: ScopedProcedureSignatureResolver)
 
 class InstrumentedProcedureSignatureResolver(resolver: ScopedProcedureSignatureResolver)
     extends ScopedProcedureSignatureResolver {
-  private var hasAttemptedToResolve = false
+
+  private var resolved = false
 
   def procedureSignature(name: ProcedureName): ProcedureSignature = {
-    hasAttemptedToResolve = true
+    resolved = true
     resolver.procedureSignature(name)
   }
 
   def functionSignature(name: FunctionName): Option[UserFunctionSignature] = {
-    hasAttemptedToResolve = true
+    resolved = true
     resolver.functionSignature(name)
   }
 
   def signatureVersionIfResolved: Option[Long] =
-    if (hasAttemptedToResolve) Some(resolver.procedureSignatureVersion) else None
+    if (resolved) Some(resolver.procedureSignatureVersion) else None
 
   override def procedureSignatureVersion: Long = resolver.procedureSignatureVersion
 

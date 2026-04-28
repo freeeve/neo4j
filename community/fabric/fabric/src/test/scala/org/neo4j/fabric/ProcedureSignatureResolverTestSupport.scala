@@ -32,13 +32,20 @@ import org.neo4j.internal.kernel.api.procs.FieldSignature.inputField
 import org.neo4j.internal.kernel.api.procs.FieldSignature.outputField
 import org.neo4j.internal.kernel.api.procs.ProcedureHandle
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature.VOID
+import org.neo4j.internal.kernel.api.procs.UserAggregationReducer
+import org.neo4j.internal.kernel.api.procs.UserAggregationUpdater
+import org.neo4j.internal.kernel.api.procs.UserAggregator
 import org.neo4j.internal.kernel.api.procs.UserFunctionHandle
+import org.neo4j.kernel.api
 import org.neo4j.kernel.api.ResourceMonitor
 import org.neo4j.kernel.api.procedure
+import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
 import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.procedure.Mode
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
+
+import java.util.concurrent.atomic.LongAdder
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -72,6 +79,10 @@ trait ProcedureSignatureResolverTestSupport {
     mkFunction(Seq("say", "neo4j"), Seq(), "MyCategory")(Values.stringValue("neo4j"))
   )
 
+  val callableAggregationFunctions: Seq[procedure.CallableUserAggregationFunction] = Seq(
+    mkAggregationFunction(Seq("my", "ns", "myAgg"), Seq("x"))
+  )
+
   val signatures: ProcedureSignatureResolver = new SignatureResolver(new ProcedureLookup {
 
     override def procedure(
@@ -91,6 +102,16 @@ trait ProcedureSignatureResolverTestSupport {
         .collectFirst { case (f, i) if f.signature().name() == name => new UserFunctionHandle(f.signature(), i) }
         .orNull
     }
+
+    override def aggregationFunction(
+      name: procs.QualifiedName,
+      scope: org.neo4j.kernel.api.QueryLanguage
+    ): UserFunctionHandle = {
+      callableAggregationFunctions.zipWithIndex
+        .collectFirst { case (f, i) if f.signature().name() == name => new UserFunctionHandle(f.signature(), i) }
+        .orNull
+    }
+
     override def signatureVersion: Long = -1
   })
 
@@ -116,10 +137,50 @@ trait ProcedureSignatureResolverTestSupport {
         true,
         false,
         false,
-        false
+        false,
+        java.util.Set.of(api.QueryLanguage.CYPHER_5, api.QueryLanguage.CYPHER_25)
       )
     ) {
       override def apply(ctx: procedure.Context, input: Array[AnyValue]): AnyValue = body
+    }
+
+  private def mkAggregationFunction(
+    name: Seq[String],
+    args: Seq[String]
+  ): procedure.CallableUserAggregationFunction =
+    new CallableUserAggregationFunction.BasicUserAggregationFunction(
+      new procs.UserFunctionSignature(
+        new procs.QualifiedName(name.init.toArray, name.last),
+        ListBuffer(args: _*).map(inputField(_, procs.Neo4jTypes.NTAny)).asJava,
+        procs.Neo4jTypes.NTAny,
+        false,
+        null,
+        name.last,
+        "Category",
+        true,
+        false,
+        false,
+        false,
+        java.util.Set.of(api.QueryLanguage.CYPHER_5, api.QueryLanguage.CYPHER_25)
+      )
+    ) {
+
+      override def create(ctx: Context): UserAggregator = ???
+
+      override def createReducer(ctx: Context): UserAggregationReducer = new UserAggregationReducer {
+        private val counter = new LongAdder()
+
+        override def newUpdater(): UserAggregationUpdater = {
+          counter.increment()
+          new UserAggregationUpdater {
+            override def update(input: Array[AnyValue]): Unit = {}
+
+            override def applyUpdates(): Unit = {}
+          }
+        }
+
+        override def result(): AnyValue = Values.longValue(counter.sum())
+      }
     }
 
   private def mkProcedure(

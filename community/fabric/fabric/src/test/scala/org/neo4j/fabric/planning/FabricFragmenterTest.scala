@@ -864,6 +864,23 @@ class FabricFragmenterTest
       )
     }
 
+    "a known aggregation function" in {
+      fragment(
+        """RETURN my.ns.myAgg(1) AS x
+          |""".stripMargin
+      ).shouldEqual(
+        init(defaultUse)
+          .leaf(
+            Seq(
+              return_(
+                resolved(function(Seq("my", "ns"), "myAgg", literal(1))).as("x")
+              )
+            ),
+            Seq("x")
+          )
+      )
+    }
+
     "an unknown function" in {
       fragment(
         """RETURN my.unknown() AS x

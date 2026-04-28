@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.rewriting.rewriters.RemoveUseRewriter;
 import org.neo4j.cypher.internal.runtime.CypherRow;
+import org.neo4j.cypher.internal.spi.ExceptionTranslatingResolver;
 import org.neo4j.cypher.internal.tracing.CompilationTracer;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.cypher.rendering.QueryOptionsRenderer;
@@ -66,7 +67,6 @@ import org.neo4j.router.query.TargetService;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 import scala.Option;
-import scala.Some$;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.OptionConverters;
@@ -180,7 +180,8 @@ public class QueryProcessorImpl implements QueryProcessor {
             DatabaseReference sessionDatabase,
             Set<String> shadowedFunctions) {
         var queryTracer = tracer.compileQuery(query.text());
-        var resolver = SignatureResolver.from(globalProcedures.getCurrentView(), preParsedQuery.resolvedLanguage());
+        var resolver = new ExceptionTranslatingResolver(
+                SignatureResolver.from(globalProcedures.getCurrentView(), preParsedQuery.resolvedLanguage()));
         var parsedQuery = parse(
                 query,
                 queryTracer,
@@ -244,6 +245,9 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     private static MapValue formatMaybeExtractedParams(BaseState parsedQuery) {
+        if (parsedQuery.maybeExtractedParams().isEmpty()) {
+            return MapValue.EMPTY;
+        }
         var mapValueBuilder = new MapValueBuilder();
         var extractedParams = parsedQuery.maybeExtractedParams().get();
         if (extractedParams.nonEmpty()) {
@@ -318,7 +322,7 @@ public class QueryProcessorImpl implements QueryProcessor {
                 queryTracer,
                 query.parameters(),
                 cancellationChecker,
-                Some$.MODULE$.apply(resolver),
+                resolver,
                 sessionDatabase,
                 preParsedQuery.options().queryOptions().planMode().isScope(),
                 CollectionHasAsScala(shadowedFunctions).asScala().toSet());

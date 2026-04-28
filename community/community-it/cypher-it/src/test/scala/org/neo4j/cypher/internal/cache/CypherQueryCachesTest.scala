@@ -27,6 +27,7 @@ import org.neo4j.cypher.GraphDatabaseTestSupport
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.util.CacheCountsTestSupport
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N02
 import org.neo4j.graphdb.QueryExecutionException
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException
@@ -34,9 +35,11 @@ import org.neo4j.internal.kernel.api.procs.Neo4jTypes
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature
 import org.neo4j.kernel.api.ResourceMonitor
 import org.neo4j.kernel.api.procedure.CallableProcedure.BasicProcedure
+import org.neo4j.kernel.api.procedure.CallableUserFunction
 import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.notifications.StandardGqlStatusObject
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Values
 import org.scalatest.LoneElement
 
 class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport with ExecutionEngineTestSupport
@@ -287,6 +290,108 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
     globalProcedures.unregister(originalProcedure.signature().name())
     an[Exception] should be thrownBy execute(originalQuery)
     cacheCountsFor(CypherQueryCaches.ExecutableQueryCache).evicted shouldBe 1
+  }
+
+  for (prefix <- Seq("CYPHER 5", "CYPHER 25")) {
+    test(s"should not serve stale AST cache entry after procedure signature change ($prefix)") {
+
+      def registerMyProc1(): BasicProcedure = registerProcedure("my.proc") { builder =>
+        builder
+          .in("a", Neo4jTypes.NTAny)
+          .out("b", Neo4jTypes.NTAny)
+
+        new BasicProcedure(builder.build()) {
+          override def apply(
+            ctx: Context,
+            input: Array[AnyValue],
+            resourceMonitor: ResourceMonitor
+          ): ResourceRawIterator[Array[AnyValue], ProcedureException] = {
+            ResourceRawIterator.of(Array[AnyValue](Values.longValue(1)))
+          }
+        }
+      }
+
+      def registerMyProc2000(): BasicProcedure = registerProcedure("my.proc") { builder =>
+        builder
+          .in("a", Neo4jTypes.NTAny)
+          .out("b", Neo4jTypes.NTAny)
+
+        new BasicProcedure(builder.build()) {
+          override def apply(
+            ctx: Context,
+            input: Array[AnyValue],
+            resourceMonitor: ResourceMonitor
+          ): ResourceRawIterator[Array[AnyValue], ProcedureException] = {
+            ResourceRawIterator.of(Array[AnyValue](Values.longValue(2000)))
+          }
+        }
+      }
+
+      val query = s"$prefix CALL my.proc(123) YIELD b RETURN b"
+
+      // Register and execute — populates AST cache
+      val proc1 = registerMyProc1()
+      execute(query).columnAs[Long]("b").next() shouldBe 1
+
+      // Execute again — served from cache
+      execute(query).columnAs[Long]("b").next() shouldBe 1
+
+      // Re-register with different return value — signature version changes
+      globalProcedures.unregister(proc1.signature().name())
+      registerMyProc2000()
+
+      // Execute again — stale AST should be evicted, re-parsed with new procedure ID
+      execute(query).columnAs[Long]("b").next() shouldBe 2000
+    }
+  }
+
+  for (prefix <- Seq("CYPHER 5", "CYPHER 25")) {
+    test(s"should not serve stale AST cache entry after function signature change ($prefix)") {
+
+      def registerMyFunc1(): CallableUserFunction = registerUserDefinedFunction("my.func") { builder =>
+        builder.in("a", Neo4jTypes.NTAny).out(Neo4jTypes.NTInteger)
+
+        new CallableUserFunction.BasicUserFunction(builder.build()) {
+          override def apply(
+            ctx: Context,
+            input: Array[AnyValue]
+          ): AnyValue = {
+            Values.longValue(1)
+          }
+        }
+      }
+
+      def registerMyFunc2000(): CallableUserFunction = registerUserDefinedFunction("my.func") { builder =>
+        builder.in("a", Neo4jTypes.NTAny).out(Neo4jTypes.NTInteger)
+
+        new CallableUserFunction.BasicUserFunction(builder.build()) {
+          override def apply(
+            ctx: Context,
+            input: Array[AnyValue]
+          ): AnyValue = {
+            Values.longValue(2000)
+          }
+        }
+      }
+
+      val query = s"$prefix RETURN my.func(123) AS b"
+
+      val func1 = registerMyFunc1()
+      execute(query).columnAs[Long]("b").next() shouldBe 1
+
+      execute(query).columnAs[Long]("b").next() shouldBe 1
+
+      globalProcedures.unregister(func1.signature().name())
+      registerMyFunc2000()
+
+      execute(query).columnAs[Long]("b").next() shouldBe 2000
+    }
+  }
+
+  test("should fail with correct GQL status for unknown function") {
+    val e = the[SyntaxException] thrownBy execute("RETURN nonexistent.func()")
+    e.gqlStatus() shouldBe "42001"
+    e.gqlStatusObject().cause().get().gqlStatus() shouldBe "42N48"
   }
 
   test("Preparser notifications should be cached") {

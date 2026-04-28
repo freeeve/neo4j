@@ -29,8 +29,8 @@ import org.neo4j.cypher.internal.notification.DeprecatedProcedureReturnFieldNoti
 import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.notification.ProcedureWarningNotification
 import org.neo4j.cypher.internal.notification.RedundantOptionalProcedure
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
-import org.neo4j.exceptions.InternalException
 
 /**
  * Find calls to deprecated procedures and functions and generate warnings for them.
@@ -105,11 +105,9 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
           )
         )
         seq => TraverseChildren(seq ++ deprecationWarnings.toSet)
-      case _: UnresolvedCall =>
-        throw InternalException.internalError(
-          this.getClass.getSimpleName,
-          "Expected procedures to have been resolved already"
-        )
+      // If passing through the fabric path all procedures might not have been resolved yet.
+      // In this case they will fail later during strict resolution.
+      case _: UnresolvedCall => seq => SkipChildren(seq)
     }
 
   override def phase = DEPRECATION_WARNINGS
@@ -151,11 +149,9 @@ case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
                     Set.empty
                   })
           )
-      case _: UnresolvedCall =>
-        throw InternalException.internalError(
-          this.getClass.getSimpleName,
-          "Expected procedures to have been resolved already"
-        )
+      // If passing through the fabric path all procedures might not have been resolved yet.
+      // In this case they will fail later during strict resolution.
+      case _: UnresolvedCall => seq => SkipChildren(seq)
     }
 
   override def phase = DEPRECATION_WARNINGS

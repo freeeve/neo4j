@@ -286,13 +286,11 @@ case class FabricStitcher(
       case _: SensitiveStringLiteral => true
     }
 
-    val local = pipeline.checkAndFinalize.process(statement, useFullQueryText = !compositeContext)
-
     val (rewriter, extracted) = sensitiveLiteralReplacement(statement)
     val toRender = statement.endoRewrite(rewriter)
     val remote = Fragment.RemoteQuery(QueryRenderer.render(toRender), extracted)
 
-    Fragment.Exec(input, statement, local, remote, sensitive, outputColumns)
+    Fragment.Exec(input, statement, remote, sensitive, outputColumns)
   }
 
   private def failDynamicGraph(use: Use): Nothing = {

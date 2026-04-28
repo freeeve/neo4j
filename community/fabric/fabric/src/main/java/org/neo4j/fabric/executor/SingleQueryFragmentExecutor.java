@@ -132,8 +132,8 @@ abstract class SingleQueryFragmentExecutor {
         if (location instanceof Location.Local local) {
             FragmentResult input = executeFragmentInput.get();
             if (fragment.executable()) {
-                FabricQuery.LocalQuery localQuery = plannerInstance.asLocal(fragment);
                 var targetsComposite = plannerInstance.targetsComposite(fragment);
+                FabricQuery.LocalQuery localQuery = plannerInstance.asLocal(fragment, plan.inCompositeContext());
                 FragmentResult fragmentResult = runLocalQueryAt(
                         local, transactionMode, localQuery.query(), parameters, targetsComposite, input);
                 var executionType = StatementResults.merge(input.executionType(), fragmentResult.executionType());

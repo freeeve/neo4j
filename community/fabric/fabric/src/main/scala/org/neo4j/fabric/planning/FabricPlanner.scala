@@ -257,10 +257,16 @@ case class FabricPlanner(
       finally event.close()
     }
 
-    def asLocal(fragment: Fragment.Exec): LocalQuery = LocalQuery(
-      FullyParsedQuery(fragment.localQuery, optionsFor(fragment)),
-      fragment.queryType
-    )
+    def asLocal(fragment: Fragment.Exec, compositeContext: Boolean): LocalQuery = {
+      val localQuery = pipeline.checkAndFinalize.process(
+        fragment.query,
+        useFullQueryText = !compositeContext
+      )
+      LocalQuery(
+        FullyParsedQuery(localQuery, optionsFor(fragment)),
+        fragment.queryType
+      )
+    }
 
     def asRemote(fragment: Fragment.Exec): RemoteQuery = RemoteQuery(
       QueryOptionsRenderer.addOptions(fragment.remoteQuery.query, optionsFor(fragment)),

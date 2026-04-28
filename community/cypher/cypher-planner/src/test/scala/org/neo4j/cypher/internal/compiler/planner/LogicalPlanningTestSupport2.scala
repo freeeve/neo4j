@@ -217,12 +217,18 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
     deduplicateNames: Boolean = deduplicateNames,
     allowSubqueryDuplicationInCnfNormalizer: Boolean = allowSubqueryExpressionDuplicationInCnfNormalizer
   ): Transformer[PlannerContext, BaseState, LogicalPlanState] = {
-    val p1 = parsing(parsingConfig) andThen
-      prepareForCaching andThen
-      planPipeLine(
-        pushdownPropertyReads = pushdownPropertyReads,
-        allowSubqueryDuplicationInCnf = allowSubqueryDuplicationInCnfNormalizer
-      )
+    val p1 =
+      new Transformer[PlannerContext, BaseState, BaseState] {
+        override def transform(from: BaseState, context: PlannerContext): BaseState =
+          parsing(parsingConfig, context.planContext).transform(from, context)
+        override def name: String = "parsing-with-context-resolver"
+        override def postConditions: Set[StepSequencer.Condition] = Set.empty
+      } andThen
+        prepareForCaching andThen
+        planPipeLine(
+          pushdownPropertyReads = pushdownPropertyReads,
+          allowSubqueryDuplicationInCnf = allowSubqueryDuplicationInCnfNormalizer
+        )
     p1 andThen
       If((_: LogicalPlanState) => compressAnonymousVariables)(
         CompressAnonymousVariables

@@ -93,7 +93,7 @@ trait FragmentTestUtils {
       Leaf(input, clauses, outputColumns)(pos)
 
     def exec(query: Query, outputColumns: Seq[String]): Exec =
-      Exec(input, query, dummyLocalQuery, dummyRemoteQuery, false, outputColumns)
+      Exec(input, query, dummyRemoteQuery, false, outputColumns)
   }
 
   val dummyLocalQuery: BaseState = DummyState
@@ -225,7 +225,7 @@ trait FragmentTestUtils {
       fragment
         .rewritten
         .topDown {
-          case e: Fragment.Exec => e.copy(localQuery = dummyLocalQuery, remoteQuery = dummyRemoteQuery)
+          case e: Fragment.Exec => e.copy(remoteQuery = dummyRemoteQuery)
         }
   }
 

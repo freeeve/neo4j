@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.defaultSemanticFeatures
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.FrontEndCompilationPhases.settingToFeatureMapping
@@ -64,11 +65,43 @@ class CypherParsing(
     tracer: CompilationPhaseTracer,
     params: MapValue,
     cancellationChecker: CancellationChecker,
-    resolver: Option[ScopedProcedureSignatureResolver] = None,
+    resolver: ScopedProcedureSignatureResolver,
     sessionDatabase: DatabaseReference,
     isScopeQuery: Boolean,
     shadowedFunctions: Set[String]
   ): BaseState = {
+    val (startState, context, parsingConfig) = prepareParsingContext(
+      queryText,
+      rawQueryText,
+      cypherVersion,
+      notificationLogger,
+      plannerNameText,
+      offset,
+      tracer,
+      params,
+      cancellationChecker,
+      sessionDatabase,
+      isScopeQuery,
+      shadowedFunctions
+    )
+    CompilationPhases.parsing(parsingConfig, resolver, parameters = params)
+      .transform(startState, context)
+  }
+
+  private def prepareParsingContext(
+    queryText: String,
+    rawQueryText: String,
+    cypherVersion: CypherVersion,
+    notificationLogger: InternalNotificationLogger,
+    plannerNameText: String,
+    offset: Option[InputPosition],
+    tracer: CompilationPhaseTracer,
+    params: MapValue,
+    cancellationChecker: CancellationChecker,
+    sessionDatabase: DatabaseReference,
+    isScopeQuery: Boolean,
+    shadowedFunctions: Set[String]
+  ): (BaseState, BaseContext, ParsingConfig) = {
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
 
@@ -93,16 +126,14 @@ class CypherParsing(
     )
     val paramTypes = ParameterValueTypeHelper.asCypherTypeMap(params, config.useParameterSizeHint)
 
-    CompilationPhases.parsing(
-      ParsingConfig(
-        extractLiterals = config.extractLiterals,
-        parameterTypeMapping = paramTypes,
-        obfuscateLiterals = config.obfuscateLiterals(),
-        resolveSimpleDynamicExpressions = config.resolveSimpleDynamicExpressions
-      ),
-      resolver = resolver,
-      parameters = params
-    ).transform(startState, context)
+    val parsingConfig = ParsingConfig(
+      extractLiterals = config.extractLiterals,
+      parameterTypeMapping = paramTypes,
+      obfuscateLiterals = config.obfuscateLiterals(),
+      resolveSimpleDynamicExpressions = config.resolveSimpleDynamicExpressions,
+      enabledVirtualGraph = config.useVirtualGraph
+    )
+    (startState, context, parsingConfig)
   }
 
   /*
@@ -122,7 +153,8 @@ case class CypherParsingConfig(
   semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures.map(SemanticFeature.fromString),
   obfuscateLiterals: () => Boolean = () => false,
   queryRouterForCompositeEnabled: Boolean = false,
-  resolveSimpleDynamicExpressions: Boolean = false
+  resolveSimpleDynamicExpressions: Boolean = false,
+  useVirtualGraph: Boolean = false
 )
 
 object CypherParsingConfig {
@@ -161,13 +193,16 @@ object CypherParsingConfig {
       )
     }
 
+    val enabledVirtualGraph: Boolean = cypherConfiguration.useVirtualGraph
+
     CypherParsingConfig(
       extractLiterals,
       useParameterSizeHint,
       enabledSemanticFeatures,
       () => cypherConfiguration.obfuscateLiterals, // Is dynamic, but documented to not affect caching.
       cypherConfiguration.allowCompositeQueries,
-      resolveSimpleDynamicExpressions
+      resolveSimpleDynamicExpressions,
+      enabledVirtualGraph
     )
   }
 

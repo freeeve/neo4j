@@ -76,7 +76,7 @@ public class FabricProcedures implements Procedures {
 
     @Override
     public UserFunctionHandle aggregationFunctionGet(QualifiedName name, QueryLanguage scope) {
-        return notAvailable();
+        return view.aggregationFunction(name, scope);
     }
 
     @Override

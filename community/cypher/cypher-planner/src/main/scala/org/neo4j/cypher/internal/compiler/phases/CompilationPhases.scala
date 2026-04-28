@@ -53,8 +53,6 @@ import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.MoveBoundaryNodePredicates
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
-import org.neo4j.cypher.internal.frontend.phases.ProcedureAndFunctionDeprecationWarnings
-import org.neo4j.cypher.internal.frontend.phases.ProcedureWarnings
 import org.neo4j.cypher.internal.frontend.phases.ProjectNamedPathsRewriter
 import org.neo4j.cypher.internal.frontend.phases.SetSemanticsNotUpToDate
 import org.neo4j.cypher.internal.frontend.phases.ShortestPathVariableDeduplicator
@@ -63,9 +61,7 @@ import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractLocalDefinitions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LocalFunctionsResolved
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
@@ -152,15 +148,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
   private val orderedPlanPipelineSteps = astPlanPipelineSteps ++ irPlanPipelineSteps ++ lpPlanPipelineSteps
 
   // Phase 2
-  val prepareForCaching: Transformer[PlannerContext, BaseState, BaseState] =
-    ScopeSurveyor andThen
-      ExtractLocalDefinitions andThen
-      RewriteProcedureCalls andThen
-      ScopeSurveyor andThen
-      AmbiguousAggregationAnalysis andThen
-      ProcedureAndFunctionDeprecationWarnings andThen
-      ProcedureWarnings andThen
-      ObfuscationMetadataCollection
+  val prepareForCaching: Transformer[PlannerContext, BaseState, BaseState] = ObfuscationMetadataCollection
 
   // Phase 3
   def planPipeLine(

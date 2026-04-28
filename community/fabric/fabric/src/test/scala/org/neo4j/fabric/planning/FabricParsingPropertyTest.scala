@@ -165,11 +165,15 @@ class FabricParsingPropertyTest extends CypherFunSuite
             )
           }
         } catch {
-          case _: DummyException =>
           // Ignore. We can get those for certain semantic errors caught by the rewriters.
+          case _: DummyException =>
+          // Ignore. We can reach invalid states by ignoring semantic errors and continuing.
           case _: IllegalStateException  =>
           case _: NoSuchElementException =>
-          // Ignore. We can reach invalid states by ignoring semantic errors and continuing.
+          // Ignore. Caused by invalid Cypher reaching the ASTRewriter
+          case _: UnsupportedOperationException =>
+          case _: ClassCastException            =>
+
         }
       }
     }

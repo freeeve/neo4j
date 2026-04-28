@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -92,6 +93,18 @@ object TransactionBoundPlanContext {
       cypherVersion
     )
   }
+
+  def resolver(tc: TransactionalContextWrapper, cypherVersion: CypherVersion): ScopedProcedureSignatureResolver =
+    new ScopedProcedureSignatureResolver {
+      override def procedureSignature(name: ProcedureName): ProcedureSignature =
+        TransactionBoundPlanContext.procedureSignature(tc.kernelTransaction, name, cypherVersion)
+      override def functionSignature(name: FunctionName): Option[UserFunctionSignature] =
+        TransactionBoundPlanContext.functionSignature(tc.kernelTransaction, name, cypherVersion)
+      override def procedureSignatureVersion: Long =
+        tc.procedures.signatureVersion
+      override def queryLanguage: QueryLanguage =
+        QueryLanguage.from(cypherVersion)
+    }
 
   def procedureSignature(tx: KernelTransaction, name: ProcedureName, version: CypherVersion): ProcedureSignature = {
     val kn = new procs.QualifiedName(name.namespace.parts.toArray, name.name)
