@@ -100,7 +100,7 @@ class FileImporterTest {
                     .addNodeFiles(emptySet(), new FileGroup(inputFile.toAbsolutePath()))
                     .build();
 
-            csvImporter.doImport(fullImport());
+            csvImporter.doImport(fullImport(), false);
 
             assertThat(importContext.baseDir()).exists();
             assertThat(importContext.logPath())
@@ -128,11 +128,11 @@ class FileImporterTest {
                 .withDatabaseConfig(dbConfig)
                 .withReportFile(reportLocation.toAbsolutePath());
         // Then
-        assertThatThrownBy(() -> csvImporterBuilder.build().doImport(fullImport()))
+        assertThatThrownBy(() -> csvImporterBuilder.build().doImport(fullImport(), false))
                 .isInstanceOf(FileImporter.CsvImportException.class)
                 .hasCauseInstanceOf(DirectoryNotEmptyException.class)
                 .hasMessageContaining("Database already exist. Re-run with `--overwrite-destination`");
-        assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport()))
+        assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport(), false))
                 .doesNotThrowAnyException();
     }
 
@@ -154,7 +154,7 @@ class FileImporterTest {
                 .addNodeFiles(emptySet(), new FileGroup(inputFile.toAbsolutePath()))
                 .build();
 
-        fileImporter.doImport(fullImport());
+        fileImporter.doImport(fullImport(), false);
 
         long pins = cacheTracer.pins();
         assertThat(pins).isPositive();
@@ -178,7 +178,7 @@ class FileImporterTest {
                 .build();
 
         // when
-        assertThatThrownBy(() -> importer.doImport(fullImport()))
+        assertThatThrownBy(() -> importer.doImport(fullImport(), false))
                 .hasRootCauseInstanceOf(InputException.class)
                 .hasMessageContaining("Too many bad entries");
     }
@@ -200,7 +200,7 @@ class FileImporterTest {
         context.configure(importerBuilder);
         var importer = importerBuilder.build();
 
-        var throwableAssert = assertThatThrownBy(() -> importer.doImport(fullImport()));
+        var throwableAssert = assertThatThrownBy(() -> importer.doImport(fullImport(), false));
         context.assertException(throwableAssert);
     }
 

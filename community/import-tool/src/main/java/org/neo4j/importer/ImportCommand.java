@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -180,6 +181,16 @@ public class ImportCommand {
                         + "will actually be imported, only the validation of the various arguments and estimation of "
                         + "size of the import will be performed and reported.")
         private boolean dryRun;
+
+        @Option(
+                names = "--super-fast",
+                arity = "0..1",
+                showDefaultValue = ALWAYS,
+                paramLabel = "true|false",
+                fallbackValue = "true",
+                description = "Zzzing",
+                hidden = true)
+        private boolean superFast;
 
         @Option(
                 names = "--schema",
@@ -357,7 +368,7 @@ public class ImportCommand {
                 description = "Size of each buffer for reading input data. "
                         + "It has to be at least large enough to hold the biggest single value in the input data. "
                         + "The value can be a plain number or a byte units string, e.g. 128k, 1m.")
-        private long bufferSize = DEFAULT_CSV_CONFIG.bufferSize();
+        private long bufferSize;
 
         @Option(
                 names = "--max-off-heap-memory",
@@ -673,7 +684,7 @@ public class ImportCommand {
                     } else {
                         try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout)) {
                             importContext.preamble(ctx.out());
-                            importer.doImport(this);
+                            importer.doImport(this, superFast);
                             postImport(fileSystem, databaseConfig, importContext, databaseLayout);
                         }
                     }
@@ -786,6 +797,32 @@ public class ImportCommand {
                 IndexProvidersAccess indexProvidersAccess,
                 ShardingArguments shardingArguments,
                 Monitor monitor)
+                throws IOException;
+
+        protected abstract void doSuperFastImport(
+                FileSystemAbstraction fileSystem,
+                DatabaseLayout databaseLayout,
+                boolean force,
+                Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
+                JobScheduler jobScheduler,
+                InternalLogProvider logProvider,
+                PageCacheTracer pageCacheTracer,
+                CursorContextFactory contextFactory,
+                Configuration importConfig,
+                LogService logService,
+                PrintStream stdOut,
+                PrintStream stdErr,
+                boolean verbose,
+                Collector badCollector,
+                MemoryTracker memoryTracker,
+                Input input,
+                Charset encoding,
+                Map<Set<String>, List<FileGroup>> nodeFileGroupsByAdditionalLabels,
+                IndexProvidersAccess indexProvidersAccess,
+                ShardingArguments shardingArguments,
+                Monitor monitor,
+                IdType idType)
                 throws IOException;
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
@@ -905,8 +942,20 @@ public class ImportCommand {
                     .withQuotationCharacter(quote)
                     .withEmptyQuotedStringsAsNull(ignoreEmptyStrings)
                     .withTrimStrings(trimStrings)
-                    .withLegacyStyleQuoting(legacyStyleQuoting)
-                    .withBufferSize(toIntExact(bufferSize));
+                    .withLegacyStyleQuoting(legacyStyleQuoting);
+
+            if (bufferSize == 0L) {
+                // Use default value
+                if (superFast) {
+                    builder.withBufferSize(
+                            org.neo4j.csv.reader.Configuration.Builder.DEFAULT_BUFFER_SIZE_IF_SUPER_FAST);
+                } else {
+                    builder.withBufferSize(DEFAULT_CSV_CONFIG.bufferSize());
+                }
+            } else {
+                // Use provided value
+                builder.withBufferSize(toIntExact(bufferSize));
+            }
 
             if (multilineFieldOptions != null) {
                 final var multilineFields = multilineFieldOptions.multilineFields;
@@ -1195,6 +1244,59 @@ public class ImportCommand {
                     shardingArguments == null ? null : shardingArguments.additionalArguments(),
                     DatabaseCreationOptions.EMPTY_CREATION_OPTIONS);
             batchImporter.doDryRun(input, stdOut);
+        }
+
+        @Override
+        protected void doSuperFastImport(
+                FileSystemAbstraction fileSystem,
+                DatabaseLayout databaseLayout,
+                boolean force,
+                Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
+                JobScheduler jobScheduler,
+                InternalLogProvider logProvider,
+                PageCacheTracer pageCacheTracer,
+                CursorContextFactory contextFactory,
+                Configuration importConfig,
+                LogService logService,
+                PrintStream stdOut,
+                PrintStream stdErr,
+                boolean verbose,
+                Collector badCollector,
+                MemoryTracker memoryTracker,
+                Input input,
+                Charset encoding,
+                Map<Set<String>, List<FileGroup>> nodeFileGroupsByAdditionalLabels,
+                IndexProvidersAccess indexProvidersAccess,
+                ShardingArguments shardingArguments,
+                Monitor monitor,
+                IdType idType)
+                throws IOException {
+            storageEngineFactory
+                    .batchImporter(
+                            databaseLayout,
+                            fileSystem,
+                            force,
+                            pageCacheTracer,
+                            importConfig,
+                            logService,
+                            stdOut,
+                            verbose,
+                            DefaultAdditionalIds.EMPTY,
+                            new LogTailMetadataFactoryImpl(fileSystem),
+                            databaseConfig,
+                            new PrintingImportLogicMonitor(stdOut, stdErr, monitor),
+                            jobScheduler,
+                            badCollector,
+                            TransactionLogInitializer.getLogFilesInitializer(),
+                            new IndexImporterFactoryImpl(),
+                            memoryTracker,
+                            contextFactory,
+                            indexProvidersAccess,
+                            shardingArguments == null ? 0 : shardingArguments.numShards,
+                            shardingArguments == null ? null : shardingArguments.additionalArguments,
+                            DatabaseCreationOptions.EMPTY_CREATION_OPTIONS)
+                    .doSuperFastImport(input, idType, encoding, nodeFileGroupsByAdditionalLabels);
         }
 
         @Override

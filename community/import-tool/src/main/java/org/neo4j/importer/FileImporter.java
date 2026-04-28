@@ -222,17 +222,16 @@ public class FileImporter {
         }
     }
 
-    public void doImport(ImportCommand.Base type) throws IOException {
+    public void doImport(ImportCommand.Base type, boolean superFast) throws IOException {
         if (force) {
             fileSystem.deleteRecursively(
                     databaseLayout.databaseDirectory(), path -> !path.equals(databaseLayout.databaseLockFile()));
             fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
         }
 
-        try (var badCollector = getBadCollector()) {
-            try (var input = importInput()) {
-                doImport(input, badCollector, type);
-            }
+        try (var badCollector = getBadCollector();
+                var input = importInput()) {
+            doImport(input, badCollector, type, superFast);
         }
     }
 
@@ -284,7 +283,7 @@ public class FileImporter {
         };
     }
 
-    private void doImport(Input input, Collector badCollector, ImportCommand.Base type) {
+    private void doImport(Input input, Collector badCollector, ImportCommand.Base type, boolean superFast) {
         boolean success = false;
 
         printOverview(false);
@@ -304,27 +303,54 @@ public class FileImporter {
                     new SimpleLogService(logProvider),
                     pageCacheTracer,
                     contextFactory));
-            type.doImport(
-                    fileSystem,
-                    databaseLayout,
-                    force,
-                    databaseConfig,
-                    storageEngineFactory,
-                    jobScheduler,
-                    logProvider,
-                    pageCacheTracer,
-                    contextFactory,
-                    importConfig,
-                    logService,
-                    stdOut,
-                    stdErr,
-                    verbose,
-                    badCollector,
-                    memoryTracker,
-                    input,
-                    indexProviders,
-                    shardingArguments,
-                    monitor);
+            if (superFast) {
+                type.doSuperFastImport(
+                        fileSystem,
+                        databaseLayout,
+                        force,
+                        databaseConfig,
+                        storageEngineFactory,
+                        jobScheduler,
+                        logProvider,
+                        pageCacheTracer,
+                        contextFactory,
+                        importConfig,
+                        logService,
+                        stdOut,
+                        stdErr,
+                        verbose,
+                        badCollector,
+                        memoryTracker,
+                        input,
+                        inputEncoding,
+                        nodeFiles,
+                        indexProviders,
+                        shardingArguments,
+                        monitor,
+                        idType);
+            } else {
+                type.doImport(
+                        fileSystem,
+                        databaseLayout,
+                        force,
+                        databaseConfig,
+                        storageEngineFactory,
+                        jobScheduler,
+                        logProvider,
+                        pageCacheTracer,
+                        contextFactory,
+                        importConfig,
+                        logService,
+                        stdOut,
+                        stdErr,
+                        verbose,
+                        badCollector,
+                        memoryTracker,
+                        input,
+                        indexProviders,
+                        shardingArguments,
+                        monitor);
+            }
             success = true;
         } catch (Exception ex) {
             throw csvImportExceptionWrapped(databaseLayout.getDatabaseName(), ex, type.importType());

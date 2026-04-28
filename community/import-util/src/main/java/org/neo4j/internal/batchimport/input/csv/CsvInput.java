@@ -277,6 +277,10 @@ public class CsvInput implements Input {
         return delimitIds;
     }
 
+    public Configuration config() {
+        return config;
+    }
+
     private InputIterator stream(Iterable<DataFactory> data, Header.Factory headerFactory, Collector badCollector) {
         return new CsvGroupInputIterator(
                 data.iterator(),
