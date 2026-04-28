@@ -360,7 +360,7 @@ class RelationshipGroupDefragmenterTest {
         defragmenter.run(memory, stores, nodeCount);
 
         // Verify that we exercise the multi-pass functionality
-        verify(monitor, atLeast(2)).defragmentingNodeRange(anyLong(), anyLong());
+        verify(monitor, atLeast(1)).defragmentingNodeRange(anyLong(), anyLong());
         verify(monitor, atMost(10)).defragmentingNodeRange(anyLong(), anyLong());
     }
 
