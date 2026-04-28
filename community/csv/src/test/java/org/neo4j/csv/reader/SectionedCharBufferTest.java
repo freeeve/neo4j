@@ -19,7 +19,7 @@
  */
 package org.neo4j.csv.reader;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -37,8 +37,8 @@ class SectionedCharBufferTest {
         buffer.compact(buffer, buffer.front() - 2);
 
         // THEN
-        assertEquals('2', buffer.array()[2]);
-        assertEquals('3', buffer.array()[3]);
+        assertThat(buffer.array()[2]).isEqualTo('2');
+        assertThat(buffer.array()[3]).isEqualTo('3');
     }
 
     @Test
@@ -55,11 +55,11 @@ class SectionedCharBufferTest {
         buffer1.compact(buffer2, buffer1.pivot() + 2 /*simulate reading 2 chars*/);
 
         // THEN
-        assertEquals('2', buffer2.array()[2]);
-        assertEquals('3', buffer2.array()[3]);
-        assertEquals('4', buffer2.array()[4]);
-        assertEquals('5', buffer2.array()[5]);
-        assertEquals('6', buffer2.array()[6]);
-        assertEquals('7', buffer2.array()[7]);
+        assertThat(buffer2.array()[2]).isEqualTo('2');
+        assertThat(buffer2.array()[3]).isEqualTo('3');
+        assertThat(buffer2.array()[4]).isEqualTo('4');
+        assertThat(buffer2.array()[5]).isEqualTo('5');
+        assertThat(buffer2.array()[6]).isEqualTo('6');
+        assertThat(buffer2.array()[7]).isEqualTo('7');
     }
 }

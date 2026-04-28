@@ -20,10 +20,8 @@
 package org.neo4j.csv.reader;
 
 import static java.util.Arrays.copyOfRange;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.neo4j.csv.reader.HeaderSkipper.NO_SKIP;
 
 import org.junit.jupiter.api.Test;
@@ -39,15 +37,15 @@ class ClosestNewLineChunkerTest {
         try (ClosestNewLineChunker source = new ClosestNewLineChunker(reader, 12, NO_SKIP)) {
             // WHEN
             Chunk chunk = source.newChunk();
-            assertTrue(source.nextChunk(chunk));
-            assertArrayEquals("1234567\n".toCharArray(), charactersOf(chunk));
-            assertTrue(source.nextChunk(chunk));
-            assertArrayEquals("8901234\n".toCharArray(), charactersOf(chunk));
-            assertTrue(source.nextChunk(chunk));
-            assertArrayEquals("5678901234".toCharArray(), charactersOf(chunk));
+            assertThat(source.nextChunk(chunk)).isTrue();
+            assertThat(charactersOf(chunk)).containsExactly("1234567\n".toCharArray());
+            assertThat(source.nextChunk(chunk)).isTrue();
+            assertThat(charactersOf(chunk)).containsExactly("8901234\n".toCharArray());
+            assertThat(source.nextChunk(chunk)).isTrue();
+            assertThat(charactersOf(chunk)).containsExactly("5678901234".toCharArray());
 
             // THEN
-            assertFalse(source.nextChunk(chunk));
+            assertThat(source.nextChunk(chunk)).isFalse();
         }
     }
 
@@ -60,9 +58,10 @@ class ClosestNewLineChunkerTest {
         try (ClosestNewLineChunker source = new ClosestNewLineChunker(reader, 12, NO_SKIP)) {
             // WHEN
             Chunk chunk = source.newChunk();
-            assertTrue(source.nextChunk(chunk));
-            assertArrayEquals("1234567\n".toCharArray(), charactersOf(chunk));
-            assertThrows(IllegalStateException.class, () -> assertFalse(source.nextChunk(chunk)));
+            assertThat(source.nextChunk(chunk)).isTrue();
+            assertThat(charactersOf(chunk)).containsExactly("1234567\n".toCharArray());
+            assertThatExceptionOfType(IllegalStateException.class)
+                    .isThrownBy(() -> assertThat(source.nextChunk(chunk)).isFalse());
         }
     }
 

@@ -20,8 +20,7 @@
 package org.neo4j.csv.reader;
 
 import static java.util.Arrays.copyOfRange;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.CharArrayReader;
 import java.io.IOException;
@@ -38,7 +37,7 @@ class ThreadAheadReadableTest {
             SectionedCharBuffer buffer = new SectionedCharBuffer(bufferSize);
 
             // WHEN starting it up it should read and fill the buffer to the brim
-            assertEquals(bufferSize, actual.awaitCompletedReadAttempts(1));
+            assertThat(actual.awaitCompletedReadAttempts(1)).isEqualTo(bufferSize);
 
             // WHEN we read one buffer
             int read = 0;
@@ -64,10 +63,10 @@ class ThreadAheadReadableTest {
 
             keep = 1;
             buffer = aheadReader.read(buffer, buffer.front() - keep);
-            assertEquals(3, buffer.available());
+            assertThat(buffer.available()).isEqualTo(3);
             assertBuffer(chars(read - keep, buffer.available() + keep), buffer, keep, 3);
             read += buffer.available();
-            assertEquals(23, read);
+            assertThat(read).isEqualTo(23);
         }
     }
 
@@ -84,16 +83,16 @@ class ThreadAheadReadableTest {
             // THEN
             SectionedCharBuffer buffer = new SectionedCharBuffer(bufferSize);
             buffer = aheadReadable.read(buffer, buffer.front());
-            assertEquals(buffer.pivot(), buffer.back());
-            assertEquals(buffer.pivot(), buffer.front());
+            assertThat(buffer.back()).isEqualTo(buffer.pivot());
+            assertThat(buffer.front()).isEqualTo(buffer.pivot());
         }
     }
 
     private static void assertBuffer(
             char[] expectedChars, SectionedCharBuffer buffer, int charsInBack, int charsInFront) {
-        assertEquals(buffer.pivot() - charsInBack, buffer.back());
-        assertEquals(buffer.pivot() + charsInFront, buffer.front());
-        assertArrayEquals(expectedChars, copyOfRange(buffer.array(), buffer.back(), buffer.front()));
+        assertThat(buffer.back()).isEqualTo(buffer.pivot() - charsInBack);
+        assertThat(buffer.front()).isEqualTo(buffer.pivot() + charsInFront);
+        assertThat(copyOfRange(buffer.array(), buffer.back(), buffer.front())).containsExactly(expectedChars);
     }
 
     private static class TrackingReader extends CharReadable.Adapter {

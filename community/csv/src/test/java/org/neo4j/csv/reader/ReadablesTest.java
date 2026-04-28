@@ -21,9 +21,7 @@ package org.neo4j.csv.reader;
 
 import static java.util.Arrays.copyOfRange;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.params.provider.Arguments.of;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -169,8 +167,9 @@ class ReadablesTest {
 
         // WHEN
         @SuppressWarnings("resource")
-        IOException exception =
-                assertThrows(IOException.class, () -> Readables.files(Charset.defaultCharset(), compressed));
+        IOException exception = assertThatExceptionOfType(IOException.class)
+                .isThrownBy(() -> Readables.files(Charset.defaultCharset(), compressed))
+                .actual();
         assertThat(exception.getMessage()).contains("Multiple");
     }
 
@@ -188,11 +187,11 @@ class ReadablesTest {
                 expected += buffer.available();
 
                 // THEN
-                assertEquals(expected, reader.position());
+                assertThat(reader.position()).isEqualTo(expected);
             } while (buffer.hasAvailable());
 
             // and THEN
-            assertEquals(data.length(), expected);
+            assertThat(expected).isEqualTo(data.length());
         }
     }
 
@@ -260,8 +259,8 @@ class ReadablesTest {
         reader.read(secondLineCharacters, 0, secondLineCharacters.length);
 
         // then
-        assertArrayEquals(firstLine.toCharArray(), firstLineCharacters);
-        assertArrayEquals(secondLine.toCharArray(), secondLineCharacters);
+        assertThat(firstLineCharacters).containsExactly(firstLine.toCharArray());
+        assertThat(secondLineCharacters).containsExactly(secondLine.toCharArray());
     }
 
     @Test
@@ -275,8 +274,8 @@ class ReadablesTest {
         int readAfterwards = reader.read(new char[1], 0, 1);
 
         // then
-        assertArrayEquals(firstLine.toCharArray(), firstLineCharacters);
-        assertEquals(-1, readAfterwards);
+        assertThat(firstLineCharacters).containsExactly(firstLine.toCharArray());
+        assertThat(readAfterwards).isEqualTo(-1);
     }
 
     private void shouldReadTextFromFileWithBom(Magic bom, String text, ReadMethod readMethod) throws IOException {
@@ -301,9 +300,9 @@ class ReadablesTest {
             // THEN
             char[] expected = data.toCharArray();
             char[] array = buffer.array();
-            assertEquals(expected.length, buffer.available());
+            assertThat(buffer.available()).isEqualTo(expected.length);
             for (int i = 0; i < expected.length; i++) {
-                assertEquals(expected[i], array[buffer.pivot() + i]);
+                assertThat(array[buffer.pivot() + i]).isEqualTo(expected[i]);
             }
         }
     }
@@ -370,7 +369,7 @@ class ReadablesTest {
 
     private static void assertReadText(CharReadable readable, String text, ReadMethod readMethod) throws IOException {
         char[] readText = readMethod.read(readable, text.length());
-        assertArrayEquals(readText, text.toCharArray());
+        assertThat(text.toCharArray()).containsExactly(readText);
     }
 
     private static Stream<Arguments> parameters() {

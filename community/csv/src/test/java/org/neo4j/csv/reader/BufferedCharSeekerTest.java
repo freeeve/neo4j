@@ -22,11 +22,8 @@ package org.neo4j.csv.reader;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowableOfType;
 import static org.neo4j.csv.reader.CharSeekers.charSeeker;
 import static org.neo4j.csv.reader.Readables.wrap;
 import static org.neo4j.function.Predicates.alwaysFalse;
@@ -90,25 +87,25 @@ class BufferedCharSeekerTest {
 
         // WHEN/THEN
         // first value
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals('\t', mark.character());
-        assertFalse(mark.isEndOfLine());
-        assertEquals("abcdefg", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(mark.character()).isEqualTo('\t');
+        assertThat(mark.isEndOfLine()).isFalse();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("abcdefg");
 
         // second value
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals('\t', mark.character());
-        assertFalse(mark.isEndOfLine());
-        assertEquals("hijklmnop", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(mark.character()).isEqualTo('\t');
+        assertThat(mark.isEndOfLine()).isFalse();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("hijklmnop");
 
         // third value
-        assertTrue(seeker.seek(mark, TAB));
-        assertTrue(mark.isEndOfLine());
-        assertEquals("qrstuvxyz", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(mark.isEndOfLine()).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("qrstuvxyz");
 
         // no more values
-        assertFalse(seeker.seek(mark, TAB));
-        assertFalse(seeker.seek(mark, TAB));
+        assertThat(seeker.seek(mark, TAB)).isFalse();
+        assertThat(seeker.seek(mark, TAB)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -121,27 +118,27 @@ class BufferedCharSeekerTest {
                 """, threadAhead);
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(1L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isOne();
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(2L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(2L);
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(3L, seeker.extract(mark, extractors.long_()).longValue());
-        assertTrue(mark.isEndOfLine());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(3L);
+        assertThat(mark.isEndOfLine()).isTrue();
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(4L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(4L);
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(5L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(5L);
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals(6L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(6L);
 
-        assertTrue(mark.isEndOfLine());
-        assertFalse(seeker.seek(mark, TAB));
+        assertThat(mark.isEndOfLine()).isTrue();
+        assertThat(seeker.seek(mark, TAB)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -153,14 +150,14 @@ class BufferedCharSeekerTest {
 
         // WHEN/THEN
         seeker.seek(mark, COMMA);
-        assertEquals(1234L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(1234L);
         seeker.seek(mark, COMMA);
-        assertEquals(5678L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(5678L);
         seeker.seek(mark, COMMA);
-        assertEquals(9012L, seeker.extract(mark, extractors.long_()).longValue());
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(9012L);
         seeker.seek(mark, COMMA);
-        assertEquals(3456L, seeker.extract(mark, extractors.long_()).longValue());
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.extract(mark, extractors.long_()).longValue()).isEqualTo(3456L);
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -169,19 +166,21 @@ class BufferedCharSeekerTest {
         // GIVEN
         seeker = seeker("here,comes,Windows\r\n" + "and,it,has\r" + "other,line,endings", threadAhead);
 
-        // WHEN/THEN
-        assertEquals("here", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("comes", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("Windows", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertTrue(mark.isEndOfLine());
-        assertEquals("and", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("it", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("has", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertTrue(mark.isEndOfLine());
-        assertEquals("other", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("line", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertEquals("endings", seeker.seek(mark, COMMA) ? seeker.extract(mark, extractors.string()) : "");
-        assertTrue(mark.isEndOfLine());
+        // WHEN/THEN - \r\n, \r, and implicit EOF all terminate a line
+        assertNextValue(seeker, mark, COMMA, "here");
+        assertNextValue(seeker, mark, COMMA, "comes");
+        assertNextValue(seeker, mark, COMMA, "Windows");
+        assertThat(mark.isEndOfLine()).isTrue();
+
+        assertNextValue(seeker, mark, COMMA, "and");
+        assertNextValue(seeker, mark, COMMA, "it");
+        assertNextValue(seeker, mark, COMMA, "has");
+        assertThat(mark.isEndOfLine()).isTrue();
+
+        assertNextValue(seeker, mark, COMMA, "other");
+        assertNextValue(seeker, mark, COMMA, "line");
+        assertNextValue(seeker, mark, COMMA, "endings");
+        assertThat(mark.isEndOfLine()).isTrue();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -197,12 +196,12 @@ class BufferedCharSeekerTest {
         // WHEN/THEN
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                assertTrue(seeker.seek(mark, TAB));
-                assertEquals(data[row][col], seeker.extract(mark, extractors.string()));
+                assertThat(seeker.seek(mark, TAB)).isTrue();
+                assertThat(seeker.extract(mark, extractors.string())).isEqualTo(data[row][col]);
             }
-            assertTrue(mark.isEndOfLine());
+            assertThat(mark.isEndOfLine()).isTrue();
         }
-        assertFalse(seeker.seek(mark, TAB));
+        assertThat(seeker.seek(mark, TAB)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -212,16 +211,16 @@ class BufferedCharSeekerTest {
         seeker = seeker("1,,3,4", threadAhead);
 
         // WHEN
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(1, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isOne();
 
-        assertTrue(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
 
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(3, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(3);
 
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(4, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(4);
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -232,21 +231,21 @@ class BufferedCharSeekerTest {
         // read more here          ^        ^
 
         // WHEN
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(12, seeker.extract(mark, extractors.int_()).intValue());
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(34, seeker.extract(mark, extractors.int_()).intValue());
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(56, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(12);
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(34);
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(56);
 
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(789, seeker.extract(mark, extractors.int_()).intValue());
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(901, seeker.extract(mark, extractors.int_()).intValue());
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(23, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(789);
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(901);
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(23);
 
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -256,14 +255,14 @@ class BufferedCharSeekerTest {
         seeker = seeker("123,56", config(6), threadAhead);
 
         // WHEN
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(123, seeker.extract(mark, extractors.int_()).intValue());
-        assertTrue(seeker.seek(mark, COMMA));
-        assertEquals(56, seeker.extract(mark, extractors.int_()).intValue());
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(123);
+        assertThat(seeker.seek(mark, COMMA)).isTrue();
+        assertThat(seeker.extract(mark, extractors.int_()).intValue()).isEqualTo(56);
 
         // THEN
-        assertFalse(seeker.seek(mark, COMMA));
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -277,7 +276,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "two");
         assertNextValue(seeker, mark, COMMA, "three");
         assertNextValueNotExtracted(seeker, mark, COMMA);
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
 
         assertNextValue(seeker, mark, COMMA, "uno");
         assertNextValue(seeker, mark, COMMA, "dos");
@@ -298,7 +297,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "");
 
         // THEN
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -312,7 +311,7 @@ class BufferedCharSeekerTest {
         assertNextValueNotExtracted(seeker, mark, COMMA);
 
         // THEN
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -322,20 +321,20 @@ class BufferedCharSeekerTest {
         seeker = seeker("one,two,three\n\n\nfour,five,six", threadAhead);
 
         // WHEN/THEN
-        assertArrayEquals(new String[] {"one", "two", "three"}, nextLineOfAllStrings(seeker, mark));
-        assertArrayEquals(new String[] {"four", "five", "six"}, nextLineOfAllStrings(seeker, mark));
+        assertThat(nextLineOfAllStrings(seeker, mark)).containsExactly(new String[] {"one", "two", "three"});
+        assertThat(nextLineOfAllStrings(seeker, mark)).containsExactly(new String[] {"four", "five", "six"});
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
     @ValueSource(booleans = {false, true})
-    void shouldHandleDoubleCharValues(boolean threadAhead) throws IOException {
+    void shouldHandleDoubleCharValues(boolean threadAhead) throws Exception {
         seeker = seeker("v\uD800\uDC00lue one\t\"v\uD801\uDC01lue two\"\tv\uD804\uDC03lue three", threadAhead);
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("v𐀀lue one", seeker.extract(mark, extractors.string()));
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("v𐐁lue two", seeker.extract(mark, extractors.string()));
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("v𑀃lue three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("v𐀀lue one");
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("v𐐁lue two");
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("v𑀃lue three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -345,14 +344,14 @@ class BufferedCharSeekerTest {
         seeker = seeker("value one\t\"value two\"\tvalue three", threadAhead);
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value one", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value one");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value two", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value two");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -362,14 +361,14 @@ class BufferedCharSeekerTest {
         seeker = seeker("value one\t\"value\ttwo\"\tvalue three", threadAhead);
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value one", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value one");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value\ttwo", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value\ttwo");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -379,14 +378,14 @@ class BufferedCharSeekerTest {
         seeker = seeker("value one\t\"value\ntwo\"\tvalue three", withMultilineFields(config()), threadAhead);
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value one", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value one");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value\ntwo", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value\ntwo");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -400,14 +399,14 @@ class BufferedCharSeekerTest {
         // "va""lue"" three"
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value \"one\"", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value \"one\"");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("\"value\" two", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("\"value\" two");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("va\"lue\" three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("va\"lue\" three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -420,14 +419,14 @@ class BufferedCharSeekerTest {
                 threadAhead);
 
         // WHEN/THEN
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("value \"one\"", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("value \"one\"");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("\"value\" two", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("\"value\" two");
 
-        assertTrue(seeker.seek(mark, TAB));
-        assertEquals("va\"lue\" three", seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, TAB)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo("va\"lue\" three");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -440,7 +439,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "one");
         assertNextValue(seeker, mark, COMMA, "two\"");
         assertNextValue(seeker, mark, COMMA, "th\"ree");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "four");
         assertNextValue(seeker, mark, COMMA, "five");
         assertNextValue(seeker, mark, COMMA, "s\"ix");
@@ -458,7 +457,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "123");
         assertNextValue(seeker, mark, COMMA, "456");
         assertNextValue(seeker, mark, COMMA, "789");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "abc");
         assertNextValue(seeker, mark, COMMA, "def");
         assertNextValue(seeker, mark, COMMA, "ghi");
@@ -472,7 +471,7 @@ class BufferedCharSeekerTest {
         seeker = seeker("", threadAhead);
 
         // WHEN/THEN
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -486,7 +485,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "4");
         assertNextValue(seeker, mark, COMMA, "\"");
         assertNextValue(seeker, mark, COMMA, "f\\oo");
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -500,7 +499,7 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "4");
         assertNextValue(seeker, mark, COMMA, "\\\"");
         assertNextValue(seeker, mark, COMMA, "f\\oo");
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -518,15 +517,15 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "1");
         assertNextValue(seeker, mark, COMMA, "ABBA");
         assertNextValue(seeker, mark, COMMA, "1992");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "2");
         assertNextValue(seeker, mark, COMMA, "Roxette");
         assertNextValue(seeker, mark, COMMA, "1986");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "3");
         assertNextValue(seeker, mark, COMMA, "Europe");
         assertNextValue(seeker, mark, COMMA, "1979");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "4");
         assertNextValue(seeker, mark, COMMA, "The Cardigans");
         assertNextValue(seeker, mark, COMMA, "1992");
@@ -542,9 +541,9 @@ class BufferedCharSeekerTest {
 
         // WHEN
         assertNextValue(seeker, mark, COMMA, "abc");
-        DataAfterQuoteException quoteException =
-                assertThrows(DataAfterQuoteException.class, () -> seeker.seek(mark, COMMA));
-        assertEquals(TEST_SOURCE, quoteException.source().sourceDescription());
+        assertThat(catchThrowableOfType(DataAfterQuoteException.class, () -> seeker.seek(mark, COMMA)))
+                .extracting(e -> e.source().sourceDescription())
+                .isEqualTo(TEST_SOURCE);
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -558,9 +557,9 @@ class BufferedCharSeekerTest {
                 threadAhead);
 
         assertNextValue(seeker, mark, COMMA, "abc");
-        IllegalMultilineFieldException multilineFieldException =
-                assertThrows(IllegalMultilineFieldException.class, () -> seeker.seek(mark, COMMA));
-        assertEquals(TEST_SOURCE, multilineFieldException.source().sourceDescription());
+        assertThat(catchThrowableOfType(IllegalMultilineFieldException.class, () -> seeker.seek(mark, COMMA)))
+                .extracting(e -> e.source().sourceDescription())
+                .isEqualTo(TEST_SOURCE);
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -570,9 +569,9 @@ class BufferedCharSeekerTest {
         seeker = seeker(data, threadAhead);
 
         assertNextValue(seeker, mark, COMMA, "abc");
-        MissingEndQuoteException missingEndQuoteException =
-                assertThrows(MissingEndQuoteException.class, () -> seeker.seek(mark, COMMA));
-        assertEquals(TEST_SOURCE, missingEndQuoteException.source().sourceDescription());
+        assertThat(catchThrowableOfType(MissingEndQuoteException.class, () -> seeker.seek(mark, COMMA)))
+                .extracting(e -> e.source().sourceDescription())
+                .isEqualTo(TEST_SOURCE);
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -598,18 +597,17 @@ class BufferedCharSeekerTest {
         assertNextValue(seeker, mark, COMMA, "a");
         assertNextValue(seeker, mark, COMMA, "b");
         assertNextValue(seeker, mark, COMMA, "c");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
         assertNextValue(seeker, mark, COMMA, "d");
         assertNextValue(seeker, mark, COMMA, "e");
         assertNextValue(seeker, mark, COMMA, "f");
-        assertTrue(mark.isEndOfLine());
+        assertThat(mark.isEndOfLine()).isTrue();
 
         // THEN
-        IllegalStateException stateException =
-                assertThrows(IllegalStateException.class, () -> seeker.seek(mark, COMMA));
-        String source = seeker.sourceDescription();
-        assertThat(stateException.getMessage()).contains("Tried to read");
-        assertThat(stateException.getMessage()).contains(source + ":4");
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> seeker.seek(mark, COMMA))
+                .withMessageContaining("Tried to read")
+                .withMessageContaining(seeker.sourceDescription() + ":4");
     }
 
     @ParameterizedTest(name = "thread-ahead: {0}")
@@ -622,7 +620,7 @@ class BufferedCharSeekerTest {
 
         // WHEN/THEN
         assertNextValue(seeker, mark, COMMA, "abc'def" + slash + "'ghi");
-        assertFalse(seeker.seek(mark, COMMA));
+        assertThat(seeker.seek(mark, COMMA)).isFalse();
     }
 
     private void shouldParseMultilineFieldWhereEndQuoteIsOnItsOwnLine(String newline, boolean threadAhead)
@@ -661,7 +659,7 @@ class BufferedCharSeekerTest {
 
     @ParameterizedTest(name = "thread-ahead: {0}")
     @ValueSource(booleans = {false, true})
-    void shouldTrimStringsWithFirstLineCharacterSpace(boolean threadAhead) throws IOException {
+    void shouldTrimStringsWithFirstLineCharacterSpace(boolean threadAhead) throws Exception {
         // given
         String line = " ,a, ,b, ";
         seeker = seeker(line, withTrimStrings(config()), threadAhead);
@@ -677,7 +675,7 @@ class BufferedCharSeekerTest {
 
     @ParameterizedTest(name = "thread-ahead: {0}")
     @ValueSource(booleans = {false, true})
-    void shouldParseAndTrimRandomStrings(boolean threadAhead) throws IOException {
+    void shouldParseAndTrimRandomStrings(boolean threadAhead) throws Exception {
         // given
         StringBuilder builder = new StringBuilder();
         int columns = random.nextInt(10) + 5;
@@ -756,7 +754,7 @@ class BufferedCharSeekerTest {
 
     @ParameterizedTest(name = "thread-ahead: {0}")
     @ValueSource(booleans = {false, true})
-    void shouldParseNonLatinCharacters(boolean threadAhead) throws IOException {
+    void shouldParseNonLatinCharacters(boolean threadAhead) throws Exception {
         // given
         List<String[]> expected = asList(
                 array("普通�?/普通話", "\uD83D\uDE21"),
@@ -846,19 +844,19 @@ class BufferedCharSeekerTest {
     }
 
     private void assertNextValue(CharSeeker seeker, Mark mark, int delimiter, String expectedValue) throws IOException {
-        assertTrue(seeker.seek(mark, delimiter));
-        assertEquals(expectedValue, seeker.extract(mark, extractors.string()));
+        assertThat(seeker.seek(mark, delimiter)).isTrue();
+        assertThat(seeker.extract(mark, extractors.string())).isEqualTo(expectedValue);
     }
 
     private void assertNextValueNotExtracted(CharSeeker seeker, Mark mark, int delimiter) throws IOException {
-        assertTrue(seeker.seek(mark, delimiter));
+        assertThat(seeker.seek(mark, delimiter)).isTrue();
         var extractor = extractors.string();
-        assertTrue(extractor.isEmpty(seeker.tryExtract(mark, extractor)));
+        assertThat(extractor.isEmpty(seeker.tryExtract(mark, extractor))).isTrue();
     }
 
     private static void assertEnd(CharSeeker seeker, Mark mark, int delimiter) throws IOException {
-        assertTrue(mark.isEndOfLine());
-        assertFalse(seeker.seek(mark, delimiter));
+        assertThat(mark.isEndOfLine()).isTrue();
+        assertThat(seeker.seek(mark, delimiter)).isFalse();
     }
 
     private String[] nextLineOfAllStrings(CharSeeker seeker, Mark mark) throws IOException {

@@ -97,7 +97,7 @@ class SourceTraceabilityIT {
             race.goUnchecked();
 
             // then
-            dataMap.values().forEach(v -> assertThat(v.isEmpty()).isTrue());
+            assertThat(dataMap.values()).allMatch(Map::isEmpty);
         }
     }
 
