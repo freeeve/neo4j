@@ -261,6 +261,15 @@ public abstract class ProgressMonitorFactory {
         return singlePart(process, totalCount, NO_INDICATOR_LISTENER);
     }
 
+    public ProgressListener singlePartSingleThreaded(String process, long totalCount, IndicatorListener listener) {
+        return new ProgressListener.SingleThreadedSinglePartProgressListener(
+                newIndicator(process, listener), totalCount, listener);
+    }
+
+    public ProgressListener singlePartSingleThreaded(String process, long totalCount) {
+        return singlePartSingleThreaded(process, totalCount, NO_INDICATOR_LISTENER);
+    }
+
     protected abstract Indicator newIndicator(String process, IndicatorListener listener);
 
     public static class MultiPartBuilder {

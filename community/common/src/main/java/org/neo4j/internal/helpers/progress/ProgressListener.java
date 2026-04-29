@@ -19,7 +19,10 @@
  */
 package org.neo4j.internal.helpers.progress;
 
+import static java.lang.Long.min;
+
 import java.util.concurrent.atomic.AtomicLong;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory.IndicatorListener;
 
 /**
  * A Progress object is an object through which a process can report its progress.
@@ -168,6 +171,64 @@ public interface ProgressListener extends AutoCloseable {
         @Override
         public int reportResolution() {
             return aggregator.reportResolution();
+        }
+    }
+
+    /** Used when the progress is being done by a single thread, meaning we can forego synchronization for speed
+     */
+    class SingleThreadedSinglePartProgressListener implements ProgressListener {
+        private final Indicator indicator;
+        private final long totalCount;
+        private final IndicatorListener listener;
+        private long progress;
+        private int last;
+
+        SingleThreadedSinglePartProgressListener(
+                Indicator indicator, long totalCount, ProgressMonitorFactory.IndicatorListener listener) {
+            this.indicator = indicator;
+            this.totalCount = totalCount;
+            this.listener = listener;
+            indicator.startProcess(totalCount);
+        }
+
+        @Override
+        public void add(long delta) {
+            if (delta > 0) {
+                progress += delta;
+                long cappedProgress = min(totalCount, progress);
+                if (cappedProgress > 0) {
+                    int current = (int) ((cappedProgress * indicator.reportResolution()) / totalCount);
+                    updateTo(current, cappedProgress);
+                }
+            }
+        }
+
+        private void updateTo(int current, long cappedProgress) {
+            if (current > last) {
+                indicator.progress(last, current);
+                listener.update(cappedProgress, totalCount);
+                last = current;
+            }
+        }
+
+        @Override
+        public void mark(char mark) {
+            indicator.mark(mark);
+        }
+
+        @Override
+        public void close() {
+            updateTo(indicator.reportResolution(), totalCount);
+        }
+
+        @Override
+        public void failed(Throwable e) {
+            indicator.failure(e);
+        }
+
+        @Override
+        public int reportResolution() {
+            return indicator.reportResolution();
         }
     }
 
