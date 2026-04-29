@@ -54,6 +54,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.StreamSupport;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
@@ -99,6 +101,7 @@ import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.ParameterWrongTypeException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -1526,6 +1529,84 @@ public final class CypherFunctions {
             return textValue.replaceWithLimit(asString(search), asString(replaceWith), intLimit);
         } else {
             throw notAString("replace", original);
+        }
+    }
+
+    public static AnyValue stringIndexOf(AnyValue input, AnyValue value) {
+        if (input == NO_VALUE || value == NO_VALUE) {
+            return NO_VALUE;
+        } else if (input instanceof TextValue inputText && value instanceof TextValue valueText) {
+            int utf16Idx = inputText.stringValue().indexOf(valueText.stringValue());
+            int cpIdx = utf16Idx < 0 ? -1 : inputText.stringValue().codePointCount(0, utf16Idx);
+            return intValue(cpIdx);
+        } else if (!(input instanceof TextValue)) {
+            throw notAString("string.indexOf", input);
+        } else {
+            throw notAString("string.indexOf", value);
+        }
+    }
+
+    public static AnyValue stringJoin(AnyValue list, AnyValue delimiter) {
+        if (list == NO_VALUE || delimiter == NO_VALUE) {
+            return NO_VALUE;
+        } else if (!(delimiter instanceof TextValue delimText)) {
+            throw notAString("string.join", delimiter);
+        } else if (list instanceof SequenceValue sequence) {
+            StringBuilder sb = new StringBuilder();
+            boolean first = true;
+            for (AnyValue item : sequence) {
+                if (item == NO_VALUE) {
+                    continue;
+                }
+                if (!(item instanceof TextValue)) {
+                    throw notAString("string.join", item);
+                }
+                if (!first) {
+                    sb.append(delimText.stringValue());
+                }
+                sb.append(((TextValue) item).stringValue());
+                first = false;
+            }
+            return stringValue(sb.toString());
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'string.join()': Expected %s to be a list", list),
+                    "string.join",
+                    list.prettyPrint(),
+                    List.of("LIST<STRING>"),
+                    CypherTypeValueMapper.valueType(list));
+        }
+    }
+
+    public static AnyValue stringRegexReplaceWithPattern(AnyValue input, Pattern pattern, AnyValue replacement) {
+        if (input == NO_VALUE || replacement == NO_VALUE) {
+            return NO_VALUE;
+        } else if (!(input instanceof TextValue inputText)) {
+            throw notAString("string.regexReplace", input);
+        } else if (!(replacement instanceof TextValue replacementText)) {
+            throw notAString("string.regexReplace", replacement);
+        } else {
+            return stringValue(pattern.matcher(inputText.stringValue()).replaceAll(replacementText.stringValue()));
+        }
+    }
+
+    public static AnyValue stringRegexReplace(AnyValue input, AnyValue regex, AnyValue replacement) {
+        if (input == NO_VALUE || regex == NO_VALUE || replacement == NO_VALUE) {
+            return NO_VALUE;
+        } else if (!(input instanceof TextValue inputText)) {
+            throw notAString("string.regexReplace", input);
+        } else if (!(regex instanceof TextValue regexText)) {
+            throw notAString("string.regexReplace", regex);
+        } else if (!(replacement instanceof TextValue replacementText)) {
+            throw notAString("string.regexReplace", replacement);
+        } else {
+            try {
+                return stringValue(Pattern.compile(regexText.stringValue())
+                        .matcher(inputText.stringValue())
+                        .replaceAll(replacementText.stringValue()));
+            } catch (PatternSyntaxException e) {
+                throw InvalidSemanticsException.invalidRegex(e.getMessage(), regexText.stringValue());
+            }
         }
     }
 

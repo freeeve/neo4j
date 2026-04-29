@@ -5053,6 +5053,123 @@
     "category": "Aggregating"
   },
   {
+    "name": "string.indexOf",
+    "aggregating": false,
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "isBuiltIn": true,
+    "rolesBoostedExecution": [],
+    "returnDescription": "INTEGER",
+    "description": "Returns the index of the first occurrence of the given `value` within the `input` `STRING`, or -1 if no match is found.",
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "cypherVersionScope": [
+      25
+    ],
+    "signature": "string.indexOf(input :: STRING, value :: STRING) :: INTEGER",
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "The string to be searched.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "value",
+        "description": "A value to search for.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "category": "String"
+  },
+  {
+    "name": "string.join",
+    "aggregating": false,
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "isBuiltIn": true,
+    "rolesBoostedExecution": [],
+    "returnDescription": "STRING",
+    "description": "Concatenates the elements in `input`, inserting `delimiter` between each element, and returns the resulting `STRING`.",
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "cypherVersionScope": [
+      25
+    ],
+    "signature": "string.join(input :: LIST<STRING>, delimiter :: STRING) :: STRING",
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "A list of strings to be joined.",
+        "isDeprecated": false,
+        "type": "LIST<STRING>"
+      },
+      {
+        "name": "delimiter",
+        "description": "The joining delimiter",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "category": "String"
+  },
+  {
+    "name": "string.regexReplace",
+    "aggregating": false,
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "isBuiltIn": true,
+    "rolesBoostedExecution": [],
+    "returnDescription": "STRING",
+    "description": "Returns a `STRING` where all matches of `regex` in the `original` `STRING` are replaced with the `replacement` `STRING`.",
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "cypherVersionScope": [
+      25
+    ],
+    "signature": "string.regexReplace(original :: STRING, regex :: STRING, replacement :: STRING) :: STRING",
+    "argumentDescription": [
+      {
+        "name": "original",
+        "description": "The string to be modified.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "regex",
+        "description": "The regex pattern to replace in the original `STRING`.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "replacement",
+        "description": "The value to be inserted in the original string.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "category": "String"
+  },
+  {
     "name": "substring",
     "aggregating": false,
     "isDeprecated": false,

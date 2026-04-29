@@ -270,6 +270,9 @@ public interface NamingRestrictions {
                 "coll.min",
                 "coll.remove",
                 "coll.sort",
+                "string.indexOf",
+                "string.join",
+                "string.regexReplace",
                 "uuid.leastSignificantBits",
                 "uuid.mostSignificantBits");
 

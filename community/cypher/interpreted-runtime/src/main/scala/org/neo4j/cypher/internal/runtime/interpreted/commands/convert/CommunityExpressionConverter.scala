@@ -117,6 +117,9 @@ import org.neo4j.cypher.internal.expressions.functions.Sqrt
 import org.neo4j.cypher.internal.expressions.functions.StartNode
 import org.neo4j.cypher.internal.expressions.functions.StdDev
 import org.neo4j.cypher.internal.expressions.functions.StdDevP
+import org.neo4j.cypher.internal.expressions.functions.StringIndexOf
+import org.neo4j.cypher.internal.expressions.functions.StringJoin
+import org.neo4j.cypher.internal.expressions.functions.StringRegexReplace
 import org.neo4j.cypher.internal.expressions.functions.Substring
 import org.neo4j.cypher.internal.expressions.functions.Sum
 import org.neo4j.cypher.internal.expressions.functions.Tail
@@ -840,6 +843,32 @@ case class CommunityExpressionConverter(
           self.toCommandExpression(id, invocation.arguments.head),
           self.toCommandExpression(id, invocation.arguments(1))
         )
+      case StringIndexOf =>
+        commands.expressions.StringIndexOfFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1))
+        )
+      case StringJoin =>
+        commands.expressions.StringJoinFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1))
+        )
+      case StringRegexReplace =>
+        val regexExpr = self.toCommandExpression(id, invocation.arguments(1))
+        regexExpr match {
+          case lit: commands.expressions.Literal =>
+            commands.expressions.LiteralStringRegexReplaceFunction(
+              self.toCommandExpression(id, invocation.arguments.head),
+              lit,
+              self.toCommandExpression(id, invocation.arguments(2))
+            )
+          case _ =>
+            commands.expressions.StringRegexReplaceFunction(
+              self.toCommandExpression(id, invocation.arguments.head),
+              regexExpr,
+              self.toCommandExpression(id, invocation.arguments(2))
+            )
+        }
       case Sqrt => commands.expressions.SqrtFunction(self.toCommandExpression(id, invocation.arguments.head))
       case StartNode => commands.expressions
           .RelationshipEndPoints(self.toCommandExpression(id, invocation.arguments.head), start = true)
