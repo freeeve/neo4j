@@ -45,7 +45,7 @@ public class Neo4jConfigMessage {
 
     @JsonProperty("neo4j_config")
     @JsonPropertyDescription(
-            "Map of neo4j config names to config values. Values are dynamically populated from the Fleet Management server.")
+            "Map of neo4j config names to config values. Values are dynamically populated from the Fleet Manager service.")
     @ValuesDocumentation(valueSupplier = Neo4jConfigNamesSupplier.class)
     public Map<String, Object> neo4jConfig;
 

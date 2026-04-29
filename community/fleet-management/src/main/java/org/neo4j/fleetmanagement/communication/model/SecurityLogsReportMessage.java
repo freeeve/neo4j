@@ -28,11 +28,11 @@ import org.neo4j.fleetmanagement.logs.model.SecurityLogsDefaultAggregation;
 @JsonClassDescription("Message sent from the server to the Fleet Manager service containing security logs data.")
 public class SecurityLogsReportMessage {
     @JsonProperty("from_timestamp")
-    @JsonPropertyDescription("Unix timestamp in milliseconds from the first query in the set")
+    @JsonPropertyDescription("Unix timestamp in milliseconds from the first log in the set")
     public long fromTimestamp;
 
     @JsonProperty("to_timestamp")
-    @JsonPropertyDescription("Unix timestamp in milliseconds to the last query in the set")
+    @JsonPropertyDescription("Unix timestamp in milliseconds to the last log in the set")
     public long toTimestamp;
 
     @JsonProperty("project_id")
