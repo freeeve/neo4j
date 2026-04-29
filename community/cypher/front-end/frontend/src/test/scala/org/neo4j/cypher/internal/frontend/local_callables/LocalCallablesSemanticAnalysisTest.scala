@@ -94,7 +94,7 @@ trait LocalCallablesSemanticAnalysisTest
       disabledCypherVersions = Set(CypherVersion.Cypher5),
       semanticAnalysisTwice(
         extraStepBefore = Some(
-          ScopeSurveyor andThen ResolveLocalFunctions andThen ScopeSurveyor andThen ExtractLocalDefinitions
+          ScopeSurveyor andThen ResolveLocalFunctions andThen ExtractLocalDefinitions
         ),
         extraStepInBetween = Some(TryRewriteProcedureCalls(makeResolverMock))
       ),
