@@ -19,91 +19,149 @@
  */
 package org.neo4j.hashing;
 
+import static java.lang.Math.unsignedMultiplyHigh;
 import static org.neo4j.internal.helpers.VarHandleUtils.byteArrayViewVarHandle;
 
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 
 /**
- * RapidHash is WyHash's official successor, with improved speed, quality and compatibility.
+ * RapidHash v3 ported to Java.
  * <p>
  * <a href="https://github.com/Nicoshev/rapidhash">rapidhash</a>
  */
 public final class RapidHash {
     private static final VarHandle LE_INTEGER = byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
     private static final VarHandle LE_LONG = byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
-    private static final long RAPID_SEED = 0xbdd89aa982704029L;
     private static final long SECRET0 = 0x2d358dccaa6c78a5L;
     private static final long SECRET1 = 0x8bb84b93962eacc9L;
     private static final long SECRET2 = 0x4b33a62ed433d4a3L;
+    private static final long SECRET3 = 0x4d5a2da51de1aa47L;
+    private static final long SECRET4 = 0xa0761d6478bd642fL;
+    private static final long SECRET5 = 0xe7037ed1a0b428dbL;
+    private static final long SECRET6 = 0x90ed1765281c388cL;
+    private static final long SECRET7 = 0xaaaaaaaaaaaaaaaaL;
+    private static final RapidHash DEFAULT_HASHER_INSTANCE = create(0L);
 
-    private RapidHash() {}
+    private final long seed;
 
-    public static long hash(String s) {
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
-        return hash(bytes, bytes.length);
+    private RapidHash(long seed) {
+        this.seed = seed ^ mix(seed ^ SECRET2, SECRET1);
     }
 
-    public static long hash(byte[] key, int len) {
-        return hashInternal(key, len);
+    /**
+     * Create a new {@link RapidHash} instance with the default seed.
+     *
+     * @return the default hasher instance.
+     */
+    public static RapidHash create() {
+        return DEFAULT_HASHER_INSTANCE;
     }
 
-    private static long hashInternal(byte[] key, int len) {
-        long seed = RAPID_SEED ^ mix(RAPID_SEED ^ SECRET0, SECRET1) ^ len;
+    /**
+     * Create a new {@link RapidHash} instance with the given seed.
+     *
+     * @param seed the seed value for the hasher
+     * @return a new hasher instance with the specified seed.
+     */
+    public static RapidHash create(long seed) {
+        return new RapidHash(seed);
+    }
+
+    /**
+     * Hashes a single long value.
+     *
+     * @param l the long value to hash.
+     * @return the hash value.
+     */
+    public long hash(long l) {
+        long a = l ^ SECRET1;
+        long b = l ^ (seed ^ 8);
+        return mix((a * b) ^ SECRET7, unsignedMultiplyHigh(a, b) ^ (SECRET1 ^ 8));
+    }
+
+    /**
+     * Hash a byte array with the standard RapidHash algorithm.
+     *
+     * @param key the byte array to hash.
+     * @param offset the offset in the byte array to start hashing from.
+     * @param length the length of the byte array to hash.
+     * @return the hash value.
+     */
+    public long hash(byte[] key, int offset, int length) {
+        return hashInternal(key, offset, length, seed);
+    }
+
+    private static long hashInternal(byte[] key, int offset, int len, long seed) {
         long a, b;
+        int i = len;
         if (len <= 16) {
             if (len >= 4) {
-                int pLast = len - 4;
-                a = (u32(key, 0) << 32) | u32(key, pLast);
-                final int delta = ((len & 24) >> (len >> 3));
-                b = ((u32(key, delta) << 32) | u32(key, pLast - delta));
+                seed ^= len;
+                if (len >= 8) {
+                    a = i64(key, offset);
+                    b = i64(key, offset + len - 8);
+                } else {
+                    a = u32(key, offset);
+                    b = u32(key, offset + len - 4);
+                }
             } else if (len > 0) {
-                a = readSmall(key, len);
-                b = 0;
-            } else {
-                a = b = 0;
-            }
+                a = ((key[offset] & 0xFFL) << 45) | (key[offset + len - 1] & 0xFFL);
+                b = key[offset + (len >> 1)] & 0xFFL;
+            } else a = b = 0;
         } else {
-            int i = len;
-            int p = 0;
-            if (i > 48) {
+            if (len > 112) {
                 long see1 = seed, see2 = seed;
-                while (i >= 96) {
-                    seed = mix(i64(key, p) ^ SECRET0, i64(key, p + 8) ^ seed);
-                    see1 = mix(i64(key, p + 16) ^ SECRET1, i64(key, p + 24) ^ see1);
-                    see2 = mix(i64(key, p + 32) ^ SECRET2, i64(key, p + 40) ^ see2);
-                    seed = mix(i64(key, p + 48) ^ SECRET0, i64(key, p + 56) ^ seed);
-                    see1 = mix(i64(key, p + 64) ^ SECRET1, i64(key, p + 72) ^ see1);
-                    see2 = mix(i64(key, p + 80) ^ SECRET2, i64(key, p + 88) ^ see2);
-                    p += 96;
-                    i -= 96;
-                }
-                if (i >= 48) {
-                    seed = mix(i64(key, p) ^ SECRET0, i64(key, p + 8) ^ seed);
-                    see1 = mix(i64(key, p + 16) ^ SECRET1, i64(key, p + 24) ^ see1);
-                    see2 = mix(i64(key, p + 32) ^ SECRET2, i64(key, p + 40) ^ see2);
-                    p += 48;
-                    i -= 48;
-                }
-                seed ^= see1 ^ see2;
+                long see3 = seed, see4 = seed;
+                long see5 = seed, see6 = seed;
+
+                do {
+                    seed = mix(i64(key, offset) ^ SECRET0, i64(key, offset + 8) ^ seed);
+                    see1 = mix(i64(key, offset + 16) ^ SECRET1, i64(key, offset + 24) ^ see1);
+                    see2 = mix(i64(key, offset + 32) ^ SECRET2, i64(key, offset + 40) ^ see2);
+                    see3 = mix(i64(key, offset + 48) ^ SECRET3, i64(key, offset + 56) ^ see3);
+                    see4 = mix(i64(key, offset + 64) ^ SECRET4, i64(key, offset + 72) ^ see4);
+                    see5 = mix(i64(key, offset + 80) ^ SECRET5, i64(key, offset + 88) ^ see5);
+                    see6 = mix(i64(key, offset + 96) ^ SECRET6, i64(key, offset + 104) ^ see6);
+                    offset += 112;
+                    i -= 112;
+                } while (i > 112);
+
+                seed ^= see1;
+                see2 ^= see3;
+                see4 ^= see5;
+                seed ^= see6;
+                see2 ^= see4;
+                seed ^= see2;
             }
             if (i > 16) {
-                seed = mix(i64(key, p) ^ SECRET2, i64(key, p + 8) ^ seed ^ SECRET1);
-                if (i > 32) seed = mix(i64(key, p + 16) ^ SECRET2, i64(key, p + 24) ^ seed);
+                seed = mix(i64(key, offset) ^ SECRET2, i64(key, offset + 8) ^ seed);
+                if (i > 32) {
+                    seed = mix(i64(key, offset + 16) ^ SECRET2, i64(key, offset + 24) ^ seed);
+                    if (i > 48) {
+                        seed = mix(i64(key, offset + 32) ^ SECRET1, i64(key, offset + 40) ^ seed);
+                        if (i > 64) {
+                            seed = mix(i64(key, offset + 48) ^ SECRET1, i64(key, offset + 56) ^ seed);
+                            if (i > 80) {
+                                seed = mix(i64(key, offset + 64) ^ SECRET2, i64(key, offset + 72) ^ seed);
+                                if (i > 96) {
+                                    seed = mix(i64(key, offset + 80) ^ SECRET1, i64(key, offset + 88) ^ seed);
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            a = i64(key, p + i - 16);
-            b = i64(key, p + i - 8);
+            a = i64(key, offset + i - 16) ^ i;
+            b = i64(key, offset + i - 8);
         }
         a ^= SECRET1;
         b ^= seed;
-
-        long high = Math.unsignedMultiplyHigh(a, b);
-        return mix((a * b) ^ SECRET0 ^ len, high ^ SECRET1);
+        return mix((a * b) ^ SECRET7, unsignedMultiplyHigh(a, b) ^ SECRET1 ^ i);
     }
 
-    private static long mix(long A, long B) {
-        return (A * B) ^ Math.unsignedMultiplyHigh(A, B);
+    static long mix(long a, long b) {
+        return a * b ^ unsignedMultiplyHigh(a, b);
     }
 
     private static long i64(byte[] key, int p) {
@@ -112,11 +170,5 @@ public final class RapidHash {
 
     private static long u32(byte[] key, int p) {
         return Integer.toUnsignedLong((int) LE_INTEGER.get(key, p));
-    }
-
-    private static long readSmall(byte[] p, int k) {
-        return (Byte.toUnsignedLong(p[0]) << 56)
-                | (Byte.toUnsignedLong(p[k >>> 1]) << 32)
-                | Byte.toUnsignedLong(p[k - 1]);
     }
 }

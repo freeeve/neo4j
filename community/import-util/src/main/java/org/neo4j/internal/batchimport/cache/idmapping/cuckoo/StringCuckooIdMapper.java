@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.cuckoo;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Group;
@@ -37,7 +38,10 @@ import org.neo4j.util.VisibleForTesting;
  * cuckoo table.
  */
 public class StringCuckooIdMapper extends CuckooIdMapper {
-    private static final StringHash WY_HASH = RapidHash::hash;
+    private static final StringHash STRING_HASH = s -> {
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        return RapidHash.create().hash(bytes, 0, bytes.length);
+    };
 
     private final StringHash stringHash;
     private final HashMap<IdGroup, Long> collisions = new HashMap<>();
@@ -49,7 +53,7 @@ public class StringCuckooIdMapper extends CuckooIdMapper {
             ReadableGroups groups,
             MemoryTracker memoryTracker,
             PropertyValueLookup stringArray) {
-        this(estimatedNumberOfNodes, arrayFactory, groups, memoryTracker, WY_HASH, stringArray);
+        this(estimatedNumberOfNodes, arrayFactory, groups, memoryTracker, STRING_HASH, stringArray);
     }
 
     @VisibleForTesting

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache.idmapping.string;
 
+import java.nio.charset.StandardCharsets;
 import org.neo4j.hashing.RapidHash;
 
 /**
@@ -32,7 +33,8 @@ public class StringEncoder implements Encoder {
 
     @Override
     public long encode(Object any) {
-        long hash = RapidHash.hash(convertToString(any)) & ID_BITS;
+        byte[] key = convertToString(any).getBytes(StandardCharsets.UTF_8);
+        long hash = RapidHash.create().hash(key, 0, key.length) & ID_BITS;
         return hash != 0 ? hash : 1; // We cannot return 0 because that is a special value
     }
 
