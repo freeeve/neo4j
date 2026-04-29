@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanStringTest.WhiteList
 import org.neo4j.cypher.internal.util.IdentityMap
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -299,7 +300,8 @@ object LogicalPlanStringTest {
       classOf[plans.AssertNotPropertyShard],
       classOf[InputPosition],
       classOf[ast.DummyExpression],
-      classOf[Seq[_]]
+      classOf[Seq[_]],
+      classOf[NonEmptyList[_]]
     )
 
     val whiteListedMethodNames: Set[String] = Set(

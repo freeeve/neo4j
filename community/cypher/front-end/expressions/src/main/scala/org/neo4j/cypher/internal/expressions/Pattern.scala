@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.DeprecatedFeature
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.helpers.LazyVal
 
 import scala.annotation.tailrec
 
@@ -33,9 +34,13 @@ sealed trait Pattern extends ASTNode {
 
   def patternParts: Seq[PatternPart]
 
-  lazy val length: Int = this.folder.fold(0) {
-    case RelationshipChain(_, _, _) => _ + 1
-    case _                          => identity
+  def length: Int = lazyLength.value
+
+  private val lazyLength: LazyVal[Int] = LazyVal {
+    this.folder.fold(0) {
+      case RelationshipChain(_, _, _) => _ + 1
+      case _                          => identity
+    }
   }
 }
 
@@ -94,13 +99,20 @@ sealed abstract class PatternPart extends ASTNode {
   def dependencies: Set[LogicalVariable]
   def pathVariable: Option[LogicalVariable]
 
-  lazy val boundaryNodes: Set[LogicalVariable] = PatternElement.boundaryNodes(element)
+  def boundaryNodes: Set[LogicalVariable] = lazyBoundaryNodes.value
 
-  lazy val strictInteriorVariables: Set[LogicalVariable] = element match {
-    // QPPs connect the adjacent nodes but do not have any boundary nodes themselves.
-    // Therefore, everything in a QPP is a strict interior node. Boundary nodes should be connected through a PathConcatenation
-    case _: QuantifiedPath => element.allVariables
-    case element           => element.allVariables.filterNot(boundaryNodes)
+  def strictInteriorVariables: Set[LogicalVariable] = lazyStrictInteriorVariables.value
+
+  private val lazyBoundaryNodes: LazyVal[Set[LogicalVariable]] =
+    LazyVal(PatternElement.boundaryNodes(element))
+
+  private val lazyStrictInteriorVariables: LazyVal[Set[LogicalVariable]] = LazyVal {
+    element match {
+      // QPPs connect the adjacent nodes but do not have any boundary nodes themselves.
+      // Therefore, everything in a QPP is a strict interior node. Boundary nodes should be connected through a PathConcatenation
+      case _: QuantifiedPath => element.allVariables
+      case element           => element.allVariables.filterNot(boundaryNodes)
+    }
   }
 
   def isBounded: Boolean

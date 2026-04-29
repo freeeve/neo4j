@@ -16,11 +16,14 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.util.helpers.LazyVal
+
 import scala.util.matching.Regex
 
 trait StringDecimalInteger {
   def stringVal: String
-  lazy val value: java.lang.Long = StringDecimalInteger.stringToLong(stringVal)
+  def value: java.lang.Long = lazyValue.value
+  private val lazyValue: LazyVal[java.lang.Long] = LazyVal(StringDecimalInteger.stringToLong(stringVal))
 }
 
 object StringDecimalInteger {

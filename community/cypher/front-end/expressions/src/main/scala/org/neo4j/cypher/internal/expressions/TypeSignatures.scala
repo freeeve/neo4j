@@ -17,12 +17,14 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.helpers.LazyVal
 
 trait TypeSignatures {
 
   def signatures: Seq[TypeSignature] = Seq.empty
 
-  lazy val signatureLengths: Seq[Int] = signatures.map(_.argumentTypes.length)
+  def signatureLengths: Seq[Int] = lazySignatureLengths.value
+  private val lazySignatureLengths: LazyVal[Seq[Int]] = LazyVal(signatures.map(_.argumentTypes.length))
 }
 
 trait FunctionTypeSignatures extends TypeSignatures {

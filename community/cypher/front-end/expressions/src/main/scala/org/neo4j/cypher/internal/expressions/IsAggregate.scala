@@ -21,7 +21,7 @@ import org.neo4j.cypher.internal.expressions.functions.UserDefinedFunctionInvoca
 
 object IsAggregate {
 
-  def unapply(v: Any) = v match {
+  def unapply(v: Any): Option[AnyRef] = v match {
     case expr: CountStar =>
       Some(expr)
 

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.helpers.LazyVal
 
 import java.util
 
@@ -61,7 +62,8 @@ case class UnsignedDecimalIntegerLiteral(
 }
 
 sealed abstract class OctalIntegerLiteral(stringVal: String) extends IntegerLiteral {
-  lazy val value: java.lang.Long = OctalIntegerLiteral.octalToLong(stringVal)
+  override def value: java.lang.Long = lazyValue.value
+  private val lazyValue: LazyVal[java.lang.Long] = LazyVal(OctalIntegerLiteral.octalToLong(stringVal))
 }
 
 object OctalIntegerLiteral {
@@ -84,7 +86,8 @@ case class SignedOctalIntegerLiteral(stringVal: String)(override val position: I
 }
 
 sealed abstract class HexIntegerLiteral(stringVal: String) extends IntegerLiteral {
-  lazy val value: java.lang.Long = HexIntegerLiteral.hexStringToLong(stringVal)
+  override def value: java.lang.Long = lazyValue.value
+  private val lazyValue: LazyVal[java.lang.Long] = LazyVal(HexIntegerLiteral.hexStringToLong(stringVal))
 }
 
 object HexIntegerLiteral {
@@ -112,7 +115,8 @@ sealed trait DoubleLiteral extends NumberLiteral {
 }
 
 case class DecimalDoubleLiteral(stringVal: String)(override val position: InputPosition.Range) extends DoubleLiteral {
-  lazy val value: java.lang.Double = DecimalDoubleLiteral.stringToDouble(stringVal)
+  override def value: java.lang.Double = lazyValue.value
+  private val lazyValue: LazyVal[java.lang.Double] = LazyVal(DecimalDoubleLiteral.stringToDouble(stringVal))
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
     new DecimalDoubleLiteral(stringVal)(position) with SensitiveLiteral

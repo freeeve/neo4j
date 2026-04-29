@@ -17,9 +17,9 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class VariableTest extends CypherFunSuite {
+class VariableTest extends CypherFunSuite3 {
 
   test("variable names are handled by the trait") {
     val _name = "testVariable"

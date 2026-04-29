@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.functions
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.helpers.LazyVal
 
 import java.util.Locale
 
@@ -185,14 +186,20 @@ object Function {
     ZonedTime
   )
 
-  lazy val lookup: Map[String, Function] = knownFunctions.map { f => (f.name.toLowerCase(Locale.ROOT), f) }.toMap
+  def lookup: Map[String, Function] = lazyLookup.value
+
+  private val lazyLookup: LazyVal[Map[String, Function]] = LazyVal {
+    knownFunctions.map { f => (f.name.toLowerCase(Locale.ROOT), f) }.toMap
+  }
 
   def scopedLookup(scope: CypherVersion): Map[String, Function] =
     knownFunctions.filter(_.signatures.exists(_.scopes.contains(scope))).map { f =>
       (f.name.toLowerCase(Locale.ROOT), f)
     }.toMap
 
-  lazy val functionInfo: List[FunctionTypeSignature] = {
+  def functionInfo: List[FunctionTypeSignature] = lazyFunctionInfo.value
+
+  private val lazyFunctionInfo: LazyVal[List[FunctionTypeSignature]] = LazyVal {
     lookup.values.flatMap {
       (f: Function) =>
         f.signatures.flatMap {

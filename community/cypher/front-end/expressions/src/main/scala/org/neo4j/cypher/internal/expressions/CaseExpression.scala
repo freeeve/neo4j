@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.util.DeprecatedFeature
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.helpers.LazyVal
 
 case class CaseExpression(
   expression: Option[Expression],
@@ -25,7 +26,8 @@ case class CaseExpression(
   default: Option[Expression]
 )(val position: InputPosition) extends Expression {
 
-  lazy val possibleExpressions: IndexedSeq[Expression] = alternatives.map(_._2) ++ default
+  def possibleExpressions: IndexedSeq[Expression] = lazyPossibleExpressions.value
+  private val lazyPossibleExpressions: LazyVal[IndexedSeq[Expression]] = LazyVal(alternatives.map(_._2) ++ default)
 
   override def isConstantForQuery: Boolean =
     expression.forall(_.isConstantForQuery) &&

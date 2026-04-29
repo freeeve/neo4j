@@ -331,12 +331,15 @@ object LabelExpression {
   case class Negation(e: LabelExpression, override val containsIs: Boolean = false)(val position: InputPosition)
       extends LabelExpression {
 
-    @tailrec
     final override def flatten: Seq[LabelExpressionLeafName] = {
-      e match {
-        case e: Negation => e.flatten
-        case e           => e.flatten
+      @tailrec
+      def stripNegations(e: LabelExpression): LabelExpression = {
+        e match {
+          case e: Negation => stripNegations(e.e)
+          case e           => e
+        }
       }
+      stripNegations(e).flatten
     }
 
     override def mapExpressions(f: Expression => Expression): LabelExpression = copy(

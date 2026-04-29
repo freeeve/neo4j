@@ -21,10 +21,9 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class PredicateExpressionsTest extends CypherFunSuite {
+class PredicateExpressionsTest extends CypherFunSuite3 {
 
   test("Ands.apply should leave ListSet untouched") {
     // GIVEN
@@ -36,7 +35,7 @@ class PredicateExpressionsTest extends CypherFunSuite {
     val ands = Ands.apply(ls)(InputPosition.NONE)
 
     // THEN
-    ands.exprs must be theSameInstanceAs ls
+    ands.exprs should be theSameInstanceAs ls
   }
 
   test("Ands.create should leave ListSet untouched") {
@@ -49,8 +48,8 @@ class PredicateExpressionsTest extends CypherFunSuite {
     val ands = Ands.create(ls)
 
     // THEN
-    ands mustBe a[Ands]
-    ands.asInstanceOf[Ands].exprs must be theSameInstanceAs ls
+    ands shouldBe a[Ands]
+    ands.asInstanceOf[Ands].exprs should be theSameInstanceAs ls
   }
 
   test("Ands.unwrap should unwrap ListSet untouched") {
@@ -64,7 +63,7 @@ class PredicateExpressionsTest extends CypherFunSuite {
     val exprs = Ands.unwrap(ands)
 
     // THEN
-    exprs must be theSameInstanceAs ls
+    exprs should be theSameInstanceAs ls
   }
 
   test("Ands.unwrap should unwrap single element untouched") {
@@ -75,8 +74,8 @@ class PredicateExpressionsTest extends CypherFunSuite {
     val exprs = Ands.unwrap(expr)
 
     // THEN
-    exprs must have size 1
-    exprs.head must be theSameInstanceAs expr
+    exprs should have size 1
+    exprs.head should be theSameInstanceAs expr
   }
 
   test("Ands.unwrap should unwrap empty ListSet untouched") {
@@ -88,6 +87,6 @@ class PredicateExpressionsTest extends CypherFunSuite {
     val exprs = Ands.unwrap(ands)
 
     // THEN
-    exprs must be theSameInstanceAs ls
+    exprs should be theSameInstanceAs ls
   }
 }
