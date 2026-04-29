@@ -217,6 +217,8 @@ public class ValueTypeNames {
                 if (FloatingPointValue.class.isAssignableFrom(type)) {
                     return ofRepresentation(ValueRepresentation.FLOAT64);
                 }
+                return ofRepresentation(ValueRepresentation.INT64) + "|"
+                        + ofRepresentation(ValueRepresentation.FLOAT64);
             }
             if (VectorValue.class.isAssignableFrom(type)) {
                 if (IntegralVector.class.isAssignableFrom(type)) {

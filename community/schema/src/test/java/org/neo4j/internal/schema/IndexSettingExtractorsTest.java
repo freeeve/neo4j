@@ -36,6 +36,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
+import org.neo4j.internal.schema.IndexSettingExtractors.DoubleExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
@@ -44,6 +45,7 @@ class IndexSettingExtractorsTest {
     private static final IndexSettingExtractor[] INDIVIDUAL_EXTRACTORS = new IndexSettingExtractor[] {
         BooleanExtractor.of(TestIndexSetting.BOOLEAN),
         IntegerExtractor.of(TestIndexSetting.INTEGER),
+        DoubleExtractor.of(TestIndexSetting.DOUBLE),
         StringExtractor.of(TestIndexSetting.STRING)
     };
 
@@ -100,6 +102,7 @@ class IndexSettingExtractorsTest {
         private static final SettingsAccessor ACCESSOR = settings(
                 entry(TestIndexSetting.INTEGER, 42),
                 entry(TestIndexSetting.BOOLEAN, false),
+                entry(TestIndexSetting.DOUBLE, Math.PI),
                 entry(TestIndexSetting.STRING, "foo"));
 
         private KnownIndexSettingRecords records;

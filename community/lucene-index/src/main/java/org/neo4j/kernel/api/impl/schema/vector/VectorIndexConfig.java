@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DEFAULT_SEARCH_EXPANSION_FACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
@@ -41,6 +42,7 @@ public class VectorIndexConfig extends TypedIndexConfig {
     private final VectorIndexVersion version;
     private final OptionalInt dimensions;
     private final VectorSimilarityFunction similarityFunction;
+    private final double defaultSearchExpansionFactor;
     private final VectorQuantizationType quantization;
     private final HnswConfig hnswConfig;
 
@@ -49,6 +51,7 @@ public class VectorIndexConfig extends TypedIndexConfig {
         this.version = version;
         this.dimensions = get(DIMENSIONS);
         this.similarityFunction = get(SIMILARITY_FUNCTION);
+        this.defaultSearchExpansionFactor = get(DEFAULT_SEARCH_EXPANSION_FACTOR);
         this.quantization = get(QUANTIZATION_TYPE);
         this.hnswConfig = new HnswConfig(get(HNSW_M), get(HNSW_EF_CONSTRUCTION));
     }
@@ -58,6 +61,7 @@ public class VectorIndexConfig extends TypedIndexConfig {
         this.version = VectorIndexVersion.UNKNOWN;
         this.dimensions = OptionalInt.empty();
         this.similarityFunction = null;
+        this.defaultSearchExpansionFactor = 0.0;
         this.quantization = VectorQuantizationType.NONE;
         this.hnswConfig = HnswConfig.DUMMY;
     }
@@ -76,6 +80,10 @@ public class VectorIndexConfig extends TypedIndexConfig {
 
     public VectorSimilarityFunction similarityFunction() {
         return similarityFunction;
+    }
+
+    public double defaultSearchExpansionFactor() {
+        return defaultSearchExpansionFactor;
     }
 
     public boolean quantizationEnabled() {
@@ -105,11 +113,23 @@ public class VectorIndexConfig extends TypedIndexConfig {
         }
         return Objects.equals(this.dimensions, that.dimensions)
                 && Objects.equals(this.similarityFunction, that.similarityFunction)
+                && this.defaultSearchExpansionFactor == that.defaultSearchExpansionFactor
                 && this.quantization == that.quantization
                 && Objects.equals(this.hnswConfig, that.hnswConfig);
     }
 
     public record HnswConfig(int M, int efConstruction) {
         public static final HnswConfig DUMMY = new HnswConfig(16, 100);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName()
+                + "[version=" + version
+                + ", dimensions=" + dimensions
+                + ", similarityFunction=" + similarityFunction
+                + ", defaultSearchExpansionFactor=" + defaultSearchExpansionFactor
+                + ", quantization=" + quantization
+                + ", hnswConfig=" + hnswConfig + ']';
     }
 }

@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DEFAULT_SEARCH_EXPANSION_FACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
@@ -75,11 +76,13 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
+                        VectorIndexConfig::defaultSearchExpansionFactor,
                         VectorIndexConfig::quantization,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
                         OptionalInt.of(VERSION.maxDimensions()),
                         VERSION.similarityFunction("COSINE"),
+                        1.0,
                         VectorQuantizationType.NONE,
                         new HnswConfig(16, 100));
 
@@ -243,6 +246,18 @@ class VectorIndexV2ForV518ConfigValidationTest {
                 VectorIndexConfig::similarityFunction,
                 corespondingSimilarityFunction,
                 Values.utf8Value(corespondingSimilarityFunction.functionName()));
+    }
+
+    @Test
+    void cannotSetDefaultSearchExpansionFactor() {
+        final var settings = VectorIndexSettings.create()
+                .withDimensions(VERSION.maxDimensions())
+                .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
+                .withDefaultSearchExpansionFactor(2.0)
+                .toSettingsAccessor();
+
+        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        assertUnrecognizedSetting(validationRecords, DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName());
     }
 
     @Test

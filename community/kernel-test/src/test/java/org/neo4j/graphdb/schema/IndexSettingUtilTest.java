@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.DoubleArray;
+import org.neo4j.values.storable.DoubleValue;
+import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.StringValue;
 import org.neo4j.values.storable.Value;
 
@@ -170,6 +172,43 @@ class IndexSettingUtilTest {
         }
     }
 
+    @Test
+    void shouldParseInteger() {
+        final IndexSetting setting = IndexSettingImpl.VECTOR_DIMENSIONS;
+        final Class<?> type = setting.getType();
+        assertEquals(Integer.class, type);
+
+        // Integer
+        Object object = 42;
+        assertInteger(setting, object, 42);
+    }
+
+    @Test
+    void shouldParseDouble() {
+        final IndexSetting setting = new IndexSetting() {
+            @Override
+            public String getSettingName() {
+                return "test.double.setting";
+            }
+
+            @Override
+            public Class<?> getType() {
+                return Double.class;
+            }
+        };
+
+        final Class<?> type = setting.getType();
+        assertEquals(Double.class, type);
+
+        final double expectedResult = 42.0;
+        assertDouble(setting, (byte) 42, expectedResult);
+        assertDouble(setting, (short) 42, expectedResult);
+        assertDouble(setting, 42, expectedResult);
+        assertDouble(setting, 42L, expectedResult);
+        assertDouble(setting, 42.f, expectedResult);
+        assertDouble(setting, 42.0, expectedResult);
+    }
+
     private static void assertBoolean(IndexSetting setting, Object object, boolean expectedResult) {
         Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
         assertInstanceOf(BooleanValue.class, result);
@@ -186,5 +225,17 @@ class IndexSettingUtilTest {
         Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
         assertInstanceOf(DoubleArray.class, result);
         assertArrayEquals(expectedResult, ((DoubleArray) result).asObjectCopy());
+    }
+
+    private static void assertInteger(IndexSetting setting, Object object, int expectedResult) {
+        Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
+        assertInstanceOf(IntValue.class, result);
+        assertEquals(expectedResult, ((IntValue) result).intValue());
+    }
+
+    private static void assertDouble(IndexSetting setting, Object object, double expectedResult) {
+        Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
+        assertInstanceOf(DoubleValue.class, result);
+        assertEquals(expectedResult, ((DoubleValue) result).doubleValue());
     }
 }

@@ -25,6 +25,7 @@ import static org.neo4j.internal.schema.IndexSettingTestUtils.FAKE_VALUE;
 
 import java.util.OptionalInt;
 import java.util.function.Supplier;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.ObjectAssert;
@@ -43,6 +44,7 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.internal.schema.SingleIndexSettingProcessorTest.SingleProcessorTestBase;
+import org.neo4j.internal.schema.SingleIndexSettingValidator.DoubleRangeValidator;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.IntegerRangeValidator;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.OptionalIntRangeValidator;
 import org.neo4j.values.storable.Value;
@@ -182,6 +184,80 @@ public class SingleIndexSettingValidatorTest {
             return Stream.concat(
                     Stream.of(OptionalInt.empty()),
                     IntStream.rangeClosed(MIN, MAX).mapToObj(OptionalInt::of));
+        }
+    }
+
+    @Nested
+    class DoubleRangeValidatorTest extends SingleValidatorTestBase {
+        private static final double MIN = -23.0;
+        private static final double MAX = 42.0;
+
+        protected DoubleRangeValidatorTest() {
+            super(DoubleRangeValidator.of(TestIndexSetting.DOUBLE, MIN, MAX));
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @MethodSource
+        void invalidValues(Double value) {
+            final Value storable = Values.unsafeOf(value, true);
+            final RecordWithSetting record = new Pending(setting, value, storable);
+
+            final ObjectAssert<InvalidValue> invalidValueAssert =
+                    processForVerificationAndAssertRecord(record, InvalidValue.class);
+            invalidValueAssert.extracting(RecordWithValue::value).isEqualTo(value);
+
+            invalidValueAssert
+                    .extracting(InvalidValue::requirement)
+                    .extracting(Supplier::get, type(InclusiveRange.class))
+                    .extracting(InclusiveRange::min, InclusiveRange::max)
+                    .containsExactly(MIN, MAX);
+        }
+
+        static DoubleStream invalidValues() {
+            final int count = 10;
+            final double delta = (MIN + MAX) / 2 / count;
+            final DoubleStream.Builder builder = DoubleStream.builder();
+            for (int i = count; i > 0; i--) {
+                builder.add(MIN - i * delta);
+            }
+            for (int i = 1; i <= count; i++) {
+                builder.add(MAX + i * delta);
+            }
+            return builder.build();
+        }
+
+        @ParameterizedTest
+        @MethodSource("validValues")
+        void validValuesForVerification(double value) {
+            final Value storable = Values.doubleValue(value);
+            final RecordWithSetting record = new Pending(setting, value, storable);
+
+            processForVerificationAndAssertRecord(record, Valid.class)
+                    .extracting(RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(value, storable);
+        }
+
+        @ParameterizedTest
+        @MethodSource("validValues")
+        void validValuesForAuthoritativeReadShouldPassthrough(double value) {
+            final Value storable = Values.doubleValue(value);
+            final RecordWithSetting record = new Valid(setting, value, storable);
+
+            assertThat(processor.processForAuthoritativeRead(record)).isSameAs(record);
+        }
+
+        static DoubleStream validValues() {
+            final int count = 18;
+            final double min = Math.nextUp(MIN);
+            final double delta = (min + Math.nextDown(MAX)) / count;
+            final DoubleStream.Builder builder = DoubleStream.builder();
+            builder.add(MIN);
+            for (int i = 0; i < count; i++) {
+                builder.add(min + i * delta);
+            }
+            builder.add(MAX);
+            return builder.build();
         }
     }
 }

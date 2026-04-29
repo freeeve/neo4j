@@ -21,6 +21,7 @@ package org.neo4j.internal.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
+import static org.assertj.core.api.InstanceOfAssertFactories.DOUBLE;
 import static org.assertj.core.api.InstanceOfAssertFactories.INTEGER;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
@@ -35,6 +36,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.InclusiveRange;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
+import org.neo4j.internal.schema.IndexSettingExtractors.DoubleExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
 import org.neo4j.internal.schema.IndexSettingRecord.IncorrectType;
@@ -46,8 +48,11 @@ import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingTestUtils.TestIndexSetting;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.DoubleValue;
+import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.IntegralValue;
+import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
@@ -215,6 +220,128 @@ class IndexSettingExtractorTest {
     }
 
     @Nested
+    class DoubleExtractorTest extends ExtractorTestBase {
+        protected DoubleExtractorTest() {
+            super(TestIndexSetting.DOUBLE, DoubleExtractor::of);
+        }
+
+        @Test
+        void incorrectType() {
+            final SettingsAccessor accessor = settingValue("42");
+
+            extractForValidationAndAssertRecord(accessor, IncorrectType.class)
+                    .extracting(IncorrectType::targetType)
+                    .isEqualTo(NumberValue.class);
+        }
+
+        @ParameterizedTest
+        @ValueSource(bytes = {Byte.MIN_VALUE, 0, Byte.MAX_VALUE})
+        @ValueSource(shorts = {Short.MIN_VALUE, Byte.MIN_VALUE, 0, Byte.MAX_VALUE, Short.MAX_VALUE})
+        @ValueSource(
+                ints = {
+                    Integer.MIN_VALUE,
+                    Short.MIN_VALUE,
+                    Byte.MIN_VALUE,
+                    0,
+                    Byte.MAX_VALUE,
+                    Short.MAX_VALUE,
+                    Integer.MAX_VALUE
+                })
+        @ValueSource(
+                longs = {
+                    Integer.MIN_VALUE,
+                    Short.MIN_VALUE,
+                    Byte.MIN_VALUE,
+                    0,
+                    Byte.MAX_VALUE,
+                    Short.MAX_VALUE,
+                    Integer.MAX_VALUE
+                })
+        @ValueSource(
+                floats = {
+                    Float.NEGATIVE_INFINITY,
+                    -Float.MAX_VALUE,
+                    Long.MIN_VALUE,
+                    Integer.MIN_VALUE,
+                    Short.MIN_VALUE,
+                    Byte.MIN_VALUE,
+                    -Float.MIN_VALUE,
+                    -0.f,
+                    +0.f,
+                    Float.MIN_VALUE,
+                    Byte.MAX_VALUE,
+                    Short.MAX_VALUE,
+                    Integer.MAX_VALUE,
+                    Long.MAX_VALUE,
+                    Float.MAX_VALUE,
+                    Float.POSITIVE_INFINITY
+                })
+        @ValueSource(
+                doubles = {
+                    Double.NEGATIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY,
+                    -Double.MAX_VALUE,
+                    -Float.MAX_VALUE,
+                    Long.MIN_VALUE,
+                    Integer.MIN_VALUE,
+                    Short.MIN_VALUE,
+                    Byte.MIN_VALUE,
+                    -Float.MIN_VALUE,
+                    -Double.MIN_VALUE,
+                    -0.0,
+                    +0.0,
+                    Double.MIN_VALUE,
+                    Float.MIN_VALUE,
+                    Byte.MAX_VALUE,
+                    Short.MAX_VALUE,
+                    Integer.MAX_VALUE,
+                    Long.MAX_VALUE,
+                    Float.MAX_VALUE,
+                    Double.MAX_VALUE,
+                    Float.POSITIVE_INFINITY,
+                    Double.POSITIVE_INFINITY
+                })
+        void extracted(Number value) {
+            final double doubleValue = value.doubleValue();
+            final DoubleValue storable = Values.doubleValue(doubleValue);
+            final SettingsAccessor accessor = settingValue(value);
+
+            final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
+            validationAssert.extracting(RecordWithValue::value, DOUBLE).isEqualTo(doubleValue);
+            validationAssert
+                    .extracting(RecordWithStorable::storable, type(DoubleValue.class))
+                    .isEqualTo(storable);
+
+            final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
+            authoritativeReadAssert.extracting(RecordWithValue::value, DOUBLE).isEqualTo(doubleValue);
+            authoritativeReadAssert
+                    .extracting(RecordWithStorable::storable, type(NumberValue.class))
+                    .isEqualTo(storable);
+        }
+
+        @ParameterizedTest
+        @ValueSource(floats = {Float.NaN})
+        @ValueSource(doubles = {Float.NaN, Double.NaN})
+        void extractedNaN(Number value) {
+            final SettingsAccessor accessor = settingValue(value);
+
+            final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
+            validationAssert.extracting(RecordWithValue::value, DOUBLE).isNaN();
+            validationAssert
+                    .extracting(RecordWithStorable::storable, type(DoubleValue.class))
+                    .extracting(fp -> fp.isNaN(), BOOLEAN)
+                    .isTrue();
+
+            final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
+            authoritativeReadAssert.extracting(RecordWithValue::value, DOUBLE).isNaN();
+            authoritativeReadAssert
+                    .extracting(RecordWithStorable::storable, type(FloatingPointValue.class))
+                    .extracting(fp -> fp.isNaN(), BOOLEAN)
+                    .isTrue();
+        }
+    }
+
+    @Nested
     class StringExtractorTest extends ExtractorTestBase {
         StringExtractorTest() {
             super(TestIndexSetting.STRING, StringExtractor::of);
@@ -232,20 +359,20 @@ class IndexSettingExtractorTest {
         @ParameterizedTest
         @ValueSource(strings = {"foo", "bar", "baz"})
         void extracted(String value) {
-            final TextValue textValue = Values.stringValue(value);
+            final TextValue storable = Values.stringValue(value);
             final SettingsAccessor accessor = settingValue(value);
 
             final ObjectAssert<Pending> validationAssert = extractForValidationAndAssertRecord(accessor, Pending.class);
             validationAssert.extracting(RecordWithValue::value, STRING).isEqualTo(value);
             validationAssert
                     .extracting(RecordWithStorable::storable, type(TextValue.class))
-                    .isEqualTo(textValue);
+                    .isEqualTo(storable);
 
             final ObjectAssert<Valid> authoritativeReadAssert = extractForAuthoritativeReadAndAssertRecord(accessor);
             authoritativeReadAssert.extracting(RecordWithValue::value, STRING).isEqualTo(value);
             authoritativeReadAssert
                     .extracting(RecordWithStorable::storable, type(TextValue.class))
-                    .isEqualTo(textValue);
+                    .isEqualTo(storable);
         }
     }
 }

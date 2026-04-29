@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.iterable;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.neo4j.internal.schema.IndexSettingRecord.State.INVALID_VALUE;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DEFAULT_SEARCH_EXPANSION_FACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M;
@@ -96,6 +97,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .withHnswEfConstruction(100)
                 .withQuantizationType(VectorQuantizationType.BINARY)
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
+                .withDefaultSearchExpansionFactor(16.0)
                 .toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
@@ -106,11 +108,13 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
+                        VectorIndexConfig::defaultSearchExpansionFactor,
                         VectorIndexConfig::quantization,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
                         OptionalInt.of(VERSION.maxDimensions()),
                         VERSION.similarityFunction("COSINE"),
+                        16.0,
                         VectorQuantizationType.BINARY,
                         new HnswConfig(16, 100));
 
@@ -118,6 +122,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .containsExactlyInAnyOrder(
                         DIMENSIONS.getSettingName(),
                         SIMILARITY_FUNCTION.getSettingName(),
+                        DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName(),
                         QUANTIZATION_TYPE.getSettingName(),
                         HNSW_M.getSettingName(),
                         HNSW_EF_CONSTRUCTION.getSettingName());
@@ -135,17 +140,20 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .extracting(
                         VectorIndexConfig::dimensions,
                         VectorIndexConfig::similarityFunction,
+                        VectorIndexConfig::defaultSearchExpansionFactor,
                         VectorIndexConfig::quantization,
                         VectorIndexConfig::hnsw)
                 .containsExactly(
                         OptionalInt.empty(),
                         VERSION.similarityFunction("COSINE"),
+                        2.0,
                         VectorQuantizationType.SCALAR,
                         new HnswConfig(16, 100));
 
         assertThat(vectorIndexConfig.config().settingNames())
                 .containsExactlyInAnyOrder(
                         SIMILARITY_FUNCTION.getSettingName(),
+                        DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName(),
                         QUANTIZATION_TYPE.getSettingName(),
                         HNSW_M.getSettingName(),
                         HNSW_EF_CONSTRUCTION.getSettingName());
@@ -272,6 +280,76 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     }
 
     @Test
+    void incorrectTypeForDefaultSearchExpansionFactor() {
+        final var incorrectExpansionFactor = "10";
+        final var settings = VectorIndexSettings.create()
+                .set(DEFAULT_SEARCH_EXPANSION_FACTOR, incorrectExpansionFactor)
+                .toSettingsAccessor();
+
+        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        assertIncorrectType(
+                validationRecords,
+                DEFAULT_SEARCH_EXPANSION_FACTOR,
+                Values.utf8Value(incorrectExpansionFactor),
+                TextValue.class,
+                NumberValue.class);
+
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage(
+                        "Wrong type for vector.default_search_expansion_factor. Expected INTEGER|FLOAT, got STRING");
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {-1.0, 0.0, 0.5})
+    void lessThanOneDefaultSearchExpansionFactor(double expansionFactor) {
+        final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(expansionFactor)
+                .toSettingsAccessor();
+
+        assertInvalidDefaultSearchExpansionFactor(expansionFactor, settings);
+    }
+
+    @Test
+    void aboveMaxDefaultSearchExpansionFactor() {
+        final double invalidExpansionFactor = Math.nextUp(Double.MAX_VALUE);
+        final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(invalidExpansionFactor)
+                .toSettingsAccessor();
+
+        assertInvalidDefaultSearchExpansionFactor(invalidExpansionFactor, settings);
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            doubles = {
+                Double.NEGATIVE_INFINITY,
+                Float.NEGATIVE_INFINITY,
+                Float.NaN,
+                Double.NaN,
+                Float.POSITIVE_INFINITY,
+                Double.POSITIVE_INFINITY
+            })
+    void nonFiniteDefaultSearchExpansionFactor(double expansionFactor) {
+        final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(expansionFactor)
+                .toSettingsAccessor();
+
+        assertInvalidDefaultSearchExpansionFactor(expansionFactor, settings);
+    }
+
+    private void assertInvalidDefaultSearchExpansionFactor(double expansionFactor, SettingsAccessor settings) {
+        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        assertInvalidValue(validationRecords, DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor);
+        assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll(
+                        DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName(),
+                        "must be between 1.0 and",
+                        String.valueOf(Double.MAX_VALUE));
+    }
+
+    @Test
     void incorrectTypeForQuantizationEnabled() {
         final var incorrectQuantizationEnabled = 123L;
         final var settings = VectorIndexSettings.create()
@@ -295,6 +373,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     void incorrectTypeForQuantizationType() {
         final var incorrectQuantizationType = 123L;
         final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(2.0)
                 .set(QUANTIZATION_TYPE, incorrectQuantizationType)
                 .toSettingsAccessor();
 
@@ -315,6 +394,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     void invalidQuantizationType() {
         final var incorrectQuantizationType = "ClearlyThisIsNotAQuantizationType";
         final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(2.0)
                 .set(QUANTIZATION_TYPE, incorrectQuantizationType)
                 .toSettingsAccessor();
         final var normalizedIncorrectQuantizationType = incorrectQuantizationType.toUpperCase(Locale.ROOT);
@@ -330,7 +410,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                         normalizedIncorrectQuantizationType,
                         "is an unsupported",
                         QUANTIZATION_TYPE.getSettingName(),
-                        supportedQuantizationTypes.toString());
+                        supportedQuantizationTypes);
     }
 
     @Test
@@ -354,6 +434,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @Test
     void invalidQuantizationEnabledFalseForQuantizationType() {
         final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(2.0)
                 .withQuantizationDisabled()
                 .withQuantizationType(VectorQuantizationType.SCALAR)
                 .toSettingsAccessor();
@@ -379,6 +460,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @Test
     void invalidQuantizationEnabledTrueForQuantizationType() {
         final var settings = VectorIndexSettings.create()
+                .withDefaultSearchExpansionFactor(2.0)
                 .withQuantizationEnabled()
                 .withQuantizationType(VectorQuantizationType.NONE)
                 .toSettingsAccessor();

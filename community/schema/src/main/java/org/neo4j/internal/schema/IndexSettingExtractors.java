@@ -44,9 +44,11 @@ import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsRequirements.DefaultRequirement;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.LongValue;
+import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Values;
 
@@ -242,6 +244,45 @@ public class IndexSettingExtractors {
 
             final IntegralValue integralValue = (IntegralValue) unprocessed.rawValue();
             return new Valid(unprocessed, (int) integralValue.longValue(), integralValue);
+        }
+    }
+
+    public static final class DoubleExtractor extends RawIndexSettingExtractor {
+        public static DoubleExtractor of(IndexSetting setting) {
+            return new DoubleExtractor(setting);
+        }
+
+        private DoubleExtractor(IndexSetting setting) {
+            super(setting);
+        }
+
+        @Override
+        public RecordWithSetting extractForValidation(SettingsAccessor accessor) {
+            final RecordWithSetting record = extractRawValue(accessor);
+            if (!(record instanceof final Unprocessed unprocessed)) {
+                return record;
+            }
+            if (!(unprocessed.rawValue() instanceof final NumberValue numberValue)) {
+                return new IncorrectType(unprocessed, NumberValue.class);
+            }
+
+            if (numberValue instanceof final DoubleValue doubleValue) {
+                return new Pending(unprocessed, doubleValue.doubleValue(), doubleValue);
+            }
+
+            final double value = numberValue.doubleValue();
+            return new Pending(unprocessed, value, Values.doubleValue(value));
+        }
+
+        @Override
+        public RecordWithSetting extractForAuthoritativeRead(SettingsAccessor accessor) {
+            final RecordWithSetting record = extractRawValue(accessor);
+            if (!(record instanceof final Unprocessed unprocessed)) {
+                return record;
+            }
+
+            final NumberValue numberValue = (NumberValue) unprocessed.rawValue();
+            return new Valid(unprocessed, numberValue.doubleValue(), numberValue);
         }
     }
 

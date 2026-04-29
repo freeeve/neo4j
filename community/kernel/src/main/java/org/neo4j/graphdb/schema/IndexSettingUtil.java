@@ -49,6 +49,7 @@ import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DoubleArray;
+import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -181,6 +182,9 @@ public class IndexSettingUtil {
             if (type == Integer.class) {
                 return parseAsInteger(value);
             }
+            if (type == Double.class) {
+                return parseAsDouble(value);
+            }
         } catch (IndexSettingParseException e) {
             throw InvalidArgumentException.invalidType(
                     indexSetting.getSettingName(),
@@ -200,6 +204,14 @@ public class IndexSettingUtil {
         }
         throw new IndexSettingParseException("Could not parse value '" + value + "' of type "
                 + value.getClass().getSimpleName() + " as integer.");
+    }
+
+    private static DoubleValue parseAsDouble(Object value) throws IndexSettingParseException {
+        if (value instanceof Number) {
+            return Values.doubleValue(((Number) value).doubleValue());
+        }
+        throw new IndexSettingParseException("Could not parse value '" + value + "' of type "
+                + value.getClass().getSimpleName() + " as double.");
     }
 
     private static DoubleArray parseAsDoubleArray(Object value) throws IndexSettingParseException {

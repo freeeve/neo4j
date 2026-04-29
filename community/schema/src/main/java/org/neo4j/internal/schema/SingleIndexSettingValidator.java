@@ -142,4 +142,25 @@ public abstract class SingleIndexSettingValidator<TYPE> extends SingleIndexSetti
             return value.isEmpty() || supportedRange.contains(value.getAsInt());
         }
     }
+
+    /// A [SingleIndexSettingValidator] for [Double]
+    ///
+    /// Valid: non-null and inclusively within the provide range
+    public static final class DoubleRangeValidator extends SingleIndexSettingValidator<Double> {
+        private final InclusiveRange<Double> supportedRange;
+
+        public static DoubleRangeValidator of(IndexSetting setting, double min, double max) {
+            return new DoubleRangeValidator(setting, new InclusiveRange<>(min, max));
+        }
+
+        private DoubleRangeValidator(IndexSetting setting, InclusiveRange<Double> supportedRange) {
+            super(setting, Double.class, new DefaultRequirement<>(supportedRange));
+            this.supportedRange = supportedRange;
+        }
+
+        @Override
+        protected boolean isValid(Double value) {
+            return supportedRange.contains(value);
+        }
+    }
 }

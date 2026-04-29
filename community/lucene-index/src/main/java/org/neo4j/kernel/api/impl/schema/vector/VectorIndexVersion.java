@@ -25,6 +25,7 @@ import static org.neo4j.internal.schema.SequencedIndexSettingProcessors.mergeToV
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.EUCLIDEAN;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.L2_NORM_COSINE;
 import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.SIMPLE_COSINE;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DEFAULT_SEARCH_EXPANSION_FACTOR_EXTRACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DIMENSIONS_EXTRACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_EF_CONSTRUCTION_EXTRACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.HNSW_M_EXTRACTOR;
@@ -37,6 +38,9 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUA
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.REMOVE_QUANTIZATION_ENABLED;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION_EXTRACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIMILARITY_FUNCTION_UPPER_CASE_CONVERTER;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.defaultSearchExpansionFactor;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.defaultSearchExpansionFactorDefault;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.defaultSearchExpansionFactorValidator;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.dimensionValidator;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswEfConstruction;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.hnswEfConstructionDefault;
@@ -139,6 +143,7 @@ public enum VectorIndexVersion {
                                             SIMILARITY_FUNCTION_UPPER_CASE_CONVERTER,
                                             similarityFunctionLookup(nameToSimilarityFunction()),
                                             similarityFunctionNormalizer(nameToSimilarityFunction())),
+                                    defaultSearchExpansionFactor(1.0),
                                     quantizationType(VectorQuantizationType.NONE),
                                     hnswM(16),
                                     hnswEfConstruction(100))),
@@ -153,6 +158,7 @@ public enum VectorIndexVersion {
                                             SIMILARITY_FUNCTION_UPPER_CASE_CONVERTER,
                                             similarityFunctionLookup(nameToSimilarityFunction()),
                                             similarityFunctionNormalizer(nameToSimilarityFunction())),
+                                    defaultSearchExpansionFactor(1.0),
                                     quantizationType(VectorQuantizationType.NONE),
                                     hnswM(16),
                                     hnswEfConstruction(100))));
@@ -187,6 +193,7 @@ public enum VectorIndexVersion {
                                             SIMILARITY_FUNCTION_UPPER_CASE_CONVERTER,
                                             similarityFunctionLookup(nameToSimilarityFunction()),
                                             similarityFunctionNormalizer(nameToSimilarityFunction())),
+                                    defaultSearchExpansionFactor(1.0),
                                     quantizationType(VectorQuantizationType.NONE),
                                     hnswM(16),
                                     hnswEfConstruction(100))),
@@ -214,7 +221,8 @@ public enum VectorIndexVersion {
                                             hnswMDefault(16),
                                             hnswMValidator(1, maxHnswM()),
                                             hnswEfConstructionDefault(100),
-                                            hnswEfConstructionValidator(1, maxHnswEfConstruction())))));
+                                            hnswEfConstructionValidator(1, maxHnswEfConstruction())),
+                                    defaultSearchExpansionFactor(1.0))));
         }
 
         @Override
@@ -258,7 +266,8 @@ public enum VectorIndexVersion {
                                             hnswMDefault(16),
                                             hnswMValidator(1, maxHnswM()),
                                             hnswEfConstructionDefault(100),
-                                            hnswEfConstructionValidator(1, maxHnswEfConstruction())))),
+                                            hnswEfConstructionValidator(1, maxHnswEfConstruction())),
+                                    defaultSearchExpansionFactor(1.0))),
                     entry(
                             KernelVersion.GLORIOUS_FUTURE,
                             new VersionedValidator(
@@ -266,6 +275,7 @@ public enum VectorIndexVersion {
                                     new IndexSettingExtractors(
                                             DIMENSIONS_EXTRACTOR,
                                             SIMILARITY_FUNCTION_EXTRACTOR,
+                                            DEFAULT_SEARCH_EXPANSION_FACTOR_EXTRACTOR,
                                             QUANTIZATION_ENABLED_EXTRACTOR, // allowed in initial creation
                                             QUANTIZATION_TYPE_EXTRACTOR,
                                             HNSW_M_EXTRACTOR,
@@ -285,6 +295,13 @@ public enum VectorIndexVersion {
                                             quantizationTypeLookup(supportedQuantizationTypes()),
                                             REMOVE_QUANTIZATION_ENABLED,
                                             quantizationTypeNormalizer(supportedQuantizationTypes()),
+                                            defaultSearchExpansionFactorDefault(
+                                                    1.0,
+                                                    Map.ofEntries(
+                                                            entry(VectorQuantizationType.NONE, 1.0),
+                                                            entry(VectorQuantizationType.SCALAR, 2.0),
+                                                            entry(VectorQuantizationType.BINARY, 8.0))),
+                                            defaultSearchExpansionFactorValidator(1.0, Double.MAX_VALUE),
                                             hnswMDefault(16),
                                             hnswMValidator(1, maxHnswM()),
                                             hnswEfConstructionDefault(100),

@@ -72,12 +72,14 @@ public abstract class SingleIndexSettingMigrator<FROM, TO> extends SingleIndexSe
 
     @Override
     public void updateForVerification(KnownIndexSettingRecords records) {
-        records.upsert(processForVerification(records.get(setting)));
+        // override not needed, but skips superfluous logic
+        records.upsert(processForVerification(records.get(fromSetting)));
     }
 
     @Override
     public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
-        records.upsert(processForAuthoritativeRead(records.get(setting)));
+        // override not needed, but skips superfluous logic
+        records.upsert(processForAuthoritativeRead(records.get(fromSetting)));
     }
 
     @Override

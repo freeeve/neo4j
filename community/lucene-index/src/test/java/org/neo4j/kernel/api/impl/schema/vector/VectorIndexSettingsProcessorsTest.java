@@ -19,13 +19,16 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.DEFAULT_SEARCH_EXPANSION_FACTOR;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_ENABLED;
 import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QUANTIZATION_TYPE;
 
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Optional;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,8 +52,10 @@ import org.neo4j.internal.schema.IndexSettingRecord.Valid;
 import org.neo4j.internal.schema.IndexSettingsProcessor;
 import org.neo4j.internal.schema.KnownIndexSettingRecords;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.MissingDefaultSearchExpansionFactorMaterializer;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.QuantizationTypeLookup;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SimpleQuantizationEnabledToTypeMigrator;
+import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -69,6 +74,72 @@ class VectorIndexSettingsProcessorsTest {
     }
 
     @Nested
+    class MissingDefaultSearchExpansionFactorMaterializerTest extends TestBase {
+        private static final Map<VectorQuantizationType, Double> EXPANSION_FACTORS_FOR_AUTHORITATIVE_READ =
+                Map.ofEntries(
+                        entry(VectorQuantizationType.NONE, 1.0),
+                        entry(VectorQuantizationType.SCALAR, 1.1),
+                        entry(VectorQuantizationType.BINARY, 1.2));
+        private static final Map<VectorQuantizationType, Double> EXPANSION_FACTORS_FOR_VERIFICATION = Map.ofEntries(
+                entry(VectorQuantizationType.NONE, 1.0),
+                entry(VectorQuantizationType.SCALAR, 2.0),
+                entry(VectorQuantizationType.BINARY, 8.0));
+        private static final IndexSettingsProcessor DEFAULT = MissingDefaultSearchExpansionFactorMaterializer.of(
+                EXPANSION_FACTORS_FOR_AUTHORITATIVE_READ::get, EXPANSION_FACTORS_FOR_VERIFICATION::get);
+
+        @ParameterizedTest
+        @EnumSource
+        void existingForVerification(VectorQuantizationType type) {
+            final double expansionFactor = EXPANSION_FACTORS_FOR_VERIFICATION.get(type);
+            final DoubleValue storable = Values.doubleValue(expansionFactor);
+            final RecordWithSetting record =
+                    records.upsert(new Pending(DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor, storable));
+
+            DEFAULT.updateForVerification(records);
+            assertThat(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR)).isSameAs(record);
+        }
+
+        @ParameterizedTest
+        @EnumSource
+        void existingForAuthoritativeRead(VectorQuantizationType type) {
+            final double expansionFactor = EXPANSION_FACTORS_FOR_VERIFICATION.get(type);
+            final DoubleValue storable = Values.doubleValue(expansionFactor);
+            final RecordWithSetting record =
+                    records.upsert(new Valid(DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor, storable));
+
+            DEFAULT.updateForAuthoritativeRead(records);
+            assertThat(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR)).isSameAs(record);
+        }
+
+        @ParameterizedTest
+        @EnumSource
+        void useDefaultForVerification(VectorQuantizationType type) {
+            final double expansionFactor = EXPANSION_FACTORS_FOR_VERIFICATION.get(type);
+            final DoubleValue storable = Values.doubleValue(expansionFactor);
+            records.upsert(new Valid(QUANTIZATION_TYPE, type, Values.utf8Value(type.name())));
+
+            DEFAULT.updateForVerification(records);
+            assertThat(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR))
+                    .asInstanceOf(type(Pending.class))
+                    .extracting(HasSetting::setting, RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor, storable);
+        }
+
+        @ParameterizedTest
+        @EnumSource
+        void useDefaultAuthoritativeRead(VectorQuantizationType type) {
+            final double expansionFactor = EXPANSION_FACTORS_FOR_AUTHORITATIVE_READ.get(type);
+            records.upsert(new Valid(QUANTIZATION_TYPE, type, Values.utf8Value(type.name())));
+
+            DEFAULT.updateForAuthoritativeRead(records);
+            assertThat(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR))
+                    .asInstanceOf(type(Valid.class))
+                    .extracting(HasSetting::setting, RecordWithValue::value, RecordWithStorable::storable)
+                    .containsExactly(DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor, Values.NO_VALUE);
+        }
+    }
+
+    @Nested
     class SimpleQuantizationEnabledToTypeMigratorTest extends TestBase {
         private static final VectorQuantizationType CORRESPONDING_ENABLED_TYPE = VectorQuantizationType.SCALAR;
         private static final SingleIndexSettingProcessor MIGRATOR =
@@ -83,7 +154,7 @@ class VectorIndexSettingsProcessorsTest {
             final RecordWithSetting processedRecord = MIGRATOR.processForVerification(record);
             assertThat(processedRecord)
                     .asInstanceOf(type(InvalidValue.class))
-                    .extracting(HasSetting::setting, InvalidValue::value, TestBase::underlyingRequirement)
+                    .extracting(HasSetting::setting, RecordWithValue::value, TestBase::underlyingRequirement)
                     .containsExactly(QUANTIZATION_TYPE, null, VectorQuantizationType.class);
 
             MIGRATOR.updateForVerification(records);

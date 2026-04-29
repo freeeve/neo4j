@@ -35,15 +35,18 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
+import java.util.function.ToDoubleFunction;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
 import org.neo4j.internal.schema.IndexConfigUtils.IndexSettingsRequirement;
 import org.neo4j.internal.schema.IndexSettingExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.BooleanExtractor;
+import org.neo4j.internal.schema.IndexSettingExtractors.DoubleExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.IntegerExtractor;
 import org.neo4j.internal.schema.IndexSettingExtractors.StringExtractor;
 import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
+import org.neo4j.internal.schema.IndexSettingRecord.MissingSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Pending;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.Valid;
@@ -63,6 +66,7 @@ import org.neo4j.internal.schema.SingleIndexSettingProcessor.FinalizePending;
 import org.neo4j.internal.schema.SingleIndexSettingProcessor.MissingSettingMaterializer;
 import org.neo4j.internal.schema.SingleIndexSettingStorableNormalizer.EnumToNameStorableNormalizer;
 import org.neo4j.internal.schema.SingleIndexSettingStorableNormalizer.SingleIndexSettingMapStorableNormalizer;
+import org.neo4j.internal.schema.SingleIndexSettingValidator.DoubleRangeValidator;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.IntegerRangeValidator;
 import org.neo4j.internal.schema.SingleIndexSettingValidator.OptionalIntRangeValidator;
 import org.neo4j.kernel.KernelVersion;
@@ -73,6 +77,8 @@ import org.neo4j.values.storable.Values;
 public class VectorIndexConfigUtils {
     static final IndexSetting DIMENSIONS = IndexSetting.vector_Dimensions();
     static final IndexSetting SIMILARITY_FUNCTION = IndexSetting.vector_Similarity_Function();
+    static final IndexSetting DEFAULT_SEARCH_EXPANSION_FACTOR =
+            InternalIndexSetting.vector_Default_Search_Expansion_Factor();
     static final IndexSetting QUANTIZATION_ENABLED = IndexSetting.vector_Quantization_Enabled();
     static final IndexSetting QUANTIZATION_TYPE = InternalIndexSetting.vector_Quantization_Type();
     static final IndexSetting HNSW_M = IndexSetting.vector_Hnsw_M();
@@ -85,6 +91,8 @@ public class VectorIndexConfigUtils {
                 new TreeMap<>(INDEX_SETTING_COMPARATOR);
         indexSettingIntroducedVersions.put(DIMENSIONS, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
         indexSettingIntroducedVersions.put(SIMILARITY_FUNCTION, KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED);
+        indexSettingIntroducedVersions.put(
+                DEFAULT_SEARCH_EXPANSION_FACTOR, KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION);
         indexSettingIntroducedVersions.put(
                 QUANTIZATION_ENABLED, KernelVersion.VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS);
         indexSettingIntroducedVersions.put(QUANTIZATION_TYPE, KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION);
@@ -156,6 +164,90 @@ public class VectorIndexConfigUtils {
                 SIMILARITY_FUNCTION, VectorSimilarityFunction.class, inverted);
     }
 
+    // =================================
+    //  default search expansion factor
+    // =================================
+
+    static final IndexSettingExtractor DEFAULT_SEARCH_EXPANSION_FACTOR_EXTRACTOR =
+            DoubleExtractor.of(DEFAULT_SEARCH_EXPANSION_FACTOR);
+
+    static IndexSettingEntry defaultSearchExpansionFactor(double expansionFactor) {
+        return new IndexSettingEntry(DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor);
+    }
+
+    static IndexSettingsProcessor defaultSearchExpansionFactorDefault(
+            double defaultForAuthoritativeRead, Map<VectorQuantizationType, Double> defaultsForVerification) {
+        return MissingDefaultSearchExpansionFactorMaterializer.of(
+                type -> defaultForAuthoritativeRead, defaultsForVerification::get);
+    }
+
+    static final class MissingDefaultSearchExpansionFactorMaterializer implements IndexSettingsProcessor {
+        private static final Set<IndexSetting> SETTINGS = Set.of(QUANTIZATION_TYPE, DEFAULT_SEARCH_EXPANSION_FACTOR);
+
+        private final ToDoubleFunction<VectorQuantizationType> defaultsForAuthoritativeRead;
+        private final ToDoubleFunction<VectorQuantizationType> defaultsForVerification;
+
+        static MissingDefaultSearchExpansionFactorMaterializer forVerification(
+                ToDoubleFunction<VectorQuantizationType> defaults) {
+            return of(null, defaults);
+        }
+
+        static MissingDefaultSearchExpansionFactorMaterializer of(
+                ToDoubleFunction<VectorQuantizationType> defaultsForAuthoritativeRead,
+                ToDoubleFunction<VectorQuantizationType> defaultsForVerification) {
+            return new MissingDefaultSearchExpansionFactorMaterializer(
+                    defaultsForAuthoritativeRead, defaultsForVerification);
+        }
+
+        private MissingDefaultSearchExpansionFactorMaterializer(
+                ToDoubleFunction<VectorQuantizationType> defaultsForAuthoritativeRead,
+                ToDoubleFunction<VectorQuantizationType> defaultsForVerification) {
+            this.defaultsForAuthoritativeRead = defaultsForAuthoritativeRead;
+            this.defaultsForVerification = defaultsForVerification;
+        }
+
+        @Override
+        public void updateForVerification(KnownIndexSettingRecords records) {
+            if (!(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR) instanceof final MissingSetting missing)) {
+                return;
+            }
+            if (!(records.get(QUANTIZATION_TYPE) instanceof final Valid validType
+                    && validType.value() instanceof final VectorQuantizationType type)) {
+                return;
+            }
+
+            final double expansionFactor = defaultsForVerification.applyAsDouble(type);
+            records.upsert(new Pending(missing, expansionFactor, Values.doubleValue(expansionFactor)));
+        }
+
+        @Override
+        public void updateForAuthoritativeRead(KnownIndexSettingRecords records) {
+            if (defaultsForAuthoritativeRead == null
+                    || !(records.get(DEFAULT_SEARCH_EXPANSION_FACTOR) instanceof final MissingSetting missing)) {
+                return;
+            }
+
+            final Valid validType = (Valid) records.get(QUANTIZATION_TYPE);
+            final double expansionFactor =
+                    defaultsForAuthoritativeRead.applyAsDouble(validType.valueAs(VectorQuantizationType.class));
+            records.upsert(new Valid(missing, expansionFactor, Values.NO_VALUE));
+        }
+
+        @Override
+        public Set<IndexSetting> settings() {
+            return SETTINGS;
+        }
+
+        @Override
+        public String toString() {
+            return Iterables.toString(settings(), ", ", getClass().getSimpleName() + "[", "]");
+        }
+    }
+
+    static ValidatingIndexSettingsProcessor defaultSearchExpansionFactorValidator(double min, double max) {
+        return DoubleRangeValidator.of(DEFAULT_SEARCH_EXPANSION_FACTOR, min, max);
+    }
+
     // ======================
     //  quantization enabled
     // ======================
@@ -163,10 +255,10 @@ public class VectorIndexConfigUtils {
     static final IndexSettingExtractor QUANTIZATION_ENABLED_EXTRACTOR = BooleanExtractor.of(QUANTIZATION_ENABLED);
 
     static IndexSettingsProcessor quantizationEnabledDefault(
-            boolean valueForAuthoritative, boolean valueForVerification) {
+            boolean valueForAuthoritativeRead, boolean valueForVerification) {
         return MissingSettingMaterializer.of(
                 QUANTIZATION_ENABLED,
-                valueForAuthoritative,
+                valueForAuthoritativeRead,
                 valueForVerification,
                 Values.booleanValue(valueForVerification));
     }
@@ -234,6 +326,11 @@ public class VectorIndexConfigUtils {
                 @Override
                 public RecordWithSetting processForAuthoritativeRead(RecordWithSetting record) {
                     return record;
+                }
+
+                @Override
+                public String toString() {
+                    return "Remove[%s]".formatted(setting);
                 }
             };
 

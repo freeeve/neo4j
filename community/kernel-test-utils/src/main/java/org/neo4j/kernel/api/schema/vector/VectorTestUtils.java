@@ -721,6 +721,10 @@ public class VectorTestUtils {
             return set(IndexSetting.vector_Similarity_Function(), similarityFunction);
         }
 
+        public VectorIndexSettings withDefaultSearchExpansionFactor(double expansionFactor) {
+            return set(InternalIndexSetting.vector_Default_Search_Expansion_Factor(), expansionFactor);
+        }
+
         public VectorIndexSettings withQuantizationEnabled() {
             return withQuantizationEnabled(true);
         }
