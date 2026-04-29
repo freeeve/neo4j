@@ -24,8 +24,13 @@ import org.apache.logging.log4j.MarkerManager;
 
 public class Neo4jLogMarkers {
     private static final Marker INTERNAL_ERROR_PARENT_MARKER = MarkerManager.getMarker("INTERNAL_ERROR");
+    private static final Marker VIRTUAL_GRAPH_PARENT_MARKER = MarkerManager.getMarker("VIRTUAL_GRAPH");
     public static final Neo4jLogMarker KERNEL =
             new Neo4jLogMarker(MarkerManager.getMarker("KERNEL").setParents(INTERNAL_ERROR_PARENT_MARKER));
     public static final Neo4jLogMarker CYPHER =
             new Neo4jLogMarker(MarkerManager.getMarker("CYPHER").setParents(INTERNAL_ERROR_PARENT_MARKER));
+    public static final Neo4jLogMarker VIRTUAL_GRAPH_CONFIG =
+            new Neo4jLogMarker(MarkerManager.getMarker("CONFIG").setParents(VIRTUAL_GRAPH_PARENT_MARKER));
+    public static final Neo4jLogMarker VIRTUAL_GRAPH_CONNECTION =
+            new Neo4jLogMarker(MarkerManager.getMarker("CONNECTION").setParents(VIRTUAL_GRAPH_PARENT_MARKER));
 }
