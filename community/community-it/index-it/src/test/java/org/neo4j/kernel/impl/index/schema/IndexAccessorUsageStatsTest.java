@@ -60,6 +60,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.api.index.EntityRange;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexUsageStats;
@@ -376,6 +377,7 @@ public class IndexAccessorUsageStatsTest {
         return StaticIndexProviderMapFactory.create(
                 lifeSupport,
                 config,
+                KernelVersionProviders.latestFromConfig(config),
                 pageCache,
                 fs,
                 NullLogService.getInstance(),

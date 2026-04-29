@@ -30,6 +30,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.impl.index.schema.FulltextIndexProviderFactoryV1;
 import org.neo4j.kernel.impl.index.schema.FulltextIndexProviderFactoryV2;
@@ -51,6 +52,7 @@ public class StaticIndexProviderMapFactory {
     public static StaticIndexProviderMap create(
             LifeSupport life,
             Config databaseConfig,
+            KernelVersionProvider kernelVersionProvider,
             PageCache pageCache,
             FileSystemAbstraction fs,
             LogService logService,
@@ -66,6 +68,7 @@ public class StaticIndexProviderMapFactory {
         return create(
                 life,
                 databaseConfig,
+                kernelVersionProvider,
                 pageCache,
                 fs,
                 logService,
@@ -84,6 +87,7 @@ public class StaticIndexProviderMapFactory {
     public static StaticIndexProviderMap create(
             LifeSupport life,
             Config databaseConfig,
+            KernelVersionProvider kernelVersionProvider,
             PageCache pageCache,
             FileSystemAbstraction fs,
             LogService logService,
@@ -104,6 +108,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -121,6 +126,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -138,6 +144,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -155,6 +162,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -172,6 +180,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -189,6 +198,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -206,6 +216,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -223,6 +234,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -240,6 +252,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -257,6 +270,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,
@@ -274,6 +288,7 @@ public class StaticIndexProviderMapFactory {
                         logService,
                         monitors,
                         databaseConfig,
+                        kernelVersionProvider,
                         readOnlyChecker,
                         mode,
                         recoveryCleanupWorkCollector,

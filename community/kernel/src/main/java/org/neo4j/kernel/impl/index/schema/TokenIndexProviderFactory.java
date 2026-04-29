@@ -33,6 +33,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
@@ -58,6 +59,7 @@ public class TokenIndexProviderFactory extends AbstractIndexProviderFactory<Toke
             Monitors monitors,
             String monitorTag,
             Config config,
+            KernelVersionProvider kernelVersionProvider,
             DatabaseReadOnlyChecker readOnlyChecker,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             DatabaseLayout databaseLayout,

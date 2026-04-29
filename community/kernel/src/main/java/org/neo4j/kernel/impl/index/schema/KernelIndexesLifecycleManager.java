@@ -223,6 +223,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
         final var indexProviderMap = life.add(StaticIndexProviderMapFactory.create(
                 life,
                 config,
+                context.kernelVersionProvider(),
                 pageCache,
                 fileSystem,
                 logService,

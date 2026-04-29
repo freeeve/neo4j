@@ -529,6 +529,7 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
         return life.add(StaticIndexProviderMapFactory.create(
                 life,
                 config,
+                KernelVersionProviders.latestFromConfig(config),
                 pageCache,
                 fs,
                 logService,

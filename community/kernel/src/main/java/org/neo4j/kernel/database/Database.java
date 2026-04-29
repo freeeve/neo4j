@@ -410,7 +410,6 @@ public class Database extends AbstractDatabase {
         life.add(new PageCacheLifecycle(databasePageCache));
         life.add(versionStorage);
         life.add(initializeExtensions(databaseDependencies));
-        life.add(initializeIndexProviderMap(databaseDependencies));
 
         DatabaseLayoutWatcher watcherService = watcherServiceFactory.apply(databaseLayout);
         life.add(watcherService);
@@ -480,6 +479,10 @@ public class Database extends AbstractDatabase {
                 databaseDependencies.satisfyDependency(logFiles.logMetadataProvider());
         internalLog.info("Current KernelVersion=" + logMetadataProvider.kernelVersion() + ", LogFormat= "
                 + logMetadataProvider.getCurrentLogFormat());
+
+        // Creating the IndexProviderMap resolves the KernelVersionProvider from the dependencies
+        // so it has to happen here at the earliest.
+        life.add(initializeIndexProviderMap(databaseDependencies));
 
         // Build all modules and their services
         DatabaseSchemaState databaseSchemaState = new DatabaseSchemaState(internalLogProvider);
@@ -834,6 +837,7 @@ public class Database extends AbstractDatabase {
         var indexProviderMap = StaticIndexProviderMapFactory.create(
                 indexProvidersLife,
                 databaseConfig,
+                dependencies.resolveDependency(KernelVersionProvider.class),
                 databasePageCache,
                 fs,
                 databaseLogService,

@@ -176,12 +176,13 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
     @Override
     public GeneratedStore generateStore() throws IOException {
         var storageEngineFactory = storageEngineFactorySupplier.get();
-        var indexProvidersAccess = indexProviders(storageEngineFactory);
+        Config updatedConfig = withoutTxLogPreAllocation(updateConfigVersion(config, kernelVersionForSeed));
+        var indexProvidersAccess = indexProviders(storageEngineFactory, updatedConfig);
         var tempDatabaseLayout = cleanTempDatabaseLayout();
         try (var life = new Lifespan(indexProvidersAccess);
                 var pageCache = openNonForcingSmallPageCache(fs, jobScheduler)) {
-            var batchImporter =
-                    batchImporter(storageEngineFactory, tempDatabaseLayout, pageCache, indexProvidersAccess);
+            var batchImporter = batchImporter(
+                    storageEngineFactory, updatedConfig, tempDatabaseLayout, pageCache, indexProvidersAccess);
             batchImporter.doImport(new NoInput());
             if (createForMergedLog()) {
                 // when creating an initial store seed for merged log we need to make sure there are no logs in the
@@ -246,6 +247,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
 
     private BatchImporter batchImporter(
             StorageEngineFactory storageEngineFactory,
+            Config dbConfig,
             DatabaseLayout tempDatabaseLayout,
             PageCache pageCache,
             IndexProvidersAccess indexProvidersAccess) {
@@ -281,7 +283,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 false,
                 EMPTY,
                 new LogTailMetadataFactoryImpl(fs),
-                withoutTxLogPreAllocation(updateConfigVersion(config, kernelVersionForSeed)),
+                dbConfig,
                 NO_MONITOR,
                 jobScheduler,
                 STRICT,
@@ -295,11 +297,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 databaseCreationOptions);
     }
 
-    private DefaultIndexProvidersAccess indexProviders(StorageEngineFactory storageEngineFactory) {
+    private DefaultIndexProvidersAccess indexProviders(StorageEngineFactory storageEngineFactory, Config dbConfig) {
         return new DefaultIndexProvidersAccess(
                 storageEngineFactory,
                 fs,
-                config,
+                dbConfig,
                 jobScheduler,
                 NullLogService.getInstance(),
                 NULL,

@@ -34,6 +34,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.transaction.state.StaticIndexProviderMapFactory;
@@ -109,6 +110,7 @@ public class DefaultIndexProvidersAccess extends LifeContainer implements IndexP
         return life.add(StaticIndexProviderMapFactory.create(
                 life,
                 databaseConfig,
+                KernelVersionProviders.latestFromConfig(databaseConfig),
                 pageCache,
                 fileSystem,
                 logService,

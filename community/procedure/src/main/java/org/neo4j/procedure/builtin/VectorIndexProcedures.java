@@ -157,7 +157,7 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new NodeIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+        return new NodeIndexQuery(tx, ktx, kernelVersion, name, !spdBuiltInProcedures.isSpd())
                 .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
@@ -180,7 +180,7 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new NodeIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+        return new NodeIndexQuery(tx, ktx, kernelVersion, name, !spdBuiltInProcedures.isSpd())
                 .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
@@ -202,7 +202,7 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new RelationshipIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+        return new RelationshipIndexQuery(tx, ktx, kernelVersion, name, !spdBuiltInProcedures.isSpd())
                 .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
@@ -225,7 +225,7 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new RelationshipIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+        return new RelationshipIndexQuery(tx, ktx, kernelVersion, name, !spdBuiltInProcedures.isSpd())
                 .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
@@ -311,8 +311,9 @@ public class VectorIndexProcedures {
     }
 
     private static class NodeIndexQuery extends IndexQuery<NodeValueIndexCursor, NodeNeighbor> {
-        private NodeIndexQuery(Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
-            super(EntityType.NODE, tx, ktx, name, awaitOnline);
+        private NodeIndexQuery(
+                Transaction tx, KernelTransaction ktx, KernelVersion kernelVersion, String name, boolean awaitOnline) {
+            super(EntityType.NODE, tx, ktx, kernelVersion, name, awaitOnline);
         }
 
         @Override
@@ -340,8 +341,9 @@ public class VectorIndexProcedures {
     }
 
     private static class RelationshipIndexQuery extends IndexQuery<RelationshipValueIndexCursor, RelationshipNeighbor> {
-        private RelationshipIndexQuery(Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
-            super(EntityType.RELATIONSHIP, tx, ktx, name, awaitOnline);
+        private RelationshipIndexQuery(
+                Transaction tx, KernelTransaction ktx, KernelVersion kernelVersion, String name, boolean awaitOnline) {
+            super(EntityType.RELATIONSHIP, tx, ktx, kernelVersion, name, awaitOnline);
         }
 
         @Override
@@ -371,12 +373,19 @@ public class VectorIndexProcedures {
     private abstract static class IndexQuery<CURSOR extends ValueIndexCursor, NEIGHBOR extends Neighbor<?, NEIGHBOR>> {
         protected final Transaction tx;
         private final KernelTransaction ktx;
+        private final KernelVersion kernelVersion;
         private final IndexDescriptor index;
 
         private IndexQuery(
-                EntityType entityType, Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
+                EntityType entityType,
+                Transaction tx,
+                KernelTransaction ktx,
+                KernelVersion kernelVersion,
+                String name,
+                boolean awaitOnline) {
             this.tx = tx;
             this.ktx = ktx;
+            this.kernelVersion = kernelVersion;
 
             final var index = ktx.schemaRead().indexGetForName(name);
             if (index == IndexDescriptor.NO_INDEX || index.getIndexType() != IndexType.VECTOR) {
@@ -413,7 +422,7 @@ public class VectorIndexProcedures {
         abstract Stream<NEIGHBOR> stream(CURSOR cursor, int k);
 
         Stream<NEIGHBOR> query(int k, VectorCandidate query) throws KernelException {
-            final var validatedQuery = CypherCoercions.validateAndConvertVectorIndexQuery(index, query);
+            final var validatedQuery = CypherCoercions.validateAndConvertVectorIndexQuery(index, kernelVersion, query);
             final var cursor = cursor(ktx.cursors(), ktx.cursorContext(), ktx.memoryTracker());
             seek(
                     ktx.dataRead(),

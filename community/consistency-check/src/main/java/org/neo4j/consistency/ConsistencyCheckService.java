@@ -63,6 +63,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
@@ -291,6 +292,7 @@ public class ConsistencyCheckService {
             final var indexProviders = life.add(StaticIndexProviderMapFactory.create(
                     life,
                     config,
+                    KernelVersionProviders.latestFromConfig(config),
                     pageCache,
                     fileSystem,
                     new SimpleLogService(logProvider),

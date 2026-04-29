@@ -56,6 +56,8 @@ import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SettingsAccessor;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
@@ -173,8 +175,13 @@ public final class CypherCoercions {
     }
 
     public static float[] validateAndConvertVectorIndexQuery(IndexDescriptor index, VectorCandidate query) {
-        final var version = VectorIndexVersion.fromDescriptor(index.getIndexProvider());
-        final var vectorIndexConfig = version.indexSettingValidator()
+        return validateAndConvertVectorIndexQuery(index, null, query);
+    }
+
+    public static float[] validateAndConvertVectorIndexQuery(
+            IndexDescriptor index, KernelVersion kernelVersion, VectorCandidate query) {
+        VectorIndexVersion version = VectorIndexVersion.fromDescriptor(index.getIndexProvider());
+        VectorIndexConfig vectorIndexConfig = version.indexSettingValidator(kernelVersion)
                 .interpretAuthoritativeToTypedConfig(new SettingsAccessor.IndexConfigAccessor(index.getIndexConfig()));
 
         final var dimensions = vectorIndexConfig.dimensions();

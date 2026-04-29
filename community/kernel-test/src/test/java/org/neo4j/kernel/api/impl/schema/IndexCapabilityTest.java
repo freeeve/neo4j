@@ -64,6 +64,7 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.impl.index.schema.PointIndexProvider;
 import org.neo4j.kernel.impl.index.schema.RangeIndexProvider;
 import org.neo4j.kernel.impl.index.schema.TokenIndexProvider;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.values.storable.ValueCategory;
 
 class IndexCapabilityTest {
@@ -75,11 +76,17 @@ class IndexCapabilityTest {
     private static final IndexCapability TRIGRAM = TrigramIndexProvider.CAPABILITY;
     private static final IndexCapability FULLTEXT = new FulltextIndexCapability(false);
     private static final IndexCapability VECTOR_V1 = VectorIndexProvider.capability(
-            VectorIndexVersion.V1_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
+            VectorIndexVersion.V1_0,
+            IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR),
+            LatestVersions.LATEST_KERNEL_VERSION);
     private static final IndexCapability VECTOR_V2 = VectorIndexProvider.capability(
-            VectorIndexVersion.V2_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
+            VectorIndexVersion.V2_0,
+            IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR),
+            LatestVersions.LATEST_KERNEL_VERSION);
     private static final IndexCapability VECTOR_V3 = VectorIndexProvider.capability(
-            VectorIndexVersion.V3_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
+            VectorIndexVersion.V3_0,
+            IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR),
+            LatestVersions.LATEST_KERNEL_VERSION);
     private static final IndexCapability[] NONE = of();
     private static final IndexCapability[] ALL_PROPERTY =
             of(RANGE, POINT, TEXT, TRIGRAM, FULLTEXT, VECTOR_V1, VECTOR_V2);

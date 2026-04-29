@@ -30,6 +30,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.extension.ExtensionFactory;
@@ -40,6 +41,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.token.TokenHolders;
 
 /**
@@ -51,12 +53,21 @@ public class BuiltInDelegatingIndexProviderFactory
 
     private final AbstractIndexProviderFactory<?> delegate;
     private final IndexProviderDescriptor descriptorOverride;
+    private final KernelVersionProvider kernelVersionProvider;
 
     public BuiltInDelegatingIndexProviderFactory(
             AbstractIndexProviderFactory<?> delegate, IndexProviderDescriptor descriptorOverride) {
+        this(delegate, descriptorOverride, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER);
+    }
+
+    public BuiltInDelegatingIndexProviderFactory(
+            AbstractIndexProviderFactory<?> delegate,
+            IndexProviderDescriptor descriptorOverride,
+            KernelVersionProvider kernelVersionProvider) {
         super(ExtensionType.DATABASE, descriptorOverride.key());
         this.delegate = delegate;
         this.descriptorOverride = descriptorOverride;
+        this.kernelVersionProvider = kernelVersionProvider;
     }
 
     @Override
@@ -67,6 +78,7 @@ public class BuiltInDelegatingIndexProviderFactory
                 dependencies.getLogService(),
                 dependencies.monitors(),
                 dependencies.getConfig(),
+                this.kernelVersionProvider,
                 dependencies.readOnlyChecker(),
                 dependencies.mode(),
                 dependencies.recoveryCleanupWorkCollector(),

@@ -63,6 +63,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -152,6 +153,7 @@ class FulltextIndexEntryUpdateTest {
                         NullLogService.getInstance(),
                         new Monitors(),
                         CONFIG,
+                        KernelVersionProviders.latestFromConfig(CONFIG),
                         readOnlyChecker,
                         HostedOnMode.SINGLE,
                         RecoveryCleanupWorkCollector.ignore(),

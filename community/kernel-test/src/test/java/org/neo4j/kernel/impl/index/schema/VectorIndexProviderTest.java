@@ -43,6 +43,7 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 
 class VectorIndexProviderTest {
@@ -298,6 +299,7 @@ class VectorIndexProviderTest {
                     dir,
                     monitors,
                     Config.defaults(),
+                    LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                     readOnlyChecker,
                     new ThreadPoolJobScheduler("%s-%s-%s"
                             .formatted(

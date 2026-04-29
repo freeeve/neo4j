@@ -38,6 +38,8 @@ import org.neo4j.internal.schema.TypedIndexSettingsValidator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
@@ -48,7 +50,7 @@ import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexProvider;
 import org.neo4j.kernel.api.index.IndexAccessor;
-import org.neo4j.kernel.api.index.IndexDirectoryStructure;
+import org.neo4j.kernel.api.index.IndexDirectoryStructure.Factory;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
@@ -59,6 +61,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
@@ -66,7 +69,7 @@ import org.neo4j.values.storable.Value;
 public class VectorIndexProvider extends AbstractLuceneIndexProvider {
     private final VectorIndexVersion version;
     private final LuceneContext luceneContext;
-    private final TypedIndexSettingsValidator<VectorIndexConfig> settingsValidator;
+    private final KernelVersionProvider kernelVersionProvider;
     private final VectorDocumentStructure documentStructure;
     private final FileSystemAbstraction fileSystem;
     private final JobScheduler scheduler;
@@ -76,9 +79,10 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             LuceneContext luceneContext,
             FileSystemAbstraction fileSystem,
             DirectoryFactory directoryFactory,
-            IndexDirectoryStructure.Factory directoryStructureFactory,
+            Factory directoryStructureFactory,
             Monitors monitors,
             Config config,
+            KernelVersionProvider kernelVersionProvider,
             DatabaseReadOnlyChecker readOnlyChecker,
             JobScheduler scheduler,
             LogProvider logProvider) {
@@ -95,7 +99,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
                 logProvider);
         this.version = version;
         this.luceneContext = luceneContext;
-        this.settingsValidator = version.indexSettingValidator();
+        this.kernelVersionProvider = kernelVersionProvider;
         this.documentStructure = VectorDocumentStructures.documentStructureFor(version);
         this.fileSystem = fileSystem;
         this.scheduler = scheduler;
@@ -106,7 +110,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         prototype = super.validatePrototype(prototype);
         // construction handles validation
         final VectorIndexConfig vectorIndexConfig =
-                settingsValidator.validateToTypedConfig(new IndexConfigAccessor(prototype.getIndexConfig()));
+                settingsValidator().validateToTypedConfig(new IndexConfigAccessor(prototype.getIndexConfig()));
         // replaces provided config with validated config with set defaults
         return prototype.withIndexConfig(vectorIndexConfig.config());
     }
@@ -122,8 +126,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour,
             IndexPopulator.Configuration configuration) {
-        final VectorIndexConfig vectorIndexConfig = settingsValidator.interpretAuthoritativeToTypedConfig(
-                new IndexConfigAccessor(descriptor.getIndexConfig()));
+        final VectorIndexConfig vectorIndexConfig = settingsValidator()
+                .interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
         final OptionalInt dimensions = vectorIndexConfig.dimensions();
 
         final LuceneCodec codec = luceneContext.codecsFactory().codecFor(vectorIndexConfig);
@@ -157,8 +161,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             boolean readOnly,
             StorageEngineIndexingBehaviour indexingBehaviour)
             throws IOException {
-        final VectorIndexConfig vectorIndexConfig = settingsValidator.interpretAuthoritativeToTypedConfig(
-                new IndexConfigAccessor(descriptor.getIndexConfig()));
+        final VectorIndexConfig vectorIndexConfig = settingsValidator()
+                .interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
         final LuceneCodec codec = luceneContext.codecsFactory().codecFor(vectorIndexConfig);
         VectorIndexBuilder builder = VectorIndexBuilder.create(
                         descriptor, vectorIndexConfig, documentStructure, codec, readOnlyChecker, config, logProvider)
@@ -179,15 +183,28 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
     public IndexDescriptor completeConfiguration(
             IndexDescriptor index, StorageEngineIndexingBehaviour indexingBehaviour) {
         return index.getCapability().equals(IndexCapability.NO_CAPABILITY)
-                ? index.withIndexCapability(capability(version, index.getIndexConfig()))
+                ? index.withIndexCapability(capability(version, index.getIndexConfig(), settingsValidator()))
                 : index;
     }
 
-    public static IndexCapability capability(VectorIndexVersion version, IndexConfig config) {
+    @VisibleForTesting
+    public static IndexCapability capability(
+            VectorIndexVersion version, IndexConfig config, KernelVersion kernelVersion) {
+        return capability(version, config, version.indexSettingValidator(kernelVersion));
+    }
+
+    private static IndexCapability capability(
+            VectorIndexVersion version,
+            IndexConfig config,
+            TypedIndexSettingsValidator<VectorIndexConfig> indexSettingsValidator) {
         final VectorIndexConfig vectorIndexConfig =
-                version.indexSettingValidator().interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(config));
+                indexSettingsValidator.interpretAuthoritativeToTypedConfig(new IndexConfigAccessor(config));
         return new VectorIndexCapability(
                 new IgnoreStrategy(version, vectorIndexConfig.dimensions()), vectorIndexConfig.similarityFunction());
+    }
+
+    private TypedIndexSettingsValidator<VectorIndexConfig> settingsValidator() {
+        return this.version.indexSettingValidator(this.kernelVersionProvider.kernelVersion());
     }
 
     record IgnoreStrategy(VectorIndexVersion version, OptionalInt dimensions) implements IndexUpdateIgnoreStrategy {

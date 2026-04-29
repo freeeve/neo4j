@@ -627,23 +627,6 @@ public final class Recovery {
         Dependencies indexDependencies = new Dependencies(extensions);
         indexDependencies.satisfyDependencies(recoveryVersionStorage);
 
-        var indexProviderMap = recoveryLife.add(StaticIndexProviderMapFactory.create(
-                recoveryLife,
-                config,
-                databasePageCache,
-                fs,
-                logService,
-                monitors,
-                readOnlyChecker,
-                HostedOnMode.SINGLE,
-                recoveryCleanupCollector,
-                databaseLayout,
-                tokenHolders,
-                scheduler,
-                cursorContextFactory,
-                tracers.getPageCacheTracer(),
-                indexDependencies));
-
         var dependencies = dependenciesOf(
                 databaseLayout,
                 config,
@@ -673,6 +656,25 @@ public final class Recovery {
 
         LogMetadataProvider logMetadataProvider = logFiles.logMetadataProvider();
         boolean doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);
+
+        var indexProviderMap = recoveryLife.add(StaticIndexProviderMapFactory.create(
+                recoveryLife,
+                config,
+                logMetadataProvider,
+                databasePageCache,
+                fs,
+                logService,
+                monitors,
+                readOnlyChecker,
+                HostedOnMode.SINGLE,
+                recoveryCleanupCollector,
+                databaseLayout,
+                tokenHolders,
+                scheduler,
+                cursorContextFactory,
+                tracers.getPageCacheTracer(),
+                indexDependencies));
+
         StorageEngine storageEngine = storageEngineFactory.instantiate(
                 fs,
                 clock,
@@ -1067,11 +1069,12 @@ public final class Recovery {
 
     static void throwUnableToCleanRecover(Throwable t) {
         throw new RuntimeException(
-                "Error reading transaction logs, recovery not possible. To force the database to start anyway, you can specify '"
+                "Error reading transaction logs, recovery not possible. To force the database to start anyway, you can"
+                        + " specify '"
                         + GraphDatabaseInternalSettings.fail_on_corrupted_log_files.name()
-                        + "=false'. This will try to recover as much "
-                        + "as possible and then truncate the corrupt part of the transaction log. Doing this means your database "
-                        + "integrity might be compromised, please consider restoring from a consistent backup instead.",
+                        + "=false'. This will try to recover as much as possible and then truncate the corrupt part of"
+                        + " the transaction log. Doing this means your database integrity might be compromised, please"
+                        + " consider restoring from a consistent backup instead.",
                 t);
     }
 
@@ -1125,10 +1128,10 @@ public final class Recovery {
                 if (config.get(GraphDatabaseSettings.fail_on_missing_files)) {
                     log.error("Transaction logs are missing and recovery is not possible.");
                     log.info(
-                            "To force the database to start anyway, you can specify '%s=false'. "
-                                    + "This will create new transaction log and will update database metadata accordingly. "
-                                    + "Doing this means your database integrity might be compromised, "
-                                    + "please consider restoring from a consistent backup instead.",
+                            "To force the database to start anyway, you can specify '%s=false'. This will create new"
+                                    + " transaction log and will update database metadata accordingly. Doing this means"
+                                    + " your database integrity might be compromised, please consider restoring from a"
+                                    + " consistent backup instead.",
                             GraphDatabaseSettings.fail_on_missing_files.name());
 
                     throw new RuntimeException("Transaction logs are missing and recovery is not possible.");

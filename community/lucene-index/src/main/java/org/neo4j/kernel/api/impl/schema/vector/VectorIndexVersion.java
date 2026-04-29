@@ -74,8 +74,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
@@ -353,7 +353,6 @@ public enum VectorIndexVersion {
     private final int maxHnswM;
     private final int maxHnswEfConstruction;
     private final SortedMap<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> validators;
-    private final TypedIndexSettingsValidator<VectorIndexConfig> latestIndexSettingValidator;
 
     VectorIndexVersion(
             IndexProviderDescriptor providerDescriptor,
@@ -390,7 +389,6 @@ public enum VectorIndexVersion {
             validators.putAll(configureValidators());
             this.validators = Collections.unmodifiableSortedMap(validators);
         }
-        this.latestIndexSettingValidator = indexSettingValidator(KernelVersion.getLatestVersion(Config.defaults()));
     }
 
     public KernelVersion minimumRequiredKernelVersion() {
@@ -457,10 +455,20 @@ public enum VectorIndexVersion {
     }
 
     public TypedIndexSettingsValidator<VectorIndexConfig> indexSettingValidator() {
-        return latestIndexSettingValidator;
+        return indexSettingValidator(null);
     }
 
+    /// Returns the latest validator that is compatible with the given `kernelVersion`.
+    ///
+    /// If the `kernelVersion` is `null`, the latest known version will be selected according to
+    /// [KernelVersion#getLatestVersion(Configuration)] by passing an empty configuration.
+    ///
+    /// If no validators is found for the given `kernelVersion`, the returned validator will throw an
+    /// [InvalidArgumentException] for any method that is called on it.
     public TypedIndexSettingsValidator<VectorIndexConfig> indexSettingValidator(KernelVersion kernelVersion) {
+        if (kernelVersion == null) {
+            kernelVersion = KernelVersion.getLatestVersion(Configuration.EMPTY);
+        }
         for (final Entry<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> entry : validators.entrySet()) {
             if (kernelVersion.isAtLeast(entry.getKey())) {
                 return entry.getValue();
