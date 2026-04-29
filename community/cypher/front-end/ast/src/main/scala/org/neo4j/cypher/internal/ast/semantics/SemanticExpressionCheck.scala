@@ -492,7 +492,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           expectType(allowedTypes, x.map) chain
           typeSwitch(x.map) {
             // Maybe we can do even more here - Point / Dates probably have type implications too
-            case CTNode.invariant | CTRelationship.invariant => specifyType(storableType, x)
+            // `invariant` is a `def` on CypherType (TeaVM-friendly); not a stable pattern, so use a guard.
+            case t if t == CTNode.invariant || t == CTRelationship.invariant => specifyType(storableType, x)
             case TypeSpecRange(_, extendedType: MapExtendedType) =>
               val entryType = extendedType.getEntryType(x.propertyKey.name)
               specifyType(entryType, x)

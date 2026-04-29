@@ -92,12 +92,12 @@ case class EagerWhereNeededRewriter(
     val plansToEagerize = pickPlansToEagerize(cardinalities, candidateLists)
 
     // Step 5: Actually insert Eager operators
-    val insertEagerRewriter = bottomUp(Rewriter.lift {
+    val insertEagerRewriter = bottomUp.onRewriter(Rewriter.lift {
       case p: LogicalPlan if plansToEagerize.contains(p.id) =>
         eagerOnTopOf(p, plansToEagerize(p.id))
     })
 
-    val rewritingSteps = Seq(
+    val rewritingSteps: Seq[Rewriter] = Seq(
       insertEagerRewriter
     ) ++
       // Step 6: Optionally, compress reported eagerness reasons.

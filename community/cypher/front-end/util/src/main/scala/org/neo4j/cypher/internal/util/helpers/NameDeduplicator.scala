@@ -44,9 +44,10 @@ object NameDeduplicator {
   private val UNNAMED_PARAMS_PATTERN = """ {2}(AUTOINT|AUTODOUBLE|AUTOSTRING|AUTOLIST)(\d+)""".r
   val DEDUP_PATTERN: Regex = """ {2}((?:(?! {2}).)+?)@(\d+)""".r
 
-  private def transformGeneratedNamesRewriter(transformation: String => String): Rewriter = topDown(Rewriter.lift {
-    case s: String => transformation(s)
-  })
+  private def transformGeneratedNamesRewriter(transformation: String => String): Rewriter =
+    topDown.onRewriter(Rewriter.lift {
+      case s: String => transformation(s)
+    })
 
   private val deduplicateVariableNames: String => String =
     fixedPoint { DEDUP_PATTERN.replaceAllIn(_, "$1") }

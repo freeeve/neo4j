@@ -63,7 +63,7 @@ case object FoldConstants extends StepSequencer.Step with DefaultPostCondition w
     version: CypherVersion
   ): Rewriter = instance
 
-  val instance: Rewriter = bottomUp(tryRewrite)
+  val instance: Rewriter = bottomUp(tryRewrite(_))
 
   private def tryRewrite(expr: AnyRef): AnyRef =
     try {

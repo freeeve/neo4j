@@ -24,7 +24,7 @@ import java.util.regex.Pattern
 object LineBreakRemover {
   private val lineBreaksPattern: Pattern = Pattern.compile("[\n\r]")
 
-  private val removeLineBreaksRewriter = topDown(Rewriter.lift {
+  private val removeLineBreaksRewriter = topDown.onRewriter(Rewriter.lift {
     case s: String => removeLineBreaks(s)
   })
 

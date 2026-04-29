@@ -175,7 +175,7 @@ case class ResolveSimpleDynamicExpressions(parameters: MapValue)
 
   override def transform(from: BaseState, context: BaseContext): BaseState = {
     val resolvedParameters = Set.newBuilder[String]
-    val rewriter = bottomUpWithRecorder(
+    val rewriter = bottomUpWithRecorder.onRewriter(
       Rewriter.lift {
         case e: LabelExpression => rewrite(e)
       },

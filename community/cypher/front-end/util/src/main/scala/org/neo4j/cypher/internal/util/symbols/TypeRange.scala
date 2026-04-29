@@ -40,7 +40,7 @@ case class TypeRange(lower: CypherType, upper: Option[CypherType]) {
   def contains(that: TypeRange): Boolean =
     (lower isAssignableFrom that.lower) && upper.fold(true)(t => that.upper.fold(false)(_ isAssignableFrom t))
 
-  lazy val hasDefiniteSize: Boolean = upper.isDefined || !checkForAny(lower)
+  def hasDefiniteSize: Boolean = upper.isDefined || !checkForAny(lower)
 
   private def checkForAny: CypherType => Boolean = {
     case _: AnyType  => true

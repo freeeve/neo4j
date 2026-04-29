@@ -34,16 +34,16 @@ class SizeBucketTest extends CypherFunSuite {
   }
 
   test("noop rewriter should not duplicate ExactSize") {
-    val rewriter = topDown(Rewriter.noop)
+    val rewriter = topDown.onRewriter(Rewriter.noop)
     val original = ExactSize(123456)
-    val rewritten = original.endoRewrite(rewriter)
+    val rewritten = original.rewrite(rewriter).asInstanceOf[ExactSize]
     (original eq rewritten) shouldBe true
   }
 
   test("noop rewriter should not duplicate ApproximateSize") {
-    val rewriter = topDown(Rewriter.noop)
+    val rewriter = topDown.onRewriter(Rewriter.noop)
     val original = ApproximateSize(123456)
-    val rewritten = original.endoRewrite(rewriter)
+    val rewritten = original.rewrite(rewriter).asInstanceOf[ApproximateSize]
     (original eq rewritten) shouldBe true
   }
 }

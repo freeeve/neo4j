@@ -202,7 +202,7 @@ class TypeSpec(val ranges: Seq[TypeRange]) extends Equals {
   def isEmpty: Boolean = ranges.isEmpty
   def nonEmpty: Boolean = !isEmpty
 
-  lazy val hasDefiniteSize: Boolean = ranges.forall(_.hasDefiniteSize)
+  def hasDefiniteSize: Boolean = ranges.forall(_.hasDefiniteSize)
 
   def toStream: Stream[CypherType] = toStream(ranges)
 

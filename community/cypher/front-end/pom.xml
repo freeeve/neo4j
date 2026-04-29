@@ -63,6 +63,7 @@
           <args combine.self="append">
             <arg>-Ytasty-reader</arg>
             <arg>-Xsource:3</arg>
+            <arg>-Ymacro-annotations</arg>
             <arg>-Wconf:cat=scala3-migration:${scala3.migration.wconf}</arg>
           </args>
           <secondaryCacheDir>${java.io.tmpdir}</secondaryCacheDir>

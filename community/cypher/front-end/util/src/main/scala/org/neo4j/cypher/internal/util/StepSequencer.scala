@@ -231,7 +231,7 @@ object StepSequencer {
     /**
      * Default condition for this step once completed.
      */
-    object completed extends Condition {
+    final val completed: Condition = new Condition {
       override def toString: String = self.toString + ".completed"
     }
 

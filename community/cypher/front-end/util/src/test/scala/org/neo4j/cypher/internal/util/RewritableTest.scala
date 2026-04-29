@@ -89,10 +89,10 @@ class RewritableTest extends CypherFunSuite {
   // ---------
   List(
     "topDown" -> ((ast: Rewritable, rewritePf: PartialFunction[AnyRef, AnyRef]) =>
-      ast.rewrite(topDown(Rewriter.lift(rewritePf)))
+      ast.rewrite(topDown.onRewriter(Rewriter.lift(rewritePf)))
     ),
     "topDown rightToLeft" -> ((ast: Rewritable, rewritePf: PartialFunction[AnyRef, AnyRef]) =>
-      ast.rewrite(topDown(Rewriter.lift(rewritePf), leftToRight = false))
+      ast.rewrite(topDown.onRewriter(Rewriter.lift(rewritePf), leftToRight = false))
     ),
     "topDownWithParent" -> ((ast: Rewritable, rewritePf: PartialFunction[AnyRef, AnyRef]) => {
       val liftedPf = Rewriter.lift(rewritePf)
@@ -295,7 +295,7 @@ class RewritableTest extends CypherFunSuite {
   test("topDown should stop with a stopper") {
     val ast = Add(ExpList(List(Val(1))), Val(2))
 
-    val result = ast.rewrite(topDown(
+    val result = ast.rewrite(topDown.onRewriter(
       Rewriter.lift {
         case Val(i) =>
           Val(i * 2)
@@ -314,7 +314,7 @@ class RewritableTest extends CypherFunSuite {
 
     val seqBuilder = Seq.newBuilder[String]
 
-    ast.rewrite(topDown(
+    ast.rewrite(topDown.onRewriter(
       Rewriter.lift {
         case x: String =>
           seqBuilder.addOne(x)
@@ -361,10 +361,13 @@ class RewritableTest extends CypherFunSuite {
   // --------------------------------
   List(
     "bottomUp" -> ((ast: Rewritable, rewritePf: PartialFunction[AnyRef, AnyRef]) =>
-      ast.rewrite(bottomUp(Rewriter.lift(rewritePf)))
+      ast.rewrite(bottomUp.onRewriter(Rewriter.lift(rewritePf)))
     ),
     "bottomUpWithRecorder" -> ((ast: Rewritable, rewritePf: PartialFunction[AnyRef, AnyRef]) =>
-      ast.rewrite(bottomUpWithRecorder(Rewriter.lift(rewritePf), cancellation = CancellationChecker.neverCancelled()))
+      ast.rewrite(bottomUpWithRecorder.onRewriter(
+        Rewriter.lift(rewritePf),
+        cancellation = CancellationChecker.neverCancelled()
+      ))
     )
   ) foreach { case (name, bottomUpVariant) =>
     test(s"$name should be identical when no rule matches") {
@@ -527,7 +530,7 @@ class RewritableTest extends CypherFunSuite {
   test("bottomUp should stop with a stopper") {
     val ast = Add(ExpList(List(Val(1))), Val(2))
 
-    val result = ast.rewrite(bottomUp(
+    val result = ast.rewrite(bottomUp.onRewriter(
       Rewriter.lift {
         case Val(i) =>
           Val(i * 2)
@@ -550,7 +553,7 @@ class RewritableTest extends CypherFunSuite {
     case object NotUsed
 
     val thing = Thing(Seq("a", "b", "c"))
-    val rewritten = thing.rewrite(bottomUp(Rewriter.lift {
+    val rewritten = thing.rewrite(bottomUp.onRewriter(Rewriter.lift {
       case NotUsed => NotUsed
     }))
 
@@ -574,7 +577,7 @@ class RewritableTest extends CypherFunSuite {
         Val(99)
     })
 
-    val e = the[RuntimeException].thrownBy(ast.rewrite(topDown(rewriter, cancellation = cancellation)))
+    val e = the[RuntimeException].thrownBy(ast.rewrite(topDown.onRewriter(rewriter, cancellation = cancellation)))
 
     assert(e.getMessage === cancellation.message)
   }
@@ -606,7 +609,7 @@ class RewritableTest extends CypherFunSuite {
         Val(99)
     })
 
-    val e = the[RuntimeException].thrownBy(ast.rewrite(bottomUp(rewriter, cancellation = cancellation)))
+    val e = the[RuntimeException].thrownBy(ast.rewrite(bottomUp.onRewriter(rewriter, cancellation = cancellation)))
 
     assert(e.getMessage === cancellation.message)
   }
@@ -622,7 +625,10 @@ class RewritableTest extends CypherFunSuite {
         Val(99)
     })
 
-    val e = the[RuntimeException].thrownBy(ast.rewrite(bottomUpWithRecorder(rewriter, cancellation = cancellation)))
+    val e = the[RuntimeException].thrownBy(ast.rewrite(bottomUpWithRecorder.onRewriter(
+      rewriter,
+      cancellation = cancellation
+    )))
 
     assert(e.getMessage === cancellation.message)
   }

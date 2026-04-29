@@ -54,6 +54,12 @@ trait Attribute[KEY, VALUE] {
     array(id.x).value
   }
 
+  /**
+   * Reads the stored cell for `id` without consulting [[isDefinedAt]].
+   * Used by [[Default]] so it does not call `super.get` (Scala 2.13 / Scala 3 TASTy interop).
+   */
+  final protected def storedValue(id: Id): VALUE = array(id.x).value
+
   def isDefinedAt(id: Id): Boolean = {
     array.size > id.x && id.x >= 0 && array(id.x).hasValue
   }
@@ -156,7 +162,7 @@ trait Default[KEY <: Identifiable, VALUE] extends Attribute[KEY, VALUE] {
 
   protected def defaultValue: VALUE
 
-  override def get(id: Id): VALUE = if (isDefinedAt(id)) super.get(id) else defaultValue
+  override def get(id: Id): VALUE = if (isDefinedAt(id)) storedValue(id) else defaultValue
 }
 
 /**
@@ -173,7 +179,7 @@ abstract class PartialAttribute[KEY <: Identifiable, VALUE](override val default
  * @param idGen the IdGen used to provide new IDs
  * @param attributes the attributes encapsulated
  */
-case class Attributes[KEY <: Identifiable](idGen: IdGen, private val attributes: Attribute[KEY, _]*) {
+case class Attributes[KEY <: Identifiable](idGen: IdGen, private val attributes: Seq[Attribute[KEY, _]]) {
 
   def copy(from: Id): IdGen = () => {
     val to = idGen.id()
@@ -183,12 +189,22 @@ case class Attributes[KEY <: Identifiable](idGen: IdGen, private val attributes:
     to
   }
 
-  def withAlso(attributes: Attribute[KEY, _]*): Attributes[KEY] = {
-    Attributes(this.idGen, this.attributes ++ attributes: _*)
+  def withAlso(more: Attribute[KEY, _]*): Attributes[KEY] = {
+    Attributes(this.idGen, this.attributes ++ more)
   }
 
   def without(attributesToExclude: Attribute[KEY, _]*): Attributes[KEY] = {
     val newAttributes = attributes.filterNot(a => attributesToExclude.exists(toExclude => a eq toExclude))
-    Attributes(idGen, newAttributes: _*)
+    Attributes(idGen, newAttributes)
   }
+}
+
+object Attributes {
+
+  def apply[KEY <: Identifiable](idGen: IdGen): Attributes[KEY] =
+    Attributes(idGen, Seq.empty[Attribute[KEY, _]])
+
+  /** Varargs convenience for call sites that list attributes individually. */
+  def apply[KEY <: Identifiable](idGen: IdGen, head: Attribute[KEY, _], tail: Attribute[KEY, _]*): Attributes[KEY] =
+    Attributes(idGen, head +: tail)
 }

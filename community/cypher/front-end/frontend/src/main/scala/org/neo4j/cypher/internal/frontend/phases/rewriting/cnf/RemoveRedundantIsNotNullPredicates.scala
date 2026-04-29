@@ -67,12 +67,12 @@ case object RemoveRedundantIsNotNullPredicates extends CnfPhaseRewriter with Def
     override def apply(x: AnyRef): AnyRef = whereRewriterInstance.apply(x)
 
     private val whereRewriterInstance: Rewriter = {
-      bottomUp(
-        cancellation = cancellationChecker,
-        rewriter = Rewriter.lift {
+      bottomUp.onRewriter(
+        Rewriter.lift {
           case w @ Where(expr) =>
             w.copy(expression = expr.endoRewrite(andRewriterInstance))(w.position)
-        }
+        },
+        cancellation = cancellationChecker
       )
     }
 
@@ -114,13 +114,13 @@ case object RemoveRedundantIsNotNullPredicates extends CnfPhaseRewriter with Def
     }
 
     private def pruneIsNotNullRewriter(equalsArgs: Set[Expression]): Rewriter = {
-      bottomUp(
-        cancellation = cancellationChecker,
-        rewriter = Rewriter.lift {
+      bottomUp.onRewriter(
+        Rewriter.lift {
           case And(IsNotNull(left), right) if equalsArgs.contains(left)  => right
           case And(left, IsNotNull(right)) if equalsArgs.contains(right) => left
         },
-        stopper = !_.isInstanceOf[And]
+        stopper = !_.isInstanceOf[And],
+        cancellation = cancellationChecker
       )
     }
   }

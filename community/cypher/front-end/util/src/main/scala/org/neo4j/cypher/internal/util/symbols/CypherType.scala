@@ -115,9 +115,10 @@ trait CypherType extends ASTNode {
     if (this.isAssignableFrom(other)) Some(other)
     else Some(this).filter(other.isAssignableFrom)
 
-  lazy val covariant: TypeSpec = TypeSpec.all constrain this
-  lazy val invariant: TypeSpec = TypeSpec.exact(this)
-  lazy val contravariant: TypeSpec = TypeSpec.all leastUpperBounds this
+  // `def` not `lazy val`: Scala 3 lazy vals use LazyVals$Waiting, which TeaVM (semantic-analysis-js) cannot transpile.
+  def covariant: TypeSpec = TypeSpec.all constrain this
+  def invariant: TypeSpec = TypeSpec.exact(this)
+  def contravariant: TypeSpec = TypeSpec.all leastUpperBounds this
 
   def rewrite(f: CypherType => CypherType): CypherType = f(this)
 
@@ -169,12 +170,13 @@ object CypherType {
   private def normalizeInnerTypes(innerTypes: Set[CypherType]): List[CypherType] = {
     var oldTypes = innerTypes.toList
     var updatedTypes = oldTypes
-
-    do {
+    var done = false
+    while (!done) {
       val newTypes = normalize(updatedTypes)
       oldTypes = updatedTypes
       updatedTypes = newTypes
-    } while (!oldTypes.equals(updatedTypes))
+      done = oldTypes.equals(updatedTypes)
+    }
 
     updatedTypes
   }

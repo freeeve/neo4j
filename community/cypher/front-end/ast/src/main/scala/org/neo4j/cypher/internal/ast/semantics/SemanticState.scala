@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.topDown
 
 import scala.collection.immutable.HashMap
+import scala.reflect.ClassTag
 
 object SymbolUse {
   def apply(variable: LogicalVariable): SymbolUse = SymbolUse(Ref(variable))
@@ -374,6 +375,8 @@ final case class Scope(symbolTable: Map[String, Symbol], children: Seq[Scope]) e
 }
 
 object SemanticState {
+
+  implicit val scopeClassTag: ClassTag[Scope] = ClassTag(classOf[Scope])
 
   implicit object ScopeZipper extends TreeZipper[Scope]
 

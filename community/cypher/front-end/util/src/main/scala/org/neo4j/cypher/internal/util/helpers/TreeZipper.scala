@@ -27,148 +27,143 @@ trait TreeElem[E <: TreeElem[E]] {
   def location(implicit zipper: TreeZipper[E]): zipper.Location = zipper(self)
 }
 
-abstract class TreeZipper[E <: TreeElem[E] : ClassTag] {
+// Use an explicit implicit ctor param instead of `[E: ClassTag]` so Scala 2.13 callers
+// (e.g. neo4j-ast) see a normal ctor when linking against Scala 3–compiled util.
+abstract class TreeZipper[E <: TreeElem[E]](implicit val elemClassTag: ClassTag[E]) {
 
   def apply(treeElem: E): Location = Location(treeElem, Top)
 
   sealed trait Context
-  case object Top extends Context
-  case class TreeContext(left: List[E], parent: Location, right: List[E]) extends Context
+  final class Top private[helpers] () extends Context
+  final val Top: Top = new Top
+  final class TreeContext(val left: List[E], val parent: Location, val right: List[E]) extends Context
 
-  object Children {
-    def unapply(v: Any): Option[Seq[E]] = implicitly[ClassTag[E]].unapply(v).map(_.children)
-  }
+  private def children(value: Any): Option[Seq[E]] = elemClassTag.unapply(value).map(_.children)
 
   case class Location(elem: E, context: Context) {
     self =>
 
-    def isRoot: Boolean = context == Top
+    def isRoot: Boolean = context eq Top
 
-    def isLeaf: Boolean = self match {
-      case Location(Children(Seq()), _) => true
-      case _                            => false
-    }
+    def isLeaf: Boolean = children(elem).contains(Seq.empty)
 
     @tailrec
-    final def root: Location = self match {
-      case Location(_, Top) =>
+    final def root: Location = context match {
+      case _: Top =>
         self
-
-      case Location(_, TreeContext(left, Location(parentElem, parentContext), right)) =>
-        Location(parentElem.updateChildren(left.reverse ++ List(elem) ++ right), parentContext).root
+      case tc: TreeContext =>
+        val parent = tc.parent
+        Location(parent.elem.updateChildren(tc.left.reverse ++ List(elem) ++ tc.right), parent.context).root
     }
 
     def isLeftMost: Boolean = context match {
-      case TreeContext(Nil, _, _) => true
-      case Top                    => true
-      case _                      => false
+      case tc: TreeContext => tc.left.isEmpty
+      case _: Top          => true
+      case _               => false
     }
 
     def left: Option[Location] = context match {
-      case TreeContext(Nil, _, _) =>
+      case tc: TreeContext if tc.left.isEmpty =>
         None
-
-      case TreeContext(head :: tail, parent, right) =>
-        Some(Location(head, TreeContext(tail, parent, elem +: right)))
-
+      case tc: TreeContext =>
+        val head = tc.left.head
+        val tail = tc.left.tail
+        Some(Location(head, new TreeContext(tail, tc.parent, elem +: tc.right)))
       case _ =>
         throw new IllegalStateException("Not in tree context when going left")
     }
 
     def leftList: List[E] = context match {
-      case Top =>
+      case _: Top =>
         Nil
 
-      case TreeContext(left, _, _) =>
-        left
+      case tc: TreeContext =>
+        tc.left
     }
 
     def leftMost: Location = context match {
-      case TreeContext(Nil, _, _) =>
+      case tc: TreeContext if tc.left.isEmpty =>
         self
-
-      case TreeContext(left, parent, right) =>
-        Location(left.last, TreeContext(List.empty, parent, left.init.reverse ++ List(elem) ++ right))
-
+      case tc: TreeContext =>
+        val left = tc.left
+        Location(left.last, new TreeContext(List.empty, tc.parent, left.init.reverse ++ List(elem) ++ tc.right))
       case otherContext =>
         throw new IllegalStateException(s"Cannot navigate from $otherContext")
     }
 
     def isRightMost: Boolean = context match {
-      case TreeContext(_, _, Nil) => true
-      case Top                    => true
-      case _                      => false
+      case tc: TreeContext => tc.right.isEmpty
+      case _: Top          => true
+      case _               => false
     }
 
     def right: Option[Location] = context match {
-      case TreeContext(_, _, Nil) =>
+      case tc: TreeContext if tc.right.isEmpty =>
         None
-
-      case TreeContext(left, parent, head :: tail) =>
-        Some(Location(head, TreeContext(elem +: left, parent, tail)))
-
+      case tc: TreeContext =>
+        val head = tc.right.head
+        val tail = tc.right.tail
+        Some(Location(head, new TreeContext(elem +: tc.left, tc.parent, tail)))
       case _ =>
         throw new IllegalStateException("Not in tree context when going right")
     }
 
     def rightMost: Location = context match {
-      case TreeContext(_, _, Nil) =>
+      case tc: TreeContext if tc.right.isEmpty =>
         self
-
-      case TreeContext(left, parent, right) =>
-        Location(right.last, TreeContext(right.init.reverse ++ List(elem) ++ left, parent, List.empty))
-
+      case tc: TreeContext =>
+        val right = tc.right
+        Location(right.last, new TreeContext(right.init.reverse ++ List(elem) ++ tc.left, tc.parent, List.empty))
       case otherContext =>
         throw new IllegalStateException(s"Cannot navigate from $otherContext")
     }
 
-    def down: Option[Location] = self match {
-      case Location(Children(Seq()), _) =>
+    def down: Option[Location] = children(elem) match {
+      case Some(Seq()) =>
         None
-
-      case Location(Children(Seq(head, tail @ _*)), _) =>
-        Some(Location(head, TreeContext(Nil, self, tail.toList)))
-
-      case other => throw new IllegalStateException(s"Unexpected type $other")
+      case Some(head +: tail) =>
+        Some(Location(head, new TreeContext(Nil, self, tail.toList)))
+      case _ =>
+        throw new IllegalStateException(s"Unexpected type $elem")
     }
 
-    def up: Option[Location] = self match {
-      case Location(_, Top) =>
+    def up: Option[Location] = context match {
+      case _: Top =>
         None
-
-      case Location(_, TreeContext(left, Location(parentElem, parentContext), right)) =>
-        Some(Location(parentElem.updateChildren(left.reverse ++ List(elem) ++ right), parentContext))
+      case tc: TreeContext =>
+        val parent = tc.parent
+        Some(Location(parent.elem.updateChildren(tc.left.reverse ++ List(elem) ++ tc.right), parent.context))
     }
 
     def replace(newElem: E): Location =
       Location(newElem, context)
 
-    def replaceLeftList(newLeft: List[E]): Location = self match {
-      case Location(_, Top) =>
+    def replaceLeftList(newLeft: List[E]): Location = context match {
+      case _: Top =>
         self
 
-      case Location(tree, TreeContext(_, parent, right)) =>
-        Location(tree, TreeContext(newLeft, parent, right))
+      case tc: TreeContext =>
+        Location(elem, new TreeContext(newLeft, tc.parent, tc.right))
     }
 
-    def insertLeft(newElem: E): Option[Location] = self match {
-      case Location(_, Top) =>
+    def insertLeft(newElem: E): Option[Location] = context match {
+      case _: Top =>
         None
 
-      case Location(tree, TreeContext(left, parent, right)) =>
-        Some(Location(newElem, TreeContext(left, parent, tree +: right)))
+      case tc: TreeContext =>
+        Some(Location(newElem, new TreeContext(tc.left, tc.parent, elem +: tc.right)))
     }
 
-    def insertRight(newElem: E): Option[Location] = self match {
-      case Location(_, Top) =>
+    def insertRight(newElem: E): Option[Location] = context match {
+      case _: Top =>
         None
 
-      case Location(_, TreeContext(left, parent, right)) =>
-        Some(Location(newElem, TreeContext(elem +: left, parent, right)))
+      case tc: TreeContext =>
+        Some(Location(newElem, new TreeContext(elem +: tc.left, tc.parent, tc.right)))
     }
 
     def insertChild(newElem: E): Location =
-      Location(newElem, TreeContext(elem.children.toList.reverse, self, List.empty))
+      Location(newElem, new TreeContext(elem.children.toList.reverse, self, List.empty))
   }
 
   implicit final class OptionalLocation(location: Option[Location]) {

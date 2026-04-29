@@ -85,7 +85,7 @@ case class PlanningAttributes(
 ) {
   private val attributes = productIterator.asInstanceOf[Iterator[Attribute[LogicalPlan, ?]]].toSeq
 
-  def asAttributes(idGen: IdGen): Attributes[LogicalPlan] = Attributes[LogicalPlan](idGen, attributes*)
+  def asAttributes(idGen: IdGen): Attributes[LogicalPlan] = Attributes[LogicalPlan](idGen, attributes)
 }
 
 /**

@@ -75,8 +75,8 @@ case class ClosedDynamicUnionType(innerTypes: Set[CypherType])(val position: Inp
 
   override def parents: Seq[CypherType] = innerTypes.flatMap(_.parents).toList
 
-  override lazy val covariant: TypeSpec = this.invariant.covariant
-  override lazy val invariant: TypeSpec = TypeSpec.exact(this.innerTypes)
+  override def covariant: TypeSpec = this.invariant.covariant
+  override def invariant: TypeSpec = TypeSpec.exact(this.innerTypes)
 
   override def leastUpperBound(other: CypherType): CypherType =
     innerTypes.foldLeft(other)(_ leastUpperBound _)

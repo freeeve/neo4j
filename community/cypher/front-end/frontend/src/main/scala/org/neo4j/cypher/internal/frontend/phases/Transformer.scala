@@ -201,8 +201,9 @@ object Transformer {
       def loop(l: SemanticState.ScopeZipper.Location, acc: Vector[Int]): Vector[Int] =
         l.context match {
           case SemanticState.ScopeZipper.Top => acc
-          case SemanticState.ScopeZipper.TreeContext(left, parent, _right) =>
-            loop(parent, (left.size +: acc))
+          case tc: SemanticState.ScopeZipper.TreeContext =>
+            loop(tc.parent, (tc.left.size +: acc))
+          case _ => acc
         }
       loop(loc, Vector.empty)
     }

@@ -3495,8 +3495,10 @@ class LogicalPlanToPlanBuilderStringTest
 
     val settings = new Settings()
     settings.usejavacp.value = true
+    // neo4j-util is compiled with Scala 3; the REPL compiler must read TASTy APIs from the test classpath.
+    settings.processArguments(List("-Ytasty-reader"), processAll = true)
 
-    val reporter = new ReplReporterImpl(new Settings())
+    val reporter = new ReplReporterImpl(settings)
 
     val interpreter = new IMain(settings, reporter)
 

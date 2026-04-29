@@ -58,7 +58,9 @@ class SequentialIdGen(initialValue: Int = 0) extends IdGen {
 /**
  * Generates only the given ID.
  */
-case class SameId(id: Id) extends IdGen
+case class SameId(fixedId: Id) extends IdGen {
+  override def id(): Id = fixedId
+}
 
 /**
  * An entity that is defined by its ID.

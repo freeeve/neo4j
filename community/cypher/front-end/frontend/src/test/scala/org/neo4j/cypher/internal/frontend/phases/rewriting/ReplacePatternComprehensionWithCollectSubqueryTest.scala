@@ -30,7 +30,7 @@ class ReplacePatternComprehensionWithCollectSubqueryTest extends CypherFunSuite 
 
   override def rewriterUnderTest: Rewriter = inSequence(
     ReplacePatternComprehensionWithCollectSubqueryRewriter(new AnonymousVariableNameGenerator()).instance,
-    removeGeneratedNamesAndParamsOnTree
+    Rewriter(removeGeneratedNamesAndParamsOnTree[AnyRef](_))
   )
 
   private def fullQuery(expression: String) =
