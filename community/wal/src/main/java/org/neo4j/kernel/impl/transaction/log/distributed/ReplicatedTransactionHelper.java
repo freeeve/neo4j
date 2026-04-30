@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.distributed;
 
 import static org.neo4j.kernel.impl.transaction.log.distributed.BatchType.STORAGE_ENGINE_ID_ONLY_HEADER;
+import static org.neo4j.kernel.impl.transaction.log.distributed.BatchType.STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.DISTRIBUTED_OPERATION_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.REPLICATED_TX_CONTENT_TYPE;
 
@@ -52,7 +53,10 @@ public class ReplicatedTransactionHelper {
             }
             channel.getCurrentLogPosition(parseProgress);
             byte headerByte = channel.get();
-            if (headerByte != STORAGE_ENGINE_ID_ONLY_HEADER.byteValue()) { // BatchType.STORAGE_ENGINE_ID_ONLY_HEADER
+            if (headerByte != STORAGE_ENGINE_ID_ONLY_HEADER.byteValue()
+                    && headerByte
+                            != STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED
+                                    .byteValue()) { // Need to be BatchType with only storage id in header
                 throw new IllegalStateException("Parsing error on STORAGE_ENGINE_ID_ONLY_HEADER at position="
                         + parseProgress.newPosition() + " unexpected headerByte=" + headerByte);
             }

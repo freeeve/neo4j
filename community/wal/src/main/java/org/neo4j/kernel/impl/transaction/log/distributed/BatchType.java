@@ -22,7 +22,8 @@ package org.neo4j.kernel.impl.transaction.log.distributed;
 public enum BatchType {
     COMPLETE((byte) 0),
     CHUNKED((byte) 1),
-    STORAGE_ENGINE_ID_ONLY_HEADER((byte) 2);
+    STORAGE_ENGINE_ID_ONLY_HEADER((byte) 2),
+    STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED((byte) 3);
 
     private final byte byteValue;
 
@@ -39,7 +40,16 @@ public enum BatchType {
             case 0 -> COMPLETE;
             case 1 -> CHUNKED;
             case 2 -> STORAGE_ENGINE_ID_ONLY_HEADER;
+            case 3 -> STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED;
             default -> throw new IllegalStateException("Unexpected value: " + value);
         };
+    }
+
+    public boolean hasMiniHeader() {
+        return this == STORAGE_ENGINE_ID_ONLY_HEADER || this == STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED;
+    }
+
+    public boolean isChunked() {
+        return this == CHUNKED || this == STORAGE_ENGINE_ID_ONLY_HEADER_CHUNKED;
     }
 }
