@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.SubtractionNodeByLabelsScan
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.InputPosition
@@ -850,7 +851,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     val hasMemberRelationships: Double = 25
 
     val config = plannerBuilder()
-      .setPlannerVersion(GraphDatabaseInternalSettings.CypherPlannerVersion.EXPERIMENTAL)
+      .setPlannerVersion(CypherPlannerVersionOption.experimental)
       .enableMinimumGraphStatistics()
       .setAllNodesCardinality(allNodes)
       .setLabelCardinality("Person", personNodes)

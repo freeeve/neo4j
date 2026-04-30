@@ -84,6 +84,7 @@ import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
+import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.OptionReader
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
@@ -175,7 +176,8 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     semanticFeatures: Seq[SemanticFeature] = Seq.empty,
     databaseReferenceRepository: DatabaseReferenceRepository = ContextHelper.mockDatabaseReferenceRepository,
     printNotifications: Boolean = false,
-    parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption = CypherParallelRepeatHeuristicOption.disabled
+    parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption = CypherParallelRepeatHeuristicOption.disabled,
+    plannerVersionOption: CypherPlannerVersionOption = CypherPlannerVersionOption.default
   )
 
   case class Cardinalities(
@@ -411,12 +413,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     this.copy(tokens = tokens.addProperty(prop))
   }
 
-  def setPlannerVersion(version: GraphDatabaseInternalSettings.CypherPlannerVersion)
-    : StatisticsBackedLogicalPlanningConfigurationBuilder = {
-    withSetting(
-      GraphDatabaseInternalSettings.cypher_planner_version,
-      version
-    )
+  def setPlannerVersion(version: CypherPlannerVersionOption): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    this.copy(options = options.copy(plannerVersionOption = version))
   }
 
   def setDatabaseMode(databaseMode: DatabaseMode): StatisticsBackedLogicalPlanningConfigurationBuilder =
@@ -1874,7 +1872,7 @@ class StatisticsBackedLogicalPlanningConfiguration(
     val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(
       planContext,
       labelInference,
-      CypherPlannerVersionWithOptimisations.allSupportedOptimisations(cc.plannerVersion)
+      CypherPlannerVersionWithOptimisations.allSupportedOptimisations(options.plannerVersionOption)
     )
     val metrics = SimpleMetricsFactory.newMetrics(
       planContext,
