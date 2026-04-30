@@ -1522,5 +1522,10 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         }
     }
 
+    @VisibleForTesting
+    public void clearCache() {
+        rootLayer.clearCache();
+    }
+
     private record OpenResult(PagedFile pagedFile, boolean created) {}
 }
