@@ -887,6 +887,24 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     leveragedOrders.get(plan.id) should be(true)
   }
 
+  test("should mark leveragedOrder in count(DISTINCT) with ORDER BY") {
+    val query = "MATCH (a) WITH a ORDER BY a.name RETURN count(DISTINCT a.name)"
+    val planState = defaultConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
+    val leveragedOrders = planState.planningAttributes.leveragedOrders
+
+    leveragedOrders.get(plan.id) should be(true)
+  }
+
+  test("should not mark leveragedOrder in count(DISTINCT) without ORDER BY") {
+    val query = "MATCH (a) RETURN count(DISTINCT a.name)"
+    val planState = defaultConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
+    val leveragedOrders = planState.planningAttributes.leveragedOrders
+
+    leveragedOrders.get(plan.id) should be(false)
+  }
+
   test(
     "should plan an additional sort before a collect in parallel runtime if aggregation solves other subquery expressions as well"
   ) {
@@ -1983,11 +2001,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         |ORDER BY a.prop
         |RETURN count(DISTINCT a.prop) AS c""".stripMargin
 
-    val plan = defaultConfig
-      .plan(query)
-      .stripProduceResults
+    val planState = defaultConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
 
-    plan.stripProduceResults should equal(
+    plan should equal(
       defaultConfig.subPlanBuilder()
         .aggregation(
           Map.empty[String, Expression],
@@ -1998,6 +2015,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         .allNodeScan("a")
         .build()
     )
+    planState.planningAttributes.leveragedOrders.get(plan.id) should be(true)
   }
 
   test("should leverage order from ORDER BY in DISTINCT ordered aggregation") {
@@ -2007,11 +2025,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         |ORDER BY a.foo, a.prop
         |RETURN a.foo, count(DISTINCT a.prop) AS c""".stripMargin
 
-    val plan = defaultConfig
-      .plan(query)
-      .stripProduceResults
+    val planState = defaultConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
 
-    plan.stripProduceResults should equal(
+    plan should equal(
       defaultConfig.subPlanBuilder()
         .orderedAggregation(
           Map("a.foo" -> cachedNodeProp("a", "foo")),
@@ -2024,6 +2041,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         .allNodeScan("a")
         .build()
     )
+    planState.planningAttributes.leveragedOrders.get(plan.id) should be(true)
   }
 
   test("should leverage index order in DISTINCT aggregation") {
@@ -2032,11 +2050,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
                   |WHERE a.prop IS NOT NULL
                   |RETURN count(DISTINCT a.prop) AS c""".stripMargin
 
-    val plan = chooseLargerIndexConfig
-      .plan(query)
-      .stripProduceResults
+    val planState = chooseLargerIndexConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
 
-    plan.stripProduceResults should equal(
+    plan should equal(
       chooseLargerIndexConfig.subPlanBuilder()
         .aggregation(
           Map.empty[String, Expression],
@@ -2045,6 +2062,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = _ => GetValue)
         .build()
     )
+    planState.planningAttributes.leveragedOrders.get(plan.id) should be(true)
   }
 
   test("should leverage index order in non-DISTINCT percentile aggregation") {
@@ -2054,11 +2072,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         |WHERE a.prop IS NOT NULL
         |RETURN percentileDisc(a.prop, 0.5) AS c""".stripMargin
 
-    val plan = chooseLargerIndexConfig
-      .plan(query)
-      .stripProduceResults
+    val planState = chooseLargerIndexConfig.planState(query)
+    val plan = planState.logicalPlan.stripProduceResults
 
-    plan.stripProduceResults should equal(
+    plan should equal(
       chooseLargerIndexConfig.subPlanBuilder()
         .aggregation(
           Map.empty[String, Expression],
@@ -2067,6 +2084,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         .nodeIndexOperator("a:A(prop)", indexOrder = IndexOrderAscending, getValue = _ => GetValue)
         .build()
     )
+    planState.planningAttributes.leveragedOrders.get(plan.id) should be(true)
   }
 
   test("should sort before widening expand and aggregation") {
