@@ -74,8 +74,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.InvalidArgumentException;
-import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator;
 import org.neo4j.internal.schema.DefaultIndexSettingsValidator.IndexSettingEntry;
@@ -269,7 +269,7 @@ public enum VectorIndexVersion {
                                             hnswEfConstructionValidator(1, maxHnswEfConstruction())),
                                     defaultSearchExpansionFactor(1.0))),
                     entry(
-                            KernelVersion.GLORIOUS_FUTURE,
+                            KernelVersion.VERSION_VECTOR_BINARY_QUANTIZATION,
                             new VersionedValidator(
                                     this,
                                     new IndexSettingExtractors(
@@ -461,13 +461,13 @@ public enum VectorIndexVersion {
     /// Returns the latest validator that is compatible with the given `kernelVersion`.
     ///
     /// If the `kernelVersion` is `null`, the latest known version will be selected according to
-    /// [KernelVersion#getLatestVersion(Configuration)] by passing an empty configuration.
+    /// [KernelVersion#getLatestVersion(Configuration)] by passing the default configuration.
     ///
     /// If no validators is found for the given `kernelVersion`, the returned validator will throw an
     /// [InvalidArgumentException] for any method that is called on it.
     public TypedIndexSettingsValidator<VectorIndexConfig> indexSettingValidator(KernelVersion kernelVersion) {
         if (kernelVersion == null) {
-            kernelVersion = KernelVersion.getLatestVersion(Configuration.EMPTY);
+            kernelVersion = KernelVersion.getLatestVersion(Config.defaults());
         }
         for (final Entry<KernelVersion, TypedIndexSettingsValidator<VectorIndexConfig>> entry : validators.entrySet()) {
             if (kernelVersion.isAtLeast(entry.getKey())) {

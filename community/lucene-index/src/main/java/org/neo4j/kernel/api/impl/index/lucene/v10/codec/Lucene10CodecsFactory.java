@@ -28,8 +28,10 @@ public class Lucene10CodecsFactory implements LuceneCodecsFactory {
 
     @Override
     public LuceneCodec codecFor(VectorIndexConfig config) {
-        return config.quantizationEnabled()
-                ? new Neo4j202604ScalarVectorCodec(config)
-                : new Neo4j202604NoneVectorCodec(config);
+        return switch (config.quantization()) {
+            case NONE -> new Neo4j202604NoneVectorCodec(config);
+            case BINARY -> new Neo4j202605BinaryVectorCodec(config);
+            case SCALAR -> new Neo4j202604ScalarVectorCodec(config);
+        };
     }
 }

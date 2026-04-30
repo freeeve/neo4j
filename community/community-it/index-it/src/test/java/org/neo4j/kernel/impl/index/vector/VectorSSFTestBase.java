@@ -34,12 +34,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -49,9 +49,12 @@ import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.index.vector.VectorSSFQueryResult.ResultList;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.util.Preconditions;
@@ -78,7 +81,7 @@ import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
-@ImpermanentDbmsExtension
+@ImpermanentDbmsExtension(configurationCallback = "configure")
 abstract class VectorSSFTestBase {
     protected static final EmbeddingHolder EMBEDDINGS;
 
@@ -260,20 +263,30 @@ abstract class VectorSSFTestBase {
         }
     }
 
+    @ExtensionCallback
+    protected void configure(TestDatabaseManagementServiceBuilder builder) {}
+
     protected void createNodeVectorIndex(String name, int vectorDimension, String... onProperties) {
+        createNodeVectorIndex(name, vectorDimension, config -> {}, onProperties);
+    }
+
+    protected void createNodeVectorIndex(
+            String name, int vectorDimension, Consumer<VectorIndexSettings> modifySettings, String... onProperties) {
+
         try (final Transaction tx = db.beginTx()) {
             var creator = tx.schema().indexFor(LABEL_NODE_1);
             for (String onProperty : onProperties) {
                 creator = creator.on(onProperty);
             }
+
+            var indexSettings = VectorIndexSettings.create()
+                    .withDimensions(vectorDimension)
+                    .withSimilarityFunction(SIMILARITY_FUNCTION)
+                    .withHnswEfConstruction(EF_CONSTRUCTION);
+            modifySettings.accept(indexSettings);
+
             creator = creator.withIndexType(IndexType.VECTOR.toPublicApi())
-                    .withIndexConfiguration(Map.of(
-                            IndexSetting.vector_Dimensions(),
-                            vectorDimension,
-                            IndexSetting.vector_Similarity_Function(),
-                            SIMILARITY_FUNCTION,
-                            IndexSetting.vector_Hnsw_Ef_Construction(),
-                            EF_CONSTRUCTION))
+                    .withIndexConfiguration(indexSettings.toMap())
                     .withName(name);
             creator.create();
             tx.commit();
@@ -289,14 +302,12 @@ abstract class VectorSSFTestBase {
             for (String onProperty : onProperties) {
                 creator = creator.on(onProperty);
             }
+            var indexSettings = VectorIndexSettings.create()
+                    .withDimensions(vectorDimension)
+                    .withSimilarityFunction(SIMILARITY_FUNCTION)
+                    .withHnswEfConstruction(EF_CONSTRUCTION);
             creator = creator.withIndexType(IndexType.VECTOR.toPublicApi())
-                    .withIndexConfiguration(Map.of(
-                            IndexSetting.vector_Dimensions(),
-                            vectorDimension,
-                            IndexSetting.vector_Similarity_Function(),
-                            SIMILARITY_FUNCTION,
-                            IndexSetting.vector_Hnsw_Ef_Construction(),
-                            EF_CONSTRUCTION))
+                    .withIndexConfiguration(indexSettings.toMap())
                     .withName(name);
             creator.create();
             tx.commit();
@@ -502,11 +513,7 @@ abstract class VectorSSFTestBase {
 
     @SafeVarargs
     final ResultList queryNodeIndex(Function<TokenRead, PropertyIndexQuery>... queryFilters) throws Exception {
-        return queryNodeIndex(
-                VECTOR_INDEX_NAME,
-                PropertyIndexQuery.nearestNeighbors(K_NEAREST_NEIGHBORS, EMBEDDINGS.get(0)),
-                PropertyIndexQuery.matchAllEntityFilter(),
-                queryFilters);
+        return queryNodeIndex(PropertyIndexQuery.matchAllEntityFilter(), queryFilters);
     }
 
     @SafeVarargs
@@ -523,9 +530,16 @@ abstract class VectorSSFTestBase {
     @SafeVarargs
     final ResultList queryNodeIndex(int kNearestNeighbours, Function<TokenRead, PropertyIndexQuery>... queryFilters)
             throws Exception {
+        return queryNodeIndex(EMBEDDINGS.get(0), kNearestNeighbours, queryFilters);
+    }
+
+    @SafeVarargs
+    final ResultList queryNodeIndex(
+            float[] query, int kNearestNeighbours, Function<TokenRead, PropertyIndexQuery>... queryFilters)
+            throws Exception {
         return queryNodeIndex(
                         VECTOR_INDEX_NAME,
-                        PropertyIndexQuery.nearestNeighbors(kNearestNeighbours, EMBEDDINGS.get(0)),
+                        PropertyIndexQuery.nearestNeighbors(kNearestNeighbours, query),
                         PropertyIndexQuery.matchAllEntityFilter(),
                         queryFilters)
                 .stream()
