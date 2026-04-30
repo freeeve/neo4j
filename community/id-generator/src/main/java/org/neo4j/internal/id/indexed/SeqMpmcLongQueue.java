@@ -38,9 +38,6 @@ import java.util.concurrent.atomic.AtomicLongArray;
  * {@link AtomicLongArray} as the buffer, each padded to its own cache line to prevent false sharing
  * between producers and consumers.
  * <p>
- * Unlike {@link MpmcLongQueue}, this implementation has no sentinel value restriction and can store
- * any {@code long}, including {@code -1}.
- * <p>
  * Capacity must be a power of two.
  */
 public class SeqMpmcLongQueue implements ConcurrentLongQueue {

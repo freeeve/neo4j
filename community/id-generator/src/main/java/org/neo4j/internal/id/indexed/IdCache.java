@@ -60,7 +60,7 @@ class IdCache {
             // large amount of memory.
             var queue = multiSlots || capacity > DYNAMIC_CHUNK_SIZE
                     ? new DynamicConcurrentLongQueue(DYNAMIC_CHUNK_SIZE, capacity)
-                    : new MpmcLongQueue(capacity);
+                    : new SeqMpmcLongQueue(capacity);
             queues[slotIndex] = queue;
         }
         singleIdSlotIndex = findSingleSlotIndex(slotSizes);
