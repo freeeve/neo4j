@@ -21,8 +21,6 @@ package org.neo4j.fleetmanagement.communication;
 
 import static org.neo4j.fleetmanagement.configuration.Configuration.updateConfigurationIfPresent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import java.io.IOException;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
@@ -68,23 +66,8 @@ public class PingService extends AbstractReportingService {
         }
         var projectId = upstream.getApiKey().projectId();
         PingMessage msg = new PingMessage(serverId, serverVersion, projectId);
-        msg.projectId = upstream.getApiKey().projectId();
-        transmitReport(msg, Upstream.Endpoint.PING, responseBody -> {
-            try {
-                ConfigurationResponse configurationResponse =
-                        objectMapper.readValue(responseBody, ConfigurationResponse.class);
-                updateConfigurationIfPresent(configuration, configurationResponse);
-            } catch (JsonProcessingException e) {
-                this.userLog.warn(
-                        "Fleet manager failed to receive configuration - Failed to deserialize configuration message: "
-                                + e.getMessage());
-            } catch (IOException e) {
-                var errorMsg = "Fleet manager failed to receive configuration - IOException: " + e.getMessage();
-                this.userLog.error(errorMsg);
-                this.state.setDisconnected(errorMsg);
-                throw new RuntimeException(e);
-            }
-        });
+        ConfigurationResponse configurationResponse = callApi(msg, Upstream.Endpoint.PING, ConfigurationResponse.class);
+        updateConfigurationIfPresent(configuration, configurationResponse);
     }
 
     public static class PingTask extends FleetManagerTask {

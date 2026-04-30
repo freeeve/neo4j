@@ -21,9 +21,11 @@ package org.neo4j.fleetmanagement.communication;
 
 import static org.neo4j.fleetmanagement.communication.Helpers.responseOk;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
-import java.util.function.Consumer;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.lang3.ArrayUtils;
+import org.neo4j.fleetmanagement.common.EmptyResponseException;
+import org.neo4j.fleetmanagement.common.ResponseStatusException;
 import org.neo4j.fleetmanagement.communication.model.ReportingResponse;
 import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 import org.neo4j.fleetmanagement.configuration.Configuration;
@@ -42,50 +44,46 @@ public abstract class AbstractReportingService extends BaseService {
     public abstract void report();
 
     protected void transmitReport(Object msg, Upstream.Endpoint endpoint) {
-        transmitReport(msg, endpoint, responseBody -> {
-            try {
-                ReportingResponse reportingResponse = objectMapper.readValue(responseBody, ReportingResponse.class);
-                Configuration.updateConfigurationIfPresent(configuration, reportingResponse.pluginConfig);
-            } catch (JsonProcessingException e) {
-                this.userLog.warn(
-                        "Fleet manager failed to receive reporting response - Failed to deserialize response: "
-                                + e.getMessage());
-            } catch (IOException e) {
-                var errorMsg = "Fleet manager failed to receive reporting response - IOException: " + e.getMessage();
-                this.userLog.error(errorMsg);
-                this.state.setDisconnected(errorMsg);
-                throw new RuntimeException(e);
-            }
-        });
+        ReportingResponse reportingResponse = callApi(msg, endpoint, ReportingResponse.class);
+        Configuration.updateConfigurationIfPresent(configuration, reportingResponse.pluginConfig);
     }
 
-    protected void transmitReport(Object msg, Upstream.Endpoint endpoint, Consumer<byte[]> processBody) {
+    protected byte[] callApi(Object msg, Upstream.Endpoint endpoint) {
         var messageName = msg.getClass().getSimpleName();
         try {
             String payload = objectMapper.writeValueAsString(msg);
-            this.fleetManagerLog.debug("Fleet manager reporting " + messageName);
-            this.fleetManagerLog.payload("Fleet manager reporting " + messageName + ": " + payload);
+            this.fleetManagerLog.debug("Fleet manager sending " + messageName);
+            this.fleetManagerLog.payload("Fleet manager sending %s: %s", messageName, payload);
 
             Upstream.UpstreamPostRequest upstreamPostRequest = upstream.postTo(endpoint);
-            var responseCode = upstreamPostRequest.transmit(payload.getBytes());
-
-            if (!responseOk(responseCode)) {
-                this.handleErrorResponse(
-                        "Fleet manager failed to report",
-                        responseCode,
-                        getResponseBody(upstreamPostRequest, messageName));
-                return;
-            }
+            var responseCode = upstreamPostRequest.transmit(payload.getBytes(StandardCharsets.UTF_8));
 
             byte[] responseBody = getResponseBody(upstreamPostRequest, messageName);
-
-            if (responseBody == null) {
-                this.userLog.error("Fleet manager received no response to " + messageName);
+            if (responseOk(responseCode)) {
+                return responseBody;
             } else {
-                processBody.accept(responseBody);
+                this.handleErrorResponse("Fleet manager failed to call API", responseCode, responseBody);
+                throw new ResponseStatusException(responseCode, responseBody);
             }
         } catch (IOException e) {
-            var errorMsg = "Fleet manager failed to report " + messageName + " - " + e;
+            var errorMsg = "Fleet manager failed to call API " + messageName + " - " + e;
+            this.state.setDisconnected(errorMsg);
+            this.userLog.error(errorMsg);
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected <T> T callApi(Object msg, Upstream.Endpoint endpoint, Class<T> responseType) {
+        byte[] responseBody = callApi(msg, endpoint);
+        var messageName = msg.getClass().getSimpleName();
+        try {
+            if (ArrayUtils.getLength(responseBody) == 0) {
+                throw new EmptyResponseException(
+                        "Received empty response body for API call with %s".formatted(messageName));
+            }
+            return objectMapper.readValue(responseBody, responseType);
+        } catch (Exception e) {
+            var errorMsg = "Fleet manager failed to read API call response for " + messageName + " - " + e;
             this.state.setDisconnected(errorMsg);
             this.userLog.error(errorMsg);
             throw new RuntimeException(e);
@@ -104,7 +102,8 @@ public abstract class AbstractReportingService extends BaseService {
         }
         if (responseBody != null) {
             this.fleetManagerLog.payload(
-                    "Fleet manager reporting " + messageName + " received response: " + new String(responseBody));
+                    "Fleet manager call with %s received response: %s",
+                    messageName, new String(responseBody, StandardCharsets.UTF_8));
         }
         return responseBody;
     }

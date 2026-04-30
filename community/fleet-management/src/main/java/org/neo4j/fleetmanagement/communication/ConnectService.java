@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.nio.charset.StandardCharsets;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.bootstrap.FleetManagerTask;
@@ -92,15 +93,17 @@ public class ConnectService extends BaseService {
         try {
             String payload = objectMapper.writeValueAsString(msg);
             this.fleetManagerLog.debug("Fleet manager connecting.");
-            this.fleetManagerLog.payload("Fleet manager connecting with payload: " + payload);
+            this.fleetManagerLog.payload("Fleet manager connecting with payload: %s", payload);
 
             upstream.generateToken();
             Upstream.UpstreamPostRequest upstreamPostRequest = upstream.postTo(Upstream.Endpoint.CONNECT);
-            var responseCode = upstreamPostRequest.transmit(payload.getBytes());
+            var responseCode = upstreamPostRequest.transmit(payload.getBytes(StandardCharsets.UTF_8));
             byte[] responseBody = upstreamPostRequest.getResponseBody();
 
             if (responseOk(responseCode) && responseBody != null) {
-                this.fleetManagerLog.payload("Fleet manager connect received response: " + new String(responseBody));
+                this.fleetManagerLog.payload(
+                        "Fleet manager connect received response: %s",
+                        new String(responseBody, StandardCharsets.UTF_8));
                 ConfigurationResponse configurationResponse;
                 try {
                     configurationResponse = objectMapper.readValue(responseBody, ConfigurationResponse.class);
@@ -116,12 +119,10 @@ public class ConnectService extends BaseService {
                 if (configurationResponse != null) {
                     handleConfigurationResponse(configurationResponse);
                 }
+                this.state.setConnected();
             } else {
                 handleErrorResponse("Fleet manager failed to connect", responseCode, responseBody);
-                return;
             }
-
-            this.state.setConnected();
         } catch (JsonProcessingException e) {
             var errorMsg = "Fleet manager failed to connect to the API - Failed to serialize connect message: "
                     + e.getMessage();

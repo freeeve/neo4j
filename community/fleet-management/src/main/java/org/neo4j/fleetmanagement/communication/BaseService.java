@@ -57,10 +57,9 @@ public class BaseService {
             ErrorResponse errorResponse = objectMapper.readValue(responseBody, ErrorResponse.class);
             if (errorResponse != null && errorResponse.code != 0) {
                 handleValidErrorResponse(errMsgPrefix, errorResponse);
-                return;
+            } else {
+                handleInvalidErrorResponse(errMsgPrefix, responseCode, responseBody, errorResponse);
             }
-
-            handleInvalidErrorResponse(errMsgPrefix, responseCode, responseBody, errorResponse);
         } catch (Exception e) {
             this.userLog.debug("Failed to parse error response", e);
             handleInvalidErrorResponse(errMsgPrefix, responseCode, responseBody, null);

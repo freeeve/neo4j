@@ -66,9 +66,13 @@ public class Logger {
         }
     }
 
-    public void payload(String message) {
+    public void payload(String template, Object... args) {
         if (payloadLoggingEnabled) {
-            log.info(message);
+            if (args == null || args.length == 0) {
+                log.info(template);
+            } else {
+                log.info(template, args);
+            }
         }
     }
 }
