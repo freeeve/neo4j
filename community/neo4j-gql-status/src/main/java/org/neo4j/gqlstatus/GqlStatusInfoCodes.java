@@ -2176,7 +2176,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "missing WITH",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N25(
-            "Procedure call inside a query does not support naming results implicitly. Use YIELD instead.",
+            "Procedure call inside a query does not support naming results implicitly. Use YIELD instead. Available output columns are: { %s }.",
+            new GqlParams.GqlParam[] {
+                new NonSensitiveGqlParam(GqlParams.ListParam.variableList, List.of(PROCEDURES_FUNCTIONS))
+            },
+            Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.ANDED),
             "missing YIELD",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N26(
@@ -2301,10 +2305,12 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "unsupported normal form",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N50(
-            "The procedure return column { %s } is not defined for this procedure. Verify that the spelling is correct.",
+            "The procedure return column { %s } is not defined for this procedure. Available output columns are: { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {
-                new NonSensitiveGqlParam(GqlParams.StringParam.variable, List.of(PROCEDURES_FUNCTIONS))
+                new NonSensitiveGqlParam(GqlParams.StringParam.arg, List.of(PROCEDURES_FUNCTIONS)),
+                new NonSensitiveGqlParam(GqlParams.ListParam.argList, List.of(PROCEDURES_FUNCTIONS))
             },
+            Map.of(GqlParams.ListParam.argList, GqlParams.JoinStyle.ANDED),
             "procedure return column not defined",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N51(

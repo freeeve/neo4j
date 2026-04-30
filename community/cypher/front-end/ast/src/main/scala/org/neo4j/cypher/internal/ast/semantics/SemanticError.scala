@@ -1713,9 +1713,12 @@ object SemanticError {
     )
   }
 
-  def procedureCallWithImplicitNaming(position: InputPosition): SemanticError = {
+  def procedureCallWithImplicitNaming(
+    availableColumns: List[String],
+    position: InputPosition
+  ): SemanticError = {
     SemanticError(
-      GqlHelper.getGql42001_42N25(position.offset, position.line, position.column),
+      GqlHelper.getGql42001_42N25(availableColumns.asJava, position.offset, position.line, position.column),
       s"Procedure call inside a query does not support naming results implicitly (name explicitly using `YIELD` instead)",
       position
     )

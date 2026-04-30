@@ -978,10 +978,12 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N25(int offset, int line, int column) {
+    public static ErrorGqlStatusObject getGql42001_42N25(
+            List<String> availableColumns, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N25)
+                        .withParam(GqlParams.ListParam.variableList, availableColumns)
                         .atPosition(offset, line, column)
                         .build())
                 .build();
@@ -1140,11 +1142,13 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42001_42N50(String returnColumn, int offset, int line, int column) {
+    public static ErrorGqlStatusObject getGql42001_42N50(
+            String returnColumn, List<String> availableColumns, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N50)
-                        .withParam(GqlParams.StringParam.variable, returnColumn)
+                        .withParam(GqlParams.StringParam.arg, returnColumn)
+                        .withParam(GqlParams.ListParam.argList, availableColumns)
                         .atPosition(offset, line, column)
                         .build())
                 .build();

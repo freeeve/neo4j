@@ -1316,6 +1316,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
     runWithLC().hasAtLeastErrorWithMarkedPosition(
       pos =>
         GqlHelper.getGql42001_42N25(
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column
@@ -1336,6 +1337,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
     runWithLC().hasAtLeastErrorWithMarkedPosition(
       pos =>
         GqlHelper.getGql42001_42N25(
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column
@@ -1359,6 +1361,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
     runWithLC().hasAtLeastErrorWithMarkedPosition(
       pos =>
         GqlHelper.getGql42001_42N25(
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column
@@ -1379,6 +1382,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
     runWithLC().hasAtLeastErrorWithMarkedPosition(
       pos =>
         GqlHelper.getGql42001_42N25(
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column
@@ -1486,6 +1490,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
       pos =>
         GqlHelper.getGql42001_42N50(
           "c",
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column
@@ -1507,6 +1512,7 @@ class LocalProceduresSemanticAnalysisTest extends LocalCallablesSemanticAnalysis
       pos =>
         GqlHelper.getGql42001_42N50(
           "c",
+          java.util.List.of("a", "b"),
           pos.offset,
           pos.line,
           pos.column

@@ -174,7 +174,7 @@ trait ResolvedCall[IMPL <: ResolvedCall[IMPL]] extends CallClause {
     } // CALL wo YIELD of non-VOID or non-empty procedure in query => Error
     else {
       error(
-        SemanticError.procedureCallWithImplicitNaming(position)
+        SemanticError.procedureCallWithImplicitNaming(callOutputTypes.keys.toList.sorted, position)
       )
     }
   }

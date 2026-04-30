@@ -46,6 +46,7 @@ public class GqlParams {
         alias2(new IDENT()),
         alloc(new IDENT()), // Allocator name
         allocType(new STRLIT()), // Allocation type
+        arg(new STRLIT()), // Procedure or function argument, for example, `database`, `pause`, `dryrun`, etc.
         auth(new IDENT()), // Auth provider name
         authRule(new IDENT()), // Auth rule name
         boltServerState(new STRLIT()), // Bolt server state
@@ -223,6 +224,11 @@ public class GqlParams {
 
     public enum ListParam implements GqlParam, HasJoinStyle {
         aliasList(new NELIST().withInner(StringParam.alias.processor)), // Comma-separated list of alias names
+        argList(new NELIST()
+                .withInner(
+                        StringParam.arg
+                                .processor)), // A list of procedure or function arguments, for example, `edition`,
+        // `name` and `versions`
         clauseList(new NELIST().withInner(StringParam.clause.processor)), // Comma-separated list of clauses
         dbList(new NELIST().withInner(StringParam.db.processor)), // Comma-separated list of database names
         hintList(new NELIST()
