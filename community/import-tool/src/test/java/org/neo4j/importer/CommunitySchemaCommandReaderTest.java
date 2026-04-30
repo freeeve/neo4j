@@ -30,7 +30,9 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 public class CommunitySchemaCommandReaderTest extends SchemaCommandReaderTest {
     public SchemaCommandReader createReader(FileSystemAbstraction fs, SchemaCommandReader.ReaderConfig readerConfig) {
         return new SchemaCommandReader(
-                fs, SchemaCommandParser.create(CypherConfiguration.fromConfig(Config.defaults())), readerConfig);
+                fs,
+                SchemaCommandParser.createCommunity(CypherConfiguration.fromConfig(Config.defaults())),
+                readerConfig);
     }
 
     @Test
@@ -38,6 +40,6 @@ public class CommunitySchemaCommandReaderTest extends SchemaCommandReaderTest {
         var cypher = createCypher("CYPHER 25 ALTER CURRENT GRAPH TYPE SET { }");
         var reader = createReader(SchemaCommandReader.ReaderConfig.forTesting(true, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher))
-                .hasMessageContainingAll("Graph type requires Enterprise Edition");
+                .hasMessageContainingAll("GRAPH TYPE requires Enterprise Edition");
     }
 }

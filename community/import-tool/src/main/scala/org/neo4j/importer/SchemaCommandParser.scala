@@ -23,6 +23,8 @@ import ParseResult.Failure
 import ParseResult.Success
 import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
@@ -53,7 +55,10 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.reflect.ClassTag
 
-class SchemaCommandParser(configuration: CypherConfiguration) {
+class SchemaCommandParser(
+  configuration: CypherConfiguration,
+  graphTypeSupport: GraphTypeSupport
+) {
   final private val preparser: PreParser = new PreParser(configuration)
   final private val parsingConfig = CypherParsingConfig.fromCypherConfiguration(configuration)
 
@@ -85,9 +90,12 @@ class SchemaCommandParser(configuration: CypherConfiguration) {
     val steps = PreparatoryRewriting.andThen(SemanticAnalysis(Some(true)))
 
     def syntaxException(pos: InputPosition, message: String): Err = {
-      // TODO(graphTypes): This is a rather roundabout way to do this, but it
-      //  makes life easier to obtain consistent formatting.
       Err(context.cypherExceptionFactory.syntaxException(null, message, pos).getMessage)
+    }
+
+    val supportedOperations: Set[AlterOperation] = graphTypeSupport match {
+      case Supported(operations) => operations
+      case Unsupported(_)        => Set.empty
     }
 
     def pipeline(statement: Statement): StatementResult = {
@@ -100,6 +108,18 @@ class SchemaCommandParser(configuration: CypherConfiguration) {
               position,
               "Schema commands are only applied to the database to be imported into so graph names are not allowed: " +
                 candidate.useGraph.get.graphReference.print
+            )
+
+          case ast.AlterCurrentGraphType(_, op, _) if !supportedOperations.contains(op) =>
+            // Note: Fail unsupported operations here, rather than in semantic analysis
+            val reason = graphTypeSupport match {
+              case Supported(_)        => "The GRAPH TYPE operation %s is not supported".format(op.name())
+              case Unsupported(reason) => reason
+            }
+
+            syntaxException(
+              position,
+              reason
             )
 
           case candidate: ast.SchemaCommand =>
@@ -129,8 +149,11 @@ class SchemaCommandParser(configuration: CypherConfiguration) {
       case (_, errors)      => new Failure(errors.asJava)
     }
   }
-
 }
+
+sealed trait GraphTypeSupport
+case class Supported(operations: Set[AlterOperation]) extends GraphTypeSupport
+case class Unsupported(reason: String) extends GraphTypeSupport
 
 sealed private trait StatementResult
 private case class Ok(schemaCommand: ast.SchemaCommand) extends StatementResult
@@ -159,6 +182,24 @@ object SchemaCommandParser {
     override def owningDatabaseName(): String = ???
     override def isShard: Boolean = ???
   }
-  def create(configuration: CypherConfiguration): SchemaCommandParser = new SchemaCommandParser(configuration)
+
+  def createCommunity(configuration: CypherConfiguration): SchemaCommandParser = {
+    new SchemaCommandParser(
+      configuration,
+      Unsupported("GRAPH TYPE requires Enterprise Edition")
+    )
+  }
+
+  def createEnterprise(configuration: CypherConfiguration): SchemaCommandParser = {
+    // There is no reason to allow operations other than SET on a fresh import.
+    new SchemaCommandParser(configuration, Supported(Set(AlterCurrentGraphType.Set)))
+  }
+
+  def createEnterpriseIncremental(configuration: CypherConfiguration): SchemaCommandParser = new SchemaCommandParser(
+    configuration,
+    // TODO(graphTypes): Restore support for incremental importer when constraint enforcement is fixed.
+    //                   Supported(Set(AlterCurrentGraphType.Add, AlterCurrentGraphType.Drop))
+    Unsupported("GRAPH TYPE is not supported by the incremental importer")
+  )
 
 }

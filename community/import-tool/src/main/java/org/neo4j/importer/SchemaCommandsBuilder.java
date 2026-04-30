@@ -73,6 +73,9 @@ class SchemaCommandsBuilder {
 
     private final SchemaCommandConverter schemaCommandConverter;
 
+    private boolean hasGraphType;
+    private boolean hasConstraint;
+
     SchemaCommandsBuilder(ReaderConfig readerConfig, SchemaCommandConverter commandConverter) {
         this.readerConfig = Objects.requireNonNull(readerConfig);
         this.schemaCommandConverter = Objects.requireNonNull(commandConverter);
@@ -96,6 +99,12 @@ class SchemaCommandsBuilder {
             }
         }
 
+        if (command instanceof SchemaCommand.GraphType) {
+            hasGraphType = true;
+        } else if (command instanceof ConstraintCommand) {
+            hasConstraint = true;
+        }
+
         allCommands.add(command);
         return this;
     }
@@ -104,6 +113,11 @@ class SchemaCommandsBuilder {
         final var result = Lists.mutable.<SchemaCommand>empty();
         final var namedCommands = new LinkedHashMap<String, SchemaCommand>();
         final var allSchemas = Multimaps.mutable.list.<String, SchemaCommand>empty();
+
+        if (hasGraphType && hasConstraint) {
+            throw new SchemaCommandReaderException("Graph type commands can not be mixed with constraint commands");
+        }
+
         for (var command : allCommands) {
             if (command instanceof IndexCommand.Create index) {
                 allSchemas.put(schemaKey(index), index);
@@ -256,9 +270,12 @@ class SchemaCommandsBuilder {
     }
 
     private static boolean isEnterpriseOnly(SchemaCommand command) {
-        // only UNIQUE constraints are supported in Community
-        return command instanceof ConstraintCommand.Create constraint
-                && constraint.constraintType() != ConstraintType.UNIQUE;
+        if (command instanceof ConstraintCommand.Create constraint) {
+            // only UNIQUE constraints are supported in Community
+            return constraint.constraintType() != ConstraintType.UNIQUE;
+        }
+
+        return command instanceof SchemaCommand.GraphType;
     }
 
     /**

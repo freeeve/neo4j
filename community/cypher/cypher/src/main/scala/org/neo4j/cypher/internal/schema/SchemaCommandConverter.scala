@@ -408,9 +408,8 @@ class SchemaCommandConverter {
     values
   }
 
-  @throws[SchemaCommandReaderException]
   protected def graphType(gt: GraphType, operation: AlterOperation): SchemaCommand.GraphType =
-    throw new SchemaCommandReaderException("Graph type requires Enterprise Edition")
+    throw new IllegalStateException("graph type support exists in enterprise edition")
 
   private def singleProperty(properties: Seq[Property]): String =
     singleItem(properties, (p: Property) => p.propertyKey.name)

@@ -1353,7 +1353,7 @@ public class ImportCommand {
         protected SchemaCommandReader schemaCommandReader(SchemeFileSystemAbstraction fileSystem, Config config) {
             return new SchemaCommandReader(
                     fileSystem,
-                    SchemaCommandParser.create(CypherConfiguration.fromConfig(config)),
+                    SchemaCommandParser.createCommunity(CypherConfiguration.fromConfig(config)),
                     ReaderConfig.communityImporter(config));
         }
 
