@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ParameterProvider
-import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.exceptions.InternalException
@@ -44,10 +43,9 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
     params: ParameterProvider,
     cypherVersion: CypherVersion,
     ignoreNullInput: Boolean
-  ): (Set[DatabaseReference], Set[InternalNotification]) = {
+  ): Set[DatabaseReference] = {
     val databaseReferences = referenceResolver.getAllDatabaseReferences.asScala
-    val (name, namespace, notifications)
-      : (NormalizedDatabaseName, Option[NormalizedDatabaseName], Set[InternalNotification]) =
+    val (name, namespace): (NormalizedDatabaseName, Option[NormalizedDatabaseName]) =
       namedDatabase match {
         case nn @ NamespacedName(_, namespace) =>
           val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
@@ -56,17 +54,15 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
               case Some(ns) =>
                 val deprecatedName = ns.name() + "." + nn.name
                 databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
-                  .map(_ => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification]))
-                  // This is the deprecated case of "SHOW DATABASE a.b" with no composite. Should really be `a.b`, so warn
+                  .map(_ => (new NormalizedDatabaseName(nn.name), normalizedNamespace))
                   .getOrElse((
                     new NormalizedDatabaseName(deprecatedName),
-                    None,
-                    Set.empty
+                    None
                   ))
-              case None => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
+              case None => (new NormalizedDatabaseName(nn.name), normalizedNamespace)
             }
           } else {
-            (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
+            (new NormalizedDatabaseName(nn.name), normalizedNamespace)
           }
         case pn: ParameterName =>
           val (namespace, name, _, _) = pn.getNameParts(
@@ -75,18 +71,17 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
             allowAndPassThroughNullInput = ignoreNullInput
           )
           if (name == null) {
-            (null, None, Set.empty[InternalNotification])
+            (null, None)
           } else {
             val normalizedNamespace = namespace.map(new NormalizedDatabaseName(_))
             normalizedNamespace match {
-              case None => (new NormalizedDatabaseName(name), None, Set.empty[InternalNotification])
+              case None => (new NormalizedDatabaseName(name), None)
               case Some(ns) =>
                 databaseReferences.find(dr => dr.isComposite && dr.alias().equals(ns))
-                  .map(_ => (new NormalizedDatabaseName(name), normalizedNamespace, Set.empty[InternalNotification]))
+                  .map(_ => (new NormalizedDatabaseName(name), normalizedNamespace))
                   .getOrElse((
                     new NormalizedDatabaseName(ns.name() + "." + name),
-                    None,
-                    Set.empty[InternalNotification]
+                    None
                   ))
             }
           }
@@ -157,6 +152,6 @@ class DatabaseNameResolver(referenceResolver: DatabaseReferenceRepository) {
     }
 
     assertAtMostOne(filteredReferences)
-    (filteredReferences, notifications)
+    filteredReferences
   }
 }

@@ -39,8 +39,6 @@ import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.StringValue
 
-import scala.jdk.CollectionConverters.SetHasAsJava
-
 case class ShowDatabaseCommand(
   dbScope: DatabaseScope,
   defaultColumns: List[CommandDefaultColumn],
@@ -72,13 +70,12 @@ case class ShowDatabaseCommand(
     )
     val resultRows: Iterator[Map[String, AnyValue]] = (dbScope match {
       case SingleNamedDatabaseScope(database) =>
-        val (results, notifications) = showService.getSingleNamedDatabase(
+        val results = showService.getSingleNamedDatabase(
           database,
           SlotBasedParameterProvider(state),
           context,
           ignoreNullInput = true
         )
-        state.notifications.addAll(notifications.asJava)
         results
       case DefaultDatabaseScope() => showService.getDefaultDatabase(context)
       case HomeDatabaseScope()    => showService.getHomeDatabase(context)

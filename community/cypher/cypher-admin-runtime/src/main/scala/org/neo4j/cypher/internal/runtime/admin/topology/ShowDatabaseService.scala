@@ -23,7 +23,6 @@ package org.neo4j.cypher.internal.runtime.admin.topology
 import org.neo4j.common.DependencyResolver
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.ParameterProvider
-import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
 import org.neo4j.dbms.database.TopologyInfoService
@@ -62,7 +61,7 @@ trait ShowDatabaseService {
     params: ParameterProvider,
     context: ShowDatabaseServiceContext,
     ignoreNullInput: Boolean
-  ): (Seq[ShowDatabaseResult], Set[InternalNotification])
+  ): Seq[ShowDatabaseResult]
 }
 
 object ShowDatabaseService {
@@ -110,11 +109,11 @@ class TransactionBoundShowDatabaseService(
     params: ParameterProvider,
     context: ShowDatabaseServiceContext,
     ignoreNullInput: Boolean
-  ): (Seq[ShowDatabaseResult], Set[InternalNotification]) = {
-    val (references, notifications) =
+  ): Seq[ShowDatabaseResult] = {
+    val references =
       nameResolver.resolveDatabaseNameToReference(name, params, context.cypherVersion, ignoreNullInput)
 
-    (getDatabaseDetails(references, context), notifications)
+    getDatabaseDetails(references, context)
   }
 
   private def getDatabaseDetails(

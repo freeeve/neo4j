@@ -97,12 +97,12 @@
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-graphdb-api</artifactId>
+      <artifactId>neo4j-expressions</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-internal-notifications</artifactId>
+      <artifactId>neo4j-graphdb-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -132,6 +132,11 @@
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala3-library_3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <!-- Neo4j test dependencies -->
@@ -173,6 +178,24 @@
           </jvmArgs>
           <secondaryCacheDir>${java.io.tmpdir}</secondaryCacheDir>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredNonTestScopedDependencies>
+                <ignoredNonTestScopedDependency>org.neo4j:neo4j-expressions</ignoredNonTestScopedDependency>
+              </ignoredNonTestScopedDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

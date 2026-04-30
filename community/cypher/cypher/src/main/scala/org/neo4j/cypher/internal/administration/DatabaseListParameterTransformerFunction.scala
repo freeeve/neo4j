@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.procs.ParameterTransformer.ParameterTransformerOutput
 import org.neo4j.cypher.internal.procs.ParameterTransformerFunction
 import org.neo4j.cypher.internal.runtime.admin.topology.DatabaseDetailsMapper
@@ -82,9 +81,9 @@ class DatabaseListParameterTransformerFunction(
       infoService
     )
 
-    val (databaseDetails, notifications): (Seq[ShowDatabaseResult], Set[InternalNotification]) = scope match {
-      case _: DefaultDatabaseScope => (showDatabaseService.getDefaultDatabase(showDatabaseServiceContext), Set.empty)
-      case _: HomeDatabaseScope    => (showDatabaseService.getHomeDatabase(showDatabaseServiceContext), Set.empty)
+    val databaseDetails: Seq[ShowDatabaseResult] = scope match {
+      case _: DefaultDatabaseScope => showDatabaseService.getDefaultDatabase(showDatabaseServiceContext)
+      case _: HomeDatabaseScope    => showDatabaseService.getHomeDatabase(showDatabaseServiceContext)
       case namedDatabaseScope: SingleNamedDatabaseScope =>
         showDatabaseService.getSingleNamedDatabase(
           namedDatabaseScope.database,
@@ -92,7 +91,7 @@ class DatabaseListParameterTransformerFunction(
           showDatabaseServiceContext,
           ignoreNullInput = false
         )
-      case _ => (showDatabaseService.getAllDatabases(showDatabaseServiceContext), Set.empty)
+      case _ => showDatabaseService.getAllDatabases(showDatabaseServiceContext)
     }
 
     val dbMetadata = databaseDetails.map(DatabaseDetailsMapper.toMapValue)
@@ -105,7 +104,7 @@ class DatabaseListParameterTransformerFunction(
           Array(VirtualValues.fromList(dbMetadata.asJava))
         ).updatedWith(generateUsernameParameter(securityContext))
       ),
-      notifications
+      Set.empty
     )
   }
 
