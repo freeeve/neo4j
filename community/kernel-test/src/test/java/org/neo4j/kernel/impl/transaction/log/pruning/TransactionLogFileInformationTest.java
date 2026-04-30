@@ -32,6 +32,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newSta
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
@@ -121,6 +122,7 @@ class TransactionLogFileInformationTest {
                         1,
                         UNKNOWN_APPEND_INDEX,
                         UNKNOWN_APPEND_INDEX,
+                        UNKNOWN_TX_SEQUENCE_NUMBER,
                         NO_LEASE,
                         Leases.NO_LEASES,
                         encodeLogIndex(42)));
@@ -151,7 +153,15 @@ class TransactionLogFileInformationTest {
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
                 .thenReturn(newStartEntry(
-                        LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, NO_LEASE, Leases.NO_LEASES, new byte[] {}));
+                        LatestVersions.LATEST_KERNEL_VERSION,
+                        1,
+                        1,
+                        1,
+                        UNKNOWN_TX_SEQUENCE_NUMBER,
+                        1,
+                        NO_LEASE,
+                        Leases.NO_LEASES,
+                        new byte[] {}));
         var fileInfo = new TransactionLogFileInformation(logFiles, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(

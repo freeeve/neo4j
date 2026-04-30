@@ -41,6 +41,7 @@ public final class LogEntryFactory {
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
+            long transactionSequenceNumber,
             int previousChecksum,
             int leaseId,
             Leases leases,
@@ -51,6 +52,7 @@ public final class LogEntryFactory {
                     timeWritten,
                     lastCommittedTxWhenTransactionStarted,
                     appendIndex,
+                    transactionSequenceNumber,
                     leaseId,
                     leases,
                     additionalHeader);
@@ -77,8 +79,14 @@ public final class LogEntryFactory {
     }
 
     public static AbstractVersionAwareLogEntry newRollbackEntry(
-            KernelVersion kernelVersion, long transactionId, long appendIndex, long chunkId, long timeWritten) {
-        return new LogEntryRollback(kernelVersion, transactionId, appendIndex, chunkId, timeWritten, 0);
+            KernelVersion kernelVersion,
+            long transactionId,
+            long appendIndex,
+            long chunkId,
+            long timeWritten,
+            long transactionSequenceNumber) {
+        return new LogEntryRollback(
+                kernelVersion, transactionId, appendIndex, chunkId, timeWritten, 0, transactionSequenceNumber);
     }
 
     public static LogEntry newChunkStartEntry(
@@ -87,6 +95,7 @@ public final class LogEntryFactory {
             long chunkId,
             long appendIndex,
             long previousBatchAppendIndex,
+            long transactionSequenceNumber,
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
@@ -96,6 +105,7 @@ public final class LogEntryFactory {
                 chunkId,
                 appendIndex,
                 previousBatchAppendIndex,
+                transactionSequenceNumber,
                 leaseId,
                 leases,
                 additionalHeader);

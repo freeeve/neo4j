@@ -29,6 +29,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCom
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializationSets.serializationSet;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
@@ -69,8 +70,16 @@ class VersionAwareLogEntryReaderTest {
     @KernelVersionSource(atLeast = "5.0")
     void shouldReadAStartLogEntry(KernelVersion kernelVersion) throws IOException {
         // given
-        final LogEntryStart start =
-                newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
+        final LogEntryStart start = newStartEntry(
+                kernelVersion,
+                1,
+                2,
+                3,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
+                BASE_TX_CHECKSUM,
+                NO_LEASE,
+                Leases.NO_LEASES,
+                new byte[] {4});
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
 
         writeEntry(channel, start, serializationSet(kernelVersion, BINARY_VERSIONS));
@@ -84,8 +93,16 @@ class VersionAwareLogEntryReaderTest {
     }
 
     static String additionalDebugInfo(KernelVersion kernelVersion, LogEntry start) {
-        final LogEntryStart recreatedStart =
-                newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
+        final LogEntryStart recreatedStart = newStartEntry(
+                kernelVersion,
+                1,
+                2,
+                3,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
+                BASE_TX_CHECKSUM,
+                NO_LEASE,
+                Leases.NO_LEASES,
+                new byte[] {4});
         return String.format(
                 """
 Additional debug information:

@@ -30,6 +30,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCom
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.kernel.recovery.RecoveryStartupChecker.EMPTY_CHECKER;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
@@ -71,6 +72,7 @@ class RecoveryProgressIndicatorTest {
                         1,
                         2,
                         appendIndexAndTxId,
+                        UNKNOWN_TX_SEQUENCE_NUMBER,
                         4,
                         NO_LEASE,
                         Leases.NO_LEASES,

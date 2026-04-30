@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -108,7 +110,12 @@ public class TransactionLogWriter {
 
         if (batch.isRollback()) {
             return writer.writeRollbackEntry(
-                    kernelVersion, transactionId, appendIndex, chunkId, batch.getTimeCommitted());
+                    kernelVersion,
+                    transactionId,
+                    appendIndex,
+                    chunkId,
+                    batch.getTimeCommitted(),
+                    UNKNOWN_TX_SEQUENCE_NUMBER);
         }
 
         writer.writeBatchStart(
@@ -118,6 +125,7 @@ public class TransactionLogWriter {
                 appendIndex,
                 previousChecksum,
                 previousBatchAppendIndex,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
                 batch.getLeaseId(),
                 batch.leases());
 

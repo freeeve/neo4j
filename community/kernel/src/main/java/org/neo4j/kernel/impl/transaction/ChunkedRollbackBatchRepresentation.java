@@ -23,6 +23,7 @@ import static java.util.Collections.emptyList;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.IOException;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -66,7 +67,8 @@ public record ChunkedRollbackBatchRepresentation(
 
     @Override
     public int serialize(LogEntryWriter<? extends WritableChannel> writer) throws IOException {
-        return writer.writeRollbackEntry(kernelVersion, transactionId, appendIndex, chunkId, timeWritten);
+        return writer.writeRollbackEntry(
+                kernelVersion, transactionId, appendIndex, chunkId, timeWritten, UNKNOWN_TX_SEQUENCE_NUMBER);
     }
 
     @Override

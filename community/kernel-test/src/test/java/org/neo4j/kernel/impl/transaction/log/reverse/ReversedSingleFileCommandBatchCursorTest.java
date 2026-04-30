@@ -420,6 +420,7 @@ class ReversedSingleFileCommandBatchCursorTest {
                 long timeWritten,
                 long latestCommittedTxWhenStarted,
                 long appendIndex,
+                long transactionSequenceNumber,
                 int previousChecksum,
                 int leaseId,
                 Leases leases,

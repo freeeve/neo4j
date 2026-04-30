@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.Leases;
@@ -59,6 +60,10 @@ public abstract class LogEntryStart extends AbstractVersionAwareLogEntry {
 
     public long getAppendIndex() {
         return BASE_APPEND_INDEX;
+    }
+
+    public long getTransactionSequenceNumber() {
+        return UNKNOWN_TX_SEQUENCE_NUMBER;
     }
 
     public int getLeaseId() {

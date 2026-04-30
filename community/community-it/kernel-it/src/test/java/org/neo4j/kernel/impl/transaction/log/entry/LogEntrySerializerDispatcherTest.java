@@ -32,6 +32,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newSta
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializationSets.serializationSet;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
 
 import java.io.IOException;
@@ -94,9 +95,11 @@ class LogEntrySerializerDispatcherTest {
                 var writeChannel =
                         new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
             var entryWriter = new LogEntryWriter<>(writeChannel, BINARY_VERSIONS);
-            entryWriter.writeStartEntry(version, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, encodeLogIndex(42));
+            entryWriter.writeStartEntry(
+                    version, 1, 2, 3, UNKNOWN_TX_SEQUENCE_NUMBER, 4, NO_LEASE, Leases.NO_LEASES, encodeLogIndex(42));
             entryWriter.writeChunkEndEntry(version, 17, 13);
-            entryWriter.writeChunkStartEntry(version, 11, 13, 4, 15, NO_LEASE, Leases.NO_LEASES, encodeLogIndex(43));
+            entryWriter.writeChunkStartEntry(
+                    version, 11, 13, 4, 15, UNKNOWN_TX_SEQUENCE_NUMBER, NO_LEASE, Leases.NO_LEASES, encodeLogIndex(43));
             entryWriter.writeCommitEntry(version, 7, 8);
         }
 
@@ -136,7 +139,8 @@ class LogEntrySerializerDispatcherTest {
     @KernelVersionSource(atLeast = "4.2") // Oldest version we can write
     void parseStartEntry(KernelVersion version) throws IOException {
         // given
-        final LogEntryStart start = newStartEntry(version, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
+        final LogEntryStart start = newStartEntry(
+                version, 1, 2, 3, UNKNOWN_TX_SEQUENCE_NUMBER, 4, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
         final InMemoryClosableChannel channel = new InMemoryClosableChannel();
 
         channel.putLong(start.getTimeWritten());
@@ -167,7 +171,8 @@ class LogEntrySerializerDispatcherTest {
     @ParameterizedTest
     @KernelVersionSource(atLeast = "4.2") // Oldest version we can write
     void parseCorruptedStartEntry(KernelVersion version) {
-        final LogEntryStart start = newStartEntry(version, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
+        final LogEntryStart start = newStartEntry(
+                version, 1, 2, 3, UNKNOWN_TX_SEQUENCE_NUMBER, 4, NO_LEASE, Leases.NO_LEASES, new byte[] {4});
         try (final InMemoryClosableChannel channel = new InMemoryClosableChannel()) {
             channel.putLong(start.getTimeWritten());
             channel.putLong(start.getLastCommittedTxWhenTransactionStarted());

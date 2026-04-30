@@ -41,6 +41,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_logs_root_path;
 import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -245,6 +246,7 @@ class DumpCommandIT {
                     0x123456789ABCDEFL,
                     4,
                     4,
+                    UNKNOWN_TX_SEQUENCE_NUMBER,
                     BASE_TX_CHECKSUM,
                     NO_LEASE,
                     Leases.NO_LEASES,

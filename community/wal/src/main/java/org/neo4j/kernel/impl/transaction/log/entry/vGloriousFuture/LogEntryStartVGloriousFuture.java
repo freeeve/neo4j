@@ -27,6 +27,7 @@ import org.neo4j.storageengine.api.Leases;
 import org.neo4j.string.Mask;
 
 public class LogEntryStartVGloriousFuture extends LogEntryStartV2025_05 {
+    private final long transactionSequenceNumber;
     private final int leaseId;
     private final Leases leases;
 
@@ -35,12 +36,19 @@ public class LogEntryStartVGloriousFuture extends LogEntryStartV2025_05 {
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
+            long transactionSequenceNumber,
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
         super(kernelVersion, timeWritten, lastCommittedTxWhenTransactionStarted, appendIndex, additionalHeader);
+        this.transactionSequenceNumber = transactionSequenceNumber;
         this.leaseId = leaseId;
         this.leases = leases;
+    }
+
+    @Override
+    public long getTransactionSequenceNumber() {
+        return transactionSequenceNumber;
     }
 
     @Override
@@ -60,6 +68,7 @@ public class LogEntryStartVGloriousFuture extends LogEntryStartV2025_05 {
                 + ",additionalHeaderLength=" + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
                 + ", appendIndex=" + appendIndex
+                + ", transactionSequenceNumber=" + transactionSequenceNumber
                 + ", leaseId=" + leaseId
                 + ", leases=" + leases + "]";
     }
@@ -70,12 +79,14 @@ public class LogEntryStartVGloriousFuture extends LogEntryStartV2025_05 {
             return false;
         }
         LogEntryStartVGloriousFuture start = (LogEntryStartVGloriousFuture) o;
-        return leaseId == start.leaseId && leases.equals(start.leases);
+        return transactionSequenceNumber == start.transactionSequenceNumber
+                && leaseId == start.leaseId
+                && leases.equals(start.leases);
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        return Objects.hash(result, leaseId, leases);
+        return Objects.hash(result, transactionSequenceNumber, leaseId, leases);
     }
 }

@@ -28,6 +28,7 @@ import static org.neo4j.storageengine.api.TransactionApplicationMode.MVCC_INCOMP
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -378,7 +379,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                             notCompletedTransaction,
                             appendIndex,
                             transactionTracker.lastNotCompletedTransactionChunk(notCompletedTransaction),
-                            time);
+                            time,
+                            UNKNOWN_TX_SEQUENCE_NUMBER);
                     if (i == (notCompletedTransactions.length - 1)) {
                         lastBatchInfo = new CommittedCommandBatchRepresentation.BatchInformation(
                                 notCompletedTransaction,

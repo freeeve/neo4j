@@ -52,6 +52,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         long chunkId = channel.getLong();
         long previousBatchAppendIndex = channel.getLong();
         long appendIndex = channel.getAppendIndex();
+        long transactionSequenceNumber = channel.getLong();
         int leaseId = channel.getInt();
         Leases leases = LeasesSerializerVGloriousFuture.parse(channel);
         int additionalHeaderLength = channel.getInt();
@@ -67,6 +68,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
                 chunkId,
                 appendIndex,
                 previousBatchAppendIndex,
+                transactionSequenceNumber,
                 leaseId,
                 leases,
                 additionalHeader);
@@ -81,6 +83,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
                 .putLong(logEntry.getChunkId())
                 .putLong(logEntry.getPreviousBatchAppendIndex())
                 .putAppendIndex(logEntry.getAppendIndex())
+                .putLong(logEntry.getTransactionSequenceNumber())
                 .putInt(logEntry.getLeaseId());
         LeasesSerializerVGloriousFuture.write(channel, logEntry.getLeases());
         channel.putInt(additionalHeaderData.length).put(additionalHeaderData, additionalHeaderData.length);

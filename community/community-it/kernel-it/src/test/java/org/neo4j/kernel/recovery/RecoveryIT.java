@@ -58,6 +58,7 @@ import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointReco
 import static org.neo4j.kernel.recovery.facade.RecoveryCriteria.ALL;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
@@ -2558,6 +2559,7 @@ class RecoveryIT {
                                 .highestObservedClosedTransactionId()
                                 .id(),
                         latestCheckpointInfo.appendIndex() + 1L,
+                        UNKNOWN_TX_SEQUENCE_NUMBER,
                         0,
                         NO_LEASE,
                         Leases.NO_LEASES,

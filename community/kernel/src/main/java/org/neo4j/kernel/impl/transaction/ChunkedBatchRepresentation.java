@@ -80,6 +80,7 @@ public record ChunkedBatchRepresentation(
                 chunkStart.getChunkId(),
                 chunkStart.getAppendIndex(),
                 chunkStart.getPreviousBatchAppendIndex(),
+                chunkStart.getTransactionSequenceNumber(),
                 chunkStart.getLeaseId(),
                 chunkStart.getLeases(),
                 chunkStart.getAdditionalHeader());
@@ -127,6 +128,7 @@ public record ChunkedBatchRepresentation(
                     BASE_CHUNK_ID,
                     entryStart.getAppendIndex(),
                     UNKNOWN_APPEND_INDEX,
+                    entryStart.getTransactionSequenceNumber(),
                     entryStart.getLeaseId(),
                     entryStart.getLeases(),
                     entryStart.getAdditionalHeader());

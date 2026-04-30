@@ -59,6 +59,7 @@ public class LogEntryWriter<T extends WritableChannel> {
             long timeWritten,
             long latestCommittedTxWhenStarted,
             long appendIndex,
+            long transactionSequenceNumber,
             int previousChecksum,
             int leaseId,
             Leases leases,
@@ -75,6 +76,7 @@ public class LogEntryWriter<T extends WritableChannel> {
                                 timeWritten,
                                 latestCommittedTxWhenStarted,
                                 appendIndex,
+                                transactionSequenceNumber,
                                 previousChecksum,
                                 leaseId,
                                 leases,
@@ -93,6 +95,7 @@ public class LogEntryWriter<T extends WritableChannel> {
             long chunkId,
             long appendIndex,
             long previousBatchAppendIndex,
+            long transactionSequenceNumber,
             int leaseId,
             Leases leases,
             byte[] additionalHeader)
@@ -109,6 +112,7 @@ public class LogEntryWriter<T extends WritableChannel> {
                                 chunkId,
                                 appendIndex,
                                 previousBatchAppendIndex,
+                                transactionSequenceNumber,
                                 leaseId,
                                 leases,
                                 additionalHeader));
@@ -123,13 +127,26 @@ public class LogEntryWriter<T extends WritableChannel> {
     }
 
     public int writeRollbackEntry(
-            KernelVersion kernelVersion, long transactionId, long appendIndex, long chunkId, long timeWritten)
+            KernelVersion kernelVersion,
+            long transactionId,
+            long appendIndex,
+            long chunkId,
+            long timeWritten,
+            long transactionSequenceNumber)
             throws IOException {
         updateSerializationSet(kernelVersion);
 
         return logEntrySerializationSet
                 .select(TX_ROLLBACK)
-                .write(channel, newRollbackEntry(kernelVersion, transactionId, appendIndex, chunkId, timeWritten));
+                .write(
+                        channel,
+                        newRollbackEntry(
+                                kernelVersion,
+                                transactionId,
+                                appendIndex,
+                                chunkId,
+                                timeWritten,
+                                transactionSequenceNumber));
     }
 
     public int writeCommitEntry(KernelVersion kernelVersion, long transactionId, long timeWritten) throws IOException {
@@ -169,6 +186,7 @@ public class LogEntryWriter<T extends WritableChannel> {
             long appendIndex,
             int previousChecksum,
             long previousBatchAppendIndex,
+            long transactionSequenceNumber,
             int leaseId,
             Leases leases)
             throws IOException {
@@ -178,6 +196,7 @@ public class LogEntryWriter<T extends WritableChannel> {
                     batch.getTimeStarted(),
                     batch.getLatestCommittedTxWhenStarted(),
                     appendIndex,
+                    transactionSequenceNumber,
                     previousChecksum,
                     leaseId,
                     leases,
@@ -189,6 +208,7 @@ public class LogEntryWriter<T extends WritableChannel> {
                     chunkId,
                     appendIndex,
                     previousBatchAppendIndex,
+                    transactionSequenceNumber,
                     leaseId,
                     leases,
                     encodeLogIndex(batch.consensusIndex()));

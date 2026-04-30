@@ -61,6 +61,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
@@ -242,6 +243,7 @@ class BatchingTransactionAppenderTest {
                 timeStarted,
                 latestCommittedTxWhenStarted,
                 latestCommittedTxWhenStarted + 7,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
                 0,
                 NO_LEASE,
                 Leases.NO_LEASES,
@@ -314,6 +316,7 @@ class BatchingTransactionAppenderTest {
                 0L,
                 latestCommittedTxWhenStarted,
                 latestCommittedTxWhenStarted + 8,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
                 0,
                 NO_LEASE,
                 Leases.NO_LEASES,
@@ -488,7 +491,16 @@ class BatchingTransactionAppenderTest {
             var transactionCommitment = new TransactionCommitment(transactionIdStore);
             var transactionIdGenerator = new IdStoreTransactionIdGenerator(transactionIdStore);
             var transaction = new CompleteBatchRepresentation(
-                    newStartEntry(LATEST_KERNEL_VERSION, 1, 2, 3, 4, NO_LEASE, Leases.NO_LEASES, EMPTY_BYTE_ARRAY),
+                    newStartEntry(
+                            LATEST_KERNEL_VERSION,
+                            1,
+                            2,
+                            3,
+                            UNKNOWN_TX_SEQUENCE_NUMBER,
+                            4,
+                            NO_LEASE,
+                            Leases.NO_LEASES,
+                            EMPTY_BYTE_ARRAY),
                     singleTestCommand(),
                     newCommitEntry(LATEST_KERNEL_VERSION, 11, 1L, BASE_TX_CHECKSUM + 1),
                     BASE_TX_CHECKSUM);

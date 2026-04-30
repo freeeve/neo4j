@@ -51,6 +51,7 @@ public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<L
         long timeWritten = channel.getLong();
         long latestCommittedTxWhenStarted = channel.getLong();
         long appendIndex = channel.getAppendIndex();
+        long transactionSequenceNumber = channel.getLong();
         int leaseId = channel.getInt();
         Leases leases = LeasesSerializerVGloriousFuture.parse(channel);
         int additionalHeaderLength = channel.getInt();
@@ -61,7 +62,14 @@ public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<L
         byte[] additionalHeader = new byte[additionalHeaderLength];
         channel.get(additionalHeader, additionalHeaderLength);
         return new LogEntryStartVGloriousFuture(
-                version, timeWritten, latestCommittedTxWhenStarted, appendIndex, leaseId, leases, additionalHeader);
+                version,
+                timeWritten,
+                latestCommittedTxWhenStarted,
+                appendIndex,
+                transactionSequenceNumber,
+                leaseId,
+                leases,
+                additionalHeader);
     }
 
     @Override
@@ -72,6 +80,7 @@ public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<L
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getLastCommittedTxWhenTransactionStarted())
                 .putAppendIndex(logEntry.getAppendIndex())
+                .putLong(logEntry.getTransactionSequenceNumber())
                 .putInt(logEntry.getLeaseId());
         LeasesSerializerVGloriousFuture.write(channel, logEntry.getLeases());
         channel.putInt(additionalHeaderData.length).put(additionalHeaderData, additionalHeaderData.length);

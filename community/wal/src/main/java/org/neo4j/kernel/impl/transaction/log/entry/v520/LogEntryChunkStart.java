@@ -31,6 +31,7 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
     private final long timeWritten;
     private final long chunkId;
     private final long previousBatchAppendIndex;
+    private final long transactionSequenceNumber;
     private final byte[] additionalHeader;
     private final long appendIndex;
     private final int leaseId;
@@ -42,6 +43,7 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
             long chunkId,
             long appendIndex,
             long previousBatchAppendIndex,
+            long transactionSequenceNumber,
             int leaseId,
             Leases leases,
             byte[] additionalHeader) {
@@ -49,6 +51,7 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
         this.timeWritten = timeWritten;
         this.chunkId = chunkId;
         this.previousBatchAppendIndex = previousBatchAppendIndex;
+        this.transactionSequenceNumber = transactionSequenceNumber;
         this.additionalHeader = additionalHeader;
         this.appendIndex = appendIndex;
         this.leaseId = leaseId;
@@ -71,6 +74,10 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
         return previousBatchAppendIndex;
     }
 
+    public long getTransactionSequenceNumber() {
+        return transactionSequenceNumber;
+    }
+
     public int getLeaseId() {
         return leaseId;
     }
@@ -90,8 +97,9 @@ public class LogEntryChunkStart extends AbstractVersionAwareLogEntry {
                 + chunkId + ", timeWritten="
                 + timeWritten + ", additionalHeader="
                 + Arrays.toString(additionalHeader) + ", appendIndex="
-                + appendIndex
-                + ", leaseId=" + leaseId
-                + ", leases=" + leases + '}';
+                + appendIndex + ", transactionSequenceNumber="
+                + transactionSequenceNumber + ", leaseId="
+                + leaseId + ", leases="
+                + leases + '}';
     }
 }

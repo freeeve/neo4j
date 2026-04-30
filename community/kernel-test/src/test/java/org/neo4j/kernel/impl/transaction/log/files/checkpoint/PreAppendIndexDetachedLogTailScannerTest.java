@@ -37,6 +37,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TRANSACTION_ID;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -726,6 +727,7 @@ class PreAppendIndexDetachedLogTailScannerTest {
                                     0,
                                     0,
                                     BASE_APPEND_INDEX,
+                                    UNKNOWN_TX_SEQUENCE_NUMBER,
                                     previousChecksum,
                                     NO_LEASE,
                                     Leases.NO_LEASES,

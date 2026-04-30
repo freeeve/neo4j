@@ -24,6 +24,7 @@ import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.kernel.impl.api.LeaseService.NO_LEASE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -130,7 +131,15 @@ public class EnvelopedDetachedLogTailScannerTest {
             throws IOException {
         byte[] emptyArray = new byte[0];
         entryWriter.writeStartEntry(
-                kernelVersion, 0, txId, appendIndex, previousChecksum, NO_LEASE, Leases.NO_LEASES, emptyArray);
+                kernelVersion,
+                0,
+                txId,
+                appendIndex,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
+                previousChecksum,
+                NO_LEASE,
+                Leases.NO_LEASES,
+                emptyArray);
         CompleteCommandBatch commands = new CompleteCommandBatch(
                 List.of(new TestCommand(kernelVersion)),
                 UNKNOWN_CONSENSUS_INDEX,

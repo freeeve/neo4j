@@ -85,6 +85,13 @@ public interface CommandBatch extends CommandStream, KernelVersionProvider {
     boolean isFirst();
 
     /**
+     * True if command batch is part of a sequence of transactional command batches (longer than 1).
+     */
+    default boolean isMultiChunked() {
+        return !isFirst() || !isLast();
+    }
+
+    /**
      * True if command batch is a rollback batch for one of the transactions.
      */
     boolean isRollback();

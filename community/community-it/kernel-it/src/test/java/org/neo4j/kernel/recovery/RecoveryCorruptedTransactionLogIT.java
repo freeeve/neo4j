@@ -108,6 +108,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
@@ -871,7 +872,8 @@ class RecoveryCorruptedTransactionLogIT {
                     db.getDependencyResolver().resolveDependency(DatabaseStateService.class);
             assertTrue(dbStateService.causeOfFailure(db.databaseId()).isPresent());
             assertThat(dbStateService.causeOfFailure(db.databaseId()).get())
-                    .hasRootCauseInstanceOf(NegativeArraySizeException.class);
+                    .rootCause()
+                    .isInstanceOfAny(NegativeArraySizeException.class, BadLogEntryException.class);
         } finally {
             managementService.shutdown();
         }
@@ -1710,6 +1712,7 @@ class RecoveryCorruptedTransactionLogIT {
                 long timeWritten,
                 long latestCommittedTxWhenStarted,
                 long appendIndex,
+                long transactionSequenceNumber,
                 int previousChecksum,
                 int leaseId,
                 Leases leases,
@@ -1727,7 +1730,7 @@ class RecoveryCorruptedTransactionLogIT {
 
         /**
          * Use a non-existing log entry version. Implementation stolen from
-         * {@link LogEntryWriter#writeStartEntry(KernelVersion, long, long, long, int, int, Leases, byte[])}.
+         * {@link LogEntryWriter#writeStartEntry(KernelVersion, long, long, long, long, int, int, Leases, byte[])}.
          */
         @Override
         public void writeStartEntry(
@@ -1735,6 +1738,7 @@ class RecoveryCorruptedTransactionLogIT {
                 long timeWritten,
                 long latestCommittedTxWhenStarted,
                 long appendIndex,
+                long transactionSequenceNumber,
                 int previousChecksum,
                 int leaseId,
                 Leases leases,

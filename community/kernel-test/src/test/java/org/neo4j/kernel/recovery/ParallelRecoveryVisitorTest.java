@@ -31,6 +31,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newSta
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
 import java.nio.file.Path;
@@ -306,8 +307,16 @@ class ParallelRecoveryVisitorTest {
 
     private CompleteBatchRepresentation tx(long txId, List<StorageCommand> commands) {
         commands.forEach(cmd -> ((RecoveryTestBaseCommand) cmd).txId = txId);
-        LogEntryStart startEntry =
-                newStartEntry(LATEST_KERNEL_VERSION, 0, 0, 0, 0, NO_LEASE, Leases.NO_LEASES, EMPTY_BYTE_ARRAY);
+        LogEntryStart startEntry = newStartEntry(
+                LATEST_KERNEL_VERSION,
+                0,
+                0,
+                0,
+                UNKNOWN_TX_SEQUENCE_NUMBER,
+                0,
+                NO_LEASE,
+                Leases.NO_LEASES,
+                EMPTY_BYTE_ARRAY);
         CommandBatch txRepresentation = new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, Leases.NO_LEASES, LATEST_KERNEL_VERSION, AUTH_DISABLED);
         LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, BASE_TX_CHECKSUM + 1);
