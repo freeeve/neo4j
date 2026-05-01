@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.index.schema;
 import static org.neo4j.kernel.impl.index.schema.IndexUpdateStorage.STOP_TYPE;
 
 import java.io.Closeable;
-import java.io.IOException;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.io.pagecache.PageCursor;
 
@@ -44,7 +43,7 @@ public class IndexUpdateCursor<KEY> implements Closeable {
         this.key = layout.newKey();
     }
 
-    public boolean next() throws IOException {
+    public boolean next() {
         byte updateModeType = cursor.getByte();
         if (updateModeType == STOP_TYPE) {
             return false;
@@ -69,7 +68,7 @@ public class IndexUpdateCursor<KEY> implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         cursor.close();
     }
 }

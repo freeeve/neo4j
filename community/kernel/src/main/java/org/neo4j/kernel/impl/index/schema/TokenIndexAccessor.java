@@ -154,7 +154,7 @@ public class TokenIndexAccessor extends TokenIndex implements IndexAccessor {
     }
 
     private int findHighestTokenId(CursorContext cursorContext) {
-        try (var cursor = index.seek(
+        try (Seeker<TokenScanKey, TokenScanValue> cursor = index.seek(
                 new TokenScanKey(Integer.MAX_VALUE, Long.MAX_VALUE), new TokenScanKey(0, -1), cursorContext)) {
             if (cursor.next()) {
                 return cursor.key().tokenId;

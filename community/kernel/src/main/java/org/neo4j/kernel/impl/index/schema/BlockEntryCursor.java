@@ -33,7 +33,8 @@ public interface BlockEntryCursor<KEY, VALUE> extends Closeable {
 
     VALUE value();
 
-    BlockEntryCursor EMPTY = new BlockEntryCursor() {
+    @SuppressWarnings("rawtypes")
+    BlockEntryCursor EMPTY = new BlockEntryCursor<>() {
         @Override
         public boolean next() {
             return false;
@@ -53,6 +54,7 @@ public interface BlockEntryCursor<KEY, VALUE> extends Closeable {
         public void close() {}
     };
 
+    @SuppressWarnings("unchecked")
     static <KEY, VALUE> BlockEntryCursor<KEY, VALUE> empty() {
         return EMPTY;
     }

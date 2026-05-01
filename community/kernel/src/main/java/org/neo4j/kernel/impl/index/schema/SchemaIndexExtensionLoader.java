@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 
+import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
@@ -59,7 +60,7 @@ public class SchemaIndexExtensionLoader {
             TokenHolders tokenHolders,
             PageCacheTracer pageCacheTracer,
             DatabaseReadOnlyChecker readOnlyChecker) {
-        var deps = dependenciesOf(
+        Dependencies deps = dependenciesOf(
                 fileSystem,
                 config,
                 logService,

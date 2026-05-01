@@ -99,7 +99,7 @@ class BlockStorage<KEY, VALUE> implements Closeable {
 
     synchronized void addAll(Collection<BlockEntry<KEY, VALUE>> entries) throws IOException {
         Preconditions.checkState(!doneAdding, "Cannot add more after done adding");
-        for (var entry : entries) {
+        for (BlockEntry<KEY, VALUE> entry : entries) {
             internalAdd(entry.key(), entry.value());
         }
     }
@@ -181,9 +181,9 @@ class BlockStorage<KEY, VALUE> implements Closeable {
         Path targetFile = tempFile;
         int bufferSize = bufferFactory.bufferSize();
 
-        try (var mergeBufferAllocator = bufferFactory.newLocalAllocator();
-                var writeBuffer = mergeBufferAllocator.allocate(bufferSize, memoryTracker);
-                var readBuffers =
+        try (Allocator mergeBufferAllocator = bufferFactory.newLocalAllocator();
+                ScopedBuffer writeBuffer = mergeBufferAllocator.allocate(bufferSize, memoryTracker);
+                CompositeScopedBuffer readBuffers =
                         new CompositeScopedBuffer(mergeFactor, bufferSize, mergeBufferAllocator, memoryTracker)) {
             while (numberOfBlocksInCurrentFile > 1) {
                 // Perform one complete merge iteration, merging all blocks from source into target.

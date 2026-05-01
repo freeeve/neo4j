@@ -133,8 +133,8 @@ class GeometryType extends Type {
         // Points with the same coordinate system will have the same dimensions (enforced in Values.pointValue) - using
         // this.
         for (int i = 0; i < (int) this_long2; i++) {
-            final double thisCoord = Double.longBitsToDouble(this_long0Array[this_coordinates_offset + i]);
-            final double thatCoord = Double.longBitsToDouble(that_long0Array[that_coordinates_offset + i]);
+            double thisCoord = Double.longBitsToDouble(this_long0Array[this_coordinates_offset + i]);
+            double thatCoord = Double.longBitsToDouble(that_long0Array[that_coordinates_offset + i]);
             int coordinateComparison = Double.compare(thisCoord, thatCoord);
             if (coordinateComparison != 0) {
                 return coordinateComparison;

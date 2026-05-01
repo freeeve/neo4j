@@ -26,6 +26,7 @@ import static org.neo4j.values.storable.CoordinateReferenceSystem.WGS_84_3D;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.schema.IndexSettingImpl;
@@ -78,7 +79,7 @@ public final class SpatialIndexConfig {
             IndexConfig indexConfig, CoordinateReferenceSystem crs, SpaceFillingCurveSettings settings) {
         Map<String, Value> spatialConfig = new HashMap<>();
         addSpatialConfig(spatialConfig, crs, settings);
-        for (var entry : spatialConfig.entrySet()) {
+        for (Entry<String, Value> entry : spatialConfig.entrySet()) {
             indexConfig = indexConfig.withIfAbsent(entry.getKey(), entry.getValue());
         }
         return indexConfig;
@@ -106,9 +107,9 @@ public final class SpatialIndexConfig {
             IndexConfig indexConfig, CoordinateReferenceSystem crs) {
         String minSettingName = IndexSettingUtil.spatialMinSettingForCrs(crs).getSettingName();
         String maxSettingName = IndexSettingUtil.spatialMaxSettingForCrs(crs).getSettingName();
-        final double[] min = asDoubleArray(indexConfig.get(minSettingName), minSettingName);
-        final double[] max = asDoubleArray(indexConfig.get(maxSettingName), maxSettingName);
-        final Envelope envelope = new Envelope(min, max);
+        double[] min = asDoubleArray(indexConfig.get(minSettingName), minSettingName);
+        double[] max = asDoubleArray(indexConfig.get(maxSettingName), maxSettingName);
+        Envelope envelope = new Envelope(min, max);
         return new SpaceFillingCurveSettings(crs.getDimension(), envelope);
     }
 

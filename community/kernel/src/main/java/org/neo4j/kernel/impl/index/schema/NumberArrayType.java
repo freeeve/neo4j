@@ -177,38 +177,43 @@ class NumberArrayType extends AbstractArrayType<Number> {
 
     private static ArrayElementReader numberArrayElementReader(GenericKey<?> key) {
         switch ((int) key.long1) {
-            case RawBits.BYTE:
+            case RawBits.BYTE -> {
                 return (c, into) -> {
                     key.writeInteger(c.getByte());
                     return true;
                 };
-            case RawBits.SHORT:
+            }
+            case RawBits.SHORT -> {
                 return (c, into) -> {
                     key.writeInteger(c.getShort());
                     return true;
                 };
-            case RawBits.INT:
+            }
+            case RawBits.INT -> {
                 return (c, into) -> {
                     key.writeInteger(c.getInt());
                     return true;
                 };
-            case RawBits.LONG:
+            }
+            case RawBits.LONG -> {
                 return (c, into) -> {
                     key.writeInteger(c.getLong());
                     return true;
                 };
-            case RawBits.FLOAT:
+            }
+            case RawBits.FLOAT -> {
                 return (c, into) -> {
                     key.writeFloatingPoint(Float.intBitsToFloat(c.getInt()));
                     return true;
                 };
-            case RawBits.DOUBLE:
+            }
+            case RawBits.DOUBLE -> {
                 return (c, into) -> {
                     key.writeFloatingPoint(Double.longBitsToDouble(c.getLong()));
                     return true;
                 };
-            default:
-                throw new IllegalArgumentException("Unknown number type " + key.long1);
+            }
+            default -> throw new IllegalArgumentException("Unknown number type " + key.long1);
         }
     }
 

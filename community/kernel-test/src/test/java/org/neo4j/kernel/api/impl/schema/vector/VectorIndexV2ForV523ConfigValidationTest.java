@@ -44,6 +44,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexSettingRecordsByState;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
@@ -64,15 +65,15 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void validV2ForV518IndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
-        final var vectorIndexConfigAsIfCreatedOn518 =
+        VectorIndexConfig vectorIndexConfigAsIfCreatedOn518 =
                 VERSION.indexSettingValidator(KernelVersion.V5_18).validateToTypedConfig(settings);
 
-        final var vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
                 new IndexConfigAccessor(vectorIndexConfigAsIfCreatedOn518.config()));
 
         assertThat(vectorIndexConfig).isEqualTo(vectorIndexConfigAsIfCreatedOn518);
@@ -80,7 +81,7 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void validIndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withHnswM(16)
                 .withHnswEfConstruction(100)
@@ -89,7 +90,7 @@ class VectorIndexV2ForV523ConfigValidationTest {
                 .toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.validateToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -117,10 +118,10 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void validIndexConfigWithDefaults() {
-        final var settings = VectorIndexSettings.create().toSettingsAccessor();
+        SettingsAccessor settings = VectorIndexSettings.create().toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.validateToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -147,11 +148,11 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void unrecognisedSetting() {
-        final var unrecognisedSetting = IndexSetting.fulltext_Analyzer();
-        final var settings =
+        IndexSetting unrecognisedSetting = IndexSetting.fulltext_Analyzer();
+        SettingsAccessor settings =
                 VectorIndexSettings.create().set(unrecognisedSetting, "swedish").toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, unrecognisedSetting.getSettingName());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -160,12 +161,12 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void incorrectTypeForDimensions() {
-        final var incorrectDimensions = String.valueOf(VERSION.maxDimensions());
-        final var settings = VectorIndexSettings.create()
+        String incorrectDimensions = String.valueOf(VERSION.maxDimensions());
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(DIMENSIONS, incorrectDimensions)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 DIMENSIONS,
@@ -181,7 +182,7 @@ class VectorIndexV2ForV523ConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveDimensions(int invalidDimensions) {
-        final var settings =
+        SettingsAccessor settings =
                 VectorIndexSettings.create().withDimensions(invalidDimensions).toSettingsAccessor();
 
         assertInvalidDimensions(invalidDimensions, settings);
@@ -189,15 +190,15 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void aboveMaxDimensions() {
-        final int invalidDimensions = VERSION.maxDimensions() + 1;
-        final var settings =
+        int invalidDimensions = VERSION.maxDimensions() + 1;
+        SettingsAccessor settings =
                 VectorIndexSettings.create().withDimensions(invalidDimensions).toSettingsAccessor();
 
         assertInvalidDimensions(invalidDimensions, settings);
     }
 
-    private void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, DIMENSIONS, OptionalInt.of(invalidDimensions));
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -207,12 +208,12 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void incorrectTypeForSimilarityFunction() {
-        final var incorrectSimilarityFunction = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectSimilarityFunction = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(SIMILARITY_FUNCTION, incorrectSimilarityFunction)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 SIMILARITY_FUNCTION,
@@ -227,16 +228,16 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void invalidSimilarityFunction() {
-        final var invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
-        final var settings = VectorIndexSettings.create()
+        String invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(IndexSetting.vector_Similarity_Function(), invalidSimilarityFunction)
                 .toSettingsAccessor();
-        final var normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
+        String normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, SIMILARITY_FUNCTION, normalizedInvalidSimilarityFunction);
 
-        final String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
+        String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -248,14 +249,14 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void nonUpperCaseSimilarityFunction() {
-        final var mixedCaseSimilarityFunction = "coSIne";
-        final var settings = VectorIndexSettings.create()
+        String mixedCaseSimilarityFunction = "coSIne";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withSimilarityFunction(mixedCaseSimilarityFunction)
                 .toSettingsAccessor();
-        final VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
+        VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
 
-        final var validationRecords = validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        IndexSettingRecordsByState validationRecords = validateAsValid(VALIDATOR, settings);
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
         assertVectorIndexConfigSetting(
                 vectorIndexConfig,
                 SIMILARITY_FUNCTION,
@@ -266,24 +267,24 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void cannotSetDefaultSearchExpansionFactor() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withDefaultSearchExpansionFactor(2.0)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName());
     }
 
     @Test
     void incorrectTypeForQuantizationEnabled() {
-        final var incorrectQuantizationEnabled = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectQuantizationEnabled = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(QUANTIZATION_ENABLED, incorrectQuantizationEnabled)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 QUANTIZATION_ENABLED,
@@ -298,23 +299,23 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void cannotSetQuantizationType() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withQuantizationType(VectorQuantizationType.NONE)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, QUANTIZATION_TYPE.getSettingName());
     }
 
     @Test
     void incorrectTypeForHnswM() {
-        final var incorrectHnswM = "Here is a String";
-        final var settings =
+        String incorrectHnswM = "Here is a String";
+        SettingsAccessor settings =
                 VectorIndexSettings.create().set(HNSW_M, incorrectHnswM).toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords, HNSW_M, Values.stringValue(incorrectHnswM), TextValue.class, IntegralValue.class);
 
@@ -326,7 +327,7 @@ class VectorIndexV2ForV523ConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveHnswM(int invalidM) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswM(invalidM)
@@ -337,8 +338,8 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void aboveMaxHnswM() {
-        final int invalidHnswM = VERSION.maxHnswM() + 1;
-        final var settings = VectorIndexSettings.create()
+        int invalidHnswM = VERSION.maxHnswM() + 1;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswM(invalidHnswM)
@@ -347,8 +348,8 @@ class VectorIndexV2ForV523ConfigValidationTest {
         assertInvalidM(invalidHnswM, settings);
     }
 
-    private void assertInvalidM(int invalidM, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidM(int invalidM, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, HNSW_M, invalidM);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -358,12 +359,12 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void incorrectTypeForHnswEfConstruction() {
-        final var incorrectHnswEfConstruction = "Here is a String";
-        final var settings = VectorIndexSettings.create()
+        String incorrectHnswEfConstruction = "Here is a String";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(HNSW_EF_CONSTRUCTION, incorrectHnswEfConstruction)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 HNSW_EF_CONSTRUCTION,
@@ -379,7 +380,7 @@ class VectorIndexV2ForV523ConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveHnswEfConstruction(int invalidEfConstruction) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withHnswEfConstruction(invalidEfConstruction)
                 .toSettingsAccessor();
 
@@ -388,16 +389,16 @@ class VectorIndexV2ForV523ConfigValidationTest {
 
     @Test
     void aboveMaxHnswEfConstruction() {
-        final int invalidHnswEfConstruction = VERSION.maxHnswEfConstruction() + 1;
-        final var settings = VectorIndexSettings.create()
+        int invalidHnswEfConstruction = VERSION.maxHnswEfConstruction() + 1;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withHnswEfConstruction(invalidHnswEfConstruction)
                 .toSettingsAccessor();
 
         assertInvalidEfConstruction(invalidHnswEfConstruction, settings);
     }
 
-    private void assertInvalidEfConstruction(int invalidHnswEfConstruction, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidEfConstruction(int invalidHnswEfConstruction, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, HNSW_EF_CONSTRUCTION, invalidHnswEfConstruction);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)

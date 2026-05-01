@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import java.io.IOException;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.io.pagecache.PageCursor;
 
@@ -53,7 +52,7 @@ public class BlockEntryReader<KEY, VALUE> implements BlockEntryCursor<KEY, VALUE
     }
 
     @Override
-    public boolean next() throws IOException {
+    public boolean next() {
         if (readEntries >= entryCount) {
             return false;
         }
@@ -85,7 +84,7 @@ public class BlockEntryReader<KEY, VALUE> implements BlockEntryCursor<KEY, VALUE
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         pageCursor.close();
     }
 }

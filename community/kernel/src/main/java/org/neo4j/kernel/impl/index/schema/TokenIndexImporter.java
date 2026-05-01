@@ -39,9 +39,11 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
+import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.TokenIndexReader;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
@@ -70,7 +72,7 @@ public class TokenIndexImporter implements IndexImporter {
 
     @Override
     public Writer writer(boolean parallel) {
-        var actual = accessor.newUpdater(ONLINE, cursorContext, parallel);
+        IndexUpdater actual = accessor.newUpdater(ONLINE, cursorContext, parallel);
         return new Writer() {
             @Override
             public void change(long entity, int[] removals, int[] additions) {
@@ -105,7 +107,7 @@ public class TokenIndexImporter implements IndexImporter {
     @Override
     public void close() throws IOException {
         Closeable flush = () -> {
-            try (var flushEvent = pageCacheTracer.beginFileFlush()) {
+            try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush()) {
                 accessor.force(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         };
@@ -120,7 +122,7 @@ public class TokenIndexImporter implements IndexImporter {
             PageCacheTracer pageCacheTracer,
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
-        var context = DatabaseIndexContext.builder(
+        DatabaseIndexContext context = DatabaseIndexContext.builder(
                         pageCache, fs, contextFactory, pageCacheTracer, layout.getDatabaseName())
                 .withDependencyResolver(dependenciesOf(EMPTY_STORAGE))
                 .build();

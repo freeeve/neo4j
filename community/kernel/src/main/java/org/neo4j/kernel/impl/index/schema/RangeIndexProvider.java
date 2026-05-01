@@ -264,8 +264,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
             Preconditions.requireNoNullElements(queries);
 
             for (int i = 0; i < queries.length; i++) {
-                final var query = queries[i];
-                final var type = query.type();
+                IndexQuery query = queries[i];
+                IndexQueryType type = query.type();
 
                 switch (type) {
                     case ALL_ENTRIES, EXISTS, EXACT, STRING_PREFIX:
@@ -283,7 +283,7 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
                 }
 
                 if (i > 0) {
-                    final var prevType = queries[i - 1].type();
+                    IndexQueryType prevType = queries[i - 1].type();
                     switch (type) {
                         case EXISTS:
                             switch (prevType) {

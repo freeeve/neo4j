@@ -78,19 +78,19 @@ public class VectorIndexUnknownConfigValidationTest {
         assertValidatorForVersion(VectorIndexVersion.V3_0, kernelVersion);
     }
 
-    private void assertValidatorForVersion(VectorIndexVersion version, KernelVersion kernelVersion) {
+    private static void assertValidatorForVersion(VectorIndexVersion version, KernelVersion kernelVersion) {
         assertValidatorForVersion(
                 version.descriptor(), Optional.of(kernelVersion), version.indexSettingValidator(kernelVersion));
     }
 
-    private void assertValidatorForVersion(
+    private static void assertValidatorForVersion(
             IndexProviderDescriptor descriptor,
             Optional<KernelVersion> kernelVersion,
             TypedIndexSettingsValidator<VectorIndexConfig> validator) {
         assertThat(validator).isInstanceOf(NotFoundTypedIndexSettingsValidator.class);
         assertThat(validator.acceptedSettings()).isEmpty();
         assertThat(OPERATIONS).allSatisfy(op -> {
-            final var validatorNotFoundAssert = assertInvalidArgumentExceptionThrownBy(() -> op.accept(validator))
+            var validatorNotFoundAssert = assertInvalidArgumentExceptionThrownBy(() -> op.accept(validator))
                     .hasMessageContainingAll("Validator not found for", descriptor.name());
             kernelVersion.ifPresent(kv -> validatorNotFoundAssert.hasMessageContainingAll("on", kv.toString()));
         });

@@ -81,24 +81,25 @@ class NumberType extends Type {
     @Override
     boolean readValue(PageCursor cursor, int size, GenericKey<?> into) {
         into.long1 = cursor.getByte();
-        switch ((int) into.long1) {
-            case RawBits.BYTE:
+        return switch ((int) into.long1) {
+            case RawBits.BYTE -> {
                 into.long0 = cursor.getByte();
-                return true;
-            case RawBits.SHORT:
+                yield true;
+            }
+            case RawBits.SHORT -> {
                 into.long0 = cursor.getShort();
-                return true;
-            case RawBits.INT:
-            case RawBits.FLOAT:
+                yield true;
+            }
+            case RawBits.INT, RawBits.FLOAT -> {
                 into.long0 = cursor.getInt();
-                return true;
-            case RawBits.LONG:
-            case RawBits.DOUBLE:
+                yield true;
+            }
+            case RawBits.LONG, RawBits.DOUBLE -> {
                 into.long0 = cursor.getLong();
-                return true;
-            default:
-                return false;
-        }
+                yield true;
+            }
+            default -> false;
+        };
     }
 
     static int numberKeySize(long long1) {

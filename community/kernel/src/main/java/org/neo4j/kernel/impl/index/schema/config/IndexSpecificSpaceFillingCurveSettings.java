@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.index.schema.config;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.collections.api.map.ImmutableMap;
+import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
 import org.neo4j.configuration.Config;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
@@ -79,7 +80,8 @@ public class IndexSpecificSpaceFillingCurveSettings {
      */
     public void visitIndexSpecificSettings(SettingVisitor visitor) {
         visitor.count(specificIndexConfigCache.size());
-        for (var keyValuePair : specificIndexConfigCache.keyValuesView()) {
+        for (Pair<CoordinateReferenceSystem, SpaceFillingCurveSettings> keyValuePair :
+                specificIndexConfigCache.keyValuesView()) {
             visitor.visit(keyValuePair.getOne(), keyValuePair.getTwo());
         }
     }

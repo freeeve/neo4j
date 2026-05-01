@@ -58,15 +58,15 @@ record BlockEntry<KEY, VALUE>(KEY key, VALUE value) {
     }
 
     static <KEY, VALUE> void read(PageCursor pageCursor, Layout<KEY, VALUE> layout, KEY key, VALUE value) {
-        var keySize = pageCursor.getShort();
-        var valueSize = pageCursor.getShort();
+        short keySize = pageCursor.getShort();
+        short valueSize = pageCursor.getShort();
         layout.readKey(pageCursor, key, keySize);
         layout.readValue(pageCursor, value, valueSize);
     }
 
     static <KEY, VALUE> void read(PageCursor pageCursor, Layout<KEY, VALUE> layout, KEY key) {
-        var keySize = pageCursor.getShort();
-        var valueSize = pageCursor.getShort();
+        short keySize = pageCursor.getShort();
+        short valueSize = pageCursor.getShort();
         checkState(valueSize == 0, "Expected 0 value size");
         layout.readKey(pageCursor, key, keySize);
     }

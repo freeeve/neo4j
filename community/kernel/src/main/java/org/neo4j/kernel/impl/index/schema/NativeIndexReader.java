@@ -200,7 +200,7 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
         return layout.compare(treeKeyFrom, treeKeyTo) > 0;
     }
 
-    private boolean isEmptyResultQuery(PropertyIndexQuery... predicates) {
+    private static boolean isEmptyResultQuery(PropertyIndexQuery... predicates) {
         for (PropertyIndexQuery predicate : predicates) {
             if (predicate instanceof IncomparableRangePredicate || predicate instanceof IncomparableExactPredicate) {
                 return true;
@@ -235,8 +235,8 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
             usageTracker.queried();
             this.query = query;
 
-            final var fromInclusive = layout.newKey();
-            final var toExclusive = layout.newKey();
+            KEY fromInclusive = layout.newKey();
+            KEY toExclusive = layout.newKey();
             initializeFromToKeys(fromInclusive, toExclusive);
 
             filter = initializeRangeForQuery(fromInclusive, toExclusive, this.query);
@@ -254,14 +254,14 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
 
         @Override
         public IndexProgressor reservePartition(IndexProgressor.EntityValueClient client, CursorContext cursorContext) {
-            final var from = nextFrom.getAndIncrement();
-            final var to = from + 1;
+            int from = nextFrom.getAndIncrement();
+            int to = from + 1;
             if (to >= partitionEdges.size()) {
                 return IndexProgressor.EMPTY;
             }
             try {
-                final var fromInclusive = layout.copyKey(partitionEdges.get(from));
-                final var toExclusive = layout.copyKey(partitionEdges.get(to));
+                KEY fromInclusive = layout.copyKey(partitionEdges.get(from));
+                KEY toExclusive = layout.copyKey(partitionEdges.get(to));
                 return getIndexProgressor(tree.seek(fromInclusive, toExclusive, cursorContext), client, filter, query);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

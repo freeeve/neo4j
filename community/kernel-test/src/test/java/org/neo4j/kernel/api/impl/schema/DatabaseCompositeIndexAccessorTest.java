@@ -77,6 +77,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -112,9 +113,20 @@ import org.neo4j.values.ElementIdMapper;
 public class DatabaseCompositeIndexAccessorTest {
     private static final int PROP_ID1 = 1;
     private static final int PROP_ID2 = 2;
+    private static final long NODE_ID = 1;
+    private static final long NODE_ID_2 = 2;
+    private static final Object[] VALUES = {"value1", "values2"};
+    private static final Object[] VALUES_2 = {40, 42};
+    private static final IndexPrototype SCHEMA_INDEX_DESCRIPTOR =
+            IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, PROP_ID1, PROP_ID2));
+    private static final IndexPrototype UNIQUE_SCHEMA_INDEX_DESCRIPTOR =
+            IndexPrototype.uniqueForSchema(SchemaDescriptors.forLabel(1, PROP_ID1, PROP_ID2));
+    private static final IndexDescriptor INDEX_DESCRIPTOR =
+            SCHEMA_INDEX_DESCRIPTOR.withName("2").materialise(0);
     private static final Config CONFIG = Config.defaults();
     private static final IndexSamplingConfig SAMPLING_CONFIG = new IndexSamplingConfig(CONFIG);
     private static final AssertableLogProvider logProvider = new AssertableLogProvider();
+    private final JobScheduler jobScheduler = JobSchedulerFactory.createInitialisedScheduler();
 
     @Inject
     private Threading threading;
@@ -127,18 +139,6 @@ public class DatabaseCompositeIndexAccessorTest {
 
     @Inject
     private TestDirectory testDirectory;
-
-    private final long nodeId = 1;
-    private final long nodeId2 = 2;
-    private final Object[] values = {"value1", "values2"};
-    private final Object[] values2 = {40, 42};
-    private static final IndexPrototype SCHEMA_INDEX_DESCRIPTOR =
-            IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, PROP_ID1, PROP_ID2));
-    private static final IndexPrototype UNIQUE_SCHEMA_INDEX_DESCRIPTOR =
-            IndexPrototype.uniqueForSchema(SchemaDescriptors.forLabel(1, PROP_ID1, PROP_ID2));
-    private static final IndexDescriptor INDEX_DESCRIPTOR =
-            SCHEMA_INDEX_DESCRIPTOR.withName("2").materialise(0);
-    private final JobScheduler jobScheduler = JobSchedulerFactory.createInitialisedScheduler();
 
     private Iterable<IndexProvider> providers;
 
@@ -179,17 +179,17 @@ public class DatabaseCompositeIndexAccessorTest {
         void indexReaderShouldSupportScan(IndexAccessor accessor) throws Exception {
             // GIVEN
             try (accessor) {
-                updateAndCommit(accessor, asList(add(nodeId, values), add(nodeId2, values2)));
-                try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+                updateAndCommit(accessor, asList(add(NODE_ID, VALUES), add(NODE_ID_2, VALUES_2)));
+                try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
 
                     // WHEN
                     Set<Long> results =
                             resultSet(reader, PropertyIndexQuery.exists(PROP_ID1), PropertyIndexQuery.exists(PROP_ID2));
-                    Set<Long> results2 = resultSet(reader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1]));
+                    Set<Long> results2 = resultSet(reader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1]));
 
                     // THEN
-                    assertEquals(asSet(nodeId, nodeId2), results);
-                    assertEquals(asSet(nodeId), results2);
+                    assertEquals(asSet(NODE_ID, NODE_ID_2), results);
+                    assertEquals(asSet(NODE_ID), results2);
                 }
             }
         }
@@ -200,23 +200,24 @@ public class DatabaseCompositeIndexAccessorTest {
                 throws Exception {
             // WHEN
             try (accessor) {
-                updateAndCommit(accessor, singletonList(add(nodeId, values)));
-                var firstReader = accessor.newValueReader(NO_USAGE_TRACKING);
-                updateAndCommit(accessor, singletonList(add(nodeId2, values2)));
-                var secondReader = accessor.newValueReader(NO_USAGE_TRACKING);
+                updateAndCommit(accessor, singletonList(add(NODE_ID, VALUES)));
+                ValueIndexReader firstReader = accessor.newValueReader(NO_USAGE_TRACKING);
+                updateAndCommit(accessor, singletonList(add(NODE_ID_2, VALUES_2)));
+                ValueIndexReader secondReader = accessor.newValueReader(NO_USAGE_TRACKING);
 
                 // THEN
                 assertEquals(
-                        asSet(nodeId), resultSet(firstReader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1])));
-                assertThat(resultSet(firstReader, exact(PROP_ID1, values2[0]), exact(PROP_ID2, values2[1])))
+                        asSet(NODE_ID), resultSet(firstReader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1])));
+                assertThat(resultSet(firstReader, exact(PROP_ID1, VALUES_2[0]), exact(PROP_ID2, VALUES_2[1])))
                         .is(anyOf(
                                 new Condition<>(s -> s.equals(asSet()), "empty set"),
-                                new Condition<>(s -> s.equals(asSet(nodeId2)), "one element")));
+                                new Condition<>(s -> s.equals(asSet(NODE_ID_2)), "one element")));
                 assertEquals(
-                        asSet(nodeId), resultSet(secondReader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1])));
+                        asSet(NODE_ID),
+                        resultSet(secondReader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1])));
                 assertEquals(
-                        asSet(nodeId2),
-                        resultSet(secondReader, exact(PROP_ID1, values2[0]), exact(PROP_ID2, values2[1])));
+                        asSet(NODE_ID_2),
+                        resultSet(secondReader, exact(PROP_ID1, VALUES_2[0]), exact(PROP_ID2, VALUES_2[1])));
                 firstReader.close();
                 secondReader.close();
             }
@@ -227,10 +228,10 @@ public class DatabaseCompositeIndexAccessorTest {
         void canAddNewData(IndexAccessor accessor) throws Exception {
             // WHEN
             try (accessor) {
-                updateAndCommit(accessor, asList(add(nodeId, values), add(nodeId2, values2)));
-                try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+                updateAndCommit(accessor, asList(add(NODE_ID, VALUES), add(NODE_ID_2, VALUES_2)));
+                try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
                     assertEquals(
-                            asSet(nodeId), resultSet(reader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1])));
+                            asSet(NODE_ID), resultSet(reader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1])));
                 }
             }
         }
@@ -240,15 +241,16 @@ public class DatabaseCompositeIndexAccessorTest {
         void canChangeExistingData(IndexAccessor accessor) throws Exception {
             // GIVEN
             try (accessor) {
-                updateAndCommit(accessor, singletonList(add(nodeId, values)));
+                updateAndCommit(accessor, singletonList(add(NODE_ID, VALUES)));
 
                 // WHEN
-                updateAndCommit(accessor, singletonList(change(nodeId, values, values2)));
-                try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+                updateAndCommit(accessor, singletonList(change(NODE_ID, VALUES, VALUES_2)));
+                try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
                     // THEN
                     assertEquals(
-                            asSet(nodeId), resultSet(reader, exact(PROP_ID1, values2[0]), exact(PROP_ID2, values2[1])));
-                    assertEquals(emptySet(), resultSet(reader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1])));
+                            asSet(NODE_ID),
+                            resultSet(reader, exact(PROP_ID1, VALUES_2[0]), exact(PROP_ID2, VALUES_2[1])));
+                    assertEquals(emptySet(), resultSet(reader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1])));
                 }
             }
         }
@@ -258,16 +260,16 @@ public class DatabaseCompositeIndexAccessorTest {
         void canRemoveExistingData(IndexAccessor accessor) throws Exception {
             // GIVEN
             try (accessor) {
-                updateAndCommit(accessor, asList(add(nodeId, values), add(nodeId2, values2)));
+                updateAndCommit(accessor, asList(add(NODE_ID, VALUES), add(NODE_ID_2, VALUES_2)));
 
                 // WHEN
-                updateAndCommit(accessor, singletonList(remove(nodeId, values)));
-                try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
+                updateAndCommit(accessor, singletonList(remove(NODE_ID, VALUES)));
+                try (ValueIndexReader reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
                     // THEN
                     assertEquals(
-                            asSet(nodeId2),
-                            resultSet(reader, exact(PROP_ID1, values2[0]), exact(PROP_ID2, values2[1])));
-                    assertEquals(asSet(), resultSet(reader, exact(PROP_ID1, values[0]), exact(PROP_ID2, values[1])));
+                            asSet(NODE_ID_2),
+                            resultSet(reader, exact(PROP_ID1, VALUES_2[0]), exact(PROP_ID2, VALUES_2[1])));
+                    assertEquals(asSet(), resultSet(reader, exact(PROP_ID1, VALUES[0]), exact(PROP_ID2, VALUES[1])));
                 }
             }
         }
@@ -277,10 +279,10 @@ public class DatabaseCompositeIndexAccessorTest {
         void shouldStopSamplingWhenIndexIsDropped(IndexAccessor accessor) throws Exception {
             // given
             try (accessor) {
-                updateAndCommit(accessor, asList(add(nodeId, values), add(nodeId2, values2)));
+                updateAndCommit(accessor, asList(add(NODE_ID, VALUES), add(NODE_ID_2, VALUES_2)));
 
                 // when
-                var indexReader =
+                ValueIndexReader indexReader =
                         accessor.newValueReader(NO_USAGE_TRACKING); // needs to be acquired before drop() is called
                 IndexSampler indexSampler = indexReader.createSampler();
 
@@ -300,7 +302,7 @@ public class DatabaseCompositeIndexAccessorTest {
                         null);
 
                 assertThatThrownBy(() -> {
-                            try (var reader = indexReader /* do not inline! */;
+                            try (ValueIndexReader reader = indexReader /* do not inline! */;
                                     IndexSampler sampler = indexSampler /* do not inline! */) {
                                 while (!droppedLatch.get() && !awaitCompletion.test(dropper.get())) {
                                     LockSupport.parkNanos(MILLISECONDS.toNanos(10));
@@ -322,7 +324,7 @@ public class DatabaseCompositeIndexAccessorTest {
             FileSystemAbstraction fileSystem,
             TestDirectory testDirectory) {
         Collection<AbstractIndexProviderFactory<?>> indexProviderFactories = List.of(new RangeIndexProviderFactory());
-        var cacheTracer = NULL;
+        PageCacheTracer cacheTracer = NULL;
         return indexProviderFactories.stream()
                 .map(f -> f.create(
                         pageCache,
@@ -385,7 +387,7 @@ public class DatabaseCompositeIndexAccessorTest {
         return IndexQueryHelper.change(nodeId, INDEX_DESCRIPTOR, valuesBefore, valuesAfter);
     }
 
-    private static void updateAndCommit(IndexAccessor accessor, List<IndexEntryUpdate> nodePropertyUpdates)
+    private static void updateAndCommit(IndexAccessor accessor, Iterable<IndexEntryUpdate> nodePropertyUpdates)
             throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
             for (IndexEntryUpdate update : nodePropertyUpdates) {

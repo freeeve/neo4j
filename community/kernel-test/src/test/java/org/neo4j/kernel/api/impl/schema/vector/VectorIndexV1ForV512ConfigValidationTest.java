@@ -45,6 +45,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexSettingRecordsByState;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
@@ -64,15 +65,15 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void validV1ForV511IndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions() + 1) // unfortunately valid
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
-        final var vectorIndexConfigAsIfCreatedOn511 =
+        VectorIndexConfig vectorIndexConfigAsIfCreatedOn511 =
                 VERSION.indexSettingValidator(KernelVersion.V5_11).validateToTypedConfig(settings);
 
-        final var vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
                 new IndexConfigAccessor(vectorIndexConfigAsIfCreatedOn511.config()));
 
         assertThat(vectorIndexConfig).isEqualTo(vectorIndexConfigAsIfCreatedOn511);
@@ -80,13 +81,13 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void validIndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.validateToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -109,14 +110,14 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void unrecognisedSetting() {
-        final var unrecognisedSetting = IndexSetting.fulltext_Analyzer();
-        final var settings = VectorIndexSettings.create()
+        IndexSetting unrecognisedSetting = IndexSetting.fulltext_Analyzer();
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .set(unrecognisedSetting, "swedish")
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, unrecognisedSetting.getSettingName());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -125,11 +126,11 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void missingDimensions() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertMissingSetting(validationRecords, DIMENSIONS);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -139,13 +140,13 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void incorrectTypeForDimensions() {
-        final var incorrectDimensions = String.valueOf(VERSION.maxDimensions());
-        final var settings = VectorIndexSettings.create()
+        String incorrectDimensions = String.valueOf(VERSION.maxDimensions());
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(DIMENSIONS, incorrectDimensions)
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 DIMENSIONS,
@@ -161,7 +162,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveDimensions(int invalidDimensions) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(invalidDimensions)
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
@@ -171,8 +172,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void aboveMaxDimensions() {
-        final int invalidDimensions = VERSION.maxDimensions() + 1;
-        final var settings = VectorIndexSettings.create()
+        int invalidDimensions = VERSION.maxDimensions() + 1;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(invalidDimensions)
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
@@ -181,7 +182,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
         // however fine for reading no upper bound check to support vector-1.0 created on 5.11
         // trust previously created index configs as being valid
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.interpretAuthoritativeToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -189,8 +190,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .containsExactly(OptionalInt.of(invalidDimensions), VERSION.similarityFunction("COSINE"));
     }
 
-    private void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, DIMENSIONS, invalidDimensions);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -200,11 +201,11 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void missingSimilarityFunction() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertMissingSetting(validationRecords, SIMILARITY_FUNCTION);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -214,13 +215,13 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void incorrectTypeForSimilarityFunction() {
-        final var incorrectSimilarityFunction = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectSimilarityFunction = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .set(SIMILARITY_FUNCTION, incorrectSimilarityFunction)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 SIMILARITY_FUNCTION,
@@ -235,17 +236,17 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void invalidSimilarityFunction() {
-        final var invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
-        final var settings = VectorIndexSettings.create()
+        String invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .set(IndexSetting.vector_Similarity_Function(), invalidSimilarityFunction)
                 .toSettingsAccessor();
-        final var normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
+        String normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, SIMILARITY_FUNCTION, normalizedInvalidSimilarityFunction);
 
-        final String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
+        String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -257,15 +258,15 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void nonUpperCaseSimilarityFunction() {
-        final var mixedCaseSimilarityFunction = "coSIne";
-        final var settings = VectorIndexSettings.create()
+        String mixedCaseSimilarityFunction = "coSIne";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(mixedCaseSimilarityFunction)
                 .toSettingsAccessor();
-        final VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
+        VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
 
-        final var validationRecords = validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        IndexSettingRecordsByState validationRecords = validateAsValid(VALIDATOR, settings);
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
         assertVectorIndexConfigSetting(
                 vectorIndexConfig,
                 SIMILARITY_FUNCTION,
@@ -276,61 +277,61 @@ class VectorIndexV1ForV512ConfigValidationTest {
 
     @Test
     void cannotSetDefaultSearchExpansionFactor() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withDefaultSearchExpansionFactor(2.0)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, DEFAULT_SEARCH_EXPANSION_FACTOR.getSettingName());
     }
 
     @Test
     void cannotSetQuantizationEnabled() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withQuantizationDisabled()
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, QUANTIZATION_ENABLED.getSettingName());
     }
 
     @Test
     void cannotSetQuantizationType() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withQuantizationType(VectorQuantizationType.NONE)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, QUANTIZATION_TYPE.getSettingName());
     }
 
     @Test
     void cannotSetHnswM() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswM(16)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, HNSW_M.getSettingName());
     }
 
     @Test
     void cannotSetHnswEfConstruction() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswEfConstruction(100)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, HNSW_EF_CONSTRUCTION.getSettingName());
     }
 }

@@ -55,7 +55,9 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.ByteBufferFactory.Allocator;
+import org.neo4j.io.memory.ScopedBuffer;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryConflictHandler;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -213,7 +215,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private int smallerBufferSize() {
         int size = bufferFactory.bufferSize() / 2;
         assert size >= tree.keyValueSizeCap()
-                : "Expected buffer size >= " + ByteUnit.bytesToString(tree.keyValueSizeCap() * 2) + " but was "
+                : "Expected buffer size >= " + ByteUnit.bytesToString(tree.keyValueSizeCap() * 2L) + " but was "
                         + ByteUnit.bytesToString(size);
         return size;
     }
@@ -223,8 +225,8 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
         if (!updates.isEmpty()) {
             BlockStorage<KEY, NullValue> blockStorage = null;
             List<BlockEntry<KEY, NullValue>> entries = new ArrayList<>();
-            for (var update : updates) {
-                var valueUpdate = (ValueIndexEntryUpdate) update;
+            for (IndexEntryUpdate update : updates) {
+                ValueIndexEntryUpdate valueUpdate = (ValueIndexEntryUpdate) update;
                 if (ignoreStrategy.ignore(valueUpdate.values())) {
                     continue;
                 }
@@ -297,8 +299,8 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             Path storeFile = indexFiles.getStoreFile();
             Path duplicatesFile = storeFile.resolveSibling(storeFile.getFileName() + ".dup");
             int readBufferSize = smallerBufferSize();
-            try (var allocator = bufferFactory.newLocalAllocator();
-                    var indexKeyStorage = new IndexKeyStorage<>(
+            try (Allocator allocator = bufferFactory.newLocalAllocator();
+                    IndexKeyStorage<KEY> indexKeyStorage = new IndexKeyStorage<>(
                             fileSystem, duplicatesFile, allocator, readBufferSize, layout, memoryTracker)) {
                 RecordingConflictDetector<KEY> recordingConflictDetector =
                         new RecordingConflictDetector<>(!descriptor.isUnique(), indexKeyStorage);
@@ -321,7 +323,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             // Flush the tree here, but keep its state as populating. This is done so that the "actual"
             // flush-and-mark-online during flip
             // becomes way faster and so the flip lock time is reduced.
-            try (var flushEvent = pageCacheTracer.beginFileFlush()) {
+            try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush()) {
                 flushTreeAndMarkAs(BYTE_POPULATING, flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         } catch (IOException e) {
@@ -371,9 +373,10 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private void writeExternalUpdatesToTree(
             RecordingConflictDetector<KEY> recordingConflictDetector, CursorContext cursorContext)
             throws IOException, IndexEntryConflictException {
-        try (var localContext = cursorContext.createUnboundedReadRelatedContext(POPULATION_EXTERNAL_UPDATES_TAG);
-                var writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext);
-                var updates = externalUpdates.reader()) {
+        try (CursorContext localContext =
+                        cursorContext.createUnboundedReadRelatedContext(POPULATION_EXTERNAL_UPDATES_TAG);
+                Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext);
+                IndexUpdateCursor<KEY> updates = externalUpdates.reader()) {
             while (updates.next() && !cancellation.cancelled()) {
                 localContext.getVersionContext().initWrite(updates.version());
                 if (updates.addition()) {
@@ -403,7 +406,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             KEY to = layout.copyKey(from);
             to.initialize(Long.MAX_VALUE);
 
-            try (var seeker = tree.seek(from, to, cursorContext)) {
+            try (Seeker<KEY, NullValue> seeker = tree.seek(from, to, cursorContext)) {
                 verifyUniqueSeek(seeker, conflictHandler, cursorContext);
             }
         }
@@ -419,7 +422,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                 while (seek.next()) {
                     KEY otherKey = seek.key();
                     long otherEntityId = otherKey.getEntityId();
-                    var values = otherKey.asValues();
+                    Value[] values = otherKey.asValues();
                     switch (conflictHandler.indexEntryConflict(firstEntityId, otherEntityId, values)) {
                         case THROW ->
                             throw IndexEntryConflictException.indexEntryConflict(
@@ -432,7 +435,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     }
 
     private void deleteConflict(KEY key, CursorContext cursorContext) throws IOException {
-        try (var writer = tree.writer(cursorContext)) {
+        try (Writer<KEY, NullValue> writer = tree.writer(cursorContext)) {
             writer.remove(key);
         }
     }
@@ -450,14 +453,14 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
 
         // Merge the (sorted) scan updates from all the different threads in pairs until only one stream remain,
         // and direct that stream towards the tree writer (which itself is only single threaded)
-        try (var readBuffers = new CompositeBuffer();
-                var singleBlockScopedBuffer = allocator.allocate((int) kibiBytes(8), memoryTracker)) {
+        try (CompositeBuffer readBuffers = new CompositeBuffer();
+                ScopedBuffer singleBlockScopedBuffer = allocator.allocate((int) kibiBytes(8), memoryTracker)) {
             // Get the initial list of parts
             List<BlockEntryCursor<KEY, NullValue>> parts = new ArrayList<>();
             for (ThreadLocalBlockStorage part : allScanUpdates) {
-                var readScopedBuffer = allocator.allocate(bufferSize, memoryTracker);
+                ScopedBuffer readScopedBuffer = allocator.allocate(bufferSize, memoryTracker);
                 readBuffers.addBuffer(readScopedBuffer);
-                try (var reader = part.blockStorage.reader(true)) {
+                try (BlockReader<KEY, NullValue> reader = part.blockStorage.reader(true)) {
                     // reader has a channel open, but only for the purpose of traversing the blocks.
                     // nextBlock will open its own channel so it's OK to close the reader after getting that block
                     parts.add(reader.nextBlock(readScopedBuffer));
@@ -468,15 +471,16 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             }
 
             Comparator<KEY> samplingComparator = descriptor.isUnique() ? null : layout::compareValue;
-            try (var merger = new PartMerger<>(
+            try (PartMerger<KEY, NullValue> merger = new PartMerger<>(
                             populationWorkScheduler,
                             parts,
                             layout,
                             samplingComparator,
                             cancellation,
                             PartMerger.DEFAULT_BATCH_SIZE);
-                    var allEntries = merger.startMerge();
-                    var writer = tree.writer(W_BATCHED_SINGLE_THREADED | W_SPLIT_KEEP_ALL_LEFT, cursorContext)) {
+                    BlockEntryStreamMerger<KEY, NullValue> allEntries = merger.startMerge();
+                    Writer<KEY, NullValue> writer =
+                            tree.writer(W_BATCHED_SINGLE_THREADED | W_SPLIT_KEEP_ALL_LEFT, cursorContext)) {
                 while (allEntries.next() && !cancellation.cancelled()) {
                     writeToTree(writer, recordingConflictDetector, allEntries.key());
                     numberOfAppliedScanUpdates.incrementAndGet();
@@ -753,7 +757,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
 
         @Override
         public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
-            var valueUpdate = asValueUpdate(update);
+            ValueIndexEntryUpdate valueUpdate = asValueUpdate(update);
             validateUpdate(valueUpdate);
             if (ignoreStrategy.ignore(valueUpdate)) {
                 return;
@@ -777,7 +781,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
         public void process(IndexEntryUpdate update) {
             assertOpen();
             try {
-                var valueUpdate = asValueUpdate(update);
+                ValueIndexEntryUpdate valueUpdate = asValueUpdate(update);
                 validateUpdate(valueUpdate);
                 if (ignoreStrategy.ignore(valueUpdate)) {
                     return;

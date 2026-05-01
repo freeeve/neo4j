@@ -33,7 +33,6 @@ import org.neo4j.index.internal.gbptree.ValueMerger;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.TokenIndexReader;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -158,14 +157,14 @@ class TokenIndexUpdater implements IndexUpdater {
      * Calls to this method MUST be ordered by ascending entity id.
      */
     @Override
-    public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
+    public void process(IndexEntryUpdate update) {
         assertOpen();
         long committingTransactionId = cursorContext.getVersionContext().committingTransactionId();
         if (pendingUpdatesCursor == pendingUpdates.length || lastVersion != committingTransactionId) {
             flushPendingChanges(lastVersion);
         }
         lastVersion = committingTransactionId;
-        var tokenUpdate = asTokenUpdate(update);
+        TokenIndexEntryUpdate tokenUpdate = asTokenUpdate(update);
         pendingUpdates[pendingUpdatesCursor++] = tokenUpdate;
         checkNextTokenId(tokenUpdate.removed());
         checkNextTokenId(tokenUpdate.added());
@@ -201,7 +200,7 @@ class TokenIndexUpdater implements IndexUpdater {
         while (currentTokenId != Integer.MAX_VALUE) {
             int nextTokenId = Integer.MAX_VALUE;
             for (int i = 0; i < pendingUpdatesCursor; i++) {
-                var update = pendingUpdates[i];
+                TokenIndexEntryUpdate update = pendingUpdates[i];
                 long entityId = update.getEntityId();
                 nextTokenId = extractChange(update.added(), currentTokenId, entityId, nextTokenId, true, changes);
                 nextTokenId = extractChange(update.removed(), currentTokenId, entityId, nextTokenId, false, changes);

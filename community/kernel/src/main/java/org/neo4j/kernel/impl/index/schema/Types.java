@@ -167,6 +167,7 @@ class Types {
         /**
          * Holds {@link ValueWriter.ArrayType} --> {@link Type} mapping.
          */
+        @SuppressWarnings("rawtypes")
         static final AbstractArrayType[] BY_ARRAY_TYPE = new AbstractArrayType[ValueWriter.ArrayType.values().length];
 
         /**

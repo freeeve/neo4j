@@ -180,7 +180,8 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
         return false;
     }
 
-    private <E extends Exception> E invalidPredicate(Function<String, E> constructor, PropertyIndexQuery predicate) {
+    private static <E extends Exception> E invalidPredicate(
+            Function<String, E> constructor, PropertyIndexQuery predicate) {
         return constructor.apply(format(
                 "Tried to query index with illegal query. Only %s, %s, and %s queries are supported by a point index. Query was: %s",
                 IndexQueryType.ALL_ENTRIES, IndexQueryType.EXACT, IndexQueryType.BOUNDING_BOX, predicate));

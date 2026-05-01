@@ -26,6 +26,7 @@ import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.nio.ShortBuffer;
 import java.util.Arrays;
 import java.util.StringJoiner;
 import org.neo4j.graphdb.Vector.CoordinateType;
@@ -87,7 +88,7 @@ public abstract sealed class VectorKeyType extends Type
         }
 
         public void write(GenericKey<?> state, byte[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.put(values);
         }
 
@@ -112,21 +113,21 @@ public abstract sealed class VectorKeyType extends Type
         }
 
         void write(GenericKey<?> state, short[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.asShortBuffer().put(values);
         }
 
         @Override
         int arrayCompare(byte[] l, byte[] r, int numBytes) {
-            var lb = ByteBuffer.wrap(l, 0, numBytes).asShortBuffer();
-            var rb = ByteBuffer.wrap(r, 0, numBytes).asShortBuffer();
+            ShortBuffer lb = ByteBuffer.wrap(l, 0, numBytes).asShortBuffer();
+            ShortBuffer rb = ByteBuffer.wrap(r, 0, numBytes).asShortBuffer();
             return lb.compareTo(rb);
         }
 
         @Override
         public Value asValue(GenericKey<?> state) {
             ByteBuffer bb = ByteBuffer.wrap(state.byteArray);
-            var sb = bb.asShortBuffer();
+            ShortBuffer sb = bb.asShortBuffer();
             short[] copy = new short[dimension(state)];
             sb.get(copy, 0, copy.length);
             return Values.int16Vector(copy);
@@ -140,14 +141,14 @@ public abstract sealed class VectorKeyType extends Type
         }
 
         void write(GenericKey<?> state, int[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.asIntBuffer().put(values);
         }
 
         @Override
         int arrayCompare(byte[] l, byte[] r, int numBytes) {
-            var lb = ByteBuffer.wrap(l, 0, numBytes).asIntBuffer();
-            var rb = ByteBuffer.wrap(r, 0, numBytes).asIntBuffer();
+            IntBuffer lb = ByteBuffer.wrap(l, 0, numBytes).asIntBuffer();
+            IntBuffer rb = ByteBuffer.wrap(r, 0, numBytes).asIntBuffer();
             return lb.compareTo(rb);
         }
 
@@ -167,14 +168,14 @@ public abstract sealed class VectorKeyType extends Type
         }
 
         void write(GenericKey<?> state, long[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.asLongBuffer().put(values);
         }
 
         @Override
         int arrayCompare(byte[] l, byte[] r, int numBytes) {
-            var lb = ByteBuffer.wrap(l, 0, numBytes).asLongBuffer();
-            var rb = ByteBuffer.wrap(r, 0, numBytes).asLongBuffer();
+            LongBuffer lb = ByteBuffer.wrap(l, 0, numBytes).asLongBuffer();
+            LongBuffer rb = ByteBuffer.wrap(r, 0, numBytes).asLongBuffer();
             return lb.compareTo(rb);
         }
 
@@ -195,13 +196,13 @@ public abstract sealed class VectorKeyType extends Type
 
         @Override
         int arrayCompare(byte[] l, byte[] r, int numBytes) {
-            var lb = ByteBuffer.wrap(l, 0, numBytes).asFloatBuffer();
-            var rb = ByteBuffer.wrap(r, 0, numBytes).asFloatBuffer();
+            FloatBuffer lb = ByteBuffer.wrap(l, 0, numBytes).asFloatBuffer();
+            FloatBuffer rb = ByteBuffer.wrap(r, 0, numBytes).asFloatBuffer();
             return lb.compareTo(rb);
         }
 
         void write(GenericKey<?> state, float[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.asFloatBuffer().put(values);
         }
 
@@ -222,13 +223,13 @@ public abstract sealed class VectorKeyType extends Type
 
         @Override
         int arrayCompare(byte[] l, byte[] r, int numBytes) {
-            var lb = ByteBuffer.wrap(l, 0, numBytes).asDoubleBuffer();
-            var rb = ByteBuffer.wrap(r, 0, numBytes).asDoubleBuffer();
+            DoubleBuffer lb = ByteBuffer.wrap(l, 0, numBytes).asDoubleBuffer();
+            DoubleBuffer rb = ByteBuffer.wrap(r, 0, numBytes).asDoubleBuffer();
             return lb.compareTo(rb);
         }
 
         void write(GenericKey<?> state, double[] values) {
-            var bb = prepareStateAndGetWriteBuffer(state, values.length);
+            ByteBuffer bb = prepareStateAndGetWriteBuffer(state, values.length);
             bb.asDoubleBuffer().put(values);
         }
 
@@ -276,7 +277,7 @@ public abstract sealed class VectorKeyType extends Type
     void copyValue(GenericKey<?> to, GenericKey<?> from) {
         to.long0 = from.long0;
         if (!isExtremeValue(from)) {
-            var numBytes = elementSize * dimension(from);
+            int numBytes = elementSize * dimension(from);
             to.byteArray = ensureBigEnough(to.byteArray, numBytes);
             System.arraycopy(from.byteArray, 0, to.byteArray, 0, numBytes);
         }
@@ -291,8 +292,8 @@ public abstract sealed class VectorKeyType extends Type
     @Override
     protected void addTypeSpecificDetails(StringJoiner joiner, GenericKey<?> state) {
         // Just used for tests
-        var arr = new StringBuilder();
-        var numBytes = elementSize * dimension(state);
+        StringBuilder arr = new StringBuilder();
+        int numBytes = elementSize * dimension(state);
         arr.append("data=[");
         arr.append(state.byteArray[0]);
         for (int i = 1; i < numBytes; i++) {
@@ -343,7 +344,7 @@ public abstract sealed class VectorKeyType extends Type
     @Override
     void putValue(PageCursor cursor, GenericKey<?> state) {
         assert !isExtremeValue(state) : "You are not allowed to serialize extreme values";
-        var numBytes = elementSize * dimension(state);
+        int numBytes = elementSize * dimension(state);
         cursor.putInt((int) state.long0);
         cursor.putBytes(state.byteArray, 0, numBytes);
     }

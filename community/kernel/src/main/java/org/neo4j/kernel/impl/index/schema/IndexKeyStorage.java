@@ -70,7 +70,7 @@ class IndexKeyStorage<KEY extends NativeIndexKey<KEY>>
         }
 
         @Override
-        public boolean next() throws IOException {
+        public boolean next() {
             byte type = pageCursor.getByte();
             if (type == STOP_TYPE) {
                 return false;
@@ -94,7 +94,7 @@ class IndexKeyStorage<KEY extends NativeIndexKey<KEY>>
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             pageCursor.close();
         }
     }

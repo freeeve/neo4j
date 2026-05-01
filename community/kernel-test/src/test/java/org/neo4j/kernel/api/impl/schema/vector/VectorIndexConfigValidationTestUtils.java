@@ -60,14 +60,14 @@ class VectorIndexConfigValidationTestUtils {
     }
 
     static <T> T assertAndReturnFunctionDoesNotThrow(ThrowingSupplier<T> supplier) {
-        final Mutable<T> ref = new MutableObject<>();
+        Mutable<T> ref = new MutableObject<>();
         assertThatCode(() -> ref.setValue(supplier.get())).doesNotThrowAnyException();
         return ref.get();
     }
 
     static IndexSettingRecordsByState validateAsValid(
             TypedIndexSettingsValidator<VectorIndexConfig> validator, SettingsAccessor accessor) {
-        final IndexSettingRecordsByState records = validator.validate(accessor);
+        IndexSettingRecordsByState records = validator.validate(accessor);
         assertThat(records.valid()).isTrue();
         return records;
     }
@@ -78,7 +78,7 @@ class VectorIndexConfigValidationTestUtils {
             Function<VectorIndexConfig, Object> accessor,
             Object value,
             Value storable) {
-        final ObjectAssert<VectorIndexConfig> vectorIndexConfigAssert = assertThat(vectorIndexConfig);
+        ObjectAssert<VectorIndexConfig> vectorIndexConfigAssert = assertThat(vectorIndexConfig);
         vectorIndexConfigAssert
                 .extracting(accessor, config -> config.get(setting), config -> config.getValue(setting))
                 .containsExactly(value, value, storable);
@@ -87,21 +87,21 @@ class VectorIndexConfigValidationTestUtils {
 
     static IndexSettingRecordsByState validateAsInvalid(
             TypedIndexSettingsValidator<VectorIndexConfig> validator, SettingsAccessor accessor) {
-        final IndexSettingRecordsByState records = validator.validate(accessor);
+        IndexSettingRecordsByState records = validator.validate(accessor);
         assertThat(records.invalid()).isTrue();
         return records;
     }
 
     static ObjectAssert<UnrecognizedSetting> assertUnrecognizedSetting(
             IndexSettingRecordsByState records, String settingName) {
-        final ObjectAssert<UnrecognizedSetting> unrecognizedSettingAssert =
+        ObjectAssert<UnrecognizedSetting> unrecognizedSettingAssert =
                 assertSingleRecordOfType(records, State.UNRECOGNIZED_SETTING, UnrecognizedSetting.class);
         unrecognizedSettingAssert.extracting(NamedSetting::settingName).isEqualTo(settingName);
         return unrecognizedSettingAssert;
     }
 
     static ObjectAssert<MissingSetting> assertMissingSetting(IndexSettingRecordsByState records, IndexSetting setting) {
-        final ObjectAssert<MissingSetting> missingSettingAssert =
+        ObjectAssert<MissingSetting> missingSettingAssert =
                 assertSingleRecordOfType(records, State.MISSING_SETTING, MissingSetting.class);
         missingSettingAssert.extracting(HasSetting::setting).isEqualTo(setting);
         return missingSettingAssert;
@@ -113,7 +113,7 @@ class VectorIndexConfigValidationTestUtils {
             Object invalidValue,
             Class<?> providedType,
             Class<?> targetType) {
-        final ObjectAssert<IncorrectType> incorrectTypeAssert =
+        ObjectAssert<IncorrectType> incorrectTypeAssert =
                 assertSingleRecordOfType(records, State.INCORRECT_TYPE, IncorrectType.class);
         incorrectTypeAssert
                 .extracting(HasSetting::setting, RecordWithValue::value)
@@ -125,7 +125,7 @@ class VectorIndexConfigValidationTestUtils {
 
     static ObjectAssert<InvalidValue> assertInvalidValue(
             IndexSettingRecordsByState records, IndexSetting setting, Object invalidValue) {
-        final ObjectAssert<InvalidValue> invalidValueAssert =
+        ObjectAssert<InvalidValue> invalidValueAssert =
                 assertSingleRecordOfType(records, State.INVALID_VALUE, InvalidValue.class);
         invalidValueAssert
                 .extracting(HasSetting::setting, RecordWithValue::value)
@@ -139,8 +139,8 @@ class VectorIndexConfigValidationTestUtils {
     }
 
     static String similarityFunctionsToString(Iterable<? extends VectorSimilarityFunction> similarityFunctions) {
-        final StringJoiner joiner = new StringJoiner(", ", "[", "]");
-        for (final VectorSimilarityFunction similarityFunction : similarityFunctions) {
+        StringJoiner joiner = new StringJoiner(", ", "[", "]");
+        for (VectorSimilarityFunction similarityFunction : similarityFunctions) {
             joiner.add(similarityFunction.functionName());
         }
         return joiner.toString();

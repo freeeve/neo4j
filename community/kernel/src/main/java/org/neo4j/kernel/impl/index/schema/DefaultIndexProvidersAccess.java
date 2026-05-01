@@ -36,6 +36,7 @@ import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
+import org.neo4j.kernel.extension.DatabaseExtensions;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.transaction.state.StaticIndexProviderMapFactory;
 import org.neo4j.kernel.lifecycle.LifeContainer;
@@ -79,7 +80,7 @@ public class DefaultIndexProvidersAccess extends LifeContainer implements IndexP
             DatabaseLayout layout,
             DatabaseReadOnlyChecker readOnlyChecker,
             MemoryTracker memoryTracker) {
-        var tokenHolders = storageEngineFactory.loadReadOnlyTokens(
+        TokenHolders tokenHolders = storageEngineFactory.loadReadOnlyTokens(
                 fileSystem, layout, databaseConfig, pageCache, pageCacheTracer, false, contextFactory, memoryTracker);
         return access(pageCache, layout, readOnlyChecker, tokenHolders);
     }
@@ -90,8 +91,8 @@ public class DefaultIndexProvidersAccess extends LifeContainer implements IndexP
             DatabaseLayout layout,
             DatabaseReadOnlyChecker readOnlyChecker,
             TokenHolders tokenHolders) {
-        var monitors = new Monitors();
-        var extensions = life.add(instantiateExtensions(
+        Monitors monitors = new Monitors();
+        DatabaseExtensions extensions = life.add(instantiateExtensions(
                 layout,
                 fileSystem,
                 databaseConfig,

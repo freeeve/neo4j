@@ -195,8 +195,8 @@ class PointKey extends NativeIndexKey<PointKey> {
 
     private void writePointValueToCursor(PageCursor cursor) {
         cursor.putLong(derivedSpaceFillingCurveValue);
-        for (int i = 0; i < coordinate.length; i++) {
-            cursor.putLong(coordinate[i]);
+        for (long l : coordinate) {
+            cursor.putLong(l);
         }
     }
 

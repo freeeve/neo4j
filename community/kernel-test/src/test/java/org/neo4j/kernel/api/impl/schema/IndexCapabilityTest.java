@@ -46,7 +46,7 @@ import static org.neo4j.values.storable.ValueCategory.UNKNOWN;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -123,7 +123,7 @@ class IndexCapabilityTest {
     @MethodSource("supportedValueCategories")
     void testAreValueCategoriesAcceptedRange(IndexCapability capability, ValueCategory[] supportedValueCategory) {
         for (ValueCategory valueCategory : ValueCategory.values()) {
-            var expected = Arrays.asList(supportedValueCategory).contains(valueCategory);
+            boolean expected = Arrays.asList(supportedValueCategory).contains(valueCategory);
             assertThat(capability.areValueCategoriesAccepted(valueCategory)).isEqualTo(expected);
         }
     }
@@ -132,14 +132,14 @@ class IndexCapabilityTest {
     @MethodSource("supportedQueries")
     void testIsQuerySupported(
             IndexQueryType queryType, ValueCategory valueCategory, IndexCapability[] expectedToSupport) {
-        List<IndexCapability> expectedNotToSupport = new ArrayList<>(Arrays.asList(ALL));
+        Collection<IndexCapability> expectedNotToSupport = new ArrayList<>(Arrays.asList(ALL));
         for (IndexCapability indexCapability : expectedToSupport) {
-            var actual = indexCapability.isQuerySupported(queryType, valueCategory);
+            boolean actual = indexCapability.isQuerySupported(queryType, valueCategory);
             assertThat(actual).as("expect " + indexCapability + " to support").isTrue();
             expectedNotToSupport.remove(indexCapability);
         }
         for (IndexCapability indexCapability : expectedNotToSupport) {
-            var actual = indexCapability.isQuerySupported(queryType, valueCategory);
+            boolean actual = indexCapability.isQuerySupported(queryType, valueCategory);
             assertThat(actual)
                     .as("expect " + indexCapability + " to not support")
                     .isFalse();

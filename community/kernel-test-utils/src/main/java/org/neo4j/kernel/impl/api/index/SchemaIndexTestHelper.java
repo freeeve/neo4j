@@ -25,7 +25,7 @@ import static org.mockito.Mockito.mock;
 import java.util.concurrent.CountDownLatch;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.InternalIndexState;
-import org.neo4j.internal.kernel.api.SchemaRead;
+import org.neo4j.internal.kernel.api.SchemaReadCore;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -39,7 +39,7 @@ public class SchemaIndexTestHelper {
     private SchemaIndexTestHelper() {}
 
     public static ExtensionFactory<SingleInstanceIndexProviderFactoryDependencies> singleInstanceIndexProviderFactory(
-            String key, final IndexProvider provider) {
+            String key, IndexProvider provider) {
         return new SingleInstanceIndexProviderFactory(key, provider);
     }
 
@@ -77,7 +77,7 @@ public class SchemaIndexTestHelper {
         }
     }
 
-    public static void awaitIndexOnline(SchemaRead schemaRead, IndexDescriptor index)
+    public static void awaitIndexOnline(SchemaReadCore schemaRead, IndexDescriptor index)
             throws IndexNotFoundKernelException {
         long start = System.currentTimeMillis();
         while (schemaRead.indexGetState(index) != InternalIndexState.ONLINE) {

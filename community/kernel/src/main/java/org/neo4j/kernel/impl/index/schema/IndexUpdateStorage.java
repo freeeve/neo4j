@@ -91,7 +91,8 @@ public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>> implements Clos
             return new IndexUpdateCursor<>(ByteArrayPageCursor.wrap(NO_ENTRIES), layout);
         }
 
-        var channel = new ReadAheadChannel<>(fs.read(file), byteBufferFactory.allocate(blockSize, memoryTracker));
+        ReadAheadChannel<StoreChannel> channel =
+                new ReadAheadChannel<>(fs.read(file), byteBufferFactory.allocate(blockSize, memoryTracker));
         return new IndexUpdateCursor<>(new ReadableChannelPageCursor(channel), layout);
     }
 

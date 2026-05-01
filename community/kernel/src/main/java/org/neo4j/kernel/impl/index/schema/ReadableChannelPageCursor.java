@@ -207,12 +207,12 @@ class ReadableChannelPageCursor extends PageCursor {
     }
 
     @Override
-    public boolean next() throws IOException {
+    public boolean next() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean next(long pageId) throws IOException {
+    public boolean next(long pageId) {
         throw new UnsupportedOperationException();
     }
 

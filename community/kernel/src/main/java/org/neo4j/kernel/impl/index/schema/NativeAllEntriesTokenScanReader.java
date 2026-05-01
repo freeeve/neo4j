@@ -122,8 +122,9 @@ class NativeAllEntriesTokenScanReader implements AllEntriesTokenScanReader {
             long nextLowestRange = Long.MAX_VALUE;
             try {
                 // One "rangeSize" range at a time
-                for (var iterator = cursors.iterator(); iterator.hasNext(); ) {
-                    var cursor = iterator.next();
+                for (Iterator<Seeker<TokenScanKey, TokenScanValue>> iterator = cursors.iterator();
+                        iterator.hasNext(); ) {
+                    Seeker<TokenScanKey, TokenScanValue> cursor = iterator.next();
                     long idRange = cursor.key().idRange;
                     if (idRange < currentRange) {
                         // This should never happen because if the cursor has been exhausted and the iterator have moved

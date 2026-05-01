@@ -140,10 +140,10 @@ abstract class AbstractEntityValueUpdatesTest<
 
     @Test
     void useProvidedCursorForPropertiesOnNodesLoad() {
-        var cursorContext = mock(CursorContext.class);
-        var storeCursors = mock(StoreCursors.class);
-        var nodeCursor = mock(StorageNodeCursor.class);
-        var storageReader = mock(StorageReader.class, RETURNS_MOCKS);
+        CursorContext cursorContext = mock(CursorContext.class);
+        StoreCursors storeCursors = mock(StoreCursors.class);
+        StorageNodeCursor nodeCursor = mock(StorageNodeCursor.class);
+        StorageReader storageReader = mock(StorageReader.class, RETURNS_MOCKS);
         when(nodeCursor.hasProperties()).thenReturn(true);
         when(nodeCursor.next()).thenReturn(true);
         when(storageReader.allocateNodeCursor(any(), any(), any())).thenReturn(nodeCursor);
@@ -161,10 +161,10 @@ abstract class AbstractEntityValueUpdatesTest<
 
     @Test
     void useProvidedCursorForPropertiesOnRelationshipLoad() {
-        var cursorContext = mock(CursorContext.class);
-        var storeCursors = mock(StoreCursors.class);
-        var relationshipCursor = mock(StorageRelationshipScanCursor.class);
-        var storageReader = mock(StorageReader.class, RETURNS_MOCKS);
+        CursorContext cursorContext = mock(CursorContext.class);
+        StoreCursors storeCursors = mock(StoreCursors.class);
+        StorageRelationshipScanCursor relationshipCursor = mock(StorageRelationshipScanCursor.class);
+        StorageReader storageReader = mock(StorageReader.class, RETURNS_MOCKS);
         when(relationshipCursor.hasProperties()).thenReturn(true);
         when(relationshipCursor.next()).thenReturn(true);
         when(storageReader.allocateRelationshipScanCursor(any(), any(), any())).thenReturn(relationshipCursor);
@@ -545,9 +545,13 @@ abstract class AbstractEntityValueUpdatesTest<
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
-                    PROPERTY_1.value(), newValue2, PROPERTY_3.value()
-                }));
+                .contains(change(
+                        ENTITY_ID,
+                        entity.nonSchemaIndex(),
+                        VALUES_123,
+                        PROPERTY_1.value(),
+                        newValue2,
+                        PROPERTY_3.value()));
     }
 
     @ParameterizedTest
@@ -573,8 +577,7 @@ abstract class AbstractEntityValueUpdatesTest<
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(change(
-                        ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {newValue1, newValue2, newValue3}));
+                .contains(change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, newValue1, newValue2, newValue3));
     }
 
     @ParameterizedTest
@@ -616,9 +619,8 @@ abstract class AbstractEntityValueUpdatesTest<
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
-                    PROPERTY_1.value(), null, PROPERTY_3.value()
-                }));
+                .contains(change(
+                        ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, PROPERTY_1.value(), null, PROPERTY_3.value()));
     }
 
     @Test

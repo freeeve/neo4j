@@ -52,6 +52,7 @@ import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.IndexConfigUtils.HasSetting;
 import org.neo4j.internal.schema.IndexSettingRecord.InvalidValue;
 import org.neo4j.internal.schema.IndexSettingRecord.RecordWithValue;
+import org.neo4j.internal.schema.IndexSettingRecordsByState;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor;
 import org.neo4j.internal.schema.TypedIndexSettingsValidator;
@@ -72,7 +73,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void validV3ForV202509IndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withHnswM(16)
                 .withHnswEfConstruction(100)
@@ -80,10 +81,10 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .toSettingsAccessor();
 
-        final var vectorIndexConfigAsIfCreatedOn202509 =
+        VectorIndexConfig vectorIndexConfigAsIfCreatedOn202509 =
                 VERSION.indexSettingValidator(KernelVersion.V2025_09).validateToTypedConfig(settings);
 
-        final var vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.interpretAuthoritativeToTypedConfig(
                 new IndexConfigAccessor(vectorIndexConfigAsIfCreatedOn202509.config()));
 
         assertThat(vectorIndexConfig).isEqualTo(vectorIndexConfigAsIfCreatedOn202509);
@@ -91,7 +92,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void validIndexConfig() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withHnswM(16)
                 .withHnswEfConstruction(100)
@@ -101,7 +102,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 .toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.validateToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -130,10 +131,10 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void validIndexConfigWithDefaults() {
-        final var settings = VectorIndexSettings.create().toSettingsAccessor();
+        SettingsAccessor settings = VectorIndexSettings.create().toSettingsAccessor();
 
         validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig =
+        VectorIndexConfig vectorIndexConfig =
                 assertAndReturnFunctionDoesNotThrow(() -> VALIDATOR.validateToTypedConfig(settings));
 
         assertThat(vectorIndexConfig)
@@ -161,11 +162,11 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void unrecognisedSetting() {
-        final var unrecognisedSetting = IndexSetting.fulltext_Analyzer();
-        final var settings =
+        IndexSetting unrecognisedSetting = IndexSetting.fulltext_Analyzer();
+        SettingsAccessor settings =
                 VectorIndexSettings.create().set(unrecognisedSetting, "swedish").toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertUnrecognizedSetting(validationRecords, unrecognisedSetting.getSettingName());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -175,12 +176,12 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForDimensions() {
-        final var incorrectDimensions = String.valueOf(VERSION.maxDimensions());
-        final var settings = VectorIndexSettings.create()
+        String incorrectDimensions = String.valueOf(VERSION.maxDimensions());
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(DIMENSIONS, incorrectDimensions)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 DIMENSIONS,
@@ -196,7 +197,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveDimensions(int invalidDimensions) {
-        final var settings =
+        SettingsAccessor settings =
                 VectorIndexSettings.create().withDimensions(invalidDimensions).toSettingsAccessor();
 
         assertInvalidDimensions(invalidDimensions, settings);
@@ -204,15 +205,15 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void aboveMaxDimensions() {
-        final int invalidDimensions = VERSION.maxDimensions() + 1;
-        final var settings =
+        int invalidDimensions = VERSION.maxDimensions() + 1;
+        SettingsAccessor settings =
                 VectorIndexSettings.create().withDimensions(invalidDimensions).toSettingsAccessor();
 
         assertInvalidDimensions(invalidDimensions, settings);
     }
 
-    private void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidDimensions(int invalidDimensions, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, DIMENSIONS, OptionalInt.of(invalidDimensions));
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -222,12 +223,12 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForSimilarityFunction() {
-        final var incorrectSimilarityFunction = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectSimilarityFunction = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(SIMILARITY_FUNCTION, incorrectSimilarityFunction)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 SIMILARITY_FUNCTION,
@@ -242,16 +243,16 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void invalidSimilarityFunction() {
-        final var invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
-        final var settings = VectorIndexSettings.create()
+        String invalidSimilarityFunction = "ClearlyThisIsNotASimilarityFunction";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(IndexSetting.vector_Similarity_Function(), invalidSimilarityFunction)
                 .toSettingsAccessor();
-        final var normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
+        String normalizedInvalidSimilarityFunction = invalidSimilarityFunction.toUpperCase(Locale.ROOT);
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, SIMILARITY_FUNCTION, normalizedInvalidSimilarityFunction);
 
-        final String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
+        String supportedSimilarityFunctions = similarityFunctionsToString(VERSION.supportedSimilarityFunctions());
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -263,14 +264,14 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void nonUpperCaseSimilarityFunction() {
-        final var mixedCaseSimilarityFunction = "coSIne";
-        final var settings = VectorIndexSettings.create()
+        String mixedCaseSimilarityFunction = "coSIne";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withSimilarityFunction(mixedCaseSimilarityFunction)
                 .toSettingsAccessor();
-        final VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
+        VectorSimilarityFunction corespondingSimilarityFunction = VERSION.similarityFunction("COSINE");
 
-        final var validationRecords = validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        IndexSettingRecordsByState validationRecords = validateAsValid(VALIDATOR, settings);
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
         assertVectorIndexConfigSetting(
                 vectorIndexConfig,
                 SIMILARITY_FUNCTION,
@@ -281,12 +282,12 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForDefaultSearchExpansionFactor() {
-        final var incorrectExpansionFactor = "10";
-        final var settings = VectorIndexSettings.create()
+        String incorrectExpansionFactor = "10";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(DEFAULT_SEARCH_EXPANSION_FACTOR, incorrectExpansionFactor)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 DEFAULT_SEARCH_EXPANSION_FACTOR,
@@ -303,7 +304,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @ParameterizedTest
     @ValueSource(doubles = {-1.0, 0.0, 0.5})
     void lessThanOneDefaultSearchExpansionFactor(double expansionFactor) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(expansionFactor)
                 .toSettingsAccessor();
 
@@ -312,8 +313,8 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void aboveMaxDefaultSearchExpansionFactor() {
-        final double invalidExpansionFactor = Math.nextUp(Double.MAX_VALUE);
-        final var settings = VectorIndexSettings.create()
+        double invalidExpansionFactor = Math.nextUp(Double.MAX_VALUE);
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(invalidExpansionFactor)
                 .toSettingsAccessor();
 
@@ -331,15 +332,15 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
                 Double.POSITIVE_INFINITY
             })
     void nonFiniteDefaultSearchExpansionFactor(double expansionFactor) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(expansionFactor)
                 .toSettingsAccessor();
 
         assertInvalidDefaultSearchExpansionFactor(expansionFactor, settings);
     }
 
-    private void assertInvalidDefaultSearchExpansionFactor(double expansionFactor, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidDefaultSearchExpansionFactor(double expansionFactor, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, DEFAULT_SEARCH_EXPANSION_FACTOR, expansionFactor);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -351,12 +352,12 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForQuantizationEnabled() {
-        final var incorrectQuantizationEnabled = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectQuantizationEnabled = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(QUANTIZATION_ENABLED, incorrectQuantizationEnabled)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 QUANTIZATION_ENABLED,
@@ -371,13 +372,13 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForQuantizationType() {
-        final var incorrectQuantizationType = 123L;
-        final var settings = VectorIndexSettings.create()
+        long incorrectQuantizationType = 123L;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(2.0)
                 .set(QUANTIZATION_TYPE, incorrectQuantizationType)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 QUANTIZATION_TYPE,
@@ -392,18 +393,17 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void invalidQuantizationType() {
-        final var incorrectQuantizationType = "ClearlyThisIsNotAQuantizationType";
-        final var settings = VectorIndexSettings.create()
+        String incorrectQuantizationType = "ClearlyThisIsNotAQuantizationType";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(2.0)
                 .set(QUANTIZATION_TYPE, incorrectQuantizationType)
                 .toSettingsAccessor();
-        final var normalizedIncorrectQuantizationType = incorrectQuantizationType.toUpperCase(Locale.ROOT);
+        String normalizedIncorrectQuantizationType = incorrectQuantizationType.toUpperCase(Locale.ROOT);
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, QUANTIZATION_TYPE, normalizedIncorrectQuantizationType);
 
-        final String supportedQuantizationTypes =
-                Iterables.toString(VERSION.supportedQuantizationTypes(), ", ", "[", "]");
+        String supportedQuantizationTypes = Iterables.toString(VERSION.supportedQuantizationTypes(), ", ", "[", "]");
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
@@ -415,14 +415,14 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void nonUpperCaseQuantizationType() {
-        final var mixedCaseQuantizationType = "sCAlaR";
-        final var settings = VectorIndexSettings.create()
+        String mixedCaseQuantizationType = "sCAlaR";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withQuantizationType(mixedCaseQuantizationType)
                 .toSettingsAccessor();
         final VectorQuantizationType corespondingQuantizationType = VectorQuantizationType.SCALAR;
 
-        final var validationRecords = validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        IndexSettingRecordsByState validationRecords = validateAsValid(VALIDATOR, settings);
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
         assertVectorIndexConfigSetting(
                 vectorIndexConfig,
                 QUANTIZATION_TYPE,
@@ -433,13 +433,13 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void invalidQuantizationEnabledFalseForQuantizationType() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(2.0)
                 .withQuantizationDisabled()
                 .withQuantizationType(VectorQuantizationType.SCALAR)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(2)
                 .hasOnlyElementsOfType(InvalidValue.class)
@@ -459,13 +459,13 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void invalidQuantizationEnabledTrueForQuantizationType() {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDefaultSearchExpansionFactor(2.0)
                 .withQuantizationEnabled()
                 .withQuantizationType(VectorQuantizationType.NONE)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertThat(validationRecords.get(INVALID_VALUE))
                 .hasSize(2)
                 .hasOnlyElementsOfType(InvalidValue.class)
@@ -486,13 +486,13 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @Test
     void validQuantizationEnabledTrueForQuantizationType() {
         final VectorQuantizationType quantizationType = VectorQuantizationType.SCALAR;
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withQuantizationEnabled()
                 .withQuantizationType(quantizationType)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsValid(VALIDATOR, settings);
-        final var vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
+        IndexSettingRecordsByState validationRecords = validateAsValid(VALIDATOR, settings);
+        VectorIndexConfig vectorIndexConfig = VALIDATOR.validateToTypedConfig(validationRecords);
         assertThat(vectorIndexConfig)
                 .extracting(
                         VectorIndexConfig::quantizationEnabled,
@@ -510,11 +510,11 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForHnswM() {
-        final var incorrectHnswM = "Here is a String";
-        final var settings =
+        String incorrectHnswM = "Here is a String";
+        SettingsAccessor settings =
                 VectorIndexSettings.create().set(HNSW_M, incorrectHnswM).toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords, HNSW_M, Values.stringValue(incorrectHnswM), TextValue.class, IntegralValue.class);
 
@@ -526,7 +526,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveHnswM(int invalidM) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswM(invalidM)
@@ -537,8 +537,8 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void aboveMaxHnswM() {
-        final int invalidHnswM = VERSION.maxHnswM() + 1;
-        final var settings = VectorIndexSettings.create()
+        int invalidHnswM = VERSION.maxHnswM() + 1;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withDimensions(VERSION.maxDimensions())
                 .withSimilarityFunction(VERSION.similarityFunction("COSINE"))
                 .withHnswM(invalidHnswM)
@@ -547,8 +547,8 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
         assertInvalidM(invalidHnswM, settings);
     }
 
-    private void assertInvalidM(int invalidM, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidM(int invalidM, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, HNSW_M, invalidM);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)
@@ -558,12 +558,12 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void incorrectTypeForHnswEfConstruction() {
-        final var incorrectHnswEfConstruction = "Here is a String";
-        final var settings = VectorIndexSettings.create()
+        String incorrectHnswEfConstruction = "Here is a String";
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .set(HNSW_EF_CONSTRUCTION, incorrectHnswEfConstruction)
                 .toSettingsAccessor();
 
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertIncorrectType(
                 validationRecords,
                 HNSW_EF_CONSTRUCTION,
@@ -579,7 +579,7 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
     @ParameterizedTest
     @ValueSource(ints = {-1, 0})
     void nonPositiveHnswEfConstruction(int invalidEfConstruction) {
-        final var settings = VectorIndexSettings.create()
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withHnswEfConstruction(invalidEfConstruction)
                 .toSettingsAccessor();
 
@@ -588,16 +588,16 @@ class VectorIndexV3ForGLORIOUSFUTUREConfigValidationTest {
 
     @Test
     void aboveMaxHnswEfConstruction() {
-        final int invalidHnswEfConstruction = VERSION.maxHnswEfConstruction() + 1;
-        final var settings = VectorIndexSettings.create()
+        int invalidHnswEfConstruction = VERSION.maxHnswEfConstruction() + 1;
+        SettingsAccessor settings = VectorIndexSettings.create()
                 .withHnswEfConstruction(invalidHnswEfConstruction)
                 .toSettingsAccessor();
 
         assertInvalidEfConstruction(invalidHnswEfConstruction, settings);
     }
 
-    private void assertInvalidEfConstruction(int invalidHnswEfConstruction, SettingsAccessor settings) {
-        final var validationRecords = validateAsInvalid(VALIDATOR, settings);
+    private static void assertInvalidEfConstruction(int invalidHnswEfConstruction, SettingsAccessor settings) {
+        IndexSettingRecordsByState validationRecords = validateAsInvalid(VALIDATOR, settings);
         assertInvalidValue(validationRecords, HNSW_EF_CONSTRUCTION, invalidHnswEfConstruction);
         assertThatThrownBy(() -> VALIDATOR.validateToTypedConfig(settings))
                 .isInstanceOf(InvalidArgumentException.class)

@@ -269,18 +269,7 @@ public class TokenIndexProvider extends IndexProvider {
         return new TokenIndexCapability(supportsOrder);
     }
 
-    private static class TokenIndexCapability implements IndexCapability {
-        private final boolean supportsOrdering;
-
-        private TokenIndexCapability(boolean supportsOrdering) {
-            this.supportsOrdering = supportsOrdering;
-        }
-
-        @Override
-        public boolean supportsOrdering() {
-            return supportsOrdering;
-        }
-
+    private record TokenIndexCapability(boolean supportsOrdering) implements IndexCapability {
         @Override
         public boolean supportsReturningValues() {
             return true;

@@ -132,7 +132,7 @@ public class EntityTokenRangeImpl implements EntityTokenRange {
     static int[][] convertState(IntList[] state) {
         int[][] tokenIdsByEntityIndex = new int[state.length][];
         for (int i = 0; i < state.length; i++) {
-            final IntList tokenIdList = state[i];
+            IntList tokenIdList = state[i];
             if (tokenIdList != null) {
                 tokenIdsByEntityIndex[i] = tokenIdList.toArray();
             }

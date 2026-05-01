@@ -39,7 +39,6 @@ import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
-import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryConflictHandler;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
@@ -107,11 +106,10 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
     }
 
     @Override
-    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext)
-            throws IndexEntryConflictException {
-        try (var updater = tokenIndex.singleUpdater.initialize(
+    public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
+        try (TokenIndexUpdater updater = tokenIndex.singleUpdater.initialize(
                 context -> tokenIndex.index.writer(W_BATCHED_SINGLE_THREADED, context), false, cursorContext)) {
-            for (var update : updates) {
+            for (IndexEntryUpdate update : updates) {
                 updater.process(update);
             }
         } catch (IOException e) {
@@ -158,11 +156,10 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
             PhaseTracker phaseTracker,
             PopulationWorkScheduler populationWorkScheduler,
             IndexEntryConflictHandler conflictHandler,
-            CursorContext cursorContext)
-            throws IndexEntryConflictException {
+            CursorContext cursorContext) {
         scanCompleted = true;
-        try (var localContext = cursorContext.createUnboundedReadRelatedContext("TOKEN_POPULATION");
-                var updater = tokenIndex.singleUpdater.initialize(
+        try (CursorContext localContext = cursorContext.createUnboundedReadRelatedContext("TOKEN_POPULATION");
+                TokenIndexUpdater updater = tokenIndex.singleUpdater.initialize(
                         context -> tokenIndex.index.writer(W_BATCHED_SINGLE_THREADED, context), false, localContext)) {
             try (Reader updatesReader = external.reader()) {
                 while (updatesReader.next()) {
@@ -189,13 +186,13 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
             if (populationCompletedSuccessfully) {
                 // Successful and completed population
                 tokenIndex.assertTreeOpen();
-                try (var flushEvent = tokenIndex.pageCacheTracer.beginFileFlush()) {
+                try (FileFlushEvent flushEvent = tokenIndex.pageCacheTracer.beginFileFlush()) {
                     flushTreeAndMarkAs(ONLINE, flushEvent, asyncBlockAccessor, cursorContext);
                 }
             } else if (failureBytes != null) {
                 // Failed population
                 ensureTreeInstantiated();
-                try (var flushEvent = tokenIndex.pageCacheTracer.beginFileFlush()) {
+                try (FileFlushEvent flushEvent = tokenIndex.pageCacheTracer.beginFileFlush()) {
                     markTreeAsFailed(flushEvent, asyncBlockAccessor, cursorContext);
                 }
             }
@@ -251,7 +248,7 @@ public class MultiVersionTokenIndexPopulator implements IndexPopulator {
     }
 
     @Override
-    public ResourceIterator<Path> snapshotFiles() throws IOException {
+    public ResourceIterator<Path> snapshotFiles() {
         return tokenIndex.snapshotFiles();
     }
 

@@ -43,7 +43,7 @@ public class MergingBlockEntryReader<KEY, VALUE> implements BlockEntryCursor<KEY
     private static final byte STATE_EXHAUSTED = 2;
 
     private final Layout<KEY, VALUE> layout;
-    private List<Source> sources = new ArrayList<>();
+    private final List<Source> sources = new ArrayList<>();
     private Source lastReturned;
 
     MergingBlockEntryReader(Layout<KEY, VALUE> layout) {

@@ -42,6 +42,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.UniqueIndexSampler;
+import org.neo4j.kernel.impl.index.schema.CollectingIndexUpdater.VersionedUpdate;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.util.Preconditions;
@@ -148,7 +149,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
 
     @Override
     public IndexUpdater newPopulatingUpdater(CursorContext cursorContext) {
-        var updater = new CollectingIndexUpdater(
+        CollectingIndexUpdater updater = new CollectingIndexUpdater(
                 cursorContext, updates -> processVersionedUpdates(updates, updatesConflictDetector, cursorContext));
         if (!descriptor.isUnique()) {
             return updater;
@@ -229,9 +230,9 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
             ConflictDetectingValueMerger<KEY, Value[]> conflictDetector,
             CursorContext cursorContext)
             throws IndexEntryConflictException {
-        try (var localContext = cursorContext.createRelatedContext(NATIVE_POPULATOR_UPDATES);
+        try (CursorContext localContext = cursorContext.createRelatedContext(NATIVE_POPULATOR_UPDATES);
                 Writer<KEY, NullValue> writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext)) {
-            for (var indexEntryUpdate : indexEntryUpdates) {
+            for (VersionedUpdate indexEntryUpdate : indexEntryUpdates) {
                 localContext.getVersionContext().initWrite(indexEntryUpdate.version());
                 NativeIndexUpdater.processUpdate(
                         treeKey,

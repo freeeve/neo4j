@@ -33,9 +33,12 @@ import java.io.IOException;
 import java.util.List;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.primitive.ObjectFloatMaps;
+import org.eclipse.collections.api.map.primitive.MutableObjectFloatMap;
+import org.eclipse.collections.api.set.MutableSet;
 import org.neo4j.batchimport.api.IndexesLifecycleManager;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.Subject;
+import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
 import org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector;
@@ -43,8 +46,14 @@ import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
+import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
+import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
 import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
@@ -53,13 +62,20 @@ import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.IndexingServiceFactory;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
+import org.neo4j.kernel.impl.transaction.state.StaticIndexProviderMap;
 import org.neo4j.kernel.impl.transaction.state.StaticIndexProviderMapFactory;
 import org.neo4j.kernel.impl.transaction.state.storeview.FullScanStoreView;
 import org.neo4j.kernel.impl.transaction.state.storeview.IndexStoreViewFactory;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifespan;
+import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.logging.internal.LogService;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.ReadableStorageEngine;
 import org.neo4j.time.Clocks;
+import org.neo4j.time.SystemNanoClock;
+import org.neo4j.token.TokenHolders;
 import org.neo4j.util.VisibleForTesting;
 
 public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
@@ -87,14 +103,14 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
 
     @Override
     public void drop(DropListener dropListener, List<IndexDescriptor> indexDescriptors) {
-        final var descriptorCount = indexDescriptors.size();
+        int descriptorCount = indexDescriptors.size();
         if (descriptorCount == 0) {
             return;
         }
 
-        var dropOk = 0;
-        var dropFailed = 0;
-        for (var descriptor : indexDescriptors) {
+        int dropOk = 0;
+        int dropFailed = 0;
+        for (IndexDescriptor descriptor : indexDescriptors) {
             try {
                 indexingService.dropIndex(descriptor);
                 if (dropListener.onDrop(descriptor)) {
@@ -124,28 +140,28 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
                         .map(indexingService::completeConfiguration)
                         .toArray(IndexDescriptor[]::new));
 
-        var noErrors = true;
-        final var progressTracker = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
-        final var descriptorsToCreate = Sets.mutable.ofAll(indexDescriptors);
-        final var tentatives = Sets.mutable.<IndexProxy>empty();
+        boolean noErrors = true;
+        MutableObjectFloatMap<IndexDescriptor> progressTracker = ObjectFloatMaps.mutable.<IndexDescriptor>empty();
+        MutableSet<IndexDescriptor> descriptorsToCreate = Sets.mutable.ofAll(indexDescriptors);
+        MutableSet<IndexProxy> tentatives = Sets.mutable.<IndexProxy>empty();
         while (!descriptorsToCreate.isEmpty()) {
-            for (var indexProxy : indexingService.getIndexProxies()) {
-                final var descriptor = indexProxy.getDescriptor();
+            for (IndexProxy indexProxy : indexingService.getIndexProxies()) {
+                IndexDescriptor descriptor = indexProxy.getDescriptor();
                 if (!descriptorsToCreate.contains(descriptor)) {
                     // skip over indexes from before create call or those recently done
                     continue;
                 }
 
-                final var state = indexProxy.getState();
+                InternalIndexState state = indexProxy.getState();
                 if (state == InternalIndexState.FAILED) {
                     noErrors = false;
                     descriptorsToCreate.remove(reportIndexPopulationFailure(indexProxy, creationListener));
                 } else {
-                    final var latestProgress =
+                    float latestProgress =
                             indexProxy.getIndexPopulationProgress().getProgress();
                     progressTracker.updateValue(descriptor, 0.0f, lastProgress -> {
                         if (lastProgress > ZERO) {
-                            final var delta = latestProgress - lastProgress;
+                            float delta = latestProgress - lastProgress;
                             if (delta > ZERO) {
                                 creationListener.onUpdate(descriptor, delta);
                             }
@@ -169,7 +185,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
             if (tentatives.isEmpty()) {
                 sleepIgnoreInterrupt();
             } else {
-                for (var indexProxy : tentatives) {
+                for (IndexProxy indexProxy : tentatives) {
                     try {
                         indexingService.activateIndex(indexProxy.getDescriptor());
                     } catch (IndexPopulationFailedKernelException | IndexNotFoundKernelException ex) {
@@ -184,8 +200,8 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
 
         creationListener.onCreationCompleted(noErrors);
         if (noErrors) {
-            try (var creationContext = context.contextFactory().create("Indexing flushing");
-                    var flushEvent = context.pageCacheTracer().beginDatabaseFlush()) {
+            try (CursorContext creationContext = context.contextFactory().create("Indexing flushing");
+                    DatabaseFlushEvent flushEvent = context.pageCacheTracer().beginDatabaseFlush()) {
                 indexingService.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, creationContext);
                 creationListener.onCheckpointingCompleted();
             }
@@ -200,27 +216,27 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
     @VisibleForTesting
     protected IndexingService createIndexingService(LifeSupport life, KernelSchemaLifecycleContext context)
             throws IOException {
-        final var clock = Clocks.nanoClock();
-        final var readOnlyChecker = DatabaseReadOnlyChecker.writable();
-        final var logService = context.logService();
-        final var logProvider = logService.getInternalLogProvider();
-        final var jobScheduler = context.jobScheduler();
-        final var databaseLayout = context.databaseLayout();
-        final var config = context.config();
-        final var pageCache = context.pageCache();
-        final var fileSystem = context.fileSystem();
-        final var tokenHolders = context.tokenHolders();
-        final var contextFactory = context.contextFactory();
-        final var pageCacheTracer = context.pageCacheTracer();
-        final var storageEngine = context.storageEngine();
+        SystemNanoClock clock = Clocks.nanoClock();
+        DatabaseReadOnlyChecker readOnlyChecker = DatabaseReadOnlyChecker.writable();
+        LogService logService = context.logService();
+        InternalLogProvider logProvider = logService.getInternalLogProvider();
+        JobScheduler jobScheduler = context.jobScheduler();
+        DatabaseLayout databaseLayout = context.databaseLayout();
+        Config config = context.config();
+        PageCache pageCache = context.pageCache();
+        FileSystemAbstraction fileSystem = context.fileSystem();
+        TokenHolders tokenHolders = context.tokenHolders();
+        CursorContextFactory contextFactory = context.contextFactory();
+        PageCacheTracer pageCacheTracer = context.pageCacheTracer();
+        ReadableStorageEngine storageEngine = context.storageEngine();
 
-        final var cleanupCollector = life.add(new GroupingRecoveryCleanupWorkCollector(
+        GroupingRecoveryCleanupWorkCollector cleanupCollector = life.add(new GroupingRecoveryCleanupWorkCollector(
                 jobScheduler, INDEX_POPULATION, INDEX_POPULATION_WORK, databaseLayout.getDatabaseName()));
 
-        final var indexDependencies = new Dependencies();
+        Dependencies indexDependencies = new Dependencies();
         indexDependencies.satisfyDependencies(VersionStorage.EMPTY_STORAGE);
 
-        final var indexProviderMap = life.add(StaticIndexProviderMapFactory.create(
+        StaticIndexProviderMap indexProviderMap = life.add(StaticIndexProviderMapFactory.create(
                 life,
                 config,
                 context.kernelVersionProvider(),
@@ -238,11 +254,12 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
                 pageCacheTracer,
                 indexDependencies));
 
-        final var fullScanStoreView = new FullScanStoreView(NO_LOCK_SERVICE, storageEngine, config, jobScheduler);
-        final var indexStoreViewFactory = new IndexStoreViewFactory(
+        FullScanStoreView fullScanStoreView =
+                new FullScanStoreView(NO_LOCK_SERVICE, storageEngine, config, jobScheduler);
+        IndexStoreViewFactory indexStoreViewFactory = new IndexStoreViewFactory(
                 config, storageEngine, NO_LOCKS_LOCK_MANAGER, fullScanStoreView, NO_LOCK_SERVICE, logProvider);
 
-        final var indexStatisticsStore = life.add(new IndexStatisticsStore(
+        IndexStatisticsStore indexStatisticsStore = life.add(new IndexStatisticsStore(
                 pageCache,
                 fileSystem,
                 databaseLayout.indexStatisticsStore(),
@@ -278,7 +295,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
     }
 
     private IndexDescriptor reportIndexPopulationFailure(IndexProxy indexProxy, CreationListener creationListener) {
-        final var descriptor = indexProxy.getDescriptor();
+        IndexDescriptor descriptor = indexProxy.getDescriptor();
         creationListener.onFailure(
                 descriptor,
                 indexProxy

@@ -76,10 +76,9 @@ public class VectorIndexProviderFactory extends AbstractIndexProviderFactory<Vec
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             DependencyResolver dependencyResolver) {
-        final LuceneContext luceneContext =
-                version.minimumRequiredKernelVersion().isLessThan(VERSION_LUCENE_10_INTRODUCED)
-                        ? LuceneContext.LUCENE_9
-                        : LuceneContext.LUCENE_10;
+        LuceneContext luceneContext = version.minimumRequiredKernelVersion().isLessThan(VERSION_LUCENE_10_INTRODUCED)
+                ? LuceneContext.LUCENE_9
+                : LuceneContext.LUCENE_10;
 
         return new VectorIndexProvider(
                 version,

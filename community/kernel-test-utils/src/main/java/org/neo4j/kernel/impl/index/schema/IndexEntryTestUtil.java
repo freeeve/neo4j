@@ -26,7 +26,7 @@ import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.values.storable.TextValue;
 
 public class IndexEntryTestUtil {
-    public static <KEY extends NativeIndexKey<KEY>> String generateStringResultingInIndexEntrySize(int size) {
+    public static String generateStringResultingInIndexEntrySize(int size) {
         RangeLayout layout = new RangeLayout(1);
         return generateStringValueResultingInIndexEntrySize(layout, size).stringValue();
     }

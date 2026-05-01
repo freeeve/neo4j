@@ -147,7 +147,7 @@ public abstract class SimpleEntryStorage<ENTRY, CURSOR> implements Closeable {
      * DON'T CALL THIS METHOD DIRECTLY. Instead use {@link #reader()}.
      * Return {@link CURSOR} responsible for deserializing wrapping provided {@link PageCursor}, pointing to head of file.
      */
-    protected abstract CURSOR reader(PageCursor pageCursor) throws IOException;
+    protected abstract CURSOR reader(PageCursor pageCursor);
 
     /**
      * DON'T CALL THIS METHOD DIRECTLY. Only used by subclasses.

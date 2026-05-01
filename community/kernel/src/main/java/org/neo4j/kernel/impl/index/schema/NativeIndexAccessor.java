@@ -129,12 +129,13 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             JobScheduler jobScheduler,
             ProgressListener progress)
             throws IndexEntryConflictException {
-        var o = (NativeIndexAccessor<KEY>) other;
-        var readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
+        //noinspection unchecked
+        NativeIndexAccessor<KEY> o = (NativeIndexAccessor<KEY>) other;
+        IndexEntriesReader[] readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
         try {
             List<JobHandle<Void>> handles = new ArrayList<>();
-            var updaterFlags = readers.length == 1 ? W_BATCHED_SINGLE_THREADED : 0;
-            for (var reader : readers) {
+            int updaterFlags = readers.length == 1 ? W_BATCHED_SINGLE_THREADED : 0;
+            for (IndexEntriesReader reader : readers) {
                 handles.add(jobScheduler.schedule(
                         Group.INDEX_POPULATION_WORK,
                         new JobMonitoringParams(Subject.AUTH_DISABLED, databaseName, "insertFrom"),
@@ -157,12 +158,12 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                     }
                                 }
                             };
-                            try (var updater = new NativeIndexUpdater<>(
+                            try (NativeIndexUpdater<KEY> updater = new NativeIndexUpdater<>(
                                                     layout.newKey(), indexUpdateIgnoreStrategy(), merger)
                                             .initialize(tree.writer(updaterFlags, NULL_CONTEXT));
-                                    var localProgress = progress.threadLocalReporter()) {
+                                    ProgressListener localProgress = progress.threadLocalReporter()) {
                                 while (reader.hasNext()) {
-                                    var entityId = reader.next();
+                                    long entityId = reader.next();
                                     if (entityFilter == null || entityFilter.test(entityId)) {
                                         if (entityIdConverter != null) {
                                             entityId = entityIdConverter.applyAsLong(entityId);
@@ -188,25 +189,26 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             IndexEntryConflictHandler conflictHandler,
             int threads,
             JobScheduler jobScheduler) {
-        var o = (NativeIndexAccessor<KEY>) other;
-        var readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
+        //noinspection unchecked
+        NativeIndexAccessor<KEY> o = (NativeIndexAccessor<KEY>) other;
+        IndexEntriesReader[] readers = o.newAllEntriesValueReader(threads, NULL_CONTEXT);
         try {
             List<JobHandle<Void>> handles = new ArrayList<>();
-            for (var fromReader : readers) {
+            for (IndexEntriesReader fromReader : readers) {
                 handles.add(jobScheduler.schedule(
                         Group.INDEX_POPULATION_WORK,
                         new JobMonitoringParams(Subject.AUTH_DISABLED, databaseName, "insertFrom"),
                         () -> {
-                            try (var reader = newValueReader(IndexUsageTracking.NO_USAGE_TRACKING)) {
-                                var propertyKeyIds = descriptor.schema().getPropertyIds();
+                            try (ValueIndexReader reader = newValueReader(IndexUsageTracking.NO_USAGE_TRACKING)) {
+                                int[] propertyKeyIds = descriptor.schema().getPropertyIds();
                                 while (fromReader.hasNext()) {
-                                    var entityId = fromReader.next();
-                                    var values = fromReader.values();
-                                    var queries = new PropertyIndexQuery[values.length];
-                                    for (var i = 0; i < queries.length; i++) {
+                                    long entityId = fromReader.next();
+                                    Value[] values = fromReader.values();
+                                    PropertyIndexQuery[] queries = new PropertyIndexQuery[values.length];
+                                    for (int i = 0; i < queries.length; i++) {
                                         queries[i] = exact(propertyKeyIds[i], values[i]);
                                     }
-                                    try (var client = new NodeValueIterator()) {
+                                    try (NodeValueIterator client = new NodeValueIterator()) {
                                         reader.query(
                                                 client,
                                                 QueryContext.NULL_CONTEXT,
@@ -214,7 +216,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                                 unconstrained(),
                                                 queries);
                                         if (client.hasNext()) {
-                                            var existingEntityId = client.next();
+                                            long existingEntityId = client.next();
                                             conflictHandler.indexEntryConflict(existingEntityId, entityId, values);
                                         }
                                     }
@@ -238,7 +240,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             JobScheduler jobScheduler) {
         List<NativeIndexAccessor<KEY>> allShards = new ArrayList<>();
         allShards.add(this);
-        for (var shard : otherShards) {
+        for (IndexAccessor shard : otherShards) {
+            //noinspection unchecked
             allShards.add((NativeIndexAccessor<KEY>) shard);
         }
 
@@ -254,8 +257,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                         () -> {
                             IndexValueIterator[] readers = new IndexValueIterator[allShards.size()];
                             for (int i = 0; i < allShards.size(); i++) {
-                                var accessor = allShards.get(i);
-                                var seeker = accessor.tree.seek(from, to, NULL_CONTEXT);
+                                NativeIndexAccessor<KEY> accessor = allShards.get(i);
+                                Seeker<KEY, NullValue> seeker = accessor.tree.seek(from, to, NULL_CONTEXT);
                                 readers[i] = new IndexValueIterator(accessor, new NativeIndexEntriesReader(seeker));
                             }
                             validateShardData(conflictHandler, readers);
@@ -274,7 +277,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             while (true) {
                 int lowestShardIndex = -1;
                 for (int shardIndex = 0; shardIndex < readers.length; shardIndex++) {
-                    var reader = readers[shardIndex];
+                    IndexValueIterator reader = readers[shardIndex];
                     if (reader.isExhausted()) {
                         continue;
                     }
@@ -293,11 +296,11 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                 }
 
                 for (int shardIndex = 0; shardIndex < readers.length; shardIndex++) {
-                    var reader = readers[shardIndex];
+                    IndexValueIterator reader = readers[shardIndex];
                     if (reader.isExhausted() || shardIndex == lowestShardIndex) {
                         continue;
                     }
-                    var lowest = readers[lowestShardIndex];
+                    IndexValueIterator lowest = readers[lowestShardIndex];
                     if (reader.reader.compareCurrentValues(lowest.reader) == 0) {
                         conflictHandler.indexEntryConflict(
                                 lowest.currentEntityId,
@@ -455,7 +458,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
 
         @Override
         public int compareCurrentValues(IndexEntriesReader other) {
-            var otherReader = (NativeIndexEntriesReader) other;
+            //noinspection unchecked
+            NativeIndexEntriesReader otherReader = (NativeIndexEntriesReader) other;
             return layout.compareValue(seeker.key(), otherReader.seeker.key());
         }
 

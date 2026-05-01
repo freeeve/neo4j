@@ -146,7 +146,7 @@ public abstract sealed class TokenScanValueIndexProgressor implements IndexProgr
             throw new UncheckedIOException(e);
         }
 
-        var key = cursor.key();
+        TokenScanKey key = cursor.key();
         baseEntityId = idLayout.firstIdOfRange(key.idRange);
         bits = cursor.value().bits;
         assert key.tokenId == tokenId;

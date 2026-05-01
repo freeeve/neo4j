@@ -59,7 +59,7 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>> implements IndexUpdate
     @Override
     public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
         assertOpen();
-        var valueUpdate = asValueUpdate(update);
+        ValueIndexEntryUpdate valueUpdate = asValueUpdate(update);
         processUpdate(treeKey, valueUpdate, writer, conflictDetectingValueMerger, ignoreStrategy);
     }
 

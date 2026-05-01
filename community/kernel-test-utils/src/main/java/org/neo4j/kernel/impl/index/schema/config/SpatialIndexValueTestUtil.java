@@ -34,7 +34,7 @@ public class SpatialIndexValueTestUtil {
         SpaceFillingCurveSettings spaceFillingCurveSettings = configuredCache.forCRS(CoordinateReferenceSystem.WGS_84);
         SpaceFillingCurve curve = spaceFillingCurveSettings.curve();
         double[] origin = {0.0, 0.0};
-        Long spaceFillingCurveMapForOrigin = curve.derivedValueFor(origin);
+        long spaceFillingCurveMapForOrigin = curve.derivedValueFor(origin);
         double[] centerPointForOriginTile = curve.centerPointFor(spaceFillingCurveMapForOrigin);
         PointValue originValue = Values.pointValue(CoordinateReferenceSystem.WGS_84, origin);
         PointValue centerPointValue = Values.pointValue(CoordinateReferenceSystem.WGS_84, centerPointForOriginTile);

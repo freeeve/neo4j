@@ -30,7 +30,7 @@ import org.neo4j.values.storable.ValueGroup;
  * For single-keys please instead use the more efficient {@link RangeKey}.
  */
 final class CompositeRangeKey extends RangeKey {
-    private RangeKey[] states;
+    private final RangeKey[] states;
 
     CompositeRangeKey(int slots) {
         states = new RangeKey[slots];
