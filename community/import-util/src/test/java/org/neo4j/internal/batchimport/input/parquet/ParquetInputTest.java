@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -3827,7 +3828,7 @@ class ParquetInputTest {
                         groups,
                         new ParquetMonitor(System.out)))
                 .isInstanceOf(InputException.class)
-                .hasMessageContaining("Cannot store composite IDs");
+                .hasMessageContaining("Multiple :ID columns share the same property name");
     }
 
     @Test
@@ -3858,6 +3859,330 @@ class ParquetInputTest {
                         new ParquetMonitor(System.out)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("referring to different groups");
+    }
+
+    @Test
+    void shouldHandleCompositeKeySupportInRelationships() throws Exception {
+        // given
+        List<Object[]> data = List.of(
+                new Object[] {"John", "Smith", "London", "Person"},
+                new Object[] {"Bob", "Smith", "New York", "Person"});
+
+        var nodeFileHeader = createHeaderFile(
+                List.of(
+                        "firstName:ID(startGroup){id-type:string}",
+                        "lastName:ID(startGroup){id-type:string}",
+                        ":IGNORE",
+                        ":LABEL"),
+                List.of("firstName", "lastName", "city", ":LABEL"));
+        var nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("city"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                data);
+
+        var nodeFile2Header = createHeaderFile(List.of(":ID(endGroup)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.of(new Object[] {"London", "City"}, new Object[] {"New York", "City"}));
+
+        var relationshipHeader = createHeaderFile(
+                List.of(":START_ID(startGroup)", ":START_ID(startGroup)", ":END_ID(endGroup)", ":IGNORE"),
+                List.of("firstName", "lastName", "city", ":LABEL"));
+        var relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("city"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":IGNORE")),
+                data);
+
+        var idGroups = new Groups();
+        idGroups.getOrCreate("startGroup");
+        idGroups.getOrCreate("endGroup");
+
+        // when
+        var nodeFiles = new LinkedHashMap<Set<String>, List<FileGroup>>();
+        nodeFiles.put(Set.of("Person"), List.of(new FileGroup(nodeFileHeader, nodeFile)));
+        nodeFiles.put(Set.of("City"), List.of(new FileGroup(nodeFile2Header, nodeFile2)));
+        try (var input = createParquetInput(
+                        nodeFiles,
+                        Map.of("LIVES_IN", List.of(new FileGroup(relationshipHeader, relationshipFile))),
+                        STRING,
+                        idGroups,
+                        new ParquetMonitor(System.out));
+                var nodes = input.nodes(Collector.STRICT).iterator();
+                var relationships = input.relationships(Collector.STRICT).iterator(); ) {
+            // then
+            assertNextNode(
+                    nodes,
+                    idGroups.get("startGroup"),
+                    "John%sSmith".formatted(ParquetInput.DELIMITER),
+                    properties("firstName", "John", "lastName", "Smith"),
+                    Set.of("Person"));
+            assertNextNode(
+                    nodes,
+                    idGroups.get("startGroup"),
+                    "Bob%sSmith".formatted(ParquetInput.DELIMITER),
+                    properties("firstName", "Bob", "lastName", "Smith"),
+                    Set.of("Person"));
+            assertNextNode(nodes, idGroups.get("endGroup"), "London", properties(), Set.of("City"));
+            assertNextNode(nodes, idGroups.get("endGroup"), "New York", properties(), Set.of("City"));
+            assertThat(readNext(nodes)).isFalse();
+
+            assertRelationship(
+                    relationships,
+                    idGroups.get("startGroup"),
+                    "John%sSmith".formatted(ParquetInput.DELIMITER),
+                    idGroups.get("endGroup"),
+                    "London",
+                    "LIVES_IN",
+                    properties());
+            assertRelationship(
+                    relationships,
+                    idGroups.get("startGroup"),
+                    "Bob%sSmith".formatted(ParquetInput.DELIMITER),
+                    idGroups.get("endGroup"),
+                    "New York",
+                    "LIVES_IN",
+                    properties());
+            assertThat(readNext(relationships)).isFalse();
+        }
+    }
+
+    @Test
+    void shouldFailWhenStartIdColumnsReferToDifferentGroups() throws Exception {
+        // given
+        var nodeFile1Header = createHeaderFile(
+                List.of("firstName:ID(groupA){id-type:string}", "lastName:ID(groupA){id-type:string}", ":LABEL"),
+                List.of("firstName", "lastName", ":LABEL"));
+        var nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"John", "Smith", "Person"}));
+
+        var nodeFile2Header = createHeaderFile(List.of(":ID(groupB)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"London", "City"}));
+
+        var relationshipHeader = createHeaderFile(
+                List.of(":START_ID(groupA)", ":START_ID(groupB)", ":END_ID(groupB)"),
+                List.of("firstName", "lastName", "name"));
+        var relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name")),
+                List.<Object[]>of(new Object[] {"John", "Smith", "London"}));
+
+        var idGroups = new Groups();
+        idGroups.getOrCreate("groupA");
+        idGroups.getOrCreate("groupB");
+
+        // when/then
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(
+                                Set.of("Person"),
+                                List.of(new FileGroup(nodeFile1Header, nodeFile1)),
+                                Set.of("City"),
+                                List.of(new FileGroup(nodeFile2Header, nodeFile2))),
+                        Map.of("LIVES_IN", List.of(new FileGroup(relationshipHeader, relationshipFile))),
+                        STRING,
+                        idGroups,
+                        new ParquetMonitor(System.out)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(":START_ID columns")
+                .hasMessageContaining("referring to different groups");
+    }
+
+    @Test
+    void shouldFailWhenEndIdColumnsReferToDifferentGroups() throws Exception {
+        // given
+        var nodeFile1Header = createHeaderFile(List.of(":ID(groupA)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"John", "Person"}));
+
+        var nodeFile2Header = createHeaderFile(List.of(":ID(groupB)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"London", "City"}));
+
+        var nodeFile3Header = createHeaderFile(List.of(":ID(groupC)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile3 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"Paris", "Town"}));
+
+        var relationshipHeader = createHeaderFile(
+                List.of(":START_ID(groupA)", ":END_ID(groupB)", ":END_ID(groupC)"),
+                List.of("startName", "endName1", "endName2"));
+        var relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("startName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("endName1"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("endName2")),
+                List.<Object[]>of(new Object[] {"John", "London", "Paris"}));
+
+        var idGroups = new Groups();
+        idGroups.getOrCreate("groupA");
+        idGroups.getOrCreate("groupB");
+        idGroups.getOrCreate("groupC");
+
+        // when/then
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(
+                                Set.of("Person"),
+                                List.of(new FileGroup(nodeFile1Header, nodeFile1)),
+                                Set.of("City"),
+                                List.of(new FileGroup(nodeFile2Header, nodeFile2)),
+                                Set.of("Town"),
+                                List.of(new FileGroup(nodeFile3Header, nodeFile3))),
+                        Map.of("VISITS", List.of(new FileGroup(relationshipHeader, relationshipFile))),
+                        STRING,
+                        idGroups,
+                        new ParquetMonitor(System.out)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(":END_ID columns")
+                .hasMessageContaining("referring to different groups");
+    }
+
+    @Test
+    void shouldFailWhenStartIdColumnCountDoesNotMatchNodeGroupArity() throws Exception {
+        // given: Person node group has 2 ID columns (firstName + lastName)
+        var nodeFile1Header = createHeaderFile(
+                List.of("firstName:ID(groupA){id-type:string}", "lastName:ID(groupA){id-type:string}", ":LABEL"),
+                List.of("firstName", "lastName", ":LABEL"));
+        var nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"John", "Smith", "Person"}));
+
+        var nodeFile2Header = createHeaderFile(List.of(":ID(groupB)", ":LABEL"), List.of("name", ":LABEL"));
+        var nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                List.<Object[]>of(new Object[] {"London", "City"}));
+
+        // Relationship has 3 START_ID columns for groupA, but groupA only has 2 ID columns
+        var relationshipHeader = createHeaderFile(
+                List.of(":START_ID(groupA)", ":START_ID(groupA)", ":START_ID(groupA)", ":END_ID(groupB)"),
+                List.of("firstName", "lastName", "extra", "name"));
+        var relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("firstName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("lastName"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("extra"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name")),
+                List.<Object[]>of(new Object[] {"John", "Smith", "extra", "London"}));
+
+        var idGroups = new Groups();
+        idGroups.getOrCreate("groupA");
+        idGroups.getOrCreate("groupB");
+
+        // when/then
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(
+                                Set.of("Person"),
+                                List.of(new FileGroup(nodeFile1Header, nodeFile1)),
+                                Set.of("City"),
+                                List.of(new FileGroup(nodeFile2Header, nodeFile2))),
+                        Map.of("LIVES_IN", List.of(new FileGroup(relationshipHeader, relationshipFile))),
+                        STRING,
+                        idGroups,
+                        new ParquetMonitor(System.out)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Number of :START_ID columns")
+                .hasMessageContaining("does not match");
     }
 
     @Test

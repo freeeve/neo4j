@@ -2845,6 +2845,99 @@ class ImportCommandTest {
         }
     }
 
+    @Test
+    void shouldHandleParquetInputWithCompositeKeyRelationships() throws Exception {
+        // given
+        // Person nodes: composite ID from firstName + lastName in Person group
+        var personTypes = List.<org.apache.parquet.schema.Type>of(
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("firstName"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("lastName"));
+        var personParquet = createParquetFile(
+                "persons.parquet",
+                personTypes,
+                List.of(new Object[] {"John", "Smith"}, new Object[] {"Jane", "Doe"}, new Object[] {"Bob", "Smith"}));
+        var personHeader = createAndWriteFile("persons-header.csv", Charset.defaultCharset(), writer -> {
+            writer.println("firstName:ID(Person){id-type:string},lastName:ID(Person){id-type:string}");
+            writer.println("firstName,lastName");
+        });
+
+        var cityTypes = List.<org.apache.parquet.schema.Type>of(Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                .as(LogicalTypeAnnotation.stringType())
+                .named("name"));
+        var cityParquet = createParquetFile(
+                "cities.parquet", cityTypes, List.of(new Object[] {"London"}, new Object[] {"Paris"}));
+        var cityHeader = createAndWriteFile("cities-header.csv", Charset.defaultCharset(), writer -> {
+            writer.println("name:ID(City)");
+            writer.println("name");
+        });
+
+        // LIVES_IN relationships: two :START_ID(Person) columns form the composite key group,
+        // one :END_ID(City) column for the target city
+        var relTypes = List.<org.apache.parquet.schema.Type>of(
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("firstName"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("lastName"),
+                Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                        .as(LogicalTypeAnnotation.stringType())
+                        .named("city"));
+        var relParquet = createParquetFile(
+                "lives-in.parquet",
+                relTypes,
+                List.of(new Object[] {"John", "Smith", "London"}, new Object[] {"Jane", "Doe", "Paris"}, new Object[] {
+                    "Bob", "Smith", "London"
+                }));
+        var relHeader = createAndWriteFile("lives-in-header.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":START_ID(Person),:START_ID(Person),:END_ID(City)");
+            writer.println("firstName,lastName,city");
+        });
+
+        // when
+        runImport(
+                "--input-type=parquet",
+                "--id-type=string",
+                "--nodes=Person=" + personHeader.toAbsolutePath() + "," + personParquet.toAbsolutePath(),
+                "--nodes=City=" + cityHeader.toAbsolutePath() + "," + cityParquet.toAbsolutePath(),
+                "--relationships=LIVES_IN=" + relHeader.toAbsolutePath() + "," + relParquet.toAbsolutePath());
+
+        // then
+        GraphDatabaseService db = getDatabaseApi();
+        try (Transaction tx = db.beginTx()) {
+            // 3 Person nodes, each with firstName and lastName stored as properties
+            Map<String, Node> persons = new HashMap<>();
+            try (var it = tx.findNodes(label("Person"))) {
+                it.forEachRemaining(n -> persons.put(n.getProperty("firstName") + " " + n.getProperty("lastName"), n));
+            }
+            assertThat(persons).containsOnlyKeys("John Smith", "Jane Doe", "Bob Smith");
+
+            // 2 City nodes, each with name stored as property (name:ID(City))
+            Map<String, Node> cities = new HashMap<>();
+            try (var it = tx.findNodes(label("City"))) {
+                it.forEachRemaining(n -> cities.put((String) n.getProperty("name"), n));
+            }
+            assertThat(cities).containsOnlyKeys("London", "Paris");
+
+            // Each person has exactly one outgoing LIVES_IN relationship to the correct city
+            Relationship johnRel =
+                    single(persons.get("John Smith").getRelationships(Direction.OUTGOING, withName("LIVES_IN")));
+            assertThat(johnRel.getEndNode().getProperty("name")).isEqualTo("London");
+
+            Relationship janeRel =
+                    single(persons.get("Jane Doe").getRelationships(Direction.OUTGOING, withName("LIVES_IN")));
+            assertThat(janeRel.getEndNode().getProperty("name")).isEqualTo("Paris");
+
+            Relationship bobRel =
+                    single(persons.get("Bob Smith").getRelationships(Direction.OUTGOING, withName("LIVES_IN")));
+            assertThat(bobRel.getEndNode().getProperty("name")).isEqualTo("London");
+        }
+    }
+
     private Path createParquetFile(String name, List<org.apache.parquet.schema.Type> types, List<Object[]> data)
             throws Exception {
         Path path = testDirectory.file(name);

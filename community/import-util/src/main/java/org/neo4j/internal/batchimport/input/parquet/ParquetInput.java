@@ -291,240 +291,309 @@ public class ParquetInput implements Input {
 
         List<ParquetColumnMetadata> columnInfo = new ArrayList<>();
         try {
-            for (Map.Entry<Set<String>, List<FileGroup>> labelsAndNodeFilesEntry : labelsAndNodeFiles.entrySet()) {
-                var labels = labelsAndNodeFilesEntry.getKey();
-                var hasLabelColumn = !labels.isEmpty() && labels.stream().anyMatch(label -> !label.isBlank());
-                var nodeFiles = labelsAndNodeFilesEntry.getValue().stream()
-                        .map(FileGroup::files)
-                        .flatMap(Arrays::stream)
-                        .collect(Collectors.toList());
-
-                for (Path nodeFile : nodeFiles) {
-                    if (processPotentialHeaderFile(nodeFile, nodeFiles, headerContext)) {
-                        headerContext.setHeaderFileExistsFor(labels);
-                        continue;
-                    }
-                    ParquetMetadata metadata;
-                    try {
-                        metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodeFile));
-                    } catch (RuntimeException e) {
-                        throw new RuntimeException(
-                                "Could not read parquet file %s".formatted(nodeFile.toAbsolutePath()), e);
-                    }
-                    var currentColumnInfo = new ArrayList<ParquetColumn>();
-                    var propertyNames = new HashSet<String>();
-                    String previousGroupName = null;
-                    var schema = metadata.getFileMetaData().getSchema();
-                    var columns = schema.getColumns();
-                    if (headerContext.hasHeader(labels)) {
-                        headerContext.ensureAllColumnsExist(
-                                nodeFile,
-                                columns.stream().map(cd -> cd.getPath()[0]).collect(Collectors.toSet()));
-                    }
-                    Set<String> mapColumns = new HashSet<>();
-                    Set<String> structColumns = new HashSet<>();
-                    // check for possible group / ID space definitions and register them
-                    String fileName = nodeFile.getFileName().toString();
-                    for (int i = 0; i < columns.size(); i++) {
-                        ColumnDescriptor columnDescriptor = columns.get(i);
-                        String[] namePath = columnDescriptor.getPath();
-                        var columnName = namePath[0];
-                        var type = schema.getType(columnName);
-
-                        if (columnName.isBlank()) {
-                            throw new InputException("column name must not be blank");
-                        }
-                        try {
-                            // ignore missing column in header definition
-                            if (headerContext.columnShouldBeSkipped(labels, nodeFiles, i, columnName)) {
-                                continue;
-                            }
-                            var parquetColumn = ParquetColumn.from(
-                                    headerContext.getHeaderDefinition(nodeFiles, i, columnName),
-                                    EntityType.NODE,
-                                    columnDescriptor.getPrimitiveType(),
-                                    type.getLogicalTypeAnnotation());
-                            if (parquetColumn.isIgnoredColumn()) {
-                                continue;
-                            }
-                            String propertyName = parquetColumn.propertyName() != null
-                                    ? parquetColumn.propertyName()
-                                    : parquetColumn.logicalColumnType().name();
-                            if (parquetColumn.isIdColumn() && parquetColumn.groupName() != null) {
-                                if (previousGroupName != null && !previousGroupName.equals(parquetColumn.groupName())) {
-                                    throw new IllegalStateException(
-                                            "There are multiple :ID columns, but they are referring to different groups");
-                                }
-                                previousGroupName = parquetColumn.groupName();
-                            }
-
-                            if (propertyNames.contains(propertyName) && parquetColumn.isIdColumn()) {
-                                throw new DuplicatedColumnException(
-                                        "Cannot store composite IDs as properties, only individual part. Property %s / File: %s"
-                                                .formatted(propertyName, fileName));
-                            }
-                            var firstPropertyNamePart =
-                                    propertyName.contains(".") ? propertyName.split("\\.")[0] : propertyName;
-
-                            if ((propertyNames.contains(propertyName) || propertyNames.contains(firstPropertyNamePart))
-                                    && !mapColumns.contains(propertyName)
-                                    && !structColumns.contains(propertyName)) {
-                                throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
-                                        .formatted(propertyName, fileName));
-                            }
-                            propertyNames.add(propertyName);
-
-                            if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.ID) {
-                                var group = groups.getOrCreate(parquetColumn.groupName());
-                                var columnIdType = parquetColumn.columnIdType();
-                                if (columnIdType != null) {
-                                    groups.bindIdType(group, parquetColumn.propertyName(), columnIdType.name());
-                                }
-                            }
-                            if (parquetColumn.columnType().needsConversion()) {
-                                monitor.typeNormalized(
-                                        fileName,
-                                        propertyName,
-                                        parquetColumn.columnType().name(),
-                                        parquetColumn
-                                                .columnType()
-                                                .convertedType()
-                                                .name());
-                            }
-                            if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.LABEL) {
-                                hasLabelColumn = true;
-                            }
-                            // Avoid duplicate columns
-                            if (!mapColumns.contains(propertyName)) {
-                                currentColumnInfo.add(parquetColumn);
-                            }
-                            if (namePath.length > 1 && "key_value".equals(namePath[1])) {
-                                mapColumns.add(propertyName);
-                            } else if (namePath.length > 1) {
-                                structColumns.add(propertyName);
-                            }
-                        } catch (IllegalArgumentException e) {
-                            throw new InputException(
-                                    "Column name " + columnName
-                                            + " is used as a special type but is unknown. Allowed types are "
-                                            + ParquetColumn.getReservedColumns(EntityType.NODE),
-                                    e);
-                        }
-                    }
-                    if (!hasLabelColumn) {
-                        monitor.noNodeLabelsSpecified(fileName);
-                    }
-                    var metadataKey = new ParquetColumnMetadataKey(nodeFile, extractExternalLabels(labels));
-                    columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.NODE, currentColumnInfo));
-                }
-            }
-            for (Map.Entry<String, List<FileGroup>> typeAndRelationshipFilesEntry :
-                    typeAndRelationshipFiles.entrySet()) {
-                var relType = typeAndRelationshipFilesEntry.getKey();
-                var hasTypeColumn = relType != null && !relType.isBlank();
-                // parse all relationship headers and verify all ID spaces
-                var relationshipFileList = typeAndRelationshipFilesEntry.getValue().stream()
-                        .map(FileGroup::files)
-                        .flatMap(Arrays::stream)
-                        .collect(Collectors.toList());
-                Set<String> mapColumns = new HashSet<>();
-                Set<String> structColumns = new HashSet<>();
-                for (Path relationshipFile : relationshipFileList) {
-                    if (processPotentialHeaderFile(relationshipFile, relationshipFileList, headerContext)) {
-                        headerContext.setHeaderFileExistsFor(relType);
-                        continue;
-                    }
-                    ParquetMetadata metadata;
-                    try {
-                        metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipFile));
-                    } catch (RuntimeException e) {
-                        throw new RuntimeException(
-                                "Could not read parquet file %s".formatted(relationshipFile.toAbsolutePath()), e);
-                    }
-                    var currentColumnInfo = new ArrayList<ParquetColumn>();
-                    var propertyNames = new HashSet<String>();
-                    var schema = metadata.getFileMetaData().getSchema();
-                    var columns = schema.getColumns();
-                    String fileName = relationshipFile.getFileName().toString();
-                    for (int i = 0; i < columns.size(); i++) {
-                        ColumnDescriptor columnDescriptor = columns.get(i);
-                        String[] namePath = columnDescriptor.getPath();
-                        var columnName = namePath[0];
-
-                        var type = schema.getType(columnName);
-
-                        try {
-                            if (headerContext.columnShouldBeSkipped(relType, relationshipFileList, i, columnName)) {
-                                continue;
-                            }
-                            var parquetColumn = ParquetColumn.from(
-                                    headerContext.getHeaderDefinition(relationshipFileList, i, columnName),
-                                    EntityType.RELATIONSHIP,
-                                    columnDescriptor.getPrimitiveType(),
-                                    type.getLogicalTypeAnnotation());
-                            if (parquetColumn.isIgnoredColumn()) {
-                                continue;
-                            }
-                            String propertyName = parquetColumn.propertyName() != null
-                                    ? parquetColumn.propertyName()
-                                    : parquetColumn.logicalColumnType().name();
-                            if (propertyNames.contains(propertyName)
-                                    && !mapColumns.contains(propertyName)
-                                    && !structColumns.contains(propertyName)) {
-                                throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
-                                        .formatted(propertyName, fileName));
-                            }
-                            propertyNames.add(propertyName);
-                            if (parquetColumn.columnType().needsConversion()) {
-                                monitor.typeNormalized(
-                                        fileName,
-                                        propertyName,
-                                        parquetColumn.columnType().name(),
-                                        parquetColumn
-                                                .columnType()
-                                                .convertedType()
-                                                .name());
-                            }
-                            if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.START_ID
-                                    || parquetColumn.logicalColumnType() == ParquetLogicalColumnType.END_ID) {
-                                try {
-                                    groups.get(parquetColumn.groupName());
-                                } catch (HeaderException e) {
-                                    throw new InputException(e.getMessage());
-                                }
-                            }
-                            if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.TYPE) {
-                                hasTypeColumn = true;
-                            }
-                            // Avoid duplicate columns
-                            if (!mapColumns.contains(propertyName)) {
-                                currentColumnInfo.add(parquetColumn);
-                            }
-                            if (namePath.length > 1 && "key_value".equals(namePath[1])) {
-                                mapColumns.add(propertyName);
-                            }
-                            if (namePath.length > 1) {
-                                structColumns.add(propertyName);
-                            }
-                        } catch (IllegalArgumentException e) {
-                            throw new InputException("Column name " + columnName
-                                    + " is used as a special type but is unknown. Allowed types are "
-                                    + ParquetColumn.getReservedColumns(EntityType.RELATIONSHIP));
-                        }
-                    }
-                    var metadataKey = new ParquetColumnMetadataKey(relationshipFile, extractExternalRelType(relType));
-                    columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.RELATIONSHIP, currentColumnInfo));
-
-                    if (!hasTypeColumn) {
-                        monitor.noRelationshipTypeSpecified(fileName);
-                    }
-                }
-            }
+            var numberOfIdsPerGroup = verifyNodes(labelsAndNodeFiles, headerContext, columnInfo);
+            verifyRelationships(typeAndRelationshipFiles, headerContext, columnInfo, numberOfIdsPerGroup);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
 
         return columnInfo;
+    }
+
+    private Map<String, Integer> verifyNodes(
+            Map<Set<String>, List<FileGroup>> labelsAndNodeFiles,
+            HeaderContext headerContext,
+            List<ParquetColumnMetadata> columnInfo)
+            throws IOException {
+        var numberOfIdsPerGroup = new HashMap<String, Integer>();
+        for (Map.Entry<Set<String>, List<FileGroup>> labelsAndNodeFilesEntry : labelsAndNodeFiles.entrySet()) {
+            var labels = labelsAndNodeFilesEntry.getKey();
+            var hasLabelColumn = !labels.isEmpty() && labels.stream().anyMatch(label -> !label.isBlank());
+            var nodeFiles = labelsAndNodeFilesEntry.getValue().stream()
+                    .map(FileGroup::files)
+                    .flatMap(Arrays::stream)
+                    .collect(Collectors.toList());
+
+            for (Path nodeFile : nodeFiles) {
+                if (processPotentialHeaderFile(nodeFile, nodeFiles, headerContext)) {
+                    headerContext.setHeaderFileExistsFor(labels);
+                    continue;
+                }
+                ParquetMetadata metadata;
+                try {
+                    metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodeFile));
+                } catch (RuntimeException e) {
+                    throw new RuntimeException(
+                            "Could not read parquet file %s".formatted(nodeFile.toAbsolutePath()), e);
+                }
+                var currentColumnInfo = new ArrayList<ParquetColumn>();
+                var propertyNames = new HashSet<String>();
+                String previousGroupName = null;
+                int idColumnCount = 0;
+                var schema = metadata.getFileMetaData().getSchema();
+                var columns = schema.getColumns();
+                if (headerContext.hasHeader(labels)) {
+                    headerContext.ensureAllColumnsExist(
+                            nodeFile,
+                            columns.stream().map(cd -> cd.getPath()[0]).collect(Collectors.toSet()));
+                }
+                Set<String> mapColumns = new HashSet<>();
+                Set<String> structColumns = new HashSet<>();
+                // check for possible group / ID space definitions and register them
+                String fileName = nodeFile.getFileName().toString();
+                for (int i = 0; i < columns.size(); i++) {
+                    ColumnDescriptor columnDescriptor = columns.get(i);
+                    String[] namePath = columnDescriptor.getPath();
+                    var columnName = namePath[0];
+                    var type = schema.getType(columnName);
+
+                    if (columnName.isBlank()) {
+                        throw new InputException("column name must not be blank");
+                    }
+                    try {
+                        // ignore missing column in header definition
+                        if (headerContext.columnShouldBeSkipped(labels, nodeFiles, i, columnName)) {
+                            continue;
+                        }
+                        var parquetColumn = ParquetColumn.from(
+                                headerContext.getHeaderDefinition(nodeFiles, i, columnName),
+                                EntityType.NODE,
+                                columnDescriptor.getPrimitiveType(),
+                                type.getLogicalTypeAnnotation());
+                        if (parquetColumn.isIgnoredColumn()) {
+                            continue;
+                        }
+                        String propertyName = parquetColumn.propertyName() != null
+                                ? parquetColumn.propertyName()
+                                : parquetColumn.logicalColumnType().name();
+                        if (parquetColumn.isIdColumn() && parquetColumn.groupName() != null) {
+                            if (previousGroupName != null && !previousGroupName.equals(parquetColumn.groupName())) {
+                                throw new IllegalStateException(
+                                        "There are multiple :ID columns, but they are referring to different groups");
+                            }
+                            previousGroupName = parquetColumn.groupName();
+                        }
+                        if (parquetColumn.isIdColumn()) {
+                            idColumnCount++;
+                        }
+                        if (propertyNames.contains(propertyName) && parquetColumn.isIdColumn()) {
+                            throw new DuplicatedColumnException(
+                                    "Multiple :ID columns share the same property name '%s' in file '%s'. Each part of a composite ID must have a unique property name."
+                                            .formatted(propertyName, fileName));
+                        }
+                        var firstPropertyNamePart =
+                                propertyName.contains(".") ? propertyName.split("\\.")[0] : propertyName;
+
+                        if ((propertyNames.contains(propertyName) || propertyNames.contains(firstPropertyNamePart))
+                                && !mapColumns.contains(propertyName)
+                                && !structColumns.contains(propertyName)) {
+                            throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
+                                    .formatted(propertyName, fileName));
+                        }
+                        propertyNames.add(propertyName);
+
+                        if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.ID) {
+                            var group = groups.getOrCreate(parquetColumn.groupName());
+                            var columnIdType = parquetColumn.columnIdType();
+                            if (columnIdType != null) {
+                                groups.bindIdType(group, parquetColumn.propertyName(), columnIdType.name());
+                            }
+                        }
+                        if (parquetColumn.columnType().needsConversion()) {
+                            monitor.typeNormalized(
+                                    fileName,
+                                    propertyName,
+                                    parquetColumn.columnType().name(),
+                                    parquetColumn.columnType().convertedType().name());
+                        }
+                        if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.LABEL) {
+                            hasLabelColumn = true;
+                        }
+                        // Avoid duplicate columns
+                        if (!mapColumns.contains(propertyName)) {
+                            currentColumnInfo.add(parquetColumn);
+                        }
+                        if (namePath.length > 1 && "key_value".equals(namePath[1])) {
+                            mapColumns.add(propertyName);
+                        } else if (namePath.length > 1) {
+                            structColumns.add(propertyName);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        throw new InputException(
+                                "Column '%s' in node file '%s' is not a recognised type. Expected one of: %s"
+                                        .formatted(
+                                                columnName,
+                                                fileName,
+                                                ParquetColumn.getReservedColumns(EntityType.NODE)),
+                                e);
+                    }
+                }
+                if (!hasLabelColumn) {
+                    monitor.noNodeLabelsSpecified(fileName);
+                }
+                if (previousGroupName != null && idColumnCount > 0) {
+                    final int count = idColumnCount;
+                    numberOfIdsPerGroup.merge(
+                            previousGroupName,
+                            count,
+                            (existing, newCount) -> existing.equals(newCount) ? existing : -1);
+                }
+                var metadataKey = new ParquetColumnMetadataKey(nodeFile, extractExternalLabels(labels));
+                columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.NODE, currentColumnInfo));
+            }
+        }
+        return numberOfIdsPerGroup;
+    }
+
+    private void verifyRelationships(
+            Map<String, List<FileGroup>> typeAndRelationshipFiles,
+            HeaderContext headerContext,
+            List<ParquetColumnMetadata> columnInfo,
+            Map<String, Integer> numberOfIdsPerGroup)
+            throws IOException {
+        for (Map.Entry<String, List<FileGroup>> typeAndRelationshipFilesEntry : typeAndRelationshipFiles.entrySet()) {
+            var relType = typeAndRelationshipFilesEntry.getKey();
+            var hasTypeColumn = relType != null && !relType.isBlank();
+            // parse all relationship headers and verify all ID spaces
+            var relationshipFileList = typeAndRelationshipFilesEntry.getValue().stream()
+                    .map(FileGroup::files)
+                    .flatMap(Arrays::stream)
+                    .collect(Collectors.toList());
+            Set<String> mapColumns = new HashSet<>();
+            Set<String> structColumns = new HashSet<>();
+            for (Path relationshipFile : relationshipFileList) {
+                if (processPotentialHeaderFile(relationshipFile, relationshipFileList, headerContext)) {
+                    headerContext.setHeaderFileExistsFor(relType);
+                    continue;
+                }
+                ParquetMetadata metadata;
+                try {
+                    metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipFile));
+                } catch (RuntimeException e) {
+                    throw new RuntimeException(
+                            "Could not read parquet file %s".formatted(relationshipFile.toAbsolutePath()), e);
+                }
+                var currentColumnInfo = new ArrayList<ParquetColumn>();
+                var propertyNames = new HashSet<String>();
+                var schema = metadata.getFileMetaData().getSchema();
+                var columns = schema.getColumns();
+                String fileName = relationshipFile.getFileName().toString();
+                String startIdGroup = null;
+                String endIdGroup = null;
+                int numStartIds = 0;
+                int numEndIds = 0;
+                for (int i = 0; i < columns.size(); i++) {
+                    ColumnDescriptor columnDescriptor = columns.get(i);
+                    String[] namePath = columnDescriptor.getPath();
+                    var columnName = namePath[0];
+
+                    var type = schema.getType(columnName);
+
+                    try {
+                        if (headerContext.columnShouldBeSkipped(relType, relationshipFileList, i, columnName)) {
+                            continue;
+                        }
+                        var parquetColumn = ParquetColumn.from(
+                                headerContext.getHeaderDefinition(relationshipFileList, i, columnName),
+                                EntityType.RELATIONSHIP,
+                                columnDescriptor.getPrimitiveType(),
+                                type.getLogicalTypeAnnotation());
+                        if (parquetColumn.isIgnoredColumn()) {
+                            continue;
+                        }
+                        String propertyName = parquetColumn.propertyName() != null
+                                ? parquetColumn.propertyName()
+                                : parquetColumn.logicalColumnType().name();
+                        if (propertyNames.contains(propertyName)
+                                && !mapColumns.contains(propertyName)
+                                && !structColumns.contains(propertyName)
+                                && !parquetColumn.isStartId()
+                                && !parquetColumn.isEndId()) {
+                            throw new DuplicatedColumnException("Duplicated header property %s found in file %s."
+                                    .formatted(propertyName, fileName));
+                        }
+                        propertyNames.add(propertyName);
+                        if (parquetColumn.columnType().needsConversion()) {
+                            monitor.typeNormalized(
+                                    fileName,
+                                    propertyName,
+                                    parquetColumn.columnType().name(),
+                                    parquetColumn.columnType().convertedType().name());
+                        }
+                        if (parquetColumn.isStartId()) {
+                            try {
+                                groups.get(parquetColumn.groupName());
+                            } catch (HeaderException e) {
+                                throw new InputException(e.getMessage());
+                            }
+                            if (startIdGroup != null && !startIdGroup.equals(parquetColumn.groupName())) {
+                                throw new IllegalStateException(
+                                        "Relationship '%s' has multiple :START_ID columns referring to different groups: '%s' and '%s'. All :START_ID columns must belong to the same group."
+                                                .formatted(relType, startIdGroup, parquetColumn.groupName()));
+                            }
+                            startIdGroup = parquetColumn.groupName();
+                            numStartIds++;
+                        } else if (parquetColumn.isEndId()) {
+                            try {
+                                groups.get(parquetColumn.groupName());
+                            } catch (HeaderException e) {
+                                throw new InputException(e.getMessage());
+                            }
+                            if (endIdGroup != null && !endIdGroup.equals(parquetColumn.groupName())) {
+                                throw new IllegalStateException(
+                                        "Relationship '%s' has multiple :END_ID columns referring to different groups: '%s' and '%s'. All :END_ID columns must belong to the same group."
+                                                .formatted(relType, endIdGroup, parquetColumn.groupName()));
+                            }
+                            endIdGroup = parquetColumn.groupName();
+                            numEndIds++;
+                        }
+                        if (parquetColumn.logicalColumnType() == ParquetLogicalColumnType.TYPE) {
+                            hasTypeColumn = true;
+                        }
+                        // Avoid duplicate columns
+                        if (!mapColumns.contains(propertyName)) {
+                            currentColumnInfo.add(parquetColumn);
+                        }
+                        if (namePath.length > 1 && "key_value".equals(namePath[1])) {
+                            mapColumns.add(propertyName);
+                        }
+                        if (namePath.length > 1) {
+                            structColumns.add(propertyName);
+                        }
+                    } catch (IllegalArgumentException e) {
+                        throw new InputException(
+                                "Column '%s' in relationship file '%s' is not a recognised type. Expected one of: %s"
+                                        .formatted(
+                                                columnName,
+                                                fileName,
+                                                ParquetColumn.getReservedColumns(EntityType.RELATIONSHIP)),
+                                e);
+                    }
+                }
+                if (numStartIds > 1) {
+                    var expectedCount = numberOfIdsPerGroup.get(startIdGroup);
+                    if (expectedCount != null && expectedCount != -1 && expectedCount != numStartIds) {
+                        throw new IllegalStateException(
+                                "Number of :START_ID columns (%d) does not match the number of :ID columns (%d) in node group '%s'"
+                                        .formatted(numStartIds, expectedCount, startIdGroup));
+                    }
+                }
+                if (numEndIds > 1) {
+                    var expectedCount = numberOfIdsPerGroup.get(endIdGroup);
+                    if (expectedCount != null && expectedCount != -1 && expectedCount != numEndIds) {
+                        throw new IllegalStateException(
+                                "Number of :END_ID columns (%d) does not match the number of :ID columns (%d) in node group '%s'"
+                                        .formatted(numEndIds, expectedCount, endIdGroup));
+                    }
+                }
+                var metadataKey = new ParquetColumnMetadataKey(relationshipFile, extractExternalRelType(relType));
+                columnInfo.add(new ParquetColumnMetadata(metadataKey, EntityType.RELATIONSHIP, currentColumnInfo));
+
+                if (!hasTypeColumn) {
+                    monitor.noRelationshipTypeSpecified(fileName);
+                }
+            }
+        }
     }
 
     private static Set<String> extractExternalLabels(Set<String> labels) {
