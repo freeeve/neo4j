@@ -105,7 +105,7 @@ abstract class UpdatingSystemCommandExecutionPlanBase(
       assertPrivilegeAction(tx)
 
       val (updatedParams, notifications) =
-        parameterTransformer.transform(tx, securityContext, systemParams, params)
+        parameterTransformer.transform(tx, securityContext, systemParams.updatedWith(ctx.contextVars), params)
       val systemSubscriber =
         new SystemCommandQuerySubscriber(ctx, new RowDroppingQuerySubscriber(subscriber), queryHandler, updatedParams)
       assertCanWrite(tc, systemSubscriber)
