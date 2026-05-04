@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher
+package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolve
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.SingleComponentPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.cartesianProductsOrValueJoins
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.ExistsSubqueryPlannerWithCaching
+import org.neo4j.cypher.internal.compiler.test_helpers.PatternGen
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -47,7 +48,7 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
     testPlanner(solver)
   }
 
-  def testPlanner(solver: QueryGraphSolver) = {
+  private def testPlanner(solver: QueryGraphSolver) = {
     forAll(patterns) { pattern =>
       // reset naming sequence number
       nameSeq.set(0)
@@ -68,7 +69,7 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
     }
   }
 
-  def logicalPlan(cypherQuery: String, solver: QueryGraphSolver) = {
+  private def logicalPlan(cypherQuery: String, solver: QueryGraphSolver) = {
     val semanticPlan = new givenConfig {
       cardinality = mapCardinality {
         // expand - cheap
@@ -83,7 +84,7 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
     semanticPlan._1
   }
 
-  def joinSymbolsIn(plan: LogicalPlan) = {
+  private def joinSymbolsIn(plan: LogicalPlan) = {
     val flattenedPlan = plan.folder.treeFold(Seq.empty[LogicalPlan]) {
       case logicalPlan: LogicalPlan => acc => TraverseChildren(acc :+ logicalPlan)
     }
@@ -109,7 +110,7 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
     Some(joinNodeName)
   }
 
-  def relGen = Gen.oneOf(
+  override def relGen = Gen.oneOf(
     emptyRelGen,
     emptyRelWithLengthGen,
     namedRelGen,
@@ -120,6 +121,6 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
     namedTypedRelWithLengthGen
   )
 
-  def nodeGen = Gen.oneOf(emptyNodeGen, namedNodeGen, labeledNodeGen, namedLabeledNodeGen)
+  override def nodeGen = Gen.oneOf(emptyNodeGen, namedNodeGen, labeledNodeGen, namedLabeledNodeGen)
 
 }

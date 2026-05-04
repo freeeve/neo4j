@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.plandescription
 import org.neo4j.cypher.QueryPlanTestSupport.StubExecutionPlan
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.compiler.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.builder.IndexSeek.nodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans
@@ -62,8 +61,7 @@ import org.scalatest.BeforeAndAfterAll
 
 import java.util.Locale
 
-class RenderAsTreeTableTest extends CypherFunSuite with BeforeAndAfterAll with AstConstructionTestSupport
-    with LogicalPlanConstructionTestSupport {
+class RenderAsTreeTableTest extends CypherFunSuite with BeforeAndAfterAll with AstConstructionTestSupport {
   implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   private val defaultLocale = Locale.getDefault
@@ -79,7 +77,7 @@ class RenderAsTreeTableTest extends CypherFunSuite with BeforeAndAfterAll with A
   }
 
   private val id: Id = Id(42)
-  implicit override val idGen: IdGen = SameId(Id(1))
+  implicit private val idGen: IdGen = SameId(Id(1))
 
   test("node feeding from other node") {
     val leaf = planDescription(id, "LEAF", Seq.empty, Seq.empty, Set())
