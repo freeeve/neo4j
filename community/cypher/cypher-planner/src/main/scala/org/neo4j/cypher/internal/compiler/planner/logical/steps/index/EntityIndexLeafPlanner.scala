@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
@@ -395,7 +395,7 @@ trait PredicateSet {
         )
     }
 
-  private def matchingHints(hints: ListSet[Hint]): Set[UsingIndexHint] = {
+  private def matchingHints(hints: ListSet[IrHint]): Set[UsingIndexHint] = {
     val propertyNames = propertyPredicates.map(_.indexCompatiblePredicate.propertyKeyName.name)
     val localVariableName = variable
     val entityTypeName = symbolicName.name
@@ -419,7 +419,7 @@ trait PredicateSet {
       case _                                      => false
     }
 
-  def fulfilledHints(allHints: ListSet[Hint], indexType: IndexType, planIsScan: Boolean): Set[UsingIndexHint] =
+  def fulfilledHints(allHints: ListSet[IrHint], indexType: IndexType, planIsScan: Boolean): Set[UsingIndexHint] =
     matchingHints(allHints)
       .filter(fulfilledByIndexType(indexType))
       .filter(!planIsScan || _.spec.fulfilledByScan)

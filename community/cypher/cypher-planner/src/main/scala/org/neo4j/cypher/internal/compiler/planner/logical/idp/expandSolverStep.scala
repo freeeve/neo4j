@@ -267,7 +267,8 @@ object expandSolverStep {
           otherSide,
           pr,
           expansionMode,
-          context
+          context,
+          qg.hints
         )
       case PatternRelationship(_, _, _, _, varLength: VarPatternLength) =>
         val availablePredicates: collection.Seq[Expression] =
@@ -299,7 +300,8 @@ object expandSolverStep {
             solvedPredicates = solvedPredicates,
             expansionMode = expansionMode,
             pathMode = pathMode,
-            context = context
+            context = context,
+            hints = qg.hints
           )
 
         heuristicForExpandIntoVsAll(

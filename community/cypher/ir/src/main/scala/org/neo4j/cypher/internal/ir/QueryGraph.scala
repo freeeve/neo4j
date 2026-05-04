@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.ir
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathAll
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathHint
@@ -67,7 +67,7 @@ final case class QueryGraph private (
   argumentIds: Set[LogicalVariable] = Set.empty,
   selections: Selections = Selections(),
   optionalMatches: ListSet[QueryGraph] = ListSet.empty,
-  hints: ListSet[Hint] = ListSet.empty,
+  hints: ListSet[IrHint] = ListSet.empty,
   shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
   mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
   selectivePathPatterns: Set[SelectivePathPattern] = Set.empty,
@@ -83,7 +83,7 @@ final case class QueryGraph private (
     argumentIds: Set[LogicalVariable] = argumentIds,
     selections: Selections = selections,
     optionalMatches: ListSet[QueryGraph] = optionalMatches,
-    hints: ListSet[Hint] = hints,
+    hints: ListSet[IrHint] = hints,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = shortestRelationshipPatterns,
     mutatingPatterns: IndexedSeq[MutatingPattern] = mutatingPatterns,
     selectivePathPatterns: Set[SelectivePathPattern] = selectivePathPatterns,
@@ -120,7 +120,7 @@ final case class QueryGraph private (
 
   def withSelections(selections: Selections): QueryGraph = copy(selections = selections)
 
-  def withHints(hints: ListSet[Hint]): QueryGraph = copy(hints = hints)
+  def withHints(hints: ListSet[IrHint]): QueryGraph = copy(hints = hints)
 
   /**
    * Sets both patternNodes and patternRelationships from this pattern relationship. Compare with `addPatternRelationship`.
@@ -263,7 +263,7 @@ final case class QueryGraph private (
     copy(selections = newSelections)
   }
 
-  def addHints(addedHints: IterableOnce[Hint]): QueryGraph = {
+  def addHints(addedHints: IterableOnce[IrHint]): QueryGraph = {
     copy(hints = hints ++ addedHints)
   }
 
@@ -299,8 +299,8 @@ final case class QueryGraph private (
     copy(selections = newSelections)
   }
 
-  def removeHints(hintsToIgnore: ListSet[Hint]): QueryGraph = copy(
-    hints = hints.diff(hintsToIgnore),
+  def removeHints(hintsToIgnore: Iterable[IrHint]): QueryGraph = copy(
+    hints = hints.removedAll(hintsToIgnore),
     optionalMatches = optionalMatches.map(_.removeHints(hintsToIgnore))
   )
 
@@ -460,7 +460,7 @@ final case class QueryGraph private (
     idsWithoutOptionalMatchesOrUpdates ++ otherSymbols
   }
 
-  def allHints: ListSet[Hint] =
+  def allHints: ListSet[IrHint] =
     hints ++ optionalMatches.flatMap(_.allHints)
 
   def ++(other: QueryGraph): QueryGraph = {
@@ -760,7 +760,7 @@ final case class QueryGraph private (
     addSetIfNonEmpty(selections.flatPredicates, "Predicates", (e: Expression) => QueryGraph.stringifier.apply(e))
     addSetIfNonEmpty(shortestRelationshipPatterns, "Shortest relationships", (_: ShortestRelationshipPattern).toString)
     addSetIfNonEmpty(optionalMatches, "Optional Matches: ", (_: QueryGraph).toString)
-    addSetIfNonEmpty(hints, "Hints", (_: Hint).toString)
+    addSetIfNonEmpty(hints, "Hints", (_: IrHint).toString)
     addSetIfNonEmpty(mutatingPatterns, "MutatingPatterns", (_: MutatingPattern).toString)
     addSetIfNonEmpty(selectivePathPatterns, "SelectivePathPatterns", (_: SelectivePathPattern).toString)
     addOptionIfNonEmpty(searchClause, "Search Clause", (_: SearchClause).toString)
@@ -843,7 +843,7 @@ object QueryGraph {
     argumentIds: Set[LogicalVariable] = Set.empty,
     selections: Selections = Selections(),
     optionalMatches: ListSet[QueryGraph] = ListSet.empty,
-    hints: ListSet[Hint] = ListSet.empty,
+    hints: ListSet[IrHint] = ListSet.empty,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
     mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
     selectivePathPatterns: Set[SelectivePathPattern] = Set.empty,

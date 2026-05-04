@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ShardPredicatePushdownPartition
 import org.neo4j.cypher.internal.compiler.planner.logical.SpdSelections
@@ -242,7 +243,15 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
 
       val exp2PR = getPatternRelationshipFromExpand(exp2, qg)
       val right =
-        planRhs(updatedContext, exp1.relName, exp2, exp2PR, left.id, exp2WithSelections.predicatesOnMainBeforeRBP)
+        planRhs(
+          updatedContext,
+          exp1.relName,
+          exp2,
+          exp2PR,
+          left.id,
+          exp2WithSelections.predicatesOnMainBeforeRBP,
+          qg.hints
+        )
 
       val triadicSelection = updatedContext.staticComponents.logicalPlanProducer.planTriadicSelection(
         positivePredicate,
@@ -290,7 +299,8 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
     exp2: Expand,
     exp2PatternRelationship: PatternRelationship,
     lhsId: Id,
-    incomingPredicates: Seq[Expression]
+    incomingPredicates: Seq[Expression],
+    hints: Iterable[IrHint]
   ): LogicalPlan = {
     val argument = context.staticComponents.logicalPlanProducer.planArgument(
       patternNodes = Set(exp2.from),
@@ -306,7 +316,8 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
         exp2.to,
         exp2PatternRelationship,
         ExpandAll,
-        context
+        context,
+        hints
       )
 
     if (incomingPredicates.nonEmpty)

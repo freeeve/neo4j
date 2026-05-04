@@ -950,7 +950,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def optionalExpandAll(pattern: String, predicate: Option[String] = None): IMPL =
     optionalExpandAll(
       patternParser.parse(pattern),
-      predicate.map(parseExpression).map(p => Ands(ListSet(p))(p.position))
+      predicate
+        .map(parseExpression)
+        .map {
+          case ands: Ands => ands
+          case p          => Ands(ListSet(p))(p.position)
+        }
     )
 
   private def optionalExpandAll(pattern: PatternParser.Pattern, predicate: Option[Expression]): IMPL = {

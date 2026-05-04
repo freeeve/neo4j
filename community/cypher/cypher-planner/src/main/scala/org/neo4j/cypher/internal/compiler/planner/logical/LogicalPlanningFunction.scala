@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
@@ -93,7 +93,7 @@ object LabelScanLeafPlanner {
    * @param labels   the labels to prune
    */
   def getHintsAndHintedLabels(
-    hints: ListSet[Hint],
+    hints: ListSet[IrHint],
     variable: Variable,
     labels: Iterable[LabelName]
   ): HintsAndHintedLabels = {

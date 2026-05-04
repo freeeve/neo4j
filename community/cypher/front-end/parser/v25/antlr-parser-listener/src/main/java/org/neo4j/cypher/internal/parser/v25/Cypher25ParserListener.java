@@ -119,6 +119,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitHint(Cypher25Parser.HintContext ctx);
 
+    void exitExpandHintStep(Cypher25Parser.ExpandHintStepContext ctx);
+
     void exitMergeClause(Cypher25Parser.MergeClauseContext ctx);
 
     void exitMergeAction(Cypher25Parser.MergeActionContext ctx);

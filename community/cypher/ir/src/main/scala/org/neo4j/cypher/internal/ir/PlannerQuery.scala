@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.ir
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -42,11 +42,11 @@ sealed trait PlannerQuery {
   def readOnly: Boolean
   def returns: Set[LogicalVariable]
 
-  def allHints: ListSet[Hint]
-  def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery
+  def allHints: ListSet[IrHint]
+  def withoutHints(hintsToIgnore: ListSet[IrHint]): PlannerQuery
   def withoutImpliedExpressions: PlannerQuery
   def numHints: Int
-  def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A
+  def visitHints[A](acc: A)(f: (A, IrHint, QueryGraph) => A): A
 
   /**
    * Use this method when you are certain that you are dealing with a SinglePlannerQuery, and not a UnionQuery.
@@ -83,9 +83,9 @@ case class UnionQuery(
     }.get
   }
 
-  override def allHints: ListSet[Hint] = lhs.allHints ++ rhs.allHints
+  override def allHints: ListSet[IrHint] = lhs.allHints ++ rhs.allHints
 
-  override def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery = copy(
+  override def withoutHints(hintsToIgnore: ListSet[IrHint]): PlannerQuery = copy(
     lhs = lhs.withoutHints(hintsToIgnore),
     rhs = rhs.withoutHints(hintsToIgnore)
   )
@@ -97,7 +97,7 @@ case class UnionQuery(
 
   override def numHints: Int = lhs.numHints + rhs.numHints
 
-  override def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A = {
+  override def visitHints[A](acc: A)(f: (A, IrHint, QueryGraph) => A): A = {
     val queryAcc = rhs.visitHints(acc)(f)
     lhs.visitHints(queryAcc)(f)
   }
@@ -176,7 +176,7 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
       queryGraph = queryGraph.withArgumentIds(queryGraph.argumentIds ++ queryInput)
     )
 
-  override def withoutHints(hintsToIgnore: ListSet[Hint]): SinglePlannerQuery = {
+  override def withoutHints(hintsToIgnore: ListSet[IrHint]): SinglePlannerQuery = {
     copy(
       queryGraph = queryGraph.removeHints(hintsToIgnore),
       horizon = horizon.withoutHints(hintsToIgnore),
@@ -238,12 +238,12 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
 
   def isCoveredByHints(other: SinglePlannerQuery): Boolean = allHints.forall(other.allHints.contains)
 
-  override def allHints: ListSet[Hint] = {
+  override def allHints: ListSet[IrHint] = {
     val headHints = queryGraph.allHints ++ horizon.allHints
     tail.fold(headHints)(_.allHints ++ headHints)
   }
 
-  override def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A = {
+  override def visitHints[A](acc: A)(f: (A, IrHint, QueryGraph) => A): A = {
     SinglePlannerQuery.visitHints(this, acc, f)
   }
 
@@ -442,7 +442,7 @@ object SinglePlannerQuery {
     labelInfo ++ projectedLabelInfo
   }
 
-  private def visitHints[A](query: SinglePlannerQuery, acc: A, f: (A, Hint, QueryGraph) => A): A = {
+  private def visitHints[A](query: SinglePlannerQuery, acc: A, f: (A, IrHint, QueryGraph) => A): A = {
     query.fold(acc) { case (acc, query) =>
       val qgAcc = query.queryGraph.hints.foldLeft(acc)(f(_, _, query.queryGraph))
       val optAcc = query.queryGraph.optionalMatches.foldLeft(qgAcc) {

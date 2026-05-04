@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
@@ -38,9 +38,9 @@ case class ProcedureCallProjection(call: ResolvedNonLocalCall) extends AbstractP
 
   override def readOnly: Boolean = call.containsNoUpdates
 
-  override def allHints: ListSet[Hint] = ListSet.empty
+  override def allHints: ListSet[IrHint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[IrHint]): QueryHorizon = this
 
   override def withoutImpliedExpressions: QueryHorizon = this
 

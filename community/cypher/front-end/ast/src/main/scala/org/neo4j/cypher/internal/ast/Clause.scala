@@ -59,6 +59,7 @@ import org.neo4j.cypher.internal.ast.connectedComponents.RichConnectedComponent
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.PatternStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.*
 import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
@@ -82,7 +83,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
 import org.neo4j.cypher.internal.ast.semantics.SymbolUse
 import org.neo4j.cypher.internal.ast.semantics.TypeGenerator
-import org.neo4j.cypher.internal.ast.semantics._
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.ast.semantics.optionSemanticChecking
 import org.neo4j.cypher.internal.expressions.And
@@ -176,6 +176,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.symbols.invariantTypeSpec
+import org.neo4j.exceptions.InternalException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -795,7 +796,7 @@ case class Match(
   optional: Boolean,
   matchMode: MatchMode,
   pattern: Pattern.ForMatch,
-  hints: Seq[Hint],
+  hints: Seq[AstHint],
   where: Option[Where],
   search: Option[Search]
 )(val position: InputPosition) extends Clause with SemanticAnalysisTooling {
@@ -1169,14 +1170,14 @@ case class Match(
   }
 
   private def checkHints: SemanticCheck = SemanticCheck.fromFunctionWithContext { (semanticState, context) =>
-    def getMissingEntityKindError(variable: String, labelOrRelTypeName: String, hint: UserHint): String = {
+    def getMissingEntityKindError(variable: String, labelOrRelTypeName: String, hint: AstHint): String = {
       val isNode = semanticState.isNode(variable)
       val typeName = if (isNode) "label" else "relationship type"
       val functionName = if (isNode) "labels" else "type"
       val operatorDescription = hint match {
         case _: UsingIndexHint => "index"
         case _: UsingScanHint  => s"$typeName scan"
-        case _: UsingJoinHint  => "join"
+        case hint => throw InternalException.internalError(this.getClass.getSimpleName, s"unexpected hint type $hint")
       }
       val typePredicates = getLabelAndRelTypePredicates(variable).distinct
       val foundTypePredicatesDescription = typePredicates match {
@@ -1223,7 +1224,7 @@ case class Match(
 
     def getHintErrorForVariable(
       operatorDescription: String,
-      hint: UserHint,
+      hint: AstHint,
       missingThingDescription: String,
       foundThingsDescription: String,
       variable: String,
@@ -1245,7 +1246,7 @@ case class Match(
 
     def getHintError(
       operatorDescription: String,
-      hint: UserHint,
+      hint: AstHint,
       missingThingDescription: String,
       foundThingsDescription: String,
       entityDescription: String,

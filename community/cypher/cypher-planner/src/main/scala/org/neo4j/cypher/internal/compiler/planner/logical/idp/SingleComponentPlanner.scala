@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.neo4j.cypher.internal.compiler.planner.logical.InterestingOrderSelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
-import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningSupport.RichHint
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver.extraRequirementForInterestingOrder

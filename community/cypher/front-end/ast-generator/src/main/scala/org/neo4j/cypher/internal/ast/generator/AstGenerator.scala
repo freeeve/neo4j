@@ -62,6 +62,7 @@ import org.neo4j.cypher.internal.ast.AlterUserAction
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
 import org.neo4j.cypher.internal.ast.AssignRoleAction
+import org.neo4j.cypher.internal.ast.AstHint
 import org.neo4j.cypher.internal.ast.Auth
 import org.neo4j.cypher.internal.ast.AuthId
 import org.neo4j.cypher.internal.ast.AuthRuleCondition
@@ -146,6 +147,9 @@ import org.neo4j.cypher.internal.ast.ExecuteBoostedProcedureAction
 import org.neo4j.cypher.internal.ast.ExecuteFunctionAction
 import org.neo4j.cypher.internal.ast.ExecuteProcedureAction
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.ExpandHintAll
+import org.neo4j.cypher.internal.ast.ExpandHintInto
+import org.neo4j.cypher.internal.ast.ExpandStep
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.FileResource
 import org.neo4j.cypher.internal.ast.Finish
@@ -170,7 +174,6 @@ import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
 import org.neo4j.cypher.internal.ast.GraphTypeElementReference
-import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeGraphScope
 import org.neo4j.cypher.internal.ast.IfExistsDo
@@ -406,6 +409,7 @@ import org.neo4j.cypher.internal.ast.UserAllQualifier
 import org.neo4j.cypher.internal.ast.UserDefinedFunctions
 import org.neo4j.cypher.internal.ast.UserOptions
 import org.neo4j.cypher.internal.ast.UserQualifier
+import org.neo4j.cypher.internal.ast.UsingExpandHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOnly
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOrScan
@@ -583,6 +587,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.util.FunctionName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Namespace
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.ProcedureName
 import org.neo4j.cypher.internal.util.ProcedureOutput
 import org.neo4j.cypher.internal.util.symbols.AnyType
@@ -1848,17 +1853,29 @@ class AstGenerator(
 
   def _usingJoinHint: Gen[UsingJoinHint] = for {
     variables <- oneOrMore(_variable)
-  } yield UsingJoinHint(variables)(pos)
+  } yield UsingJoinHint(NonEmptyList.from(variables))(pos)
 
   def _usingScanHint: Gen[UsingScanHint] = for {
     variable <- _variable
     labelOrRelType <- _labelOrTypeName
   } yield UsingScanHint(variable, labelOrRelType)(pos)
 
-  def _hint: Gen[Hint] = oneOf(
+  def _expandStep: Gen[ExpandStep] = for {
+    from <- _variable
+    to <- _variable
+    mode <- option(oneOf(ExpandHintAll, ExpandHintInto))
+  } yield ExpandStep(from, to, mode)(pos)
+
+  def _usingExpandHint: Gen[UsingExpandHint] = for {
+    n <- choose(1, 3)
+    steps <- listOfN(n, _expandStep)
+  } yield UsingExpandHint(NonEmptyList.from(steps))(pos)
+
+  def _hint: Gen[AstHint] = oneOf(
     _usingIndexHint,
     _usingJoinHint,
-    _usingScanHint
+    _usingScanHint,
+    _usingExpandHint
   )
 
   // Queries

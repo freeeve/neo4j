@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexSeekPlanProvider.mergeQueryExpressionsToSingleOne
@@ -77,7 +77,7 @@ object RelationshipIndexSeekPlanProvider extends RelationshipIndexPlanProvider {
   private def constructPlan(
     predicateSet: PredicateSet,
     indexMatch: RelationshipIndexMatch,
-    hints: ListSet[Hint],
+    hints: ListSet[IrHint],
     argumentIds: Set[LogicalVariable],
     context: LogicalPlanningContext
   ): LogicalPlan = {

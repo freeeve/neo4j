@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.compiler.phases.CompilationContains
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
@@ -349,8 +349,8 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
     predicates: Map[LogicalVariable, Expression],
     pattern: PatternRelationship,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    hints: ListSet[Hint]
-  ): (Expression, ListSet[Hint]) = {
+    hints: ListSet[IrHint]
+  ): (Expression, ListSet[IrHint]) = {
 
     val innerVars = pattern.boundaryNodesSet
     val innerPreds = innerVars.flatMap(predicates.get)

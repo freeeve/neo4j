@@ -21,8 +21,11 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandResultItem
+import org.neo4j.cypher.internal.ast.ExpandHintAll
+import org.neo4j.cypher.internal.ast.ExpandHintInto
+import org.neo4j.cypher.internal.ast.ExpandHintMode
 import org.neo4j.cypher.internal.ast.GraphReference
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.ShowColumn
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
@@ -42,6 +45,8 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
+import org.neo4j.cypher.internal.ast.UsingExpandStepHint
+import org.neo4j.cypher.internal.ast.UsingExpandStepId
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.UsingScanHint
@@ -194,6 +199,8 @@ import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.Expand
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
@@ -1102,7 +1109,7 @@ case class LogicalPlanProducer(
     leafPlan: RelationshipLogicalLeafPlan,
     patternForLeafPlan: PatternRelationship,
     solvedPredicates: Seq[Expression],
-    solvedHint: IterableOnce[Hint],
+    solvedHint: IterableOnce[IrHint],
     argumentIds: Set[LogicalVariable],
     providedOrder: ProvidedOrder,
     context: LogicalPlanningContext,
@@ -1331,10 +1338,24 @@ case class LogicalPlanProducer(
     to: LogicalVariable,
     pattern: PatternRelationship,
     mode: ExpansionMode,
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    hints: Iterable[IrHint]
   ): LogicalPlan = {
     val dir = pattern.directionRelativeTo(from)
-    val solved = solveds.get(left.id).asSinglePlannerQuery.amendQueryGraph(_.addPatternRelationship(pattern))
+    val solved =
+      solveds.get(left.id).asSinglePlannerQuery
+        .amendQueryGraph { qg =>
+          val alreadySolvedExpandStepIds = qg.hints.collect {
+            case h: UsingExpandStepHint => h.stepId
+          }
+          qg.addPatternRelationship(pattern)
+            .addHints(hints.filter {
+              case UsingExpandStepHint(`from`, `to`, hintMode, _, mustFollow)
+                if LogicalPlanProducer.expandModeMatches(hintMode, mode) &&
+                  mustFollow.subsetOf(alreadySolvedExpandStepIds) => true
+              case _ => false
+            })
+        }
     annotate(
       Expand(left, from, dir, pattern.types, to, pattern.variable, mode),
       solved,
@@ -1354,7 +1375,8 @@ case class LogicalPlanProducer(
     solvedPredicates: ListSet[Expression],
     expansionMode: ExpansionMode,
     pathMode: TraversalPathMode,
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    hints: Iterable[IrHint]
   ): LogicalPlan = {
 
     val dir = patternRelationship.directionRelativeTo(from)
@@ -1363,9 +1385,22 @@ case class LogicalPlanProducer(
       case l: VarPatternLength =>
         val projectedDir = projectedDirection(patternRelationship, from, dir)
 
-        val solved = solveds.get(source.id).asSinglePlannerQuery.amendQueryGraph(_
-          .addPatternRelationship(patternRelationship)
-          .addPredicates(solvedPredicates))
+        val solved =
+          solveds.get(source.id).asSinglePlannerQuery
+            .amendQueryGraph { qg =>
+              val alreadySolvedExpandStepIds: Set[UsingExpandStepId] = qg.hints.collect {
+                case h: UsingExpandStepHint => h.stepId
+              }
+              qg
+                .addPatternRelationship(patternRelationship)
+                .addPredicates(solvedPredicates)
+                .addHints(hints.filter {
+                  case UsingExpandStepHint(`from`, `to`, hintMode, _, mustFollow)
+                    if LogicalPlanProducer.expandModeMatches(hintMode, expansionMode) &&
+                      mustFollow.subsetOf(alreadySolvedExpandStepIds) => true
+                  case _ => false
+                })
+            }
 
         val (rewrittenRelationshipPredicates, rewrittenNodePredicates, _, rewrittenSource) =
           solveSubqueryExpressionsForExtractedPredicates(
@@ -5142,6 +5177,16 @@ case class LogicalPlanProducer(
 }
 
 object LogicalPlanProducer {
+
+  /**
+   * @return whether `hintMode` accepts `planMode`
+   */
+  private def expandModeMatches(hintMode: Option[ExpandHintMode], planMode: ExpansionMode): Boolean =
+    hintMode match {
+      case Some(ExpandHintAll)  => planMode == ExpandAll
+      case Some(ExpandHintInto) => planMode == ExpandInto
+      case None                 => true
+    }
 
   /**
    * This method assumes that no invalidation of provided order happens on the RHS.

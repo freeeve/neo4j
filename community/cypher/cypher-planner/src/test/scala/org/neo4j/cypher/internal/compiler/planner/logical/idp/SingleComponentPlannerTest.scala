@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -380,7 +381,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
 
   test("plans hashjoins and cartesian product for queries with single pattern rel and a join hint") {
     val pattern = PatternRelationship(v"r1", (v"a", v"b"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
-    val hint = UsingJoinHint(Seq(v"a"))(pos)
+    val hint = UsingJoinHint(NonEmptyList(v"a"))(pos)
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"), hints = ListSet(hint))
     val context = mockContext()
     val kit = context.plannerState.config.toKit(InterestingOrderConfig.empty, context)
@@ -419,7 +420,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
 
   test("does not plan hashjoins and cartesian product if start and end node are the same") {
     val pattern = PatternRelationship(v"r1", (v"a", v"a"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
-    val hint = UsingJoinHint(Seq(v"a"))(pos)
+    val hint = UsingJoinHint(NonEmptyList(v"a"))(pos)
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"a"), hints = ListSet(hint))
     val context = mockContext()
     val kit = context.plannerState.config.toKit(InterestingOrderConfig.empty, context)
@@ -441,7 +442,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
 
   test("plans hashjoins and cartesian product for queries with single pattern rel and a join hint on the end node") {
     val pattern = PatternRelationship(v"r1", (v"a", v"b"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
-    val hint = UsingJoinHint(Seq(v"b"))(pos)
+    val hint = UsingJoinHint(NonEmptyList(v"b"))(pos)
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"), hints = ListSet(hint))
     val context = mockContext()
     val kit = context.plannerState.config.toKit(InterestingOrderConfig.empty, context)
@@ -529,7 +530,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
 
   test("plans expands, hashjoins and cartesian product with generic sort only in sensible places (with hint)") {
     val pattern = PatternRelationship(v"r1", (v"a", v"b"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
-    val hint = UsingJoinHint(Seq(v"a"))(pos)
+    val hint = UsingJoinHint(NonEmptyList(v"a"))(pos)
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"), hints = ListSet(hint))
     val context = mockContext()
     val kit = context.plannerState.config.toKit(InterestingOrderConfig.empty, context)
@@ -595,7 +596,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
     )
   }
 
-  private def assertPlanSolvesHints(plans: Iterable[LogicalPlan], solveds: Solveds, hints: Hint*): Unit = {
+  private def assertPlanSolvesHints(plans: Iterable[LogicalPlan], solveds: Solveds, hints: IrHint*): Unit = {
     plans should not be empty
     for (
       h <- hints;

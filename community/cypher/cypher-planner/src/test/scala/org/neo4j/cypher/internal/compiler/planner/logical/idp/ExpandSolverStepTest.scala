@@ -47,7 +47,7 @@ class ExpandSolverStepTest extends CypherFunSuite with LogicalPlanningTestSuppor
     PatternRelationship(v"r2", (v"b", v"c"), SemanticDirection.OUTGOING, Seq.empty, SimplePatternLength)
 
   private val table = IDPTable.empty[LogicalPlan]
-  private val qg = mock[QueryGraph]
+  private val qg = QueryGraph.empty
 
   private val noQPPInnerPlans = new CacheBackedQPPInnerPlanner(???)
 

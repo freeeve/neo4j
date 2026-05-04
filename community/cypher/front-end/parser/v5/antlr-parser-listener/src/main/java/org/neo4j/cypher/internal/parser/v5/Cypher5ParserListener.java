@@ -85,6 +85,8 @@ public interface Cypher5ParserListener extends ParseTreeListener {
 
     void exitHint(Cypher5Parser.HintContext ctx);
 
+    void exitExpandHintStep(Cypher5Parser.ExpandHintStepContext ctx);
+
     void exitMergeClause(Cypher5Parser.MergeClauseContext ctx);
 
     void exitMergeAction(Cypher5Parser.MergeActionContext ctx);

@@ -175,7 +175,12 @@ hint
    ) SEEK? variable labelOrRelType LPAREN nonEmptyNameList RPAREN)
    | JOIN ON nonEmptyNameList
    | SCAN variable labelOrRelType
+   | EXPAND expandHintStep (COMMA expandHintStep)*
    )
+   ;
+
+expandHintStep
+   : (ALL | INTO)? FROM variable TO variable
    ;
 
 mergeClause
@@ -1910,6 +1915,7 @@ unescapedLabelSymbolicNameString_
    | EXIST
    | EXISTENCE
    | EXISTS
+   | EXPAND
    | FAIL
    | FALSE
    | FIELDTERMINATOR
@@ -1940,6 +1946,7 @@ unescapedLabelSymbolicNameString_
    | INSERT
    | INT
    | INTEGER
+   | INTO
    | IS
    | JOIN
    | KEY

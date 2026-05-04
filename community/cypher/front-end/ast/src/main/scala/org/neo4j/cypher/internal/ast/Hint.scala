@@ -23,20 +23,24 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingIndexHintType
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
-import org.neo4j.cypher.internal.ast.semantics._
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ExpandHints
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
+import org.neo4j.cypher.internal.ast.semantics.liftSemanticEitherFunc
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NonEmptyList
-import org.neo4j.cypher.internal.util.NonEmptyList.IterableConverter
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
-sealed trait Hint extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
+sealed trait Hint {
   def variables: NonEmptyList[Variable]
+
+  def coveredBy(overlappingIds: Set[LogicalVariable]): Boolean =
+    variables.forall(overlappingIds.contains)
 }
 
 object Hint {
@@ -46,11 +50,26 @@ object Hint {
 }
 
 /**
- * A hint as specified by the user in the query. See [[StatefulShortestPlanningHintsInserter]] for non-user hints.
+ * A hint that was specified by the user in the query and can appear in `Clause.hints`.
+ * The parser emits these, and semantic analysis runs over them.
+ *
+ * Pure IR-only hints (`UsingExpandStepHint`, `UsingStatefulShortestPath*`) are NOT `AstHint`s,
+ * so the type system prevents them from being placed into `Clause.hints`.
  */
-sealed trait UserHint extends Hint
+sealed trait AstHint extends Hint with ASTNode with SemanticCheckable with SemanticAnalysisTooling
 
-sealed trait LeafPlanHint extends UserHint {
+/**
+ * A hint that can appear in `QueryGraph.hints`.
+ * AST-only hints like `UsingExpandHint` are NOT `IrHint`s, so the type system
+ * prevents them from being placed into `QueryGraph.hints`.
+ *
+ * These are never introduced from the parser. Thus, no need for semantic checks or input positions.
+ *
+ * Because most hints are both [[AstHint]] as well as [[IrHint]], this trait is placed in the `front-end` module
+ */
+sealed trait IrHint extends Hint
+
+sealed trait LeafPlanHint extends AstHint with IrHint {
   def variable: Variable
 
   override def variables: NonEmptyList[Variable] = NonEmptyList(variable)
@@ -92,13 +111,8 @@ object UsingIndexHint {
 case class UsingScanHint(variable: Variable, labelOrRelType: LabelOrRelTypeName)(val position: InputPosition)
     extends LeafPlanHint
 
-object UsingJoinHint {
-
-  def apply(variables: Seq[Variable])(pos: InputPosition): UsingJoinHint =
-    UsingJoinHint(variables.toNonEmptyList)(pos)
-}
-
-case class UsingJoinHint(variables: NonEmptyList[Variable])(val position: InputPosition) extends UserHint {
+case class UsingJoinHint(variables: NonEmptyList[Variable])(val position: InputPosition)
+    extends AstHint with IrHint {
 
   override def semanticCheck: SemanticCheck =
     variables.foldSemanticCheck {
@@ -107,13 +121,74 @@ case class UsingJoinHint(variables: NonEmptyList[Variable])(val position: InputP
 }
 
 /**
- * These are never introduced from the parser currently. Thus no need for semantic checks or input positions.
+ * Optional qualifier on an [[ExpandStep]] that constrains the `Expand`'s
+ * `ExpansionMode` for that step: [[ExpandHintAll]] forces `ExpandAll`,
+ * [[ExpandHintInto]] forces `ExpandInto`.
  */
-sealed trait UsingStatefulShortestPathHint extends Hint {
-  override def semanticCheck: SemanticCheck = SemanticCheck.success
+sealed trait ExpandHintMode
+case object ExpandHintAll extends ExpandHintMode
+case object ExpandHintInto extends ExpandHintMode
 
-  override def position: InputPosition = InputPosition.NONE
+/**
+ * One comma-separated step of a `USING EXPAND INTO FROM x TO y, ALL FROM y TO z, ...` chain.
+ * A step is a pair of node variables in the desired expand direction, with an optional
+ * `ALL`/`INTO` mode qualifier.
+ */
+case class ExpandStep(
+  from: Variable,
+  to: Variable,
+  mode: Option[ExpandHintMode]
+)(val position: InputPosition) extends ASTNode
+
+/**
+ * [[AstHint]] for a `USING EXPAND ...` clause. One object per `USING` clause, holding
+ * the comma-separated steps in textual order.
+ *
+ * `ClauseConverters` then translates it into one or more [[UsingExpandStepHint]] as its [[IrHint]] representation.
+ */
+case class UsingExpandHint(
+  steps: NonEmptyList[ExpandStep]
+)(val position: InputPosition)
+    extends AstHint {
+
+  override def variables: NonEmptyList[Variable] = steps.flatMap(s => NonEmptyList(s.from, s.to))
+
+  override def semanticCheck: SemanticCheck = {
+    requireFeatureSupport("`USING EXPAND`", ExpandHints, position) ifOkChain
+      steps.foldSemanticCheck { step =>
+        ensureDefined(step.from) chain expectType(CTNode.covariant, step.from) chain
+          ensureDefined(step.to) chain expectType(CTNode.covariant, step.to)
+      }
+  }
 }
+
+/**
+ * Opaque identifier for an [[ExpandStep]]. Derived from the step's source
+ * position, so it is stable across AST rewrites that rename variables.
+ */
+case class UsingExpandStepId(position: InputPosition)
+
+/**
+ * Atomic [[IrHint]] representing a single expand step plus the set of
+ * prior step IDs that must already be solved by the source plan before this
+ * step's hint can itself be claimed. This set enables us to hint on expand order.
+ *
+ * Created by `ClauseConverters` from an AST [[UsingExpandHint]].
+ *
+ * @param mustFollow to enforce the order of expands, these expands need to be solved before this
+ */
+case class UsingExpandStepHint(
+  from: Variable,
+  to: Variable,
+  mode: Option[ExpandHintMode],
+  stepId: UsingExpandStepId,
+  mustFollow: Set[UsingExpandStepId]
+) extends IrHint {
+
+  override def variables: NonEmptyList[Variable] = NonEmptyList(from, to)
+}
+
+sealed trait UsingStatefulShortestPathHint extends IrHint
 
 case class UsingStatefulShortestPathInto(override val variables: NonEmptyList[Variable])
     extends UsingStatefulShortestPathHint

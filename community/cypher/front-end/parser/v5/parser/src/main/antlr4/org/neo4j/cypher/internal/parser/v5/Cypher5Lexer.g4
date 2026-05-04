@@ -482,6 +482,10 @@ EXISTS
    : E X I S T S
    ;
 
+EXPAND
+   : E X P A N D
+   ;
+
 ERROR
    : E R R O R
    ;
@@ -604,6 +608,10 @@ INFINITY
 
 INSERT
    : I N S E R T
+   ;
+
+INTO
+   : I N T O
    ;
 
 INT

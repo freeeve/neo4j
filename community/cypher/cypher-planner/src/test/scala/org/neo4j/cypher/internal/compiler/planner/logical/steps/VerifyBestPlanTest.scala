@@ -24,7 +24,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.when
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingIndexHintType
@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.notification.JoinHintUnfulfillableNotification
 import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
@@ -67,13 +68,13 @@ import org.neo4j.exceptions.JoinHintException
 
 class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
-  private def newNodeIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): Hint =
+  private def newNodeIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): IrHint =
     UsingIndexHint(v"a", labelOrRelTypeName("User"), Seq(PropertyKeyName("name")(pos)), indexType = indexType) _
 
-  private def newRelationshipIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): Hint =
+  private def newRelationshipIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): IrHint =
     UsingIndexHint(v"r", labelOrRelTypeName("User"), Seq(PropertyKeyName("name")(pos)), indexType = indexType) _
 
-  private def newJoinHint(variableName: String = "a"): Hint = { UsingJoinHint(Seq(varFor(variableName))) _ }
+  private def newJoinHint(variableName: String = "a"): IrHint = { UsingJoinHint(NonEmptyList(varFor(variableName))) _ }
 
   private def newQueryWithoutHints() = RegularSinglePlannerQuery(
     QueryGraph(
@@ -429,7 +430,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       newMockedLogicalPlan(
         Set("a", "b"),
         context.staticComponents.planningAttributes,
-        hints = ListSet[Hint](newNodeIndexHint())
+        hints = ListSet[IrHint](newNodeIndexHint())
       )
 
     VerifyBestPlan(plan, newQueryWithNodeIndexHint(), context) // should not throw
@@ -447,7 +448,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       context.staticComponents.planningAttributes,
       Set("a", "b"),
       Set(PatternRelationship(v"r", (v"a", v"b"), BOTH, Seq.empty, SimplePatternLength)),
-      hints = ListSet[Hint](newRelationshipIndexHint())
+      hints = ListSet[IrHint](newRelationshipIndexHint())
     )
 
     VerifyBestPlan(plan, newQueryWithRelationshipIndexHint(), context) // should not throw
@@ -465,7 +466,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       newMockedLogicalPlan(
         Set("a", "b"),
         context.staticComponents.planningAttributes,
-        hints = ListSet[Hint](newJoinHint())
+        hints = ListSet[IrHint](newJoinHint())
       )
 
     VerifyBestPlan(plan, newQueryWithJoinHint(), context) // should not throw
@@ -548,7 +549,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable index hint in a subquery") {
-    def plannerQueryWithSubquery(hints: ListSet[Hint]): PlannerQuery = {
+    def plannerQueryWithSubquery(hints: ListSet[IrHint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         horizon = CallSubqueryHorizon(
           callSubquery = RegularSinglePlannerQuery(
@@ -579,7 +580,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in a subquery") {
-    def plannerQueryWithSubquery(hints: ListSet[Hint]): PlannerQuery = {
+    def plannerQueryWithSubquery(hints: ListSet[IrHint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         horizon = CallSubqueryHorizon(
           callSubquery = RegularSinglePlannerQuery(
@@ -610,7 +611,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in UNION") {
-    def plannerUnionQuery(hints: ListSet[Hint]): PlannerQuery = {
+    def plannerUnionQuery(hints: ListSet[IrHint]): PlannerQuery = {
       UnionQuery(
         rhs = RegularSinglePlannerQuery(
           QueryGraph(
@@ -639,7 +640,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in OPTIONAL MATCH") {
-    def plannerQueryWithOptionalMatch(hints: ListSet[Hint]): PlannerQuery = {
+    def plannerQueryWithOptionalMatch(hints: ListSet[IrHint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         QueryGraph.empty.addOptionalMatch(
           QueryGraph(

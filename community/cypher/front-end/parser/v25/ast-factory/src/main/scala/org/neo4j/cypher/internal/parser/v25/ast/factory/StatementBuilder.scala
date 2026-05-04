@@ -28,6 +28,9 @@ import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
+import org.neo4j.cypher.internal.ast.ExpandHintAll
+import org.neo4j.cypher.internal.ast.ExpandHintInto
+import org.neo4j.cypher.internal.ast.ExpandStep
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
@@ -93,6 +96,7 @@ import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast.UsingExpandHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOnly
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOrScan
@@ -581,8 +585,21 @@ trait StatementBuilder extends Cypher25ParserListener {
       case Cypher25Parser.POINT => indexHint(ctx, UsingPointIndexType)
       case Cypher25Parser.JOIN  => UsingJoinHint(nonEmptyVariables(ctx.nonEmptyNameList()))(pos(ctx))
       case Cypher25Parser.SCAN  => UsingScanHint(ctx.variable().ast(), ctx.labelOrRelType().ast())(pos(ctx))
-      case _                    => throw new IllegalStateException(s"Unexpected token $secondToken")
+      case Cypher25Parser.EXPAND =>
+        val steps = NonEmptyList.from(astSeq[ExpandStep](ctx.expandHintStep()))
+        UsingExpandHint(steps)(pos(ctx))
+      case _ => throw new IllegalStateException(s"Unexpected token $secondToken")
     }
+  }
+
+  final override def exitExpandHintStep(ctx: Cypher25Parser.ExpandHintStepContext): Unit = {
+    val from: Variable = ctx.variable(0).ast()
+    val to: Variable = ctx.variable(1).ast()
+    val mode =
+      if (ctx.ALL() != null) Some(ExpandHintAll)
+      else if (ctx.INTO() != null) Some(ExpandHintInto)
+      else None
+    ctx.ast = ExpandStep(from, to, mode)(pos(ctx))
   }
 
   final override def exitNonEmptyNameList(ctx: Cypher25Parser.NonEmptyNameListContext): Unit = {

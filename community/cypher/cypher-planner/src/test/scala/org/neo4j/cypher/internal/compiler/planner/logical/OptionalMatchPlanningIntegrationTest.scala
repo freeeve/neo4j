@@ -582,7 +582,12 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
          |RETURN a""".stripMargin
     )
 
-    plan.stripProduceResults shouldBe an[OptionalExpand]
+    plan.stripProduceResults should equal(
+      cfg.subPlanBuilder()
+        .optionalExpandAll("(a)-[]-(b)", Some("b:Foo AND NOT b:Model AND any(p IN b.latest WHERE p IN [1, 2])"))
+        .allNodeScan("a")
+        .build()
+    )
   }
 
   test("should not pick an outer hash join with hint if the join could end up in RHS of an apply") {

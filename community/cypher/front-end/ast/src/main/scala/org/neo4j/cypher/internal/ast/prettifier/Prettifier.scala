@@ -79,6 +79,9 @@ import org.neo4j.cypher.internal.ast.ElementQualifier
 import org.neo4j.cypher.internal.ast.ElementsAllQualifier
 import org.neo4j.cypher.internal.ast.EnableServer
 import org.neo4j.cypher.internal.ast.ExecutableBy
+import org.neo4j.cypher.internal.ast.ExpandHintAll
+import org.neo4j.cypher.internal.ast.ExpandHintInto
+import org.neo4j.cypher.internal.ast.ExpandHintMode
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.ExternalAuth
 import org.neo4j.cypher.internal.ast.Finish
@@ -245,6 +248,8 @@ import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.User
 import org.neo4j.cypher.internal.ast.UserAllQualifier
 import org.neo4j.cypher.internal.ast.UserQualifier
+import org.neo4j.cypher.internal.ast.UsingExpandHint
+import org.neo4j.cypher.internal.ast.UsingExpandStepHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOnly
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
@@ -1281,6 +1286,32 @@ case class Prettifier(
             vs.map(expr(_, shouldBacktickEmpty = true)).toIterable.mkString(", ")
           ).mkString
 
+        // AST-level hint.
+        case UsingExpandHint(steps) =>
+          val renderedSteps =
+            steps.iterator
+              .map { step =>
+                Seq(
+                  renderExpandMode(step.mode),
+                  "FROM ",
+                  expr(step.from, shouldBacktickEmpty = true),
+                  " TO ",
+                  expr(step.to, shouldBacktickEmpty = true)
+                ).mkString
+              }
+              .mkString(", ")
+          s"${INDENT}USING EXPAND $renderedSteps"
+
+        // IR-level hint. This is what will be reported on in VerifyBestPlan.
+        case UsingExpandStepHint(from, to, mode, _, _) => Seq(
+            s"${INDENT}USING EXPAND ",
+            renderExpandMode(mode),
+            "FROM ",
+            expr(from, shouldBacktickEmpty = true),
+            " TO ",
+            expr(to, shouldBacktickEmpty = true)
+          ).mkString
+
         // Note: This hint cannot be written in Cypher.
         case UsingStatefulShortestPathAll(vs) => Seq(
             s"${INDENT}USING SSP_ALL ON ",
@@ -1293,6 +1324,12 @@ case class Prettifier(
             vs.map(expr(_, shouldBacktickEmpty = true)).toIterable.mkString(", ")
           ).mkString
       }
+    }
+
+    private def renderExpandMode(mode: Option[ExpandHintMode]): String = mode match {
+      case Some(ExpandHintAll)  => "ALL "
+      case Some(ExpandHintInto) => "INTO "
+      case None                 => ""
     }
 
     def asString(ma: MergeAction): String = ma match {

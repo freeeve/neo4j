@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.ProjectingUnionAll
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.UsingIndexHint
@@ -1396,7 +1396,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
   test("MATCH (n:Awesome {prop: 42}) USING INDEX n:Awesome(prop) RETURN n") {
     val query = buildSinglePlannerQuery("MATCH (n:Awesome {prop: 42}) USING INDEX n:Awesome(prop) RETURN n")
 
-    query.queryGraph.hints should equal(Set[Hint](UsingIndexHint(
+    query.queryGraph.hints should equal(Set[IrHint](UsingIndexHint(
       v"n",
       labelOrRelTypeName("Awesome"),
       Seq(PropertyKeyName("prop")(pos))

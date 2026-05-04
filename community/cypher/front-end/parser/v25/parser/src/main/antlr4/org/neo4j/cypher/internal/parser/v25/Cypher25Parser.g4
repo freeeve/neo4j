@@ -239,15 +239,21 @@ matchMode
    ;
 
 hint
-   : USING (((
-      INDEX
-      | TEXT INDEX
-      | RANGE INDEX
-      | POINT INDEX
-   ) SEEK? variable labelOrRelType LPAREN nonEmptyNameList RPAREN)
-   | JOIN ON nonEmptyNameList
-   | SCAN variable labelOrRelType
+   : USING (
+     ((
+        INDEX
+        | TEXT INDEX
+        | RANGE INDEX
+        | POINT INDEX
+     ) SEEK? variable labelOrRelType LPAREN nonEmptyNameList RPAREN)
+     | JOIN ON nonEmptyNameList
+     | SCAN variable labelOrRelType
+     | EXPAND expandHintStep (COMMA expandHintStep)*
    )
+   ;
+
+expandHintStep
+   : (ALL | INTO)? FROM variable TO variable
    ;
 
 mergeClause
@@ -2251,6 +2257,7 @@ unescapedSymbolicNameString_
    | EXIST
    | EXISTENCE
    | EXISTS
+   | EXPAND
    | FAIL
    | FALSE
    | FIELDTERMINATOR
@@ -2295,6 +2302,7 @@ unescapedSymbolicNameString_
    | INTEGER32
    | INTEGER16
    | INTEGER8
+   | INTO
    | IS
    | JOIN
    | KEY

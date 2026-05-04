@@ -2263,7 +2263,15 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
 
   test("should propagate cached properties from lhs for planSimpleExpand") {
     shouldUseCachedPropertiesFromLHS((ctx: PlanCreationContext) =>
-      ctx.producer.planSimpleExpand(ctx.lhs, v"x", v"y", mockPatternRelationship(v"x"), ExpandAll, ctx.context)
+      ctx.producer.planSimpleExpand(
+        ctx.lhs,
+        v"x",
+        v"y",
+        mockPatternRelationship(v"x"),
+        ExpandAll,
+        ctx.context,
+        ListSet.empty
+      )
     )
   }
 
@@ -2279,7 +2287,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ListSet.empty,
         ExpandAll,
         TraversalPathMode.Trail,
-        ctx.context
+        ctx.context,
+        ListSet.empty
       )
     )
   }

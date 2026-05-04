@@ -98,7 +98,7 @@ object SemanticFeature {
   }
 
   /**
-   * Normally it's not allowed to mix old and new label expression syntax within a clause.
+   * Normally, it's not allowed to mix old and new label expression syntax within a clause.
    * The implementation of this check has had bugs in the past, can be inconvenient for users
    * and is not necessary for any functionality.
    * This semantic feature exists to have a workaround of future bugs in semantic analysis.
@@ -114,6 +114,13 @@ object SemanticFeature {
 
   case object GpmShortestWithExplicitPathMode extends SemanticFeature with FeatureToString {
     override def name: String = "Allow mixing GPM shortest with an explicit path mode"
+  }
+
+  /**
+   * Allows `USING EXPAND ...` to force expand direction and order
+   */
+  case object ExpandHints extends SemanticFeature with FeatureToString {
+    override def name: String = "Expand hints"
   }
 
   private val allSemanticFeatures = Set(
@@ -135,6 +142,7 @@ object SemanticFeature {
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
     AttributeBasedAccessControl,
+    ExpandHints,
     GpmShortestWithExplicitPathMode
   )
 

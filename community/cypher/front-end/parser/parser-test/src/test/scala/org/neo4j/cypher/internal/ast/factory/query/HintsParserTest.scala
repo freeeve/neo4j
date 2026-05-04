@@ -16,7 +16,11 @@
  */
 package org.neo4j.cypher.internal.ast.factory.query
 
+import org.neo4j.cypher.internal.ast.ExpandHintAll
+import org.neo4j.cypher.internal.ast.ExpandHintInto
+import org.neo4j.cypher.internal.ast.ExpandStep
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.UsingExpandHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOnly
 import org.neo4j.cypher.internal.ast.UsingIndexHint.SeekOrScan
@@ -26,6 +30,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingRangeIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingTextIndexType
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.exceptions.SyntaxException
 
 class HintsParserTest extends AstParsingTestBase {
@@ -96,6 +101,38 @@ class HintsParserTest extends AstParsingTestBase {
     parses[Statements].containing[UsingIndexHint](
       UsingIndexHint(varFor("n"), labelOrRelTypeName("N"), Seq(propName("p")), SeekOnly, UsingTextIndexType)(pos)
     )
+  }
+
+  test("MATCH (a)-->(b) USING EXPAND FROM a TO b") {
+    parses[Statements].containing[UsingExpandHint](
+      UsingExpandHint(NonEmptyList(ExpandStep(varFor("a"), varFor("b"), None)(pos)))(pos)
+    )
+  }
+
+  test("MATCH (a)-->(b) USING EXPAND ALL FROM a TO b") {
+    parses[Statements].containing[UsingExpandHint](
+      UsingExpandHint(NonEmptyList(ExpandStep(varFor("a"), varFor("b"), Some(ExpandHintAll))(pos)))(pos)
+    )
+  }
+
+  test("MATCH (a)-->(b) USING EXPAND INTO FROM a TO b") {
+    parses[Statements].containing[UsingExpandHint](
+      UsingExpandHint(NonEmptyList(ExpandStep(varFor("a"), varFor("b"), Some(ExpandHintInto))(pos)))(pos)
+    )
+  }
+
+  test("MATCH (a)-->(b)-->(c) USING EXPAND FROM a TO b, FROM b TO c") {
+    parses[Statements].containing[UsingExpandHint](
+      UsingExpandHint(NonEmptyList(
+        ExpandStep(varFor("a"), varFor("b"), None)(pos),
+        ExpandStep(varFor("b"), varFor("c"), None)(pos)
+      ))(pos)
+    )
+  }
+
+  test("MATCH (expand)-->(into) RETURN expand, into") {
+    // accepts expand and into as identifiers
+    parses[Statements]
   }
 
   test("can parse multiple hints") {

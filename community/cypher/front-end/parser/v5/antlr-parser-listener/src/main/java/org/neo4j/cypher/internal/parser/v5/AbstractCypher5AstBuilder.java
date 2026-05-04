@@ -75,6 +75,7 @@ public abstract class AbstractCypher5AstBuilder implements Cypher5ParserListener
             case Cypher5Parser.RULE_matchClause -> exitMatchClause((Cypher5Parser.MatchClauseContext) ctx);
             case Cypher5Parser.RULE_matchMode -> exitMatchMode((Cypher5Parser.MatchModeContext) ctx);
             case Cypher5Parser.RULE_hint -> exitHint((Cypher5Parser.HintContext) ctx);
+            case Cypher5Parser.RULE_expandHintStep -> exitExpandHintStep((Cypher5Parser.ExpandHintStepContext) ctx);
             case Cypher5Parser.RULE_mergeClause -> exitMergeClause((Cypher5Parser.MergeClauseContext) ctx);
             case Cypher5Parser.RULE_mergeAction -> exitMergeAction((Cypher5Parser.MergeActionContext) ctx);
             case Cypher5Parser.RULE_unwindClause -> exitUnwindClause((Cypher5Parser.UnwindClauseContext) ctx);

@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
@@ -211,15 +210,17 @@ case object OuterHashJoinSolverFactory extends OptionalSolverFactory {
     // The easiest way to ensure that this doesn't happen is to check that we are in the "first part" of a query (i.e. not planning a tail).
     // We can check this with "context.outerPlan.isEmpty".
     if (
-      joinNodes.intersect(enclosingQg.argumentIds).isEmpty && joinNodes.nonEmpty && joinNodes.forall(
-        optionalQg.patternNodes
-      )
+      joinNodes.intersect(enclosingQg.argumentIds).isEmpty &&
+      joinNodes.nonEmpty &&
+      joinNodes.subsetOf(optionalQg.patternNodes)
     ) {
-      val solvedHints = optionalQg.joinHints.filter { hint =>
-        val hintVariables = hint.variables.toSet[LogicalVariable]
-        hintVariables.subsetOf(joinNodes)
-      }
-      val rhsQG = optionalQg.removeArguments().removeHints(solvedHints.map(_.asInstanceOf[Hint]))
+      val solvedHints =
+        optionalQg.joinHints
+          .filter(_.variables.forall(joinNodes))
+      val rhsQG =
+        optionalQg
+          .removeArguments()
+          .removeHints(solvedHints)
 
       val BestResults(side2Plan, side2SortedPlan, side2ExtraPropertiesPlan) =
         context.staticComponents.queryGraphSolver.plan(rhsQG, interestingOrderConfig, context)

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
+import org.neo4j.cypher.internal.ast.AstHint
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CreateOrInsert
@@ -31,6 +32,7 @@ import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.InputDataStream
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
@@ -57,6 +59,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UseGraph
+import org.neo4j.cypher.internal.ast.UsingExpandHint
+import org.neo4j.cypher.internal.ast.UsingExpandStepHint
+import org.neo4j.cypher.internal.ast.UsingExpandStepId
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
@@ -197,6 +202,37 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
         s"Received an AST-clause that has no representation the QG: $x"
       )
   }
+
+  /**
+   * Translate AST-level `USING EXPAND ...` hints into the atomic IR-level
+   * [[UsingExpandStepHint]]s that live in `QueryGraph.hints`. Every step of a
+   * chained AST hint becomes one IR hint, so that they can be solved individually.
+   * The IR hint's `mustFollow` set signifies what steps need to have been solved before,
+   * so that we can enforce the order of hints.
+   *
+   * Non-expand hints pass through unchanged.
+   */
+  private def expandAstHintsToIrHints(hints: Seq[AstHint]): Seq[IrHint] =
+    hints.flatMap {
+      case UsingExpandHint(steps) =>
+        val stepIds =
+          steps.iterator
+            .map(s => UsingExpandStepId(s.position))
+            .toSeq
+
+        stepIds.zip(steps)
+          .zipWithIndex
+          .map { case ((stepId, step), idx) =>
+            UsingExpandStepHint(
+              from = step.from,
+              to = step.to,
+              mode = step.mode,
+              stepId = stepId,
+              mustFollow = stepIds.take(idx).toSet
+            )
+          }
+      case other: IrHint => Seq(other)
+    }
 
   private def addLoadCSVToLogicalPlanInput(acc: PlannerQueryBuilder, clause: LoadCSV): PlannerQueryBuilder =
     acc.withHorizon(
@@ -632,7 +668,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
           // It's either all or nothing per match clause.
           QueryGraph(
             selections = remainingSelections,
-            hints = clause.hints.toListSet,
+            hints = expandAstHintsToIrHints(clause.hints).toListSet,
             searchClause = SearchClause.fromAst(clause.search)
           ).addPathPatterns(pathPatterns)
         )
@@ -643,7 +679,7 @@ case class ClauseConverters(statementConverters: StatementConverters) extends La
           val maybeSearchClause = SearchClause.fromAst(clause.search)
           qg
             .addSelections(remainingSelections -- inlinedSearchClausePredicates(maybeSearchClause))
-            .addHints(clause.hints)
+            .addHints(expandAstHintsToIrHints(clause.hints))
             .addPathPatterns(pathPatterns)
             .addSearchClause(maybeSearchClause)
       }

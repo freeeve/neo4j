@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
@@ -488,7 +488,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def newMockedLogicalPlan(
     idNames: Set[String],
     planningAttributes: PlanningAttributes = PlanningAttributes.newAttributes,
-    hints: ListSet[Hint] = ListSet[Hint](),
+    hints: ListSet[IrHint] = ListSet[IrHint](),
     selections: Selections = Selections()
   ): LogicalPlan = {
     val solved = RegularSinglePlannerQuery(
@@ -520,7 +520,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     planningAttributes: PlanningAttributes,
     idNames: Set[String],
     patterns: Set[PatternRelationship] = Set.empty,
-    hints: ListSet[Hint] = ListSet[Hint](),
+    hints: ListSet[IrHint] = ListSet[IrHint](),
     selections: Selections = Selections()
   ): LogicalPlan = {
     val solved =

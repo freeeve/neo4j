@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.common.EntityType
-import org.neo4j.cypher.internal.ast.Hint
+import org.neo4j.cypher.internal.ast.IrHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingIndexHintType
@@ -102,7 +102,7 @@ object VerifyBestPlan {
         // Case: We did construct a plan that suffices the PlannerQuery requested.
         // However, something went wrong with the hints... Let's analyse.
 
-        def prettify(h: ListSet[Hint]): String =
+        def prettify(h: ListSet[IrHint]): String =
           h.map(prettifier.asString).mkString("`", ", ", "`")
 
         def throwHintException(details: String): Nothing = {
@@ -147,7 +147,7 @@ object VerifyBestPlan {
     unfulfillableIndexHints: UnfulfillableIndexHints,
     unfulfillableJoinHints: ListSet[UsingJoinHint]
   ) {
-    def hints: ListSet[Hint] = unfulfillableJoinHints ++ unfulfillableIndexHints.hints
+    def hints: ListSet[IrHint] = unfulfillableJoinHints ++ unfulfillableIndexHints.hints
 
     def isEmpty: Boolean = hints.isEmpty
   }
@@ -162,8 +162,8 @@ object VerifyBestPlan {
    */
   private case class HintAnalysis(
     missingUnfulfillableHints: UnfulfillableHints,
-    missingHints: ListSet[Hint],
-    inventedHints: ListSet[Hint]
+    missingHints: ListSet[IrHint],
+    inventedHints: ListSet[IrHint]
   )
 
   /**
@@ -307,10 +307,10 @@ object VerifyBestPlan {
     wrongPropertyTypeHints: collection.Seq[WrongPropertyTypeHint]
   ) {
 
-    val hints: ListSet[Hint] =
-      ListSet.empty[Hint] ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
+    val hints: ListSet[IrHint] =
+      ListSet.empty[IrHint] ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
 
-    def filter(predicate: Hint => Boolean): UnfulfillableIndexHints =
+    def filter(predicate: IrHint => Boolean): UnfulfillableIndexHints =
       UnfulfillableIndexHints(
         missingIndexHints =
           missingIndexHints
