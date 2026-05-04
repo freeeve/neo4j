@@ -240,6 +240,9 @@ public class EncodingIdMapper implements IdMapper {
 
     @Override
     public Setter newSetter(int workerId) {
+        if (readyForUse) {
+            throw new IllegalStateException("Cannot get a setter after the IdMapper has been prepared");
+        }
         return (inputId, nodeId, group) -> {
             // Encode and add the input id
             long eId = encode(inputId);
@@ -290,6 +293,10 @@ public class EncodingIdMapper implements IdMapper {
             Collector collector,
             ProgressMonitorFactory progressMonitorFactory,
             LongSet otherViolatingNodes) {
+        if (readyForUse) {
+            throw new IllegalStateException("Cannot prepare an IdMapper that has already been prepared");
+        }
+
         otherViolatingNodes.forEach(violatingNodeId -> dataCache.set(violatingNodeId, GAP_VALUE));
 
         highestSetIndex = candidateHighestSetIndex.get();

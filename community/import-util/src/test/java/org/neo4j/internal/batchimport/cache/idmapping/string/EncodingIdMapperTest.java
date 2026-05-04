@@ -22,6 +22,7 @@ package org.neo4j.internal.batchimport.cache.idmapping.string;
 import static java.lang.Math.toIntExact;
 import static java.lang.System.currentTimeMillis;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -37,6 +38,7 @@ import static org.neo4j.internal.batchimport.cache.idmapping.string.EncodingIdMa
 import static org.neo4j.internal.helpers.progress.ProgressMonitorFactory.NONE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -922,6 +924,33 @@ class EncodingIdMapperTest {
                     assertThat(getter.get(value, group)).isEqualTo(nodeId);
                 }
             }
+        }
+    }
+
+    @Test
+    void onlyPrepareOnce() throws IOException, KeyCollisionException {
+        try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
+            try (var setter = idMapper.newSetter(0)) {
+                setter.put(1L, 1, globalGroup);
+            }
+            idMapper.prepare(null, Collector.STRICT, ProgressMonitorFactory.NONE, LongSets.immutable.empty());
+            assertThatThrownBy(() -> idMapper.prepare(
+                            null, Collector.STRICT, ProgressMonitorFactory.NONE, LongSets.immutable.empty()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("already been prepared");
+        }
+    }
+
+    @Test
+    void noSetterAfterPrepare() throws IOException, KeyCollisionException {
+        try (var idMapper = mapper(new StringEncoder(), Radix.STRING, NO_MONITOR, 1)) {
+            try (var setter = idMapper.newSetter(0)) {
+                setter.put(1L, 1, globalGroup);
+            }
+            idMapper.prepare(null, Collector.STRICT, ProgressMonitorFactory.NONE, LongSets.immutable.empty());
+            assertThatThrownBy(() -> idMapper.newSetter(0))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot get a setter after the IdMapper has been prepared");
         }
     }
 
