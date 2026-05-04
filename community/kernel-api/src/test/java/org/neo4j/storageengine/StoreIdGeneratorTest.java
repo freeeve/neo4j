@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.DatabaseCreationOptions;
 
@@ -79,7 +80,7 @@ class StoreIdGeneratorTest {
         var majorVersion = 1;
         var minorVersion = 2;
         DatabaseCreationOptions options =
-                new DatabaseCreationOptions(Optional.empty(), Optional.of(1L), Optional.of(ZonedDateTime.now()));
+                new DatabaseCreationOptions(Optional.empty(), OptionalLong.of(1L), Optional.of(ZonedDateTime.now()));
         var first = StoreIds.generateNewStoreId(storageEngineName, formatName, majorVersion, minorVersion, options);
 
         var second = StoreIds.generateNewStoreId(storageEngineName, formatName, majorVersion, minorVersion, options);

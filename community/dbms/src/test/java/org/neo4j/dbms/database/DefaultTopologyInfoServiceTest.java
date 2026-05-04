@@ -41,6 +41,7 @@ import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -85,14 +86,14 @@ class DefaultTopologyInfoServiceTest {
         var userExternalStoreId = new ExternalStoreId(UUID.randomUUID());
         when(extrasProvider.extraDetails(eq(databaseId.databaseId()), any()))
                 .thenReturn(new DatabaseDetailsExtras(
-                        Optional.empty(),
-                        Optional.empty(),
+                        OptionalLong.empty(),
+                        OptionalLong.empty(),
                         Optional.of(userStoreId),
                         Optional.of(userExternalStoreId)));
         when(extrasProvider.extraDetails(eq(SYSTEM_DATABASE_ID), any()))
                 .thenReturn(new DatabaseDetailsExtras(
-                        Optional.empty(),
-                        Optional.empty(),
+                        OptionalLong.empty(),
+                        OptionalLong.empty(),
                         Optional.of(systemStoreId),
                         Optional.of(systemExternalStoreId)));
 

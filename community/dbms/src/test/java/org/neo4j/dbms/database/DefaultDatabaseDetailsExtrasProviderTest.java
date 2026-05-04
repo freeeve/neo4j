@@ -28,6 +28,7 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.dbms.database.DatabaseDetailsExtras.EMPTY;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,7 +96,7 @@ class DefaultDatabaseDetailsExtrasProviderTest {
         // then
         assertThat(result)
                 .isEqualTo(new DatabaseDetailsExtras(
-                        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
+                        OptionalLong.empty(), OptionalLong.empty(), Optional.empty(), Optional.empty()));
         verify(databaseContextProvider).getDatabaseContext(databaseId);
     }
 
@@ -107,7 +108,10 @@ class DefaultDatabaseDetailsExtrasProviderTest {
         // then
         assertThat(result)
                 .isEqualTo(new DatabaseDetailsExtras(
-                        Optional.empty(), Optional.empty(), Optional.of(storeId), Optional.of(externalStoreId)));
+                        OptionalLong.empty(),
+                        OptionalLong.empty(),
+                        Optional.of(storeId),
+                        Optional.of(externalStoreId)));
         verify(databaseContextProvider).getDatabaseContext(databaseId);
     }
 
@@ -119,8 +123,8 @@ class DefaultDatabaseDetailsExtrasProviderTest {
         // then
         assertThat(result)
                 .isEqualTo(new DatabaseDetailsExtras(
-                        Optional.of(lastCommittedTxId),
-                        Optional.of(lastAppendIndex),
+                        OptionalLong.of(lastCommittedTxId),
+                        OptionalLong.of(lastAppendIndex),
                         Optional.empty(),
                         Optional.empty()));
         verify(databaseContextProvider).getDatabaseContext(databaseId);

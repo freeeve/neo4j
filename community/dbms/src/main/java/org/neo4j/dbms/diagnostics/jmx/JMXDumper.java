@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.configuration.BootloaderSettings;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -53,9 +54,9 @@ public class JMXDumper {
     public Optional<JmxDump> getJMXDump() {
         out.println("Finding running instance of neo4j");
 
-        Optional<Long> pid = getPid();
+        OptionalLong pid = getPid();
         if (pid.isPresent()) {
-            return getJMXDump(pid.get());
+            return getJMXDump(pid.getAsLong());
         } else {
             out.println("No running instance of neo4j was found. Online reports will be omitted.");
             return Optional.empty();
@@ -97,7 +98,7 @@ public class JMXDumper {
         printError(message, null);
     }
 
-    private Optional<Long> getPid() {
+    private OptionalLong getPid() {
         Path pidFile = config.get(BootloaderSettings.pid_file);
         if (this.fs.fileExists(pidFile)) {
             // The file cannot be opened with write permissions on Windows
@@ -105,7 +106,7 @@ public class JMXDumper {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 String pidFileContent = reader.readLine();
                 try {
-                    return Optional.of(Long.parseLong(pidFileContent));
+                    return OptionalLong.of(Long.parseLong(pidFileContent));
                 } catch (NumberFormatException e) {
                     printError(pidFile + " does not contain a valid id. Found: " + pidFileContent);
                 }
@@ -113,6 +114,6 @@ public class JMXDumper {
                 printError("Error reading the .pid file. Reason: " + e.getMessage(), e);
             }
         }
-        return Optional.empty();
+        return OptionalLong.empty();
     }
 }

@@ -20,7 +20,7 @@
 package org.neo4j.genai.util;
 
 import java.io.Serial;
-import java.util.Optional;
+import java.util.OptionalInt;
 
 public class GenAIProcedureException extends RuntimeException {
 
@@ -46,7 +46,7 @@ public class GenAIProcedureException extends RuntimeException {
     /**
      * {@return an optional Http error code associated with this exception}
      */
-    public Optional<Integer> getOptionalHttpCode() {
-        return Optional.ofNullable(optionalHttpCode);
+    public OptionalInt getOptionalHttpCode() {
+        return optionalHttpCode == null ? OptionalInt.empty() : OptionalInt.of(optionalHttpCode);
     }
 }

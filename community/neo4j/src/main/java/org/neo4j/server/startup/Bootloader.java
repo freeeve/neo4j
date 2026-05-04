@@ -37,7 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -432,10 +432,10 @@ public abstract class Bootloader implements AutoCloseable {
             BootloaderOsAbstraction os = os();
             validateConfigVerbose(false);
 
-            Optional<Long> runningProcess = os.getPidIfRunning();
+            OptionalLong runningProcess = os.getPidIfRunning();
             if (runningProcess.isPresent()) {
                 throw new CommandFailedException(
-                        String.format("Neo4j is already running%s.", pidIfKnown(runningProcess.get())),
+                        String.format("Neo4j is already running%s.", pidIfKnown(runningProcess.getAsLong())),
                         EXIT_CODE_RUNNING);
             }
 
@@ -466,7 +466,7 @@ public abstract class Bootloader implements AutoCloseable {
             BootloaderOsAbstraction os = os();
             validateConfigVerbose(dryRun);
 
-            Optional<Long> runningProcess = os.getPidIfRunning();
+            OptionalLong runningProcess = os.getPidIfRunning();
 
             this.additionalArgs.add(ARG_CONSOLE_MODE);
 
@@ -484,7 +484,7 @@ public abstract class Bootloader implements AutoCloseable {
 
             if (runningProcess.isPresent()) {
                 throw new CommandFailedException(
-                        String.format("Neo4j is already running%s.", pidIfKnown(runningProcess.get())),
+                        String.format("Neo4j is already running%s.", pidIfKnown(runningProcess.getAsLong())),
                         EXIT_CODE_RUNNING);
             }
 
@@ -495,7 +495,7 @@ public abstract class Bootloader implements AutoCloseable {
 
         void stop(Integer maybeTimeout) {
             BootloaderOsAbstraction os = os();
-            Optional<Long> runningProcess = os.getPidIfRunning();
+            OptionalLong runningProcess = os.getPidIfRunning();
             if (runningProcess.isEmpty()) {
                 environment.out().println("Neo4j is not running.");
                 return;
@@ -509,7 +509,7 @@ public abstract class Bootloader implements AutoCloseable {
             }
 
             Stopwatch stopwatch = Stopwatch.start();
-            long pid = runningProcess.get();
+            long pid = runningProcess.getAsLong();
             try {
                 os.stop(pid);
             } catch (CommandFailedException e) {
@@ -555,11 +555,11 @@ public abstract class Bootloader implements AutoCloseable {
         }
 
         void status() {
-            Optional<Long> runningProcess = os().getPidIfRunning();
+            OptionalLong runningProcess = os().getPidIfRunning();
             if (runningProcess.isEmpty()) {
                 throw new CommandFailedException("Neo4j is not running.", EXIT_CODE_NOT_RUNNING);
             }
-            long pid = runningProcess.get();
+            long pid = runningProcess.getAsLong();
             environment.out().printf("Neo4j is running%s%n", pid != UNKNOWN_PID ? " at pid " + pid : "");
         }
 

@@ -21,7 +21,7 @@ package org.neo4j.bolt.test.extension.dependency;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -93,10 +93,10 @@ public class CommunityEditionStateMachineDependencyProvider implements StateMach
     }
 
     @Override
-    public Optional<Long> lastTransactionId(ExtensionContext ctx) {
+    public OptionalLong lastTransactionId(ExtensionContext ctx) {
         var gdb = this.getDatabaseAPI(ctx);
 
-        return Optional.of(gdb.getDependencyResolver()
+        return OptionalLong.of(gdb.getDependencyResolver()
                 .resolveDependency(TransactionIdStore.class)
                 .getHighestGapFreeClosedTransactionId());
     }

@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -41,7 +42,7 @@ public class BackupDescription implements Comparable<BackupDescription> {
     private final String metadataScript;
     private final Topology topology;
 
-    public record Topology(String virtualName, UUID virtualId, int shardCount, Optional<Integer> index) {}
+    public record Topology(String virtualName, UUID virtualId, int shardCount, OptionalInt index) {}
 
     public BackupDescription(
             String databaseName,

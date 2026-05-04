@@ -20,6 +20,7 @@
 package org.neo4j.bolt.testing.extension.dependency;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
@@ -73,8 +74,8 @@ public interface StateMachineDependencyProvider {
      * @param ctx a test extension context.
      * @return a transaction identifier or an empty optional.
      */
-    default Optional<Long> lastTransactionId(ExtensionContext ctx) {
-        return Optional.empty();
+    default OptionalLong lastTransactionId(ExtensionContext ctx) {
+        return OptionalLong.empty();
     }
 
     default Optional<TransactionManager> transactionManager() {

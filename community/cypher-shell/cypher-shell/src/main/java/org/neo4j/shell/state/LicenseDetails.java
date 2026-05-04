@@ -19,7 +19,7 @@
  */
 package org.neo4j.shell.state;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 
 public interface LicenseDetails {
     enum Status {
@@ -31,9 +31,9 @@ public interface LicenseDetails {
 
     Status status();
 
-    Optional<Long> daysLeft();
+    OptionalLong daysLeft();
 
-    Optional<Long> trialDays();
+    OptionalLong trialDays();
 
     static LicenseDetails parse(String status, long daysLeftOnTrial, long totalTrialDays) {
         if ("yes".equals(status)) {
@@ -43,16 +43,17 @@ public interface LicenseDetails {
             return LicenseDetailsImpl.NO;
         }
         if ("expired".equals(status)) {
-            return new LicenseDetailsImpl(Status.EXPIRED, Optional.of(0L), Optional.of(totalTrialDays));
+            return new LicenseDetailsImpl(Status.EXPIRED, OptionalLong.of(0L), OptionalLong.of(totalTrialDays));
         }
         if ("eval".equals(status)) {
-            return new LicenseDetailsImpl(Status.EVAL, Optional.of(daysLeftOnTrial), Optional.of(totalTrialDays));
+            return new LicenseDetailsImpl(
+                    Status.EVAL, OptionalLong.of(daysLeftOnTrial), OptionalLong.of(totalTrialDays));
         }
         throw new IllegalArgumentException("invalid license status " + status);
     }
 }
 
-record LicenseDetailsImpl(Status status, Optional<Long> daysLeft, Optional<Long> trialDays) implements LicenseDetails {
-    static final LicenseDetails YES = new LicenseDetailsImpl(Status.YES, Optional.empty(), Optional.empty());
-    static final LicenseDetails NO = new LicenseDetailsImpl(Status.NO, Optional.empty(), Optional.empty());
+record LicenseDetailsImpl(Status status, OptionalLong daysLeft, OptionalLong trialDays) implements LicenseDetails {
+    static final LicenseDetails YES = new LicenseDetailsImpl(Status.YES, OptionalLong.empty(), OptionalLong.empty());
+    static final LicenseDetails NO = new LicenseDetailsImpl(Status.NO, OptionalLong.empty(), OptionalLong.empty());
 }

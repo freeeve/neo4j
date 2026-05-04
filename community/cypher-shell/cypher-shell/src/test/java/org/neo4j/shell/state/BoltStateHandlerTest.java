@@ -597,7 +597,7 @@ class BoltStateHandlerTest {
         handler.connect(config);
 
         assertThat(handler.licenseDetails().status()).isEqualTo(LicenseDetails.Status.EXPIRED);
-        assertThat(handler.licenseDetails().daysLeft()).contains(0L);
+        assertThat(handler.licenseDetails().daysLeft()).hasValue(0L);
     }
 
     @Test
@@ -610,7 +610,7 @@ class BoltStateHandlerTest {
         handler.connect(config);
 
         assertThat(handler.licenseDetails().status()).isEqualTo(LicenseDetails.Status.EVAL);
-        assertThat(handler.licenseDetails().daysLeft()).contains(5L);
+        assertThat(handler.licenseDetails().daysLeft()).hasValue(5L);
     }
 
     @Test

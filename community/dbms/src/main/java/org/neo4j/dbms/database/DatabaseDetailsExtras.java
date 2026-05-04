@@ -21,6 +21,7 @@ package org.neo4j.dbms.database;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -30,12 +31,12 @@ import org.neo4j.storageengine.api.ExternalStoreId;
 import org.neo4j.storageengine.api.StoreId;
 
 public record DatabaseDetailsExtras(
-        Optional<Long> lastCommittedTxId,
-        Optional<Long> lastAppendIndex,
+        OptionalLong lastCommittedTxId,
+        OptionalLong lastAppendIndex,
         Optional<StoreId> storeId,
         Optional<ExternalStoreId> externalStoreId) {
     public static final DatabaseDetailsExtras EMPTY =
-            new DatabaseDetailsExtras(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+            new DatabaseDetailsExtras(OptionalLong.empty(), OptionalLong.empty(), Optional.empty(), Optional.empty());
 
     public static <T> Map<DatabaseId, Long> maxCommittedTxIds(
             Map<T, DatabaseDetailsExtras> extraDetails, Function<T, DatabaseId> databaseIdResolver) {
@@ -47,14 +48,18 @@ public record DatabaseDetailsExtras(
                         Math::max));
     }
 
-    public Optional<Long> txCommitLag(long maxLastCommittedTxId) {
-        if (maxLastCommittedTxId == DefaultDatabaseDetailsExtrasProvider.COMMITTED_TX_ID_NOT_AVAILABLE) {
-            return lastCommittedTxId.map(c -> replace(c, () -> 0L));
+    public OptionalLong txCommitLag(long maxLastCommittedTxId) {
+        if (lastCommittedTxId.isEmpty()) {
+            return OptionalLong.empty();
         }
-        return lastCommittedTxId.map(c -> replace(c, () -> c - maxLastCommittedTxId));
+        long c = lastCommittedTxId.getAsLong();
+        if (maxLastCommittedTxId == DefaultDatabaseDetailsExtrasProvider.COMMITTED_TX_ID_NOT_AVAILABLE) {
+            return OptionalLong.of(replace(c, () -> 0L));
+        }
+        return OptionalLong.of(replace(c, () -> c - maxLastCommittedTxId));
     }
 
-    private Long replace(Long c, LongSupplier calculator) {
+    private long replace(long c, LongSupplier calculator) {
         return c == DefaultDatabaseDetailsExtrasProvider.COMMITTED_TX_ID_NOT_AVAILABLE
                 ? DefaultDatabaseDetailsExtrasProvider.COMMITTED_TX_ID_NOT_AVAILABLE
                 : calculator.getAsLong();

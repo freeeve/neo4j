@@ -25,15 +25,16 @@ import static org.neo4j.util.Preconditions.checkArgument;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.graphdb.Node;
 import org.neo4j.util.VisibleForTesting;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class SeedRestoreUntil {
-    Optional<Long> txId;
+    OptionalLong txId;
     Optional<ZonedDateTime> dateTime;
 
-    private SeedRestoreUntil(Optional<Long> txId, Optional<ZonedDateTime> dateTime) {
+    private SeedRestoreUntil(OptionalLong txId, Optional<ZonedDateTime> dateTime) {
         validateArgs(txId, dateTime);
 
         this.txId = txId;
@@ -41,11 +42,11 @@ public class SeedRestoreUntil {
     }
 
     public static SeedRestoreUntil txId(long txId) {
-        return new SeedRestoreUntil(Optional.of(txId), Optional.empty());
+        return new SeedRestoreUntil(OptionalLong.of(txId), Optional.empty());
     }
 
     public static SeedRestoreUntil datetime(ZonedDateTime dateTime) {
-        return new SeedRestoreUntil(Optional.empty(), Optional.of(dateTime));
+        return new SeedRestoreUntil(OptionalLong.empty(), Optional.of(dateTime));
     }
 
     public void writeProperty(Node database) {
@@ -67,7 +68,7 @@ public class SeedRestoreUntil {
         throw new IllegalArgumentException("Provided value can't be converted to transaction id or transaction date");
     }
 
-    public Optional<Long> txId() {
+    public OptionalLong txId() {
         return txId;
     }
 
@@ -76,14 +77,16 @@ public class SeedRestoreUntil {
     }
 
     public String toOptionValue() {
-        return txId().map(Object::toString).orElseGet(() -> dateTime()
-                .map(Objects::toString)
-                .orElseThrow(
-                        () -> new IllegalStateException("Must contain either a transaction id or transaction date")));
+        return txId.isPresent()
+                ? String.valueOf(txId.getAsLong())
+                : dateTime()
+                        .map(Objects::toString)
+                        .orElseThrow(() ->
+                                new IllegalStateException("Must contain either a transaction id or transaction date"));
     }
 
     @VisibleForTesting
-    static void validateArgs(Optional<Long> txId, Optional<ZonedDateTime> dateTime) {
+    static void validateArgs(OptionalLong txId, Optional<ZonedDateTime> dateTime) {
         if (txId.isPresent() && dateTime.isPresent()) {
             throw new IllegalArgumentException("Only one of transaction id or transaction date can be provided");
         }

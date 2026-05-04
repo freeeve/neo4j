@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.info.JvmChecker;
 import org.neo4j.shell.startup.CypherShellBoot;
@@ -63,7 +63,7 @@ class VersionsTest {
         assertEquals(3, Versions.majorVersion(versionString));
         assertEquals(4, Versions.minorVersion(versionString));
         assertEquals(55, Versions.patch(versionString));
-        assertEquals(Optional.empty(), Versions.preRelease(versionString));
+        assertEquals(OptionalInt.empty(), Versions.preRelease(versionString));
         assertTrue(Versions.version(versionString).compareTo(Versions.version("3.4.55-2025041")) < 0);
         versionString = "5.27.0-2025040";
         assertNotEquals(0, Versions.version(versionString).compareTo(Versions.version("5.27.0")));
@@ -73,7 +73,7 @@ class VersionsTest {
         assertEquals(5, Versions.majorVersion(versionString));
         assertEquals(27, Versions.minorVersion(versionString));
         assertEquals(0, Versions.patch(versionString));
-        assertEquals(Optional.of(2025040), Versions.preRelease(versionString));
+        assertEquals(OptionalInt.of(2025040), Versions.preRelease(versionString));
     }
 
     @Test

@@ -22,7 +22,7 @@ package org.neo4j.shell.util;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 
-import java.util.Optional;
+import java.util.OptionalInt;
 import org.neo4j.driver.exceptions.Neo4jException;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -44,7 +44,7 @@ public final class Versions {
         return version(version).patch();
     }
 
-    public static Optional<Integer> preRelease(String version) throws FailedToParseException {
+    public static OptionalInt preRelease(String version) throws FailedToParseException {
         return version(version).preRelease();
     }
 
@@ -53,14 +53,15 @@ public final class Versions {
             throw new FailedToParseException("null is not a valid version string");
         }
         if (version.isEmpty()) {
-            return new Version(0, 0, 0, Optional.empty());
+            return new Version(0, 0, 0, OptionalInt.empty());
         }
         // remove -alpha, and -beta etc
         int offset = version.indexOf('-');
-        Optional<Integer> preRelease = Optional.empty();
+        OptionalInt preRelease = OptionalInt.empty();
         if (offset > 0) {
             try {
-                preRelease = Optional.of(version.length() > offset + 1 ? parseInt(version.substring(offset + 1)) : 0);
+                preRelease =
+                        OptionalInt.of(version.length() > offset + 1 ? parseInt(version.substring(offset + 1)) : 0);
             } catch (NumberFormatException ignored) {
             }
             version = version.substring(0, offset);

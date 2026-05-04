@@ -38,6 +38,7 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver
 import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 
+import java.util.OptionalLong
 import java.util.UUID
 
 import scala.collection.MapView
@@ -197,9 +198,9 @@ class TransactionBoundShowDatabaseService(
     databaseDetails.writer(),
     actualStatus,
     statusMessage,
-    Option.empty.toJava,
-    Option.empty.toJava,
-    Option.empty.toJava,
+    OptionalLong.empty(),
+    OptionalLong.empty(),
+    OptionalLong.empty(),
     // database level values - will be the same for all members
     spdId,
     databaseDetails.requestedStatus(),

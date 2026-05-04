@@ -105,15 +105,15 @@ object DatabaseDetailsMapper {
       REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL -> showDatabaseResult.requestedPropertyShardsReplicaCountValue(),
       CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL -> showDatabaseResult.currentPropertyShardsReplicaCountValue(),
       STORE_COL -> showDatabaseResult.storeValue(),
-      LAST_COMMITTED_TX_COL -> databaseDetails.lastCommittedTxId().map[AnyValue](s => Values.longValue(s)).orElse(
-        Values.NO_VALUE
-      ),
-      REPLICATION_LAG_COL -> databaseDetails.txCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(
-        Values.NO_VALUE
-      ),
-      SHARD_TX_LAG_COL -> databaseDetails.shardCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(
-        Values.NO_VALUE
-      ),
+      LAST_COMMITTED_TX_COL -> (if (databaseDetails.lastCommittedTxId().isPresent)
+                                  Values.longValue(databaseDetails.lastCommittedTxId().getAsLong)
+                                else Values.NO_VALUE),
+      REPLICATION_LAG_COL -> (if (databaseDetails.txCommitLag().isPresent)
+                                Values.longValue(databaseDetails.txCommitLag().getAsLong)
+                              else Values.NO_VALUE),
+      SHARD_TX_LAG_COL -> (if (databaseDetails.shardCommitLag().isPresent)
+                             Values.longValue(databaseDetails.shardCommitLag().getAsLong)
+                           else Values.NO_VALUE),
       OPTIONS_COL -> showDatabaseResult.optionsValue(),
       CONSTITUENTS_COL -> constituentValue,
       ALIASES_COL -> aliasesValue,

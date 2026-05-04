@@ -23,6 +23,7 @@ import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.bolt.txtracking.TransactionIdTracker;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -58,8 +59,10 @@ public class LocalGraphTransactionIdTracker {
         transactionIdTracker.awaitUpToDate(namedDatabaseId, transactionId, bookmarkTimeout);
     }
 
-    public Optional<Long> getTransactionId(Location.Local location) {
-        return getNamedDatabaseId(location).map(transactionIdTracker::newestTransactionId);
+    public OptionalLong getTransactionId(Location.Local location) {
+        return getNamedDatabaseId(location).stream()
+                .mapToLong(transactionIdTracker::newestTransactionId)
+                .findFirst();
     }
 
     private Optional<NamedDatabaseId> getNamedDatabaseId(Location.Local location) {

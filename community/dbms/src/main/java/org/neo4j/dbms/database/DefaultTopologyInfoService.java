@@ -35,6 +35,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseStatus.O
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.neo4j.configuration.Config;
@@ -123,9 +124,9 @@ public class DefaultTopologyInfoService implements TopologyInfoService {
                 true,
                 stateService.stateOfDatabase(id).operatorState().description(),
                 stateService.causeOfFailure(id).map(Throwable::getMessage).orElse(""),
-                Optional.empty(),
-                Optional.of(0L),
-                Optional.empty(),
+                OptionalLong.empty(),
+                OptionalLong.of(0L),
+                OptionalLong.empty(),
                 id,
                 ONLINE.statusName(),
                 id.isSystemDatabase() ? TYPE_SYSTEM : TYPE_STANDARD,

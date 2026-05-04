@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -59,7 +60,7 @@ abstract class BootloaderOsAbstraction {
         this.bootloader = bootloader;
     }
 
-    abstract Optional<Long> getPidIfRunning();
+    abstract OptionalLong getPidIfRunning();
 
     abstract boolean isRunning(long pid);
 

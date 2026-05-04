@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.neo4j.logging.Level;
 import org.neo4j.values.storable.DurationValue;
 
@@ -98,8 +99,8 @@ public final class DriverSettings {
         return Optional.ofNullable(connectionPoolIdleTest);
     }
 
-    public Optional<Integer> connectionPoolMaxSize() {
-        return Optional.ofNullable(connectionPoolMaxSize);
+    public OptionalInt connectionPoolMaxSize() {
+        return connectionPoolMaxSize == null ? OptionalInt.empty() : OptionalInt.of(connectionPoolMaxSize);
     }
 
     public Optional<Level> loggingLevel() {

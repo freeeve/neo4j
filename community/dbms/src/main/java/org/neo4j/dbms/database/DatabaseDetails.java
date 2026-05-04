@@ -22,6 +22,7 @@ package org.neo4j.dbms.database;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.identity.ServerId;
@@ -40,9 +41,9 @@ public record DatabaseDetails(
         boolean writer,
         String actualStatus,
         String statusMessage,
-        Optional<Long> lastCommittedTxId,
-        Optional<Long> txCommitLag,
-        Optional<Long> shardCommitLag,
+        OptionalLong lastCommittedTxId,
+        OptionalLong txCommitLag,
+        OptionalLong shardCommitLag,
         // database level values - will be the same for all members
         NamedDatabaseId namedDatabaseId,
         String requestedStatus,

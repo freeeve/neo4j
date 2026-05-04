@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.database.DatabaseId;
@@ -125,7 +125,7 @@ public class BackupMetadataV2Test {
                         1,
                         2)
                 .withTopology(new BackupDescription.Topology(
-                        "name", UUID.fromString("a3b9b4a5-1b78-4093-a1c3-955742878eb4"), 16, Optional.of(8)));
+                        "name", UUID.fromString("a3b9b4a5-1b78-4093-a1c3-955742878eb4"), 16, OptionalInt.of(8)));
     }
 
     // from https://stackoverflow.com/questions/9655181/java-convert-a-byte-array-to-a-hex-string

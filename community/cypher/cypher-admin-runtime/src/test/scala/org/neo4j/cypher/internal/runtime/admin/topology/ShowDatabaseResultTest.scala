@@ -38,6 +38,7 @@ import org.neo4j.values.virtual.VirtualValues
 import java.time.ZonedDateTime
 import java.util.Collections
 import java.util.Optional
+import java.util.OptionalLong
 import java.util.UUID
 
 class ShowDatabaseResultTest extends CypherFunSuite3 {
@@ -120,9 +121,9 @@ class ShowDatabaseResultTest extends CypherFunSuite3 {
       true, // writer
       "status",
       "statusMsg",
-      Optional.empty,
-      Optional.of(0L),
-      Optional.empty,
+      OptionalLong.empty,
+      OptionalLong.of(0L),
+      OptionalLong.empty,
       DatabaseIdFactory.from("neo4j", UUID.randomUUID()),
       ONLINE.statusName,
       dbType,

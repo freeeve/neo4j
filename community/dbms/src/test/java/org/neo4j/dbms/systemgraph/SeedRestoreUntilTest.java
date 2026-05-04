@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.graphdb.Node;
@@ -43,7 +44,7 @@ public class SeedRestoreUntilTest {
         // when/then
         assertThat(assertThrows(
                         IllegalArgumentException.class,
-                        () -> SeedRestoreUntil.validateArgs(Optional.of(invalidTxId), Optional.empty())))
+                        () -> SeedRestoreUntil.validateArgs(OptionalLong.of(invalidTxId), Optional.empty())))
                 .hasMessageContaining(
                         String.format("Transaction id should be a positive number. Provided value: %s", invalidTxId));
     }
@@ -51,7 +52,7 @@ public class SeedRestoreUntilTest {
     @Test
     void shouldThrowWhenNoRestoreUntilProvided() {
         // given
-        var txId = Optional.<Long>empty();
+        var txId = OptionalLong.empty();
         var datetime = Optional.<ZonedDateTime>empty();
 
         // when/then
@@ -62,7 +63,7 @@ public class SeedRestoreUntilTest {
     @Test
     void shouldThrowWhenBothTransactionIdAndDateProvided() {
         // given
-        var txId = Optional.of(100L);
+        var txId = OptionalLong.of(100L);
         var datetime = Optional.of(ZonedDateTime.now());
 
         // when/then
@@ -79,7 +80,7 @@ public class SeedRestoreUntilTest {
         var seedRestoreUntil1 = SeedRestoreUntil.fromObj(txId);
 
         // then
-        assertThat(seedRestoreUntil1.txId().orElseThrow()).isEqualTo(100L);
+        assertThat(seedRestoreUntil1.txId().getAsLong()).isEqualTo(100L);
 
         // given
         var instant = Instant.now();

@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.io.IOUtils;
 
@@ -136,8 +137,9 @@ abstract class AbstractUnixBootloaderOs extends BootloaderOsAbstraction {
     }
 
     @Override
-    Optional<Long> getPidIfRunning() {
-        return getProcessIfAlive(bootloader.processManager().getPidFromFile()).map(ProcessHandle::pid);
+    OptionalLong getPidIfRunning() {
+        var process = getProcessIfAlive(bootloader.processManager().getPidFromFile());
+        return process.isPresent() ? OptionalLong.of(process.get().pid()) : OptionalLong.empty();
     }
 
     @Override

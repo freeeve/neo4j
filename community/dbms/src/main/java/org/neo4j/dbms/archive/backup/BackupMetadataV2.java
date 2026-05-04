@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
@@ -151,7 +152,8 @@ public class BackupMetadataV2 extends BackupMetadataV1 {
         var virtualName = additionalFields.get(VIRTUAL_NAME_FIELD);
         var virtualId = UUID.fromString(additionalFields.get(VIRTUAL_ID_FIELD));
         var shardCount = Integer.parseInt(additionalFields.get(SHARD_COUNT_FIELD));
-        var shardIndex = Optional.ofNullable(additionalFields.get(INDEX_FIELD)).map(Integer::parseInt);
+        var shardIndexStr = additionalFields.get(INDEX_FIELD);
+        var shardIndex = shardIndexStr == null ? OptionalInt.empty() : OptionalInt.of(Integer.parseInt(shardIndexStr));
         return new BackupDescription.Topology(virtualName, virtualId, shardCount, shardIndex);
     }
 

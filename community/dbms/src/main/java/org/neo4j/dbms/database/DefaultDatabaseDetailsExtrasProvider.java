@@ -20,6 +20,7 @@
 package org.neo4j.dbms.database;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.storageengine.StoreFileClosedException;
 import org.neo4j.storageengine.api.ExternalStoreId;
@@ -40,8 +41,8 @@ public class DefaultDatabaseDetailsExtrasProvider {
 
     public DatabaseDetailsExtras extraDetails(DatabaseId databaseId, TopologyInfoService.RequestedExtras detailsLevel) {
         if (detailsLevel.txInfo() || detailsLevel.storeInfo()) {
-            var lastCommittedTxId = Optional.<Long>empty();
-            var lastAppendIndex = Optional.<Long>empty();
+            var lastCommittedTxId = OptionalLong.empty();
+            var lastAppendIndex = OptionalLong.empty();
             var storeId = Optional.<StoreId>empty();
             var externalStoreId = Optional.<ExternalStoreId>empty();
             var context = databaseContextProvider
@@ -60,23 +61,25 @@ public class DefaultDatabaseDetailsExtrasProvider {
         return DatabaseDetailsExtras.EMPTY;
     }
 
-    private static Optional<Long> fetchLastAppendIndex(Optional<? extends DatabaseContext> context) {
-        return context.map(DatabaseContext::dependencies)
-                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(LogMetadataProvider.class))
-                .flatMap(applyIndexProvider ->
-                        Optional.of(applyIndexProvider.getLastCommittedBatch().appendIndex()));
+    private static OptionalLong fetchLastAppendIndex(Optional<? extends DatabaseContext> context) {
+        var provider = context.map(DatabaseContext::dependencies)
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(LogMetadataProvider.class));
+        return provider.map(logMetadataProvider -> OptionalLong.of(
+                        logMetadataProvider.getLastCommittedBatch().appendIndex()))
+                .orElseGet(OptionalLong::empty);
     }
 
-    private static Optional<Long> fetchLastCommittedTxId(Optional<? extends DatabaseContext> context) {
-        return context.map(DatabaseContext::dependencies)
-                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(TransactionIdStore.class))
-                .flatMap(transactionIdStore -> {
-                    try {
-                        return Optional.of(transactionIdStore.getLastCommittedTransactionId());
-                    } catch (StoreFileClosedException e) {
-                        return Optional.empty();
-                    }
-                });
+    private static OptionalLong fetchLastCommittedTxId(Optional<? extends DatabaseContext> context) {
+        var store = context.map(DatabaseContext::dependencies)
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(TransactionIdStore.class));
+        if (store.isEmpty()) {
+            return OptionalLong.empty();
+        }
+        try {
+            return OptionalLong.of(store.get().getLastCommittedTransactionId());
+        } catch (StoreFileClosedException e) {
+            return OptionalLong.empty();
+        }
     }
 
     private static Optional<StoreId> fetchStoreId(Optional<? extends DatabaseContext> context) {

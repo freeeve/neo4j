@@ -20,9 +20,10 @@
 package org.neo4j.kernel;
 
 import java.util.Optional;
+import java.util.OptionalLong;
 
 public record DatabaseCreationOptions(
-        Optional<String> externalId, Optional<Long> randomId, Optional<java.time.ZonedDateTime> creationTime) {
+        Optional<String> externalId, OptionalLong randomId, Optional<java.time.ZonedDateTime> creationTime) {
     public static final DatabaseCreationOptions EMPTY_CREATION_OPTIONS =
-            new DatabaseCreationOptions(Optional.empty(), Optional.empty(), Optional.empty());
+            new DatabaseCreationOptions(Optional.empty(), OptionalLong.empty(), Optional.empty());
 }

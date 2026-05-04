@@ -23,7 +23,7 @@ import static java.lang.System.lineSeparator;
 import static java.util.Objects.nonNull;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -221,8 +221,8 @@ public class SyntaxException extends Neo4jException {
         return Status.Statement.SyntaxError;
     }
 
-    public Optional<Integer> getOffset() {
-        return Optional.ofNullable(offset);
+    public OptionalInt getOffset() {
+        return offset == null ? OptionalInt.empty() : OptionalInt.of(offset);
     }
 
     @Override

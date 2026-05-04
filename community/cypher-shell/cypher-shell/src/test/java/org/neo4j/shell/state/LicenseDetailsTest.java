@@ -22,40 +22,40 @@ package org.neo4j.shell.state;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Optional;
+import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 
 class LicenseDetailsTest {
     @Test
     void parseYes() {
         final var license = LicenseDetails.parse("yes", 0, 0);
-        assertEquals(license.status(), LicenseDetails.Status.YES);
-        assertEquals(Optional.empty(), license.daysLeft());
-        assertEquals(Optional.empty(), license.trialDays());
+        assertEquals(LicenseDetails.Status.YES, license.status());
+        assertEquals(OptionalLong.empty(), license.daysLeft());
+        assertEquals(OptionalLong.empty(), license.trialDays());
     }
 
     @Test
     void parseDays() {
         final var license = LicenseDetails.parse("eval", 12, 30);
-        assertEquals(license.status(), LicenseDetails.Status.EVAL);
-        assertEquals(Optional.of(12L), license.daysLeft());
-        assertEquals(Optional.of(30L), license.trialDays());
+        assertEquals(LicenseDetails.Status.EVAL, license.status());
+        assertEquals(OptionalLong.of(12L), license.daysLeft());
+        assertEquals(OptionalLong.of(30L), license.trialDays());
     }
 
     @Test
     void parseExpired() {
         final var license = LicenseDetails.parse("expired", -1, 120);
-        assertEquals(license.status(), LicenseDetails.Status.EXPIRED);
-        assertEquals(Optional.of(0L), license.daysLeft());
-        assertEquals(Optional.of(120L), license.trialDays());
+        assertEquals(LicenseDetails.Status.EXPIRED, license.status());
+        assertEquals(OptionalLong.of(0L), license.daysLeft());
+        assertEquals(OptionalLong.of(120L), license.trialDays());
     }
 
     @Test
     void parseNo() {
         final var license = LicenseDetails.parse("no", 0, 0);
-        assertEquals(license.status(), LicenseDetails.Status.NO);
-        assertEquals(Optional.empty(), license.daysLeft());
-        assertEquals(Optional.empty(), license.trialDays());
+        assertEquals(LicenseDetails.Status.NO, license.status());
+        assertEquals(OptionalLong.empty(), license.daysLeft());
+        assertEquals(OptionalLong.empty(), license.trialDays());
     }
 
     @Test

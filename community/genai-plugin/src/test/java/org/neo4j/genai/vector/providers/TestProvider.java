@@ -20,7 +20,7 @@
 package org.neo4j.genai.vector.providers;
 
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalLong;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.vector.DeprecatedVectorEncoding.Provider;
 import org.neo4j.values.storable.FloatArray;
@@ -37,7 +37,7 @@ public class TestProvider implements Provider<TestProvider.Parameters> {
 
     public static class Parameters {
         public String model = "testModel";
-        public Optional<Long> dimensions;
+        public OptionalLong dimensions;
     }
 
     @Override

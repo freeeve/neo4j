@@ -344,15 +344,15 @@ public class CypherShell implements StatementExecuter, Connector, TransactionHan
         } else if (license.status() == LicenseDetails.Status.EXPIRED
                 && license.trialDays().isPresent()) {
             printer.printOut(AnsiFormattedText.s()
-                    .orange(format(LICENSE_EXPIRED_WARNING, license.trialDays().get()))
+                    .orange(format(LICENSE_EXPIRED_WARNING, license.trialDays().getAsLong()))
                     .resetAndRender());
         } else if (license.status() == LicenseDetails.Status.EVAL
                 && license.daysLeft().isPresent()
                 && license.trialDays().isPresent()) {
             printer.printOut(format(
                     LICENSE_DAYS_LEFT_WARNING,
-                    license.daysLeft().get(),
-                    license.trialDays().get()));
+                    license.daysLeft().getAsLong(),
+                    license.trialDays().getAsLong()));
         }
     }
 
