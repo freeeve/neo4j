@@ -1516,6 +1516,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("A feature toggle behind which local user tags are developed")
+    public static final Setting<Boolean> user_tags =
+            newBuilder("internal.dbms.feature_flag.user_tags", BOOL, false).build();
+
+    @Internal
     @Description("A feature toggle behind which show setting feature is developed")
     public static final Setting<Boolean> show_setting =
             newBuilder("internal.dbms.show_setting", BOOL, true).build();
