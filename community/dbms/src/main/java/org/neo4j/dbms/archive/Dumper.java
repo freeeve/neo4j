@@ -83,8 +83,16 @@ public class Dumper {
     }
 
     private Dumper(FileSystemAbstraction fs, OutputProgressPrinter progressPrinter, boolean deleteAfterCopy) {
+        this(fs, createProgressPrinter(progressPrinter), deleteAfterCopy);
+    }
+
+    public Dumper(FileSystemAbstraction fs, ArchiveProgressPrinter progressPrinter) {
+        this(fs, progressPrinter, false);
+    }
+
+    public Dumper(FileSystemAbstraction fs, ArchiveProgressPrinter progressPrinter, boolean deleteAfterCopy) {
         this.fs = requireNonNull(fs);
-        this.progressPrinter = createProgressPrinter(progressPrinter);
+        this.progressPrinter = requireNonNull(progressPrinter);
         this.deleteAfterCopy = deleteAfterCopy;
     }
 
