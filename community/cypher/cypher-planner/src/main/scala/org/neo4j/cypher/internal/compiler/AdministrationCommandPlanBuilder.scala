@@ -1454,21 +1454,22 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         val requiredPrivilegeActionsForCompositeDatabases: Seq[DatabaseAndDbmsAction] =
           Seq(AlterCompositeDatabaseAction(cypherVersionForPrivileges))
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
+        val v = cypherVersionForPrivileges
+        // For each branch of ALTER DATABASE, the internal privilege (same display name "ALTER DATABASE" to the user) required for that operation:
         val requiredPrivilegedActionsForDatabases: Seq[DatabaseAndDbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires internal AlterDatabaseTopology privilege which can be granted by 'ALTER DATABASE':
-          topology.nonEmpty -> AlterDatabaseTopologyAction,
-          replicas.nonEmpty -> AlterDatabaseTopologyAction,
-          shardDefinition.nonEmpty -> AlterDatabaseTopologyAction,
+          if (topology.nonEmpty) Some(AlterDatabaseTopologyAction(v)) else None,
+          if (replicas.nonEmpty) Some(AlterDatabaseTopologyAction(v)) else None,
+          if (shardDefinition.nonEmpty) Some(AlterDatabaseTopologyAction(v)) else None,
           // ALTER DATABASE foo SET OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
-          (options != NoOptions) -> AlterDatabaseOptionsAction,
+          if (options != NoOptions) Some(AlterDatabaseOptionsAction(v)) else None,
           // ALTER DATABASE foo REMOVE OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
-          optionsToRemove.nonEmpty -> AlterDatabaseOptionsAction,
+          if (optionsToRemove.nonEmpty) Some(AlterDatabaseOptionsAction(v)) else None,
           // ALTER DATABASE foo SET ACCESS ... requires 'SET DATABASE ACCESS' privileges:
-          access.nonEmpty -> SetDatabaseAccessAction,
+          if (access.nonEmpty) Some(SetDatabaseAccessAction(v)) else None,
           // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DATABASE DEFAULT LANGUAGE' privileges:
-          cypherVersion.nonEmpty -> SetDatabaseDefaultLanguageAction
-        ).filter(_._1)
-          .map(_._2(cypherVersionForPrivileges))
+          if (cypherVersion.nonEmpty) Some(SetDatabaseDefaultLanguageAction(v)) else None
+        ).flatten
           .distinct
         val alterIsValidOnSystem =
           requiredPrivilegedActionsForDatabases == Seq(SetDatabaseDefaultLanguageAction(cypherVersionForPrivileges))

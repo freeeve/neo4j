@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
+import org.neo4j.cypher.internal.ast.semantics.{ScopeZipper => TopLevelScopeZipper}
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -39,7 +40,6 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.TreeElem
-import org.neo4j.cypher.internal.util.helpers.TreeZipper
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CypherType
@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.topDown
 
 import scala.collection.immutable.HashMap
-import scala.reflect.ClassTag
 
 object SymbolUse {
   def apply(variable: LogicalVariable): SymbolUse = SymbolUse(Ref(variable))
@@ -208,6 +207,8 @@ object MapExtendedType {
 
 object Scope {
   val empty: Scope = Scope(symbolTable = HashMap.empty, children = Vector())
+
+  implicit def treeZipper: ScopeZipper.type = ScopeZipper
 
   case class DeclarationsAndDependencies(declarations: Set[SymbolUse], dependencies: Set[SymbolUse])
 
@@ -376,9 +377,7 @@ final case class Scope(symbolTable: Map[String, Symbol], children: Seq[Scope]) e
 
 object SemanticState {
 
-  implicit val scopeClassTag: ClassTag[Scope] = ClassTag(classOf[Scope])
-
-  implicit object ScopeZipper extends TreeZipper[Scope]
+  implicit val ScopeZipper: TopLevelScopeZipper.type = TopLevelScopeZipper
 
   val clean: SemanticState = SemanticState(
     Scope.empty.location,
