@@ -73,6 +73,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.helpers.CNFNormalizerTestUtil
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.Monitors
@@ -92,7 +93,6 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.rewriteEqualityToInPredicate
 import org.neo4j.cypher.internal.ir.PatternLength
 import org.neo4j.cypher.internal.ir.PatternRelationship
@@ -567,7 +567,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     }
   }
 
-  lazy val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer()
+  lazy val cnfNormalizerTransformer = CNFNormalizerTestUtil.getTransformer()
 
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
     Parse andThen

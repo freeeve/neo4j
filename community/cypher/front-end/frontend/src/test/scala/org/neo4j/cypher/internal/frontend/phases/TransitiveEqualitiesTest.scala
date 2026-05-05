@@ -18,11 +18,11 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.frontend.helpers.CNFNormalizerTestUtil
+import org.neo4j.cypher.internal.frontend.helpers.CNFNormalizerTestUtil.SemanticWrapper
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest.SemanticWrapper
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
@@ -49,7 +49,7 @@ class TransitiveEqualitiesTest extends CypherFunSuite with AstConstructionTestSu
         )
       )
       .steps
-      .map(_.getTransformer(CNFNormalizerTest.transformerConfig()))
+      .map(_.getTransformer(CNFNormalizerTestUtil.transformerConfig()))
       .map(_.asInstanceOf[Transformer[BaseContext, BaseState, BaseState]])
       .reduceLeft((t1, t2) => t1 andThen t2)
 

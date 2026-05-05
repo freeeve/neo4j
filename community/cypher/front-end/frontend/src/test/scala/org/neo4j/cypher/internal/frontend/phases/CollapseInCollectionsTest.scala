@@ -16,13 +16,13 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizerTest
+import org.neo4j.cypher.internal.frontend.helpers.CNFNormalizerTestUtil
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CollapseInCollectionsTest extends CypherFunSuite with AstRewritingTestSupport with RewritePhaseTest {
 
-  final private val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer()
+  final private val cnfNormalizerTransformer = CNFNormalizerTestUtil.getTransformer()
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     cnfNormalizerTransformer andThen collapseMultipleInPredicates

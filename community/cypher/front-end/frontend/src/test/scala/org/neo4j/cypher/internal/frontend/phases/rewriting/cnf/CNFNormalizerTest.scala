@@ -31,29 +31,18 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.helpers.CNFNormalizerTestUtil
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
-import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
-import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
-import org.neo4j.cypher.internal.frontend.phases.Transformer
-import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
-import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LocalFunctionsResolved
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ShadowedFunctionsUnresolved
-import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.CNFNormalizer.steps
-import org.neo4j.cypher.internal.frontend.phases.transitiveEqualities
 import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.rewriting.AstRewritingMonitor
 import org.neo4j.cypher.internal.rewriting.PredicateTestSupport
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -61,15 +50,13 @@ import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.StepSequencer.Condition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.database.DatabaseReference
 import org.scalatestplus.mockito.MockitoSugar
 
 class CNFNormalizerTest extends CypherFunSuite with PredicateTestSupport {
 
-  final private val cnfNormalizerTransformer = CNFNormalizerTest.getTransformer()
+  final private val cnfNormalizerTransformer = CNFNormalizerTestUtil.getTransformer()
   var rewriter: Rewriter = _
   var astRewritingMonitor: AstRewritingMonitor = _
 
@@ -210,58 +197,6 @@ class CNFNormalizerTest extends CypherFunSuite with PredicateTestSupport {
         expression
       case x => fail(s"Expected Expression but was ${x.getClass}")
     }
-  }
-}
-
-object CNFNormalizerTest {
-
-  def transformerConfig(): PlanPipelineTransformerConfig =
-    PlanPipelineTransformerConfig(
-      pushdownPropertyReads = false,
-      allowSubqueryDuplicationInCnf = false
-    )
-
-  case class SemanticWrapper()
-      extends Transformer[BaseContext, BaseState, BaseState]
-      with StepSequencer.Step
-      with PlanPipelineTransformerFactory {
-
-    private val transformer = SemanticAnalysis.getTransformer(transformerConfig())
-
-    override def preConditions: Set[Condition] = SemanticAnalysis.preConditions
-
-    override def postConditions: Set[Condition] = SemanticAnalysis.postConditions
-
-    override def invalidatedConditions: Set[Condition] = SemanticAnalysis.invalidatedConditions
-
-    override def getTransformer(planPipelineConfig: PlanPipelineTransformerConfig): SemanticWrapper = this
-
-    override def transform(from: BaseState, context: BaseContext): BaseState = transformer.transform(from, context)
-
-    override def name: String = transformer.name
-  }
-
-  def getTransformer(): Transformer[BaseContext, BaseState, BaseState] = {
-    val orderedSteps: Seq[Transformer[BaseContext, BaseState, BaseState]] =
-      StepSequencer[PlanPipelineTransformerFactory with StepSequencer.Step]()
-        .orderSteps(
-          Set(
-            transitiveEqualities,
-            SemanticWrapper()
-          ) ++ steps,
-          initialConditions = Set(
-            BaseContains[Statement](),
-            ShadowedFunctionsUnresolved,
-            LocalFunctionsResolved,
-            SemanticAnalysisPossible,
-            NormalizePredicates.completed
-          )
-        )
-        .steps
-        .map(_.getTransformer(transformerConfig()))
-        .map(_.asInstanceOf[Transformer[BaseContext, BaseState, BaseState]])
-
-    orderedSteps.reduceLeft[Transformer[BaseContext, BaseState, BaseState]]((t1, t2) => t1 andThen t2)
   }
 }
 
