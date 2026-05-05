@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.util.VisibleForTesting;
 
 public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoCloseable {
     public static final int MINIMUM_SEGMENTS = 2;
@@ -468,6 +469,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             // Update the write channel's state with the recovered values
             appendingChannel.recoverState(recoveredChecksum, recoveredIndex, recoveredTerm);
         }
+    }
+
+    @VisibleForTesting
+    public LogPosition currentWriteLogPosition() throws IOException {
+        return new LogPosition(currentWriteChannel.version(), appendingChannel.position());
     }
 
     /**
