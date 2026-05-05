@@ -22,13 +22,17 @@ import org.neo4j.cypher.internal.frontend.scoping.Outcome
 import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
+import scala.util.Random
+
 /**
  * Test for
  * - 42N59 - Variable Already Declared
  * - 42N07 - Variable is shadowing a variable with the same name
  * w.r.t local callables
  */
-class GQL_42N59_VariableAlreadyDeclared_LocalCallables extends LocalCallableVariableCheckingTestSuite {
+class GQL_42N59_VariableAlreadyDeclared_LocalCallablesTest extends LocalCallableVariableCheckingTestSuite {
+
+  implicit val rand: Random = new Random(0)
 
   /*
    * Variable already declared error in a local callables body

@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42I58 - Inaccessible Variable
  */
-class GQL_42N44_InaccessibleVariable extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N44_InaccessibleVariableTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

@@ -68,11 +68,9 @@ trait LocalCallableGenHelpers {
     }
   }
 
-  val rand = new Random(0)
-
   def variableNames(num: Int, offset: Int = 0): Seq[Char] = ('a' to 'z').slice(offset, offset + num)
 
-  def pickOne[T](from: Seq[T]): T = {
+  def pickOne[T](from: Seq[T])(implicit rand: Random): T = {
     if (from.isEmpty) {
       throw new RuntimeException(s"Cannot pick one item from a empty list of items.")
     } else {
@@ -83,7 +81,7 @@ trait LocalCallableGenHelpers {
     }
   }
 
-  def pickDistinct[T](from: Seq[T], num: Int): (Seq[T], Seq[T]) = {
+  def pickDistinct[T](from: Seq[T], num: Int)(implicit rand: Random): (Seq[T], Seq[T]) = {
     if (num > from.size) {
       throw new RuntimeException(s"Cannot pick $num distinct items from a list of ${from.size} items.")
     } else {

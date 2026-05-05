@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.frontend.scoping.checker.CompositionRestriction
 /**
  * Test for 42I37 - Invalid Use Of Return Star
  */
-class GQL_42I37_InvalidUseOfReturnStar extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42I37_InvalidUseOfReturnStarTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

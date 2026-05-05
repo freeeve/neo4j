@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42N39 - Incompatible Return Column Names
  */
-class GQL_42N39_IncompatibleReturnColumnNames extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N39_IncompatibleReturnColumnNamesTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

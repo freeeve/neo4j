@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.passesBeforeCypher25
 /**
  * Test for 42I58 - Invalid Entity Reference
  */
-class GQL_42I58_InvalidEntityReference extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42I58_InvalidEntityReferenceTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = testCasesCreate ++ testCasesInsert ++ testCasesMerge

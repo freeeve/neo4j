@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.frontend.scoping.checker.CompositionRestriction
 /**
  * Test for 42N59 - Variable Already Declared
  */
-class GQL_42N59_VariableAlreadyDeclared extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N59_VariableAlreadyDeclaredTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(
@@ -317,7 +317,7 @@ class GQL_42N59_VariableAlreadyDeclared extends VariableCheckingWithLocalCallabl
       """MATCH ((a)-[e]->(b)-[f]->(a))+(p)-[g]->(r)-[q]->(s)
         |RETURN a, b, p, r, s""".stripMargin,
       Passes,
-      Seq("l")
+      Seq("a", "b", "p", "r", "s")
     ),
     TestQuery(
       """MATCH (a:A) MATCH p = ( ()--() WHERE EXISTS { (a) } )+

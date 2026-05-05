@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42N3A - Incompatible Conditional Query
  */
-class GQL_42N3A_IncompatibleConditionalQuery extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N3A_IncompatibleConditionalQueryTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

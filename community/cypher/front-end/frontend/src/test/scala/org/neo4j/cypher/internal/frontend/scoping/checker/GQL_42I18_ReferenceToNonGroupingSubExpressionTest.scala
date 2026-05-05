@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42I18 - Reference To Non-grouping Sub-expression
  */
-class GQL_42I18_ReferenceToNonGroupingSubExpression extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42I18_ReferenceToNonGroupingSubExpressionTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(

@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
  * Test for
  * - 42N67 - Duplicate parameter
  */
-class GQL_42N67_DuplicateParameter extends VariableCheckingWithLocalCallablesTestSuite
+class GQL_42N67_DuplicateParameterTest extends VariableCheckingWithLocalCallablesTestSuite
     with LocalCallableGenHelpers {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 

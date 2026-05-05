@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42I77 - Local Callable Already Defined
  */
-class GQL_42I77_LocalCallableAlreadyDefined extends VariableCheckingWithLocalCallablesTestSuite
+class GQL_42I77_LocalCallableAlreadyDefinedTest extends VariableCheckingWithLocalCallablesTestSuite
     with LocalCallableGenHelpers {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 

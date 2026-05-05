@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.frontend.scoping.checker.ProjItem.StringAsOps
 /**
  * Test for 42N38 - Duplicate Return Item Name
  */
-class GQL_42N38_DuplicateReturnItemName extends VariableCheckingWithLocalCallablesTestSuite
+class GQL_42N38_DuplicateReturnItemNameTest extends VariableCheckingWithLocalCallablesTestSuite
     with LocalCallableGenHelpers {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 

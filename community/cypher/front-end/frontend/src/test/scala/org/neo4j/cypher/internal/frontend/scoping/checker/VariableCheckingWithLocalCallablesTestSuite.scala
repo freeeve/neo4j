@@ -19,6 +19,8 @@ package org.neo4j.cypher.internal.frontend.scoping.checker
 import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
+import scala.util.Random
+
 trait VariableCheckingWithLocalCallablesTestSuite extends VariableCheckingTestSuite {
 
   def testCases(): Seq[TestQuery]
@@ -34,11 +36,12 @@ trait VariableCheckingWithLocalCallablesTestSuite extends VariableCheckingTestSu
   for {
     TestQuery(query, outcome, _, _) <- {
       val tcs = testCases()
+      val rand = new Random(0)
       SurroundGivenQueriesWithLocalCallablesDefinition.sample(
         tcs,
         VariableCheckingWithLocalCallablesTestSuite.getAllTestCases,
         Math.max(3, 5 * Math.round(Math.log(tcs.size.toDouble)).toInt)
-      )
+      )(rand)
     }
   } {
     test(query) {

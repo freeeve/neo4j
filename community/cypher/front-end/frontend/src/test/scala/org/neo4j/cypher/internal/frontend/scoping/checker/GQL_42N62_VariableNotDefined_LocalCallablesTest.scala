@@ -20,10 +20,14 @@ import org.neo4j.cypher.internal.frontend.scoping.E42N62
 import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
+import scala.util.Random
+
 /**
  * Test for 42N62 - Variable Not Defined w.r.t local callables
  */
-class GQL_42N62_VariableNotDefined_LocalCallables extends LocalCallableVariableCheckingTestSuite {
+class GQL_42N62_VariableNotDefined_LocalCallablesTest extends LocalCallableVariableCheckingTestSuite {
+
+  implicit val rand: Random = new Random(0)
 
   /*
    * Variable not defined error w.r.t in a local callables body

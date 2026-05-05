@@ -21,9 +21,11 @@ import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.checker.CompositionRestriction.NoCountOrExistsSubqueryBody
 import org.neo4j.cypher.internal.frontend.scoping.checker.CompositionRestriction.NoLocalCallableBody
 
+import scala.util.Random
+
 object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGenHelpers {
 
-  def forAll(queries: Seq[TestQuery]): Iterable[TestQuery] = {
+  def forAll(queries: Seq[TestQuery])(implicit rand: Random): Iterable[TestQuery] = {
     for {
       testQuery <- queries
       filteredQueries = queries.filter(_.compositionRestriction != NoLocalCallableBody)
@@ -32,7 +34,7 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     }
   }
 
-  def sample(queries: Seq[TestQuery], numSamples: Int): Iterable[TestQuery] = {
+  def sample(queries: Seq[TestQuery], numSamples: Int)(implicit rand: Random): Iterable[TestQuery] = {
     for {
       _ <- 1 to numSamples
       filteredQueries = queries.filter(_.compositionRestriction != NoLocalCallableBody)
@@ -42,7 +44,8 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     }
   }
 
-  def sample(testQueries: Seq[TestQuery], poolQueries: Seq[TestQuery], numSamples: Int): Iterable[TestQuery] = {
+  def sample(testQueries: Seq[TestQuery], poolQueries: Seq[TestQuery], numSamples: Int)(implicit
+    rand: Random): Iterable[TestQuery] = {
     for {
       _ <- 1 to numSamples
       filteredTestQueries = testQueries.filter(_.compositionRestriction != NoLocalCallableBody)
@@ -78,18 +81,18 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     )
   )
 
-  private def _surround(query: TestQuery, queries: Seq[TestQuery]): TestQuery = {
-    val names = new DistinctNames
+  private def _surround(query: TestQuery, queries: Seq[TestQuery])(implicit rand: Random): TestQuery = {
+    implicit val names: DistinctNames = new DistinctNames
     val candidateQueries = (baselineTestQuery ++ queries).filter(tq => tq != query && tq.outcome == Passes)
     val maxNestingLevel = pickOne(1 to 3)
-    _nest(query, candidateQueries, maxNestingLevel)(names)
+    _nest(query, candidateQueries, maxNestingLevel)
   }
 
   private def _nest(
     query: TestQuery,
     candidateQueries: Seq[TestQuery],
     maxNestingLevel: Int
-  )(implicit names: DistinctNames): TestQuery = {
+  )(implicit names: DistinctNames, rand: Random): TestQuery = {
     val otherQueries = _otherQueries(query, candidateQueries)
     if (maxNestingLevel <= 1) {
       _flatQueryForGivenQueries(otherQueries :+ query, query.outcome)
@@ -106,7 +109,10 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     }
   }
 
-  private def _otherQueries(query: TestQuery, candidateQueries: Seq[TestQuery]): Seq[TestQuery] = {
+  private def _otherQueries(
+    query: TestQuery,
+    candidateQueries: Seq[TestQuery]
+  )(implicit rand: Random): Seq[TestQuery] = {
     val trueCandidateQueries =
       candidateQueries.filter(_.returnColumns != query.returnColumns).groupBy(_.returnColumns).map {
         case (_, candidates) => pickOne(candidates)
@@ -116,24 +122,23 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     otherQueries
   }
 
-  private def _flatQueryForGivenQueries(queries: Seq[TestQuery], outcome: Outcome)(implicit
-    names: DistinctNames): TestQuery = {
+  private def _flatQueryForGivenQueries(
+    queries: Seq[TestQuery],
+    outcome: Outcome
+  )(implicit names: DistinctNames, rand: Random): TestQuery = {
     val definitions = queries.map(tq => _definition(tq))
     val defs = rand.shuffle(definitions).map(_.cypher).mkString(System.lineSeparator())
     val definitionsInCallOrder = rand.shuffle(definitions)
     val yields = definitionsInCallOrder.foldLeft(Seq.empty[Seq[String]]) {
-      case (before, definition) => before :+ definition.returnColumns.filter(c => !before.flatten.contains(c))
+      case (before, definition) if definition.kind == Procedure =>
+        before :+ definition.returnColumns.filter(c => !before.flatten.contains(c))
+      case (before, definition) if definition.kind == Function =>
+        before :+ Seq(names.next())
+      case (before, _) => before
     }
     val definitionsInCallOrderWithYield = definitionsInCallOrder.zip(yields)
     val calls = definitionsInCallOrderWithYield.map {
-      case (definition, yieldCols) =>
-        val call = _call(definition)
-        val yld =
-          if (definition.kind == Function || yieldCols == definition.returnColumns || yieldCols.isEmpty) ""
-          else s" YIELD ${yieldCols.mkString(", ")}"
-        if (definition.kind == Procedure && definition.returnColumns.nonEmpty && yieldCols.isEmpty)
-          s"// no call of ${definition.name}"
-        else s"$call$yld"
+      case (definition, yieldCols) => _call(definition, yieldCols)
     }.mkString(System.lineSeparator())
     val allYieldFromCallables = yields.flatten
     val returnVar = pickOne(allYieldFromCallables :+ "123")
@@ -144,19 +149,27 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     TestQuery(query, outcome, Seq(returnCol))
   }
 
-  private def _call(definition: Definition)(implicit names: DistinctNames): String = definition match {
+  private def _call(definition: Definition, yieldCols: Seq[String]): String = definition match {
     case Definition(kind, name, numParameters, _, _) =>
       val args = (0 until numParameters).map(i => s"$i").mkString(", ")
       val invoc = s"$name($args)".stripMargin
       kind match {
-        case Procedure => s"CALL $invoc"
-        case Function  => s"LET ${names.next()} = $invoc"
+        case Procedure if definition.returnColumns.nonEmpty && yieldCols.isEmpty =>
+          s"// no call of ${definition.name}"
+        case Procedure =>
+          val yld =
+            if (yieldCols == definition.returnColumns || yieldCols.isEmpty) ""
+            else s"YIELD ${yieldCols.mkString(", ")}"
+          s"CALL $invoc $yld"
+        case Function =>
+          val yld = yieldCols.head
+          s"LET $yld = $invoc"
       }
   }
 
   case class Definition(kind: Kind, name: String, numParameters: Int, cypher: String, returnColumns: Seq[String])
 
-  private def _definition(inner: TestQuery)(implicit names: DistinctNames): Definition = {
+  private def _definition(inner: TestQuery)(implicit names: DistinctNames, rand: Random): Definition = {
     val name = names.next(5)
     val numParameters = pickOne(Seq(0, 1, 2, 3, 5))
     val parameters = variableNames(numParameters).map(p => s"_param_$p")
@@ -219,12 +232,12 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
   class DistinctNames {
     var i: Int = 0
 
-    def next(maxNumComponents: Int = 1): String = {
+    def next(maxNumComponents: Int = 1)(implicit rand: Random): String = {
       i = i + rand.nextInt(10)
       name(maxNumComponents) + i
     }
 
-    private def name(maxNumComponents: Int): String = {
+    private def name(maxNumComponents: Int)(implicit rand: Random): String = {
       val chars = ('a' to 'z') ++ ('A' to 'Z')
       val numComponents = pickOne(1 to maxNumComponents)
       (1 to numComponents).map {

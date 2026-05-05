@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 /**
  * Test for 42N07 - Variable Is Shadowing Outer Scope
  */
-class GQL_42N07_VariableIsShadowingOuterScope extends VariableCheckingWithLocalCallablesTestSuite {
+class GQL_42N07_VariableIsShadowingOuterScopeTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
 
   override def testCases(): Seq[TestQuery] = Seq(
