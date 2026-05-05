@@ -52,7 +52,7 @@ case class DriverCypherExecutorFactory(
       .resolveDependency(classOf[ConnectorPortRegister])
 
     val boltURI =
-      if (config.get(BoltConnector.enabled))
+      if (config.get(BoltConnector.enabled).booleanValue())
         URI.create(s"neo4j://${connectorPortRegister.getLocalAddress(ConnectorType.BOLT)}/")
       else throw new IllegalStateException("Bolt connector is not configured")
     val driverConfig = org.neo4j.driver.Config.builder().withTelemetryDisabled(true).build()

@@ -33,6 +33,7 @@ Apache Software License, Version 2.0
   Apache Shiro :: Lang
   Caffeine cache
   Commons Pool
+  Compiler Interface
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
   Core :: EE :: Web Application
@@ -76,7 +77,6 @@ Apache Software License, Version 2.0
   json4s-core
   json4s-native
   json4s-native-core
-  json4s-scalap
   JSpecify annotations
   magnolia
   Neo4j Java Driver
@@ -96,9 +96,14 @@ Apache Software License, Version 2.0
   picocli
   Scala Reflect
   scala-collection-contrib
+  scala3-compiler-bootstrapped
+  scala3-interfaces
   scala3-library-bootstrapped
+  scala3-staging
   snappy-java
   Strategic Blue Parquet Floor
+  tasty-core-bootstrapped
+  Util Interface
   WMI4Java
 ------------------------------------------------------------------------------
 
@@ -356,6 +361,11 @@ BSD License
   asm-analysis
   asm-tree
   asm-util
+  JLine JNI Terminal
+  JLine Native Library
+  JLine Reader
+  JLine Terminal
+  scala-asm
   Zstandard
 ------------------------------------------------------------------------------
 

@@ -37,6 +37,7 @@ Apache Software License, Version 2.0
   Byte Buddy agent
   Caffeine cache
   Commons Pool
+  Compiler Interface
   Core :: ALPN :: Java Server
   Core :: ALPN :: Server
   Core :: EE :: Web Application
@@ -86,7 +87,8 @@ Apache Software License, Version 2.0
   json-path
   json4s-ast
   json4s-core
-  json4s-scalap
+  json4s-native
+  json4s-native-core
   JSpecify annotations
   magnolia
   Neo4j Java Driver
@@ -111,9 +113,14 @@ Apache Software License, Version 2.0
   picocli
   Scala Reflect
   scala-collection-contrib
+  scala3-compiler-bootstrapped
+  scala3-interfaces
   scala3-library-bootstrapped
+  scala3-staging
   snappy-java
   Strategic Blue Parquet Floor
+  tasty-core-bootstrapped
+  Util Interface
   WMI4Java
 ------------------------------------------------------------------------------
 
@@ -372,6 +379,11 @@ BSD License
   asm-tree
   asm-util
   Hamcrest Core
+  JLine JNI Terminal
+  JLine Native Library
+  JLine Reader
+  JLine Terminal
+  scala-asm
   Zstandard
 ------------------------------------------------------------------------------
 

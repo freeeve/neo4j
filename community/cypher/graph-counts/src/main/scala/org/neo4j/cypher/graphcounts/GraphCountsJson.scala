@@ -28,6 +28,7 @@ import org.json4s.JArray
 import org.json4s.JString
 import org.json4s.JValue
 import org.json4s.StringInput
+import org.json4s.jvalue2extractable
 import org.json4s.native.JsonMethods
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Expression

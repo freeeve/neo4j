@@ -22,10 +22,11 @@ package org.neo4j.cypher.graphcounts
 import org.json4s.AsJsonInput
 import org.json4s.Formats
 import org.json4s.StringInput
+import org.json4s.jvalue2extractable
 import org.json4s.native.Json
 import org.json4s.native.JsonMethods
 import org.neo4j.cypher.graphcounts.GraphCountsJson.allFormats
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 import org.neo4j.internal.schema.ConstraintType
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexProviderDescriptor
@@ -33,7 +34,7 @@ import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.constraints.SchemaValueType
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class GraphCountsJsonTest extends CypherFunSuite {
+class GraphCountsJsonTest extends CypherFunSuite3 {
 
   implicit val formats: Formats = allFormats
   implicit val jsonInputConverter: AsJsonInput[StringInput] = AsJsonInput.fromFunction(identity)
@@ -332,7 +333,7 @@ class GraphCountsJsonTest extends CypherFunSuite {
   }
 }
 
-class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks {
+class ConstraintsJsonTest extends CypherFunSuite3 with TableDrivenPropertyChecks {
 
   private val constraints: List[(String, Constraint)] =
     List(
@@ -517,7 +518,7 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
     )
 
   private val constraintsTable =
-    Table(("Constraint", "JSON"), constraints: _*)
+    Table(("Constraint", "JSON"), constraints*)
 
   /*
   Ensures that all types of constraints are covered when parsing GraphCounts, while remaining loosely coupled.
@@ -529,6 +530,7 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
   }
 
   test("should deserialize all constraints") {
+    import org.json4s.convertToJsonInput
     forAll(constraintsTable) { (json: String, constraint: Constraint) =>
       Json.apply(allFormats).read[Constraint](json) shouldEqual constraint
     }

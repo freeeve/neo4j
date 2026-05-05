@@ -45,7 +45,7 @@ case class HttpCypherExecutorFactory(
         .getDependencyResolver.resolveDependency(classOf[ConnectorPortRegister])
 
     val uri =
-      if (config.get(HttpConnector.enabled))
+      if (config.get(HttpConnector.enabled).booleanValue())
         URI.create(s"http://${connectorPortRegister.getLocalAddress(ConnectorType.HTTP)}/")
       else throw new IllegalStateException("HTTP connector is not configured")
 

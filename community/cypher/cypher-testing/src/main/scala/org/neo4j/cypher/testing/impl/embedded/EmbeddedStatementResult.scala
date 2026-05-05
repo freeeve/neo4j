@@ -65,8 +65,8 @@ object EmbeddedStatementResult {
     headers: java.util.List[String],
     mapper: ValueMapper
   ) extends Result.ResultVisitor[RuntimeException] {
-    private[this] val rows = new java.util.ArrayList[java.util.List[AnyRef]]
-    private[this] val rowSize = headers.size()
+    private val rows = new java.util.ArrayList[java.util.List[AnyRef]]
+    private val rowSize = headers.size()
 
     override def visit(row: Result.ResultRow): Boolean = {
       val resultRow = new java.util.ArrayList[AnyRef](rowSize)

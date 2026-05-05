@@ -21,6 +21,7 @@ package org.neo4j.cypher.testing.impl.http
 
 import org.json4s.Formats
 import org.json4s.NoTypeHints
+import org.json4s.jvalue2extractable
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization
 
