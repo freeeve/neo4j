@@ -107,6 +107,29 @@ object Foldable {
       extends FoldingBehavior[R]
 
   /**
+   * Define the folding behavior on a node during a bottom-up tree fold with curried interface.
+   * Unlike [[FoldingBehavior]], the accumulator update function is separated from the traversal decision.
+   */
+  sealed trait BottomUpFoldingBehavior[R]
+
+  /**
+   * Do not traverse into children. Use the given function to update the accumulator immediately.
+   */
+  case class SkipChildrenBU[R](accUpdate: R => R) extends BottomUpFoldingBehavior[R]
+
+  /**
+   * Traverse into children first (bottom-up), then apply `accUpdate` to the post-children accumulator.
+   */
+  case class TraverseChildrenBU[R](accUpdate: R => R) extends BottomUpFoldingBehavior[R]
+
+  /**
+   * Traverse into children first (bottom-up), then apply `accUpdate` to the post-children accumulator,
+   * and also apply `forSiblings` to transform the accumulator before continuing to siblings.
+   */
+  case class TraverseChildrenNewAccForSiblingsBU[R](accUpdate: R => R, forSiblings: R => R)
+      extends BottomUpFoldingBehavior[R]
+
+  /**
    * Any type is foldable
    */
   implicit class FoldableAny(override val foldedOver: Any) extends Foldable
@@ -166,6 +189,45 @@ object Foldable {
         reverse = true,
         cancellation
       )
+
+    /**
+     * Fold of a tree structure, visiting nodes bottom-up (post-order), with a curried interface.
+     *
+     * Unlike [[treeFold]] which visits a node before its children (top-down/pre-order),
+     * this method visits all children of a node before visiting the node itself.
+     *
+     * The folding behaviour is controlled by the given partial function: when the partial function is undefined on a
+     * given node of the tree, that node is simply ignored and the tree traversal will continue. If the partial
+     * function is defined on the node then it will be applied to determine both the traversal strategy and the
+     * accumulator update function. The accumulator update function (returned inside the [[BottomUpFoldingBehavior]])
+     * is evaluated only once, after children have been visited (for [[TraverseChildrenBU]] and
+     * [[TraverseChildrenNewAccForSiblingsBU]]).
+     *
+     * The partial function `f` returns a [[BottomUpFoldingBehavior]]:
+     *  - [[SkipChildrenBU]]: applies `accUpdate` immediately and does NOT descend into children.
+     *    Use this to prune entire subtrees from traversal.
+     *  - [[TraverseChildrenBU]]: defers `accUpdate`, descends into children first (bottom-up), then applies
+     *    `accUpdate` with the post-children accumulator.
+     *  - [[TraverseChildrenNewAccForSiblingsBU]]: like [[TraverseChildrenBU]], but also applies the sibling
+     *    transformation after the node is visited.
+     *
+     * `f` is evaluated exactly '''once''' per matched node.
+     *
+     * @param init the initial value of the accumulator
+     * @param f    partial function that given a node in the tree might return a [[BottomUpFoldingBehavior]]
+     *             containing the accumulator update function and traversal strategy.
+     * @tparam R the type of the accumulator/result
+     * @return the accumulated result
+     */
+    def treeFoldBottomUp[R](init: R)(f: PartialFunction[Any, BottomUpFoldingBehavior[R]]): R = {
+      treeFoldBottomUpAcc(
+        mutable.Stack(foldedOver),
+        init,
+        f.lift,
+        new mutable.Stack[(R => R, mutable.Stack[Any], Option[R => R])](),
+        cancellation
+      )
+    }
 
     private def innerTreeFold[R](innerF: R => FoldingBehavior[R]): R => (R, Option[R => R]) = acc => {
       innerF(acc) match {
@@ -281,6 +343,47 @@ object Foldable {
             case (newAcc, None) =>
               treeFoldAcc(remaining, newAcc, f, continuation, reverse, cancellation)
           }
+      }
+    }
+  }
+
+  @tailrec
+  private def treeFoldBottomUpAcc[R](
+    remaining: mutable.Stack[Any],
+    acc: R,
+    f: Any => Option[BottomUpFoldingBehavior[R]],
+    deferred: mutable.Stack[(R => R, mutable.Stack[Any], Option[R => R])],
+    cancellation: CancellationChecker
+  ): R = {
+    cancellation.throwIfCancelled()
+    if (remaining.isEmpty) {
+      if (deferred.isEmpty) {
+        acc
+      } else {
+        val (accUpdate, siblings, contAccFuncOpt) = deferred.pop()
+        val newAcc = accUpdate(acc)
+        val finalAcc = contAccFuncOpt match {
+          case Some(contAccFunc) => contAccFunc(newAcc)
+          case None              => newAcc
+        }
+        treeFoldBottomUpAcc(siblings, finalAcc, f, deferred, cancellation)
+      }
+    } else {
+      val that = remaining.pop()
+      f(that) match {
+        case None =>
+          val children = that.reverseTreeChildren
+          treeFoldBottomUpAcc(remaining.pushAll(children), acc, f, deferred, cancellation)
+        case Some(SkipChildrenBU(accUpdate)) =>
+          treeFoldBottomUpAcc(remaining, accUpdate(acc), f, deferred, cancellation)
+        case Some(TraverseChildrenBU(accUpdate)) =>
+          deferred.push((accUpdate, remaining, None))
+          val children = that.reverseTreeChildren
+          treeFoldBottomUpAcc(mutable.Stack[Any]().pushAll(children), acc, f, deferred, cancellation)
+        case Some(TraverseChildrenNewAccForSiblingsBU(accUpdate, forSiblings)) =>
+          deferred.push((accUpdate, remaining, Some(forSiblings)))
+          val children = that.reverseTreeChildren
+          treeFoldBottomUpAcc(mutable.Stack[Any]().pushAll(children), acc, f, deferred, cancellation)
       }
     }
   }

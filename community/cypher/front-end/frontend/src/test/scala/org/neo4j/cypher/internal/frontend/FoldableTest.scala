@@ -24,8 +24,11 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.SkipChildrenBU
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenBU
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblingsBU
 import org.neo4j.cypher.internal.util.Foldable.TreeAny
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -342,6 +345,21 @@ class FoldableTest extends CypherFunSuite {
     ex.getMessage.shouldEqual(cancellation.message)
   }
 
+  test("treeFoldBottomUp should support cancelling") {
+    val ast = Sum(Seq(Val(1), Val(2), Val(3), Val(4), Val(5)))
+
+    val cancellation = new TestCancellationChecker
+    val ex = the[Exception].thrownBy(
+      ast.folder(cancellation).treeFoldBottomUp(0) {
+        case Val(3) =>
+          cancellation.cancelNext = true
+          TraverseChildrenBU(acc => acc + 1)
+      }
+    )
+
+    ex.getMessage.shouldEqual(cancellation.message)
+  }
+
   test("treeExists should support cancelling") {
     val ast = Sum(Seq(Val(1), Val(2), Val(3), Val(4), Val(5)))
 
@@ -465,6 +483,83 @@ class FoldableTest extends CypherFunSuite {
     )
 
     ex.getMessage.shouldEqual(cancellation.message)
+  }
+
+  test("should tree fold bottom-up over all objects") {
+    val ast = Add(Val(55), Add(Val(43), Val(52)))
+
+    val result = ast.folder.treeFoldBottomUp(50) {
+      case Val(x) => TraverseChildrenBU(acc => acc + x)
+    }
+
+    result should be(50 + 55 + 43 + 52)
+  }
+
+  test("should tree fold bottom-up visiting children before parent") {
+    val ast = Add(Val(1), Add(Val(2), Val(3)))
+
+    val result = ast.folder.treeFoldBottomUp(Seq.empty[Int]) {
+      case Val(x)    => TraverseChildrenBU(acc => acc :+ x)
+      case Add(_, _) => TraverseChildrenBU(acc => acc :+ 0)
+    }
+
+    result should be(Seq(1, 2, 3, 0, 0))
+  }
+
+  test("should be able to stop-recursion in tree fold bottom-up") {
+    val ast = Add(Val(55), Add(Val(43), Val(52)))
+
+    val result = ast.folder.treeFoldBottomUp(50) {
+      case Val(x)          => TraverseChildrenBU(acc => acc + x)
+      case Add(Val(43), _) => SkipChildrenBU(acc => acc + 20)
+    }
+
+    result should be(50 + 55 + 20)
+  }
+
+  test("should be able to merge accumulators in tree fold bottom-up") {
+    val ast = Sum(Seq(Val(55), Add(Val(43), Val(52)), Val(10)))
+
+    val result = ast.folder.treeFoldBottomUp(50) {
+      case Val(x)    => TraverseChildrenBU(acc => acc + x)
+      case Add(_, _) => TraverseChildrenNewAccForSiblingsBU(acc => acc, acc => acc * 2)
+    }
+
+    result should be((50 + 55 + 43 + 52) * 2 + 10)
+  }
+
+  test("should confirm bottom-up accumulation order") {
+    val ast = Add(Val(1), Add(Val(2), Val(3)))
+
+    val result = ast.folder.treeFoldBottomUp(Seq.empty[String]) {
+      case Val(x)    => TraverseChildrenBU(acc => acc :+ s"Val($x)")
+      case Add(_, _) => TraverseChildrenBU(acc => acc :+ s"Add[after:${acc.mkString(",")}]")
+    }
+
+    result should be(Seq(
+      "Val(1)",
+      "Val(2)",
+      "Val(3)",
+      "Add[after:Val(1),Val(2),Val(3)]",
+      "Add[after:Val(1),Val(2),Val(3),Add[after:Val(1),Val(2),Val(3)]]"
+    ))
+  }
+
+  test("should tree fold bottom-up evaluating f only once per node") {
+    val ast = Add(Val(1), Add(Val(2), Val(3)))
+
+    var evalCount = 0
+    val result = ast.folder.treeFoldBottomUp(0) {
+      case Val(x) =>
+        evalCount += 1
+        TraverseChildrenBU(acc => acc + x)
+      case Add(_, _) =>
+        evalCount += 1
+        TraverseChildrenBU(acc => acc)
+    }
+
+    result should be(1 + 2 + 3)
+    evalCount should be(5)
   }
 
   test("should also work on non-standard iterables") {
