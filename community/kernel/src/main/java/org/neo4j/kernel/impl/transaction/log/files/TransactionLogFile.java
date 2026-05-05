@@ -134,18 +134,18 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     TransactionLogFile(LogFiles logFiles, TransactionLogFilesContext context) {
         this.context = context;
-        this.rotateAtSize = context.getRotationThreshold();
-        this.fileSystem = context.getFileSystem();
-        this.databaseHealth = context.getDatabaseHealth();
-        this.versionTracker = context.getLogFileVersionTracker();
+        this.rotateAtSize = context.rotationThreshold();
+        this.fileSystem = context.fileSystem();
+        this.databaseHealth = context.databaseHealth();
+        this.versionTracker = context.versionTracker();
         this.fileHelper = TransactionLogFilesHelper.forTransactions(logFiles.logFilesDirectory());
         this.logHeaderCache = new LogHeaderCache(1000);
         this.channelAllocator = new TransactionLogChannelAllocator(context, fileHelper, logHeaderCache, rotateAtSize);
         this.readerLogVersionBridge = ReaderLogVersionBridge.forFile(this);
-        this.rotationMonitor = context.getMonitors().newMonitor(LogRotationMonitor.class);
+        this.rotationMonitor = context.monitors().newMonitor(LogRotationMonitor.class);
 
-        this.memoryTracker = context.getMemoryTracker();
-        this.logger = context.getLogProvider().getLog(TransactionLogFile.class);
+        this.memoryTracker = context.memoryTracker();
+        this.logger = context.logProvider().getLog(TransactionLogFile.class);
     }
 
     void initialize(TransactionLogFilesProviders transactionLogFilesProviders) {
@@ -157,7 +157,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     public void init() throws IOException {
         this.logRotation = transactionLogRotation(
                 this,
-                context.getClock(),
+                context.clock(),
                 databaseHealth,
                 rotationMonitor,
                 transactionLogFilesProviders.getKernelVersionProvider());
@@ -194,7 +194,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             currentLogVersion = logVersionRepository.getCurrentLogVersion();
         }
 
-        context.getMonitors()
+        context.monitors()
                 .newMonitor(LogRotationMonitor.class)
                 .started(channel.getPath(), LogRotationMonitor.LogType.TRANSACTIONS, currentLogVersion, logHeader);
 
@@ -203,15 +203,15 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
         final var channelProvider =
                 new PhysicalFlushableLogPositionAwareChannel.VersionedPhysicalFlushableLogChannelProvider(
-                        logRotation, context.getDatabaseTracers().getDatabaseTracer(), createScopedBuffer());
+                        logRotation, context.databaseTracers().getDatabaseTracer(), createScopedBuffer());
 
         writer = new PhysicalFlushableLogPositionAwareChannel(
                 channel, channelAllocator.readLogHeaderForVersion(currentLogVersion), channelProvider);
-        if (!context.isReadOnly()) {
+        if (!context.readOnly()) {
             transactionLogWriter = new TransactionLogWriter(
                     writer,
                     transactionLogFilesProviders.getKernelVersionProvider(),
-                    context.getBinarySupportedKernelVersions(),
+                    context.binarySupportedKernelVersions(),
                     logRotation);
         }
     }
@@ -230,7 +230,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public NativeScopedBuffer createScopedBuffer() {
-        return new NativeScopedBuffer(context.getBufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, memoryTracker);
+        return new NativeScopedBuffer(context.bufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, memoryTracker);
     }
 
     /**
@@ -239,7 +239,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
      * This alerts the monitor about rotation since we don't use the regular path through {@link LogRotation}.
      */
     private void rotateOnStart(LogHeader logHeader) throws IOException {
-        long startTimeMillis = context.getClock().millis();
+        long startTimeMillis = context.clock().millis();
         rotationMonitor.startRotation(LogRotationMonitor.LogType.TRANSACTIONS, logHeader.getLogVersion());
         long newLogVersion = logVersionRepository.incrementAndGetVersion();
 
@@ -257,7 +257,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         channel.close();
         channel = newLog;
 
-        long rotationElapsedTime = context.getClock().millis() - startTimeMillis;
+        long rotationElapsedTime = context.clock().millis() - startTimeMillis;
         rotationMonitor.finishLogRotation(
                 channel.getPath(),
                 LogRotationMonitor.LogType.TRANSACTIONS,
@@ -406,8 +406,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         checkArgument(byteBuffer.isDirect(), "It is required for byte buffer to be direct.");
         var transactionLogWriter = getTransactionLogWriter();
 
-        try (var logAppendEvent =
-                context.getDatabaseTracers().getDatabaseTracer().logAppend()) {
+        try (var logAppendEvent = context.databaseTracers().getDatabaseTracer().logAppend()) {
             long totalAppended = transactionLogWriter.append(
                     byteBuffer, logAppendEvent, appendIndex, kernelVersionByte, checksum, offset, logFormatVersion);
             logAppendEvent.appendedBytes(totalAppended);
@@ -465,7 +464,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public TransactionLogWriter getTransactionLogWriter() {
-        if (context.isReadOnly()) {
+        if (context.readOnly()) {
             throw new UnsupportedOperationException("Trying to create writer in read only mode.");
         }
         return transactionLogWriter;
@@ -540,7 +539,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             }
             try (StoreChannel channel = fileSystem.read(logFile)) {
                 try (var scopedBuffer =
-                        new HeapScopedBuffer(headerSize + 5, ByteOrder.LITTLE_ENDIAN, context.getMemoryTracker())) {
+                        new HeapScopedBuffer(headerSize + 5, ByteOrder.LITTLE_ENDIAN, context.memoryTracker())) {
                     var buffer = scopedBuffer.getBuffer();
                     channel.readAll(buffer);
                     buffer.flip();
@@ -641,7 +640,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private void combineOverlapping(Path additionalLogFilesDirectory, long fromAppendIndex) throws IOException {
         long nextFileVersion = getLogRangeInfo().highestVersion() + 1;
         var entryReader = new VersionAwareLogEntryReader(
-                context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
+                context.commandReaderFactory(), context.binarySupportedKernelVersions(), memoryTracker);
 
         var logHelper = TransactionLogFilesHelper.forTransactions(additionalLogFilesDirectory);
         var transactionLogFiles = logHelper.getFiles(fileSystem);
@@ -1093,7 +1092,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 readAheadLogChannel.alignWithStartEntry();
             }
             final var logEntryReader = new VersionAwareLogEntryReader(
-                    context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
+                    context.commandReaderFactory(), context.binarySupportedKernelVersions(), memoryTracker);
             LogEntry entry;
             do {
                 // seek to the end the records.
@@ -1125,7 +1124,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private LogHeader extractHeader(long version, boolean strict) throws IOException {
         LogHeader logHeader = logHeaderCache.getLogHeader(version);
         if (logHeader == null) {
-            logHeader = readLogHeader(fileSystem, getLogFileForVersion(version), strict, context.getMemoryTracker());
+            logHeader = readLogHeader(fileSystem, getLogFileForVersion(version), strict, context.memoryTracker());
             if (logHeader == null) {
                 return null;
             }

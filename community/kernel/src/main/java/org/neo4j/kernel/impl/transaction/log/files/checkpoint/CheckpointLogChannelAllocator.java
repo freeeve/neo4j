@@ -36,6 +36,6 @@ public class CheckpointLogChannelAllocator extends TransactionLogChannelAllocato
                 logFilesContext,
                 fileHelper,
                 new LogHeaderCache(1),
-                new AtomicLong(logFilesContext.getCheckpointRotationThreshold()));
+                new AtomicLong(logFilesContext.checkpointRotationThreshold()));
     }
 }

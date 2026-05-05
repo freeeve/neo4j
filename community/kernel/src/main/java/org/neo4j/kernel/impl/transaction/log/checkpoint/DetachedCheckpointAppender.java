@@ -96,9 +96,9 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         this.checkpointFile = requireNonNull(checkpointFile);
         this.context = requireNonNull(context);
         this.channelAllocator = requireNonNull(channelAllocator);
-        this.databasePanic = requireNonNull(context.getDatabaseHealth());
+        this.databasePanic = requireNonNull(context.databaseHealth());
         this.logRotation = requireNonNull(checkpointRotation);
-        this.log = context.getLogProvider().getLog(DetachedCheckpointAppender.class);
+        this.log = context.logProvider().getLog(DetachedCheckpointAppender.class);
         this.logTailScanner = logTailScanner;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.logVersionRepository = transactionLogFilesProviders.getLogVersionRepository();
@@ -108,7 +108,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
 
     @Override
     public void start() throws IOException {
-        this.storeId = context.getStoreId();
+        this.storeId = context.storeId().get();
         long currentLogVersion = logVersionRepository.getCheckpointLogVersion();
         channel = channelAllocator.createLogChannel(
                 currentLogVersion,
@@ -118,16 +118,15 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
                 logFormatVersionProvider);
 
         LogHeader logHeader = logHeader(currentLogVersion);
-        context.getMonitors()
+        context.monitors()
                 .newMonitor(LogRotationMonitor.class)
                 .started(channel.getPath(), LogRotationMonitor.LogType.CHECKPOINT, currentLogVersion, logHeader);
         seekCheckpointChannel(currentLogVersion);
 
-        buffer = new NativeScopedBuffer(
-                context.getBufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, context.getMemoryTracker());
+        buffer = new NativeScopedBuffer(context.bufferSizeBytes(), ByteOrder.LITTLE_ENDIAN, context.memoryTracker());
         final var checksumChannelProvider =
                 new PhysicalFlushableLogPositionAwareChannel.VersionedPhysicalFlushableLogChannelProvider(
-                        logRotation, context.getDatabaseTracers().getDatabaseTracer(), buffer);
+                        logRotation, context.databaseTracers().getDatabaseTracer(), buffer);
         writer = new PhysicalFlushableLogPositionAwareChannel(channel, logHeader, checksumChannelProvider);
 
         // A corner case where if we start up with an empty checkpoint file and the header already exist

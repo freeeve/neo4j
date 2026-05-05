@@ -82,7 +82,7 @@ class LogFilesBuilderTest {
         TransactionLogFilesContext context = logFilesBasedOnlyBuilder(storeDirectory, fileSystem)
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .buildContext();
-        assertEquals(fileSystem, context.getFileSystem());
+        assertEquals(fileSystem, context.fileSystem());
     }
 
     @Test
@@ -100,11 +100,11 @@ class LogFilesBuilderTest {
         TransactionLogFilesOverrides overrides = builder.buildOverrides();
         TransactionLogFilesProviders providers =
                 new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
-        assertEquals(fileSystem, context.getFileSystem());
-        assertNotNull(context.getCommandReaderFactory());
+        assertEquals(fileSystem, context.fileSystem());
+        assertNotNull(context.commandReaderFactory());
         assertEquals(
-                roundUp(ByteUnit.mebiBytes(256), context.getEnvelopeSegmentBlockSizeBytes()),
-                context.getRotationThreshold().get());
+                roundUp(ByteUnit.mebiBytes(256), context.envelopeSegmentBlockSizeBytes()),
+                context.rotationThreshold().get());
         assertEquals(1, providers.appendIndex());
         assertEquals(2, providers.getLogVersionRepository().getCurrentLogVersion());
     }
@@ -125,11 +125,11 @@ class LogFilesBuilderTest {
         TransactionLogFilesOverrides overrides = builder.buildOverrides();
         TransactionLogFilesProviders providers =
                 new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
-        assertEquals(fileSystem, context.getFileSystem());
-        assertNotNull(context.getCommandReaderFactory());
+        assertEquals(fileSystem, context.fileSystem());
+        assertNotNull(context.commandReaderFactory());
         assertEquals(
-                context.getEnvelopeSegmentBlockSizeBytes() * 2L,
-                context.getRotationThreshold().get());
+                context.envelopeSegmentBlockSizeBytes() * 2L,
+                context.rotationThreshold().get());
         assertEquals(1, providers.appendIndex());
         assertEquals(2, providers.getLogVersionRepository().getCurrentLogVersion());
     }
@@ -146,7 +146,7 @@ class LogFilesBuilderTest {
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withConfig(Config.defaults(checkpoint_logical_log_rotation_threshold, kibiBytes(128)))
                 .buildContext();
-        assertEquals(context.getEnvelopeSegmentBlockSizeBytes() * 2L, context.getCheckpointRotationThreshold());
+        assertEquals(context.envelopeSegmentBlockSizeBytes() * 2L, context.checkpointRotationThreshold());
     }
 
     @Test
@@ -162,7 +162,7 @@ class LogFilesBuilderTest {
                 .withConfig(Config.defaults(
                         checkpoint_logical_log_rotation_threshold, LogSegments.DEFAULT_LOG_SEGMENT_SIZE * 4L))
                 .buildContext();
-        assertEquals(context.getEnvelopeSegmentBlockSizeBytes() * 4L, context.getCheckpointRotationThreshold());
+        assertEquals(context.envelopeSegmentBlockSizeBytes() * 4L, context.checkpointRotationThreshold());
     }
 
     @Test
@@ -182,9 +182,9 @@ class LogFilesBuilderTest {
         TransactionLogFilesOverrides overrides = builder.buildOverrides();
         TransactionLogFilesProviders providers =
                 new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
-        assertEquals(fileSystem, context.getFileSystem());
-        assertNotNull(context.getCommandReaderFactory());
-        assertEquals(ByteUnit.mebiBytes(1), context.getRotationThreshold().get());
+        assertEquals(fileSystem, context.fileSystem());
+        assertNotNull(context.commandReaderFactory());
+        assertEquals(ByteUnit.mebiBytes(1), context.rotationThreshold().get());
         assertEquals(1, providers.appendIndex());
         assertEquals(2, providers.getLogVersionRepository().getCurrentLogVersion());
     }
@@ -209,12 +209,12 @@ class LogFilesBuilderTest {
         TransactionLogFilesProviders providers =
                 new TransactionLogFilesProviders(mock(LogMetadataProvider.class), overrides);
 
-        assertEquals(fileSystem, context.getFileSystem());
-        assertNotNull(context.getCommandReaderFactory());
+        assertEquals(fileSystem, context.fileSystem());
+        assertNotNull(context.commandReaderFactory());
         assertEquals(
-                roundUp(ByteUnit.mebiBytes(256), context.getEnvelopeSegmentBlockSizeBytes()),
-                context.getRotationThreshold().get());
-        assertEquals(databaseHealth, context.getDatabaseHealth());
+                roundUp(ByteUnit.mebiBytes(256), context.envelopeSegmentBlockSizeBytes()),
+                context.rotationThreshold().get());
+        assertEquals(databaseHealth, context.databaseHealth());
         assertEquals(1, providers.appendIndex());
         assertEquals(2, providers.getLogVersionRepository().getCurrentLogVersion());
     }

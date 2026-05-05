@@ -130,12 +130,12 @@ public final class CheckpointInfoFactory {
     private static TransactionId readTransactionInfoFor4_2(
             TransactionLogFilesContext context, LogFile logFile, LogPosition transactionPosition) {
         try (var channel = logFile.openForVersion(transactionPosition.getLogVersion());
-                var reader = new ReadAheadLogChannel(new UnclosableChannel(channel), context.getMemoryTracker());
+                var reader = new ReadAheadLogChannel(new UnclosableChannel(channel), context.memoryTracker());
                 var logEntryCursor = new LogEntryCursor(
                         new VersionAwareLogEntryReader(
-                                context.getCommandReaderFactory(),
-                                context.getBinarySupportedKernelVersions(),
-                                context.getMemoryTracker()),
+                                context.commandReaderFactory(),
+                                context.binarySupportedKernelVersions(),
+                                context.memoryTracker()),
                         reader)) {
             LogPosition checkedPosition = null;
             LogEntryStart logEntryStart = null;
@@ -162,7 +162,7 @@ public final class CheckpointInfoFactory {
 
             // We have a checkpoint on this point but there is no transaction found that match it and log files are
             // corrupted. Database should be restored from the last valid backup or dump in normal circumstances.
-            if (!context.getConfig().get(fail_on_corrupted_log_files)) {
+            if (!context.config().get(fail_on_corrupted_log_files)) {
                 return new TransactionId(
                         UNKNOWN_TRANSACTION_ID.id(),
                         UNKNOWN_TRANSACTION_ID.appendIndex(),
@@ -215,9 +215,9 @@ public final class CheckpointInfoFactory {
         }
 
         try (var fallbackReader =
-                new ReadAheadLogChannel(new UnclosableChannel(fallbackChannel), context.getMemoryTracker())) {
+                new ReadAheadLogChannel(new UnclosableChannel(fallbackChannel), context.memoryTracker())) {
             byte versionCode = fallbackReader.get();
-            if (context.getBinarySupportedKernelVersions().latestSupportedIsLessThan(versionCode)) {
+            if (context.binarySupportedKernelVersions().latestSupportedIsLessThan(versionCode)) {
                 return Optional.empty();
             }
             var kernelVersion = KernelVersion.EARLIEST.isGreaterThan(versionCode)
@@ -234,7 +234,7 @@ public final class CheckpointInfoFactory {
             return Optional.of(new TransactionId(
                     transactionId, transactionId, kernelVersion, checksum, timeWritten, UNKNOWN_CONSENSUS_INDEX));
         } catch (Exception e) {
-            context.getLogProvider()
+            context.logProvider()
                     .getLog(CheckpointInfoFactory.class)
                     .debug("Fail to extract legacy transaction info.", e);
             return Optional.empty();

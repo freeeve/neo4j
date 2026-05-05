@@ -64,14 +64,14 @@ public class TransactionLogChannelAllocator {
             LogHeaderCache logHeaderCache,
             AtomicLong rotationThreshold) {
         this.logFilesContext = logFilesContext;
-        this.fileSystem = logFilesContext.getFileSystem();
-        this.databaseTracer = logFilesContext.getDatabaseTracers().getDatabaseTracer();
+        this.fileSystem = logFilesContext.fileSystem();
+        this.databaseTracer = logFilesContext.databaseTracers().getDatabaseTracer();
         this.fileHelper = fileHelper;
         this.logHeaderCache = logHeaderCache;
         this.nativeChannelAccessor = new StoreChannelNativeAccessor(
                 logFilesContext.fileSystem(),
-                logFilesContext.getNativeAccess(),
-                logFilesContext.getLogProvider(),
+                logFilesContext.nativeAccess(),
+                logFilesContext.logProvider(),
                 new TransactionLogOutOfDiskHandler(logFilesContext));
         this.rotationThreshold = rotationThreshold;
     }
@@ -132,7 +132,7 @@ public class TransactionLogChannelAllocator {
             StoreChannel storeChannel,
             Path logFile)
             throws IOException {
-        LogHeader header = readLogHeader(storeChannel, false, logFile, logFilesContext.getMemoryTracker());
+        LogHeader header = readLogHeader(storeChannel, false, logFile, logFilesContext.memoryTracker());
         if (header == null) {
             try (LogFileCreateEvent createEvent = databaseTracer.createLogFile()) {
                 // we always write file header from the beginning of the file
@@ -144,11 +144,12 @@ public class TransactionLogChannelAllocator {
                                 version,
                                 lastAppendIndex,
                                 LogHeader.UNKNOWN_TERM,
-                                StoreIdentifier.newStoreIdentifier(logFilesContext.getStoreId()),
-                                logFilesContext.getEnvelopeSegmentBlockSizeBytes(),
+                                StoreIdentifier.newStoreIdentifier(
+                                        logFilesContext.storeId().get()),
+                                logFilesContext.envelopeSegmentBlockSizeBytes(),
                                 previousLogFileChecksum,
                                 kernelVersion);
-                writeLogHeader(storeChannel, header, logFilesContext.getMemoryTracker());
+                writeLogHeader(storeChannel, header, logFilesContext.memoryTracker());
                 createEvent.fileCreated(header.getStartPosition().getByteOffset());
             }
         }
@@ -159,7 +160,7 @@ public class TransactionLogChannelAllocator {
         AllocatedFile allocatedFile = allocateExistingFile(version);
         var storeChannel = allocatedFile.storeChannel();
         var logFile = allocatedFile.path();
-        LogHeader header = readLogHeader(storeChannel, true, logFile, logFilesContext.getMemoryTracker());
+        LogHeader header = readLogHeader(storeChannel, true, logFile, logFilesContext.memoryTracker());
         if (header == null) {
             // Either there was nothing at all, or we read one byte and saw that it was a preallocated file.
             throw new IncompleteLogHeaderException(allocatedFile.path, (int) storeChannel.position(), -1);
@@ -188,7 +189,7 @@ public class TransactionLogChannelAllocator {
         StoreChannel rawChannel = null;
         try {
             rawChannel = fileSystem.read(fileToOpen);
-            LogHeader header = readLogHeader(rawChannel, true, fileToOpen, logFilesContext.getMemoryTracker());
+            LogHeader header = readLogHeader(rawChannel, true, fileToOpen, logFilesContext.memoryTracker());
             if (header == null) {
                 throw new IncompleteLogHeaderException(fileToOpen, 0, Long.BYTES);
             }
@@ -232,7 +233,7 @@ public class TransactionLogChannelAllocator {
         }
 
         try (StoreChannel read = fileSystem.read(fileToOpen)) {
-            return readLogHeader(read, true, fileToOpen, logFilesContext.getMemoryTracker());
+            return readLogHeader(read, true, fileToOpen, logFilesContext.memoryTracker());
         }
     }
 
@@ -242,7 +243,7 @@ public class TransactionLogChannelAllocator {
         StoreChannel storeChannel = fileSystem.write(file);
         if (fileExist) {
             nativeChannelAccessor.adviseSequentialAccessAndKeepInCache(storeChannel, file);
-        } else if (logFilesContext.getTryPreallocateTransactionLogs().get()) {
+        } else if (logFilesContext.tryPreallocateTransactionLogs().get()) {
             nativeChannelAccessor.preallocateSpace(storeChannel, rotationThreshold.get(), file);
         }
         return new AllocatedFile(file, storeChannel);
@@ -267,9 +268,9 @@ public class TransactionLogChannelAllocator {
         private final String databaseName;
 
         public TransactionLogOutOfDiskHandler(TransactionLogFilesContext logFilesContext) {
-            this.log = logFilesContext.getLogProvider().getLog(getClass());
+            this.log = logFilesContext.logProvider().getLog(getClass());
             this.config = logFilesContext.config();
-            this.databaseName = logFilesContext.getDatabaseName();
+            this.databaseName = logFilesContext.databaseName();
         }
 
         @Override

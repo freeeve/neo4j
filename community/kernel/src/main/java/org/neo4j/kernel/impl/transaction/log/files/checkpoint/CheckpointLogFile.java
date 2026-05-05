@@ -96,14 +96,14 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
             LogPosition tailReadingMaxPosition) {
         this.context = context;
         this.logFiles = logFiles;
-        this.rotationsSize = context.getCheckpointRotationThreshold();
+        this.rotationsSize = context.checkpointRotationThreshold();
         this.fileHelper = TransactionLogFilesHelper.forCheckpoints(logFiles.logFilesDirectory());
         this.channelAllocator = new CheckpointLogChannelAllocator(context, fileHelper);
-        this.monitor = context.getMonitors().newMonitor(LogTailScannerMonitor.class);
+        this.monitor = context.monitors().newMonitor(LogTailScannerMonitor.class);
         this.logTailScanner =
                 new DetachedLogTailScanner(logFiles, context, this, monitor, externalLogTail, tailReadingMaxPosition);
-        this.log = context.getLogProvider().getLog(getClass());
-        this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
+        this.log = context.logProvider().getLog(getClass());
+        this.binarySupportedKernelVersions = context.binarySupportedKernelVersions();
     }
 
     @Override
@@ -117,9 +117,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         var checkpointRotation = checkpointLogRotation(
                 this,
                 logFiles.getLogFile(),
-                context.getClock(),
-                context.getDatabaseHealth(),
-                context.getMonitors().newMonitor(LogRotationMonitor.class),
+                context.clock(),
+                context.databaseHealth(),
+                context.monitors().newMonitor(LogRotationMonitor.class),
                 transactionLogFilesProviders.getKernelVersionProvider());
         checkpointAppender = new DetachedCheckpointAppender(
                 logFiles,
@@ -160,16 +160,16 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         long currentVersion = highestVersion;
 
         var checkpointReader =
-                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.getMemoryTracker());
+                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.memoryTracker());
         while (currentVersion >= lowestVersion) {
             CheckpointEntryInfo checkpointEntry = null;
             Path currentCheckpointFile = getLogFileForVersion(currentVersion);
-            FileSystemAbstraction fileSystem = context.getFileSystem();
-            var header = readLogHeader(fileSystem, currentCheckpointFile, false, context.getMemoryTracker());
+            FileSystemAbstraction fileSystem = context.fileSystem();
+            var header = readLogHeader(fileSystem, currentCheckpointFile, false, context.memoryTracker());
             if (header != null) {
                 final var readerBridge = ReaderLogVersionBridge.forFile(this);
-                try (var reader = ReadAheadUtils.newChannel(
-                                this, currentVersion, readerBridge, context.getMemoryTracker());
+                try (var reader =
+                                ReadAheadUtils.newChannel(this, currentVersion, readerBridge, context.memoryTracker());
                         var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
                     log.info("Scanning log file with version %d for checkpoint entries", currentVersion);
                     try {
@@ -193,7 +193,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                     }
                 }
             } else {
-                if (!context.isReadOnly()) {
+                if (!context.readOnly()) {
                     // So since file does not have readable header by our contract this means that it's or empty or
                     // corrupted.
                     // In cases when file is empty or was not able to write at least header we should not request users
@@ -274,11 +274,11 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
         long currentVersion = logRangeInfo.lowestVersion();
         var checkpointReader =
-                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.getMemoryTracker());
+                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.memoryTracker());
         var checkpoints = new ArrayList<CheckpointInfo>();
 
         final var readerBridge = ReaderLogVersionBridge.forFile(this);
-        try (var reader = ReadAheadUtils.newChannel(this, currentVersion, readerBridge, context.getMemoryTracker());
+        try (var reader = ReadAheadUtils.newChannel(this, currentVersion, readerBridge, context.memoryTracker());
                 var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
             log.info("Start scanning log files from version %d for checkpoint entries", currentVersion);
             readCheckpoints(reader, logEntryCursor, checkpoints);
@@ -325,7 +325,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public Path[] getMatchedFiles() throws IOException {
-        return fileHelper.getFiles(context.getFileSystem());
+        return fileHelper.getFiles(context.fileSystem());
     }
 
     @Override
@@ -384,7 +384,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public LogHeader extractHeader(long version) throws IOException {
-        return readLogHeader(context.getFileSystem(), getLogFileForVersion(version), true, context.getMemoryTracker());
+        return readLogHeader(context.fileSystem(), getLogFileForVersion(version), true, context.memoryTracker());
     }
 
     @Override
@@ -392,7 +392,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         PhysicalLogVersionedStoreChannel logChannel = openForVersion(position.getLogVersion());
         logChannel.position(position.getByteOffset());
         final var logHeader = extractHeader(logChannel.getLogVersion());
-        return ReadAheadUtils.newChannel(logChannel, logVersionBridge, logHeader, context.getMemoryTracker());
+        return ReadAheadUtils.newChannel(logChannel, logVersionBridge, logHeader, context.memoryTracker());
     }
 
     @Override

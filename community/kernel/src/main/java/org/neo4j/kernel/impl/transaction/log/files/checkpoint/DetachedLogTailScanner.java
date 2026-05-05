@@ -104,16 +104,16 @@ public class DetachedLogTailScanner {
             LogTailMetadata externalLogTail,
             LogPosition tailReadingMaxPosition) {
         this.logFiles = logFiles;
-        this.commandReaderFactory = context.getCommandReaderFactory();
-        this.memoryTracker = context.getMemoryTracker();
+        this.commandReaderFactory = context.commandReaderFactory();
+        this.memoryTracker = context.memoryTracker();
         this.checkpointFile = checkpointFile;
-        this.fileSystem = context.getFileSystem();
-        this.failOnCorruptedLogFiles = context.isFailOnCorruptedLogFiles();
-        this.fallbackKernelVersionProvider = context.getEmptyLogsKernelVersionProvider();
-        this.fallbackLogFormatVersionProvider = context.getEmptyLogsLogFormatVersionProvider();
+        this.fileSystem = context.fileSystem();
+        this.failOnCorruptedLogFiles = context.failOnCorruptedLogFiles();
+        this.fallbackKernelVersionProvider = context.emptyDbKernelVersionProvider();
+        this.fallbackLogFormatVersionProvider = context.emptyDbLogFormatVersionProvider();
         this.logTail = externalLogTail;
         this.monitor = monitor;
-        this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
+        this.binarySupportedKernelVersions = context.binarySupportedKernelVersions();
         this.maxPosition = tailReadingMaxPosition;
     }
 

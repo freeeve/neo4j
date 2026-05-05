@@ -308,7 +308,7 @@ public class LogFilesBuilder {
         TransactionLogFilesOverrides overrides = buildOverrides();
 
         Path logsDirectory = getLogsDirectory();
-        filesContext.getFileSystem().mkdirs(logsDirectory);
+        filesContext.fileSystem().mkdirs(logsDirectory);
         return new TransactionLogFiles(logsDirectory, filesContext, overrides);
     }
 
