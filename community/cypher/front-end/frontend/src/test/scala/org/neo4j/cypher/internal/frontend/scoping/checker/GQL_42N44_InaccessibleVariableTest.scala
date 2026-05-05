@@ -16,15 +16,23 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.scoping.E42N44
 import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
 /**
- * Test for 42I58 - Inaccessible Variable
+ * Test for 42N44 - Inaccessible Variable
  */
 class GQL_42N44_InaccessibleVariableTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
+
+  // Thrown by AggregationChecker
+  override val checkersUnderTest: Seq[Transformer[BaseContext, BaseState, BaseState]] =
+    Seq(AmbiguousAggregationAnalysis)
 
   override def testCases(): Seq[TestQuery] = Seq(
     // Negative tests
@@ -206,8 +214,48 @@ class GQL_42N44_InaccessibleVariableTest extends VariableCheckingWithLocalCallab
       E42N44("sum", "WITH"),
       Seq("mod", "min")
     ),
+    TestQuery(
+      """MATCH p = (x)-[r:R]->(n:L)
+        |WITH DISTINCT p
+        |  WHERE COUNT{ MATCH (n) WITH x.p AS a } >= 0
+        |RETURN p""".stripMargin,
+      E42N44("x", "WITH"),
+      Seq("p")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH 1 AS x
+        |RETURN a AS z, SUM(a / x) * 5 AS s
+        |  ORDER BY EXISTS { CALL (x) { RETURN x + 1 AS r1 } RETURN 1 AS r}""".stripMargin,
+      E42N44("x", "RETURN"),
+      Seq("z", "s")
+    ),
+    TestQuery(
+      """UNWIND [1, 2, 3] AS x
+        |WITH 1 AS x
+        |RETURN a AS z, SUM(a / x) * 5 AS s
+        |  ORDER BY EXISTS { RETURN EXISTS { RETURN x + 1 AS r1 } AS r}""".stripMargin,
+      E42N44("x", "RETURN"),
+      Seq("z", "s")
+    ),
+    TestQuery(
+      """MATCH (a:A), (b:B)
+        |WITH a.p AS ap, b.p + 1 AS bp, count(*) AS count
+        |  ORDER BY a.p, 1 + b.p + 1
+        |RETURN ap, bp""".stripMargin,
+      E42N44("b", "WITH"),
+      Seq("ap", "bp")
+    ),
 
     // Positive tests
+    TestQuery(
+      """MATCH (a:A), (b:B)
+        |WITH a.p AS ap, b.p + 1 AS bp, count(*) AS count
+        |  ORDER BY a.p, b.p + 1
+        |RETURN ap, bp""".stripMargin,
+      Passes,
+      Seq("ap", "bp")
+    ),
     TestQuery(
       """MATCH (n)
         |RETURN n, SUM(n.age) ORDER BY n""".stripMargin,

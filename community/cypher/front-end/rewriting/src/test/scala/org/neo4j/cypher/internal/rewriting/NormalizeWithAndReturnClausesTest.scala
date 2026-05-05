@@ -446,6 +446,28 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  test("RETURN: Existing alias's should not be used within scoped expressions, exists subquery expression") {
+    assertIsNotRewritten(
+      """MATCH ()
+        |RETURN true AS var0
+        |ORDER BY EXISTS { RETURN true AS res }
+      """.stripMargin
+    )
+  }
+
+  test("RETURN: Existing alias's should not be used within scoped expressions, as collection") {
+    assertRewrite(
+      """UNWIND [1,2,3] AS rows
+        |RETURN collect(rows) AS coll
+        |ORDER BY none(var0 IN collect(rows) WHERE var0 < 1)
+      """.stripMargin,
+      """UNWIND [1,2,3] AS rows
+        |RETURN collect(rows) AS coll
+        |ORDER BY none(var0 IN coll WHERE var0 < 1)
+      """.stripMargin
+    )
+  }
+
   test("WITH: Existing alias's should not be used within scoped expressions, list comprehension") {
     assertRewrite(
       """MATCH ()
@@ -564,6 +586,212 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     assertIsNotRewritten(
       """WITH -0.5 as pa0
         |WITH 1 AS pa0, -pa0 as pa1
+        |WHERE -1 = -pa0
+        |RETURN pa0 AS pa3
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined even when wrapped with a negation - RETURN") {
+    assertIsNotRewritten(
+      """WITH -0.5 as pa0
+        |RETURN 1 AS pa0, -pa0 as pa1
+        |ORDER BY -1 = -pa0
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined even when wrapped with a negation and is a property") {
+    assertIsNotRewritten(
+      """WITH {p: -0.5} as pa0
+        |WITH {p: 1} AS pa0, -pa0.p as pa1
+        |WHERE -1 = -pa0.p
+        |RETURN pa0 AS pa3
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined even when wrapped with a negation and is a property - RETURN") {
+    assertIsNotRewritten(
+      """WITH {p: -0.5} as pa0
+        |RETURN {p: 1} AS pa0, -pa0.p as pa1
+        |ORDER BY -1 = -pa0.p
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined when a property - WITH") {
+    assertIsNotRewritten(
+      """WITH {p: -0.5} as pa0
+        |WITH {p: 1} AS pa0, pa0.p as pa1
+        |ORDER BY -1 = pa0.p
+        |WHERE -1 = pa0.p
+        |RETURN pa0 AS pa0
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined when a property - RETURN") {
+    assertIsNotRewritten(
+      """WITH {p: -0.5} as pa0
+        |RETURN {p: 1} AS pa0, pa0.p as pa1
+        |ORDER BY -1 = pa0.p
+      """.stripMargin
+    )
+  }
+
+  test("does rewrite aliases which may be redefined even when exact match - RETURN") {
+    assertRewrite(
+      """WITH -0.5 as pa0
+        |RETURN 1 AS pa0, -pa0 as pa1
+        |ORDER BY -pa0
+      """.stripMargin,
+      """WITH -0.5 as pa0
+        |RETURN 1 AS pa0, -pa0 as pa1
+        |ORDER BY pa1
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases that are redefined - RETURN") {
+    assertRewrite(
+      """WITH {p: -0.5} as pa0, 1 AS x
+        |RETURN {p: 1} AS pa0, pa0.p as pa1, x AS y
+        |ORDER BY -1 = pa0.p + x
+      """.stripMargin,
+      """WITH {p: -0.5} as pa0, 1 AS x
+        |RETURN {p: 1} AS pa0, pa0.p as pa1, x AS y
+        |ORDER BY -1 = pa0.p + y
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases that are redefined - RETURN DISTINCT") {
+    assertRewrite(
+      """WITH {p: -0.5} as pa0, 1 AS x
+        |RETURN DISTINCT {p: 1} AS pa0, pa0.p as pa1, x AS y
+        |ORDER BY -1 = pa0.p + x
+      """.stripMargin,
+      """WITH {p: -0.5} as pa0, 1 AS x
+        |RETURN DISTINCT {p: 1} AS pa0, pa0.p as pa1, x AS y
+        |ORDER BY -1 = pa0.p + y
+      """.stripMargin
+    )
+  }
+
+  test("RETURN - properties aliased correctly non-aggregating #1") {
+    assertRewrite(
+      """MATCH (a:A), (b:B)
+        |RETURN a.p, b AS a
+        |  ORDER BY a.p""".stripMargin,
+      """MATCH (a:A), (b:B)
+        |RETURN a.p AS `a.p`, b AS a
+        |  ORDER BY `a.p`""".stripMargin
+    )
+  }
+
+  test("RETURN - properties aliased correctly non-aggregating #2") {
+    assertRewrite(
+      """MATCH (a:A), (b:B)
+        |WITH a.p AS x, b AS a
+        |  ORDER BY a.p
+        |RETURN a AS a""".stripMargin,
+      """MATCH (a:A), (b:B)
+        |WITH a.p AS x, b AS a
+        |  ORDER BY x
+        |RETURN a AS a""".stripMargin
+    )
+  }
+
+  test("RETURN - properties aliased correctly non-aggregating #3") {
+    assertRewrite(
+      """
+      MATCH (a:A), (b:B)
+      WITH toInteger(a.p) AS x, b AS a
+        ORDER BY toInteger(a.p)
+      RETURN a AS a
+      """.stripMargin,
+      """
+      MATCH (a:A), (b:B)
+      WITH toInteger(a.p) AS x, b AS a
+        ORDER BY x
+      RETURN a AS a
+      """.stripMargin
+    )
+  }
+
+  test("RETURN - properties aliased correctly non-aggregating #4") {
+    assertRewrite(
+      """
+      MATCH (a:A), (b:B)
+      WITH 1 + toInteger(a.p) AS x, b AS a
+        ORDER BY 1 + toInteger(a.p)
+      RETURN a AS a
+      """.stripMargin,
+      """
+      MATCH (a:A), (b:B)
+      WITH 1 + toInteger(a.p) AS x, b AS a
+        ORDER BY x
+      RETURN a AS a
+      """.stripMargin
+    )
+  }
+
+  test("RETURN - properties aliased correctly non-aggregating #5") {
+    assertRewrite(
+      """
+      MATCH (a:A), (b:B)
+      WITH 1 + toInteger(a.p) AS x, b AS a
+        ORDER BY 1 + 1 + toInteger(a.p)
+      RETURN a AS a
+      """.stripMargin,
+      """
+      MATCH (a:A), (b:B)
+      WITH 1 + toInteger(a.p) AS x, b AS a
+        ORDER BY 1 + 1 + toInteger(a.p)
+      RETURN a AS a
+      """.stripMargin
+    )
+  }
+
+  test("RETURN - variables aliased correctly non-aggregating #3") {
+    assertRewrite(
+      """
+      MATCH (a:A), (b:B)
+      RETURN a AS b, b AS x
+        ORDER BY b, a
+      """.stripMargin,
+      """
+      MATCH (a:A), (b:B)
+      RETURN a AS b, b AS x
+        ORDER BY b, b
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined when a variable - RETURN") {
+    assertIsNotRewritten(
+      """WITH 0.5 as pa0
+        |RETURN 1 AS pa0, pa0 as pa1
+        |ORDER BY -1 = -pa0
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined even when wrapped with a negation - aggregating context") {
+    assertIsNotRewritten(
+      """WITH -0.5 as pa0
+        |WITH 1 AS pa0, -pa0 as pa1, count(*) AS cnt
+        |WHERE -1 = -pa0
+        |RETURN pa0 AS pa3
+      """.stripMargin
+    )
+  }
+
+  test("does not rewrite aliases which may be redefined even when wrapped with a negation - distinct context") {
+    assertIsNotRewritten(
+      """WITH -0.5 as pa0
+        |WITH DISTINCT 1 AS pa0, -pa0 as pa1
         |WHERE -1 = -pa0
         |RETURN pa0 AS pa3
       """.stripMargin

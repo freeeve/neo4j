@@ -30,14 +30,14 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
+import org.neo4j.cypher.internal.ast.semantics.scoping.GroupingKey
 import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItem
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionSpecification
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
@@ -178,8 +178,8 @@ object WorkingScopeStringRenderer {
   private def renderWorkingContext(workingContext: WorkingContext): String = workingContext match {
     case CommonContext(constants, variables, localCallables) =>
       s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Call: ${renderCallableSet(localCallables)}"
-    case ProjectionExpressionContext(constants, variables, localCallables, items, _) =>
-      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Call: ${renderCallableSet(localCallables)}; Items: ${renderProjectionItems(items)}";
+    case ProjectionExpressionContext(constants, variables, localCallables, spec, _) =>
+      s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}; Call: ${renderCallableSet(localCallables)}; Keys: ${renderProjectionSpecification(spec)}";
     case PatternIncomingContext(
         topologicalConstants,
         predicateConstants,
@@ -194,17 +194,19 @@ object WorkingScopeStringRenderer {
     renderVariableSeq(variables.toSeq.sortBy(_.position.offset))
   }
 
-  private def renderProjectionItems(items: ProjectionItems): String = {
-    if (items.isEmpty) {
-      "—"
-    } else {
-      val stringifier = ExpressionStringifier()
-      items.items.map {
-        case ProjectionItem(expr, alias) => stringifier(expr) + alias.map(a => s" -> ${a.name}").getOrElse("")
-        case _                           => "—"
-      }
-    }.mkString(", ")
+  private def renderProjectionSpecification(spec: ProjectionSpecification): String =
+    if (spec.groupingKeys.isEmpty) "—"
+    else spec.groupingKeys.iterator.map(renderGroupingKey).mkString(", ")
+
+  private def renderGroupingKey(gk: GroupingKey): String = {
+    val expr = stringifier(gk.expression)
+    gk.alias match {
+      case Some(a) if a.name != expr => s"$expr AS ${a.name}"
+      case _                         => expr
+    }
   }
+
+  private val stringifier: ExpressionStringifier = ExpressionStringifier()
 
   private def renderVariableSeq(variables: Seq[LogicalVariable]): String = {
     if (variables.isEmpty) {

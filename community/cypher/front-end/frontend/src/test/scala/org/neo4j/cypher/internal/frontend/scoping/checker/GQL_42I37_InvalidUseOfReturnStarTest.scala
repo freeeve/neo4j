@@ -253,7 +253,7 @@ class GQL_42I37_InvalidUseOfReturnStarTest extends VariableCheckingWithLocalCall
            |WHERE $scalarSubquery { MATCH (p) RETURN * } = 1
            |RETURN p.name AS name""".stripMargin,
         Passes,
-        Seq("x")
+        Seq("name")
       )
     )
   ).flatten

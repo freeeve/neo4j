@@ -38,15 +38,12 @@ import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
-import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
-import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IterableExpression
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PatternExpression
@@ -65,8 +62,6 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlParams.StringParam
 
 case class VariableChecker(
   version: CypherVersion,
@@ -143,6 +138,10 @@ case class VariableChecker(
   }
 
   private val variableNotDefinedInScopeClause: VariableCheck = {
+    case (Acc.Aggregation(acc, incomingToClause), Scope.Clause.SubqueryCall(imports, incoming))
+      if imports.nonEmpty =>
+      imports.filter(v => !incoming.allSymbols.exists(_.name == v.name))
+        .foldLeft(acc) { case (innerAcc, v) => getVariableNotDefined(innerAcc, incomingToClause, v) }
     case (acc, Scope.Clause.SubqueryCall(imports, incoming)) if imports.nonEmpty =>
       acc(imports.filter(v => !incoming.allSymbols.exists(_.name == v.name))
         .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position))))
@@ -223,9 +222,9 @@ case class VariableChecker(
   private val variableNotDefined: VariableCheck = {
     case (
         Acc.CreatePattern(acc, topo, patternVariables, create, inScalarSubquery),
-        Scope.Expr.Variable(variable, incoming)
+        Scope.Expr.Variable(variable, isConstant)
       ) =>
-      val isIncoming = incoming.constants contains variable
+      val isIncoming = isConstant(variable)
       val declaredInSameGraphPattern = topo contains variable
       val declaredInSamePathPattern = patternVariables contains variable
       (isIncoming, declaredInSameGraphPattern, inScalarSubquery, declaredInSamePathPattern, version) match {
@@ -236,8 +235,8 @@ case class VariableChecker(
       }
     case (
         Acc.MergePattern(acc, topo, merge),
-        Scope.Expr.Variable(variable, incoming)
-      ) if !(incoming.constants contains variable) =>
+        Scope.Expr.Variable(variable, isConstant)
+      ) if !isConstant(variable) =>
       if (topo contains variable) {
         if (version == CypherVersion.Cypher5) acc
         else
@@ -245,16 +244,9 @@ case class VariableChecker(
       } else {
         acc(SemanticError.variableNotDefined(variable.name, variable.position))
       }
-    case (Acc.Aggregation(acc, clause, incomingToClause), Scope.Expr.VariableAggregation(v, constants, recognizable)) =>
-      if (!(constants contains v) && !recognizable(v)) getVariableNotDefined(acc, clause, incomingToClause, v) else acc
-    case (Acc.Aggregation(acc, clause, incomingToClause), Scope.Expr.Variable(variable, in))
-      if !(in.constants contains variable) => getVariableNotDefined(acc, clause, incomingToClause, variable)
-    case (
-        Acc.Aggregation(acc, clause, incomingToClause),
-        ExpressionScope(_: FullSubqueryExpression, ctx: ProjectionExpressionContext, refs, _, _)
-      ) if !refs.forall(r => ctx.projectionItems.containsSubclauseRef(r) || ctx.constants(r)) =>
-      refs.foldLeft(acc) { case (acc, lv) => getVariableNotDefined(acc, clause, incomingToClause, lv) }
-    case (acc, Scope.Expr.Variable(variable, incoming)) if !(incoming.constants contains variable) =>
+    case (Acc.Aggregation(acc, incomingToClause), Scope.Expr.Variable(variable, isConstant))
+      if !isConstant(variable) => getVariableNotDefined(acc, incomingToClause, variable)
+    case (acc, Scope.Expr.Variable(variable, isConstant)) if !isConstant(variable) =>
       acc(SemanticError.variableNotDefined(variable.name, variable.position))
   }
 
@@ -333,12 +325,6 @@ case class VariableChecker(
       case ws: WorkingScope => acc => TraverseChildren(checkWorkingScope(acc, ws))
     }
 
-  private def folderSubclauseScopes(acc: Acc, target: Foldable, aggregatingExpressions: Set[Expression]): Acc =
-    target.folder.treeFold(acc) {
-      case ExpressionScope(expr: Expression, _, _, _, _) if aggregatingExpressions(expr) => acc => SkipChildren(acc)
-      case ws: WorkingScope => acc => TraverseChildren(checkWorkingScope(acc, ws))
-    }
-
   private def collectSemanticErrors(workingScope: WorkingScope) = workingScope.folder.treeFold(Acc.init) {
     case s @ ExpressionScope(_: IterableExpression, _, _, d, _) => {
       case acc @ Acc(_, dCtx: DeclaringContext, _, _, _, _) if dCtx.declared.nonEmpty =>
@@ -407,67 +393,23 @@ case class VariableChecker(
             acc => acc.inForeachClause(_acc.foreachContext)
           )
         )
-    case s @ StatementScope(p: ProjectionClause, incoming, _, _, _, _, children, _) => acc =>
-        updateAccAndTraverse(acc, s)(_acc =>
-          if (p.isAggregating) {
-            val context = Aggregating(p.name, incoming.variables)
 
-            // Partition children into groupingItems, aggregatingItems and subclauseItems
-            val (groupingItems, other) = children.partition(_.incoming.isInstanceOf[CommonContext])
-            val (subclauses, aggregatingItems) =
-              other.partition(_.incoming.asInstanceOf[ProjectionExpressionContext].inSubclause)
+    case s @ StatementScope(p: ProjectionClause, incoming, _, _, _, _, _, _) => acc =>
+        updateAccAndTraverse(acc, s)(_acc => {
+          val updatedAcc =
+            if (p.isAggregating) _acc.inProjectionContext(Aggregating(incoming.variables))
+            else _acc
 
-            val aggregatingExpressions = aggregatingItems.map(_.astNode.asInstanceOf[Expression]).toSet
+          TraverseChildrenNewAccForSiblings(updatedAcc, acc => { acc.inProjectionContext(_acc.projectionContext) })
+        })
 
-            val groupingItemAcc = folderWorkingScopes(_acc, groupingItems)
-            val aggregatingItemAcc = folderWorkingScopes(_acc.inProjectionContext(context), aggregatingItems)
-            val subclauseAcc =
-              folderSubclauseScopes(_acc.inProjectionContext(context), subclauses, aggregatingExpressions)
-
-            val subclauseErrors = subclauses
-              .filter {
-                case ExpressionScope(expr: Expression, _, _, _, _) =>
-                  !(aggregatingExpressions(expr) ||
-                    expr.subExpressions.exists(subExpr => aggregatingExpressions(subExpr)))
-                case _ => true
-              }
-              .flatMap {
-                case ExpressionScope(_, ProjectionExpressionContext(_, variables, _, keys, true), refs, _, _) =>
-                  refs.filter(r => !keys.containsSubclauseRef(r) && variables(r)).map(r =>
-                    SemanticError.inaccessibleVariable(r.name, p.name, r.position)
-                  ).toSeq
-                case _ => Seq.empty
-              }
-
-            val (inaccessibleVariable, otherErrors) =
-              aggregatingItemAcc.errors.partition(_.gqlStatusObject.cause().get().gqlStatus() == "42N44")
-
-            val aggErrors = if (checkAggregations) {
-              if (inaccessibleVariable.nonEmpty) {
-                val variableNames: Set[String] =
-                  inaccessibleVariable.map(
-                    _.gqlStatusObject.cause().get()
-                      .asInstanceOf[ErrorGqlStatusObjectImplementation]
-                      .getParamValue(StringParam.variable)
-                      .asInstanceOf[String]
-                  )
-                Seq(SemanticError.invalidReferenceToNonGroupingExpression(
-                  variableNames.toSeq,
-                  inaccessibleVariable.head.position
-                ))
-              } else Seq.empty
-            } else otherErrors
-
-            SkipChildren(_acc(groupingItemAcc.errors ++ aggErrors ++ subclauseAcc.errors ++ subclauseErrors))
-          } else {
-            TraverseChildrenNewAccForSiblings(
-              _acc.inProjectionContext(NonAggregating),
-              acc => {
-                acc.inProjectionContext(_acc.projectionContext)
-              }
-            )
-          }
-        )
+    case s @ StatementScope(_: SubqueryCall, _, _, _, _, _, children, _) => acc =>
+        updateAccAndTraverse(acc, s)(_acc => {
+          TraverseChildrenNewAccForSiblings(
+            _acc.dropIncomingVariablesToClause(children.head.incoming.allSymbols),
+            acc => { acc.inProjectionContext(_acc.projectionContext) }
+          )
+        })
 
     case s @ PatternScope(_: RelationshipChain, _, _, Declarations(_, variables, _), _, _) => acc =>
         updateAccAndTraverse(acc, s)(_acc =>

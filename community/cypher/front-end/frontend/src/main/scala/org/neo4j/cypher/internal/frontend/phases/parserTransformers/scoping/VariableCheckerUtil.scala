@@ -36,13 +36,11 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.TableResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
-import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -57,6 +55,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 trait VariableCheckerUtil {
 
+  protected type SimpleVariableCheck = PartialFunction[WorkingScope, Set[SemanticError]]
   protected type VariableCheck = PartialFunction[(Acc, WorkingScope), Acc]
 
   sealed trait ReturnContext
@@ -103,8 +102,15 @@ trait VariableCheckerUtil {
     inRelationship: Boolean = false
   ) extends DeclaringContext
 
-  sealed trait ProjectionContext
-  case class Aggregating(clause: String, incomingToClause: Set[LogicalVariable]) extends ProjectionContext
+  sealed trait ProjectionContext {
+
+    def dropNonImportedVariables(imports: Set[LogicalVariable]): ProjectionContext =
+      this match {
+        case Aggregating(incomingToClause) => Aggregating(incomingToClause filter imports)
+        case NonAggregating                => NonAggregating
+      }
+  }
+  case class Aggregating(incomingToClause: Set[LogicalVariable]) extends ProjectionContext
   case object NonAggregating extends ProjectionContext
 
   sealed trait ForeachContext { val allowedToShadow: Set[LogicalVariable] = Set.empty }
@@ -130,6 +136,9 @@ trait VariableCheckerUtil {
       copy(foreachContext = InForeach(incomingVariables))
 
     def inProjectionContext(context: ProjectionContext): Acc = copy(projectionContext = context)
+
+    def dropIncomingVariablesToClause(imports: Set[LogicalVariable]): Acc =
+      copy(projectionContext = projectionContext.dropNonImportedVariables(imports))
 
     def withDefinedLocalCallableName(name: CallableName): Acc =
       copy(definedLocalCallableNames = this.definedLocalCallableNames + name)
@@ -195,9 +204,9 @@ trait VariableCheckerUtil {
 
     object Aggregation {
 
-      def unapply(acc: Acc): Option[(Acc, String, Set[LogicalVariable])] = acc match {
-        case Acc(_, _, Aggregating(clause, incomingToClause), _, _, _) => Some((acc, clause, incomingToClause))
-        case _                                                         => None
+      def unapply(acc: Acc): Option[(Acc, Set[LogicalVariable])] = acc match {
+        case Acc(_, _, Aggregating(incomingToClause), _, _, _) => Some((acc, incomingToClause))
+        case _                                                 => None
       }
     }
 
@@ -230,31 +239,12 @@ trait VariableCheckerUtil {
 
       object Variable {
 
-        def unapply(scope: WorkingScope): Option[(LogicalVariable, RegularContext)] =
+        def unapply(scope: WorkingScope): Option[(LogicalVariable, LogicalVariable => Boolean)] =
           scope match {
             case ExpressionScope(v: LogicalVariable, incoming, _, _, _) =>
-              Some((v, incoming))
+              Some((v, (lv: LogicalVariable) => incoming.isConstantForPart(lv, incoming.projectionPart)))
             case _ => None
           }
-      }
-
-      object VariableAggregation {
-
-        def unapply(scope: WorkingScope): Option[(LogicalVariable, Set[LogicalVariable], Expression => Boolean)] =
-          scope match {
-            case ExpressionScope(
-                v: LogicalVariable,
-                ProjectionExpressionContext(const, _, _, items, inSubclause),
-                _,
-                _,
-                _
-              ) =>
-              val recognizable =
-                (x: Expression) => if (inSubclause) items.containsSubclauseRef(x) else items.containsAggregationRef(x)
-              Some((v, const, recognizable))
-            case _ => None
-          }
-
       }
 
     }
@@ -474,9 +464,6 @@ trait VariableCheckerUtil {
         }
       }
 
-  def getVariableNotDefined(acc: Acc, clause: String, incomingToClause: Set[LogicalVariable], v: LogicalVariable): Acc =
-    acc(
-      if (incomingToClause.contains(v)) SemanticError.inaccessibleVariable(v.name, clause, v.position)
-      else SemanticError.variableNotDefined(v.name, v.position)
-    )
+  def getVariableNotDefined(acc: Acc, incomingToClause: Set[LogicalVariable], v: LogicalVariable): Acc =
+    if (!incomingToClause.contains(v)) acc(SemanticError.variableNotDefined(v.name, v.position)) else acc
 }

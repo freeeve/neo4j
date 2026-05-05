@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionScope
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
@@ -35,7 +34,6 @@ import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
-import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.ReduceScope
 import org.neo4j.cypher.internal.expressions.Variable
@@ -88,6 +86,15 @@ object pegExpression {
     expression.folder.treeFold(Seq[ExpressionScope]()) {
 
       /**
+       *  Recognize expression (cf. AggregationChecker)
+       */
+      case expr: Expression if incoming.recognizeExpression(expr, isSubExpression = true).isDefined =>
+        val recognizedItem = incoming.recognizeExpression(expr, isSubExpression = true).get
+        val references = Some(Set(recognizedItem.referenceableVariable))
+        val scope = incoming.expressionResultScope(expr, WorkingScope.noChildren, references)
+        collect(scope)
+
+      /**
        * Variable
        */
       case variable: Variable =>
@@ -96,32 +103,16 @@ object pegExpression {
         collect(incoming.expressionResultScope(variable, children, referenced))
 
       /**
-       * Property
-       * Special case when a property is a grouping key
-       */
-      case property @ Property(LogicalVariable(_), _) =>
-        incoming match {
-          case ProjectionExpressionContext(_, _, _, projectionItems, _) =>
-            val isGroupingKey = projectionItems.getGroupingKeyReference(property)
-            if (isGroupingKey.isDefined)
-              collect(incoming.expressionResultScope(property, WorkingScope.noChildren, Some(isGroupingKey.toSet)))
-            else
-              collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
-          case _ =>
-            collect(apply(property.map, incoming).asInstanceOf[ExpressionScope])
-        }
-
-      /**
        * Aggregation function
        */
       case cntStar: CountStar =>
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
       case fi @ FunctionInvocation(_, _, args, _, false, _, _) if fi.function.isInstanceOf[AggregatingFunction] =>
-        val argIncoming = incoming.constantChildContext()
+        val argIncoming = incoming.aggregatingConstantChildContext
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
       case fi @ ResolvedFunctionInvocation(_, _, args) if fi.isAggregate =>
-        val argIncoming = incoming.constantChildContext()
+        val argIncoming = incoming.aggregatingConstantChildContext
         val children = args.map(arg => apply(arg, argIncoming))
         collect(incoming.expressionResultScope(fi, children))
 
@@ -129,11 +120,7 @@ object pegExpression {
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val constantIncoming = incoming match {
-          case ctx: ProjectionExpressionContext => ctx.subqueryConstantChildContext
-          case _                                => incoming.constantChildContext()
-        }
-        val child = ScopeSurveyor.scope(fse.query, constantIncoming, c)
+        val child = ScopeSurveyor.scope(fse.query, incoming.constantChildContext(), c)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 

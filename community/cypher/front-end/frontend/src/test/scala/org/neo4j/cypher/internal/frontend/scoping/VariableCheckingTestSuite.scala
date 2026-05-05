@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionSpecification
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
@@ -53,6 +54,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingE
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Pattern
 import org.neo4j.cypher.internal.expressions.PatternAtom
 import org.neo4j.cypher.internal.expressions.PatternElement
@@ -64,6 +66,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
@@ -93,6 +96,10 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   val noCallables = Set.empty[Callable]
   val feature: Set[SemanticFeature] = Set.empty
 
+  val allCheckerTransformer: Transformer[BaseContext, BaseState, BaseState] =
+    VariableChecker andThen AmbiguousAggregationAnalysis
+  val checkersUnderTest: Seq[Transformer[BaseContext, BaseState, BaseState]] = Seq(VariableChecker)
+
   sealed trait ExpectedCharacteristic
 
   case class Ast(astNodeString: String) extends ExpectedCharacteristic
@@ -109,12 +116,25 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     localCallables: Set[Callable] = Set.empty
   ) extends ExpectedCharacteristic
 
-  case class AggregationIncoming(
+  /**
+   *  Structured incoming expectation for projection-clause expression scopes.
+   */
+  case class ProjectionIncoming(
     constants: Set[String] = Set.empty,
     variables: Set[String] = Set.empty,
     localCallables: Set[Callable] = Set.empty,
-    items: Set[String] = Set.empty
+    groupingKeys: Set[ExpectedGroupingKey] = Set.empty
   ) extends ExpectedCharacteristic
+
+  /**
+   *  Identifies a grouping key by its user-visible name (the alias if the actual key
+   *  has one, otherwise the stringified expression). Optionally pin the underlying
+   *  expression too.
+   */
+  case class ExpectedGroupingKey(name: String, expression: Option[String] = None)
+
+  def gk(name: String): ExpectedGroupingKey = ExpectedGroupingKey(name)
+  def gk(name: String, ofExpression: String): ExpectedGroupingKey = ExpectedGroupingKey(name, Some(ofExpression))
 
   case class PatternIncoming(
     topology: Set[String] = Set.empty,
@@ -175,17 +195,19 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       incomingConstants: Set[String] = Set.empty,
       incomingVariables: Set[String] = Set.empty,
       incomingCallables: Set[Callable] = Set.empty,
-      incomingItems: Set[String] = Set.empty
+      incomingKeys: Set[ExpectedGroupingKey] = Set.empty,
+      referenced: Set[String] = Set.empty
     ): ExpectedWorkingScope =
       ExpectedWorkingScope(
         Ast(name),
-        AggregationIncoming(
+        ProjectionIncoming(
           constants = incomingConstants,
           variables = incomingVariables,
           localCallables = incomingCallables,
-          items = incomingItems
+          groupingKeys = incomingKeys
         ),
-        Referenced(Set(name))
+        // Hack until merged with new reference system
+        if (referenced.isEmpty) Referenced(Set(name)) else Referenced(referenced)
       )
 
     def constExp(
@@ -209,7 +231,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       ast: String,
       incoming: Set[String] = Set.empty,
       incomingCallables: Set[Callable] = Set.empty,
-      incomingItems: Set[String] = Set.empty
+      incomingKeys: Set[ExpectedGroupingKey] = Set.empty
     ): ExpectedWorkingScope = {
       if (incoming.isEmpty && incomingCallables.isEmpty) {
         ExpectedWorkingScope(
@@ -218,10 +240,10 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       } else {
         ExpectedWorkingScope(
           Ast(ast),
-          AggregationIncoming(
+          ProjectionIncoming(
             constants = incoming,
             localCallables = incomingCallables,
-            items = incomingItems
+            groupingKeys = incomingKeys
           )
         )
       }
@@ -545,6 +567,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   private def runQuery(
     query: String,
     version: CypherVersion,
+    checker: Transformer[BaseContext, BaseState, BaseState],
     skipVariableChecker: Boolean = false,
     withPrepRewriting: Boolean = false,
     withoutCachingCheck: Boolean = false
@@ -561,9 +584,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     val transformers = {
       if (skipVariableChecker) Parse andThen scopeSurveyorPipe
       else if (withPrepRewriting)
-        Parse andThen PreparatoryRewriting andThen scopeSurveyorPipe andThen VariableChecker
+        Parse andThen PreparatoryRewriting andThen scopeSurveyorPipe andThen checker
       else {
-        Parse andThen scopeSurveyorPipe andThen VariableChecker
+        Parse andThen scopeSurveyorPipe andThen checker
       }
     }
     val state = transformers.transform(initialStateWithQuery(query), context)
@@ -571,7 +594,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     if (context.errors.isEmpty) {
       Left(state)
     } else {
-      Right(context.errors.collect { case e: SemanticError => e })
+      Right(context.errors.collect { case e: SemanticError => e }.sortBy(e => VariableChecker.getErrorOrder(e)))
     }
   }
 
@@ -608,39 +631,43 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
 
   def pass(query: String, versions: Array[CypherVersion], withRewriting: Boolean): Unit = {
     val rewriteOptions = if (withRewriting) Seq(false, true) else Seq(false)
-    versions.foreach(version => {
-      rewriteOptions.foreach(rewrite => {
-        val rewriteMsg = if (rewrite) " after rewrite" else ""
-        runQuery(query, version, withPrepRewriting = rewrite) match {
-          case Left(state) =>
-            state.maybeScopeState should not be empty
+    checkersUnderTest.foreach(checker => {
+      versions.foreach(version => {
+        rewriteOptions.foreach(rewrite => {
+          val rewriteMsg = if (rewrite) " after rewrite" else ""
+          runQuery(query, version, checker, withPrepRewriting = rewrite) match {
+            case Left(state) =>
+              state.maybeScopeState should not be empty
 
-            if (testLog) {
-              log.append(
+              if (testLog) {
+                log.append(
+                  s"""Version: $version $rewriteMsg
+                     |Checker: ${checker.name}
+                     |Query:
+                     |
+                     |$query
+                     |
+                     |passed without errors.
+                     |----------
+                     |""".stripMargin
+                )
+              }
+            case Right(semanticErrors) =>
+              fail(
                 s"""Version: $version $rewriteMsg
+                   |Checker: ${checker.name}
                    |Query:
                    |
                    |$query
                    |
-                   |passed without errors.
-                   |----------
-                   |""".stripMargin
+                   |is expected to be successful, but
+                   |
+                   |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
               )
-            }
-          case Right(semanticErrors) =>
-            fail(
-              s"""Version: $version $rewriteMsg
-                 |Query:
-                 |
-                 |$query
-                 |
-                 |is expected to be successful, but
-                 |
-                 |actually threw errors: ${pprint.apply(semanticErrors)}""".stripMargin
-            )
-        }
-      })
+          }
+        })
 
+      })
     })
   }
 
@@ -737,56 +764,63 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         }
     }
 
-    versions.foreach(version => {
-      runQuery(query, version) match {
-        case Left(_) =>
-          fail(
-            s"""Version: $version
-               |Query:
-               |
-               |$query
-               |
-               |is expected to throw an error, but
-               |
-               |actually was successful""".stripMargin
-          )
-        case Right(semanticErrors) =>
-          semanticErrors.collectFirst(Function.unlift { (semanticError: SemanticError) =>
-            findGqlStatus(semanticError.gqlStatusObject)
-          }) match {
-            case Some(gqlStatusObject) =>
-              gqlStatusObject.gqlStatus() shouldBe expectedGqlStatusCode
-              gqlStatusObject.statusDescription() should include(msgContains)
+    checkersUnderTest.foreach(checker => {
+      versions.foreach(version => {
+        runQuery(query, version, checker) match {
+          case Left(_) =>
+            fail(
+              s"""Version: $version
+                 |Checker: ${checker.name}
+                 |Query:
+                 |
+                 |$query
+                 |
+                 |is expected to throw an error - $expectedGqlStatusCode, but
+                 |
+                 |actually was successful""".stripMargin
+            )
+          case Right(semanticErrors) =>
+            semanticErrors.collectFirst(Function.unlift {
+              (semanticError: SemanticError) => findGqlStatus(semanticError.gqlStatusObject)
+            }) match {
+              case Some(gqlStatusObject) =>
+                gqlStatusObject.gqlStatus() shouldBe expectedGqlStatusCode
+                gqlStatusObject.statusDescription() should include(msgContains)
 
-              if (testLog) {
-                log.append(
+                if (testLog) {
+                  log.append(
+                    s"""Version: $version
+                       |Checker: ${checker.name}
+                       |Query:
+                       |
+                       |$query
+                       |
+                       |Error:
+                       |
+                       |${logPPrint(gqlStatusObject).plainText.trim}
+                       |----------
+                       |""".stripMargin
+                  )
+                }
+              case None => fail(
                   s"""Version: $version
+                     |Checker: ${checker.name}
                      |Query:
                      |
                      |$query
                      |
-                     |Error:
+                     |is expected to throw gql status $expectedGqlStatusCode, but
                      |
-                     |${logPPrint(gqlStatusObject).plainText.trim}
-                     |----------
-                     |""".stripMargin
+                     |actually did not.
+                     |
+                     |Errors:
+                     |${semanticErrors.map(x => logPPrint(x.gqlStatusObject).plainText.trim).mkString(
+                      ", "
+                    )}""".stripMargin
                 )
-              }
-            case None => fail(
-                s"""Version: $version
-                   |Query:
-                   |
-                   |$query
-                   |
-                   |is expected to throw gql status $expectedGqlStatusCode, but
-                   |
-                   |actually did not.
-                   |
-                   |Errors:
-                   |${semanticErrors.map(x => logPPrint(x.gqlStatusObject).plainText.trim).mkString(", ")}""".stripMargin
-              )
-          }
-      }
+            }
+        }
+      })
     })
   }
 
@@ -829,7 +863,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
   ): Unit = {
     val query = testName
     versions.foreach(version => {
-      runQuery(query, version, skipVariableChecker) match {
+      runQuery(query, version, allCheckerTransformer, skipVariableChecker) match {
         case Left(state) =>
           state.maybeScopeState should not be empty
           val ss = state.maybeScopeState.get
@@ -872,9 +906,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     val incoming = expected.expectedCharacteristics.collectFirst {
       case i: Incoming => i
     }.getOrElse(Incoming(unit, unit, noCallables))
-    val aggregationIncoming = expected.expectedCharacteristics.collectFirst {
-      case ai: AggregationIncoming => ai
-    }.getOrElse(AggregationIncoming(unit, unit, noCallables, unit))
+    val projectionIncomingOpt = expected.expectedCharacteristics.collectFirst {
+      case pi: ProjectionIncoming => pi
+    }
     val patternIncoming = expected.expectedCharacteristics.collectFirst {
       case pi: PatternIncoming => pi
     }.getOrElse(PatternIncoming(unit, unit, unit, noCallables))
@@ -944,6 +978,63 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
       }
     }
 
+    /**
+     *  Assert the contents of a `ProjectionExpressionContext`.
+     *  Grouping Keys can be recognized by either their alias or expression.
+     */
+    def assertProjectionIncoming(
+      actualConstants: Set[LogicalVariable],
+      actualVariables: Set[LogicalVariable],
+      actualLocalCallables: Set[LocalCallableScopeSignature],
+      specification: ProjectionSpecification
+    ): Unit = {
+      val stringifier = ExpressionStringifier()
+
+      projectionIncomingOpt match {
+        case Some(pi) =>
+          withClue("[constants]") {
+            actualConstants.map(_.name) should contain theSameElementsAs pi.constants
+          }
+          withClue("[variables]") {
+            actualVariables.map(_.name) should contain theSameElementsAs pi.variables
+          }
+          withClue("[groupingKeys]") {
+            val actualGroupingKeys = specification.groupingKeys.map { gk =>
+              val exprText = stringifier(gk.expression)
+              ExpectedGroupingKey(
+                name = gk.alias.map(_.name).getOrElse(exprText),
+                expression = Some(exprText)
+              )
+            }
+            // Match each expected against actual: name equality is required; if the expected
+            // pins `expression`, that must also match. Otherwise the underlying expression is don't-care.
+            val matched = pi.groupingKeys.flatMap { expected =>
+              actualGroupingKeys.find { actual =>
+                actual.name == expected.name &&
+                expected.expression.forall(e => actual.expression.contains(e))
+              }
+            }
+            withClue(s"actual grouping keys: $actualGroupingKeys") {
+              matched.size shouldBe pi.groupingKeys.size
+              actualGroupingKeys.size shouldBe pi.groupingKeys.size
+            }
+          }
+          withClue("[callables]") {
+            assertLocalCallableSet(actualLocalCallables, pi.localCallables)
+          }
+          withClue("[invariance]") {
+            (actualConstants.map(_.name) intersect actualVariables.map(_.name)) shouldBe empty
+          }
+        case None =>
+          withClue("[callables]") {
+            assertLocalCallableSet(actualLocalCallables, incoming.localCallables)
+          }
+          withClue("[invariance]") {
+            (actualConstants.map(_.name) intersect actualVariables.map(_.name)) shouldBe empty
+          }
+      }
+    }
+
     withClue(s"['${prettify(ws.astNode)}']") {
       withClue("[query]") {
         whitespaceNormalization(prettify(ws.astNode)) shouldBe whitespaceNormalization(astNodeString)
@@ -969,7 +1060,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
           }
         case StatementScope(
             _,
-            ProjectionExpressionContext(constants, variables, localCallables, items, _),
+            ProjectionExpressionContext(constants, variables, localCallables, specification, _),
             _,
             _,
             _,
@@ -978,27 +1069,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
             isInImportingWith
           ) =>
           withClue("[statement projection incoming]") {
-            withClue("[constants]") {
-              constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
-            }
-            withClue("[variables]") {
-              variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
-            }
-            withClue("[items]") {
-              aggregationIncoming.items should not be empty
-
-              val stringifier = ExpressionStringifier()
-
-              items.items.flatMap(i => Set(i.expression) ++ i.alias).map(k =>
-                stringifier(k)
-              ) should contain allElementsOf aggregationIncoming.items
-            }
-            withClue("[callables]") {
-              assertLocalCallableSet(localCallables, incoming.localCallables)
-            }
-            withClue("[invariance]") {
-              (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
-            }
+            assertProjectionIncoming(constants, variables, localCallables, specification)
           }
           withClue("[statement inImportingWith") {
             isInImportingWith shouldEqual inImportingWith.value
@@ -1037,29 +1108,15 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
           }
-        case ExpressionScope(_, ProjectionExpressionContext(constants, variables, localCallables, items, _), _, _, _) =>
+        case ExpressionScope(
+            _,
+            ProjectionExpressionContext(constants, variables, localCallables, specification, _),
+            _,
+            _,
+            _
+          ) =>
           withClue("[expression projection incoming]") {
-            withClue("[constants]") {
-              constants.map(_.name) should contain theSameElementsAs aggregationIncoming.constants
-            }
-            withClue("[variables]") {
-              variables.map(_.name) should contain theSameElementsAs aggregationIncoming.variables
-            }
-            withClue("[items]") {
-              aggregationIncoming.items.size shouldEqual items.size
-
-              val stringifier = ExpressionStringifier()
-
-              items.items.flatMap(i => Set(i.expression) ++ i.alias).map(k =>
-                stringifier(k)
-              ) should contain allElementsOf aggregationIncoming.items
-            }
-            withClue("[callables]") {
-              assertLocalCallableSet(localCallables, incoming.localCallables)
-            }
-            withClue("[invariance]") {
-              (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
-            }
+            assertProjectionIncoming(constants, variables, localCallables, specification)
           }
         case s => fail(s"unexpected type of scope: ${pprint.apply(s)}")
       }

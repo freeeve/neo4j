@@ -38,7 +38,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.PatternIncomingContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.PatternScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItem
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionSpecification
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -186,11 +186,11 @@ object WorkingScope2PlanDescription {
           IncomingPath(renderVariableSet(path)),
           IncomingCallables(renderCallableSet(localCallables))
         )
-      case ProjectionExpressionContext(constants, variables, localCallables, projectionItems, _) => Seq(
+      case ProjectionExpressionContext(constants, variables, localCallables, projectionSpecification, _) => Seq(
           IncomingConstants(renderVariableSet(constants)),
           IncomingVariables(renderVariableSet(variables)),
           IncomingCallables(renderCallableSet(localCallables)),
-          IncomingProjectionItems(renderProjectionItems(projectionItems))
+          IncomingProjectionItems(renderProjectionSpecification(projectionSpecification))
         )
     }
   }
@@ -250,12 +250,12 @@ object WorkingScope2PlanDescription {
     callables.toSeq.sortBy(_.name.fullName).map(renderCallable).mkString(", ")
   }
 
-  private def renderProjectionItems(items: ProjectionItems): String = {
-    if (items.isEmpty) {
+  private def renderProjectionSpecification(spec: ProjectionSpecification): String = {
+    if (spec.isEmpty) {
       "—"
     } else {
       val stringifier = ExpressionStringifier()
-      items.items.map {
+      spec.items.map {
         case ProjectionItem(expr, alias) => stringifier(expr) + alias.map(a => s" -> ${a.name}").getOrElse("")
         case _                           => "—"
       }

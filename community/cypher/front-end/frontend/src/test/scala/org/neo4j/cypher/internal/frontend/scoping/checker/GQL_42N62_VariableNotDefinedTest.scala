@@ -346,6 +346,12 @@ class GQL_42N62_VariableNotDefinedTest extends VariableCheckingWithLocalCallable
     ),
     TestQuery(
       """MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
+        |RETURN b.name, {kids: collect(child.name)}""".stripMargin,
+      E42N62("b"),
+      Seq("`b.name`", "`{kids: collect(child.name)}`")
+    ),
+    TestQuery(
+      """MATCH (a {name: 'Andres'})<-[:FATHER]-(child)
         |RETURN b.name, {foo: a.name=child.name, kids: collect(child.name)}""".stripMargin,
       E42N62("b"),
       Seq("`b.name`", "`{foo: a.name=child.name, kids: collect(child.name)}`")
@@ -484,6 +490,13 @@ class GQL_42N62_VariableNotDefinedTest extends VariableCheckingWithLocalCallable
       E42N62("foo"),
       Seq.empty,
       compositionRestriction = NoLocalCallableBody
+    ),
+    TestQuery(
+      """MATCH (s)
+        |  WHERE s.name = undefinedVariable AND s.age = 10
+        |RETURN s""".stripMargin,
+      E42N62("undefinedVariable"),
+      Seq("s")
     ),
 
     // Positive tests
@@ -763,7 +776,7 @@ class GQL_42N62_VariableNotDefinedTest extends VariableCheckingWithLocalCallable
         |YIELD name AS range
         |RETURN *
         |ORDER BY type, entityType""".stripMargin,
-      Passes,
+      ignoreBeforeCypher25(Passes),
       Seq("type", "entityType", "range"),
       compositionRestriction = NoLocalCallableBody
     ),

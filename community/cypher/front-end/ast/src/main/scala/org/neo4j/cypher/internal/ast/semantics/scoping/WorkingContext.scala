@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.noLocalCallables
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -34,6 +35,8 @@ sealed trait RegularContext extends WorkingContext {
   def constantSymbols: Set[LogicalVariable] = constants
   val variables: Set[LogicalVariable]
   override val localCallables: Set[LocalCallableScopeSignature]
+  def projectionPart: ProjectionPart
+  def getProjectionSpecification: Option[ProjectionSpecification]
 
   lazy val constantsAndVariables: Set[LogicalVariable] = constants union variables
   override def allSymbols: Set[LogicalVariable] = constantsAndVariables
@@ -41,6 +44,11 @@ sealed trait RegularContext extends WorkingContext {
   @inline def isEmpty: Boolean = isVariablesEmpty && isConstantsEmpty
   @inline def isConstantsEmpty: Boolean = constants.isEmpty
   @inline def isVariablesEmpty: Boolean = variables.isEmpty
+
+  def isConstantForPart(expr: Expression, part: ProjectionPart): Boolean
+  def isSubclauseAggregation: RegularContext
+
+  def recognizeExpression(expr: Expression, isSubExpression: Boolean): Option[ProjectionItem]
 
   @inline def amendedWithLocalCallable(amendment: LocalCallableScopeSignature): RegularContext =
     RegularContext(constants, variables, localCallables + amendment)
@@ -60,16 +68,18 @@ sealed trait RegularContext extends WorkingContext {
   @inline def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, variables union amendment, localCallables)
 
-  @inline def amendedWithProjectionItems(
-    projectionItems: ProjectionItems,
-    inSubclause: Boolean
+  @inline def amendedWithProjectionSpecification(
+    projectionSpecification: ProjectionSpecification,
+    projectionPart: ProjectionPart
   ): ProjectionExpressionContext =
-    ProjectionExpressionContext(constants, variables, localCallables, projectionItems, inSubclause)
+    ProjectionExpressionContext(constants, variables, localCallables, projectionSpecification, projectionPart)
 
   @inline def keepOnlyLocalCallable(): RegularContext = RegularContext(unitVariables, unitVariables, localCallables)
 
   @inline def constantChildContext(): RegularContext =
     RegularContext(constants union variables, unitVariables, localCallables)
+
+  @inline def aggregatingConstantChildContext: RegularContext
 
   @inline def replaceWith(replacement: Set[LogicalVariable]): RegularContext =
     RegularContext(constants, replacement, localCallables)
@@ -216,82 +226,166 @@ case class CommonContext(
   constants: Set[LogicalVariable],
   variables: Set[LogicalVariable],
   localCallables: Set[LocalCallableScopeSignature]
-) extends RegularContext
+) extends RegularContext {
+
+  override def isConstantForPart(expr: Expression, part: ProjectionPart): Boolean = expr match {
+    case lv: LogicalVariable => constants(lv)
+    case _                   => false
+  }
+
+  def isSubclauseAggregation: RegularContext = this
+
+  def recognizeExpression(expr: Expression, isSubExpression: Boolean): Option[ProjectionItem] = None
+
+  def projectionPart: ProjectionPart = NonAggregatingPart
+
+  def getProjectionSpecification: Option[ProjectionSpecification] = None
+
+  override def aggregatingConstantChildContext: RegularContext = constantChildContext()
+}
+
+sealed trait ProjectionPart {
+
+  def isSubclause: Boolean = this match {
+    case _: SubclausePart => true
+    case _                => false
+  }
+}
+trait ItemPart extends ProjectionPart
+object AggregatingPart extends ItemPart
+object NonAggregatingPart extends ItemPart
+object GroupByPart extends ProjectionPart
+trait SubclausePart extends ProjectionPart
+object NonAggregatingSubclausePart extends SubclausePart
+object AggregatingSubclausePart extends SubclausePart
 
 case class ProjectionExpressionContext(
   constants: Set[LogicalVariable],
   variables: Set[LogicalVariable],
   localCallables: Set[LocalCallableScopeSignature],
-  projectionItems: ProjectionItems,
-  inSubclause: Boolean
+  projectionSpecification: ProjectionSpecification,
+  projectionPart: ProjectionPart
 ) extends RegularContext {
 
-  def projectionChildContext(): RegularContext = {
-    (projectionItems.isAggregating, inSubclause) match {
-      case (false, false) =>
-        ProjectionExpressionContext(
-          constants union variables,
-          unitVariables,
-          localCallables,
-          projectionItems,
-          inSubclause
-        )
-      case (false, true) =>
-        ProjectionExpressionContext(
-          constants union variables union projectionItems.subclauseScopeSymbols,
-          unitVariables,
-          localCallables,
-          projectionItems,
-          inSubclause
-        )
-      case (true, false) =>
-        ProjectionExpressionContext(
-          constants,
-          variables,
-          localCallables,
-          projectionItems,
-          inSubclause
-        )
-      case (true, true) =>
-        ProjectionExpressionContext(
-          constants union projectionItems.subclauseScopeSymbols,
-          unitVariables,
-          localCallables,
-          projectionItems,
-          inSubclause
-        )
+  override def isConstantForPart(expr: Expression, part: ProjectionPart): Boolean = {
+    val partCheck: Expression => Boolean = part match {
+      case _: SubclausePart   => x => projectionSpecification.isSubclauseRecognizable(x)
+      case AggregatingPart    => x => projectionSpecification.isAggregationRecognizable(x)
+      case NonAggregatingPart => x => projectionSpecification.isNonAggregatingRecognizable(x)
+      case _                  => _ => false
+    }
+
+    expr match {
+      case lv: LogicalVariable => constants(lv) || partCheck(lv)
+      case expr                => partCheck(expr)
     }
   }
 
+  def isSubclauseAggregation: RegularContext = copy(projectionPart = AggregatingSubclausePart)
+
+  def getProjectionSpecification: Option[ProjectionSpecification] = Some(projectionSpecification)
+
+  def recognizeExpression(that: Expression, isSubExpression: Boolean): Option[ProjectionItem] = {
+    projectionPart match {
+      case _ if !projectionSpecification.isAggregating => None
+      case AggregatingPart =>
+        projectionSpecification.recognizeInAggregation(that)
+      case _: SubclausePart =>
+        projectionSpecification.recognizeInSubclause(that, isSubExpression)
+      case NonAggregatingPart =>
+        projectionSpecification.recognizeInNonAggregatingItem(that, isSubExpression)
+      case _ => None
+    }
+
+  }
+
+  def groupByContext(): ProjectionExpressionContext = {
+    val visibleSymbols = constants ++ variables ++ projectionSpecification.nonAggregatingItems.flatMap(_.alias)
+    ProjectionExpressionContext(visibleSymbols, Set.empty, localCallables, projectionSpecification, projectionPart)
+  }
+
+  def nonAggregatingChildContext(): ProjectionExpressionContext = {
+    val hasExplicitGroupingKeys = projectionSpecification.hasExplicitKeys
+    ProjectionExpressionContext(
+      if (hasExplicitGroupingKeys) constants else constants union variables,
+      unitVariables,
+      localCallables,
+      projectionSpecification,
+      NonAggregatingPart
+    )
+  }
+
+  def projectionChildContext(): ProjectionExpressionContext = {
+    val (childConstants, childVariables) =
+      (projectionSpecification.isAggregating, projectionPart.isSubclause) match {
+        case (false, false) =>
+          (constants union variables, unitVariables)
+        case (false, true) =>
+          (constants union variables union projectionSpecification.subclauseScopeSymbols, unitVariables)
+        case (true, false) =>
+          (constants, variables)
+        case (true, true) =>
+          (constants union projectionSpecification.subclauseScopeSymbols, unitVariables)
+      }
+
+    ProjectionExpressionContext(
+      childConstants,
+      childVariables,
+      localCallables,
+      projectionSpecification,
+      projectionPart
+    )
+  }
+
   override def amendedWithConstant(amendment: LogicalVariable): RegularContext =
-    ProjectionExpressionContext(constants + amendment, variables, localCallables, projectionItems, inSubclause)
+    ProjectionExpressionContext(
+      constants + amendment,
+      variables,
+      localCallables,
+      projectionSpecification,
+      projectionPart
+    )
 
   override def amendedWithConstant(amendment: Set[LogicalVariable]): RegularContext =
-    ProjectionExpressionContext(constants union amendment, variables, localCallables, projectionItems, inSubclause)
+    ProjectionExpressionContext(
+      constants union amendment,
+      variables,
+      localCallables,
+      projectionSpecification,
+      projectionPart
+    )
 
   override def amendedWith(amendment: LogicalVariable): RegularContext =
-    ProjectionExpressionContext(constants, variables + amendment, localCallables, projectionItems, inSubclause)
+    ProjectionExpressionContext(
+      constants,
+      variables + amendment,
+      localCallables,
+      projectionSpecification,
+      projectionPart
+    )
 
   override def amendedWith(amendment: Set[LogicalVariable]): RegularContext =
-    ProjectionExpressionContext(constants, variables union amendment, localCallables, projectionItems, inSubclause)
+    ProjectionExpressionContext(
+      constants,
+      variables union amendment,
+      localCallables,
+      projectionSpecification,
+      projectionPart
+    )
 
-  def subqueryConstantChildContext: RegularContext = {
-    if (inSubclause)
-      ProjectionExpressionContext(
-        constants union projectionItems.aliases,
-        unitVariables,
-        localCallables,
-        projectionItems,
-        inSubclause
-      )
-    else
-      ProjectionExpressionContext(
-        constants union variables,
-        unitVariables,
-        localCallables,
-        projectionItems,
-        inSubclause
-      )
+  override def aggregatingConstantChildContext: RegularContext = {
+    val newConstants = projectionPart match {
+      case NonAggregatingSubclausePart =>
+        constants union projectionSpecification.aliases
+      case AggregatingSubclausePart =>
+        constants union variables union projectionSpecification.aliases
+      case _ =>
+        constants union variables
+    }
+
+    val newPart = if (projectionPart == AggregatingPart) NonAggregatingPart else projectionPart
+
+    ProjectionExpressionContext(newConstants, unitVariables, localCallables, projectionSpecification, newPart)
   }
 
 }

@@ -1,0 +1,264 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.neo4j.cypher.internal.ast.semantics.scoping
+
+import org.neo4j.cypher.internal.ast.ExplicitGroupingElements
+import org.neo4j.cypher.internal.ast.GroupingAll
+import org.neo4j.cypher.internal.ast.GroupingElements
+import org.neo4j.cypher.internal.ast.GroupingNone
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.Literal
+import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.Variable
+
+import scala.collection.immutable.ListSet
+
+/**
+ * ProjectionSpecification
+ *
+ * ProjectionItem
+ *    - Expression
+ *    - Option[LogicalVariable]
+ *
+ *    Grouping Keys
+ *       - Grouping expression
+ *       - IsRecognizable
+ *
+ *    RecognizingItem
+ *
+ *       NonAggregatingItem
+ *
+ *       AggregatingItem
+ */
+
+sealed trait ProjectionItem {
+  def expression: Expression
+  def alias: Option[LogicalVariable]
+
+  def scopeSymbol: LogicalVariable = alias.getOrElse(referenceableVariable)
+
+  def aliasString: String = alias.map(a => s"its alias `${a.name}`").getOrElse("an alias")
+
+  // Recognizable expressions
+  lazy val isRecognizable: Boolean = expression match {
+    case _: Literal | _: Parameter | _: LogicalVariable | Property(_: LogicalVariable, _) => true
+    case _                                                                                => false
+  }
+
+  private def stringifiedName(expression: Expression): String =
+    ProjectionItem.SyntheticNamePrefix +
+      ProjectionItem.expressionStringifier(expression) +
+      ProjectionItem.SyntheticNameSuffix
+
+  // Synthetic variable used to refer to a recognizable expression by name when the user did not supply an alias.
+  lazy val referenceableVariable: LogicalVariable =
+    Variable(stringifiedName(expression))(expression.position, isIsolated = false)
+
+  def isSubclauseRecognizable(expr: Expression): Boolean = expr match {
+    case lv: LogicalVariable                 => alias.contains(lv) || lv == expression || lv == referenceableVariable
+    case p @ Property(_: LogicalVariable, _) => p == expression
+    case _                                   => false
+  }
+}
+
+object ProjectionItem {
+
+  private[scoping] val SyntheticNamePrefix: String = "`  "
+  private[scoping] val SyntheticNameSuffix: String = "`"
+
+  private[scoping] val expressionStringifier: ExpressionStringifier = ExpressionStringifier()
+
+  def unapply(pi: ProjectionItem): Option[(Expression, Option[LogicalVariable])] = Some((pi.expression, pi.alias))
+}
+
+sealed trait RecognizingItem extends ProjectionItem {
+  def aggregatingRecognizableExpression: Option[Expression]
+  def subclauseRecognizableExpression: Option[Expression]
+  def subclauseRecognizableSymbols: Set[Expression]
+}
+
+case class GroupingKey(expression: Expression, alias: Option[LogicalVariable], explicit: Boolean)
+    extends ProjectionItem {
+
+  private def matchesUnderlyingExpression(expr: Expression): Boolean = expr match {
+    case lv: LogicalVariable                 => lv == expression
+    case p @ Property(_: LogicalVariable, _) => p == expression
+    case _                                   => false
+  }
+
+  def isNonAggregatingRecognizable(expr: Expression): Boolean = matchesUnderlyingExpression(expr)
+
+  def isAggregationRecognizable(expr: Expression): Boolean = matchesUnderlyingExpression(expr)
+}
+
+case class NonAggregatingItem(override val expression: Expression, override val alias: Option[LogicalVariable])
+    extends RecognizingItem {
+
+  override val aggregatingRecognizableExpression: Option[Expression] = None
+
+  override val subclauseRecognizableExpression: Option[Expression] = Some(expression)
+
+  override def subclauseRecognizableSymbols: Set[Expression] = (alias ++ subclauseRecognizableExpression).toSet
+}
+
+case class AggregatingItem(override val expression: Expression, override val alias: Option[LogicalVariable])
+    extends RecognizingItem {
+
+  override val aggregatingRecognizableExpression: Option[Expression] = None
+
+  override val subclauseRecognizableExpression: Option[Expression] = Some(expression)
+
+  override def subclauseRecognizableSymbols: Set[Expression] = (alias ++ subclauseRecognizableExpression).toSet
+}
+
+/**
+ *  The three item collections are constructed as `ListSet` (insertion-ordered) so that
+ *  recognition lookups via `find` are deterministic.
+ */
+case class ProjectionSpecification(
+  groupingKeys: Set[GroupingKey],
+  nonAggregatingItems: Set[NonAggregatingItem],
+  aggregatingItems: Set[AggregatingItem],
+  distinct: Boolean,
+  hasGroupBy: Boolean
+) {
+  val items: Set[ProjectionItem] = nonAggregatingItems ++ aggregatingItems
+  val allItems: Set[ProjectionItem] = nonAggregatingItems ++ aggregatingItems ++ groupingKeys
+  val aliases: Set[LogicalVariable] = nonAggregatingItems.flatMap(_.alias) ++ aggregatingItems.flatMap(_.alias)
+
+  def isAggregating: Boolean = aggregatingItems.nonEmpty || distinct || hasGroupBy
+  def isEmpty: Boolean = nonAggregatingItems.isEmpty && aggregatingItems.isEmpty
+  def size: Int = nonAggregatingItems.size + aggregatingItems.size
+
+  val subclauseScopeSymbols: Set[LogicalVariable] =
+    nonAggregatingItems.map(_.scopeSymbol) ++
+      aggregatingItems.map(_.scopeSymbol)
+
+  private lazy val groupingKeyByExpression: Map[Expression, GroupingKey] =
+    firstWinsMap(groupingKeys.iterator.map(gk => gk.expression -> gk))
+
+  private lazy val groupingKeyByAlias: Map[LogicalVariable, GroupingKey] =
+    firstWinsMap(groupingKeys.iterator.flatMap(gk => gk.alias.iterator.map(_ -> gk)))
+
+  private lazy val allItemByExpression: Map[Expression, ProjectionItem] =
+    firstWinsMap(allItems.iterator.map(i => i.expression -> i))
+
+  private def firstWinsMap[K, V](pairs: Iterator[(K, V)]): Map[K, V] =
+    pairs.foldLeft(Map.empty[K, V]) { case (m, (k, v)) => if (m.contains(k)) m else m.updated(k, v) }
+
+  def isNonAggregatingRecognizable(expr: Expression): Boolean = expr match {
+    case _: LogicalVariable | Property(_: LogicalVariable, _) => groupingKeyByExpression.contains(expr)
+    case _                                                    => false
+  }
+
+  def isSubclauseRecognizable(expr: Expression): Boolean =
+    isAggregating &&
+      (groupingKeys.exists(_.isSubclauseRecognizable(expr)) || items.exists(_.isSubclauseRecognizable(expr)))
+
+  def isAggregationRecognizable(expr: Expression): Boolean = expr match {
+    case _: LogicalVariable | Property(_: LogicalVariable, _) => groupingKeyByExpression.contains(expr)
+    case _                                                    => false
+  }
+
+  def isAlias(that: Expression): Boolean = that match {
+    case lv: LogicalVariable => aliases.contains(lv)
+    case _                   => false
+  }
+
+  def hasExplicitKeys: Boolean = groupingKeys.exists(_.explicit) || groupingKeys.isEmpty
+
+  def getGroupingKeyExpression(expr: Expression): Option[Expression] = expr match {
+    case lv: LogicalVariable => groupingKeyByAlias.get(lv).map(_.expression)
+    case _                   => None
+  }
+
+  private def containsDeclaration(that: Expression): Boolean = {
+    val subExpressions = that.subExpressions.toSet
+    aliases.exists(subExpressions)
+  }
+
+  def recognizeInNonAggregatingItem(that: Expression, isSubExpression: Boolean): Option[ProjectionItem] =
+    if (!hasGroupBy) None
+    else groupingKeyByExpression.get(that).filter(gk => !isSubExpression || gk.isRecognizable)
+
+  def recognizeInAggregation(that: Expression): Option[ProjectionItem] =
+    groupingKeyByExpression.get(that).filter(_.isRecognizable)
+
+  // Recognizes expressions according to recognition rules defined in CIP-248
+  def recognizeInSubclause(that: Expression, isSubExpression: Boolean): Option[ProjectionItem] =
+    if (hasGroupBy && containsDeclaration(that)) None
+    else allItemByExpression.get(that).filter(item => !isSubExpression || !hasGroupBy || item.isRecognizable)
+
+}
+
+object ProjectionSpecification {
+
+  def nonAggregating(projections: Seq[(Expression, Option[LogicalVariable])]): ProjectionSpecification = {
+
+    val nonAggregatingItems = projections.map { case (e, a) => NonAggregatingItem(e, a) }.to(ListSet)
+
+    ProjectionSpecification(Set.empty, nonAggregatingItems, Set.empty, distinct = false, hasGroupBy = false)
+  }
+
+  def implicitKeys(
+    projections: Seq[(Expression, Option[LogicalVariable])],
+    distinct: Boolean
+  ): ProjectionSpecification = {
+
+    val (aggregating, nonAggregating) = projections.distinct.partition(_._1.containsAggregate)
+    val nonAggregatingItems = nonAggregating.map { case (e, a) => NonAggregatingItem(e, a) }.to(ListSet)
+    val aggregatingItems = aggregating.map { case (e, a) => AggregatingItem(e, a) }.to(ListSet)
+    val groupingKeys =
+      nonAggregating.map { case (e, a) => GroupingKey(e, a, explicit = false) }.to(ListSet)
+
+    ProjectionSpecification(groupingKeys, nonAggregatingItems, aggregatingItems, distinct, hasGroupBy = false)
+  }
+
+  def explicitKeys(
+    groupingElements: GroupingElements,
+    projections: Seq[(Expression, Option[LogicalVariable])],
+    distinct: Boolean
+  ): ProjectionSpecification = {
+    val (aggregating, nonAggregating) = projections.distinct.partition(_._1.containsAggregate)
+    val nonAggregatingItems = nonAggregating.map { case (e, a) => NonAggregatingItem(e, a) }.to(ListSet)
+    val aggregatingItems = aggregating.map { case (e, a) => AggregatingItem(e, a) }.to(ListSet)
+
+    def getGroupingKey(exprOrAlias: Expression): GroupingKey = exprOrAlias match {
+      case alias: LogicalVariable =>
+        projections
+          .find(_._2.contains(alias)).map { case (expr, _) => GroupingKey(expr, Some(alias), explicit = true) }
+          .getOrElse(GroupingKey(alias, Some(alias), explicit = true))
+      case expr: Expression =>
+        projections
+          .find(_._1 == expr).map { case (expr, alias) => GroupingKey(expr, alias, explicit = true) }
+          .getOrElse(GroupingKey(expr, None, explicit = true))
+    }
+
+    val groupingKeys: ListSet[GroupingKey] = groupingElements match {
+      case ExplicitGroupingElements(elements) => elements.map(getGroupingKey).to(ListSet)
+      case GroupingAll() =>
+        nonAggregating.map { case (e, a) => GroupingKey(e, a, explicit = false) }.to(ListSet)
+      case GroupingNone() => ListSet.empty[GroupingKey]
+    }
+
+    ProjectionSpecification(groupingKeys, nonAggregatingItems, aggregatingItems, distinct, hasGroupBy = true)
+  }
+
+}

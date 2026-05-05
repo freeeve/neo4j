@@ -25,9 +25,13 @@ import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.DefaultYield
 import org.neo4j.cypher.internal.ast.Delete
+import org.neo4j.cypher.internal.ast.ExplicitGroupingElements
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FreeProjection
+import org.neo4j.cypher.internal.ast.GroupBy
+import org.neo4j.cypher.internal.ast.GroupingAll
+import org.neo4j.cypher.internal.ast.GroupingNone
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.InputDataStream
 import org.neo4j.cypher.internal.ast.Insert
@@ -67,13 +71,19 @@ import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.WithType
 import org.neo4j.cypher.internal.ast.YieldType
+import org.neo4j.cypher.internal.ast.semantics.scoping.AggregatingPart
+import org.neo4j.cypher.internal.ast.semantics.scoping.CommonContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Declarations
 import org.neo4j.cypher.internal.ast.semantics.scoping.ExpressionResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.GroupByPart
 import org.neo4j.cypher.internal.ast.semantics.scoping.LocalCallableScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.LocalProcedureScopeSignature
 import org.neo4j.cypher.internal.ast.semantics.scoping.NoResult
+import org.neo4j.cypher.internal.ast.semantics.scoping.NonAggregatingPart
+import org.neo4j.cypher.internal.ast.semantics.scoping.NonAggregatingSubclausePart
 import org.neo4j.cypher.internal.ast.semantics.scoping.OmittedResult
-import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionItems
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionExpressionContext
+import org.neo4j.cypher.internal.ast.semantics.scoping.ProjectionSpecification
 import org.neo4j.cypher.internal.ast.semantics.scoping.RegularContext
 import org.neo4j.cypher.internal.ast.semantics.scoping.Result
 import org.neo4j.cypher.internal.ast.semantics.scoping.StatementScope
@@ -82,6 +92,7 @@ import org.neo4j.cypher.internal.ast.semantics.scoping.TableResultWithNotYetKnow
 import org.neo4j.cypher.internal.ast.semantics.scoping.UnexpectedAstNodeScopingError
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope
 import org.neo4j.cypher.internal.ast.semantics.scoping.WorkingScope.unitVariables
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedNonLocalCall
@@ -421,15 +432,75 @@ object pegClause {
     }
   }
 
+  private def recognizeExpression(
+    expression: Expression,
+    incoming: RegularContext
+  )(implicit c: PegContext): WorkingScope = {
+
+    val updatedIncoming = incoming match {
+      case pec: ProjectionExpressionContext => pec.projectionChildContext()
+      case cc: CommonContext                => cc.constantChildContext()
+    }
+
+    updatedIncoming.recognizeExpression(expression, isSubExpression = false) match {
+      case Some(item) =>
+        val references = Some(Set(item.referenceableVariable))
+        updatedIncoming.expressionResultScope(expression, WorkingScope.noChildren, references)
+      case None => pegExpression(expression, updatedIncoming)
+    }
+  }
+
   private def scopeProjectionItems(
     incoming: RegularContext,
     aggregatingExpressionContext: RegularContext,
     aggregationItems: Seq[ReturnItem],
     groupingItems: Seq[ReturnItem]
   )(implicit c: PegContext): Seq[WorkingScope] = {
-
-    groupingItems.map(item => pegExpression(item.expression, incoming.constantChildContext())) ++
+    groupingItems.map(item => {
+      incoming.recognizeExpression(item.expression, isSubExpression = false) match {
+        case Some(item) =>
+          val references = Some(Set(item.referenceableVariable))
+          incoming.expressionResultScope(item.expression, WorkingScope.noChildren, references)
+        case None => pegExpression(item.expression, incoming)
+      }
+    }) ++
       aggregationItems.map(item => pegExpression(item.expression, aggregatingExpressionContext))
+  }
+
+  private def scopeGroupBy(groupBy: GroupBy, incoming: ProjectionExpressionContext)(implicit
+    c: PegContext): WorkingScope = {
+
+    val groupByContext = incoming.groupByContext()
+    val spec = incoming.projectionSpecification
+
+    val children = groupBy.groupingElements match {
+      case ExplicitGroupingElements(elements) =>
+        elements.map { e =>
+          // getGroupingKeyExpression only returns Some when `e` is an alias, which is always a LogicalVariable.
+          (e, spec.getGroupingKeyExpression(e)) match {
+            case (alias: LogicalVariable, Some(underlyingExpression)) =>
+              val scope = pegExpression(underlyingExpression, groupByContext)
+              scope.withReferenced(scope.referenced + alias)
+            case _ =>
+              pegExpression(e, groupByContext)
+          }
+        }
+      case GroupingAll() =>
+        spec.groupingKeys.map(key => {
+          pegExpression(key.expression, groupByContext)
+        }).toSeq
+      case GroupingNone() => Seq()
+    }
+
+    StatementScope(
+      groupBy,
+      groupByContext,
+      children.flatMap(_.referenced).toSet,
+      Declarations.noDeclarations,
+      groupByContext,
+      NoResult,
+      children
+    )
   }
 
   private def scopeSubclauses(
@@ -437,21 +508,20 @@ object pegClause {
     subclauses: Subclauses
   )(implicit c: PegContext): Seq[WorkingScope] = {
 
-    // TODO implement scoping for GROUP BY
     val Subclauses(_, orderByOpt, skipOpt, limitOpt, whereOpt) = subclauses
 
     val sortItemScopes =
       orderByOpt.fold(Seq.empty[SortItem])(_.sortItems)
-        .map(item => pegExpression(item.expression, incoming))
+        .map(item => recognizeExpression(item.expression, incoming))
 
     val whereExpScopes =
-      whereOpt.toSeq.map(where => pegExpression(where.expression, incoming))
+      whereOpt.toSeq.map(where => recognizeExpression(where.expression, incoming))
 
     val skipExpScopes =
-      skipOpt.toSeq.map(skip => pegExpression(skip.expression, incoming))
+      skipOpt.toSeq.map(skip => recognizeExpression(skip.expression, incoming))
 
     val limitExpScopes =
-      limitOpt.toSeq.map(limit => pegExpression(limit.expression, incoming))
+      limitOpt.toSeq.map(limit => recognizeExpression(limit.expression, incoming))
 
     sortItemScopes ++ skipExpScopes ++ limitExpScopes ++ whereExpScopes
   }
@@ -561,22 +631,36 @@ object pegClause {
     val includedIncomingVariables = getIncludedIncomingVariables(visibleIncomingVariables, projectionType)
     val resultingVariables = includedIncomingVariables.toSeq ++ introducedVariables
 
+    val projectionItems =
+      items.map(ri => (ri.expression, ri.alias)) ++ includedIncomingVariables.map(iiv => iiv -> Some(iiv))
+
     val (aggregatingItems, groupingItems) = items.partition(_.directlyContainsAggregate)
-    val projectionItems = ProjectionItems(groupingItems, aggregatingItems, includedIncomingVariables, distinct)
-    val isAggregating = aggregatingItems.nonEmpty || distinct
+
+    val isAggregating = aggregatingItems.nonEmpty || distinct || subclauses.groupBy.isDefined
     val hasSideEffects = isAggregating || subclauses.hasSubclause
 
-    val itemIncoming = incoming.amendedWithProjectionItems(projectionItems, inSubclause = false)
-    val subclauseIncoming = (clauseType match {
-      case DefaultYield => incoming.replaceWith(introducedVariables.toSet)
-      case _            => incoming
-    }).amendedWithProjectionItems(projectionItems, inSubclause = true).projectionChildContext()
+    val projectionSpecification =
+      if (!isAggregating)
+        ProjectionSpecification.nonAggregating(projectionItems)
+      else if (subclauses.groupBy.isDefined)
+        ProjectionSpecification.explicitKeys(subclauses.groupBy.get.groupingElements, projectionItems, distinct)
+      else
+        ProjectionSpecification.implicitKeys(projectionItems, distinct)
 
-    val itemScopes = scopeProjectionItems(incoming, itemIncoming, aggregatingItems, groupingItems)
+    val ProjectionContexts(nonAggregatingScope, aggregatingScope, groupByScope, subclauseScope) =
+      if (isAggregating)
+        aggregatingProjectionContexts(incoming, projectionSpecification, clauseType, introducedVariables)
+      else nonAggregatingProjectionContexts(incoming, projectionSpecification, clauseType, introducedVariables, items)
 
-    val subclauseScopes = scopeSubclauses(subclauseIncoming, subclauses)
+    val itemScopes =
+      scopeProjectionItems(nonAggregatingScope, aggregatingScope, aggregatingItems, groupingItems)
 
-    val children = itemScopes ++ subclauseScopes
+    val groupByScopeOpt =
+      subclauses.groupBy.map(gb => scopeGroupBy(gb, groupByScope))
+
+    val subclauseScopes = scopeSubclauses(subclauseScope, subclauses)
+
+    val children = itemScopes ++ groupByScopeOpt ++ subclauseScopes
     val outgoing =
       getProjectionOutgoing(incoming.constants, resultingVariables, constantItems, clauseType, incoming.localCallables)
     val result = getProjectionResult(resultingVariables, clauseType)
@@ -595,10 +679,59 @@ object pegClause {
 
   }
 
-  @inline private def returnItemAliases(items: Seq[ReturnItem]): Seq[LogicalVariable] =
+  private case class ProjectionContexts(
+    nonAggregatingScope: ProjectionExpressionContext,
+    aggregatingScope: ProjectionExpressionContext,
+    groupByScope: ProjectionExpressionContext,
+    subclauseScope: ProjectionExpressionContext
+  )
+
+  private def aggregatingProjectionContexts(
+    incoming: RegularContext,
+    projectionSpecification: ProjectionSpecification,
+    clauseType: ClauseType,
+    introducedVariables: Seq[LogicalVariable]
+  ): ProjectionContexts = {
+    val itemIncoming = incoming.amendedWithProjectionSpecification(projectionSpecification, AggregatingPart)
+    val groupByIncoming =
+      incoming.amendedWithProjectionSpecification(projectionSpecification, GroupByPart).groupByContext()
+    val subclauseIncoming = (clauseType match {
+      case DefaultYield => incoming.replaceWith(introducedVariables.toSet)
+      case _            => incoming
+    }).amendedWithProjectionSpecification(projectionSpecification, NonAggregatingSubclausePart)
+
+    ProjectionContexts(
+      nonAggregatingScope = itemIncoming.nonAggregatingChildContext(),
+      aggregatingScope = itemIncoming,
+      groupByScope = groupByIncoming,
+      subclauseScope = subclauseIncoming
+    )
+  }
+
+  private def nonAggregatingProjectionContexts(
+    incoming: RegularContext,
+    spec: ProjectionSpecification,
+    clauseType: ClauseType,
+    introducedVariables: Seq[LogicalVariable],
+    items: Seq[ReturnItem]
+  ): ProjectionContexts = {
+    val subclauseIncoming = (clauseType match {
+      case DefaultYield => incoming.replaceWith(introducedVariables.toSet)
+      case _            => incoming
+    }).amendedWith(items.flatMap(_.alias).toSet).constantChildContext()
+
+    ProjectionContexts(
+      incoming.constantChildContext().amendedWithProjectionSpecification(spec, NonAggregatingPart),
+      incoming.amendedWithProjectionSpecification(spec, AggregatingPart),
+      incoming.amendedWithProjectionSpecification(spec, GroupByPart),
+      subclauseIncoming.amendedWithProjectionSpecification(spec, NonAggregatingSubclausePart)
+    )
+  }
+
+  private def returnItemAliases(items: Seq[ReturnItem]): Seq[LogicalVariable] =
     items.map(item => item.alias.getOrElse(UnPositionedVariable.varFor(item.name)))
 
-  @inline private def scopeInlineSubquery(
+  private def scopeInlineSubquery(
     callClause: SubqueryCall,
     incoming: RegularContext,
     explicitlyImportedVariables: Set[LogicalVariable],
@@ -628,7 +761,7 @@ object pegClause {
     incoming.noResultScope(outgoing, children, referenced, declared)
   }
 
-  @inline private def scopeInTransactionParameters(
+  private def scopeInTransactionParameters(
     inTransactionsParameters: Option[InTransactionsParameters],
     incoming: RegularContext
   )(implicit c: PegContext)

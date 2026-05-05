@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast.semantics.scoping
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.ASTAnnotationMap.PositionedNode
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.semantics.scoping.ScopeState.RecordedScopes
@@ -36,7 +37,10 @@ case class ScopeState(
   def getOutgoingConstantsAndVariables(ast: ASTNode): Seq[LogicalVariable] =
     recordedScopes(ast).outgoing.allSymbols.map(_.copyId).toSeq
 
-  def getReferenced(ast: ASTNode): Set[LogicalVariable] = recordedScopes(ast).referenced.map(_.copyId)
+  def getReferenced(ast: ASTNode): Set[LogicalVariable] = recordedScopes(PositionedNode(ast)).referenced.map(_.copyId)
+
+  def getReferenced(ast: ASTNode, default: Set[LogicalVariable]): Set[LogicalVariable] =
+    recordedScopes.get(PositionedNode(ast)).map(_.referenced.map(_.copyId)).getOrElse(default)
 
   def getResultCols(ast: ASTNode): Seq[LogicalVariable] = recordedScopes(ast).result match {
     case TableResult(cols) => cols

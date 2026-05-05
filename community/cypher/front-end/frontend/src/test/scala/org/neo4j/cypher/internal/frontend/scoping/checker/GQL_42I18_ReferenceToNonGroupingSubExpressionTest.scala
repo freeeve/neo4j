@@ -16,6 +16,10 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping.checker
 
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.frontend.scoping.E42I18
 import org.neo4j.cypher.internal.frontend.scoping.Passes
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
@@ -25,6 +29,10 @@ import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
  */
 class GQL_42I18_ReferenceToNonGroupingSubExpressionTest extends VariableCheckingWithLocalCallablesTestSuite {
   VariableCheckingWithLocalCallablesTestSuite.register(() => testCases())
+
+  // Thrown by AggregationChecker
+  override val checkersUnderTest: Seq[Transformer[BaseContext, BaseState, BaseState]] =
+    Seq(AmbiguousAggregationAnalysis)
 
   override def testCases(): Seq[TestQuery] = Seq(
     // Negative tests

@@ -25,26 +25,40 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_CHECK
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.AggregationChecker
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.UpToDateScopes
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.VariableChecker
 import org.neo4j.cypher.internal.rewriting.conditions.FunctionInvocationsResolved
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.StepSequencer
 
 /**
  * Verify aggregation expressions and make sure there are no ambiguous grouping keys.
  */
+
 case object AmbiguousAggregationAnalysis extends VisitorPhase[BaseContext, BaseState] with StepSequencer.Step {
 
-  override def visit(from: BaseState, context: BaseContext): Unit = {
-    val errors = from.statement().folder.fold(Seq.empty[SemanticErrorDef]) {
-      // If we project '*', we don't need to check ambiguity since we group on all available variables.
-      case projectionClause: ProjectionClause if !projectionClause.returnItems.includeExisting =>
-        _ ++ projectionClause.orderBy.toSeq.flatMap(_.checkIllegalOrdering(projectionClause.returnItems)) ++
-          VariableChecker.checkForAmbiguousAggregationFromClause(from, context, projectionClause)
+  def findErrors(from: BaseState): Seq[SemanticErrorDef] = {
+    val errors = from.statement().folder.treeFold(Set.empty[SemanticErrorDef]) {
+      case projectionClause: ProjectionClause if projectionClause.isAggregating =>
+        acc => TraverseChildren(acc ++ AggregationChecker.checkAggregatingClause(from, projectionClause))
+      case projectionClause: ProjectionClause =>
+        acc => TraverseChildren(acc ++ AggregationChecker.checkNonAggregatingClause(projectionClause))
     }
+    errors.toSeq
+  }
 
-    context.errorHandler(errors)
+  // TODO `skip42I18` is a transitional flag that will be used until a future PR
+  //  with notifications and changed rules for aggregations is merged
+  def collectErrors(from: BaseState, skip42I18: Boolean): Seq[SemanticErrorDef] = {
+    val errors = findErrors(from)
+    if (skip42I18)
+      errors.filter(_.gqlStatusObject.cause().get.gqlStatus() != "42I18")
+    else errors
+  }
+
+  override def visit(from: BaseState, context: BaseContext): Unit = {
+    context.errorHandler(collectErrors(from, skip42I18 = false))
   }
 
   override def phase: CompilationPhaseTracer.CompilationPhase = SEMANTIC_CHECK

@@ -79,7 +79,11 @@ case class SemanticAnalysis(warn: Option[Boolean])
         // When we have disconnected the error checking parts from scoping and type checking in SemanticAnalysis
         // The ScopeSurveyor can be run in the normal pipeline instead of manually here.
         val upToDateScopes = ScopeSurveyor.process(from, context)
-        VariableChecker.gatherAllErrors(upToDateScopes, context)
+        val vErrors = VariableChecker.gatherAllErrors(upToDateScopes, context)
+        if (vErrors.isEmpty) {
+          // This is a transitional patch until AmbiguousAggregationAnalysis can be run independently of SA
+          AmbiguousAggregationAnalysis.collectErrors(upToDateScopes, skip42I18 = true)
+        } else vErrors
       } else Seq.empty
       (vcErrors ++ saErrors).sortBy(e => VariableChecker.getErrorOrder(e))
     }
