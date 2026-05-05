@@ -18,7 +18,9 @@ package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GroupByClause
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
@@ -26,7 +28,13 @@ import org.neo4j.cypher.internal.util.InputPosition
 case class GroupBy(groupingElements: GroupingElements)(val position: InputPosition)
     extends ASTNode
     with SemanticCheckable {
-  override def semanticCheck: SemanticCheck = groupingElements.semanticCheck
+
+  override def semanticCheck: SemanticCheck =
+    SemanticCheck.fromState(state =>
+      if (state.features.contains(GroupByClause)) SemanticCheck.success
+      else SemanticCheck.error(SemanticError.groupByNotSupported(position))
+    ) ifOkChain
+      groupingElements.semanticCheck
 }
 
 sealed trait GroupingElements extends ASTNode with SemanticCheckable

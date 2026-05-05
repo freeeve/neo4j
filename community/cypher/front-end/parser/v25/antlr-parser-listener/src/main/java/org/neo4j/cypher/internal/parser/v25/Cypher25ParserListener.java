@@ -75,6 +75,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitReturnItems(Cypher25Parser.ReturnItemsContext ctx);
 
+    void exitGroupBy(Cypher25Parser.GroupByContext ctx);
+
     void exitOrderItem(Cypher25Parser.OrderItemContext ctx);
 
     void exitAscToken(Cypher25Parser.AscTokenContext ctx);

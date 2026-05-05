@@ -136,7 +136,7 @@ returnClause
    ;
 
 returnBody
-   : (DISTINCT | ALL)? returnItems orderBy? skip? limit?
+   : (DISTINCT | ALL)? returnItems groupBy? orderBy? skip? limit?
    ;
 
 returnItem
@@ -145,6 +145,10 @@ returnItem
 
 returnItems
    : (TIMES | returnItem) (COMMA returnItem)*
+   ;
+
+groupBy
+   : GROUP BY (LPAREN RPAREN | ALL | expression (COMMA expression)*)
    ;
 
 orderItem

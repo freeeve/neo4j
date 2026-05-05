@@ -377,7 +377,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'WHEN': expected ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or <EOF> (line 3, column 1 (offset: 48))
+        _.withSyntaxError("""Invalid input 'WHEN': expected ',', 'GROUP BY', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or <EOF> (line 3, column 1 (offset: 48))
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -419,7 +419,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'WHEN': expected an expression, ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 3, column 1 (offset: 16))
+        _.withSyntaxError("""Invalid input 'WHEN': expected an expression, ',', 'AS', 'GROUP BY', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'FOR', 'FOREACH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NEXT', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 3, column 1 (offset: 16))
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }

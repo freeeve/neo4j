@@ -47,6 +47,30 @@ class PrettifierIT extends AbstractPrettifierTest {
         |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
         |  SKIP 1
         |  LIMIT 2""".stripMargin,
+    FailsInCypher5(
+      "return distinct a, b as X, 3+3 as six group by X, six order by b.prop, b.foo descending skip 1 limit 2",
+      """RETURN DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY X, six
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2""".stripMargin
+    ),
+    FailsInCypher5(
+      "return distinct a, b as X, 3+3 as six group by () order by b.prop, b.foo descending skip 1 limit 2",
+      """RETURN DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY ()
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2""".stripMargin
+    ),
+    FailsInCypher5(
+      "return distinct a, b as X, 3+3 as six group by ALL order by b.prop, b.foo descending skip 1 limit 2",
+      """RETURN DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY ALL
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2""".stripMargin
+    ),
     """RETURN [`c` IN 0o5 WHERE false:A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:A) | B] AS x""",
     """RETURN [`c` IN 0o5 WHERE (false):A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:A) | B] AS x""",
     """RETURN [`c` IN 0o5 WHERE (false):!A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:!A) | B] AS x""",
@@ -125,6 +149,36 @@ class PrettifierIT extends AbstractPrettifierTest {
         |  SKIP 1
         |  LIMIT 2
         |  WHERE true""".stripMargin,
+    FailsInCypher5(
+      "match (a) with distinct a, b as X, 3+3 as six group by X, six order by b.prop, b.foo descending skip 1 limit 2 where true",
+      """MATCH (a)
+        |WITH DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY X, six
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2
+        |  WHERE true""".stripMargin
+    ),
+    FailsInCypher5(
+      "match (a) with distinct a, b as X, 3+3 as six group by () order by b.prop, b.foo descending skip 1 limit 2 where true",
+      """MATCH (a)
+        |WITH DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY ()
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2
+        |  WHERE true""".stripMargin
+    ),
+    FailsInCypher5(
+      "match (a) with distinct a, b as X, 3+3 as six group by ALL order by b.prop, b.foo descending skip 1 limit 2 where true",
+      """MATCH (a)
+        |WITH DISTINCT a, b AS X, 3 + 3 AS six
+        |  GROUP BY ALL
+        |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
+        |  SKIP 1
+        |  LIMIT 2
+        |  WHERE true""".stripMargin
+    ),
     "match (a) with distinct a, b as X, 3+3 as six order by b.prop, b.foo descending offset 1 limit 2 where true" ->
       """MATCH (a)
         |WITH DISTINCT a, b AS X, 3 + 3 AS six

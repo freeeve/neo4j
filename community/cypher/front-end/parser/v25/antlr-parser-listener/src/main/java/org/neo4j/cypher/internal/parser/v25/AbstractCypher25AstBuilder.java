@@ -78,6 +78,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_returnBody -> exitReturnBody((Cypher25Parser.ReturnBodyContext) ctx);
             case Cypher25Parser.RULE_returnItem -> exitReturnItem((Cypher25Parser.ReturnItemContext) ctx);
             case Cypher25Parser.RULE_returnItems -> exitReturnItems((Cypher25Parser.ReturnItemsContext) ctx);
+            case Cypher25Parser.RULE_groupBy -> exitGroupBy((Cypher25Parser.GroupByContext) ctx);
             case Cypher25Parser.RULE_orderItem -> exitOrderItem((Cypher25Parser.OrderItemContext) ctx);
             case Cypher25Parser.RULE_ascToken -> exitAscToken((Cypher25Parser.AscTokenContext) ctx);
             case Cypher25Parser.RULE_descToken -> exitDescToken((Cypher25Parser.DescTokenContext) ctx);

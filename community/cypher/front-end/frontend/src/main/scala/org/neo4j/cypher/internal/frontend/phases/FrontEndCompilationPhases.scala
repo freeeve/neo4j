@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.DisableTypeChecki
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.EnableParsingOfObfuscatedLiterals
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ExperimentalCypherVersions
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GraphTypes
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GroupByClause
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.LocalCallables
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.OidcCredentialForwarding
@@ -77,6 +78,7 @@ trait FrontEndCompilationPhases {
     GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> ExperimentalCypherVersions.productPrefix,
     GraphDatabaseInternalSettings.relationship_property_value_access_rules -> RelationshipPropertyValueAccessRules.productPrefix,
     GraphDatabaseInternalSettings.cypher_uuid_type_enabled -> UUIDType.productPrefix,
+    GraphDatabaseInternalSettings.cypher_group_by_clause_enabled -> GroupByClause.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_local_callables -> LocalCallables.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_scope_queries -> ScopeQueries.productPrefix,
     GraphDatabaseInternalSettings.cypher_enable_parsing_of_obfuscated_literals -> EnableParsingOfObfuscatedLiterals.productPrefix,

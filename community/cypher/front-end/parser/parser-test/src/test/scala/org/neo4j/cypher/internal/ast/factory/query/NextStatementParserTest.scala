@@ -690,8 +690,12 @@ class NextStatementParserTest extends AstParsingTestBase {
       RETURN count * 2 AS res
       """
     query should parseIn[Statement] {
-      _ =>
+      case Cypher5 =>
         _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'ORDER BY', 'LIMIT', 'OFFSET', 'SKIP' or <EOF> (line 5, column 7 (offset: 79))
+                            |"      NEXT"
+                            |       ^""".stripMargin)
+      case _ =>
+        _.withSyntaxError("""Invalid input 'NEXT': expected ',', 'GROUP BY', 'ORDER BY', 'LIMIT', 'OFFSET', 'SKIP' or <EOF> (line 5, column 7 (offset: 79))
                             |"      NEXT"
                             |       ^""".stripMargin)
     }

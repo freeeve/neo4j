@@ -150,6 +150,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ExpandHintAll
 import org.neo4j.cypher.internal.ast.ExpandHintInto
 import org.neo4j.cypher.internal.ast.ExpandStep
+import org.neo4j.cypher.internal.ast.ExplicitGroupingElements
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.FileResource
 import org.neo4j.cypher.internal.ast.Finish
@@ -174,6 +175,10 @@ import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
 import org.neo4j.cypher.internal.ast.GraphTypeElementReference
+import org.neo4j.cypher.internal.ast.GroupBy
+import org.neo4j.cypher.internal.ast.GroupingAll
+import org.neo4j.cypher.internal.ast.GroupingElements
+import org.neo4j.cypher.internal.ast.GroupingNone
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeGraphScope
 import org.neo4j.cypher.internal.ast.IfExistsDo
@@ -1614,6 +1619,19 @@ class AstGenerator(
     )
   } yield item
 
+  def _groupingElements: Gen[GroupingElements] = for {
+    expressions <- oneOrMore(_expression)
+    elements <- oneOf(
+      GroupingNone()(pos),
+      GroupingAll()(pos),
+      ExplicitGroupingElements(expressions)(pos)
+    )
+  } yield elements
+
+  def _groupBy: Gen[GroupBy] = for {
+    elements <- _groupingElements
+  } yield GroupBy(elements)(pos)
+
   def _sortItem: Gen[SortItem] = for {
     expr <- _expression
     item <- oneOf(
@@ -1648,11 +1666,12 @@ class AstGenerator(
     distinct <- boolean
     projectionType <- oneOf(AdditiveProjection, FreeProjection)
     retItems <- oneOrMore(_returnItem)
+    groupBy <- if (usesCypher5) Gen.const(None) else option(_groupBy)
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
     where <- option(_where)
-  } yield With(distinct, ReturnItems(projectionType, retItems)(pos), None, orderBy, skip, limit, where)(pos)
+  } yield With(distinct, ReturnItems(projectionType, retItems)(pos), groupBy, orderBy, skip, limit, where)(pos)
 
   def _let: Gen[With] = for {
     retItems <- oneOrMore(_aliasedReturnItem)
@@ -1703,10 +1722,11 @@ class AstGenerator(
     distinct <- boolean
     projectionType <- oneOf(AdditiveProjection, FreeProjection)
     retItems <- oneOrMore(_returnItem)
+    groupBy <- if (usesCypher5) Gen.const(None) else option(_groupBy)
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
-  } yield Return(distinct, ReturnItems(projectionType, retItems)(pos), None, orderBy, skip, limit)(pos)
+  } yield Return(distinct, ReturnItems(projectionType, retItems)(pos), groupBy, orderBy, skip, limit)(pos)
 
   def _finish: Gen[Finish] = const(Finish()(pos))
 

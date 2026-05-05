@@ -680,7 +680,7 @@ object DdlShowBuilder {
       With(
         distinct = false,
         ReturnItems(AdditiveProjection, Seq(), itemOrder)(returnItems.position),
-        None,
+        yieldClause.groupBy,
         orderBy,
         yieldClause.skip,
         yieldClause.limit,

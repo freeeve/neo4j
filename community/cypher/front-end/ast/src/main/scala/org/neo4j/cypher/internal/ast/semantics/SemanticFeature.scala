@@ -81,6 +81,10 @@ object SemanticFeature {
     override def name: String = "UUID type"
   }
 
+  case object GroupByClause extends SemanticFeature with FeatureToString {
+    override def name: String = "Group By clause"
+  }
+
   case object LocalCallables extends SemanticFeature with FeatureToString {
     override def name: String = "local callables"
   }

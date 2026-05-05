@@ -82,6 +82,7 @@ import org.neo4j.cypher.internal.ast.ExecutableBy
 import org.neo4j.cypher.internal.ast.ExpandHintAll
 import org.neo4j.cypher.internal.ast.ExpandHintInto
 import org.neo4j.cypher.internal.ast.ExpandHintMode
+import org.neo4j.cypher.internal.ast.ExplicitGroupingElements
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.ExternalAuth
 import org.neo4j.cypher.internal.ast.Finish
@@ -97,6 +98,9 @@ import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.GraphScope
 import org.neo4j.cypher.internal.ast.GraphSelection
+import org.neo4j.cypher.internal.ast.GroupBy
+import org.neo4j.cypher.internal.ast.GroupingAll
+import org.neo4j.cypher.internal.ast.GroupingNone
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeGraphScope
@@ -320,6 +324,8 @@ case class Prettifier(
   def asString(localCallableDefinition: LocalCallableDefinition): String = base.asString(localCallableDefinition)
 
   def asString(search: Search): String = base.asString(search)
+
+  def asString(groupBy: GroupBy): String = base.asString(groupBy)
 
   def asString(hint: Hint): String = base.asString(hint)
 
@@ -1350,6 +1356,15 @@ case class Prettifier(
     def asString(o: Limit): String =
       s"${INDENT}LIMIT ${expr(o.expression, shouldBacktickEmpty = true)}"
 
+    def asString(g: GroupBy): String = s"${INDENT}GROUP BY " + {
+      g.groupingElements match {
+        case ExplicitGroupingElements(elements) =>
+          elements.map(elem => expr(elem, shouldBacktickEmpty = true)).mkString(", ")
+        case GroupingAll()  => "ALL"
+        case GroupingNone() => "()"
+      }
+    }
+
     def asString(o: OrderBy): String = s"${INDENT}ORDER BY " + {
       o.sortItems.map {
         case AscSortItem(expression)  => expr(expression, shouldBacktickEmpty = true) + " ASCENDING"
@@ -1377,10 +1392,11 @@ case class Prettifier(
         val d = if (r.distinct) " DISTINCT" else ""
         val i = asString(r.returnItems)
         val ind = indented()
+        val g = r.groupBy.map(ind.asString).map(asNewLine).getOrElse("")
         val o = r.orderBy.map(ind.asString).map(asNewLine).getOrElse("")
         val l = r.limit.map(ind.asString).map(asNewLine).getOrElse("")
         val s = r.skip.map(ind.asString).map(asNewLine).getOrElse("")
-        s"${INDENT}RETURN$d $i$o$s$l"
+        s"${INDENT}RETURN$d $i$g$o$s$l"
       }
 
     def asString(@unused f: Finish): String = s"${INDENT}FINISH"
@@ -1388,6 +1404,7 @@ case class Prettifier(
     def asString(w: With): String = {
       val ind = indented()
       val rewrittenClauses = List(
+        w.groupBy.map(ind.asString),
         w.orderBy.map(ind.asString),
         w.skip.map(ind.asString),
         w.limit.map(ind.asString),

@@ -31,12 +31,16 @@ import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.ExpandHintAll
 import org.neo4j.cypher.internal.ast.ExpandHintInto
 import org.neo4j.cypher.internal.ast.ExpandStep
+import org.neo4j.cypher.internal.ast.ExplicitGroupingElements
 import org.neo4j.cypher.internal.ast.ExpressionBody
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
+import org.neo4j.cypher.internal.ast.GroupBy
+import org.neo4j.cypher.internal.ast.GroupingAll
+import org.neo4j.cypher.internal.ast.GroupingNone
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Insert
 import org.neo4j.cypher.internal.ast.Limit
@@ -340,7 +344,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = Return(
       ctx.DISTINCT() != null,
       ctx.returnItems().ast[ReturnItems](),
-      None,
+      astOpt(ctx.groupBy()),
       astOpt(ctx.orderBy()),
       astOpt(ctx.skip()),
       astOpt(ctx.limit())
@@ -361,6 +365,18 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast =
       if (variable != null) AliasedReturnItem(expression.ast(), variable.ast())(position)
       else UnaliasedReturnItem(expression.ast(), inputText(expression))(position)
+  }
+
+  final override def exitGroupBy(ctx: Cypher25Parser.GroupByContext): Unit = {
+    val groupingElements = if (ctx.LPAREN() != null) {
+      GroupingNone()(pos(ctx.LPAREN()))
+    } else if (ctx.ALL() != null) {
+      GroupingAll()(pos(ctx.ALL()))
+    } else {
+      ExplicitGroupingElements(astSeq[Expression](ctx.expression()))(pos(ctx.expression(0)))
+    }
+
+    ctx.ast = GroupBy(groupingElements)(pos(ctx))
   }
 
   final override def exitOrderItem(ctx: Cypher25Parser.OrderItemContext): Unit = {

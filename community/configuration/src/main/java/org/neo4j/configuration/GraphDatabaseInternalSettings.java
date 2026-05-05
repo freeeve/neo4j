@@ -1396,6 +1396,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .immutable()
             .build();
 
+    @Internal
+    @Description("Set this to enable the use of the GROUP BY clause in Cypher.")
+    public static final Setting<Boolean> cypher_group_by_clause_enabled = newBuilder(
+                    "internal.cypher.group_by_clause_enabled", BOOL, false)
+            .immutable()
+            .build();
+
     public enum ExtractLiteral {
         ALWAYS,
         NEVER,

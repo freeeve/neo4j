@@ -125,6 +125,8 @@ class CypherConfiguration private (val config: Config) {
 
   val uuidTypeEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_uuid_type_enabled)
 
+  val groupByClauseEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_group_by_clause_enabled)
+
   val statefulShortestPlanningMode: CypherStatefulShortestPlanningModeOption =
     CypherStatefulShortestPlanningModeOption.fromConfig(config)
 
