@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern.NodeConnections
-import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.macros.AssertMacros3
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewritable
@@ -227,22 +227,22 @@ final case class QuantifiedPathPattern(
   val patternNodes: Set[LogicalVariable] = patternRelationships.iterator.flatMap(_.boundaryNodesSet).toSet
 
   // all variables are meant as singletons except those in the groupings
-  AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+  AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
     patternRelationships.head.left == leftBinding.inner,
     s"${leftBinding.inner} is not the left node of the first relationship ${patternRelationships.head.left}"
   )
 
-  AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+  AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
     patternRelationships.last.right == rightBinding.inner,
     s"${rightBinding.inner} is not the right node of the last relationship ${patternRelationships.last.right}"
   )
 
-  AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+  AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
     nodeVariableGroupings.forall(grouping => patternNodes.contains(grouping.singleton)),
     s"Not all singleton node variables ${nodeVariableGroupings.map(_.singleton)} were pattern nodes"
   )
 
-  AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+  AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
     relationshipVariableGroupings.forall(grouping =>
       patternRelationships.map(_.variable).contains(grouping.singleton)
     ),
@@ -266,14 +266,14 @@ final case class QuantifiedPathPattern(
   override def pathVariables: Seq[PathVariable] = {
     val rightTail: Seq[PathVariable] =
       VariableGrouping.singletonToGroup(nodeVariableGroupings, patternRelationships.last.right)
-        .map(NodePathVariable) ++: Seq(NodePathVariable(right))
+        .map(NodePathVariable.apply) ++: Seq(NodePathVariable(right))
 
     NodePathVariable(left) +: patternRelationships.iterator.foldRight(rightTail) {
       case (rel, acc) =>
         VariableGrouping.singletonToGroup(nodeVariableGroupings, rel.left)
-          .map(NodePathVariable) ++:
+          .map(NodePathVariable.apply) ++:
           VariableGrouping.singletonToGroup(relationshipVariableGroupings, rel.variable)
-            .map(RelationshipPathVariable) ++:
+            .map(RelationshipPathVariable.apply) ++:
           acc
     }
   }
@@ -373,7 +373,7 @@ object ExhaustivePathPattern {
   final case class NodeConnections[+A <: ExhaustiveNodeConnection](connections: NonEmptyList[A])
       extends ExhaustivePathPattern[A] {
 
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+    AssertMacros3.checkOnlyWhenAssertionsAreEnabled(
       connections.toIndexedSeq.sliding(2).forall {
         case Seq(_)    => true
         case Seq(a, b) => a.right == b.left

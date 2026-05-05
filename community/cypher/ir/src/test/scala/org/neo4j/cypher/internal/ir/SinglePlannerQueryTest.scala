@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.ir
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class SinglePlannerQueryTest extends CypherFunSuite with AstConstructionTestSupport {
+class SinglePlannerQueryTest extends CypherFunSuite3 with AstConstructionTestSupport {
 
   test("flattenForeach leaves non-foreach untouched") {
     val query = RegularSinglePlannerQuery(

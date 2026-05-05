@@ -71,17 +71,6 @@ sealed trait QueryHorizon extends Foldable {
       case _                   => false
     }
   }
-
-  protected def getQueryGraphFromDependingExpressions: QueryGraph = {
-    val dependencies = dependingExpressions
-      .flatMap(_.dependencies)
-      .toSet
-
-    QueryGraph(
-      argumentIds = dependencies,
-      selections = Selections.from(dependingExpressions)
-    )
-  }
 }
 
 final case class PassthroughAllHorizon() extends QueryHorizon {
@@ -341,7 +330,7 @@ object AggregatingQueryProjection {
     }
   }
 
-  case object OptionalPreprocessing {
+  object OptionalPreprocessing {
     case object Passthrough extends OptionalPreprocessing
     final case class FilterAndLimit(filter: Option[Expression], limit: Expression) extends OptionalPreprocessing
   }

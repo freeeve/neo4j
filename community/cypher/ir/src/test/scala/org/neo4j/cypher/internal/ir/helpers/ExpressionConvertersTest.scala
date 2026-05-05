@@ -24,11 +24,9 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatest.matchers.should.Matchers.equal
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class ExpressionConvertersTest extends AnyFunSuite with AstConstructionTestSupport {
+class ExpressionConvertersTest extends CypherFunSuite3 with AstConstructionTestSupport {
 
   test("should convert predicates in the right order") {
     val expression = Ands(Seq(

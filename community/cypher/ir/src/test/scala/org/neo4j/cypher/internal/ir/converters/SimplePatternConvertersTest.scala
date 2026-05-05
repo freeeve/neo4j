@@ -30,9 +30,9 @@ import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.converters.SimplePatternConverters.convertRelationshipLength
 import org.neo4j.cypher.internal.ir.converters.SimplePatternConverters.convertSimplePattern
 import org.neo4j.cypher.internal.util.NonEmptyList
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class SimplePatternConvertersTest extends CypherFunSuite with AstConstructionTestSupport {
+class SimplePatternConvertersTest extends CypherFunSuite3 with AstConstructionTestSupport {
 
   // (a)
   test("single node") {

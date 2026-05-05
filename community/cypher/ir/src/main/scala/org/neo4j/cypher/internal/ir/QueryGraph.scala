@@ -837,16 +837,16 @@ object QueryGraph {
 
   // Overridden to avoid creating illegal QGs
   def apply(
-    patternRelationships: Set[PatternRelationship] = Set.empty,
-    quantifiedPathPatterns: Set[QuantifiedPathPattern] = Set.empty,
-    patternNodes: Set[LogicalVariable] = Set.empty,
-    argumentIds: Set[LogicalVariable] = Set.empty,
+    patternRelationships: Set[PatternRelationship] = Set.empty[PatternRelationship],
+    quantifiedPathPatterns: Set[QuantifiedPathPattern] = Set.empty[QuantifiedPathPattern],
+    patternNodes: Set[LogicalVariable] = Set.empty[LogicalVariable],
+    argumentIds: Set[LogicalVariable] = Set.empty[LogicalVariable],
     selections: Selections = Selections(),
-    optionalMatches: ListSet[QueryGraph] = ListSet.empty,
-    hints: ListSet[IrHint] = ListSet.empty,
-    shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
-    mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
-    selectivePathPatterns: Set[SelectivePathPattern] = Set.empty,
+    optionalMatches: ListSet[QueryGraph] = ListSet.empty[QueryGraph],
+    hints: ListSet[IrHint] = ListSet.empty[IrHint],
+    shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty[ShortestRelationshipPattern],
+    mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty[MutatingPattern],
+    selectivePathPatterns: Set[SelectivePathPattern] = Set.empty[SelectivePathPattern],
     searchClause: Option[SearchClause] = None
   ): QueryGraph = {
     val allPatternNodes = patternNodes ++

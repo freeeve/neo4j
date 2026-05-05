@@ -101,7 +101,7 @@ object SearchClause {
         // This is the same exception as for create index for this case
         throw InvalidArgumentException.internalError(
           this.getClass.getSimpleName,
-          s"Invalid input ${ExpressionStringifier().apply(exp)} for name. Expected to be STRING NOT NULL."
+          s"Invalid input ${ExpressionStringifier.apply().apply(exp)} for name. Expected to be STRING NOT NULL."
         )
     }
   })

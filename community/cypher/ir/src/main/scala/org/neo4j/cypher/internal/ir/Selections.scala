@@ -39,11 +39,12 @@ import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Rewritable
 
 import scala.collection.MapView
 import scala.collection.mutable
 
-case class Selections private (predicates: Set[Predicate]) {
+case class Selections private (predicates: Set[Predicate]) extends Rewritable {
   def isEmpty: Boolean = predicates.isEmpty
 
   def predicatesGiven(ids: Set[LogicalVariable]): Seq[Expression] = {
@@ -68,6 +69,9 @@ case class Selections private (predicates: Set[Predicate]) {
 
   def flatPredicates: Seq[Expression] =
     flatPredicatesSet.toIndexedSeq
+
+  def map(f: Predicate => Predicate): Selections =
+    new Selections(predicates.map(f))
 
   def filter(filterExpression: Predicate => Boolean): Selections =
     new Selections(predicates.filter(filterExpression))
@@ -178,6 +182,10 @@ case class Selections private (predicates: Set[Predicate]) {
   def --(expressions: Iterable[Expression]): Selections = Selections(predicates -- expressions.flatMap(_.asPredicates))
 
   def nonEmpty: Boolean = !isEmpty
+
+  override def dup(children: Seq[AnyRef]): this.type = {
+    new Selections(children.head.asInstanceOf[Set[Predicate]]).asInstanceOf[this.type]
+  }
 }
 
 object Selections {

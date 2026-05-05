@@ -77,9 +77,10 @@ case object InlineRelationshipTypePredicates extends PlannerQueryRewriter with S
           val inlinedRelationships = qg.patternRelationships.map(tryToInline(typePredicates))
 
           qg.withPatternRelationships(inlinedRelationships.map(_.rel))
-            .withSelections(qg.selections.copy(predicates =
-              qg.selections.predicates -- inlinedRelationships.flatMap(_.inlinedPredicate)
-            ))
+            .withSelections {
+              val inlinedPredicates: Set[Predicate] = inlinedRelationships.flatMap(_.inlinedPredicate)
+              qg.selections.filter(p => !inlinedPredicates.contains(p))
+            }
 
         case qpp: QuantifiedPathPattern =>
           val typePredicates = findRelationshipTypePredicatesPerSymbol(qpp.asQueryGraph)
@@ -88,9 +89,10 @@ case object InlineRelationshipTypePredicates extends PlannerQueryRewriter with S
 
           qpp.copy(
             patternRelationships = inlinedRelationships.map(_.rel),
-            selections = qpp.selections.copy(predicates =
-              qpp.selections.predicates -- inlinedRelationships.iterator.flatMap(_.inlinedPredicate)
-            )
+            selections = {
+              val inlinedPredicates: Set[Predicate] = inlinedRelationships.iterator.flatMap(_.inlinedPredicate).toSet
+              qpp.selections.filter(p => !inlinedPredicates.contains(p))
+            }
           )
       }
     )

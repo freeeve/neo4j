@@ -179,8 +179,8 @@ case object countStorePlanner {
     selections: Selections,
     context: LogicalPlanningContext
   ): Option[LogicalPlan] = {
-    val impliedPredicates = findImpliedPredicates(selections, patternRelationships, context)
-    val selectionsWithoutImpliedPredicates = selections.copy(predicates = selections.predicates -- impliedPredicates)
+    val impliedPredicates: Set[Predicate] = findImpliedPredicates(selections, patternRelationships, context)
+    val selectionsWithoutImpliedPredicates = selections.filter(p => !impliedPredicates.contains(p))
     exp match {
       case // COUNT(<id>)
         func @ FunctionInvocation(_, false, IndexedSeq(v: Variable), _, _, _, _) if func.function == functions.Count =>

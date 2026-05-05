@@ -557,7 +557,7 @@ class LimitBeforeCountRewriterTest extends CypherFunSuite with LogicalPlanningTe
     val rewrittenPlannerQuery = plannerQueryBeforeRewrite.endoRewrite(rewriter)
 
     withClue(
-      s"rewriter should only introduce ${OptionalPreprocessing.productPrefix}, and not change anything else\n\n"
+      s"rewriter should only introduce OptionalPreprocessing, and not change anything else\n\n"
     ) {
       val plannerQueryWithRewriteUndone = rewrittenPlannerQuery.endoRewrite(setOptionalPreprocessingToPassthrough)
       try {

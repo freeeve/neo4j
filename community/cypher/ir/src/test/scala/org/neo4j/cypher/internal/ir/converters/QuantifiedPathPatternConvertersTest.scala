@@ -28,9 +28,9 @@ import org.neo4j.cypher.internal.ir.converters.QuantifiedPathPatternConverters.c
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class QuantifiedPathPatternConvertersTest extends CypherFunSuite {
+class QuantifiedPathPatternConvertersTest extends CypherFunSuite3 {
 
   final private val position: InputPosition = InputPosition.NONE
   final private val literal123: PathLengthQuantifier = PathLengthQuantifier("123")(position)

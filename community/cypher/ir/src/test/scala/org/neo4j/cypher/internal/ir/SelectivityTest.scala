@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.ir
 
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class SelectivityTest extends CypherFunSuite {
+class SelectivityTest extends CypherFunSuite3 {
 
   test("negating a selectivity behaves as expected") {
     Selectivity.of(.1).get.negate should not equal Selectivity.ONE

@@ -20,15 +20,15 @@
 package org.neo4j.cypher.internal.ir.helpers
 
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction.CacheKey
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
+import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe3
 import org.scalactic.Equality
 
 import java.io.ByteArrayOutputStream
 
 import scala.annotation.unused
 
-class CachedFunctionTest extends CypherFunSuite {
+class CachedFunctionTest extends CypherFunSuite3 {
 
   test("1 argument") {
     var i = 0
@@ -201,7 +201,7 @@ class CachedFunctionTest extends CypherFunSuite {
     Console.withOut(output) {
       CachedFunction.withScopedStatsRecordingEnabled {
         val cachedFWithStats = CachedFunction(f _)
-        val cachedFWithStatsSingleArg = CachedFunction(i => f(i, i))
+        val cachedFWithStatsSingleArg = CachedFunction((i: Int) => f(i, i))
         @unused val cachedFWithStatsNeverCalled = CachedFunction(f _)
 
         for (i <- 1 to 100) {
@@ -212,7 +212,7 @@ class CachedFunctionTest extends CypherFunSuite {
       }
     }
 
-    implicit val windowsStringSafe: Equality[String] = WindowsStringSafe
+    implicit val windowsStringSafe: Equality[String] = WindowsStringSafe3
     output.toString shouldEqual
       """┌────────────────────────────────────────────────────────────┬────┬────┬──────┬──────────┬────────────────────────────────────────────────────────────┐
         |│ name                                                       │hit%│hits│misses│cache size│ raw caffeine stats                                         │

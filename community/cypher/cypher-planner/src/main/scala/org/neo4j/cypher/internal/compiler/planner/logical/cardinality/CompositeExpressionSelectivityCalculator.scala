@@ -148,13 +148,11 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     // The selections we get for cardinality estimation might contain partial predicates.
     // These are not recognized by the Leaf planners, so let's unwrap them.
     // This will also deduplicate if multiple partial predicates have the same coveredPredicate, since we are working with a Set.
-    val unwrappedSelections = selections.copy(predicates =
-      selections.predicates.map(pred =>
-        pred.copy(expr = pred.expr match {
-          case partial: PartialPredicate[_] => partial.coveredPredicate
-          case x                            => x
-        })
-      )
+    val unwrappedSelections = selections.map(pred =>
+      pred.copy(expr = pred.expr match {
+        case partial: PartialPredicate[_] => partial.coveredPredicate
+        case x                            => x
+      })
     )
 
     val existenceConstraints: Set[(ElementTypeName, String)] = {
