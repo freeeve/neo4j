@@ -19,12 +19,28 @@ package org.neo4j.cypher.internal.frontend.scoping.checker
 import org.neo4j.cypher.internal.frontend.scoping.VariableCheckingTestSuite
 import org.neo4j.cypher.internal.frontend.scoping.Versioned.ignoreBeforeCypher25
 
-import scala.util.Random
-
 trait VariableCheckingWithLocalCallablesTestSuite extends VariableCheckingTestSuite {
 
   def testCases(): Seq[TestQuery]
 
+  // for debug purpose of fuzzed test cases
+  // set the seed of the test case you like to debug
+  // it will run as the first test
+  val seedToDebug: Option[Int] = None // Some(123) //
+
+  for {
+    seed <- seedToDebug
+    TestQuery(query, outcome, _, _) = {
+      val tcs = testCases()
+      SurroundGivenQueriesWithLocalCallablesDefinition.sampleBySeed(tcs, seed)
+    }
+  } {
+    test(query) {
+      check(ignoreBeforeCypher25(outcome))
+    }
+  }
+
+  // regular test cases
   for {
     TestQuery(query, outcome, _, _) <- testCases()
   } {
@@ -33,15 +49,15 @@ trait VariableCheckingWithLocalCallablesTestSuite extends VariableCheckingTestSu
     }
   }
 
+  // fuzzed test cases
   for {
     TestQuery(query, outcome, _, _) <- {
       val tcs = testCases()
-      val rand = new Random(0)
       SurroundGivenQueriesWithLocalCallablesDefinition.sample(
         tcs,
         VariableCheckingWithLocalCallablesTestSuite.getAllTestCases,
         Math.max(3, 5 * Math.round(Math.log(tcs.size.toDouble)).toInt)
-      )(rand)
+      )
     }
   } {
     test(query) {

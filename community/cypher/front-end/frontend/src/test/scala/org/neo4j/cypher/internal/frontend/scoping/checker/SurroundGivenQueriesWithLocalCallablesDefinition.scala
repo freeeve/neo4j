@@ -26,35 +26,53 @@ import scala.util.Random
 object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGenHelpers {
 
   def forAll(queries: Seq[TestQuery])(implicit rand: Random): Iterable[TestQuery] = {
+    val indexes = queries.indices
     for {
-      testQuery <- queries
+      testQueryIndex <- indexes
+      testQuery = queries(testQueryIndex)
       filteredQueries = queries.filter(_.compositionRestriction != NoLocalCallableBody)
+      seed = calcSeed(testQueryIndex)
     } yield {
-      _surround(testQuery, filteredQueries)
+      _surround(testQuery, seed, filteredQueries)
     }
   }
 
-  def sample(queries: Seq[TestQuery], numSamples: Int)(implicit rand: Random): Iterable[TestQuery] = {
+  def sample(queries: Seq[TestQuery], numSamples: Int): Iterable[TestQuery] = {
     for {
-      _ <- 1 to numSamples
+      sampleNum <- 1 to numSamples
+      seed = calcSeed(sampleNum)
+      sampleRand = new Random(seed)
       filteredQueries = queries.filter(_.compositionRestriction != NoLocalCallableBody)
-      testQuery = pickOne(filteredQueries)
+      testQueryIndex = pickOne(filteredQueries.indices)(sampleRand)
+      testQuery = filteredQueries(testQueryIndex)
     } yield {
-      _surround(testQuery, filteredQueries)
+      _surround(testQuery, seed, filteredQueries)(sampleRand)
     }
   }
 
-  def sample(testQueries: Seq[TestQuery], poolQueries: Seq[TestQuery], numSamples: Int)(implicit
-    rand: Random): Iterable[TestQuery] = {
+  def sample(testQueries: Seq[TestQuery], poolQueries: Seq[TestQuery], numSamples: Int): Iterable[TestQuery] = {
     for {
-      _ <- 1 to numSamples
+      sampleNum <- 1 to numSamples
+      seed = calcSeed(sampleNum)
+      sampleRand = new Random(seed)
       filteredTestQueries = testQueries.filter(_.compositionRestriction != NoLocalCallableBody)
       filteredPoolQueries = poolQueries.filter(_.compositionRestriction != NoLocalCallableBody)
-      testQuery = pickOne(filteredTestQueries)
+      testQueryIndex = pickOne(filteredTestQueries.indices)(sampleRand)
+      testQuery = filteredTestQueries(testQueryIndex)
     } yield {
-      _surround(testQuery, filteredPoolQueries)
+      _surround(testQuery, seed, filteredPoolQueries)(sampleRand)
     }
   }
+
+  def sampleBySeed(queries: Seq[TestQuery], seed: Int): TestQuery = {
+    val sampleRand = new Random(seed)
+    val filteredQueries = queries.filter(_.compositionRestriction != NoLocalCallableBody)
+    val testQueryIndex = pickOne(filteredQueries.indices)(sampleRand)
+    val testQuery = filteredQueries(testQueryIndex)
+    _surround(testQuery, seed, filteredQueries)(sampleRand)
+  }
+
+  private def calcSeed(sampleNum: Int): Int = (sampleNum + 1) * 13
 
   private val baselineTestQuery = Seq(
     TestQuery(
@@ -81,11 +99,16 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
     )
   )
 
-  private def _surround(query: TestQuery, queries: Seq[TestQuery])(implicit rand: Random): TestQuery = {
+  private def _surround(query: TestQuery, seed: Int, queries: Seq[TestQuery])(implicit rand: Random): TestQuery = {
     implicit val names: DistinctNames = new DistinctNames
     val candidateQueries = (baselineTestQuery ++ queries).filter(tq => tq != query && tq.outcome == Passes)
     val maxNestingLevel = pickOne(1 to 3)
-    _nest(query, candidateQueries, maxNestingLevel)
+    val surroundTestQuery = _nest(query, candidateQueries, maxNestingLevel)
+    surroundTestQuery.copy(
+      cypher =
+        s"""/* seed: $seed */
+           |${surroundTestQuery.cypher}""".stripMargin
+    )
   }
 
   private def _nest(
@@ -158,7 +181,7 @@ object SurroundGivenQueriesWithLocalCallablesDefinition extends LocalCallableGen
           s"// no call of ${definition.name}"
         case Procedure =>
           val yld =
-            if (yieldCols == definition.returnColumns || yieldCols.isEmpty) ""
+            if (yieldCols.isEmpty) ""
             else s"YIELD ${yieldCols.mkString(", ")}"
           s"CALL $invoc $yld"
         case Function =>
