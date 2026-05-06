@@ -97,7 +97,7 @@ public class DiscoveryConnector implements Lifecycle {
             return;
         }
 
-        channel.close().sync();
+        channel.close().awaitUninterruptibly();
     }
 
     @Override

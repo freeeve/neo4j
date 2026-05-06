@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Random;
 import org.neo4j.bolt.discovery.info.DiscoveryInformationProvider;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
+import org.neo4j.configuration.connectors.BoltConnector;
 
 public final class DiscoveryConfiguration {
 
@@ -102,10 +102,10 @@ public final class DiscoveryConfiguration {
         }
 
         public Builder fromConfig(Config config) {
-            this.port = config.get(BoltConnectorInternalSettings.discovery_listen_port);
-            this.broadcastInterval = config.get(BoltConnectorInternalSettings.discovery_broadcast_interval)
-                    .toMillis();
-            this.jitterPercentage = config.get(BoltConnectorInternalSettings.discovery_broadcast_jitter) / 100f;
+            this.port = config.get(BoltConnector.discovery_listen_port);
+            this.broadcastInterval =
+                    config.get(BoltConnector.discovery_broadcast_interval).toMillis();
+            this.jitterPercentage = config.get(BoltConnector.discovery_broadcast_jitter) / 100f;
 
             return this;
         }

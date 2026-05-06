@@ -27,6 +27,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.default_advertised_a
 import static org.neo4j.configuration.GraphDatabaseSettings.default_listen_address;
 import static org.neo4j.configuration.SettingConstraints.NO_ALL_INTERFACES_ADDRESS;
 import static org.neo4j.configuration.SettingConstraints.any;
+import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.min;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
 import static org.neo4j.configuration.SettingValueParsers.BOOL;
@@ -289,6 +290,29 @@ public final class BoltConnector implements SettingsDeclaration {
             "The maximum time an idle thread in the thread pool bound to the Unix Domain Socket connector waits for new tasks.")
     public static final Setting<Duration> unix_socket_dedicated_thread_pool_keep_alive = newBuilder(
                     "server.bolt.unix_socket_thread_pool_keep_alive", DURATION, ofMinutes(5))
+            .build();
+
+    @Description("Enables fleet discovery on this instance.")
+    public static final Setting<Boolean> enable_discovery =
+            newBuilder("server.fleet_discovery.enabled", BOOL, true).build();
+
+    @Description("The port to listen for fleet discovery communication on (when set to zero a random port is bound).")
+    public static final Setting<Integer> discovery_listen_port = newBuilder("server.fleet_discovery.port", INT, 0)
+            .addConstraint(min(0))
+            .build();
+
+    @Description("The interval at which discovery broadcasts occur (base value to be adjusted by jitter interval).")
+    public static final Setting<Duration> discovery_broadcast_interval = newBuilder(
+                    "server.fleet_discovery.broadcast_interval", DURATION, ofSeconds(30))
+            .addConstraint(min(ofSeconds(5)))
+            .build();
+
+    @Description(
+            "The jitter to apply to the broadcast interval in percent (e.g. when set to 50 with broadcast interval of 30 then broadcasts repeat every 15 to 45 seconds).")
+    public static final Setting<Integer> discovery_broadcast_jitter = newBuilder(
+                    "server.fleet_discovery.broadcast_interval_jitter", INT, 25)
+            .addConstraint(min(0))
+            .addConstraint(max(75))
             .build();
 
     public enum EncryptionLevel {

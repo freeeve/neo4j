@@ -427,7 +427,7 @@ public class BoltServer extends LifecycleAdapter {
                     allocator));
         }
 
-        if (config.get(BoltConnectorInternalSettings.enable_discovery)) {
+        if (config.get(BoltConnector.enable_discovery)) {
             createAndRegisterDiscoveryConnector(transport);
         }
 

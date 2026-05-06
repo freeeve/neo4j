@@ -34,7 +34,6 @@ import org.neo4j.bolt.testing.client.TransportType;
 import org.neo4j.bolt.testing.client.discovery.DiscoveryTestClient;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
 import org.neo4j.configuration.connectors.BoltConnector;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
@@ -50,9 +49,9 @@ public class DiscoveryBroadcastIT {
 
     @SettingsFunction
     static void customizeSettings(Map<Setting<?>, Object> settings) {
-        settings.put(BoltConnectorInternalSettings.enable_discovery, true);
-        settings.put(BoltConnectorInternalSettings.discovery_broadcast_interval, Duration.ofSeconds(5));
-        settings.put(BoltConnectorInternalSettings.discovery_broadcast_jitter, 0);
+        settings.put(BoltConnector.enable_discovery, true);
+        settings.put(BoltConnector.discovery_broadcast_interval, Duration.ofSeconds(5));
+        settings.put(BoltConnector.discovery_broadcast_jitter, 0);
         settings.put(BoltConnector.advertised_address, new SocketAddress("neo.example.org", 7687));
     }
 
