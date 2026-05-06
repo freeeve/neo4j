@@ -36,10 +36,10 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.KernelAPISupport.impossibleExactValue
 import org.neo4j.cypher.internal.runtime.KernelAPISupport.isImpossibleIndexQuery
 import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.runtime.QueryExpressionSupport.computeIndexRangeQuery
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.InequalitySeekRangeExpression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.EntityIndexSeeker.computeIndexRangeQuery
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeVectorIndexSearchPipe.vectorSearchCursor
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.internal.util.attribution.Id

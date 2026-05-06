@@ -42,11 +42,11 @@ case class NodeIndexSeekSlottedPipe(
   indexMode: IndexSeekMode,
   indexOrder: IndexOrder,
   slots: SlotConfiguration
-)(val id: Id = Id.INVALID_ID) extends Pipe with EntityIndexSeeker with IndexSlottedPipeWithValues {
+)(val id: Id = Id.INVALID_ID) extends Pipe with IndexSlottedPipeWithValues {
 
   override val offset: Option[Int] = Some(slots.longOffset(ident))
 
-  override val propertyIds: Array[Int] = properties.map(_.propertyKeyId).toArray
+  private val propertyIds: Array[Int] = properties.map(_.propertyKeyId).toArray
 
   override val indexPropertyIndices: Array[Int] =
     properties.zipWithIndex.filter(_._1.getValueFromIndex).map(_._2).toArray
@@ -55,10 +55,12 @@ case class NodeIndexSeekSlottedPipe(
     properties.map(_.maybeCachedEntityPropertySlot).collect { case Some(o) => o }.toArray
   private val needsValues: Boolean = indexPropertyIndices.nonEmpty
 
+  private val entityIndexSeeker: EntityIndexSeeker = new EntityIndexSeeker(indexMode, valueExpr, propertyIds)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val index = state.queryIndexes(queryIndexId)
     val context = state.newRowWithArgument(rowFactory)
-    new SlottedNodeIndexIterator(state, indexSeek(state, index, needsValues, indexOrder, context))
+    new SlottedNodeIndexIterator(state, entityIndexSeeker.indexSeek(state, index, needsValues, indexOrder, context))
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[NodeIndexSeekSlottedPipe]

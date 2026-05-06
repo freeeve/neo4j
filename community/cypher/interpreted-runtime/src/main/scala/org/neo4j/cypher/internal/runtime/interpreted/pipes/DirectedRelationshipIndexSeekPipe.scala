@@ -39,9 +39,9 @@ case class DirectedRelationshipIndexSeekPipe(
   valueExpr: QueryExpression[Expression],
   indexMode: IndexSeekMode,
   indexOrder: IndexOrder
-)(val id: Id = Id.INVALID_ID) extends Pipe with EntityIndexSeeker with IndexPipeWithValues {
+)(val id: Id = Id.INVALID_ID) extends Pipe with IndexPipeWithValues {
 
-  override val propertyIds: Array[Int] = properties.map(_.propertyKeyToken.nameId.id)
+  private val propertyIds: Array[Int] = properties.map(_.propertyKeyToken.nameId.id)
 
   override val indexPropertyIndices: Array[Int] = properties.indices.filter(properties(_).shouldGetValue).toArray
 
@@ -51,6 +51,8 @@ case class DirectedRelationshipIndexSeekPipe(
   }
   private val needsValues: Boolean = indexPropertyIndices.nonEmpty
 
+  private val entityIndexSeeker: EntityIndexSeeker = new EntityIndexSeeker(indexMode, valueExpr, propertyIds)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val index = state.queryIndexes(queryIndexId)
     val baseContext = state.newRowWithArgument(rowFactory)
@@ -58,7 +60,7 @@ case class DirectedRelationshipIndexSeekPipe(
       startNode,
       endNode,
       baseContext,
-      relationshipIndexSeek(state, index, needsValues, indexOrder, baseContext)
+      entityIndexSeeker.relationshipIndexSeek(state, index, needsValues, indexOrder, baseContext)
     )
   }
 }

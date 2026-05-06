@@ -42,9 +42,9 @@ case class DirectedRelationshipIndexSeekSlottedPipe(
   valueExpr: QueryExpression[Expression],
   indexMode: IndexSeekMode,
   indexOrder: IndexOrder
-)(val id: Id = Id.INVALID_ID) extends Pipe with EntityIndexSeeker with IndexSlottedPipeWithValues {
+)(val id: Id = Id.INVALID_ID) extends Pipe with IndexSlottedPipeWithValues {
 
-  override val propertyIds: Array[Int] = properties.map(_.propertyKeyId).toArray
+  private val propertyIds: Array[Int] = properties.map(_.propertyKeyId).toArray
 
   override val indexPropertyIndices: Array[Int] =
     properties.zipWithIndex.filter(_._1.getValueFromIndex).map(_._2).toArray
@@ -53,6 +53,8 @@ case class DirectedRelationshipIndexSeekSlottedPipe(
     properties.map(_.maybeCachedEntityPropertySlot).collect { case Some(o) => o }.toArray
   private val needsValues: Boolean = indexPropertyIndices.nonEmpty
 
+  private val entityIndexSeeker: EntityIndexSeeker = new EntityIndexSeeker(indexMode, valueExpr, propertyIds)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val index = state.queryIndexes(queryIndexId)
     val context = state.newRowWithArgument(rowFactory)
@@ -60,7 +62,7 @@ case class DirectedRelationshipIndexSeekSlottedPipe(
       state,
       startNode,
       endNode,
-      relationshipIndexSeek(state, index, needsValues, indexOrder, context)
+      entityIndexSeeker.relationshipIndexSeek(state, index, needsValues, indexOrder, context)
     )
   }
 }

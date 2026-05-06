@@ -37,16 +37,18 @@ case class NodeIndexSeekPipe(
   valueExpr: QueryExpression[Expression],
   indexMode: IndexSeekMode,
   indexOrder: IndexOrder
-)(val id: Id = Id.INVALID_ID) extends Pipe with EntityIndexSeeker with IndexPipeWithValues {
+)(val id: Id = Id.INVALID_ID) extends Pipe with IndexPipeWithValues {
 
   override val ident: Option[String] = Some(node)
-  override val propertyIds: Array[Int] = properties.map(_.propertyKeyToken.nameId.id)
+  private val propertyIds: Array[Int] = properties.map(_.propertyKeyToken.nameId.id)
 
   override val indexPropertyIndices: Array[Int] = properties.indices.filter(properties(_).shouldGetValue).toArray
 
   override val indexCachedProperties: Array[CachedProperty] =
     indexPropertyIndices.map(offset => properties(offset).asCachedProperty(node))
   private val needsValues: Boolean = indexPropertyIndices.nonEmpty
+
+  private val entityIndexSeeker: EntityIndexSeeker = new EntityIndexSeeker(indexMode, valueExpr, propertyIds)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val index = state.queryIndexes(queryIndexId)
@@ -55,7 +57,7 @@ case class NodeIndexSeekPipe(
       state,
       state.query,
       baseContext,
-      indexSeek(state, index, needsValues, indexOrder, baseContext)
+      entityIndexSeeker.indexSeek(state, index, needsValues, indexOrder, baseContext)
     )
   }
 
