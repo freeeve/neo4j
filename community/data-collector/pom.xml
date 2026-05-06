@@ -63,6 +63,10 @@
       <artifactId>scala-library</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala3-library_3</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.collections</groupId>
       <artifactId>eclipse-collections</artifactId>
       <scope>test</scope>
