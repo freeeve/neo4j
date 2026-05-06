@@ -177,7 +177,8 @@ class EncodingIdMapperTest {
     @MethodSource("data")
     void shouldEncodeShortStrings(int processors) throws KeyCollisionException {
         // GIVEN
-        try (IdMapper mapper = mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
+        try (IdMapper.WithHighId mapper =
+                mapper(new StringEncoder(), Radix.STRING, EncodingIdMapper.NO_MONITOR, processors)) {
 
             // WHEN
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -190,6 +191,7 @@ class EncodingIdMapperTest {
                 assertThat(getter.get("456", globalGroup)).isOne();
                 assertThat(getter.get("123", globalGroup)).isZero();
             }
+            assertThat(mapper.getHighId()).isEqualTo(2L);
         }
     }
 
@@ -261,7 +263,8 @@ class EncodingIdMapperTest {
         // GIVEN
         int size = random.nextInt(10_000) + 2;
         ValueType type = ValueType.values()[random.nextInt(ValueType.values().length)];
-        try (IdMapper mapper = mapper(type.encoder(), type.radix(), EncodingIdMapper.NO_MONITOR, processors)) {
+        try (IdMapper.WithHighId mapper =
+                mapper(type.encoder(), type.radix(), EncodingIdMapper.NO_MONITOR, processors)) {
 
             // WHEN
             IdMapper.Setter setter = mapper.newSetter(0);
@@ -280,6 +283,7 @@ class EncodingIdMapperTest {
                             .isEqualTo(nodeId);
                 }
             }
+            assertThat(mapper.getHighId()).isEqualTo(size);
         }
     }
 
@@ -614,12 +618,16 @@ class EncodingIdMapperTest {
     @MethodSource("data")
     void shouldHandleHolesInIdSequence(int processors) throws KeyCollisionException {
         // GIVEN
-        try (IdMapper mapper = mapper(new LongEncoder(), Radix.LONG, EncodingIdMapper.NO_MONITOR, processors)) {
+        long highestId = -1;
+        try (IdMapper.WithHighId mapper = mapper(new LongEncoder(), Radix.LONG, NO_MONITOR, processors)) {
             IdMapper.Setter setter = mapper.newSetter(0);
             List<Object> ids = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
                 if (!random.nextBoolean()) {
                     Long id = (long) i;
+                    if (i > highestId) {
+                        highestId = i;
+                    }
                     ids.add(id);
                     setter.put(id, i, globalGroup);
                 }
@@ -634,6 +642,7 @@ class EncodingIdMapperTest {
                     assertThat(getter.get(id, globalGroup)).isEqualTo(((Long) id).longValue());
                 }
             }
+            assertThat(mapper.getHighId()).isEqualTo(highestId + 1);
         }
     }
 
@@ -978,16 +987,17 @@ class EncodingIdMapperTest {
         };
     }
 
-    private IdMapper strictMapper(
+    private IdMapper.WithHighId strictMapper(
             Encoder encoder, Factory<Radix> radix, EncodingIdMapper.Monitor monitor, int processors) {
         return mapper(encoder, true, radix, monitor, processors);
     }
 
-    private IdMapper mapper(Encoder encoder, Factory<Radix> radix, EncodingIdMapper.Monitor monitor, int processors) {
+    private IdMapper.WithHighId mapper(
+            Encoder encoder, Factory<Radix> radix, EncodingIdMapper.Monitor monitor, int processors) {
         return mapper(encoder, false, radix, monitor, processors);
     }
 
-    private IdMapper mapper(
+    private IdMapper.WithHighId mapper(
             Encoder encoder, boolean strict, Factory<Radix> radix, EncodingIdMapper.Monitor monitor, int processors) {
         return new EncodingIdMapper(
                 NumberArrayFactories.OFF_HEAP,
@@ -1003,7 +1013,7 @@ class EncodingIdMapperTest {
                 INSTANCE);
     }
 
-    private EncodingIdMapper mapper(
+    private IdMapper.WithHighId mapper(
             Encoder encoder,
             Factory<Radix> radix,
             EncodingIdMapper.Monitor monitor,
