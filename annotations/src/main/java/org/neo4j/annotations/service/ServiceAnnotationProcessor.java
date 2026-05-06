@@ -26,7 +26,6 @@ import static javax.tools.Diagnostic.Kind.NOTE;
 import static javax.tools.StandardLocation.CLASS_OUTPUT;
 import static org.apache.commons.lang3.StringUtils.substringBefore;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
-import static org.eclipse.collections.impl.set.mutable.UnifiedSet.newSetWith;
 import static org.neo4j.annotations.AnnotationConstants.DEFAULT_NEW_LINE;
 
 import java.io.BufferedReader;
@@ -37,10 +36,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
@@ -52,8 +53,6 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.FileObject;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.collections.api.multimap.MutableMultimap;
-import org.eclipse.collections.impl.factory.Multimaps;
 
 /**
  * Handles {@link Service} and {@link ServiceProvider} annotations. For each service type it collects associated service providers and creates
@@ -61,7 +60,7 @@ import org.eclipse.collections.impl.factory.Multimaps;
  */
 public class ServiceAnnotationProcessor extends AbstractProcessor {
     private static final boolean ENABLE_DEBUG = Boolean.getBoolean("enableAnnotationLogging");
-    private final MutableMultimap<TypeElement, TypeElement> serviceProviders = Multimaps.mutable.list.empty();
+    private final Map<TypeElement, List<TypeElement>> serviceProviders = new ConcurrentHashMap<>();
     private final String newLine;
     private Types typeUtils;
     private Elements elementUtils;
@@ -83,7 +82,7 @@ public class ServiceAnnotationProcessor extends AbstractProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return newSetWith(ServiceProvider.class.getName());
+        return Set.of(ServiceProvider.class.getName());
     }
 
     @Override
@@ -116,7 +115,9 @@ public class ServiceAnnotationProcessor extends AbstractProcessor {
         for (TypeElement serviceProvider : elements) {
             getImplementedService(serviceProvider).ifPresent(service -> {
                 info(format("Service %s provided by %s", service, serviceProvider));
-                serviceProviders.put(service, serviceProvider);
+                serviceProviders
+                        .computeIfAbsent(service, k -> new ArrayList<>())
+                        .add(serviceProvider);
             });
         }
     }
@@ -159,14 +160,15 @@ public class ServiceAnnotationProcessor extends AbstractProcessor {
     }
 
     private void generateConfigs() throws IOException {
-        for (final TypeElement service : serviceProviders.keySet()) {
+        for (final Map.Entry<TypeElement, List<TypeElement>> entry : serviceProviders.entrySet()) {
+            final TypeElement service = entry.getKey();
             final String path = "META-INF/services/" + elementUtils.getBinaryName(service);
             info("Generating service config file: " + path);
 
             final SortedSet<String> oldProviders = loadIfExists(path);
             final SortedSet<String> newProviders = new TreeSet<>();
 
-            serviceProviders.get(service).forEach(providerType -> {
+            entry.getValue().forEach(providerType -> {
                 final String providerName =
                         elementUtils.getBinaryName(providerType).toString();
                 newProviders.add(providerName);
