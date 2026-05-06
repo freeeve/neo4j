@@ -3254,47 +3254,28 @@ class PrettifierIT extends AbstractPrettifierTest {
   def databaseCommandTests(): Seq[Test] = Seq[Test](
     "show databases" ->
       "SHOW DATABASES",
-    ChangedBetween5And25(
-      "Show Databases YIELD * where name = 'neo4j' Return *",
-      """SHOW DATABASES
-        |  YIELD *
-        |    WHERE name = "neo4j"
-        |  RETURN *""".stripMargin,
+    "Show Databases YIELD * where name = 'neo4j' Return *" ->
       """SHOW DATABASES
         |YIELD *
         |  WHERE name = "neo4j"
-        |RETURN *""".stripMargin
-    ),
-    ChangedBetween5And25(
-      "Show Databases YIELD * Return DISTINCT default, name",
-      """SHOW DATABASES
-        |  YIELD *
-        |  RETURN DISTINCT default, name""".stripMargin,
+        |RETURN *""".stripMargin,
+    "Show Databases YIELD * Return DISTINCT default, name" ->
       """SHOW DATABASES
         |YIELD *
-        |RETURN DISTINCT default, name""".stripMargin
-    ),
+        |RETURN DISTINCT default, name""".stripMargin,
     "show default database" ->
       "SHOW DEFAULT DATABASE",
     "show database foO_Bar_42" ->
       "SHOW DATABASE foO_Bar_42",
     "show database $foo" ->
       "SHOW DATABASE $foo",
-    ChangedBetween5And25(
-      "show database $foo yield name order by name skip 1 limit 1 where name='neo4j'",
-      """SHOW DATABASE $foo
-        |  YIELD name
-        |    ORDER BY name ASCENDING
-        |    SKIP 1
-        |    LIMIT 1
-        |    WHERE name = "neo4j"""".stripMargin,
+    "show database $foo yield name order by name skip 1 limit 1 where name='neo4j'" ->
       """SHOW DATABASE $foo
         |YIELD name
         |  ORDER BY name ASCENDING
         |  SKIP 1
         |  LIMIT 1
-        |  WHERE name = "neo4j"""".stripMargin
-    ),
+        |  WHERE name = "neo4j"""".stripMargin,
     "show home database" ->
       "SHOW HOME DATABASE",
     "create database foO_Bar_42" ->

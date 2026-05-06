@@ -22,7 +22,6 @@ import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
 import org.neo4j.cypher.internal.ast.ShowPrivileges
 import org.neo4j.cypher.internal.ast.ShowRoles
@@ -51,8 +50,6 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
 
   val instance: Rewriter = bottomUp(Rewriter.lift {
     // move freestanding WHERE to YIELD * WHERE and add default columns to the YIELD
-    case s @ ShowDatabase(_, Some(Right(where)), _) =>
-      s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowRoles(_, _, _, Some(Right(where)), _) =>
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
     case s @ ShowPrivileges(_, Some(Right(where)), _) =>
@@ -73,9 +70,6 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
       s.copy(yieldOrWhere = whereToYield(where, s.defaultColumnNames))(s.position)
 
     // add default columns to explicit YIELD/RETURN * as well
-    case s @ ShowDatabase(_, Some(Left((yieldClause, returnClause))), _)
-      if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
-      s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)
     case s @ ShowRoles(_, _, _, Some(Left((yieldClause, returnClause))), _)
       if yieldClause.returnItems.includeExisting || returnClause.exists(_.returnItems.includeExisting) =>
       s.copy(yieldOrWhere = addDefaultColumns(yieldClause, returnClause, s.defaultColumnNames))(s.position)

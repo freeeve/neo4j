@@ -74,7 +74,7 @@ case class ShowDatabaseCommand(
           database,
           SlotBasedParameterProvider(state),
           context,
-          ignoreNullInput = true
+          ignoreNullInput = cypherVersion.isEqualOrAfter(CypherVersion.Cypher25)
         )
         results
       case DefaultDatabaseScope() => showService.getDefaultDatabase(context)

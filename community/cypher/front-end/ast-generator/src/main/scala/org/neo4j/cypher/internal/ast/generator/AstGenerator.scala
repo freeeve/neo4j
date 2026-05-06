@@ -347,7 +347,6 @@ import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexAction
@@ -2548,7 +2547,7 @@ class AstGenerator(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowCurrentGraphTypeClause(None, item, all, Some(w))(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
-        ShowDatabasesClause(scope, None, item, all, Some(w))(pos)
+        ShowDatabasesClause(scope, None, item, all, Some(w), cypher5ColumnsOnly = false)(pos)
     )
     clause = if (usesCypher5) clauseCypher5 else clauseCypher25orAbove
   } yield {
@@ -2643,12 +2642,12 @@ class AstGenerator(
         _showTransactions,
         _terminateTransactions,
         _showSettings,
+        _showDatabases,
         _combinedCommands
       )
     } else {
       oneOf(
         _showIndexes,
-        _showDatabases,
         _showConstraints,
         _showCurrentGraphType,
         _showProcedures,
@@ -2656,6 +2655,7 @@ class AstGenerator(
         _showTransactions,
         _terminateTransactions,
         _showSettings,
+        _showDatabases,
         _combinedCommands
       )
     }
@@ -3989,17 +3989,6 @@ class AstGenerator(
 
   // Database commands
 
-  def _showDatabaseCypher5: Gen[ShowDatabase] = for {
-    dbName <- _databaseName
-    scope <- oneOf(
-      SingleNamedDatabaseScope(dbName)(pos),
-      AllDatabasesScope()(pos),
-      DefaultDatabaseScope()(pos),
-      HomeDatabaseScope()(pos)
-    )
-    yields <- _eitherYieldOrWhere
-  } yield ShowDatabase(scope, yields, cypher5ColumnsOnly = true)(pos)
-
   def _showDatabases: Gen[SingleQuery] = for {
     dbName <- _databaseName
     use <- option(_use)
@@ -4014,20 +4003,21 @@ class AstGenerator(
   } yield {
     val showClauses = yields match {
       case Some(Right(w)) =>
-        Seq(ShowDatabasesClause(scope, Some(w), List.empty, yieldAll = false, None)(pos))
+        Seq(ShowDatabasesClause(scope, Some(w), List.empty, yieldAll = false, None, usesCypher5)(pos))
       case Some(Left((y, r))) =>
         val (w, yi) = turnYieldToWith(y)
-        Seq(ShowDatabasesClause(scope, None, yi, yieldAll = false, Some(w))(pos)) ++ r
+        Seq(ShowDatabasesClause(scope, None, yi, yieldAll = false, Some(w), usesCypher5)(pos)) ++ r
       case _ if yieldAll =>
         Seq(ShowDatabasesClause(
           scope,
           None,
           List.empty,
           yieldAll = true,
-          Some(getFullWithStarFromYield)
+          Some(getFullWithStarFromYield),
+          usesCypher5
         )(pos))
       case _ =>
-        Seq(ShowDatabasesClause(scope, None, List.empty, yieldAll = false, None)(pos))
+        Seq(ShowDatabasesClause(scope, None, List.empty, yieldAll = false, None, usesCypher5)(pos))
     }
     SingleQuery(use.map(u => u +: showClauses).getOrElse(showClauses))(pos)
   }
@@ -4101,19 +4091,14 @@ class AstGenerator(
     wait <- _waitUntilComplete
   } yield StopDatabase(dbName, wait)(pos)
 
-  def _multiDatabaseCommand: Gen[AdministrationCommand] = for {
-    cypher5cmds <- oneOf(
-      _showDatabaseCypher5,
-      _createDatabase,
-      _createCompositeDatabase,
-      _dropDatabase,
-      _alterDatabase,
-      _startDatabase,
-      _stopDatabase
-    )
-    cypher25cmds <-
-      oneOf(_createDatabase, _createCompositeDatabase, _dropDatabase, _alterDatabase, _startDatabase, _stopDatabase)
-  } yield if (usesCypher5) cypher5cmds else cypher25cmds
+  def _multiDatabaseCommand: Gen[AdministrationCommand] = oneOf(
+    _createDatabase,
+    _createCompositeDatabase,
+    _dropDatabase,
+    _alterDatabase,
+    _startDatabase,
+    _stopDatabase
+  )
 
   def _access: Gen[Access] = for {
     access <- oneOf(ReadOnlyAccess, ReadWriteAccess)

@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
 import org.neo4j.cypher.internal.ast.ShowRoles
 import org.neo4j.cypher.internal.ast.Statement
@@ -40,51 +39,6 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
   val rewriterUnderTest: Rewriter = ExpandShowWhere.instance
-
-  test("SHOW DATABASES") {
-    // Only the Cypher 5 version of SHOW DATABASES uses the AST caught in ExpandShowWhere
-    val originalQuery = "SHOW DATABASES WHERE name STARTS WITH 's'"
-    val original = parseForRewriting(CypherVersion.Cypher5, originalQuery)
-    val result = rewrite(original)
-
-    result match {
-      // Rewrite to approximately `SHOW DATABASES YIELD * WHERE name STARTS WITH 's'` but because we didn't have a YIELD * in the original
-      // query the columns are brief and not verbose so it's not exactly the same
-      case ShowDatabase(
-          _,
-          Some(Left((
-            Yield(
-              ReturnItems(AdditiveProjection, _, Some(columns)),
-              None,
-              None,
-              None,
-              Some(Where(StartsWith(Variable("name"), StringLiteral("s")))),
-              YieldAddedInRewrite
-            ),
-            None
-          ))),
-          _
-        ) =>
-        columns shouldBe List(
-          "name",
-          "type",
-          "aliases",
-          "access",
-          "address",
-          "role",
-          "writer",
-          "requestedStatus",
-          "currentStatus",
-          "statusMessage",
-          "default",
-          "home",
-          "constituents"
-        )
-      case _ => fail(
-          s"\n$originalQuery\nshould be rewritten to:\nSHOW DATABASES YIELD * WHERE name STARTS WITH 's'\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
-        )
-    }
-  }
 
   test("SHOW ALIASES FOR DATABASE") {
     val originalQuery = "SHOW ALIASES FOR DATABASE YIELD * WHERE name STARTS WITH 's'"

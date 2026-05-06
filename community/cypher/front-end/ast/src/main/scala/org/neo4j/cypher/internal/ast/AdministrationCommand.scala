@@ -67,8 +67,6 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
-import org.neo4j.cypher.internal.util.symbols.CTDateTime
-import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -1792,127 +1790,6 @@ final case class ReallocateDatabases(dryRun: Boolean)(
 }
 
 // Database commands
-
-final case class ShowDatabase(
-  scope: DatabaseScope,
-  override val yieldOrWhere: YieldOrWhere,
-  defaultColumns: DefaultOrAllShowColumns
-)(val position: InputPosition) extends ReadAdministrationCommand {
-  override val defaultColumnSet: List[ShowColumn] = defaultColumns.columns
-
-  override def name: String = scope match {
-    case _: SingleNamedDatabaseScope                   => "SHOW DATABASE"
-    case _: AllDatabasesScope | _: NamedDatabasesScope => "SHOW DATABASES"
-    case _: DefaultDatabaseScope                       => "SHOW DEFAULT DATABASE"
-    case _: HomeDatabaseScope                          => "SHOW HOME DATABASE"
-  }
-
-  override def semanticCheck: SemanticCheck =
-    super.semanticCheck chain
-      SemanticState.recordCurrentScope(this)
-
-  override def withYieldOrWhere(newYieldOrWhere: YieldOrWhere): ShowDatabase =
-    this.copy(yieldOrWhere = newYieldOrWhere)(position)
-}
-
-object ShowDatabase {
-
-  // Provided by the cypher stack - must be the same for all rows of a database
-  val ALIASES_COL = "aliases"
-  val REQUESTED_STATUS_COL = "requestedStatus"
-  val DEFAULT_COL = "default"
-  val HOME_COL = "home"
-  val REQUESTED_PRIMARIES_COUNT_COL = "requestedPrimariesCount"
-  val REQUESTED_SECONDARIES_COUNT_COL = "requestedSecondariesCount"
-  val REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL = "requestedPropertyShardReplicas"
-  val CREATION_TIME_COL = "creationTime"
-  val LAST_START_TIME_COL = "lastStartTime"
-  val LAST_STOP_TIME_COL = "lastStopTime"
-  val CONSTITUENTS_COL = "constituents"
-  val GRAPH_SHARDS_COL = "graphShards"
-  val PROPERTY_SHARDS_COL = "propertyShards"
-  val DEFAULT_LANGUAGE_COL = "defaultLanguage"
-
-  // Provided by TopologyInfoService - same for every row for a database
-  val NAME_COL = "name"
-  val TYPE_COL = "type"
-  val CURRENT_PRIMARIES_COUNT_COL = "currentPrimariesCount"
-  val CURRENT_SECONDARIES_COUNT_COL = "currentSecondariesCount"
-  val CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL = "currentPropertyShardReplicas"
-  val OPTIONS_COL = "options"
-
-  // Provided by TopologyInfoService - if present must be the same for every row for a database
-  val DATABASE_ID_COL = "databaseID"
-  val STORE_COL = "store"
-
-  // Provided by TopologyInfoService - can/will/must be different for every row for a database
-  val ACCESS_COL = "access"
-  val ROLE_COL = "role"
-  val PROPERTY_SHARD_REPLICA_ROLE = "property shard replica";
-  val WRITER_COL = "writer"
-  val CURRENT_STATUS_COL = "currentStatus"
-  val STATUS_MSG_COL = "statusMessage"
-  val LAST_COMMITTED_TX_COL = "lastCommittedTxn"
-  val REPLICATION_LAG_COL = "replicationLag"
-  val SHARD_TX_LAG_COL = "shardTxnLag"
-  val SERVER_ID_COL = "serverID"
-  val ADDRESS_COL = "address"
-
-  def apply(
-    scope: DatabaseScope,
-    yieldOrWhere: YieldOrWhere,
-    cypher5ColumnsOnly: Boolean
-  )(position: InputPosition): ShowDatabase = {
-    val columns = List(
-      // (column, brief, showCypher5)
-      (ShowColumn(NAME_COL)(position), true, true),
-      (ShowColumn(TYPE_COL)(position), true, true),
-      (ShowColumn(ALIASES_COL, CTList(CTString))(position), true, true),
-      (ShowColumn(ACCESS_COL)(position), true, true),
-      (ShowColumn(DATABASE_ID_COL)(position), false, true),
-      (ShowColumn(SERVER_ID_COL)(position), false, true),
-      (ShowColumn(ADDRESS_COL)(position), true, true),
-      (ShowColumn(ROLE_COL)(position), true, true),
-      (ShowColumn(WRITER_COL, CTBoolean)(position), true, true),
-      (ShowColumn(REQUESTED_STATUS_COL)(position), true, true),
-      (ShowColumn(CURRENT_STATUS_COL)(position), true, true),
-      (ShowColumn(STATUS_MSG_COL)(position), true, true)
-    ) ++ (scope match {
-      case _: DefaultDatabaseScope => List.empty
-      case _: HomeDatabaseScope    => List.empty
-      case _ =>
-        List(
-          (ShowColumn(DEFAULT_COL, CTBoolean)(position), true, true),
-          (ShowColumn(HOME_COL, CTBoolean)(position), true, true)
-        )
-    }) ++ List(
-      (ShowColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger)(position), false, true),
-      (ShowColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger)(position), false, true),
-      (ShowColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger)(position), false, false),
-      (ShowColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger)(position), false, true),
-      (ShowColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger)(position), false, true),
-      (ShowColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger)(position), false, false),
-      (ShowColumn(CREATION_TIME_COL, CTDateTime)(position), false, true),
-      (ShowColumn(LAST_START_TIME_COL, CTDateTime)(position), false, true),
-      (ShowColumn(LAST_STOP_TIME_COL, CTDateTime)(position), false, true),
-      (ShowColumn(STORE_COL)(position), false, true),
-      (ShowColumn(LAST_COMMITTED_TX_COL, CTInteger)(position), false, true),
-      (ShowColumn(REPLICATION_LAG_COL, CTInteger)(position), false, true),
-      (ShowColumn(SHARD_TX_LAG_COL, CTInteger)(position), false, false),
-      (ShowColumn(CONSTITUENTS_COL, CTList(CTString))(position), true, true),
-      (ShowColumn(GRAPH_SHARDS_COL, CTList(CTString))(position), false, false),
-      (ShowColumn(PROPERTY_SHARDS_COL, CTList(CTString))(position), false, false),
-      (ShowColumn(DEFAULT_LANGUAGE_COL)(position), false, true),
-      (ShowColumn(OPTIONS_COL, CTMap)(position), false, true)
-    )
-
-    val showColumns =
-      columns.filter { case (_, _, showInCypher5) =>
-        !cypher5ColumnsOnly || showInCypher5
-      }.map { case (showColumn, brief, _) => (showColumn, brief) }
-    ShowDatabase(scope, yieldOrWhere, DefaultOrAllShowColumns(showColumns, yieldOrWhere))(position)
-  }
-}
 
 final case class CreateDatabase(
   dbName: DatabaseName,

@@ -3507,54 +3507,55 @@ object ShowDatabasesClause {
     where: Option[Where],
     yieldItems: List[CommandResultItem],
     yieldAll: Boolean,
-    yieldWith: Option[With]
+    yieldWith: Option[With],
+    cypher5ColumnsOnly: Boolean
   )(position: InputPosition): ShowDatabasesClause = {
 
-    // (column, brief)
-    val cols: List[(ShowAndTerminateColumn, Boolean)] = List(
-      (ShowAndTerminateColumn(NAME_COL), true),
-      (ShowAndTerminateColumn(TYPE_COL), true),
-      (ShowAndTerminateColumn(ALIASES_COL, CTList(CTString)), true),
-      (ShowAndTerminateColumn(ACCESS_COL), true),
-      (ShowAndTerminateColumn(DATABASE_ID_COL), false),
-      (ShowAndTerminateColumn(SERVER_ID_COL), false),
-      (ShowAndTerminateColumn(ADDRESS_COL), true),
-      (ShowAndTerminateColumn(ROLE_COL), true),
-      (ShowAndTerminateColumn(WRITER_COL, CTBoolean), true),
-      (ShowAndTerminateColumn(REQUESTED_STATUS_COL), true),
-      (ShowAndTerminateColumn(CURRENT_STATUS_COL), true),
-      (ShowAndTerminateColumn(STATUS_MSG_COL), true)
+    // (column, brief, showCypher5)
+    val cols: List[(ShowAndTerminateColumn, Boolean, Boolean)] = List(
+      (ShowAndTerminateColumn(NAME_COL), true, true),
+      (ShowAndTerminateColumn(TYPE_COL), true, true),
+      (ShowAndTerminateColumn(ALIASES_COL, CTList(CTString)), true, true),
+      (ShowAndTerminateColumn(ACCESS_COL), true, true),
+      (ShowAndTerminateColumn(DATABASE_ID_COL), false, true),
+      (ShowAndTerminateColumn(SERVER_ID_COL), false, true),
+      (ShowAndTerminateColumn(ADDRESS_COL), true, true),
+      (ShowAndTerminateColumn(ROLE_COL), true, true),
+      (ShowAndTerminateColumn(WRITER_COL, CTBoolean), true, true),
+      (ShowAndTerminateColumn(REQUESTED_STATUS_COL), true, true),
+      (ShowAndTerminateColumn(CURRENT_STATUS_COL), true, true),
+      (ShowAndTerminateColumn(STATUS_MSG_COL), true, true)
     ) ++ (dbScope match {
       case _: DefaultDatabaseScope => List.empty
       case _: HomeDatabaseScope    => List.empty
       case _ =>
         List(
-          (ShowAndTerminateColumn(DEFAULT_COL, CTBoolean), true),
-          (ShowAndTerminateColumn(HOME_COL, CTBoolean), true)
+          (ShowAndTerminateColumn(DEFAULT_COL, CTBoolean), true, true),
+          (ShowAndTerminateColumn(HOME_COL, CTBoolean), true, true)
         )
     }) ++ List(
-      (ShowAndTerminateColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger), false),
-      (ShowAndTerminateColumn(CREATION_TIME_COL, CTDateTime), false),
-      (ShowAndTerminateColumn(LAST_START_TIME_COL, CTDateTime), false),
-      (ShowAndTerminateColumn(LAST_STOP_TIME_COL, CTDateTime), false),
-      (ShowAndTerminateColumn(STORE_COL), false),
-      (ShowAndTerminateColumn(LAST_COMMITTED_TX_COL, CTInteger), false),
-      (ShowAndTerminateColumn(REPLICATION_LAG_COL, CTInteger), false),
-      (ShowAndTerminateColumn(SHARD_TX_LAG_COL, CTInteger), false),
-      (ShowAndTerminateColumn(CONSTITUENTS_COL, CTList(CTString)), true),
-      (ShowAndTerminateColumn(GRAPH_SHARDS_COL, CTList(CTString)), false),
-      (ShowAndTerminateColumn(PROPERTY_SHARDS_COL, CTList(CTString)), false),
-      (ShowAndTerminateColumn(DEFAULT_LANGUAGE_COL), false),
-      (ShowAndTerminateColumn(OPTIONS_COL, CTMap), false)
+      (ShowAndTerminateColumn(CURRENT_PRIMARIES_COUNT_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(CURRENT_SECONDARIES_COUNT_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL, CTInteger), false, false),
+      (ShowAndTerminateColumn(REQUESTED_PRIMARIES_COUNT_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(REQUESTED_SECONDARIES_COUNT_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL, CTInteger), false, false),
+      (ShowAndTerminateColumn(CREATION_TIME_COL, CTDateTime), false, true),
+      (ShowAndTerminateColumn(LAST_START_TIME_COL, CTDateTime), false, true),
+      (ShowAndTerminateColumn(LAST_STOP_TIME_COL, CTDateTime), false, true),
+      (ShowAndTerminateColumn(STORE_COL), false, true),
+      (ShowAndTerminateColumn(LAST_COMMITTED_TX_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(REPLICATION_LAG_COL, CTInteger), false, true),
+      (ShowAndTerminateColumn(SHARD_TX_LAG_COL, CTInteger), false, false),
+      (ShowAndTerminateColumn(CONSTITUENTS_COL, CTList(CTString)), true, true),
+      (ShowAndTerminateColumn(GRAPH_SHARDS_COL, CTList(CTString)), false, false),
+      (ShowAndTerminateColumn(PROPERTY_SHARDS_COL, CTList(CTString)), false, false),
+      (ShowAndTerminateColumn(DEFAULT_LANGUAGE_COL), false, true),
+      (ShowAndTerminateColumn(OPTIONS_COL, CTMap), false, true)
     )
 
-    val briefCols = cols.collect { case (col, true) => col }
-    val allCols = cols.collect { case (col, _) => col }
+    val briefCols = cols.collect { case (col, true, showInCypher5) if !cypher5ColumnsOnly || showInCypher5 => col }
+    val allCols = cols.collect { case (col, _, showInCypher5) if !cypher5ColumnsOnly || showInCypher5 => col }
 
     ShowDatabasesClause(
       dbScope,
@@ -3566,4 +3567,47 @@ object ShowDatabasesClause {
       yieldWith
     )(position)
   }
+}
+
+object ShowDatabase {
+
+  // Must be the same for all rows of a database
+  val ALIASES_COL = "aliases"
+  val REQUESTED_STATUS_COL = "requestedStatus"
+  val DEFAULT_COL = "default"
+  val HOME_COL = "home"
+  val REQUESTED_PRIMARIES_COUNT_COL = "requestedPrimariesCount"
+  val REQUESTED_SECONDARIES_COUNT_COL = "requestedSecondariesCount"
+  val REQUESTED_PROPERTY_SHARDS_REPLICA_COUNT_COL = "requestedPropertyShardReplicas"
+  val CREATION_TIME_COL = "creationTime"
+  val LAST_START_TIME_COL = "lastStartTime"
+  val LAST_STOP_TIME_COL = "lastStopTime"
+  val CONSTITUENTS_COL = "constituents"
+  val GRAPH_SHARDS_COL = "graphShards"
+  val PROPERTY_SHARDS_COL = "propertyShards"
+  val DEFAULT_LANGUAGE_COL = "defaultLanguage"
+  val NAME_COL = "name"
+  val TYPE_COL = "type"
+  val CURRENT_PRIMARIES_COUNT_COL = "currentPrimariesCount"
+  val CURRENT_SECONDARIES_COUNT_COL = "currentSecondariesCount"
+  val CURRENT_PROPERTY_SHARD_REPLICA_COUNT_COL = "currentPropertyShardReplicas"
+  val OPTIONS_COL = "options"
+
+  // If present, must be the same for every row for a database
+  val DATABASE_ID_COL = "databaseID"
+  val STORE_COL = "store"
+
+  // Can/will/must be different for every row for a database
+  val ACCESS_COL = "access"
+  val ROLE_COL = "role"
+  val PROPERTY_SHARD_REPLICA_ROLE = "property shard replica"
+  val WRITER_COL = "writer"
+  val CURRENT_STATUS_COL = "currentStatus"
+  val STATUS_MSG_COL = "statusMessage"
+  val LAST_COMMITTED_TX_COL = "lastCommittedTxn"
+  val REPLICATION_LAG_COL = "replicationLag"
+  val SHARD_TX_LAG_COL = "shardTxnLag"
+  val SERVER_ID_COL = "serverID"
+  val ADDRESS_COL = "address"
+
 }

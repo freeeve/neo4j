@@ -112,6 +112,6 @@ class CombineCommandsParserTestBase extends AdministrationAndSchemaCommandParser
     yieldItems: List[ast.CommandResultItem],
     yieldWith: Option[ast.With]
   ): InputPosition => ast.CommandClause =
-    ast.ShowDatabasesClause(dbScope, where.map(_._1), yieldItems, yieldAll, yieldWith)
+    ast.ShowDatabasesClause(dbScope, where.map(_._1), yieldItems, yieldAll, yieldWith, cypher5ColumnsOnly = false)
 
 }

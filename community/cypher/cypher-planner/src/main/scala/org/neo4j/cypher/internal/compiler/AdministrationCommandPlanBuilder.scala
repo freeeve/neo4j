@@ -131,7 +131,6 @@ import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAuthRuleAction
 import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowPrivilegeAction
 import org.neo4j.cypher.internal.ast.ShowPrivilegeCommands
 import org.neo4j.cypher.internal.ast.ShowPrivileges
@@ -1286,16 +1285,6 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       case c: ShowSupportedPrivilegeCommand =>
         Some(plans.ShowSupportedPrivileges(c.defaultColumnNames.map(varFor), c.yields, c.returns))
 
-      // SHOW DATABASES | SHOW DEFAULT DATABASE | SHOW DATABASE foo
-      case sd: ShowDatabase =>
-        Some(plans.ShowDatabase(
-          sd.scope,
-          sd.defaultColumns.useAllColumns,
-          sd.defaultColumnNames.map(varFor),
-          sd.yields,
-          sd.returns
-        ))
-
       // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS] (with shards)
       case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, None, cypherVersion, Some(shardDef)) =>
         Some(plans.AssertManagementActionNotBlocked(c.name, CreateDatabaseAction))
@@ -1853,6 +1842,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         Some(planSystemProcedureCall(context.cypherVersion, resolved, None))
 
       // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES YIELD ...
+      // Also includes the SHOW DATABASES command
       case q @ SingleQuery(clauses) if checkClausesAllowedOnSystem(clauses) =>
         blockSubqueries(q)
         Some(plans.AllowedNonAdministrationCommands(q))

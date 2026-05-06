@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.ast.DataExchangeAction
 import org.neo4j.cypher.internal.ast.DatabaseAction
 import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
-import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAdditionalAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAliasAction
@@ -619,13 +618,6 @@ case class EnsureRoleNotGrantedToAnyAuthRules(
 )(implicit idGen: IdGen) extends PrivilegePlan(source)
 
 // Database administration commands
-case class ShowDatabase(
-  scope: DatabaseScope,
-  verbose: Boolean,
-  override val returnColumns: List[LogicalVariable],
-  yields: Option[Yield],
-  returns: Option[Return]
-)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan
 
 abstract class CreateDatabasePlan(source: AdministrationCommandLogicalPlan)(implicit idGen: IdGen)
     extends DatabaseAdministrationLogicalPlan(Some(source)) {

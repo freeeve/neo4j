@@ -612,7 +612,8 @@ class NextStatementParserTest extends AstParsingTestBase {
                 None,
                 List(CommandResultItem("name", varFor("name"))(pos)),
                 yieldAll = false,
-                Some(withFromYield(returnAllItems().withDefaultOrderOnColumns(List("name"))))
+                Some(withFromYield(returnAllItems().withDefaultOrderOnColumns(List("name")))),
+                cypher5ColumnsOnly = false
               )(pos),
               return_(count(varFor("name"), isDistinct = true, ArgumentUnordered).as("count"))
             ),

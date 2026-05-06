@@ -61,14 +61,6 @@ import org.neo4j.values.virtual.MapValueBuilder
 
 object DatabaseDetailsMapper {
 
-  def toMapValue(
-    showDatabaseResult: ShowDatabaseResult
-  ): AnyValue = {
-    val builder = new MapValueBuilder()
-    toMap(showDatabaseResult).foreach { case (k, v) => builder.add(k, v) }
-    builder.build()
-  }
-
   def toMap(
     showDatabaseResult: ShowDatabaseResult
   ): Map[String, AnyValue] = {

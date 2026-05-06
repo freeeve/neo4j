@@ -22,12 +22,10 @@ import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetPropertyItem
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.Yield
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -127,20 +125,11 @@ class ParserPositionTest extends AstParsingTestBase {
     ("DATABASE neo4j YIELD name", 26)
   ).foreach { case (name, variableOffset) =>
     test(s"SHOW $name") {
-      parsesIn[Statements] {
-        case Cypher5 =>
-          _.withPositionOf[ShowDatabase](InputPosition(0, 1, 1))
-            .withAstLike { ast =>
-              ast.folder.treeFind[Variable](_.name == "name").map(_.position) shouldBe
-                Some(InputPosition(variableOffset, 1, variableOffset + 1))
-            }
-        case _ =>
-          _.withPositionOf[ShowDatabasesClause](InputPosition(0, 1, 1))
-            .withAstLike { ast =>
-              ast.folder.treeFind[Variable](_.name == "name").map(_.position) shouldBe
-                Some(InputPosition(variableOffset, 1, variableOffset + 1))
-            }
-      }
+      parses[Statements].withPositionOf[ShowDatabasesClause](InputPosition(0, 1, 1))
+        .withAstLike { ast =>
+          ast.folder.treeFind[Variable](_.name == "name").map(_.position) shouldBe
+            Some(InputPosition(variableOffset, 1, variableOffset + 1))
+        }
     }
   }
 

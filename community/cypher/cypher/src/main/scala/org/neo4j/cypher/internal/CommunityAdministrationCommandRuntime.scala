@@ -33,7 +33,6 @@ import org.neo4j.cypher.internal.administration.DoNothingExecutionPlanner
 import org.neo4j.cypher.internal.administration.DropUserExecutionPlanner
 import org.neo4j.cypher.internal.administration.EnsureNodeExistsExecutionPlanner
 import org.neo4j.cypher.internal.administration.SetOwnPasswordExecutionPlanner
-import org.neo4j.cypher.internal.administration.ShowDatabasesExecutionPlanner
 import org.neo4j.cypher.internal.administration.ShowUsersExecutionPlanner
 import org.neo4j.cypher.internal.administration.SystemProcedureCallPlanner
 import org.neo4j.cypher.internal.ast.AdministrationAction
@@ -69,7 +68,6 @@ import org.neo4j.cypher.internal.logical.plans.PrivilegePlan
 import org.neo4j.cypher.internal.logical.plans.RenameUser
 import org.neo4j.cypher.internal.logical.plans.SetOwnPassword
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentUser
-import org.neo4j.cypher.internal.logical.plans.ShowDatabase
 import org.neo4j.cypher.internal.logical.plans.ShowUsers
 import org.neo4j.cypher.internal.logical.plans.SystemProcedureCall
 import org.neo4j.cypher.internal.procs.ActionMapper
@@ -528,15 +526,6 @@ case class CommunityAdministrationCommandRuntime(
           None,
           onViolation = (_, _, _) => new RuntimeException()
         )
-
-    // SHOW DATABASES | SHOW DEFAULT DATABASE | SHOW HOME DATABASE | SHOW DATABASE foo
-    case ShowDatabase(scope, verbose, symbols, yields, returns) => context =>
-        ShowDatabasesExecutionPlanner(
-          resolver,
-          normalExecutionEngine,
-          securityAuthorizationHandler
-        )
-          .planShowDatabases(scope, verbose, symbols, yields, returns, context)
 
     case DoNothingIfNotExists(source, command, entity, name, operation, valueMapper) => context =>
         val sourcePlan: Option[ExecutionPlan] =

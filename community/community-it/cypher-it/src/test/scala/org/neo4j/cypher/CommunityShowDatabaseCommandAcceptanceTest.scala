@@ -578,7 +578,7 @@ class CommunityShowDatabaseCommandAcceptanceTest extends CommunityAdministration
     }
 
     // THEN
-    exceptionCypher5.getMessage should startWith("Variable `foo` not defined")
+    exceptionCypher5.getMessage should startWith("Trying to YIELD non-existing column: `foo`")
     exceptionCypher5.getMessage should include("(line 1, column 34 (offset: 33))")
   }
 

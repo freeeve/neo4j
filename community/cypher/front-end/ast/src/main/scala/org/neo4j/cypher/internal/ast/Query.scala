@@ -851,12 +851,15 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
-  private def checkUseForRoutedSystemCommand(): SemanticCheck = {
+  private def checkUseForRoutedSystemCommand(): SemanticCheck = SemanticCheck.fromContext { context =>
     // For backward compatibility, SHOW DATABASES is routed to system if it is standalone, but we don't want to allow it to be routed anywhere else,
     // as this could allow it to get routed to a remote alias.
+    // Explicit routing should only be allowed from Cypher 25
     partitionedClauses match {
       case SingleQuery.PartitionedClauses(Some(use), _, _, cs)
-        if CommandClause.shouldRouteToSystem(cs) && use.graphReference.print != SYSTEM_DATABASE_NAME =>
+        if CommandClause.shouldRouteToSystem(cs) && (
+          context.cypherVersion == CypherVersion.Cypher5 || use.graphReference.print != SYSTEM_DATABASE_NAME
+        ) =>
         SemanticError.useClauseWithAdministrationCommand(use.position)
       case _ => success
     }

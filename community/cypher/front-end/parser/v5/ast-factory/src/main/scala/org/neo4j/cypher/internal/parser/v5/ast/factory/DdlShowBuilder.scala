@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseName
+import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.ExecutableBy
 import org.neo4j.cypher.internal.ast.FreeProjection
@@ -62,7 +63,7 @@ import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
+import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionType
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexType
@@ -572,11 +573,11 @@ trait DdlShowBuilder extends Cypher5ParserListener {
       else if (ctx.HOME() != null) HomeDatabaseScope()(pos(ctx))
       else if (ctx.DEFAULT() != null) DefaultDatabaseScope()(pos(ctx))
       else AllDatabasesScope()(pos(ctx))
-    ctx.ast = ShowDatabase(
-      dbScope,
-      astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
-      cypher5ColumnsOnly = true
-    )(pos(ctx.getParent))
+    ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
+      .buildShowDatabases(
+        dbScope,
+        pos(ctx.getParent)
+      )
   }
 
   final override def exitShowAliases(
@@ -679,6 +680,19 @@ object DdlShowBuilder {
           yieldAll,
           yieldClause.map(turnYieldToWith),
           where.map(_.position)
+        )(position)
+      )
+    }
+
+    def buildShowDatabases(dbScope: DatabaseScope, position: InputPosition): Seq[Clause] = {
+      buildClauses(
+        ShowDatabasesClause(
+          dbScope,
+          where,
+          yieldedItems,
+          yieldAll,
+          yieldClause.map(turnYieldToWith),
+          cypher5ColumnsOnly = true
         )(position)
       )
     }

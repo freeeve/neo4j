@@ -207,7 +207,6 @@ import org.neo4j.cypher.internal.ast.ShowAuthRules
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
-import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowDatabasesClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
@@ -834,14 +833,6 @@ case class Prettifier(
         s"SHOW ${Prettifier.extractScope(scope)} PRIVILEGES$asCommand$y$r"
 
       // Database commands
-
-      case x @ ShowDatabase(scope, yields, _) =>
-        val (y: String, r: String) = showClausesAsString(yields)
-        val optionalName = scope match {
-          case SingleNamedDatabaseScope(dbName) => s" ${Prettifier.escapeName(dbName)}"
-          case _                                => ""
-        }
-        s"${x.name}$optionalName$y$r"
 
       case x @ CreateDatabase(
           dbName,

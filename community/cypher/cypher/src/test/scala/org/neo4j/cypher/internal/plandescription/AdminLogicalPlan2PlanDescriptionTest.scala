@@ -148,7 +148,6 @@ import org.neo4j.cypher.internal.logical.plans.SetOwnPassword
 import org.neo4j.cypher.internal.logical.plans.ShowAliases
 import org.neo4j.cypher.internal.logical.plans.ShowAuthRules
 import org.neo4j.cypher.internal.logical.plans.ShowCurrentUser
-import org.neo4j.cypher.internal.logical.plans.ShowDatabase
 import org.neo4j.cypher.internal.logical.plans.ShowDatabases
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowPrivilegeCommands
@@ -295,7 +294,8 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
             None,
             List.empty,
             yieldAll = false,
-            None
+            None,
+            cypher5ColumnsOnly = false
           )(pos)))(pos),
           Some(ShowDatabases(
             AllDatabasesScope()(pos),
@@ -315,6 +315,24 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(details("allDatabases, allColumns")),
         Set.empty
       )
+    )
+
+    assertGood(
+      attach(
+        AllowedNonAdministrationCommands(
+          SingleQuery(Seq(ShowDatabasesClause(
+            AllDatabasesScope()(pos),
+            None,
+            List.empty,
+            yieldAll = false,
+            None,
+            cypher5ColumnsOnly = true
+          )(pos)))(pos),
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
     )
   }
 
@@ -758,14 +776,6 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
   }
 
   test("Database commands") {
-    assertGood(
-      attach(
-        ShowDatabase(AllDatabasesScope()(pos), verbose = false, List(varFor("foo"), varFor("bar")), None, None),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
     assertGood(
       attach(
         CreateDatabase(privLhsLP, util.Left("db1"), NoOptions, IfExistsDoNothing, isComposite = false, None, None),

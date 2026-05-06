@@ -670,7 +670,8 @@ object DdlShowBuilder {
         where,
         yieldedItems,
         yieldAll,
-        yieldClause.map(turnYieldToWith)
+        yieldClause.map(turnYieldToWith),
+        cypher5ColumnsOnly = false
       )(position)
 
     private def turnYieldToWith(yieldClause: Yield): With = {
