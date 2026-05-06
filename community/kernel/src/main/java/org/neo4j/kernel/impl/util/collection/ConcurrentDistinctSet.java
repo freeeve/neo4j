@@ -51,7 +51,7 @@ public class ConcurrentDistinctSet<T extends Measurable> extends DefaultCloseLis
     public boolean add(T element) {
         boolean wasAdded = distinctSet.add(element);
         if (wasAdded) {
-            scopedMemoryTracker.allocateHeap(element.estimatedHeapUsage() + distinctSet.sizeOfWrapperObject());
+            scopedMemoryTracker.allocateHeap(element.estimatedHeapUsage());
         }
         return wasAdded;
     }

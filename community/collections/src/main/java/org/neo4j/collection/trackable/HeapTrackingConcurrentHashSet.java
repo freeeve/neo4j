@@ -163,6 +163,12 @@ public final class HeapTrackingConcurrentHashSet<E> extends HeapTrackingConcurre
     }
 
     @Override
+    public void close() {
+        memoryTracker.releaseHeap(SHALLOW_SIZE_THIS);
+        releaseHeap();
+    }
+
+    @Override
     public boolean remove(Object value) {
         int hash = this.hash(value);
         AtomicReferenceArray<Object> currentArray = this.table;

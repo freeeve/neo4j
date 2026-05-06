@@ -41,7 +41,6 @@ import org.neo4j.memory.MemoryTracker;
 @SuppressWarnings({"NullableProblems", "unchecked"})
 public final class HeapTrackingConcurrentHashMap<K, V> extends AbstractHeapTrackingConcurrentHash
         implements ConcurrentMap<K, V>, AutoCloseable {
-
     private static final long SHALLOW_SIZE_THIS = shallowSizeOfInstance(HeapTrackingConcurrentHashMap.class);
     private static final long SHALLOW_SIZE_WRAPPER = shallowSizeOfInstance(Entry.class);
 
@@ -54,13 +53,13 @@ public final class HeapTrackingConcurrentHashMap<K, V> extends AbstractHeapTrack
         return new HeapTrackingConcurrentHashMap<>(memoryTracker, size);
     }
 
-    @Override
-    public long sizeOfWrapperObject() {
-        return SHALLOW_SIZE_WRAPPER;
-    }
-
     private HeapTrackingConcurrentHashMap(MemoryTracker memoryTracker, int initialCapacity) {
         super(memoryTracker, initialCapacity);
+    }
+
+    @Override
+    protected long sizeOfWrapperObject() {
+        return SHALLOW_SIZE_WRAPPER;
     }
 
     @Override

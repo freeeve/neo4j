@@ -50,7 +50,7 @@ public class ConcurrentLongProbeTable<V extends Measurable> extends DefaultClose
     public void put(long key, V value) {
         MutableLong heapUsage = new MutableLong(value.estimatedHeapUsage() + ConcurrentBag.SIZE_OF_NODE);
         map.computeIfAbsent(key, p -> {
-                    heapUsage.add(map.sizeOfWrapperObject() + ConcurrentBag.SIZE_OF_BAG);
+                    heapUsage.add(ConcurrentBag.SIZE_OF_BAG);
                     return new ConcurrentBag<>();
                 })
                 .add(value);

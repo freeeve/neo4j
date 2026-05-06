@@ -56,7 +56,7 @@ public final class HeapTrackingConcurrentLongObjectHashMap<V> extends AbstractHe
     }
 
     @Override
-    public long sizeOfWrapperObject() {
+    protected long sizeOfWrapperObject() {
         return SHALLOW_SIZE_WRAPPER;
     }
 

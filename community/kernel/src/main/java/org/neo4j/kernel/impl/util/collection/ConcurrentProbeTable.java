@@ -58,7 +58,7 @@ public class ConcurrentProbeTable<K extends Measurable, V extends Measurable> ex
         var newBag = new ConcurrentBag<V>();
         ConcurrentBag<V> oldBag = map.putIfAbsent(key, newBag);
         if (oldBag == null) {
-            heapUsage.add(key.estimatedHeapUsage() + map.sizeOfWrapperObject() + ConcurrentBag.SIZE_OF_BAG);
+            heapUsage.add(key.estimatedHeapUsage() + ConcurrentBag.SIZE_OF_BAG);
             oldBag = newBag;
         }
         oldBag.add(value);

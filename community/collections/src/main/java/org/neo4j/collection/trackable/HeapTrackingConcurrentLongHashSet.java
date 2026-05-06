@@ -33,7 +33,7 @@ public final class HeapTrackingConcurrentLongHashSet extends AbstractHeapTrackin
     private static final long SHALLOW_SIZE_WRAPPER = shallowSizeOfInstance(Node.class);
 
     @Override
-    public long sizeOfWrapperObject() {
+    protected long sizeOfWrapperObject() {
         return SHALLOW_SIZE_WRAPPER;
     }
 

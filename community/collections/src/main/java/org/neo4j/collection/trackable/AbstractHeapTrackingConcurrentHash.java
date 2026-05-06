@@ -40,11 +40,10 @@ import org.neo4j.memory.MemoryTracker;
  *   (modified lines)
  *   //END MODIFICATION
  * }</pre>
- *
+ * <p>
  * NOTE: this class only tracks the memory of the internal structures, it will not track the individual entries.
- * The user of this class can use {@link #sizeOfWrapperObject()} to improve the estimation. Furthermore, this class uses a
- * LongAdder to keep track of the size. LongAdder uses a padded array that may grow under contention up to the number of cores. This
- * class doesn't properly keep track of the internal memory usage of LongAdder.
+ * This class uses a LongAdder to keep track of the size. LongAdder uses a padded array that may grow under contention
+ * up to the number of cores. This class doesn't properly keep track of the internal memory usage of LongAdder.
  */
 public abstract class AbstractHeapTrackingConcurrentHash {
 
@@ -125,7 +124,7 @@ public abstract class AbstractHeapTrackingConcurrentHash {
         return o;
     }
 
-    public abstract long sizeOfWrapperObject();
+    protected abstract long sizeOfWrapperObject();
 
     private AtomicReferenceArray<Object> allocateAtomicReferenceArray(int newSize) {
         memoryTracker.allocateHeap(shallowSizeOfAtomicReferenceArray(newSize));
@@ -256,10 +255,17 @@ public abstract class AbstractHeapTrackingConcurrentHash {
 
     final void addToSize(int value) {
         size.add(value);
+        if (value > 0) {
+            memoryTracker.allocateHeap((sizeOfWrapperObject()) * value);
+        } else {
+            memoryTracker.releaseHeap((sizeOfWrapperObject()) * (-value));
+        }
     }
 
     public void releaseHeap() {
-        memoryTracker.releaseHeap(shallowSizeOfAtomicReferenceArray(trackedCapacity) + SHALLOW_SIZE_LONG_ADDER);
+        memoryTracker.releaseHeap(shallowSizeOfAtomicReferenceArray(trackedCapacity)
+                + SHALLOW_SIZE_LONG_ADDER
+                + size() * sizeOfWrapperObject());
     }
 
     static final class ResizeContainer {

@@ -29,15 +29,14 @@ import org.neo4j.memory.MemoryTracker;
 @SuppressWarnings({"unchecked"})
 abstract class HeapTrackingConcurrentHashCollection<E> extends AbstractHeapTrackingConcurrentHash
         implements AutoCloseable {
-    private static final long SHALLOW_SIZE_THIS = shallowSizeOfInstance(HeapTrackingConcurrentHashCollection.class);
-    static final long SHALLOW_SIZE_WRAPPER = shallowSizeOfInstance(Node.class);
+    private static final long SHALLOW_SIZE_WRAPPER = shallowSizeOfInstance(Node.class);
 
     HeapTrackingConcurrentHashCollection(MemoryTracker memoryTracker, int initialCapacity) {
         super(memoryTracker, initialCapacity);
     }
 
     @Override
-    public final long sizeOfWrapperObject() {
+    protected final long sizeOfWrapperObject() {
         return SHALLOW_SIZE_WRAPPER;
     }
 
@@ -132,12 +131,6 @@ abstract class HeapTrackingConcurrentHashCollection<E> extends AbstractHeapTrack
                 }
             }
         }
-    }
-
-    @Override
-    public final void close() {
-        memoryTracker.releaseHeap(SHALLOW_SIZE_THIS);
-        releaseHeap();
     }
 
     public final Iterator<E> iterator() {
