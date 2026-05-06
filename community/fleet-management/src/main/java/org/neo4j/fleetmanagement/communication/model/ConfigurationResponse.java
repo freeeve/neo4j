@@ -20,6 +20,7 @@
 package org.neo4j.fleetmanagement.communication.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,10 @@ public class ConfigurationResponse {
 
     @JsonProperty("new_token")
     private String newToken;
+
+    @JsonProperty("pending_migrations_to_aura")
+    @JsonPropertyDescription("List of pending migrations to Aura")
+    private List<MigrationToAura> pendingMigrationsToAura;
 
     public List<MetricsDefinitionResponse> getMetrics() {
         return metrics;
@@ -65,5 +70,13 @@ public class ConfigurationResponse {
 
     public void setNewToken(String newToken) {
         this.newToken = newToken;
+    }
+
+    public List<MigrationToAura> getPendingMigrationsToAura() {
+        return pendingMigrationsToAura;
+    }
+
+    public void setPendingMigrationsToAura(List<MigrationToAura> pendingMigrationsToAura) {
+        this.pendingMigrationsToAura = pendingMigrationsToAura;
     }
 }

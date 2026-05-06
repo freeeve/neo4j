@@ -166,7 +166,7 @@ public class TopologyMapper {
         try (Stream<Path> list = Files.list(config.get(GraphDatabaseSettings.plugin_dir))) {
             List<Path> jarPaths = list.filter(path -> path.toString().endsWith(".jar"))
                     .filter(notNull())
-                    .collect(Collectors.toList());
+                    .toList();
 
             for (Path path : jarPaths) {
                 try (JarFile jarFile = new JarFile(path.toFile())) {
@@ -174,10 +174,10 @@ public class TopologyMapper {
                     plugins.add(plugin);
                     plugin.filename = path.getFileName().toString();
 
-                    fleetManagerLog.debug("Found plugin: " + path.getFileName());
+                    fleetManagerLog.debug("Found plugin: %s", path.getFileName());
                     var manifest = jarFile.getManifest();
                     if (manifest == null) {
-                        fleetManagerLog.debug("No manifest found for plugin: " + path.getFileName());
+                        fleetManagerLog.debug("No manifest found for plugin: %s", path.getFileName());
                         continue;
                     }
 

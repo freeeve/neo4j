@@ -17,20 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+package org.neo4j.fleetmanagement.migration.aura;
 
-package org.neo4j.fleetmanagement.procedures;
+import org.neo4j.fleetmanagement.communication.upstream.Upstream;
 
-import java.util.stream.Stream;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+public interface ApiConnector {
+    void call(Object msg, Upstream.Endpoint endpoint);
 
-public class DocumentationTest {
-    @Test
-    public void testGenerateDocumentation() throws Exception {
-        Documentation documentation = new Documentation();
-        documentation.generateDocumentation().forEach(System.out::println);
-        Stream<Documentation.DocumentationResult> result = documentation.generateDocumentation();
-        Assertions.assertEquals(
-                163, result.count(), "Payload messages have changed, consider updating the documentation");
-    }
+    <T> T call(Object msg, Upstream.Endpoint endpoint, Class<T> responseType);
 }

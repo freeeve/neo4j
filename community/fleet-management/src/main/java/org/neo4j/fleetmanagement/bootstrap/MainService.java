@@ -34,6 +34,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
+import org.neo4j.fleetmanagement.communication.MigrationToAuraService;
 import org.neo4j.fleetmanagement.communication.PingService;
 import org.neo4j.fleetmanagement.communication.QueryService;
 import org.neo4j.fleetmanagement.communication.SecurityLogsService;
@@ -61,6 +62,7 @@ public class MainService implements PropertyChangeListener {
     private final State state;
     private final Configuration configuration;
     private final Monitors monitoring;
+    private final MigrationToAuraService migrationService;
 
     private ScheduledFuture<?> connectServiceTaskHandle;
     private ConnectService.ConnectServiceTask connectServiceTask;
@@ -79,6 +81,7 @@ public class MainService implements PropertyChangeListener {
             TopologyService topologyService,
             MetricsService metricsService,
             QueryService queryService,
+            MigrationToAuraService migrationService,
             ClusterSync clusterSync,
             ScheduledExecutorService scheduler,
             ConnectService connectService,
@@ -94,6 +97,7 @@ public class MainService implements PropertyChangeListener {
         this.metricsService = metricsService;
         this.queryService = queryService;
         this.securityLogsService = securityLogsService;
+        this.migrationService = migrationService;
         this.pingService = pingService;
         this.clusterSync = clusterSync;
         this.scheduler = scheduler;
@@ -133,6 +137,7 @@ public class MainService implements PropertyChangeListener {
             // Ignore errors while flushing logs
         }
         stopReportingTasks();
+        migrationService.stop();
         this.configuration.removePropertyChangeListeners();
         if (state.isConnected()) {
             this.connectService.disconnect("Service is stopped");
@@ -230,7 +235,7 @@ public class MainService implements PropertyChangeListener {
                     break;
                 case QUERIES:
                     if (!queryMonitorAdded) {
-                        // Start intercecpting queries only when query task is activated
+                        // Start intercepting queries only when query task is activated
                         monitoring.addMonitorListener(this.queryInterceptor);
                         queryMonitorAdded = true;
                     }
@@ -258,6 +263,14 @@ public class MainService implements PropertyChangeListener {
                             interval,
                             TimeUnit.SECONDS));
                     break;
+                case MIGRATIONS_TO_AURA:
+                    jobHandles.add(scheduler.scheduleAtFixedRate(
+                            new MigrationToAuraService.MigrationsToAuraReportingTask(
+                                    state, clusterSync, migrationService),
+                            interval,
+                            interval,
+                            TimeUnit.SECONDS));
+                    break;
                 default:
                     break;
             }
@@ -265,8 +278,7 @@ public class MainService implements PropertyChangeListener {
     }
 
     private void stopReportingTasks() {
-        fleetManagerLog.debug(
-                String.format("Stopping reporting tasks from: %s", ExceptionUtils.getStackTrace(new Throwable())));
+        fleetManagerLog.debug("Stopping reporting tasks from: %s", ExceptionUtils.getStackTrace(new Throwable()));
         if (!jobHandles.isEmpty()) {
             jobHandles.forEach(jobHandle -> jobHandle.cancel(false));
             jobHandles.clear();

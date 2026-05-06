@@ -35,11 +35,13 @@ import java.util.stream.Stream;
 import org.neo4j.fleetmanagement.common.ValuesDocumentation;
 import org.neo4j.fleetmanagement.communication.model.ConnectMessage;
 import org.neo4j.fleetmanagement.communication.model.MetricsMessage;
+import org.neo4j.fleetmanagement.communication.model.MigrationTokenMessage;
 import org.neo4j.fleetmanagement.communication.model.Neo4jConfigMessage;
 import org.neo4j.fleetmanagement.communication.model.PingMessage;
 import org.neo4j.fleetmanagement.communication.model.QueryReportMessage;
 import org.neo4j.fleetmanagement.communication.model.ReportingMessage;
 import org.neo4j.fleetmanagement.communication.model.SecurityLogsReportMessage;
+import org.neo4j.fleetmanagement.communication.model.UpdateMigrationStatusMessage;
 import org.neo4j.kernel.api.procedure.SystemProcedure;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Mode;
@@ -91,6 +93,9 @@ public class Documentation {
         documentClass(PingMessage.class, "PingMessage", "", results);
         documentClass(QueryReportMessage.class, "QueryReportMessage", "", results);
         documentClass(SecurityLogsReportMessage.class, "SecurityLogsReportMessage", "", results);
+        documentClass(MigrationTokenMessage.class, "MigrationTokenMessage", "", results);
+        documentClass(UpdateMigrationStatusMessage.class, "UpdateMigrationStatusMessage", "", results);
+
         return results.stream();
     }
 

@@ -79,6 +79,7 @@ Apache Software License, Version 2.0
   forever-agent
   grpc
   IPAddress
+  Jackson datatype: JSR310
   Jackson module: Old JAXB Annotations (javax.xml.bind)
   Jackson-annotations
   Jackson-core

@@ -117,7 +117,8 @@ public class AuraURLFactory {
                     throw new CommandFailedException(
                             "Expected to find an environment running in dev mode in bolt URI: " + url);
                 }
-                if (matcher.groupCount() == 5) {
+
+                if (matcher.groupCount() == 5 && matcher.group(4) != null) {
                     domain = matcher.group(4);
                 }
 

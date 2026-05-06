@@ -55,6 +55,7 @@ Apache Software License, Version 2.0
   EE8 :: WebApp
   fastinfoset
   IPAddress
+  Jackson datatype: JSR310
   Jackson module: Old JAXB Annotations (javax.xml.bind)
   Jackson-annotations
   Jackson-core

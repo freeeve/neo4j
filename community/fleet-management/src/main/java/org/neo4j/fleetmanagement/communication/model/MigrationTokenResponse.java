@@ -17,20 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+package org.neo4j.fleetmanagement.communication.model;
 
-package org.neo4j.fleetmanagement.procedures;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
-import java.util.stream.Stream;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+@JsonClassDescription(
+        "Message sent to the server from the Fleet Manager service containing details of a migration to Aura.")
+public class MigrationTokenResponse {
+    @JsonProperty("migration_token")
+    @JsonPropertyDescription("Bearer token to be used for authenticating the migration upload")
+    public String migrationToken;
 
-public class DocumentationTest {
-    @Test
-    public void testGenerateDocumentation() throws Exception {
-        Documentation documentation = new Documentation();
-        documentation.generateDocumentation().forEach(System.out::println);
-        Stream<Documentation.DocumentationResult> result = documentation.generateDocumentation();
-        Assertions.assertEquals(
-                163, result.count(), "Payload messages have changed, consider updating the documentation");
-    }
+    @JsonProperty("target_aura_instance_bolt_url")
+    @JsonPropertyDescription("Bolt URL of the target Aura instance")
+    public String targetAuraInstanceBoltUrl;
 }

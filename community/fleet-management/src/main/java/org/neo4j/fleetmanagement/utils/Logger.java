@@ -25,8 +25,8 @@ public class Logger {
 
     private final Log log;
     private static Logger instance;
-    private static boolean payloadLoggingEnabled = false;
-    private static boolean debugEnabled = false;
+    private static volatile boolean payloadLoggingEnabled = false;
+    private static volatile boolean debugEnabled = false;
 
     private Logger(Log log) {
         this.log = log;
@@ -52,6 +52,10 @@ public class Logger {
         return instance;
     }
 
+    public static boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
     public static void setDebugEnabled(Boolean enabled) {
         debugEnabled = Boolean.TRUE.equals(enabled);
     }
@@ -60,19 +64,23 @@ public class Logger {
         payloadLoggingEnabled = Boolean.TRUE.equals(enabled);
     }
 
-    public void debug(String message) {
+    public void debug(String template, Object... args) {
         if (debugEnabled) {
-            log.info(message);
+            logInfo(template, args);
         }
     }
 
     public void payload(String template, Object... args) {
         if (payloadLoggingEnabled) {
-            if (args == null || args.length == 0) {
-                log.info(template);
-            } else {
-                log.info(template, args);
-            }
+            logInfo(template, args);
+        }
+    }
+
+    private void logInfo(String template, Object[] args) {
+        if (args == null || args.length == 0) {
+            log.info(template);
+        } else {
+            log.info(template, args);
         }
     }
 }

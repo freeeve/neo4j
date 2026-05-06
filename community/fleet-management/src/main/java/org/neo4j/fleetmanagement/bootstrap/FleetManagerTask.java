@@ -41,7 +41,7 @@ public abstract class FleetManagerTask implements Runnable {
     public void run() {
         var className = this.getClass().getSimpleName();
         try {
-            fleetManagerLog.debug(String.format("Running %s", className));
+            fleetManagerLog.debug("Running %s", className);
             this.clusterSync.run();
             execute();
         } catch (Exception e) {

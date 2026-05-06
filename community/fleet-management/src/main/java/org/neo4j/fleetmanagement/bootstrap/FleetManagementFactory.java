@@ -22,6 +22,8 @@ package org.neo4j.fleetmanagement.bootstrap;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.database.DatabaseContext;
+import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.configuration.State;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -50,7 +52,8 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
                 dependencies.fs(),
                 dependencies.serverIdentity(),
                 dependencies.monitoring(),
-                dependencies.state());
+                dependencies.state(),
+                dependencies.databaseContextProvider());
     }
 
     public interface Dependencies {
@@ -73,5 +76,7 @@ public class FleetManagementFactory extends ExtensionFactory<FleetManagementFact
         Monitors monitoring();
 
         State state();
+
+        DatabaseContextProvider<DatabaseContext> databaseContextProvider();
     }
 }

@@ -52,7 +52,7 @@ public abstract class AbstractReportingService extends BaseService {
         var messageName = msg.getClass().getSimpleName();
         try {
             String payload = objectMapper.writeValueAsString(msg);
-            this.fleetManagerLog.debug("Fleet manager sending " + messageName);
+            this.fleetManagerLog.debug("Fleet manager sending %s", messageName);
             this.fleetManagerLog.payload("Fleet manager sending %s: %s", messageName, payload);
 
             Upstream.UpstreamPostRequest upstreamPostRequest = upstream.postTo(endpoint);

@@ -24,13 +24,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 @JsonClassDescription(
-        "Message sent to the server from Fleet Manager service containing report status and optional configuration update.")
-public class ReportingResponse {
-    @JsonProperty("status")
-    @JsonPropertyDescription("Status of the reporting operation")
-    public String status;
+        "Message sent from the server to the Fleet Manager service to retrieve details of a migration to Aura.")
+public class MigrationTokenMessage {
+    @JsonProperty("project_id")
+    @JsonPropertyDescription("Identifier for the project")
+    public String projectId;
 
-    @JsonProperty("plugin_config")
-    @JsonPropertyDescription("Configuration to be applied (optional)")
-    public ConfigurationResponse pluginConfig;
+    @JsonProperty("dbms_id")
+    @JsonPropertyDescription("Unique identifier for the DBMS")
+    public String dbmsId;
+
+    @JsonProperty("server_id")
+    @JsonPropertyDescription("Unique identifier for the server")
+    public String serverId;
+
+    @JsonProperty("migration_id")
+    @JsonPropertyDescription("ID of the migration.")
+    public String migrationId;
 }

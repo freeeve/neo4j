@@ -49,7 +49,9 @@ public class Upstream {
         CONNECT,
         CONFIG,
         PING,
-        SECURITY_LOGS
+        SECURITY_LOGS,
+        MIGRATION_IMPORT_TOKEN,
+        MIGRATION_UPDATE_STATUS,
     }
 
     private static long maxTokenAge = 59 * 60 * 1000L; // 59 minutes
@@ -112,24 +114,17 @@ public class Upstream {
     }
 
     public UpstreamPostRequest postTo(Endpoint endpoint) throws IOException {
-        switch (endpoint) {
-            case CONNECT:
-                return postTo("plugin/connect");
-            case REPORTING:
-                return postTo("plugin/report");
-            case QUERIES:
-                return postTo("plugin/queries");
-            case METRICS:
-                return postTo("plugin/metrics");
-            case CONFIG:
-                return postTo("plugin/config");
-            case PING:
-                return postTo("plugin/ping");
-            case SECURITY_LOGS:
-                return postTo("plugin/security-logs");
-        }
-
-        return null;
+        return switch (endpoint) {
+            case CONNECT -> postTo("plugin/connect");
+            case REPORTING -> postTo("plugin/report");
+            case QUERIES -> postTo("plugin/queries");
+            case METRICS -> postTo("plugin/metrics");
+            case CONFIG -> postTo("plugin/config");
+            case PING -> postTo("plugin/ping");
+            case SECURITY_LOGS -> postTo("plugin/security-logs");
+            case MIGRATION_IMPORT_TOKEN -> postTo("plugin/migration-to-aura/import-token");
+            case MIGRATION_UPDATE_STATUS -> postTo("plugin/migration-to-aura/status");
+        };
     }
 
     public boolean isReachable() {
@@ -201,7 +196,7 @@ public class Upstream {
         }
 
         public byte[] getResponseBody() throws IOException {
-            int responseCode = 0;
+            int responseCode;
             try {
                 responseCode = conn.getResponseCode();
             } catch (IOException e) {

@@ -46,7 +46,7 @@ public class MetricsMessage {
     public String serverId;
 
     @JsonPropertyDescription(
-            "Map of metric names to lists of DataPoint objects. Values are dynamically populated from the Fleet Manager server.")
+            "Map of metric names to lists of DataPoint objects. Values are dynamically populated from the Fleet Manager service.")
     @ValuesDocumentation(valueSupplier = MetricNamesSupplier.class)
     public Map<String, List<DataPoint>> metrics;
 

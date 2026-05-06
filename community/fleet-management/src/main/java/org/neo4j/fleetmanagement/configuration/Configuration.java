@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.neo4j.fleetmanagement.communication.model.ConfigurationResponse;
+import org.neo4j.fleetmanagement.communication.model.MigrationToAura;
 import org.neo4j.fleetmanagement.metrics.model.MetricsDefinition;
 
 public class Configuration {
@@ -34,9 +35,11 @@ public class Configuration {
     private List<MetricsDefinition> metrics;
     private List<String> neo4jConfigKeyGlobs;
     private Map<TaskType, Long> taskReportingInterval;
+    private List<MigrationToAura> migrationsToAura;
     public static final String METRICS_CHANGE = "metrics";
     public static final String NEO4J_CONFIGS_CHANGE = "neo4jConfigs";
     public static final String TASK_REPORTING_INTERVAL_CHANGE = "taskReportingInterval";
+    public static final String MIGRATIONS_TO_AURA_CHANGE = "migrationsToAura";
 
     public Configuration() {
         this.changeSupport = new PropertyChangeSupport(this);
@@ -50,6 +53,12 @@ public class Configuration {
         for (var listener : changeSupport.getPropertyChangeListeners()) {
             changeSupport.removePropertyChangeListener(listener);
         }
+    }
+
+    public void setMigrationsToAura(List<MigrationToAura> migrationsToAura) {
+        var oldMigrationsToAura = this.migrationsToAura;
+        this.migrationsToAura = migrationsToAura;
+        changeSupport.firePropertyChange(MIGRATIONS_TO_AURA_CHANGE, oldMigrationsToAura, migrationsToAura);
     }
 
     public void setMetrics(List<MetricsDefinition> metrics) {
@@ -89,6 +98,7 @@ public class Configuration {
         PING,
         QUERIES,
         SECURITY_LOGS,
+        MIGRATIONS_TO_AURA,
         UNKNOWN;
 
         public static TaskType fromString(String type) {
@@ -127,6 +137,9 @@ public class Configuration {
                 throw new IllegalArgumentException(
                         "Invalid duration format in reporting intervals: " + e.getMessage(), e);
             }
+        }
+        if (configurationResponse.getPendingMigrationsToAura() != null) {
+            configuration.setMigrationsToAura(configurationResponse.getPendingMigrationsToAura());
         }
     }
 }

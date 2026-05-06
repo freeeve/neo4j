@@ -31,11 +31,20 @@ import org.neo4j.fleetmanagement.communication.model.DataPoint;
 public class CommunityEditionNeo4jMetricsCollector implements ICollector {
 
     private static final int COLLECT_EVERY = 10;
+    private final String dbName;
     private final Path dataDirectory;
+    private final Path transactionsDirectory;
     private int callCountUntilReport = 0;
 
     public CommunityEditionNeo4jMetricsCollector(Config config) {
-        dataDirectory = Path.of(config.get(GraphDatabaseSettings.data_directory).toString());
+        dbName = config.get(GraphDatabaseSettings.initial_default_database);
+        dataDirectory = Path.of(config.get(GraphDatabaseSettings.data_directory)
+                .resolve(GraphDatabaseSettings.DEFAULT_DATABASES_ROOT_DIR_NAME)
+                .resolve(dbName)
+                .toString());
+        transactionsDirectory = Path.of(config.get(GraphDatabaseSettings.transaction_logs_root_path)
+                .resolve(dbName)
+                .toString());
     }
 
     @Override
@@ -44,9 +53,10 @@ public class CommunityEditionNeo4jMetricsCollector implements ICollector {
     @Override
     public void collect(Map<String, List<DataPoint>> data) {
         if (callCountUntilReport == 0) {
-            var dataSize = FileUtils.sizeOfDirectory(dataDirectory.toFile());
-            data.computeIfAbsent("fleet_management_neo4j_store_size_total", k -> new ArrayList<>())
-                    .add(new DataPoint(Map.of("database", "neo4j"), (double) dataSize));
+            var size = FileUtils.sizeOfDirectory(dataDirectory.toFile())
+                    + FileUtils.sizeOfDirectory(transactionsDirectory.toFile());
+            data.computeIfAbsent("fleet_management_neo4j_store_size_database", k -> new ArrayList<>())
+                    .add(new DataPoint(Map.of("database", dbName), (double) size));
         }
         callCountUntilReport = (callCountUntilReport + 1) % COLLECT_EVERY;
     }

@@ -75,7 +75,7 @@ public class Neo4jMetricsCollector implements ICollector, PropertyChangeListener
 
     @Override
     public void collect(Map<String, List<DataPoint>> data) {
-        Logger.getFleetManagerLogger().debug(String.format("will use query %s to collect metrics=", query));
+        Logger.getFleetManagerLogger().debug("will use query %s to collect metrics", query);
         var jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
             for (ObjectName name : jmxServer.queryNames(new ObjectName(query), null)) {

@@ -79,6 +79,19 @@ public class AuraURLFactoryTest {
     }
 
     @Test
+    public void testBuildValidConsoleURInDevModeForStaging() {
+        // given
+        boolean devMode = true;
+        // when
+        AuraConsole consoleUrl =
+                auraURLFactory.buildConsoleURI("neo4j+s://b7ea95cc-staging.databases.neo4j.io", devMode);
+        // then
+        assertEquals(
+                "https://console-staging.neo4j.io/v2/databases/b7ea95cc/import",
+                consoleUrl.getImportUrl().toString());
+    }
+
+    @Test
     public void testBuildValidConsoleURInPrivMode() {
         // given
         boolean devMode = false;

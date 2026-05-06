@@ -25,11 +25,14 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.database.DatabaseContext;
+import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.dbms.identity.ServerIdentity;
 import org.neo4j.fleetmanagement.FleetManagementSettings;
 import org.neo4j.fleetmanagement.communication.ConfigService;
 import org.neo4j.fleetmanagement.communication.ConnectService;
 import org.neo4j.fleetmanagement.communication.MetricsService;
+import org.neo4j.fleetmanagement.communication.MigrationToAuraService;
 import org.neo4j.fleetmanagement.communication.PingService;
 import org.neo4j.fleetmanagement.communication.QueryService;
 import org.neo4j.fleetmanagement.communication.SecurityLogsService;
@@ -63,7 +66,8 @@ public class FleetManagement extends LifecycleAdapter {
             FileSystemAbstraction fs,
             ServerIdentity serverIdentity,
             Monitors monitoring,
-            State state) {
+            State state,
+            DatabaseContextProvider<DatabaseContext> databaseContextProvider) {
 
         if (!config.get(FleetManagementSettings.fleet_manager_enabled)) {
             // Stop immediately if disabled
@@ -94,8 +98,7 @@ public class FleetManagement extends LifecycleAdapter {
             var thread = Executors.defaultThreadFactory().newThread(runnable);
             thread.setName("neo4j.FleetManagement");
             thread.setUncaughtExceptionHandler((t, e) -> Logger.getFleetManagerLogger()
-                    .debug(String.format(
-                            "Uncaught exception in FleetManagement thread: %s", ExceptionUtils.getStackTrace(e))));
+                    .debug("Uncaught exception in FleetManagement thread: %s", ExceptionUtils.getStackTrace(e)));
             return thread;
         });
 
@@ -111,6 +114,8 @@ public class FleetManagement extends LifecycleAdapter {
         var queryService = new QueryService(transactor, serverIdentity, upstream, this.state, configuration);
         var securityLogsService =
                 new SecurityLogsService(transactor, upstream, this.state, serverIdentity, configuration);
+        var migrationService = new MigrationToAuraService(
+                serverIdentity, transactor, upstream, this.state, config, configuration, databaseContextProvider);
 
         var clusterSync = new ClusterSync(transactor, upstream, this.state);
 
@@ -118,6 +123,7 @@ public class FleetManagement extends LifecycleAdapter {
                 reportingService,
                 metricsService,
                 queryService,
+                migrationService,
                 clusterSync,
                 scheduler,
                 connectService,
