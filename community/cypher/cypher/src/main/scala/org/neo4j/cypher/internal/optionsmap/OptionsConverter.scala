@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.evaluator.Evaluator.expressionEvaluator
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.internal.kernel.api.Procedures
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.values.AnyValue
@@ -45,7 +46,7 @@ trait OptionsConverter[T] {
     params: MapValue,
     procedures: Option[Procedures]
   ): AnyValue = {
-    procedures.map(StaticEvaluation.from(_, version).evaluate(expression, params))
+    procedures.map(StaticEvaluation.from(_, version).evaluate(expression, params, CypherRow.empty))
       .getOrElse(expressionEvaluator(version).evaluate(expression, params))
   }
 

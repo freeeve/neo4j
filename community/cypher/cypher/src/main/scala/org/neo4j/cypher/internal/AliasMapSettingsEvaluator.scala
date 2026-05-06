@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.evaluator.EvaluationException
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.internal.kernel.api.Procedures
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.logging.Level
@@ -50,7 +51,7 @@ class AliasMapSettingsEvaluator(procedures: Procedures, cypherVersion: CypherVer
 
   def evaluate(expression: Expression, params: MapValue): AnyValue = {
     try {
-      evaluator.evaluate(expression, params)
+      evaluator.evaluate(expression, params, CypherRow.empty)
     } catch {
       case e: EvaluationException => throw InvalidArgumentsException.failedEvaluatingDriverSettings(e)
     }
