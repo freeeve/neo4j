@@ -38,7 +38,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 
 @Neo4jLayoutExtension
-public class RangeIndexStringContainsEnds {
+public class RangeIndexStringContainsEndsIT {
     @Inject
     protected DatabaseLayout databaseLayout;
 
