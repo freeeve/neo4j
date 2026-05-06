@@ -21,6 +21,7 @@ package org.neo4j.shell.state;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,6 +44,8 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.AccessMode;
@@ -423,6 +426,46 @@ class BoltStateHandlerTest {
         ConnectionConfig config = testConnectionConfig("bolt://localhost", Encryption.TRUE);
         handler.connect(config);
         assertThat(provider.config.encrypted()).isTrue();
+    }
+
+    @Test
+    void configuresConnectionTimeoutAndPoolSize() throws CommandException {
+        RecordingDriverProvider provider = new RecordingDriverProvider();
+        BoltStateHandler handler = new BoltStateHandler(provider, false);
+
+        handler.connect(config);
+
+        assertThat(provider.config.connectionTimeoutMillis()).isEqualTo((int) TimeUnit.SECONDS.toMillis(30));
+        assertThat(provider.config.maxConnectionPoolSize()).isEqualTo(32);
+    }
+
+    @Test
+    void silentDisconnectUsesCloseAsync() throws Exception {
+        Session sessionMock = mock(Session.class);
+        Result resultMock = mock(Result.class);
+        Driver driverMock = stubResultSummaryInAnOpenSession(resultMock, sessionMock, "neo4j-version");
+        when(driverMock.closeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        OfflineBoltStateHandler handler = new OfflineBoltStateHandler(driverMock);
+        handler.connect();
+
+        handler.silentDisconnect();
+
+        verify(driverMock).closeAsync();
+    }
+
+    @Test
+    void silentDisconnectIgnoresFailedCloseAsync() throws Exception {
+        Session sessionMock = mock(Session.class);
+        Result resultMock = mock(Result.class);
+        Driver driverMock = stubResultSummaryInAnOpenSession(resultMock, sessionMock, "neo4j-version");
+        CompletableFuture<Void> failedClose = new CompletableFuture<>();
+        failedClose.completeExceptionally(new RuntimeException("close failed"));
+        when(driverMock.closeAsync()).thenReturn(failedClose);
+        OfflineBoltStateHandler handler = new OfflineBoltStateHandler(driverMock);
+        handler.connect();
+
+        assertThatCode(handler::silentDisconnect).doesNotThrowAnyException();
+        verify(driverMock).closeAsync();
     }
 
     @Test
