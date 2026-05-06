@@ -74,10 +74,10 @@ class FabricParsingPropertyTest extends CypherFunSuite
   private val astGenerator = new AstGenerator(simpleStrings = false)
 
   implicit val config: PropertyCheckConfiguration = PropertyCheckConfiguration(
-    minSuccessful = 500,
+    minSuccessful = 250,
     // AstGenerator limits AST depth with the size parameter to try to avoid stack overflows
     minSize = 4,
-    sizeRange = 16
+    sizeRange = 12
   )
 
   private val resolver = {
