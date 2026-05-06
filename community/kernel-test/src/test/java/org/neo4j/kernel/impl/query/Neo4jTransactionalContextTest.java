@@ -20,7 +20,9 @@
 package org.neo4j.kernel.impl.query;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
@@ -309,6 +311,32 @@ class Neo4jTransactionalContextTest {
         inOrder.verify(statement).close();
         inOrder.verify(tx).commit(any());
         inOrder.verify(queryRegistry).unbindExecutingQuery(any(), anyLong());
+    }
+
+    @Test
+    void shouldPreserveStatusOfTransactionFailureException() throws TransactionFailureException {
+        // Given
+        var tx = mock(InternalTransaction.class, RETURNS_DEEP_STUBS);
+        var kernelTx = mockTransaction(statement);
+        when(tx.kernelTransaction()).thenReturn(kernelTx);
+        when(tx.terminationReason()).thenReturn(Optional.empty());
+        var nextStatement = mock(KernelStatement.class);
+        when(nextStatement.queryRegistry()).thenReturn(mock(QueryRegistry.class));
+        var nextKernelTx = mockTransaction(nextStatement);
+        when(transactionFactory.beginKernelTransaction(any(), any(), any(), any()))
+                .thenReturn(nextKernelTx);
+
+        // When
+        var context = newContext(tx);
+        var expectedException = TransactionFailureException.leaseExpired(2, 1);
+        when(kernelTx.commit(any())).thenThrow(expectedException);
+
+        // Then
+        var thrown = assertThrows(org.neo4j.graphdb.TransactionFailureException.class, context::commitAndRestartTx);
+        assertEquals(expectedException.getMessage(), thrown.getMessage());
+        assertEquals(expectedException.gqlStatusObject(), thrown.gqlStatusObject());
+        assertEquals(expectedException.status(), thrown.status());
+        assertSame(expectedException, thrown.getCause());
     }
 
     private void setUpMocks() {

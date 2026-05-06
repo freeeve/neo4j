@@ -26,6 +26,7 @@ import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
+import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.GraphDatabaseQueryService;
@@ -296,6 +297,15 @@ public class Neo4jTransactionalContext implements TransactionalContext {
             // Corner case: The old transaction might have been terminated by the user. Now we also need to
             // terminate the new transaction.
             transaction.rollback();
+            // It's important to preserve GQL status where possible, in particular for
+            // transient exceptions like lease exceptions that the driver must retry
+            if (t instanceof TransactionFailureException e) {
+                throw new org.neo4j.graphdb.TransactionFailureException(
+                        e.gqlStatusObject(), e.getMessage(), e, e.status());
+            }
+            if (t instanceof RuntimeException e) {
+                throw e;
+            }
             throw new RuntimeException(t);
         }
     }
