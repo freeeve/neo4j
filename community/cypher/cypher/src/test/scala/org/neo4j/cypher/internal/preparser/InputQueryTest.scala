@@ -23,17 +23,30 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
+import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
-import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.ErrorMessageProvider
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.messages.MessageUtilProvider
+import org.neo4j.kernel.database.DatabaseReference
 
 class InputQueryTest extends CypherFunSuite {
 
@@ -53,7 +66,7 @@ class InputQueryTest extends CypherFunSuite {
   private def toFullyParsedQuery(queryString: String, version: CypherVersion) = FullyParsedQuery(
     state = parser.transform(
       from = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator),
-      context = ContextHelper.create(version)
+      context = createContext(version)
     ),
     options = QueryOptions.default(version)
   )
@@ -88,4 +101,22 @@ class InputQueryTest extends CypherFunSuite {
     a.cacheKey.hashCode() shouldEqual b.cacheKey.hashCode()
   }
 
+  private def createContext(version: CypherVersion) = {
+    new BaseContext {
+      override def cypherVersion: CypherVersion = version
+
+      override def notificationLogger: InternalNotificationLogger = devNullLogger
+      override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
+      override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory("", None)
+      override def monitors: Monitors = mock[Monitors]
+      override val errorHandler: Seq[SemanticErrorDef] => Unit = _ => ()
+      override val errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
+      override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
+      override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
+      override def sessionDatabase: DatabaseReference = null
+      override def semanticFeatures: Seq[SemanticFeature] = Seq.empty
+      override def isScopeQuery: Boolean = false
+      override def shadowedFunctions: Set[String] = Set.empty
+    }
+  }
 }
