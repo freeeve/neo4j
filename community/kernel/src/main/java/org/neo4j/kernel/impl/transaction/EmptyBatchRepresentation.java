@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction;
 
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_SEQUENCE_NUMBER;
 
 import java.io.IOException;
 import org.neo4j.io.fs.WritableChannel;
@@ -65,6 +66,11 @@ public record EmptyBatchRepresentation(KernelVersion kernelVersion, long appendI
     @Override
     public boolean isRollback() {
         return false;
+    }
+
+    @Override
+    public long transactionSequenceNumber() {
+        return UNKNOWN_TX_SEQUENCE_NUMBER;
     }
 
     @Override

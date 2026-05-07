@@ -48,6 +48,8 @@ public interface CommittedCommandBatchRepresentation {
 
     long appendIndex();
 
+    long transactionSequenceNumber();
+
     long previousBatchAppendIndex();
 
     /**

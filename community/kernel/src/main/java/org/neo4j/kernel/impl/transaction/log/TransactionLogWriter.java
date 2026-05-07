@@ -115,7 +115,8 @@ public class TransactionLogWriter {
                     appendIndex,
                     chunkId,
                     batch.getTimeCommitted(),
-                    UNKNOWN_TX_SEQUENCE_NUMBER);
+                    UNKNOWN_TX_SEQUENCE_NUMBER,
+                    previousBatchAppendIndex);
         }
 
         writer.writeBatchStart(

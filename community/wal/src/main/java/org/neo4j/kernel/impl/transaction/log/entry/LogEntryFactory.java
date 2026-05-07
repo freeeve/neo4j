@@ -84,9 +84,17 @@ public final class LogEntryFactory {
             long appendIndex,
             long chunkId,
             long timeWritten,
-            long transactionSequenceNumber) {
+            long transactionSequenceNumber,
+            long lastBatchAppendIndex) {
         return new LogEntryRollback(
-                kernelVersion, transactionId, appendIndex, chunkId, timeWritten, 0, transactionSequenceNumber);
+                kernelVersion,
+                transactionId,
+                appendIndex,
+                chunkId,
+                timeWritten,
+                0,
+                transactionSequenceNumber,
+                lastBatchAppendIndex);
     }
 
     public static LogEntry newChunkStartEntry(

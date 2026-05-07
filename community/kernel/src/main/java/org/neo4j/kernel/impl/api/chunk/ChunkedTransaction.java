@@ -87,7 +87,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
     public ChunkedTransaction(
             long transactionId,
             long transactionSequenceNumber,
-            long appendIndex,
+            long lastBatchAppendIndex,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             ChunkedCommandBatch chunk) {
@@ -98,7 +98,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
                 Commitment.NO_COMMITMENT,
                 TransactionIdGenerator.EXTERNAL_ID);
         this.transactionId = transactionId;
-        this.lastBatchAppendIndex = appendIndex;
+        this.lastBatchAppendIndex = lastBatchAppendIndex;
         this.chunk = chunk;
         this.idGenerated = true;
     }
@@ -120,7 +120,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
 
     public ChunkedTransaction(
             long transactionId,
-            long appendIndex,
+            long lastBatchAppendIndex,
             long transactionSequenceNumber,
             LogPositionMetadata logPositionMetadata,
             CursorContext cursorContext,
@@ -128,7 +128,7 @@ public class ChunkedTransaction implements StorageEngineTransaction {
             Commitment commitment) {
         this(cursorContext, transactionSequenceNumber, storeCursors, commitment, TransactionIdGenerator.EXTERNAL_ID);
         this.transactionId = transactionId;
-        this.lastBatchAppendIndex = appendIndex;
+        this.lastBatchAppendIndex = lastBatchAppendIndex;
         this.logPositionMetadata = logPositionMetadata;
         this.idGenerated = true;
     }
@@ -157,6 +157,9 @@ public class ChunkedTransaction implements StorageEngineTransaction {
         return chunk.chunkMetadata().chunkId();
     }
 
+    /*
+    Append index of the previous chunk, read from the current chunk's metadata. Used to write log entry headers and to walk backwards during rollback.
+     */
     @Override
     public long previousBatchAppendIndex() {
         return chunk.chunkMetadata().previousBatchAppendIndex();
@@ -195,6 +198,9 @@ public class ChunkedTransaction implements StorageEngineTransaction {
         }
     }
 
+    /*
+    Append index assigned to the most recently appended chunk for this transaction.
+     */
     public long lastBatchAppendIndex() {
         return lastBatchAppendIndex;
     }

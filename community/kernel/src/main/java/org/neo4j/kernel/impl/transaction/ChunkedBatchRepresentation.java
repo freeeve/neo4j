@@ -85,12 +85,21 @@ public record ChunkedBatchRepresentation(
                 chunkStart.getLeases(),
                 chunkStart.getAdditionalHeader());
         writer.serialize(commandBatch);
-        return writer.writeChunkEndEntry(kernelVersion, chunkEnd.getTransactionId(), chunkEnd.getChunkId());
+        if (commandBatch.isLast()) {
+            return writer.writeCommitEntry(kernelVersion, chunkEnd.getTransactionId(), commandBatch.getTimeCommitted());
+        } else {
+            return writer.writeChunkEndEntry(kernelVersion, chunkEnd.getTransactionId(), chunkEnd.getChunkId());
+        }
     }
 
     @Override
     public long appendIndex() {
         return chunkStart.getAppendIndex();
+    }
+
+    @Override
+    public long transactionSequenceNumber() {
+        return chunkStart.getTransactionSequenceNumber();
     }
 
     @Override

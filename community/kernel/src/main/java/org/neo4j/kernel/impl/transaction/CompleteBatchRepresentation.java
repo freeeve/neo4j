@@ -91,6 +91,11 @@ public record CompleteBatchRepresentation(
     }
 
     @Override
+    public long transactionSequenceNumber() {
+        return startEntry.getTransactionSequenceNumber();
+    }
+
+    @Override
     public int checksum() {
         return commitEntry.getChecksum();
     }

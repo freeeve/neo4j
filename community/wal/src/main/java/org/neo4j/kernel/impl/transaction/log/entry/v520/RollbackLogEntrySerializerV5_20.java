@@ -49,10 +49,18 @@ public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntry
         long timeWritten = channel.getLong();
         long chunkId = channel.getLong();
         long transactionSequenceNumber = channel.getLong();
+        long lastBatchAppendIndex = channel.getLong();
         long appendIndex = channel.getAppendIndex();
         int checksum = channel.endChecksumAndValidate();
         return new LogEntryRollback(
-                version, transactionId, appendIndex, chunkId, timeWritten, checksum, transactionSequenceNumber);
+                version,
+                transactionId,
+                appendIndex,
+                chunkId,
+                timeWritten,
+                checksum,
+                transactionSequenceNumber,
+                lastBatchAppendIndex);
     }
 
     @Override
@@ -63,6 +71,7 @@ public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntry
                 .putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getChunkId())
                 .putLong(logEntry.getTransactionSequenceNumber())
+                .putLong(logEntry.getLastBatchAppendIndex())
                 .putAppendIndex(logEntry.getAppendIndex());
         return channel.putChecksum();
     }

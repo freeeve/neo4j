@@ -250,7 +250,7 @@ public final class ChunkCommitter implements TransactionCommitter {
                 false,
                 true,
                 true,
-                UNKNOWN_APPEND_INDEX,
+                previousBatchAppendIndex,
                 chunkNumber,
                 new MutableLong(UNKNOWN_CONSENSUS_INDEX),
                 new MutableLong(UNKNOWN_APPEND_INDEX),

@@ -380,7 +380,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                             appendIndex,
                             transactionTracker.lastNotCompletedTransactionChunk(notCompletedTransaction),
                             time,
-                            UNKNOWN_TX_SEQUENCE_NUMBER);
+                            UNKNOWN_TX_SEQUENCE_NUMBER,
+                            UNKNOWN_APPEND_INDEX); // TODO is this ok? What happens if a secondary pulls this entry
                     if (i == (notCompletedTransactions.length - 1)) {
                         lastBatchInfo = new CommittedCommandBatchRepresentation.BatchInformation(
                                 notCompletedTransaction,

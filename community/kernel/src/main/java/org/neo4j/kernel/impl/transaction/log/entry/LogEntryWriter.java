@@ -132,7 +132,8 @@ public class LogEntryWriter<T extends WritableChannel> {
             long appendIndex,
             long chunkId,
             long timeWritten,
-            long transactionSequenceNumber)
+            long transactionSequenceNumber,
+            long lastBatchAppendIndex)
             throws IOException {
         updateSerializationSet(kernelVersion);
 
@@ -146,7 +147,8 @@ public class LogEntryWriter<T extends WritableChannel> {
                                 appendIndex,
                                 chunkId,
                                 timeWritten,
-                                transactionSequenceNumber));
+                                transactionSequenceNumber,
+                                lastBatchAppendIndex));
     }
 
     public int writeCommitEntry(KernelVersion kernelVersion, long transactionId, long timeWritten) throws IOException {
