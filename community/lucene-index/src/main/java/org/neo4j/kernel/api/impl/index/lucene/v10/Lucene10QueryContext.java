@@ -39,6 +39,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
+import org.apache.lucene.search.RescoreTopNQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.AttributeSource;
@@ -156,8 +157,8 @@ public class Lucene10QueryContext implements LuceneQueryContext {
 
     @Override
     public Lucene10QueryContext approximateNearestNeighbors(
-            VectorDocumentStructure documentStructure, float[] query, int k) {
-        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k));
+            VectorDocumentStructure documentStructure, float[] query, int k, int efSearch) {
+        assignSingle(annQuery(documentStructure, query, k, efSearch, null));
         return this;
     }
 
@@ -166,11 +167,23 @@ public class Lucene10QueryContext implements LuceneQueryContext {
             VectorDocumentStructure documentStructure,
             float[] query,
             int k,
+            int efSearch,
             EntityFilterPredicate entityFilter,
             PropertyIndexQuery... filterQueries) {
-        var filters = Lucene10FilterQueryBuilder.build(documentStructure, entityFilter, filterQueries);
-        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k, filters));
+        Query filters = Lucene10FilterQueryBuilder.build(documentStructure, entityFilter, filterQueries);
+        assignSingle(annQuery(documentStructure, query, k, efSearch, filters));
         return this;
+    }
+
+    private Query annQuery(
+            VectorDocumentStructure documentStructure, float[] query, int k, int efSearch, Query filter) {
+        assert efSearch >= k : "efSearch must be >= k";
+        String field = documentStructure.vectorValueKeyFor(query.length);
+        Query vectorQuery = new KnnFloatVectorQuery(field, query, efSearch, filter);
+        if (efSearch > k) {
+            vectorQuery = RescoreTopNQuery.createFullPrecisionRescorerQuery(vectorQuery, query, field, k);
+        }
+        return vectorQuery;
     }
 
     public Query build() {

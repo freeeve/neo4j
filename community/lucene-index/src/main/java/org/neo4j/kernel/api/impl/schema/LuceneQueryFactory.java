@@ -29,6 +29,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.kernel.api.impl.schema.vector.VectorQuantizationType;
 
 public abstract class LuceneQueryFactory {
 
@@ -118,9 +119,16 @@ public abstract class LuceneQueryFactory {
 
     public static class VectorQueryFactory extends LuceneQueryFactory {
         private final VectorDocumentStructure documentStructure;
+        private final VectorQuantizationType quantizationType;
+        private final double defaultSearchExpansion;
 
-        public VectorQueryFactory(VectorDocumentStructure documentStructure) {
+        public VectorQueryFactory(
+                VectorDocumentStructure documentStructure,
+                VectorQuantizationType quantizationType,
+                double defaultSearchExpansion) {
             this.documentStructure = documentStructure;
+            this.quantizationType = quantizationType;
+            this.defaultSearchExpansion = defaultSearchExpansion;
         }
 
         @Override
@@ -134,25 +142,34 @@ public abstract class LuceneQueryFactory {
                 case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case NEAREST_NEIGHBORS -> {
                     final var nearestNeighborsPredicate = (PropertyIndexQuery.NearestNeighborsPredicate) predicate;
-                    final var k = Math.min(
+                    final int k = Math.toIntExact(Math.min(
                             nearestNeighborsPredicate.numberOfNeighbors(),
-                            constraints.limit().orElse(Integer.MAX_VALUE));
-                    final var effectiveK = k + constraints.skip().orElse(0);
+                            constraints.limit().orElse(Integer.MAX_VALUE)));
+
+                    double searchExpansion =
+                            switch (this.quantizationType) {
+                                case NONE -> 1.0;
+                                case BINARY, SCALAR ->
+                                    nearestNeighborsPredicate.searchExpansion(defaultSearchExpansion);
+                            };
+
+                    // Values above 1.0 for searchExpansion enable rescoring and we are rounding up
+                    // so that small values still have an impact on small k values.
+                    int efSearch = searchExpansion > 1.0 ? (int) Math.ceil(searchExpansion * k) : k;
 
                     if (predicates.length > 1) {
                         yield searcher.newQueryContext()
                                 .approximateNearestNeighbors(
                                         documentStructure,
                                         nearestNeighborsPredicate.query(),
-                                        Math.toIntExact(effectiveK),
+                                        k,
+                                        efSearch,
                                         extractEntityFilter(predicates),
                                         extractPropertyFilters(predicates));
                     } else {
                         yield searcher.newQueryContext()
                                 .approximateNearestNeighbors(
-                                        documentStructure,
-                                        nearestNeighborsPredicate.query(),
-                                        Math.toIntExact(effectiveK));
+                                        documentStructure, nearestNeighborsPredicate.query(), k, efSearch);
                     }
                 }
                 default -> throw invalidQuery(descriptor, predicate);

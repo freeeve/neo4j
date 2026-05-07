@@ -58,9 +58,26 @@ public class VectorQuantizationTest extends VectorSSFTestBase {
         createNodeVectorIndex(
                 VECTOR_INDEX_NAME,
                 DIMENSION,
+                indexConfig ->
+                        indexConfig.withQuantizationType(quantizationType).withDefaultSearchExpansionFactor(1.0),
+                EMBEDDING_NAME);
+
+        runQuantizationTest(quantizationType, false);
+    }
+
+    @ParameterizedTest
+    @EnumSource(VectorQuantizationType.class)
+    void testQuantizationRescoring(VectorQuantizationType quantizationType) throws Exception {
+        createNodeVectorIndex(
+                VECTOR_INDEX_NAME,
+                DIMENSION,
                 indexConfig -> indexConfig.withQuantizationType(quantizationType),
                 EMBEDDING_NAME);
 
+        runQuantizationTest(quantizationType, true);
+    }
+
+    void runQuantizationTest(VectorQuantizationType quantizationType, boolean withRescoring) throws Exception {
         float[] vector1 = {0.1f, 0.2f, 0.3f, 12.0f, 0.5f, 0.6f, 0.7f, 0.8f};
         float[] vector2 = {0.1f, 0.2f, 4.0f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f};
         float[] vector3 = {0.1f, 2.0f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f};
@@ -78,7 +95,7 @@ public class VectorQuantizationTest extends VectorSSFTestBase {
         List<VectorSSFQueryResult> allResults = queryNodeIndex(queryVector, 4);
 
         Object[] expected =
-                switch (quantizationType) {
+                switch (withRescoring ? VectorQuantizationType.NONE : quantizationType) {
                     case NONE -> new Object[] {4L, 1.146f, 3L, 0.990f, 2L, 0.872f, 1L, 0.777f};
                     case SCALAR -> new Object[] {4L, 1.0f, 3L, 0.990f, 2L, 0.872f, 1L, 0.777f};
                     case BINARY -> new Object[] {4L, 1.0f, 3L, 1.0f, 2L, 0.817f, 1L, 0.754f};

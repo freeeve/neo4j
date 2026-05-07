@@ -100,7 +100,7 @@ public class VectorIndexConfig extends TypedIndexConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(dimensions, similarityFunction, quantization, hnswConfig);
+        return Objects.hash(dimensions, similarityFunction, defaultSearchExpansionFactor, quantization, hnswConfig);
     }
 
     @Override

@@ -126,15 +126,18 @@ public interface LuceneQueryContext {
      * @param documentStructure The documents structure to use.
      * @param query Vector to search around.
      * @param k Number of documents to find.
+     * @param efSearch Number of nearest neighbors to consider. Must be >= `k`.
      */
-    LuceneQueryContext approximateNearestNeighbors(VectorDocumentStructure documentStructure, float[] query, int k);
+    LuceneQueryContext approximateNearestNeighbors(
+            VectorDocumentStructure documentStructure, float[] query, int k, int efSearch);
 
     /**
-     * An approximate KNN search with filters.
+     * An approximate KNN search optional rescoring and with filters.
      *
      * @param documentStructure The documents structure to use.
      * @param query Vector to search around.
      * @param k Number of documents to find.
+     * @param efSearch Number of nearest neighbors to consider. Must be >= `k`.
      * @param entityFilter an entityFilter to .
      * @param filterQueries the queries with which to filter the search.
      */
@@ -142,6 +145,7 @@ public interface LuceneQueryContext {
             VectorDocumentStructure documentStructure,
             float[] query,
             int k,
+            int efSearch,
             EntityFilterPredicate entityFilter,
             PropertyIndexQuery... filterQueries);
 }

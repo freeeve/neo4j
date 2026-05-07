@@ -64,7 +64,14 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             List<SearcherReference> searchers,
             IndexUsageTracking usageTracker,
             LogProvider logProvider) {
-        super(descriptor, usageTracker, new LuceneQueryFactory.VectorQueryFactory(documentStructure), logProvider);
+        super(
+                descriptor,
+                usageTracker,
+                new LuceneQueryFactory.VectorQueryFactory(
+                        documentStructure,
+                        vectorIndexConfig.quantization(),
+                        vectorIndexConfig.defaultSearchExpansionFactor()),
+                logProvider);
         this.dimensions = vectorIndexConfig.dimensions();
         this.searchers = searchers;
     }

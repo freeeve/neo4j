@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery.EntityFilterPredicate;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
@@ -157,24 +158,24 @@ public class Lucene9QueryContext implements LuceneQueryContext {
 
     @Override
     public Lucene9QueryContext approximateNearestNeighbors(
-            VectorDocumentStructure documentStructure, float[] query, int k) {
-        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k));
+            VectorDocumentStructure documentStructure, float[] query, int k, int efSearch) {
+        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, efSearch));
         return this;
     }
 
     @Override
-    public LuceneQueryContext approximateNearestNeighbors(
+    public Lucene9QueryContext approximateNearestNeighbors(
             VectorDocumentStructure documentStructure,
             float[] query,
             int k,
-            PropertyIndexQuery.EntityFilterPredicate entityFilter,
+            int efSearch,
+            EntityFilterPredicate entityFilter,
             PropertyIndexQuery... filterQueries) {
-        if (entityFilter == PropertyIndexQuery.EntityFilterPredicate.MatchAll.INSTANCE && filterQueries.length == 0) {
-            return approximateNearestNeighbors(documentStructure, query, k);
-        } else {
+        if (entityFilter != EntityFilterPredicate.MatchAll.INSTANCE || filterQueries.length != 0) {
             throw InternalException.internalError(
                     getClass().getSimpleName(), "Single stage filter is not supported in this index");
         }
+        return approximateNearestNeighbors(documentStructure, query, k, efSearch);
     }
 
     public Query build() {

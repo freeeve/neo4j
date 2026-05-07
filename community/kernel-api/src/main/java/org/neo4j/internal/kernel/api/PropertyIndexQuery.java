@@ -233,6 +233,10 @@ public abstract class PropertyIndexQuery implements IndexQuery {
         return new NearestNeighborsPredicate(k, query);
     }
 
+    public static NearestNeighborsPredicate nearestNeighbors(int k, double searchExpansion, float[] query) {
+        return new NearestNeighborsPredicate(k, searchExpansion, query);
+    }
+
     public static EntityFilterPredicate entityFilter(long... entities) {
         return new EntityFilterPredicate.MatchEntitySet(entities);
     }
@@ -914,11 +918,17 @@ public abstract class PropertyIndexQuery implements IndexQuery {
 
     public static final class NearestNeighborsPredicate extends PropertyIndexQuery {
         private final int k;
+        private final double searchExpansion;
         private final float[] query;
 
         private NearestNeighborsPredicate(int k, float... query) {
+            this(k, Double.NaN, query);
+        }
+
+        private NearestNeighborsPredicate(int k, double searchExpansion, float... query) {
             super(TokenConstants.NO_TOKEN);
             this.k = k;
+            this.searchExpansion = searchExpansion;
             this.query = query;
         }
 
@@ -942,6 +952,10 @@ public abstract class PropertyIndexQuery implements IndexQuery {
             return k;
         }
 
+        public double searchExpansion(double defaultValue) {
+            return Double.isNaN(searchExpansion) ? defaultValue : searchExpansion;
+        }
+
         public float[] query() {
             return query;
         }
@@ -958,12 +972,15 @@ public abstract class PropertyIndexQuery implements IndexQuery {
                 return false;
             }
             NearestNeighborsPredicate that = (NearestNeighborsPredicate) o;
-            return k == that.k && Arrays.equals(query, that.query);
+            return k == that.k
+                    // NaN is a possible value, so using == to compare would be wrong
+                    && Double.compare(searchExpansion, that.searchExpansion) == 0
+                    && Arrays.equals(query, that.query);
         }
 
         @Override
         public int hashCode() {
-            int result = Objects.hash(super.hashCode(), k);
+            int result = Objects.hash(super.hashCode(), k, searchExpansion);
             result = 31 * result + Arrays.hashCode(query);
             return result;
         }
