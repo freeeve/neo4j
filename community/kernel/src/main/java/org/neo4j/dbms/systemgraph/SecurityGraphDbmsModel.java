@@ -31,6 +31,7 @@ public interface SecurityGraphDbmsModel {
     String USER_CREDENTIALS_EXPIRED_PROPERTY = "passwordChangeRequired";
     String USER_SUSPENDED_PROPERTY = "suspended";
     String USER_HOME_DB_PROPERTY = "homeDatabase";
+    String USER_TAGS_PROPERTY = "tags";
 
     RelationshipType HAS_AUTH_TYPE = RelationshipType.withName("HAS_AUTH");
     String HAS_AUTH = HAS_AUTH_TYPE.name();
