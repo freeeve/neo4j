@@ -125,8 +125,6 @@ final class Lucene10FilterQueryBuilder {
     }
 
     private Query entityFilterPredicate(long[] validEntities) {
-        // TODO: at some point we should move the construction of the sorted set
-        //      to the cypher runtime by constructing a dedicated aggregator.
         TreeSet<BytesRef> idStrings = new TreeSet<>();
         for (long validEntity : validEntities) {
             idStrings.add(new BytesRef(Long.toString(validEntity)));

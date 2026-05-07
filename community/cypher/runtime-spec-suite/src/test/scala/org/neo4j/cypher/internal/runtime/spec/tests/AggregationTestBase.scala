@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.expressions.functions.StdDev
 import org.neo4j.cypher.internal.expressions.functions.StdDevP
 import org.neo4j.cypher.internal.expressions.functions.Sum
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CollectDistinctIds
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -2447,6 +2448,444 @@ abstract class AggregationTestBase[CONTEXT <: RuntimeContext](
           listInAnyOrder = isParallel
         )
       }
+  }
+
+  test("should collect(distinct(id(n)))") {
+    val nodeIds = givenGraph {
+      nodeGraph(sizeHint).map(_.getId)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withRows(Seq(Array(nodeIds.toArray)), listInAnyOrder = true)
+  }
+
+  test("collect(distinct(id(n))) should remove dupicates") {
+    val nodes = givenGraph {
+      val n = nodeGraph(100)
+      Random.shuffle(n ++ n ++ n)
+    }
+    val input = inputValues(nodes.map(Array[Any](_)): _*)
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .input(nodes = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, input)
+
+    // then
+    runtimeResult should beColumns("c").withRows(Seq(Array(nodes.distinct.map(_.getId).toArray)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) where n is null") {
+    val input = inputValues(Array(Array[Any](null)): _*)
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .input(nodes = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, input)
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(Array.empty)
+  }
+
+  test("should collect(distinct ids(n)) where n is null with grouping") {
+    val input = inputValues(Array(Array[Any](null)): _*)
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Map("x" -> varFor("x")), Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .input(nodes = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, input)
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(Array.empty)
+  }
+
+  test("should collect(distinct ids(n)) with limit") {
+    // given
+    val nodeIds = givenGraph {
+      nodeGraph(sizeHint).map(_.getId)
+    }
+    val limit = sizeHint / 10
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .limit(limit)
+      .sort("x ASC")
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withRows(Seq(Array(nodeIds.take(limit).toArray)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) under apply") {
+    val nodesPerLabel = 100
+    val limit = nodesPerLabel / 2
+    val expected = givenGraph {
+      val startNodes = nodeGraph(sizeHint, "A")
+      val endNodes = nodeGraph(nodesPerLabel, "B")
+      startNodes.foreach(n => {
+        endNodes.foreach(other => n.createRelationshipTo(other, RelationshipType.withName("R")))
+      })
+      endNodes.map(_.getId).sorted.take(limit).toArray
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .apply()
+      .|.aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.limit(limit)
+      .|.sort("b ASC")
+      .|.expandAll("(a)-->(b)")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    // then
+    val runtimeResult = execute(logicalQuery, runtime)
+    runtimeResult should beColumns("c").withRows(Seq.fill(sizeHint)(Array[Any](expected)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) and limit under apply") {
+    val nodesPerLabel = 100
+    val expected = givenGraph {
+      val startNodes = nodeGraph(sizeHint, "A")
+      val endNodes = nodeGraph(nodesPerLabel, "B")
+      startNodes.foreach(n => {
+        endNodes.foreach(other => n.createRelationshipTo(other, RelationshipType.withName("R")))
+      })
+      endNodes.map(_.getId).sorted.toArray
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .apply()
+      .|.limit(1)
+      .|.aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.expandAll("(a)-->(b)")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withRows(Seq.fill(sizeHint)(Array[Any](expected)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) under apply with limit") {
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .limit(1)
+      .apply()
+      .|.aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("a")))))
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(Array(node.getId))
+  }
+
+  test("should collect(distinct ids(n)) under apply when all arguments are filtered out") {
+    val nodesPerLabel = 100
+    val (aNodes, _) = givenGraph { bipartiteGraph(nodesPerLabel, "A", "B", "R") }
+    val limit = nodesPerLabel / 2
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .apply()
+      .|.aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.limit(limit)
+      .|.expandAll("(a)-->(b)")
+      .|.filter("false")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    // then
+    val runtimeResult = execute(logicalQuery, runtime)
+    val expected = aNodes.map(_ => Array[Any](Array.empty))
+    runtimeResult should beColumns("c").withRows(expected)
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column") {
+    val groups = givenGraph {
+      val nodes = nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("num" -> i, "name" -> s"bob${i % 10}")
+        },
+        "Honey"
+      )
+
+      nodes.groupBy(n => n.getProperty("name").asInstanceOf[String]).view.mapValues(nodes => nodes.map(_.getId).toArray)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("name", "c")
+      .aggregation(Map("name" -> prop("x", "name")), Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("name", "c").withRows(
+      for (i <- 0 until 10) yield {
+        Array[Any](s"bob$i", groups(s"bob$i"))
+      },
+      listInAnyOrder = true
+    )
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column under apply") {
+    val nodesPerLabel = 100
+    val limit = nodesPerLabel / 2
+    val (startNodes, expected) = givenGraph {
+      val startNodes = nodeGraph(sizeHint, "A")
+      val endNodes = nodeGraph(nodesPerLabel, "B")
+      startNodes.foreach(n => {
+        endNodes.foreach(other => n.createRelationshipTo(other, RelationshipType.withName("R")))
+      })
+      (startNodes, endNodes.map(_.getId).sorted.take(limit).toArray)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a", "c")
+      .apply()
+      .|.aggregation(Map("a" -> varFor("a")), Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.limit(limit)
+      .|.sort("b ASC")
+      .|.expandAll("(a)-->(b)")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    // then
+    val runtimeResult = execute(logicalQuery, runtime)
+    runtimeResult should beColumns(
+      "a",
+      "c"
+    ).withRows(startNodes.map(s => Array[Any](s, expected)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column and limit under apply") {
+    val nodesPerLabel = 100
+    val (startNodes, expected) = givenGraph {
+      val startNodes = nodeGraph(sizeHint, "A")
+      val endNodes = nodeGraph(nodesPerLabel, "B")
+      startNodes.foreach(n => {
+        endNodes.foreach(other => n.createRelationshipTo(other, RelationshipType.withName("R")))
+      })
+      (startNodes, endNodes.map(_.getId).sorted.toArray)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .apply()
+      .|.limit(1)
+      .|.aggregation(Map("a" -> varFor("a")), Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.expandAll("(a)-->(b)")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withRows(startNodes.map(s => Array[Any](expected)), listInAnyOrder = true)
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column under apply with limit") {
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .limit(1)
+      .apply()
+      .|.aggregation(Map("a" -> varFor("a")), Map("c" -> collectDistinctIds(id(varFor("a")))))
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(Array(node.getId))
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column under apply when all arguments are filtered out") {
+    val nodesPerLabel = 100
+    givenGraph { bipartiteGraph(nodesPerLabel, "A", "B", "R") }
+    val limit = nodesPerLabel / 2
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a", "c")
+      .apply()
+      .|.aggregation(Map("a" -> varFor("a")), Map("c" -> collectDistinctIds(id(varFor("b")))))
+      .|.limit(limit)
+      .|.expandAll("(a)-->(b)")
+      .|.filter("false")
+      .|.argument("a")
+      .nodeByLabelScan("a", "A", IndexOrderNone)
+      .build()
+
+    // then
+    val runtimeResult = execute(logicalQuery, runtime)
+    runtimeResult should beColumns("a", "c").withNoRows()
+  }
+
+  test("should collect(distinct ids(n)) on single grouping column with nulls") {
+    val (namedGroups, nullGroup) = givenGraph {
+      val nodes = nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int if i % 2 == 0 => Map("num" -> i, "name" -> s"bob${i % 10}")
+          case i: Int if i % 2 == 1 => Map("num" -> i)
+        },
+        "Honey"
+      )
+
+      (
+        nodes.filter(
+          _.hasProperty("name")
+        ).groupBy(n => n.getProperty("name").asInstanceOf[String]).view.mapValues(_.map(_.getId).toArray),
+        nodes.filterNot(_.hasProperty("name")).map(_.getId).toArray
+      )
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("name", "c")
+      .aggregation(Map("name" -> prop("x", "name")), Map("c" -> collectDistinctIds(id(varFor("x")))))
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("name", "c").withRows(
+      (for (i <- 0 until 10 by 2) yield {
+        Array[Any](s"bob$i", namedGroups(s"bob$i"))
+      }) :+ Array[Any](null, nullGroup),
+      listInAnyOrder = true
+    )
+  }
+
+  test("should collect(distinct ids(n)) on two grouping columns") {
+    val groups = givenGraph {
+      val nodes = nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("num" -> i, "name" -> s"bob${i % 10}", "surname" -> s"bobbins${i / 100}")
+        },
+        "Honey"
+      )
+      nodes.groupBy(n =>
+        Seq(n.getProperty("name").asInstanceOf[String], n.getProperty("surname").asInstanceOf[String])
+      ).view.mapValues(_.map(_.getId).toArray)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("name", "surname", "c")
+      .aggregation(
+        Map("name" -> prop("x", "name"), "surname" -> prop("x", "surname")),
+        Map("c" -> collectDistinctIds(id(varFor("x"))))
+      )
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("name", "surname", "c").withRows(
+      for (i <- 0 until 10; j <- 0 until sizeHint / 100)
+        yield {
+          Array[Any](s"bob$i", s"bobbins$j", groups(Seq(s"bob$i", s"bobbins$j")))
+        },
+      listInAnyOrder = true
+    )
+  }
+
+  test("should collect(distinct ids(n)) on three grouping columns") {
+    val groups = givenGraph {
+      val nodes = nodePropertyGraph(
+        sizeHint,
+        {
+          case i: Int => Map("num" -> i, "name" -> s"bob${i % 10}", "surname" -> s"bobbins${i / 100}", "dead" -> i % 2)
+        },
+        "Honey"
+      )
+      nodes.groupBy(n =>
+        Seq(
+          n.getProperty("name").asInstanceOf[String],
+          n.getProperty("surname").asInstanceOf[String],
+          n.getProperty("dead").asInstanceOf[Number]
+        )
+      ).view.mapValues(_.map(_.getId).toArray)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("name", "surname", "dead", "c")
+      .aggregation(
+        Map("name" -> prop("x", "name"), "surname" -> prop("x", "surname"), "dead" -> prop("x", "dead")),
+        Map("c" -> collectDistinctIds(id(varFor("x"))))
+      )
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("name", "surname", "dead", "c").withRows(
+      for (i <- 0 until 10; j <- 0 until sizeHint / 100) yield {
+        Array[Any](s"bob$i", s"bobbins$j", i % 2, groups(Seq(s"bob$i", s"bobbins$j", i % 2)))
+      },
+      listInAnyOrder = true
+    )
   }
 }
 

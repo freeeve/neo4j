@@ -554,7 +554,8 @@ case class CommunityExpressionConverter(
         commands.expressions.CollectAll(self.toCommandExpression(id, e.arguments.head))
       case e: internal.expressions.CollectDistinct =>
         commands.expressions.CollectDistinct(self.toCommandExpression(id, e.arguments.head), e.isOrdered)
-
+      case e: internal.expressions.CollectDistinctIds =>
+        commands.expressions.CollectDistinctIds(self.toCommandExpression(id, e.arguments.head))
       case e: DefaultValueLiteral => commands.expressions.Literal(e.value)
       case e: RuntimeConstant =>
         commands.expressions.RuntimeConstant(

@@ -4294,7 +4294,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         entityFilter = matchEntities(varFor("c")),
         argumentIds = Set("c")
       )
-      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
       .filter("x.id < 100")
       .allRelationshipsScan("()-[x]->()")
       .build()
@@ -4337,7 +4337,7 @@ abstract class RelationshipVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         propertyFilter = Some(rangeExpression(lt(literalInt(17)))),
         argumentIds = Set("c")
       )
-      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
       .filter("x.id < 100")
       .allRelationshipsScan("()-[x]->()")
       .build()

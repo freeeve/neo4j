@@ -235,11 +235,92 @@ class collectDistinctRewriterTest extends CypherPlannerTestSuite with LogicalPla
     assertNotRewritten(before)
   }
 
-  test("should not rewrite collect when ordered") {
+  test("should preserve order") {
     val before = new LogicalPlanBuilder()
       .produceResults("set")
-      .aggregation(Map.empty[String, Expression], Map("set" -> distinctFunction("collect", order = ArgumentAsc)))
+      .aggregation(
+        Map.empty[String, Expression],
+        Map("set" -> distinctFunction("collect", order = ArgumentAsc, prop("a", "prop")))
+      )
       .nodeIndexOperator("a:L(prop)", indexOrder = IndexOrderAscending)
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"), ordered = true)))
+      .nodeIndexOperator("a:L(prop)", indexOrder = IndexOrderAscending)
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should rewrite collect distinct ids") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Seq.empty, Seq("collect(distinct id(a)) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinctIds(id(varFor("a")))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should not rewrite collect ids without distinct") {
+    val plan = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Seq.empty, Seq("collect(id(a)) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(plan)
+  }
+
+  test("should not rewrite collect distinct element ids") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Seq.empty, Seq("collect(distinct elementId(a)) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(elementId(varFor("a")))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should not rewrite collect ids when ordered") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(
+        Map.empty[String, Expression],
+        Map("set" -> distinctFunction("collect", order = ArgumentAsc, id(varFor("a"))))
+      )
+      .nodeIndexOperator("a:L(prop)", indexOrder = IndexOrderAscending)
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(id(varFor("a")), ordered = true)))
+      .nodeIndexOperator("a:L(prop)", indexOrder = IndexOrderAscending)
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should not rewrite collect ids if random access") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("third")
+      .projection("set[3] AS third")
+      .aggregation(Seq.empty, Seq("collect(distinct id(a)) AS set"))
+      .allNodeScan("a")
       .build()
 
     assertNotRewritten(before)

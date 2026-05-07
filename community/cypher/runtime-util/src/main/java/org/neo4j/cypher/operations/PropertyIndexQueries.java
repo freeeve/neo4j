@@ -33,8 +33,6 @@ public final class PropertyIndexQueries {
         throw new UnsupportedOperationException("Don't instantiate!");
     }
 
-    // TODO: I think we can get rid of some copying here
-    //       will follow up in alter work
     public static EntityFilterPredicate matchEntitySet(AnyValue value) {
         return switch (arrayValue(value)) {
             case LongArray la -> PropertyIndexQuery.entityFilter(la.asObject());

@@ -20,12 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.expressions.CollectDistinct
+import org.neo4j.cypher.internal.expressions.CollectDistinctIds
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.functions.Collect
+import org.neo4j.cypher.internal.expressions.functions.Id
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
@@ -53,13 +55,13 @@ case object collectDistinctRewriter extends Rewriter {
     aggregationExpressions: Map[LogicalVariable, Expression]
   ) =
     aggregationExpressions.map {
-      case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _, _, _))
-        if name.equalsIgnoreCase(Collect.name) && !rewriteConstraints.unsafeVariables(v) =>
-        v -> CollectDistinct(in, f.isOrdered)(f.position)
-
-      case (v, f @ FunctionInvocation(FunctionName(_, name), false, IndexedSeq(in), _, _, _, _))
-        if name.equalsIgnoreCase(Collect.name) && rewriteConstraints.implicitlyDistinctVariables(v) =>
-        v -> CollectDistinct(in, f.isOrdered)(f.position)
+      case (v, f @ CollectFunction(arg @ Id(_), true, false))
+        if !rewriteConstraints.implicitlyDistinctVariables(v) && !rewriteConstraints.unsafeVariables(v) =>
+        v -> CollectDistinctIds(arg)(f.position)
+      case (v, f @ CollectFunction(in, true, isOrdered)) if !rewriteConstraints.unsafeVariables(v) =>
+        v -> CollectDistinct(in, isOrdered)(f.position)
+      case (v, f @ CollectFunction(in, false, isOrdered)) if rewriteConstraints.implicitlyDistinctVariables(v) =>
+        v -> CollectDistinct(in, isOrdered)(f.position)
 
       case (v, e) => v -> e
     }
@@ -145,6 +147,18 @@ case object collectDistinctRewriter extends Rewriter {
       if (newAliases.isEmpty) this
       else {
         copy(aliases = aliases ++ newAliases)
+      }
+    }
+  }
+
+  object CollectFunction {
+
+    def unapply(arg: Expression): Option[(Expression, Boolean, Boolean)] = {
+      arg match {
+        case f @ FunctionInvocation(FunctionName(_, name), distinct, IndexedSeq(in), _, _, _, _)
+          if name.equalsIgnoreCase(Collect.name) =>
+          Some((in, distinct, f.isOrdered))
+        case _ => None
       }
     }
   }

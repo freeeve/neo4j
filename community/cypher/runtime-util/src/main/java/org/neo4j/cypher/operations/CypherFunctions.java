@@ -3223,7 +3223,7 @@ public final class CypherFunctions {
                 errorMsg =
                         contextForErrorMessage.get() + ": Expected " + numericTypeString + " value but got: " + value;
             }
-            if (!functionName.isEmpty()) {
+            if (functionName != null && !functionName.isEmpty()) {
                 throw CypherTypeException.functionArgumentWrongType(
                         errorMsg,
                         functionName,

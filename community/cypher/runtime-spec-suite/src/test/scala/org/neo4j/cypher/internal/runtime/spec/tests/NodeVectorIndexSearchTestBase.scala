@@ -2599,7 +2599,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         entityFilter = matchEntities(varFor("c")),
         argumentIds = Set("c")
       )
-      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
       .filter("x.id < 100")
       .allNodeScan("x")
       .build()
@@ -2646,7 +2646,7 @@ abstract class NodeVectorIndexSearchTestBase[CONTEXT <: RuntimeContext](
         propertyFilter = Some(rangeExpression(lt(literalInt(17)))),
         argumentIds = Set("c")
       )
-      .aggregation(Seq.empty, Seq("collect(id(x)) AS c"))
+      .aggregation(Map.empty[String, Expression], Map("c" -> collectDistinctIds(id(varFor("x")))))
       .filter("x.id < 100")
       .allNodeScan("x")
       .build()
