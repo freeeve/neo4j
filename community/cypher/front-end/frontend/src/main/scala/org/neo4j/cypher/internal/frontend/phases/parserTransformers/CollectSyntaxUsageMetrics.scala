@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
 import org.neo4j.cypher.internal.expressions.PathMode.Acyclic
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
+import org.neo4j.cypher.internal.expressions.PrefixedPatternPart
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
@@ -75,6 +76,10 @@ case object CollectSyntaxUsageMetrics
     var isCallInTxConcurrentQuery = false
 
     state.statement().folder.treeForeach {
+      case ppp: PrefixedPatternPart if !ppp.pathMode.implicitlyCreated && ppp.isSelective =>
+        // We found a path pattern with a selective selector and explicit path mode.
+        // Do not also increase, for example, GPM_SHORTEST. We will traverse further down the tree and reach that case later.
+        increaseMetric(SyntaxUsageMetricKey.GPM_SHORTEST_WITH_EXPLICIT_PATH_MODE)
       case _: SelectiveSelector =>
         increaseMetric(SyntaxUsageMetricKey.GPM_SHORTEST)
       case _: ShortestPathsPatternPart =>

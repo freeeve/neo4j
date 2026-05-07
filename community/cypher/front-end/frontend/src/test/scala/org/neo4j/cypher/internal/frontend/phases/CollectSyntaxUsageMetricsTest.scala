@@ -154,6 +154,53 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(1)
   }
 
+  test("should find SHORTEST + explicit path mode") {
+    Seq("ACYCLIC", "TRAIL", "WALK").foreach {
+      explicitPathMode =>
+        withClue(
+          s"SHORTEST + $explicitPathMode should increase GPM_SHORTEST and GPM_SHORTEST_WITH_EXPLICIT_PATH_MODE metrics"
+        ) {
+          val stats = runPipeline(
+            CypherVersion.Cypher25,
+            query =
+              s"""
+                 |MATCH ANY SHORTEST $explicitPathMode (a)-[r]-(b)((c)-[s]-(d))+ (p)
+                 |RETURN *
+                 |""".stripMargin
+          )
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.GPM_SHORTEST) should be(1)
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.GPM_SHORTEST_WITH_EXPLICIT_PATH_MODE) should be(1)
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
+          if (explicitPathMode == "ACYCLIC") {
+            stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(1)
+          } else {
+            stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(0)
+          }
+        }
+
+        withClue(
+          s"ALL + $explicitPathMode should not increase GPM_SHORTEST and GPM_SHORTEST_WITH_EXPLICIT_PATH_MODE metrics"
+        ) {
+          val stats = runPipeline(
+            CypherVersion.Cypher25,
+            query =
+              s"""
+                 |MATCH ALL $explicitPathMode (a)-[r]-(b)((c)-[s]-(d))+ (p)
+                 |RETURN *
+                 |""".stripMargin
+          )
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.GPM_SHORTEST) should be(0)
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.GPM_SHORTEST_WITH_EXPLICIT_PATH_MODE) should be(0)
+          stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
+          if (explicitPathMode == "ACYCLIC") {
+            stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(1)
+          } else {
+            stats.getSyntaxUsageCount(SyntaxUsageMetricKey.ACYCLIC_PATH_MODE) should be(0)
+          }
+        }
+    }
+  }
+
   testVersionsExcept5("should find LET clause") { version =>
     val stats = runPipeline(
       version,
