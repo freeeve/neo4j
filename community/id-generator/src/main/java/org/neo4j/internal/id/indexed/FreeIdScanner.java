@@ -146,35 +146,41 @@ class FreeIdScanner {
             return NO_ID;
         }
 
-        handleQueuedIds(cursorContext);
-        Partition partition = acquirePartition(blocking, requestedNumberOfIds, cursorContext);
-
-        if (partition != null) {
-            clearCacheLock.readLock().lock();
-            boolean somethingWasCached = false;
-            Partition remainingPartition = null;
-            try {
-                MutableLongList pendingIdQueue = LongLists.mutable.empty();
-                AvailableSpace availableSpace =
-                        new AvailableSpace(cache, requestedNumberOfIds, maintenance ? 1 : partitions.numNonExhausted());
-                remainingPartition = findSomeIdsToCache(pendingIdQueue, availableSpace, partition, cursorContext);
-                somethingWasCached = !pendingIdQueue.isEmpty();
-                if (somethingWasCached) {
-                    // Get a writer and mark the found ids as reserved
-                    long foundId = reserveAndOfferToCache(pendingIdQueue, requestedNumberOfIds, cursorContext);
-                    if (foundId != NO_ID && !maintenance) {
-                        return foundId;
-                    }
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            } finally {
-                partitions.leave(remainingPartition, somethingWasCached);
-                clearCacheLock.readLock().unlock();
+        clearCacheLock.readLock().lock();
+        try {
+            if (!allocationEnabled) {
+                return NO_ID;
             }
-        }
+            handleQueuedIds(cursorContext);
+            Partition partition = acquirePartition(blocking, requestedNumberOfIds, cursorContext);
 
-        return NO_ID;
+            if (partition != null) {
+                boolean somethingWasCached = false;
+                Partition remainingPartition = null;
+                try {
+                    MutableLongList pendingIdQueue = LongLists.mutable.empty();
+                    AvailableSpace availableSpace = new AvailableSpace(
+                            cache, requestedNumberOfIds, maintenance ? 1 : partitions.numNonExhausted());
+                    remainingPartition = findSomeIdsToCache(pendingIdQueue, availableSpace, partition, cursorContext);
+                    somethingWasCached = !pendingIdQueue.isEmpty();
+                    if (somethingWasCached) {
+                        // Get a writer and mark the found ids as reserved
+                        long foundId = reserveAndOfferToCache(pendingIdQueue, requestedNumberOfIds, cursorContext);
+                        if (foundId != NO_ID && !maintenance) {
+                            return foundId;
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                } finally {
+                    partitions.leave(remainingPartition, somethingWasCached);
+                }
+            }
+
+            return NO_ID;
+        } finally {
+            clearCacheLock.readLock().unlock();
+        }
     }
 
     private Partition acquirePartition(boolean blocking, int requestedNumberOfIds, CursorContext cursorContext) {
@@ -323,9 +329,9 @@ class FreeIdScanner {
     }
 
     void clearCache(boolean allocationWillBeEnabled, CursorContext cursorContext) {
-        partitionsLock.lock();
+        clearCacheLock.writeLock().lock();
         try {
-            clearCacheLock.writeLock().lock();
+            partitionsLock.lock();
             try {
                 // Restart scan from the beginning after cache is cleared
                 partitions = null;
@@ -346,10 +352,10 @@ class FreeIdScanner {
                 }
                 allocationEnabled = allocationWillBeEnabled;
             } finally {
-                clearCacheLock.writeLock().unlock();
+                partitionsLock.unlock();
             }
         } finally {
-            partitionsLock.unlock();
+            clearCacheLock.writeLock().unlock();
         }
     }
 
