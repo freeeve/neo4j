@@ -19,7 +19,14 @@
  */
 package org.neo4j.router.impl.query
 
-import org.neo4j.cypher.internal.ast._
+import org.neo4j.cypher.internal.ast.CatalogName
+import org.neo4j.cypher.internal.ast.GraphDirectReference
+import org.neo4j.cypher.internal.ast.GraphFunctionReference
+import org.neo4j.cypher.internal.ast.GraphSelection
+import org.neo4j.cypher.internal.ast.SchemaCommand
+import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.functions.GraphByElementId
@@ -41,10 +48,20 @@ class StaticUseEvaluation {
    * This function finds graph selections only on the highest level without descending into sub-queries.
    * It returns one item for Single Queries and multiple items for Union Queries.
    */
-  def evaluateStaticTopQueriesGraphSelections(statement: Statement, databaseIdRepository: DatabaseIdRepository, params: MapValue): Seq[Option[CatalogInfo]] =
-    topQueriesGraphSelections(statement).map(maybeGraphSelection => maybeGraphSelection.map(evaluateStatic(_, databaseIdRepository, params)))
+  def evaluateStaticTopQueriesGraphSelections(
+    statement: Statement,
+    databaseIdRepository: DatabaseIdRepository,
+    params: MapValue
+  ): Seq[Option[CatalogInfo]] =
+    topQueriesGraphSelections(statement).map(maybeGraphSelection =>
+      maybeGraphSelection.map(evaluateStatic(_, databaseIdRepository, params))
+    )
 
-  private def evaluateStaticOption(graphSelection: GraphSelection, databaseIdRepository: DatabaseIdRepository, params: MapValue): Option[CatalogInfo] =
+  private def evaluateStaticOption(
+    graphSelection: GraphSelection,
+    databaseIdRepository: DatabaseIdRepository,
+    params: MapValue
+  ): Option[CatalogInfo] =
     graphSelection.graphReference match {
       case s: GraphDirectReference => Some(CatalogInfo(s.catalogName, canBeCached = true))
       case s: GraphFunctionReference if s.functionInvocation.function.equals(GraphByElementId) =>
@@ -56,20 +73,28 @@ class StaticUseEvaluation {
         val uuid = ElementIdDecoder.database(elementId)
 
         /* There is two reasons for not caching the result of target graph when using element id:
-        * 1) If the elementId is evaluated with a parameter we can not cache it based on the query string,
-        *     e.g. USE graph.byElementId($elementID).
-        * 2) If the elementId is given as a raw string in the query, we would have one cache entry per element id,
-        *    so we would probably never hit the cache. E.g. USE graph.byElementId(`23023-asd9231-23fe9-312123`)
+         * 1) If the elementId is evaluated with a parameter we can not cache it based on the query string,
+         *     e.g. USE graph.byElementId($elementID).
+         * 2) If the elementId is given as a raw string in the query, we would have one cache entry per element id,
+         *    so we would probably never hit the cache. E.g. USE graph.byElementId(`23023-asd9231-23fe9-312123`)
          */
 
         databaseIdRepository.getOwningDatabaseId(DatabaseIdFactory.from(uuid)).toScala
           .orElse(throw DatabaseNotFoundHelper.byElementIdFunction(elementId))
           .map(name => CatalogInfo(CatalogName.of(name.name(), resolveStrictly = true), canBeCached = false))
-      case _                       => None
+      case _ => None
     }
 
-  private def evaluateStatic(graphSelection: GraphSelection, databaseIdRepository: DatabaseIdRepository, params: MapValue): CatalogInfo =
-    evaluateStaticOption(graphSelection, databaseIdRepository, params).getOrElse(Errors.dynamicGraphNotAllowed(graphSelection))
+  private def evaluateStatic(
+    graphSelection: GraphSelection,
+    databaseIdRepository: DatabaseIdRepository,
+    params: MapValue
+  ): CatalogInfo =
+    evaluateStaticOption(
+      graphSelection,
+      databaseIdRepository,
+      params
+    ).getOrElse(Errors.dynamicGraphNotAllowed(graphSelection))
 
   private def singleQueries(statement: Statement): Seq[SingleQuery] =
     statement match {
