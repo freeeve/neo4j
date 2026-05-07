@@ -690,7 +690,8 @@ final class TransformingPlanner private[planning] (
       ),
       shadowedFunctions = transactionalContextWrapper.procedures.shadowedNamespaces(
         QueryLanguage.toKernelScope(options.resolvedLanguage)
-      ).asScala.toSet
+      ).asScala.toSet,
+      transactionBatchStrategy = options.queryOptions.transactionBatchStrategy
     )
 
     // Prepare query for caching

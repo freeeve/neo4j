@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.LockNodes
+import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MergeInto
 import org.neo4j.cypher.internal.logical.plans.MergeUniqueNode
@@ -56,7 +57,6 @@ import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency.Concurrent
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.UpdatingPlan
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
-import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenBU
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
@@ -71,23 +71,21 @@ case object TransactionBatchByRewriter extends Rewriter with TopDownMergeableRew
   }
 
   override val innerRewriter: Rewriter = Rewriter.lift {
-    case t @ TransactionApply(lhs, rhs, batchSize, Concurrent(_), _, _, _, _) =>
+    case t @ TransactionApply(lhs, rhs, _, Concurrent(_), _, _, _, _) =>
       val inputVars = lhs.availableSymbols
       val acc = findRaids(rhs, inputVars)
       acc match {
         case Acc(raids, _, Allowed) if raids.nonEmpty =>
-          // println("TransactionBatchByRewriter: Rewriting TransactionApply to batch by " + raids.mkString(", "))
           t.copy(batchBy = raids.toSeq)(SameId(t.id))
         case _ =>
           t
       }
 
-    case t @ TransactionForeach(lhs, rhs, batchSize, Concurrent(_), _, _, _, _) =>
+    case t @ TransactionForeach(lhs, rhs, _, Concurrent(_), _, _, _, _) =>
       val inputVars = lhs.availableSymbols
       val acc = findRaids(rhs, inputVars)
       acc match {
         case Acc(raids, _, Allowed) if raids.nonEmpty =>
-          // println("TransactionBatchByRewriter: Rewriting TransactionForeach to batch by " + raids.mkString(", "))
           t.copy(batchBy = raids.toSeq)(SameId(t.id))
         case _ =>
           t
@@ -96,7 +94,7 @@ case object TransactionBatchByRewriter extends Rewriter with TopDownMergeableRew
 
   private val instance: Rewriter = topDown(innerRewriter)
 
-  private def findRaids(plan: AnyRef, inputVars: Set[LogicalVariable]): Acc = {
+  private def findRaids(plan: LogicalPlan, inputVars: Set[LogicalVariable]): Acc = {
     val result = plan.folder.treeFoldBottomUp(Acc.empty) {
       // Only exact seeks uniquely identify a locked entity by value.
       case nuis: NodeUniqueIndexSeek if nuis.valueExpr.exact && nuis.valueExpr.expressions.nonEmpty =>

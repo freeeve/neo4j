@@ -63,6 +63,7 @@ case class CypherQueryOptions(
   pipelinedBatchSizePresetOption: CypherPipelinedBatchSizePresetOption,
   pipelinedBatchReuseOption: CypherPipelinedBatchReuseOption,
   heapEstimatorCacheOption: CypherHeapEstimatorCacheOption,
+  transactionBatchStrategy: CypherTransactionBatchStrategyOption,
   parallelRepeatHeuristic: CypherParallelRepeatHeuristicOption
 ) {
 
@@ -1010,6 +1011,33 @@ object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherHeapEs
         cypherConfig.customHeapEstimatorCacheConfig
     }
   }
+}
+
+sealed abstract class CypherTransactionBatchStrategyOption(strategy: String) extends CypherKeyValueOption(strategy) {
+  override def companion: CypherTransactionBatchStrategyOption.type = CypherTransactionBatchStrategyOption
+  override def relevantForLogicalPlanCacheKey: Boolean = true
+}
+
+case object CypherTransactionBatchStrategyOption
+    extends CypherOptionCompanion[CypherTransactionBatchStrategyOption](
+      name = "transactionBatchStrategy",
+      setting = Some(GraphDatabaseSettings.cypher_default_subquery_transaction_batch_strategy),
+      cypherConfigField = Some(_.transactionsDefaultBatchStrategy)
+    ) {
+
+  case object default extends CypherTransactionBatchStrategyOption("default")
+  case object none extends CypherTransactionBatchStrategyOption("none")
+  case object auto extends CypherTransactionBatchStrategyOption("auto")
+
+  def values: Set[CypherTransactionBatchStrategyOption] = Set(default, none, auto)
+
+  implicit val hasDefault: OptionDefault[CypherTransactionBatchStrategyOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherTransactionBatchStrategyOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherTransactionBatchStrategyOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherTransactionBatchStrategyOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherTransactionBatchStrategyOption] = singleOptionReader()
 }
 
 sealed abstract class CypherParallelRepeatHeuristicOption(name: String) extends CypherKeyValueOption(name) {

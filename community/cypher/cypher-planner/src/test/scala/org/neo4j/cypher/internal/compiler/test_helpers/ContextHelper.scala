@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
+import org.neo4j.cypher.internal.options.CypherTransactionBatchStrategyOption
 import org.neo4j.cypher.internal.planner.spi.NotImplementedPlanContext
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -97,7 +98,8 @@ object ContextHelper extends MockitoSugar {
     internalSyntaxUsageStats: InternalUsageStats = InternalUsageStats.newImpl(),
     labelInferenceStrategy: LabelInferenceStrategy = NoInference,
     sessionDatabase: DatabaseReference = null,
-    semanticFeatures: Seq[SemanticFeature] = Seq.empty
+    semanticFeatures: Seq[SemanticFeature] = Seq.empty,
+    transactionBatchStrategy: CypherTransactionBatchStrategyOption = CypherTransactionBatchStrategyOption.default
   ): PlannerContext = {
     new PlannerContextImpl(
       version,
@@ -130,7 +132,8 @@ object ContextHelper extends MockitoSugar {
       labelInferenceStrategy,
       sessionDatabase,
       semanticFeatures,
-      shadowedFunctions = Set.empty
+      shadowedFunctions = Set.empty,
+      transactionBatchStrategy = transactionBatchStrategy
     )
   }
 

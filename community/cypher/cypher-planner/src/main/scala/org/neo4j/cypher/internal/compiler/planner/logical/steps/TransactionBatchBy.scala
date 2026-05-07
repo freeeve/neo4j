@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerConfig
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
+import org.neo4j.cypher.internal.options.CypherTransactionBatchStrategyOption
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 
@@ -52,6 +53,10 @@ case object TransactionBatchBy extends Phase[PlannerContext, LogicalPlanState, L
     : Transformer[PlannerContext, LogicalPlanState, LogicalPlanState] = this
 
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
-    from.withMaybeLogicalPlan(Some(from.logicalPlan.endoRewrite(TransactionBatchByRewriter)))
+    if (context.transactionBatchStrategy == CypherTransactionBatchStrategyOption.auto) {
+      from.withMaybeLogicalPlan(Some(from.logicalPlan.endoRewrite(TransactionBatchByRewriter)))
+    } else {
+      from
+    }
   }
 }

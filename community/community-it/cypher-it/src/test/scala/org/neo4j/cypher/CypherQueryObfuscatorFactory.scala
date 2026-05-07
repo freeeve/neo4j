@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerVersionOption
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
+import org.neo4j.cypher.internal.options.CypherTransactionBatchStrategyOption
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -132,7 +133,8 @@ class CypherQueryObfuscatorFactory {
       null,
       null,
       semanticFeatures = Seq.empty,
-      shadowedFunctions = Set.empty
+      shadowedFunctions = Set.empty,
+      transactionBatchStrategy = CypherTransactionBatchStrategyOption.default
     )
 
   private class PlanContextWithProceduresRegistry(version: CypherVersion) extends PlanContext {

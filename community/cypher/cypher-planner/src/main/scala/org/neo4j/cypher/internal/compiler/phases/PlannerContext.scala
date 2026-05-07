@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherParallelRepeatHeuristicOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
+import org.neo4j.cypher.internal.options.CypherTransactionBatchStrategyOption
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -82,6 +83,9 @@ trait PlannerContext extends BaseContext {
   def securityLog: AbstractSecurityLog
   def internalNotificationStats: InternalNotificationStats
   def labelInferenceStrategy: LabelInferenceStrategy
+
+  /** Resolved batch strategy for `CALL ... IN CONCURRENT TRANSACTIONS` (setting + preparser-option override). */
+  def transactionBatchStrategy: CypherTransactionBatchStrategyOption
   def withNotificationLogger(notificationLogger: InternalNotificationLogger): PlannerContext
 }
 
@@ -169,7 +173,8 @@ final class PlannerContextImpl(
   override val labelInferenceStrategy: LabelInferenceStrategy,
   override val sessionDatabase: DatabaseReference,
   override val semanticFeatures: Seq[SemanticFeature],
-  override val shadowedFunctions: Set[String]
+  override val shadowedFunctions: Set[String],
+  override val transactionBatchStrategy: CypherTransactionBatchStrategyOption
 ) extends PlannerContext {
 
   override val errorHandler: Seq[SemanticErrorDef] => Unit =
@@ -208,7 +213,8 @@ final class PlannerContextImpl(
     labelInferenceStrategy = labelInferenceStrategy,
     sessionDatabase = sessionDatabase,
     semanticFeatures = semanticFeatures,
-    shadowedFunctions = shadowedFunctions
+    shadowedFunctions = shadowedFunctions,
+    transactionBatchStrategy = transactionBatchStrategy
   )
 
   override def isScopeQuery: Boolean = false
@@ -249,7 +255,8 @@ object PlannerContext {
     internalUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference,
     semanticFeatures: Seq[SemanticFeature],
-    shadowedFunctions: Set[String]
+    shadowedFunctions: Set[String],
+    transactionBatchStrategy: CypherTransactionBatchStrategyOption
   ): PlannerContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
     val labelInferenceStrategy = LabelInferenceStrategy.fromConfig(planContext, labelInference, optimisations)
@@ -293,7 +300,8 @@ object PlannerContext {
       labelInferenceStrategy,
       sessionDatabase,
       semanticFeatures = semanticFeatures,
-      shadowedFunctions = shadowedFunctions
+      shadowedFunctions = shadowedFunctions,
+      transactionBatchStrategy = transactionBatchStrategy
     )
   }
 }

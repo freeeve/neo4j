@@ -252,6 +252,30 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .dynamic()
             .build();
 
+    @Description("The default batching strategy for subquery transactions "
+            + "in a query with a `CALL () { ... } IN CONCURRENT TRANSACTIONS ...` clause. "
+            + "When set to `NONE`, batches are dispatched without dependency analysis. "
+            + "When set to `AUTO`, the query planner analyzes the query and, where possible, applies "
+            + "a batch formation and scheduling strategy that attempts to prevent deadlocks between concurrent batches. "
+            + "When set to `DEFAULT`, the current product default is used "
+            + "(currently `NONE`, but may be subject to change in future versions). "
+            + "This setting is only used when no `BATCH BY` option is explicitly specified in the query. "
+            + "E.g. `CALL () { ... } IN CONCURRENT TRANSACTIONS ... BATCH BY AUTO` overrides this setting, "
+            + "applying the automatic strategy to that query.")
+    public static final Setting<CypherTransactionsBatchStrategy> cypher_default_subquery_transaction_batch_strategy =
+            newBuilder(
+                            "dbms.cypher.transactions.default_subquery_batch_strategy",
+                            ofEnum(CypherTransactionsBatchStrategy.class),
+                            CypherTransactionsBatchStrategy.DEFAULT)
+                    .dynamic()
+                    .build();
+
+    public enum CypherTransactionsBatchStrategy {
+        DEFAULT,
+        NONE,
+        AUTO
+    }
+
     @Description("Set this to specify the default planner for the default language version.")
     public static final Setting<CypherPlanner> cypher_planner = newBuilder(
                     "dbms.cypher.planner", ofEnum(CypherPlanner.class), CypherPlanner.DEFAULT)
