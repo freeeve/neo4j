@@ -221,7 +221,6 @@ Apache Software License, Version 2.0
 
 ------------------------------------------------------------------------------
 Eclipse Distribution License - v 1.0
-  Eclipse Collections API
   Eclipse Collections Main Library
 ------------------------------------------------------------------------------
 
@@ -243,7 +242,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ------------------------------------------------------------------------------
 Eclipse Public License - v 1.0
-  Eclipse Collections API
   Eclipse Collections Main Library
 ------------------------------------------------------------------------------
 
@@ -323,10 +321,6 @@ This Agreement is governed by the laws of the State of New York and the intellec
 
 Dependencies with multiple licenses
 -----------------------------------
-
-Eclipse Collections API
-  Eclipse Distribution License - v 1.0
-  Eclipse Public License - v 1.0
 
 Eclipse Collections Main Library
   Eclipse Distribution License - v 1.0
