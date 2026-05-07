@@ -83,12 +83,12 @@ public class UnixDomainSocketSchedulerIT {
     @SettingsFunction
     static void customizeSettings(Map<Setting<?>, Object> settings) {
         settings.put(BoltConnector.thread_pool_min_size, 0);
-        settings.put(BoltConnector.thread_pool_max_size, 2);
+        settings.put(BoltConnector.thread_pool_max_size, 1);
         settings.put(BoltConnectorInternalSettings.enable_unix_socket_user_database_access, true);
 
         settings.put(BoltConnector.unix_socket_use_dedicated_thread_pool, true);
         settings.put(BoltConnector.unix_socket_dedicated_thread_pool_min_size, 0);
-        settings.put(BoltConnector.unix_socket_dedicated_thread_pool_max_size, 1);
+        settings.put(BoltConnector.unix_socket_dedicated_thread_pool_max_size, 2);
     }
 
     /**
@@ -124,12 +124,14 @@ public class UnixDomainSocketSchedulerIT {
      */
     @TransportTest
     @IncludeTransport(TransportType.UNIX)
-    void shouldNotSubmitToPrimaryPool(BoltWire wire, @Authenticated BoltTestConnection connection)
+    void shouldNotSubmitToPrimaryPool(
+            BoltWire wire, @Authenticated BoltTestConnection connection1, @Authenticated BoltTestConnection connection2)
             throws IOException, InterruptedException {
-        enterStreaming(wire, connection);
+        enterStreaming(wire, connection1);
+        enterStreaming(wire, connection2);
 
         var executor = (ThreadPoolExecutor) boltServer().getPrimaryExecutorService();
-        ServerUtil.awaitDomainSocketThreadPoolSaturation(boltServer(), 1);
+        ServerUtil.awaitDomainSocketThreadPoolSaturation(boltServer(), 2);
 
         var i = 0;
         do {
@@ -148,9 +150,11 @@ public class UnixDomainSocketSchedulerIT {
     void shouldAdhereToConfiguredThreadLimits(
             BoltWire wire,
             @Authenticated BoltTestConnection connection1,
+            @Authenticated BoltTestConnection connection2,
             @VersionSelected ConnectionProvider connectionProvider)
             throws IOException {
         enterStreaming(wire, connection1);
+        enterStreaming(wire, connection2);
 
         Awaitility.await()
                 .atMost(2, TimeUnit.MINUTES)
