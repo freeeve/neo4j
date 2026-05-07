@@ -25,7 +25,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -62,7 +61,6 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
     with AstConstructionTestSupport {
 
   private val plannerBase = plannerBuilder()
-    .addSemanticFeature(GpmShortestWithExplicitPathMode)
     .setAllNodesCardinality(100)
     .setAllRelationshipsCardinality(40)
     .setLabelCardinality("User", 4)

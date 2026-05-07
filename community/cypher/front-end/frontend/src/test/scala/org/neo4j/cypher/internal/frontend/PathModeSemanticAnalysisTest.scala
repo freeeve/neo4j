@@ -19,19 +19,12 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlHelper
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
-
-  private def runWithFeatureShortestWithExplicitPathMode(query: String) =
-    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), features = GpmShortestWithExplicitPathMode)
-
-  private def runWithoutFeatureShortestWithExplicitPathMode(query: String) =
-    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5))
 
   private def errMatchModePathModeUnsupported(pathMode: String, pos: InputPosition): SemanticError =
     SemanticError(
@@ -54,21 +47,6 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
         "explicit match modes (e.g. `DIFFERENT RELATIONSHIPS`) or explicit path modes (e.g. `ACYCLIC`) is not allowed.",
       pos
     )
-
-  // This restriction is a temporary and will be lifted by implementing PLAN-2342
-  private def errGpmShortestWithPathMode(pathMode: String, pos: InputPosition): SemanticError = {
-    SemanticError(
-      GqlHelper.getGql42001_51N26(
-        s"Using `SHORTEST` together with explicit path mode `$pathMode`",
-        s"SHORTEST with path mode `$pathMode`",
-        pos.offset,
-        pos.line,
-        pos.column
-      ),
-      s"Using `SHORTEST` together with explicit path mode `$pathMode` is not available.",
-      pos
-    )
-  }
 
   // This restriction is a temporary and will be lifted by implementing PLAN-3015
   private def errVarLengthWithPathMode(varLength: String, pathMode: String, pos: InputPosition): SemanticError =
@@ -165,16 +143,6 @@ class PathModeSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
   test("MATCH p = ACYCLIC (s {i: 1})-->+(s) MATCH q = allShortestPaths((s {i: 1})-[*1..100]->(t)) RETURN p, q") {
     runWith(defaultQuery, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
-  }
-
-  test("Gpm shortest with explicit path mode is behind a semantic feature flag") {
-    Seq("ACYCLIC", "TRAIL", "WALK").foreach { explicitPathMode =>
-      val query = s"MATCH SHORTEST 25 $explicitPathMode PATH GROUPS (n)-->(m) RETURN *"
-      runWithFeatureShortestWithExplicitPathMode(query).hasNoErrors
-      runWithoutFeatureShortestWithExplicitPathMode(query).hasErrors(
-        errGpmShortestWithPathMode(explicitPathMode, p(6, 1, 7))
-      )
-    }
   }
 
   // Temporary restriction

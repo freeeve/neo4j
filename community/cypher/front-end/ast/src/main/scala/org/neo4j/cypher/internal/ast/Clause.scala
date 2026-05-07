@@ -76,7 +76,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllowClauseWithMixedLabelSyntax
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -1111,10 +1110,7 @@ case class Match(
   private def checkPathModes: SemanticCheck =
     checkMatchModePathModeCompatibility chain
       checkNoPathModeMixing chain
-      checkNoPathModeVarLength chain
-      whenState(!_.features.contains(GpmShortestWithExplicitPathMode))(
-        thenBranch = checkNoPathModeGpmShortest
-      )
+      checkNoPathModeVarLength
 
   private def checkMatchModePathModeCompatibility: SemanticCheck =
     matchMode match {
@@ -1154,16 +1150,6 @@ case class Match(
             )
           }
         case _ => None
-      }
-
-    SemanticCheck.error(errors)
-  }
-
-  private def checkNoPathModeGpmShortest: SemanticCheck = {
-    val errors =
-      pattern.patternParts.collect {
-        case PrefixedPatternPart(selector, pathMode, _) if !pathMode.implicitlyCreated && selector.isSelective =>
-          SemanticError.unsupportedPathModeWithGpmShortest(pathMode.prettified, selector.position)
       }
 
     SemanticCheck.error(errors)

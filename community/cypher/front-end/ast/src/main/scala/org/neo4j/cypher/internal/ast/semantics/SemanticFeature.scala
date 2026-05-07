@@ -116,10 +116,6 @@ object SemanticFeature {
     override def name: String = "Attribute based access control"
   }
 
-  case object GpmShortestWithExplicitPathMode extends SemanticFeature with FeatureToString {
-    override def name: String = "Allow mixing GPM shortest with an explicit path mode"
-  }
-
   /**
    * Allows `USING EXPAND ...` to force expand direction and order
    */
@@ -146,8 +142,7 @@ object SemanticFeature {
     DisableTypeCheckingInSemanticAnalysis,
     AllowClauseWithMixedLabelSyntax,
     AttributeBasedAccessControl,
-    ExpandHints,
-    GpmShortestWithExplicitPathMode
+    ExpandHints
   )
 
   def fromString(str: String): SemanticFeature =

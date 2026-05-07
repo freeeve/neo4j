@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults.DEFAULT_NODES_UNIQUENESS_SELECTIVITY
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
@@ -336,9 +335,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
   // The aim of the tests with SHORTEST is to make sure that WHEN the pattern cardinality is used, THEN acyclic semantics are taken into account
   test("ANY SHORTEST ACYCLIC (n1)-[]->{2,3}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH ANY SHORTEST ACYCLIC (n1)-[]->{2,3}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is not used, because it is larger than 'allNodes * allNodes'
@@ -348,9 +345,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("ANY SHORTEST ACYCLIC (n1)-[:R]->{2,3}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH ANY SHORTEST ACYCLIC (n1)-[:R]->{2,3}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is used, because it is lower than 'allNodes * allNodes'
@@ -360,9 +355,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("MATCH SHORTEST 5 ACYCLIC (n1)-[]->{2,3}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH SHORTEST 5 ACYCLIC (n1)-[]->{2,3}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[]->{2,3}(n2)' is not used, because it is larger than 'allNodes * allNodes * 5'
@@ -372,9 +365,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("MATCH SHORTEST 500 ACYCLIC (n1)-[]->{2,3}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH SHORTEST 500 ACYCLIC (n1)-[]->{2,3}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[]->{2,3}(n2)' is used, because it is smaller than 'allNodes * allNodes * 500'
@@ -384,9 +375,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("MATCH SHORTEST 5 ACYCLIC (n1)-[:R]->{2,3}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH SHORTEST 5 ACYCLIC (n1)-[:R]->{2,3}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,3}(n2)' is used, because it is lower than 'allNodes * allNodes * 5'
@@ -396,9 +385,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("SHORTEST 1 ACYCLIC GROUP (n1)-[]->{2,5}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH SHORTEST 1 ACYCLIC GROUP (n1)-[]->{2,5}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,2}(n2)' is used, because that is already larger than 'allNodes * allNodes'
@@ -408,9 +395,7 @@ class AcyclicCardinalityIntegrationTest extends CypherPlannerTestSuite with Card
 
   test("SHORTEST 1 ACYCLIC GROUP (n1)-[:R]->{2,5}(n2)") {
     queryShouldHaveCardinality(
-      planner
-        .addSemanticFeature(GpmShortestWithExplicitPathMode)
-        .build(),
+      planner.build(),
       CypherVersion.Cypher25,
       "MATCH SHORTEST 1 ACYCLIC GROUP (n1)-[:R]->{2,5}(n2)",
       // The cardinality estimate of the pattern 'ACYCLIC (n1)-[:R]->{2,5}(n2)' is used, because all {2,2}, (2,3), {2,4} and {2,5} are lower than 'allNodes * allNodes'

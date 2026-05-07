@@ -1929,21 +1929,6 @@ object SemanticError {
     )
   }
 
-  def unsupportedPathModeWithGpmShortest(pathMode: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_51N26(
-      s"Using `SHORTEST` together with explicit path mode `$pathMode`",
-      s"SHORTEST with path mode `$pathMode`",
-      position.offset,
-      position.line,
-      position.column
-    )
-    SemanticError(
-      gql,
-      s"Using `SHORTEST` together with explicit path mode `$pathMode` is not available.",
-      position
-    )
-  }
-
   def invalidImportingWithKeyword(keyword: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I28(keyword, position.offset, position.line, position.column)
     SemanticError(
