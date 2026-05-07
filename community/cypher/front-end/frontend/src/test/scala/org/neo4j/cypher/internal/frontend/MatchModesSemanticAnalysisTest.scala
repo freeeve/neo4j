@@ -384,6 +384,18 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test(
+    "REPEATABLE ELEMENTS p = ALL SHORTEST (()-[:R]-()){0,3} (b:A)"
+  ) {
+    run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS p = ALL SHORTEST (a:A) (()-[:R]-()){0,3}"
+  ) {
+    run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
+  }
+
+  test(
     "REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=a.p)"
   ) {
     // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in earlier path pattern

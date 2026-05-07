@@ -36,7 +36,11 @@ class PatternPartTest extends AstParsingTestBase
   }
 
   test("(n)-->*(m) ()") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("n"))
+      part.strictInteriorVariables shouldEqual Set(varFor("m"))
+    }
   }
 
   test("(n)-->{0,}(m)") {
@@ -84,38 +88,35 @@ class PatternPartTest extends AstParsingTestBase
   }
 
   test("SHORTEST 1 (n)-->+(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("n"), varFor("m"))
+      part.strictInteriorVariables shouldEqual Set.empty
+    }
   }
 
   test("SHORTEST 4 (n)-->*(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("n"), varFor("m"))
+      part.strictInteriorVariables shouldEqual Set.empty
+    }
   }
 
   test("ALL SHORTEST (n)-->*(m) ()") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
-  }
-
-  test("ALL SHORTEST (n)-->{0,}(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("n"))
+      part.strictInteriorVariables shouldEqual Set(varFor("m"))
+    }
   }
 
   test("ANY SHORTEST (n)-[r]->+(m)") {
     testName should parse[PatternPart].withAstLike { part =>
       part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("n"), varFor("m"))
       part.strictInteriorVariables shouldEqual Set(varFor("r"))
     }
-  }
-
-  test("ANY 4 (n)-->*(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
-  }
-
-  test("ANY (n)-->*(m) ()") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
-  }
-
-  test("SHORTEST 5 GROUPS (n)-->{0,}(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
   test("(n)-[r *]->(m)") {
@@ -151,7 +152,16 @@ class PatternPartTest extends AstParsingTestBase
   test("((a)-[r]->+(b)<-[q]-(c))") {
     testName should parse[PatternPart].withAstLike { part =>
       part.isBounded shouldBe false
+      part.boundaryNodes shouldEqual Set(varFor("a"), varFor("c"))
       part.strictInteriorVariables shouldEqual Set(varFor("r"), varFor("b"), varFor("q"))
+    }
+  }
+
+  test("((a)-[r]->(b)){1, 10}(c)") {
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe true
+      part.boundaryNodes shouldEqual Set(varFor("a"), varFor("c"))
+      part.strictInteriorVariables shouldEqual Set(varFor("r"), varFor("b"))
     }
   }
 

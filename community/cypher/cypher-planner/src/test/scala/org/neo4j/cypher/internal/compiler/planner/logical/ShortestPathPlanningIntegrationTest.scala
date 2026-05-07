@@ -5283,22 +5283,6 @@ class ShortestPathPlanningIntegrationTest extends CypherPlannerTestSuite with Lo
     .setFinalState(9)
     .build()
 
-  private val `nfa_(n)-[:S]->{1,4}(m)` = new TestNFABuilder(0, "n")
-    .addTransition(0, 1, "(n) (anon_0)")
-    .addTransition(1, 2, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
-    .addTransition(2, 3, "(anon_2) (anon_0)")
-    .addTransition(2, 9, "(anon_2) (m)")
-    .addTransition(3, 4, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
-    .addTransition(4, 5, "(anon_2) (anon_0)")
-    .addTransition(4, 9, "(anon_2) (m)")
-    .addTransition(5, 6, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
-    .addTransition(6, 7, "(anon_2) (anon_0)")
-    .addTransition(6, 9, "(anon_2) (m)")
-    .addTransition(7, 8, "(anon_0)-[anon_1:S WHERE NOT startNode(anon_1) = endNode(anon_1)]->(anon_2)")
-    .addTransition(8, 9, "(anon_2) (m)")
-    .setFinalState(9)
-    .build()
-
   test(
     "should plan Shortest Acyclic groups"
   ) {
@@ -5407,9 +5391,7 @@ class ShortestPathPlanningIntegrationTest extends CypherPlannerTestSuite with Lo
       .build()
   }
 
-  test(
-    "should not rewrite GPM Shortest Acyclic to shortestPath()"
-  ) {
+  test("should rewrite ACYCLIC QPP to FindShortestPaths") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[:S]->()", 400)
@@ -5424,22 +5406,11 @@ class ShortestPathPlanningIntegrationTest extends CypherPlannerTestSuite with Lo
 
     planner.plan(CypherVersion.Cypher25, query) shouldEqual planner.planBuilder()
       .produceResults("m", "n")
-      .statefulShortestPath(
-        sourceNode = "n",
-        targetNode = "m",
-        solvedExpressionString = "SHORTEST 1 (n) ((`anon_0`)-[`anon_1`]->(`anon_2`)){1, 4} (m)",
-        nonInlinedPreFilters = None,
-        groupNodes = Set.empty,
-        groupRelationships = Set(),
-        singletonNodeVariables = Set(),
-        singletonRelationshipVariables = Set(),
-        selector = StatefulShortestPath.Selector.Shortest(CountInteger(1)),
-        nfa = `nfa_(n)-[:S]->{1,4}(m)`,
-        mode = ExpandInto,
-        reverseGroupVariableProjections = false,
-        minLength = 1,
-        maxLength = Some(4),
-        pathMode = Acyclic
+      .shortestPath(
+        pattern = "(n)-[anon_0:S*1..4]->(m)",
+        pathName = Some("anon_1"),
+        sameNodeMode = AllowSameNode,
+        traversalPathMode = TraversalPathMode.Acyclic
       )
       .cartesianProduct()
       .|.allNodeScan("n")

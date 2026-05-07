@@ -474,14 +474,12 @@ case class AssertIsNode(lhs: Expression)(val position: InputPosition) extends Bo
 }
 
 /**
- * Predicate used for enforcing relationship uniqueness as done in
- * AddRelationshipPredicates.
+ * Predicate used for enforcing relationship uniqueness as done in AddElementUniquenessPredicates.
  */
 sealed trait RelationshipUniquenessPredicate extends BooleanExpression
 
 /**
- * Predicate used for enforcing node uniqueness as done in
- * AddNodePredicates.
+ * Predicate used for enforcing node uniqueness as done in AddElementUniquenessPredicates.
  */
 sealed trait NodeUniquenessPredicate extends BooleanExpression
 

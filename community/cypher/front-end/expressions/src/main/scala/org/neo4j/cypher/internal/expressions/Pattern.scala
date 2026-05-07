@@ -498,24 +498,41 @@ sealed abstract class PatternElement extends ASTNode with HasMappableExpressions
 object PatternElement {
 
   /**
-   * Returns the boundary nodes of this pattern element. Note, this does not work on QPPs directly.
-   * Therefore, QPPs need to have been padded before.
+   * Returns the boundary nodes of this pattern element.
+   *
+   * In well-formed AST shapes encountered after [[QuantifiedPathPatternNodeInsertRewriter]] has run,
+   * QPPs at the boundary of a [[PathConcatenation]] have been padded with filler nodes, so the head
+   * and last factors are [[SimplePattern]]s. During semantic analysis the AST is not yet padded, so
+   * we may encounter a QPP at the boundary; in that case we recurse into the QPP's inner element and
+   * use its boundary singleton (which becomes the boundary node post-padding).
    */
   @tailrec
   def boundaryNodes(element: PatternElement): Set[LogicalVariable] = {
     element match {
-      // Either we have a simple pattern
       case pattern: SimplePattern =>
         val allVars = pattern.allSingletonVariablesLeftToRight
         Set.empty ++ allVars.headOption ++ allVars.lastOption
-      // or non-simple patterns (QPPs) have been padded (see QppsHavePaddedNodes)
       case PathConcatenation(factors) =>
-        val left = factors.head.asInstanceOf[SimplePattern].allSingletonVariablesLeftToRight.headOption
-        val right = factors.last.asInstanceOf[SimplePattern].allSingletonVariablesLeftToRight.lastOption
-        Set.empty ++ left ++ right
+        Set.empty ++ leftBoundaryNode(factors.head) ++ rightBoundaryNode(factors.last)
       case ParenthesizedPath(part, _) => boundaryNodes(part.element)
       case _                          => throw new IllegalStateException()
     }
+  }
+
+  @tailrec
+  private def leftBoundaryNode(element: PatternElement): Option[LogicalVariable] = element match {
+    case sp: SimplePattern          => sp.allSingletonVariablesLeftToRight.headOption
+    case qp: QuantifiedPath         => leftBoundaryNode(qp.part.element)
+    case ParenthesizedPath(part, _) => leftBoundaryNode(part.element)
+    case PathConcatenation(factors) => leftBoundaryNode(factors.head)
+  }
+
+  @tailrec
+  private def rightBoundaryNode(element: PatternElement): Option[LogicalVariable] = element match {
+    case sp: SimplePattern          => sp.allSingletonVariablesLeftToRight.lastOption
+    case qp: QuantifiedPath         => rightBoundaryNode(qp.part.element)
+    case ParenthesizedPath(part, _) => rightBoundaryNode(part.element)
+    case PathConcatenation(factors) => rightBoundaryNode(factors.last)
   }
 }
 

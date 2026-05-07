@@ -25,6 +25,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.GpmShortestWithExplicitPathMode
 import org.neo4j.cypher.internal.compiler.CypherPlannerTestSuite
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -43,8 +44,12 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Pred
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
+import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Acyclic
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
@@ -57,6 +62,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
     with AstConstructionTestSupport {
 
   private val plannerBase = plannerBuilder()
+    .addSemanticFeature(GpmShortestWithExplicitPathMode)
     .setAllNodesCardinality(100)
     .setAllRelationshipsCardinality(40)
     .setLabelCardinality("User", 4)
@@ -83,10 +89,20 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
     .withSetting(GraphDatabaseInternalSettings.stateful_shortest_planning_mode, ALL_IF_POSSIBLE)
     .build()
 
+  private def assertNotRewrittenToFindShortestPaths(plan: LogicalPlan): Unit = {
+    plan.folder.treeFind[StatefulShortestPath] {
+      case _: StatefulShortestPath => true
+    } should not be empty
+
+    plan.folder.treeFind[FindShortestPaths] {
+      case _: FindShortestPaths => true
+    } shouldBe empty
+  }
+
   test("Shortest should be rewritten to legacy shortest for simple varLength pattern") {
     val query =
       s"""
-         |MATCH p = ANY SHORTEST (a:User)-[r*]->(b:User)
+         |MATCH p = ANY SHORTEST (a:User)-[r*1..]->(b:User)
          |RETURN *
          |""".stripMargin
     val plan = planner.plan(query).stripProduceResults
@@ -470,52 +486,42 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
     )(SymmetricalLogicalPlanEquality)
   }
 
-  test("Shortest should be rewritten to legacy shortest for simple QPP - WALK") {
-    val query =
-      s"""
-         |MATCH REPEATABLE ELEMENTS ANY SHORTEST (a)-[r]->{1, 10}(b)
-         |RETURN *
-         |""".stripMargin
-    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
-    plan should equal(
-      planner.subPlanBuilder()
-        .shortestPath(
-          "(a)-[r*1..10]->(b)",
-          pathName = Some("anon_0"),
-          nodePredicates = Seq(),
-          relationshipPredicates = Seq(),
-          sameNodeMode = AllowSameNode,
-          traversalPathMode = Walk
-        )
-        .cartesianProduct()
-        .|.allNodeScan("a")
-        .allNodeScan("b")
-        .build()
-    )(SymmetricalLogicalPlanEquality)
-  }
+  test(
+    s"Simple selector with QPP should be rewritten to FindShortestPath"
+  ) {
+    for {
+      (matchMode, pathMode) <- Seq(("REPEATABLE ELEMENTS", Walk), ("", Trail), ("", Acyclic))
+      (arrow, direction) <- Seq(("->", OUTGOING), ("-", BOTH))
+      (selector, all) <- Seq(("ANY SHORTEST", false), ("ALL SHORTEST", true))
+    } {
+      withClue(s"for simple $selector QPP, path mode ${pathMode.asPrettyString}, direction $direction") {
+        val query =
+          s"""
+             |MATCH $matchMode p = $selector ${pathMode.asPrettyString} (a)-[r]$arrow{1,10}(b)
+             |RETURN *
+             |""".stripMargin
 
-  test("Shortest should be rewritten to legacy shortest for simple undirected QPP - WALK") {
-    val query =
-      s"""
-         |MATCH REPEATABLE ELEMENTS ANY SHORTEST (a)-[r]-{1, 10}(b)
-         |RETURN *
-         |""".stripMargin
-    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
-    plan should equal(
-      planner.subPlanBuilder()
-        .shortestPath(
-          "(a)-[r*1..10]-(b)",
-          pathName = Some("anon_0"),
-          nodePredicates = Seq(),
-          relationshipPredicates = Seq(),
-          sameNodeMode = AllowSameNode,
-          traversalPathMode = Walk
-        )
-        .cartesianProduct()
-        .|.allNodeScan("a")
-        .allNodeScan("b")
-        .build()
-    )(SymmetricalLogicalPlanEquality)
+        val actual = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+        val expected = planner.subPlanBuilder()
+          .projection(Map("p" -> multiRelationshipPath("a", "r", "b", direction)))
+          .shortestPath(
+            s"(a)-[r*1..10]$arrow(b)",
+            pathName = Some("anon_0"),
+            all = all,
+            nodePredicates = Seq(),
+            relationshipPredicates = Seq(),
+            sameNodeMode = AllowSameNode,
+            traversalPathMode = pathMode
+          )
+          .cartesianProduct()
+          .|.allNodeScan("a")
+          .allNodeScan("b")
+          .build()
+
+        actual should equal(expected)(SymmetricalLogicalPlanEquality)
+      }
+    }
   }
 
   test("Shortest GROUP should be rewritten to legacy all shortest for simple QPP") {
@@ -1095,6 +1101,42 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
       .build()
   }
 
+  test("SHORTEST with QPP with lower bound > 1 should not be rewritten") {
+    val query =
+      s"""
+         |MATCH ANY SHORTEST (start:User)-[r]->{2,4}(end)
+         |RETURN start, end
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+    assertNotRewrittenToFindShortestPaths(plan)
+  }
+
+  test("SHORTEST k with k > 1 should not be rewritten") {
+    val query =
+      s"""
+         |MATCH SHORTEST 5 (start:User)-[r]->+(end)
+         |RETURN start, end
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+    assertNotRewrittenToFindShortestPaths(plan)
+  }
+
+  test("SHORTEST k GROUPS with k > 1 should not be rewritten") {
+    val query =
+      s"""
+         |MATCH SHORTEST 5 GROUPS (start:User)-[r]->+(end)
+         |RETURN start, end
+         |""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+    assertNotRewrittenToFindShortestPaths(plan)
+  }
+
   test(
     "SHORTEST with varLengthPattern with lower and upper bound set should be rewritten since inner nodes are not referenced with large NFA"
   ) {
@@ -1643,5 +1685,28 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherPlannerTestSui
       .|.nodeByLabelScan("end", "B")
       .nodeByLabelScan("start", "A")
       .build()
+  }
+
+  test(
+    s"Should not re-write when there are non-inlineable predicate"
+  ) {
+    for {
+      (matchMode, pathMode) <- Seq(("REPEATABLE ELEMENTS", Walk), ("", Trail), ("", Acyclic))
+      (arrow, direction) <- Seq(("->", OUTGOING), ("-", BOTH))
+      selector <- Seq("ANY SHORTEST", "ALL SHORTEST")
+    } {
+      withClue(s"for $selector ${pathMode.asPrettyString}, direction $direction") {
+        val query =
+          s"""
+             |MATCH $matchMode $selector ${pathMode.asPrettyString}
+             |  ((start:User)-[r]$arrow{1,10}(end:User) WHERE single(rel IN r WHERE rel.prop = 5))
+             |RETURN start, end
+             |""".stripMargin
+
+        val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+
+        assertNotRewrittenToFindShortestPaths(plan)
+      }
+    }
   }
 }
