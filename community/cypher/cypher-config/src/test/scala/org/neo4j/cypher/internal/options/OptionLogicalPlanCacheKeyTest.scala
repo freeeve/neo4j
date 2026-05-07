@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.options
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class OptionLogicalPlanCacheKeyTest extends CypherFunSuite {
+class OptionLogicalPlanCacheKeyTest extends CypherFunSuite3 {
 
   case class MyOuter(inner: MyInner, someInt: Int)
 
@@ -32,8 +32,8 @@ class OptionLogicalPlanCacheKeyTest extends CypherFunSuite {
 
   implicit val cacheKeyStrings: OptionLogicalPlanCacheKey[String] =
     OptionLogicalPlanCacheKey.create(value => s"text $value")
-  implicit val cacheKeyInner: OptionLogicalPlanCacheKey[MyInner] = OptionLogicalPlanCacheKey.derive[MyInner]
-  implicit val cacheKeyOuter: OptionLogicalPlanCacheKey[MyOuter] = OptionLogicalPlanCacheKey.derive[MyOuter]
+  implicit val cacheKeyInner: OptionLogicalPlanCacheKey[MyInner] = OptionLogicalPlanCacheKey.derived[MyInner]
+  implicit val cacheKeyOuter: OptionLogicalPlanCacheKey[MyOuter] = OptionLogicalPlanCacheKey.derived[MyOuter]
 
   test("Can create cache key for any case class") {
     cacheKeyOuter.logicalPlanCacheKey(

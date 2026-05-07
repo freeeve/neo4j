@@ -25,13 +25,13 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherParallelRunti
 import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_parallel_runtime_support
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.config.CypherConfiguration
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 import org.neo4j.exceptions.InvalidCypherOption
 import org.neo4j.graphdb.config.Setting
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class OptionReaderTest extends CypherFunSuite {
+class OptionReaderTest extends CypherFunSuite3 {
 
   test("Can read defaults") {
 
@@ -203,9 +203,9 @@ class OptionReaderTest extends CypherFunSuite {
     }
   }
 
-  private def defaultOptions(queryOptions: (String, String)*): CypherQueryOptions = options(Map.empty, queryOptions: _*)
+  private def defaultOptions(queryOptions: (String, String)*): CypherQueryOptions = options(Map.empty, queryOptions*)
 
-  private def options(settings: Map[Setting[_], AnyRef], queryOptions: (String, String)*): CypherQueryOptions = {
+  private def options(settings: Map[Setting[?], AnyRef], queryOptions: (String, String)*): CypherQueryOptions = {
     CypherQueryOptions.fromValues(
       CypherConfiguration.fromConfig(Config.newBuilder().set(settings.asJava).build()),
       queryOptions.toSet

@@ -128,18 +128,18 @@ case class CypherDerivedQueryOptions(
 
 object CypherQueryOptions {
 
-  private val hasDefault = OptionDefault.derive[CypherQueryOptions]
-  private val renderer = OptionRenderer.derive[CypherQueryOptions]
-  private val cacheKey = OptionCacheKey.derive[CypherQueryOptions]
-  private val logicalPlanCacheKey = OptionLogicalPlanCacheKey.derive[CypherQueryOptions]
-  private val reader = OptionReader.derive[CypherQueryOptions]
+  private val hasDefault = OptionDefault.derived[CypherQueryOptions]
+  private val renderer = OptionRenderer.derived[CypherQueryOptions]
+  private val cacheKey = OptionCacheKey.derived[CypherQueryOptions]
+  private val logicalPlanCacheKey = OptionLogicalPlanCacheKey.derived[CypherQueryOptions]
+  private val reader = OptionReader.derived[CypherQueryOptions]
 
   val defaultOptions: CypherQueryOptions = hasDefault.default
 
   def fromValues(config: CypherConfiguration, keyValues: Set[(String, String)]): CypherQueryOptions = {
     reader.read(OptionReader.Input(config, keyValues)) match {
       case OptionReader.Result(remainder, _) if remainder.keyValues.nonEmpty =>
-        throw InvalidCypherOption.unsupportedOptions(remainder.keyValues.map(_._1).toArray: _*)
+        throw InvalidCypherOption.unsupportedOptions(remainder.keyValues.map(_._1).toArray*)
       case OptionReader.Result(_, options) =>
         if (options.planMode.isScope && !config.enableScopeQueries) {
           throw InvalidCypherOption.invalidOption(
@@ -155,7 +155,7 @@ object CypherQueryOptions {
           throw InvalidCypherOption.invalidOption(
             options.cypherVersion.name,
             CypherVersionOption.name,
-            CypherVersionOption.supportedValues.map(_.name): _*
+            CypherVersionOption.supportedValues.map(_.name)*
           )
         }
         options
@@ -227,7 +227,7 @@ sealed abstract class CypherExecutionMode(val modeName: String) extends CypherOp
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherExecutionMode extends CypherOptionCompanion[CypherExecutionMode](
+object CypherExecutionMode extends CypherOptionCompanion[CypherExecutionMode](
       name = "execution mode"
     ) {
 
@@ -263,7 +263,7 @@ sealed abstract class CypherPlanMode(val modeName: String) extends CypherOption(
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherPlanMode extends CypherOptionCompanion[CypherPlanMode](
+object CypherPlanMode extends CypherOptionCompanion[CypherPlanMode](
       name = "plan mode"
     ) {
   case object default extends CypherPlanMode("")
@@ -305,7 +305,7 @@ sealed abstract class CypherVersionOption(val version: String) extends CypherOpt
   def explicitVersion: Option[CypherVersion]
 }
 
-case object CypherVersionOption extends CypherOptionCompanion[CypherVersionOption](name = "cypher version") {
+object CypherVersionOption extends CypherOptionCompanion[CypherVersionOption](name = "cypher version") {
 
   /** No cypher version specified in pre-parser options => we should use the db default version. */
   case object default extends CypherVersionOption("") {
@@ -349,7 +349,7 @@ sealed abstract class CypherPlannerOption(plannerName: String) extends CypherKey
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherPlannerOption extends CypherOptionCompanion[CypherPlannerOption](
+object CypherPlannerOption extends CypherOptionCompanion[CypherPlannerOption](
       name = "planner",
       setting = Some(GraphDatabaseSettings.cypher_planner),
       cypherConfigField = Some(_.planner)
@@ -383,7 +383,7 @@ sealed abstract class CypherRuntimeOption(runtimeName: String) extends CypherKey
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherRuntimeOption extends CypherOptionCompanion[CypherRuntimeOption](
+object CypherRuntimeOption extends CypherOptionCompanion[CypherRuntimeOption](
       name = "runtime",
       setting = Some(GraphDatabaseInternalSettings.cypher_runtime),
       cypherConfigField = Some(_.runtime)
@@ -412,7 +412,7 @@ sealed abstract class CypherUpdateStrategy(strategy: String) extends CypherKeyVa
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherUpdateStrategy extends CypherOptionCompanion[CypherUpdateStrategy](
+object CypherUpdateStrategy extends CypherOptionCompanion[CypherUpdateStrategy](
       name = "updateStrategy"
     ) {
 
@@ -435,7 +435,7 @@ sealed abstract class CypherInferSchemaPartsOption(option: String) extends Cyphe
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherInferSchemaPartsOption extends CypherOptionCompanion[CypherInferSchemaPartsOption](
+object CypherInferSchemaPartsOption extends CypherOptionCompanion[CypherInferSchemaPartsOption](
       name = "inferSchemaParts",
       setting = Some(GraphDatabaseSettings.cypher_infer_schema_parts_strategy),
       cypherConfigField = Some(_.labelInference)
@@ -465,7 +465,7 @@ sealed abstract class CypherExpressionEngineOption(engineName: String) extends C
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherExpressionEngineOption extends CypherOptionCompanion[CypherExpressionEngineOption](
+object CypherExpressionEngineOption extends CypherOptionCompanion[CypherExpressionEngineOption](
       name = "expressionEngine",
       setting = Some(GraphDatabaseInternalSettings.cypher_expression_engine),
       cypherConfigField = Some(_.expressionEngineOption)
@@ -496,7 +496,7 @@ sealed abstract class CypherOperatorEngineOption(mode: String) extends CypherKey
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherOperatorEngineOption extends CypherOptionCompanion[CypherOperatorEngineOption](
+object CypherOperatorEngineOption extends CypherOptionCompanion[CypherOperatorEngineOption](
       name = "operatorEngine",
       setting = Some(GraphDatabaseInternalSettings.cypher_operator_engine),
       cypherConfigField = Some(_.operatorEngine)
@@ -525,7 +525,7 @@ sealed abstract class CypherParallelRuntimeSupportOption(mode: String) extends C
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherParallelRuntimeSupportOption extends CypherOptionCompanion[CypherParallelRuntimeSupportOption](
+object CypherParallelRuntimeSupportOption extends CypherOptionCompanion[CypherParallelRuntimeSupportOption](
       name = "parallelRuntimeSupport",
       setting = Some(GraphDatabaseInternalSettings.cypher_parallel_runtime_support),
       cypherConfigField = Some(_.parallelRuntimeSupport)
@@ -557,7 +557,7 @@ sealed abstract class CypherParallelRuntimeConfigOption(selection: String) exten
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherParallelRuntimeConfigOption extends CypherOptionCompanion[CypherParallelRuntimeConfigOption](
+object CypherParallelRuntimeConfigOption extends CypherOptionCompanion[CypherParallelRuntimeConfigOption](
       name = "parallelRuntimeConfig",
       setting = Some(GraphDatabaseInternalSettings.parallel_runtime_config),
       cypherConfigField = Some(_.parallel_runtime_config)
@@ -592,7 +592,7 @@ sealed abstract class CypherInterpretedPipesFallbackOption(mode: String) extends
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherInterpretedPipesFallbackOption extends CypherOptionCompanion[CypherInterpretedPipesFallbackOption](
+object CypherInterpretedPipesFallbackOption extends CypherOptionCompanion[CypherInterpretedPipesFallbackOption](
       name = "interpretedPipesFallback",
       setting = Some(GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback),
       cypherConfigField = Some(_.interpretedPipesFallback)
@@ -624,7 +624,7 @@ sealed abstract class CypherReplanOption(strategy: String) extends CypherKeyValu
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherReplanOption extends CypherOptionCompanion[CypherReplanOption](
+object CypherReplanOption extends CypherOptionCompanion[CypherReplanOption](
       name = "replan"
     ) {
 
@@ -653,7 +653,7 @@ sealed abstract class CypherCacheOption(strategy: String) extends CypherKeyValue
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherCacheOption extends CypherOptionCompanion[CypherCacheOption](
+object CypherCacheOption extends CypherOptionCompanion[CypherCacheOption](
       name = "cache"
     ) {
 
@@ -677,7 +677,7 @@ sealed abstract class CypherConnectComponentsPlannerOption(planner: String) exte
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherConnectComponentsPlannerOption extends CypherOptionCompanion[CypherConnectComponentsPlannerOption](
+object CypherConnectComponentsPlannerOption extends CypherOptionCompanion[CypherConnectComponentsPlannerOption](
       name = "connectComponentsPlanner"
     ) {
 
@@ -701,7 +701,7 @@ sealed abstract class CypherEagerAnalyzerOption(name: String) extends CypherKeyV
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherEagerAnalyzerOption extends CypherOptionCompanion[CypherEagerAnalyzerOption](
+object CypherEagerAnalyzerOption extends CypherOptionCompanion[CypherEagerAnalyzerOption](
       name = "eagerAnalyzer"
     ) {
 
@@ -789,7 +789,7 @@ sealed abstract class CypherPlannerVersionOption(name: String) extends CypherKey
   override def relevantForLogicalPlanCacheKey: Boolean = true
 }
 
-case object CypherPlannerVersionOption extends CypherOptionCompanion[CypherPlannerVersionOption](
+object CypherPlannerVersionOption extends CypherOptionCompanion[CypherPlannerVersionOption](
       name = "plannerVersion",
       cypherConfigField = Some(_.plannerVersion)
     ) {
@@ -835,7 +835,7 @@ sealed abstract class CypherPipelinedBatchSizePresetOption(val preset: String) e
     false // This is option only has effect via derivedOptionsCacheKey
 }
 
-case object CypherPipelinedBatchSizePresetOption extends CypherOptionCompanion[CypherPipelinedBatchSizePresetOption](
+object CypherPipelinedBatchSizePresetOption extends CypherOptionCompanion[CypherPipelinedBatchSizePresetOption](
       name = "batchSizePreset",
       setting = Some(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_preset),
       cypherConfigField = Some(_.pipelinedBatchSizePreset)
@@ -924,7 +924,7 @@ sealed abstract class CypherPipelinedBatchReuseOption(val preset: String) extend
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherPipelinedBatchReuseOption extends CypherOptionCompanion[CypherPipelinedBatchReuseOption](
+object CypherPipelinedBatchReuseOption extends CypherOptionCompanion[CypherPipelinedBatchReuseOption](
       name = "batchReuse",
       setting = Some(GraphDatabaseInternalSettings.cypher_pipelined_batch_reuse),
       cypherConfigField = Some(_.pipelinedBatchReuse)
@@ -956,7 +956,7 @@ sealed abstract class CypherHeapEstimatorCacheOption(val preset: String) extends
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherHeapEstimatorCacheOption](
+object CypherHeapEstimatorCacheOption extends CypherOptionCompanion[CypherHeapEstimatorCacheOption](
       name = "heapEstimatorCache",
       setting = Some(GraphDatabaseInternalSettings.heap_estimator_cache_preset),
       cypherConfigField = Some(_.heapEstimatorCacheOption)
@@ -1046,7 +1046,7 @@ sealed abstract class CypherDebugOption(flag: String) extends CypherKeyValueOpti
   override def relevantForLogicalPlanCacheKey: Boolean = false
 }
 
-case object CypherDebugOption extends CypherOptionCompanion[CypherDebugOption](
+object CypherDebugOption extends CypherOptionCompanion[CypherDebugOption](
       name = "debug",
       cypherConfigBooleans = Map()
     ) {

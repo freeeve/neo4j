@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.options
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite3
 
-class CypherVersionTest extends CypherFunSuite {
+class CypherVersionTest extends CypherFunSuite3 {
 
   test("in sync with org.neo4j.cypher.internal.CypherVersion") {
     CypherVersionOption.values.foreach { version =>

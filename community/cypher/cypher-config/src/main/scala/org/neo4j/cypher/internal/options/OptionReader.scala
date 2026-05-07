@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.options
 
 import magnolia1.CaseClass
-import magnolia1.Magnolia
+import magnolia1.ProductDerivation
 import org.neo4j.cypher.internal.config.CypherConfiguration
 
 import java.util.Locale
@@ -38,7 +38,7 @@ trait OptionReader[T] {
     (input: OptionReader.Input) => read(input).map(func)
 }
 
-object OptionReader {
+object OptionReader extends ProductDerivation[OptionReader] {
 
   /** Input to OptionReader:s */
   case class Input(
@@ -77,23 +77,16 @@ object OptionReader {
 
   def canonical(str: String): String = str.toLowerCase(Locale.ROOT)
 
-  // Magnolia generic derivation
-  // Check out the tutorial at https://propensive.com/opensource/magnolia/tutorial
-
-  type Typeclass[T] = OptionReader[T]
-
   /**
    * Generic OptionReader for any case class (given that there are OptionReader:s for all its parameter types)
    * that reads each parameter in turn, passing on the remaining input to the next OptionReader
    */
-  def join[T](caseClass: CaseClass[OptionReader, T]): OptionReader[T] = {
+  override def join[T](caseClass: CaseClass[OptionReader, T]): OptionReader[T] = {
     (input: Input) =>
-      val results = caseClass.parameters.foldLeft(Result(input, Seq[Any]())) { case (in, p) =>
+      val results = caseClass.params.foldLeft(Result(input, Seq[Any]())) { case (in, p) =>
         val result = p.typeclass.read(in.remainder)
         Result(result.remainder, in.result :+ result.result)
       }
       results.map(caseClass.rawConstruct)
   }
-
-  implicit def derive[T]: OptionReader[T] = macro Magnolia.gen[T]
 }

@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.options
 
 import magnolia1.CaseClass
-import magnolia1.Magnolia
+import magnolia1.ProductDerivation
 
 import scala.language.experimental.macros
 
@@ -31,25 +31,18 @@ trait OptionDefault[T] {
   def default: T
 }
 
-object OptionDefault {
+object OptionDefault extends ProductDerivation[OptionDefault] {
 
   def create[T](value: T): OptionDefault[T] = new OptionDefault[T] {
     override def default: T = value
   }
 
-  // Magnolia generic derivation
-  // Check out the tutorial at https://propensive.com/opensource/magnolia/tutorial
-
-  type Typeclass[T] = OptionDefault[T]
-
   /**
    * Generic OptionDefault for any case class (given that there are OptionDefault:s for all its parameter types)
    * that gives each parameter its default value
    */
-  def join[T](caseClass: CaseClass[OptionDefault, T]): OptionDefault[T] = {
+  override def join[T](caseClass: CaseClass[OptionDefault, T]): OptionDefault[T] = {
     val value = caseClass.construct(_.typeclass.default)
     OptionDefault.create(value)
   }
-
-  def derive[T]: OptionDefault[T] = macro Magnolia.gen[T]
 }

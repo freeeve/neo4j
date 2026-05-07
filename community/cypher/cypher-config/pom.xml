@@ -23,6 +23,7 @@
   <properties>
     <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     <moduleName>org.neo4j.cypher.internal.options</moduleName>
+    <scala.binary.version>3</scala.binary.version>
   </properties>
 
   <dependencies>
@@ -31,8 +32,9 @@
       <artifactId>scalatest-junit-runner</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.softwaremill.magnolia1_2</groupId>
+      <groupId>com.softwaremill.magnolia1_3</groupId>
       <artifactId>magnolia_${scala.binary.version}</artifactId>
+      <version>1.3.0</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
@@ -65,11 +67,11 @@
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
-      <artifactId>scala-reflect</artifactId>
+      <artifactId>scala3-library_3</artifactId>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-test-util</artifactId>
+      <artifactId>neo4j-test-util-scala3</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -109,6 +111,41 @@
 
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>${scala-maven-plugin.version}</version>
+
+        <configuration>
+          <scalaVersion>${scala3.version}</scalaVersion>
+          <scalaCompatVersion>3</scalaCompatVersion>
+          <recompileMode>${scala.plugin.recompileMode}</recompileMode>
+          <args combine.self="override" />
+          <jvmArgs>
+            <jvmArg>-Xms256m</jvmArg>
+            <jvmArg>-Xmx1024m</jvmArg>
+            <jvmArg>-Xss4M</jvmArg>
+          </jvmArgs>
+          <secondaryCacheDir>${java.io.tmpdir}</secondaryCacheDir>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <configuration>
+          <scala>
+            <scalafmt>
+              <scalaMajorVersion>2.13</scalaMajorVersion>
+              <file>${maven.multiModuleProjectDirectory}/public/build-resources/scalafmt3.conf</file>
+            </scalafmt>
+          </scala>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <profiles>
     <profile>
       <id>scala-fatal-warnings</id>
@@ -124,7 +161,7 @@
             <groupId>net.alchim31.maven</groupId>
             <artifactId>scala-maven-plugin</artifactId>
             <configuration>
-              <args combine.children="append">
+              <args combine.self="override">
                 <arg>-Xfatal-warnings</arg>
                 <arg>-feature</arg>
               </args>

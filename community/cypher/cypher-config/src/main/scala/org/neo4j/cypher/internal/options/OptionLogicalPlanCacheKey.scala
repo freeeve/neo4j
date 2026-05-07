@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.options
 
 import magnolia1.CaseClass
-import magnolia1.Magnolia
+import magnolia1.ProductDerivation
 
 import scala.language.experimental.macros
 
@@ -31,26 +31,19 @@ trait OptionLogicalPlanCacheKey[T] {
   def logicalPlanCacheKey(value: T): String
 }
 
-object OptionLogicalPlanCacheKey {
+object OptionLogicalPlanCacheKey extends ProductDerivation[OptionLogicalPlanCacheKey] {
 
   def create[T](func: T => String): OptionLogicalPlanCacheKey[T] =
     (value: T) => func(value)
-
-  // Magnolia generic derivation
-  // Check out the tutorial at https://propensive.com/opensource/magnolia/tutorial
-
-  type Typeclass[T] = OptionLogicalPlanCacheKey[T]
 
   /**
    * Generic OptionLogicalPlanCacheKey for any case class (given that there are OptionLogicalPlanCacheKey:s for all its parameter types)
    * that combines smaller cache keys into a space-separated string
    */
-  def join[T](caseClass: CaseClass[OptionLogicalPlanCacheKey, T]): OptionLogicalPlanCacheKey[T] =
+  override def join[T](caseClass: CaseClass[OptionLogicalPlanCacheKey, T]): OptionLogicalPlanCacheKey[T] =
     (value: T) =>
-      caseClass.parameters
-        .map(param => param.typeclass.logicalPlanCacheKey(param.dereference(value)))
+      caseClass.params
+        .map(param => param.typeclass.logicalPlanCacheKey(param.deref(value)))
         .filterNot(_.isBlank)
         .mkString(" ")
-
-  def derive[T]: OptionLogicalPlanCacheKey[T] = macro Magnolia.gen[T]
 }

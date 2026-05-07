@@ -39,7 +39,7 @@ abstract class CypherOption(inputName: String) {
   val name: String = OptionReader.canonical(inputName)
 
   /** The companion object to this option type */
-  def companion: CypherOptionCompanion[_ <: CypherOption]
+  def companion: CypherOptionCompanion[? <: CypherOption]
 
   /** Renders this option value to a string */
   def render: String = if (this == companion.default) "" else name
@@ -75,12 +75,10 @@ abstract class CypherKeyValueOption(inputName: String) extends CypherOption(inpu
  */
 abstract class CypherOptionCompanion[Opt <: CypherOption](
   val name: String,
-  setting: Option[Setting[_]] = None,
+  setting: Option[Setting[?]] = None,
   cypherConfigField: Option[CypherConfiguration => Opt] = None,
   val cypherConfigBooleans: Map[Opt, CypherConfiguration => Boolean] = Map.empty[Opt, CypherConfiguration => Boolean]
 ) {
-  self: Product =>
-
   val key: String = OptionReader.canonical(name)
 
   /**
@@ -149,7 +147,7 @@ abstract class CypherOptionCompanion[Opt <: CypherOption](
     case value => values.find(_.name == value).getOrElse(throw InvalidCypherOption.invalidOption(
         input,
         name,
-        supportedValues.map(_.name): _*
+        supportedValues.map(_.name)*
       ))
 
   }

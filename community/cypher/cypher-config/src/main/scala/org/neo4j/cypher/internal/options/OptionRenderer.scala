@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.options
 
 import magnolia1.CaseClass
-import magnolia1.Magnolia
+import magnolia1.ProductDerivation
 
 import scala.language.experimental.macros
 
@@ -31,26 +31,19 @@ trait OptionRenderer[T] {
   def render(value: T): String
 }
 
-object OptionRenderer {
+object OptionRenderer extends ProductDerivation[OptionRenderer] {
 
   def create[T](func: T => String): OptionRenderer[T] =
     (value: T) => func(value)
-
-  // Magnolia generic derivation
-  // Check out the tutorial at https://propensive.com/opensource/magnolia/tutorial
-
-  type Typeclass[T] = OptionRenderer[T]
 
   /**
    * Generic OptionRenderer for any case class (given that there are OptionRenderer:s for all its parameter types)
    * that combines smaller rendered strings into a space-separated string
    */
-  def join[T](caseClass: CaseClass[OptionRenderer, T]): OptionRenderer[T] =
+  override def join[T](caseClass: CaseClass[OptionRenderer, T]): OptionRenderer[T] =
     (value: T) =>
-      caseClass.parameters
-        .map(p => p.typeclass.render(p.dereference(value)))
+      caseClass.params
+        .map(p => p.typeclass.render(p.deref(value)))
         .filterNot(_.isBlank)
         .mkString(" ")
-
-  def derive[T]: OptionRenderer[T] = macro Magnolia.gen[T]
 }
