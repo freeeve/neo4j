@@ -21,6 +21,7 @@ package org.neo4j.cypher
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.RewindableExecutionResult
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparsesable_42I67
@@ -32,12 +33,16 @@ import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.gqlstatus.NotificationClassification
+import org.neo4j.graphdb.NotificationCategory
+import org.neo4j.graphdb.SeverityLevel
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.graphdb.schema.ConstraintType
 import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_DIMENSIONS
 import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_SIMILARITY_FUNCTION
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
+import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.impl.api.index.IndexingService
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -65,6 +70,38 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   })
 
   private def anyMap(elems: (String, Any)*): Map[String, Any] = Map[String, Any](elems *)
+
+  private def assertVectorIndexDimensionsNotSpecifiedWarning(result: RewindableExecutionResult): Unit = {
+    val vectorIndexDimensionsNotSpecifiedDescription =
+      "When creating a vector index, `vector.dimensions` should be specified. Omitting it is allowed, but " +
+        "specifying dimensions ensures that only vectors of that size are indexed and makes dimension mismatches " +
+        "fail clearly at query time. For example, set `OPTIONS { indexConfig: { `vector.dimensions`: 1536 } }` " +
+        "when creating the index."
+    val notification = result.notifications
+      .find(_.getCode == Status.Schema.VectorIndexDimensionsNotSpecified.code.serialize())
+      .getOrElse(fail(s"Expected vector index dimensions notification, but got: ${result.notifications}"))
+
+    notification should have(
+      Symbol("code")(Status.Schema.VectorIndexDimensionsNotSpecified.code.serialize()),
+      Symbol("severity")(SeverityLevel.INFORMATION),
+      Symbol("category")(NotificationCategory.SCHEMA),
+      Symbol("title")("Vector index dimensions not specified."),
+      Symbol("description")(vectorIndexDimensionsNotSpecifiedDescription)
+    )
+
+    val gqlStatusObject = result.gqlStatusObjects
+      .find(_.gqlStatus == GqlStatusInfoCodes.STATUS_00NA2.getStatusString)
+      .getOrElse(fail(s"Expected 00NA2 in GQL status objects, but got: ${result.gqlStatusObjects}"))
+
+    gqlStatusObject should have(
+      Symbol("severity")(SeverityLevel.INFORMATION),
+      Symbol("classification")(NotificationClassification.SCHEMA),
+      Symbol("statusDescription")(
+        "note: successful completion - vector index dimensions not specified. " +
+          vectorIndexDimensionsNotSpecifiedDescription
+      )
+    )
+  }
 
   override def databaseConfig(): Map[Setting[?], Object] = super.databaseConfig() ++ Map(
     GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
@@ -160,21 +197,130 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
   }
 
+  test("Create node vector index without dimensions should warn") {
+    // WHEN
+    val result = execute(
+      s"CREATE VECTOR INDEX $indexName FOR (n:$label) ON n.$prop OPTIONS {indexConfig: $$map}",
+      Map("map" -> anyMap(
+        VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
+      ))
+    )
+
+    // THEN
+    result.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
+
+    graph.indexExists(indexName) should be(true)
+    graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
+    assertVectorIndexDimensionsNotSpecifiedWarning(result)
+  }
+
+  test("Create node vector index without dimensions should warn on repeated IF NOT EXISTS") {
+    val query =
+      s"CREATE VECTOR INDEX $indexName IF NOT EXISTS FOR (n:$label) ON n.$prop OPTIONS {indexConfig: $$map}"
+    val params = Map("map" -> anyMap(
+      VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
+    ))
+
+    // WHEN
+    val firstResult = execute(query, params)
+    val secondResult = execute(query, params)
+
+    // THEN
+    firstResult.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
+    firstResult.notifications.size shouldBe 1
+    assertVectorIndexDimensionsNotSpecifiedWarning(firstResult)
+
+    secondResult.queryStatistics() should be(QueryStatistics(indexesAdded = 0))
+    secondResult.notifications.size shouldBe 2
+    secondResult.notifications.map(_.getCode) should contain(
+      Status.Schema.IndexOrConstraintAlreadyExists.code.serialize()
+    )
+    secondResult.gqlStatusObjects.map(_.gqlStatus) should contain(GqlStatusInfoCodes.STATUS_00NA0.getStatusString)
+    assertVectorIndexDimensionsNotSpecifiedWarning(secondResult)
+  }
+
+  test("Create node vector index with dimensions should not warn") {
+    // WHEN
+    val result = execute(
+      s"CREATE VECTOR INDEX $indexName FOR (n:$label) ON n.$prop OPTIONS {indexConfig: $$map}",
+      Map("map" -> anyMap(
+        VECTOR_DIMENSIONS.getSettingName -> 50,
+        VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
+      ))
+    )
+
+    // THEN
+    result.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
+
+    graph.indexExists(indexName) should be(true)
+    graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
+    result.notifications.map(_.getCode) should not contain
+      Status.Schema.VectorIndexDimensionsNotSpecified.code.serialize()
+    result.gqlStatusObjects.map(_.gqlStatus) should not contain
+      GqlStatusInfoCodes.STATUS_00NA2.getStatusString
+  }
+
   test("Create relationship vector index") {
     // WHEN
-    val statistics = execute(
+    val result = execute(
       s"CREATE VECTOR INDEX $indexName FOR ()-[r:$relType]-() ON r.$prop OPTIONS {indexConfig: $$map}",
       Map("map" -> anyMap(
         VECTOR_DIMENSIONS.getSettingName -> 50,
         VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
       ))
-    ).queryStatistics()
+    )
 
     // THEN
-    statistics should be(QueryStatistics(indexesAdded = 1))
+    result.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
 
     graph.indexExists(indexName) should be(true)
     graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
+    result.notifications.map(_.getCode) should not contain
+      Status.Schema.VectorIndexDimensionsNotSpecified.code.serialize()
+    result.gqlStatusObjects.map(_.gqlStatus) should not contain
+      GqlStatusInfoCodes.STATUS_00NA2.getStatusString
+  }
+
+  test("Create relationship vector index without dimensions should warn") {
+    // WHEN
+    val result = execute(
+      s"CREATE VECTOR INDEX $indexName FOR ()-[r:$relType]-() ON r.$prop OPTIONS {indexConfig: $$map}",
+      Map("map" -> anyMap(
+        VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
+      ))
+    )
+
+    // THEN
+    result.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
+
+    graph.indexExists(indexName) should be(true)
+    graph.getIndexTypeByName(indexName) should be(IndexType.VECTOR)
+    assertVectorIndexDimensionsNotSpecifiedWarning(result)
+  }
+
+  test("Create relationship vector index without dimensions should warn on repeated IF NOT EXISTS") {
+    val query =
+      s"CREATE VECTOR INDEX $indexName IF NOT EXISTS FOR ()-[r:$relType]-() ON r.$prop OPTIONS {indexConfig: $$map}"
+    val params = Map("map" -> anyMap(
+      VECTOR_SIMILARITY_FUNCTION.getSettingName -> "COSINE"
+    ))
+
+    // WHEN
+    val firstResult = execute(query, params)
+    val secondResult = execute(query, params)
+
+    // THEN
+    firstResult.queryStatistics() should be(QueryStatistics(indexesAdded = 1))
+    firstResult.notifications.size shouldBe 1
+    assertVectorIndexDimensionsNotSpecifiedWarning(firstResult)
+
+    secondResult.queryStatistics() should be(QueryStatistics(indexesAdded = 0))
+    secondResult.notifications.size shouldBe 2
+    secondResult.notifications.map(_.getCode) should contain(
+      Status.Schema.IndexOrConstraintAlreadyExists.code.serialize()
+    )
+    secondResult.gqlStatusObjects.map(_.gqlStatus) should contain(GqlStatusInfoCodes.STATUS_00NA0.getStatusString)
+    assertVectorIndexDimensionsNotSpecifiedWarning(secondResult)
   }
 
   test("Create multi-label vector index with additional properties") {

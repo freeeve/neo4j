@@ -97,6 +97,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd, GqlParams.StringParam.idxOrConstr},
             "index or constraint does not exist",
             NotificationClassification.SCHEMA),
+    STATUS_00NA2(
+            "When creating a vector index, `vector.dimensions` should be specified. Omitting it is allowed, but specifying dimensions ensures that only vectors of that size are indexed and makes dimension mismatches fail clearly at query time. For example, set `OPTIONS { indexConfig: { `vector.dimensions`: 1536 } }` when creating the index.",
+            new GqlParams.GqlParam[] {},
+            "vector index dimensions not specified",
+            NotificationClassification.SCHEMA),
     STATUS_01000("", "", NotificationClassification.UNKNOWN),
     STATUS_01004("", "string data, right truncation", NotificationClassification.UNKNOWN),
     STATUS_01G03("", "graph does not exist", NotificationClassification.UNKNOWN),

@@ -379,6 +379,11 @@ public enum NotificationCodeWithDescription {
     INDEX_OR_CONSTRAINT_DOES_NOT_EXIST(
             Status.Schema.IndexOrConstraintDoesNotExist, GqlStatusInfoCodes.STATUS_00NA1, "`%s` does not exist."),
 
+    VECTOR_INDEX_DIMENSIONS_NOT_SPECIFIED(
+            Status.Schema.VectorIndexDimensionsNotSpecified,
+            GqlStatusInfoCodes.STATUS_00NA2,
+            "When creating a vector index, `vector.dimensions` should be specified. Omitting it is allowed, but specifying dimensions ensures that only vectors of that size are indexed and makes dimension mismatches fail clearly at query time. For example, set `OPTIONS { indexConfig: { `vector.dimensions`: 1536 } }` when creating the index."),
+
     AGGREGATION_SKIPPED_NULL(
             Status.Statement.AggregationSkippedNull,
             GqlStatusInfoCodes.STATUS_01G11,
@@ -943,6 +948,10 @@ public enum NotificationCodeWithDescription {
             InputPosition position, String titleParam, String descriptionParam) {
         return INDEX_OR_CONSTRAINT_DOES_NOT_EXIST.notificationWithTitleAndDescriptionDetails(
                 position, titleParam, new String[] {descriptionParam}, new String[] {titleParam, descriptionParam});
+    }
+
+    public static NotificationImplementation vectorIndexDimensionsNotSpecified(InputPosition position) {
+        return VECTOR_INDEX_DIMENSIONS_NOT_SPECIFIED.notification(position);
     }
 
     public static NotificationImplementation deprecatedOptionInOptionMap(String oldOption, String newOption) {

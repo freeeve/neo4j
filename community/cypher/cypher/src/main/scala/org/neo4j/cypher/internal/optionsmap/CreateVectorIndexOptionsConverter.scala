@@ -21,8 +21,10 @@ package org.neo4j.cypher.internal.optionsmap
 
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.notification.VectorIndexDimensionsNotSpecifiedNotification
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_DIMENSIONS
 import org.neo4j.internal.helpers.InclusiveRange
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexProviderDescriptor
@@ -66,7 +68,13 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
   ): OptionsConverterResult[CreateIndexWithFullOptions] = {
     val (indexProvider, indexConfig, notifications) =
       getOptionsParts(options, schemaType, IndexType.VECTOR, cypherVersion)
-    ParsedWithNotifications(CreateIndexWithFullOptions(indexProvider, indexConfig), notifications)
+    val finalNotifications =
+      if (indexConfig.get(VECTOR_DIMENSIONS.getSettingName) == null) {
+        notifications + VectorIndexDimensionsNotSpecifiedNotification
+      } else {
+        notifications
+      }
+    ParsedWithNotifications(CreateIndexWithFullOptions(indexProvider, indexConfig), finalNotifications)
   }
 
   // VECTOR indexes has vector config settings

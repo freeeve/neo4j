@@ -97,6 +97,7 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.shadowingI
 import static org.neo4j.notifications.NotificationCodeWithDescription.subqueryVariableShadowing;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unboundedShortestPath;
 import static org.neo4j.notifications.NotificationCodeWithDescription.unsatisfiableRelationshipTypeExpression;
+import static org.neo4j.notifications.NotificationCodeWithDescription.vectorIndexDimensionsNotSpecified;
 import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerCatchingUp;
 import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerCaughtUp;
 import static org.neo4j.notifications.NotificationCodeWithDescription.waitServerFailed;
@@ -1945,6 +1946,29 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
+    void shouldConstructNotificationsFor_VECTOR_INDEX_DIMENSIONS_NOT_SPECIFIED() {
+        NotificationImplementation notification = vectorIndexDimensionsNotSpecified(InputPosition.empty);
+
+        verifyNotification(
+                notification,
+                "Vector index dimensions not specified.",
+                SeverityLevel.INFORMATION,
+                "Neo.ClientNotification.Schema.VectorIndexDimensionsNotSpecified",
+                "When creating a vector index, `vector.dimensions` should be specified. Omitting it is allowed, but specifying dimensions ensures that only vectors of that size are indexed and makes dimension mismatches fail clearly at query time. For example, set `OPTIONS { indexConfig: { `vector.dimensions`: 1536 } }` when creating the index.",
+                NotificationCategory.SCHEMA,
+                NotificationClassification.SCHEMA,
+                "00NA2",
+                new DiagnosticRecord(info, NotificationClassification.SCHEMA, -1, -1, -1).asMap(),
+                "note: successful completion - vector index dimensions not specified. When creating a vector index, `vector.dimensions` should be specified. Omitting it is allowed, but specifying dimensions ensures that only vectors of that size are indexed and makes dimension mismatches fail clearly at query time. For example, set `OPTIONS { indexConfig: { `vector.dimensions`: 1536 } }` when creating the index.");
+    }
+
+    @Test
+    void shouldKeep_VECTOR_INDEX_DIMENSIONS_NOT_SPECIFIED_description_in_sync_with_gql_status() {
+        assertThat(NotificationCodeWithDescription.VECTOR_INDEX_DIMENSIONS_NOT_SPECIFIED.getDescription(new Object[0]))
+                .isEqualTo(GqlStatusInfoCodes.STATUS_00NA2.getMessage(new Object[0]));
+    }
+
+    @Test
     void shouldConstructNotificationsFor_AGGREGATION_SKIPPED_NULL() {
         NotificationImplementation notification = aggregationSkippedNull();
 
@@ -2323,8 +2347,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            71, -79, 73, -117, -85, 37, -7, -32, 111, 53, 44, 23, 13, 19, 113, -65, -73, 39, -88, -7, 73, 122, 82, 119,
-            28, 86, 7, -100, 8, 99, -29, 124
+            79, 11, -68, 122, 116, 43, 68, 105, -65, -10, -106, -39, -2, -120, 76, 45, 43, -105, -27, 52, -57, -34, 104,
+            102, -47, -51, 58, 28, 49, -19, 58, 16
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

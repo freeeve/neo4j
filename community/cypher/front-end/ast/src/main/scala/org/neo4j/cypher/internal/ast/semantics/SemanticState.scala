@@ -379,7 +379,7 @@ object SemanticState {
 
   implicit val ScopeZipper: TopLevelScopeZipper.type = TopLevelScopeZipper
 
-  val clean: SemanticState = SemanticState(
+  lazy val clean: SemanticState = SemanticState(
     Scope.empty.location,
     ASTAnnotationMap.empty,
     ASTAnnotationMap.empty
