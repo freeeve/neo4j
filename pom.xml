@@ -207,6 +207,7 @@
       -Djunit.platform.discovery.issue.severity.critical=WARNING
       -Dio.netty.leakDetection.level=${test.vm.netty.leakDetection.level}
       -Dio.netty.customResourceLeakDetector=org.neo4j.test.extension.netty.Neo4jResourceLeakDetectionFactory
+      -Dio.netty.leakDetection.targetRecords=64
       -XX:+UnlockExperimentalVMOptions
       -XX:+TrustFinalNonStaticFields
       -XX:FlightRecorderOptions=stackdepth=256
